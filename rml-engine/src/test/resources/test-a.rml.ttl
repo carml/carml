@@ -1,0 +1,43 @@
+
+@prefix rr: <http://www.w3.org/ns/r2rml#>.
+@prefix rml: <http://semweb.mmlab.be/ns/rml#>.
+@prefix ql: <http://semweb.mmlab.be/ns/ql#>.
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
+@prefix vocab: <http://data.example.com/def/> .
+
+<#GebouwMapping>
+
+	rml:logicalSource [
+		rml:source "source-a.json";
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$";
+	];
+	
+	rr:subjectMap [
+		rr:template "http://data.example.com/resource/{id}";
+		rr:class vocab:MyResource
+	];
+
+	rr:predicateObjectMap [
+		rr:predicate vocab:when;
+		rr:objectMap [
+			rml:reference "when";
+			rr:datatype xsd:date;
+		]
+	];
+	
+	rr:predicateObjectMap [
+		rr:predicate vocab:description;
+		rr:objectMap [ 
+			rml:reference "description";
+		]
+	];
+	
+	rr:predicateObjectMap [
+		rr:predicate vocab:accuracy;
+		rr:objectMap [
+			rml:reference "accuracy";
+			rr:datatype xsd:float;
+		]
+	];
+.
