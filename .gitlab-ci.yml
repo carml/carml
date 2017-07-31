@@ -1,0 +1,12 @@
+image: local/taxonic-maven-docker:latest
+
+stages:
+- build
+
+build:
+  stage: build
+  tags:
+    - maven
+    - taxonic
+  script:
+    - mvn -q clean deploy
