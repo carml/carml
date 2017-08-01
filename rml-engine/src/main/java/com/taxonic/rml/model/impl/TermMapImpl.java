@@ -1,6 +1,5 @@
 package com.taxonic.rml.model.impl;
 
-import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Value;
 
 import com.taxonic.rdf_mapper.annotations.RdfProperty;
@@ -79,7 +78,7 @@ abstract public class TermMapImpl implements TermMap {
 		this.termType = termType;
 	}
 
-	public void setConstant(Resource constant) {
+	public void setConstant(Value constant) {
 		this.constant = constant;
 	}
 
