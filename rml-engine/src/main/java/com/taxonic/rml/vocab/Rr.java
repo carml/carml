@@ -12,6 +12,7 @@ public class Rr {
 		template = NS + "template",
 		predicate = NS + "predicate",
 		predicateMap = NS + "predicateMap",
+		subject = NS + "subject",
 		subjectMap = NS + "subjectMap",
 		object = NS + "object",
 		objectMap = NS + "objectMap",

@@ -1,7 +1,10 @@
 package com.taxonic.rml.model.impl;
 
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
+
+import org.eclipse.rdf4j.model.IRI;
 
 import com.taxonic.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.rdf_mapper.annotations.RdfType;
@@ -43,6 +46,16 @@ public class TriplesMapImpl implements TriplesMap {
 	@Override
 	public SubjectMap getSubjectMap() {
 		return subjectMap;
+	}
+	
+	// rr:subject X is the shorthand for rr:subjectMap [ rr:constant X ]
+	@RdfProperty(Rr.subject)
+	public void setSubject(IRI subject) {
+		setSubjectMap(
+			SubjectMapImpl.newBuilder()
+				.constant(subject)
+				.build()
+		);
 	}
 
 	@RdfProperty(Rr.predicateObjectMap)
