@@ -6,8 +6,8 @@ import java.util.Set;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Value;
 
-import com.taxonic.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.rml.model.SubjectMap;
+import com.taxonic.rml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.rml.vocab.Rr;
 
 public class SubjectMapImpl extends TermMapImpl implements SubjectMap {

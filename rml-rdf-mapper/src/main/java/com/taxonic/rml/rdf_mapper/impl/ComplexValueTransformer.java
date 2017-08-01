@@ -1,4 +1,4 @@
-package com.taxonic.rdf_mapper.impl;
+package com.taxonic.rml.rdf_mapper.impl;
 
 import java.lang.reflect.Type;
 import java.util.Collections;
@@ -13,7 +13,7 @@ import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.vocabulary.XMLSchema;
 
-import com.taxonic.rdf_mapper.Mapper;
+import com.taxonic.rml.rdf_mapper.Mapper;
 
 class ComplexValueTransformer implements ValueTransformer {
 

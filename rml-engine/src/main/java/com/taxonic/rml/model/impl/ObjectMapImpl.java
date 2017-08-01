@@ -3,8 +3,8 @@ package com.taxonic.rml.model.impl;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Value;
 
-import com.taxonic.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.rml.model.ObjectMap;
+import com.taxonic.rml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.rml.vocab.Rr;
 
 public class ObjectMapImpl extends TermMapImpl implements ObjectMap {

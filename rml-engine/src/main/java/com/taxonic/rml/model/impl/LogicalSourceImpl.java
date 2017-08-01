@@ -2,8 +2,8 @@ package com.taxonic.rml.model.impl;
 
 import org.eclipse.rdf4j.model.IRI;
 
-import com.taxonic.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.rml.model.LogicalSource;
+import com.taxonic.rml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.rml.vocab.Rml;
 
 public class LogicalSourceImpl implements LogicalSource {

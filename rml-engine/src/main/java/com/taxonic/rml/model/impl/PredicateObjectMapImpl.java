@@ -3,11 +3,11 @@ package com.taxonic.rml.model.impl;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-import com.taxonic.rdf_mapper.annotations.RdfProperty;
-import com.taxonic.rdf_mapper.annotations.RdfType;
 import com.taxonic.rml.model.ObjectMap;
 import com.taxonic.rml.model.PredicateMap;
 import com.taxonic.rml.model.PredicateObjectMap;
+import com.taxonic.rml.rdf_mapper.annotations.RdfProperty;
+import com.taxonic.rml.rdf_mapper.annotations.RdfType;
 import com.taxonic.rml.vocab.Rr;
 
 public class PredicateObjectMapImpl implements PredicateObjectMap {

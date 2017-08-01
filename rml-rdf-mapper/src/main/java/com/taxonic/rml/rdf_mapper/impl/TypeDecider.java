@@ -1,12 +1,12 @@
-package com.taxonic.rdf_mapper;
+package com.taxonic.rml.rdf_mapper.impl;
 
 import java.lang.reflect.Type;
 
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 
-public interface Mapper {
+interface TypeDecider {
 
-	<T> T map(Model model, Resource resource, Type type);
+	Type decide(Model model, Resource resource);
 	
 }

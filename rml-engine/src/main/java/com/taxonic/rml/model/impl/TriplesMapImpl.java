@@ -3,12 +3,12 @@ package com.taxonic.rml.model.impl;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-import com.taxonic.rdf_mapper.annotations.RdfProperty;
-import com.taxonic.rdf_mapper.annotations.RdfType;
 import com.taxonic.rml.model.LogicalSource;
 import com.taxonic.rml.model.PredicateObjectMap;
 import com.taxonic.rml.model.SubjectMap;
 import com.taxonic.rml.model.TriplesMap;
+import com.taxonic.rml.rdf_mapper.annotations.RdfProperty;
+import com.taxonic.rml.rdf_mapper.annotations.RdfType;
 import com.taxonic.rml.vocab.Rml;
 import com.taxonic.rml.vocab.Rr;
 

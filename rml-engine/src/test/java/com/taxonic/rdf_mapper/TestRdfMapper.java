@@ -12,7 +12,6 @@ import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.model.vocabulary.XMLSchema;
 import org.junit.Test;
 
-import com.taxonic.rdf_mapper.impl.MapperImpl;
 import com.taxonic.rml.model.TriplesMap;
 import com.taxonic.rml.model.impl.LogicalSourceImpl;
 import com.taxonic.rml.model.impl.ObjectMapImpl;
@@ -20,6 +19,8 @@ import com.taxonic.rml.model.impl.PredicateMapImpl;
 import com.taxonic.rml.model.impl.PredicateObjectMapImpl;
 import com.taxonic.rml.model.impl.SubjectMapImpl;
 import com.taxonic.rml.model.impl.TriplesMapImpl;
+import com.taxonic.rml.rdf_mapper.Mapper;
+import com.taxonic.rml.rdf_mapper.impl.MapperImpl;
 import com.taxonic.rml.util.IoUtils;
 import com.taxonic.rml.util.RmlConstantShorthandExpander;
 import com.taxonic.rml.vocab.Rdf;

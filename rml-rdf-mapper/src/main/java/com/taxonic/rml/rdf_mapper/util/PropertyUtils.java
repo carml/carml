@@ -1,4 +1,4 @@
-package com.taxonic.rdf_mapper.util;
+package com.taxonic.rml.rdf_mapper.util;
 
 import java.util.Arrays;
 import java.util.function.Function;

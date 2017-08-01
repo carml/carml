@@ -1,4 +1,4 @@
-package com.taxonic.rdf_mapper.impl;
+package com.taxonic.rml.rdf_mapper.impl;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -26,10 +26,10 @@ import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 
-import com.taxonic.rdf_mapper.Mapper;
-import com.taxonic.rdf_mapper.annotations.RdfProperty;
-import com.taxonic.rdf_mapper.annotations.RdfType;
-import com.taxonic.rdf_mapper.util.PropertyUtils;
+import com.taxonic.rml.rdf_mapper.Mapper;
+import com.taxonic.rml.rdf_mapper.annotations.RdfProperty;
+import com.taxonic.rml.rdf_mapper.annotations.RdfType;
+import com.taxonic.rml.rdf_mapper.util.PropertyUtils;
 
 public class MapperImpl implements Mapper, MappingCache {
 

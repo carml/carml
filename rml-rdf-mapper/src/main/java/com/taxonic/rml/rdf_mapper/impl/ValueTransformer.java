@@ -1,4 +1,4 @@
-package com.taxonic.rdf_mapper.impl;
+package com.taxonic.rml.rdf_mapper.impl;
 
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Value;

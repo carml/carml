@@ -8,19 +8,12 @@
 		<version>develop-SNAPSHOT</version>
 	</parent>
 	
-	<artifactId>rml-engine</artifactId>
+	<artifactId>rml-rdf-mapper</artifactId>
 	<packaging>jar</packaging>
 
-	<name>rml-engine</name>
+	<name>rml-rdf-mapper</name>
 
 	<dependencies>
-
-		<dependency>
-			<groupId>com.taxonic.rml</groupId>
-			<artifactId>rml-rdf-mapper</artifactId>
-			<version>develop-SNAPSHOT</version>
-		</dependency>
-		
 	</dependencies>
 
 </project>
