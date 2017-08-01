@@ -30,6 +30,7 @@ import com.taxonic.rdf_mapper.Mapper;
 import com.taxonic.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.rdf_mapper.annotations.RdfType;
 import com.taxonic.rdf_mapper.util.PropertyUtils;
+import com.taxonic.rml.vocab.Rr;
 
 public class MapperImpl implements Mapper, MappingCache {
 
@@ -236,6 +237,10 @@ public class MapperImpl implements Mapper, MappingCache {
 						.stream()
 						.collect(Collectors.toList());
 
+				// XXX debug for unit test sometimes failing...
+				if (predicate.equals(f.createIRI(Rr.object)))
+					System.out.println("values for property rr:object:\n" + values);
+				
 				// no values
 				if (values.isEmpty()) {
 					// TODO error if property has @RdfRequired?
