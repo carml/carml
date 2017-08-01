@@ -21,6 +21,7 @@ import com.taxonic.rml.model.impl.PredicateObjectMapImpl;
 import com.taxonic.rml.model.impl.SubjectMapImpl;
 import com.taxonic.rml.model.impl.TriplesMapImpl;
 import com.taxonic.rml.util.IoUtils;
+import com.taxonic.rml.util.RmlConstantShorthandExpander;
 import com.taxonic.rml.vocab.Rdf;
 
 public class TestRdfMapper {
@@ -129,7 +130,9 @@ public class TestRdfMapper {
 	
 	private List<TriplesMap> loadTriplesMaps(String resource) {
 
-		Model model = IoUtils.parse(resource);
+		Model originalModel = IoUtils.parse(resource);
+		
+		Model model = new RmlConstantShorthandExpander().apply(originalModel);
 		
 		Mapper mapper = new MapperImpl();
 		
