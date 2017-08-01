@@ -34,6 +34,11 @@
 	];
 	
 	rr:predicateObjectMap [
+		rr:predicate vocab:description;
+		rr:object "constant description"@en;
+	];
+	
+	rr:predicateObjectMap [
 		rr:predicate vocab:accuracy;
 		rr:objectMap [
 			rml:reference "accuracy";
