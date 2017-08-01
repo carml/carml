@@ -1,5 +1,6 @@
 package com.taxonic.rml.model.impl;
 
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 import org.eclipse.rdf4j.model.IRI;
@@ -72,7 +73,7 @@ public class SubjectMapImpl extends TermMapImpl implements SubjectMap {
 	public static class Builder
 		extends com.taxonic.rml.model.impl.TermMapImpl.Builder {
 		
-		private Set<IRI> classes;
+		private Set<IRI> classes = new LinkedHashSet<>();
 
 		Builder() {}
 		
@@ -100,6 +101,11 @@ public class SubjectMapImpl extends TermMapImpl implements SubjectMap {
 		
 		public Builder constant(Value constant) {
 			super.constant(constant);
+			return this;
+		}
+		
+		public Builder clazz(IRI clazz) {
+			classes.add(clazz);
 			return this;
 		}
 		

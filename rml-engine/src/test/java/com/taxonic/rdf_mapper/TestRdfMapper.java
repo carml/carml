@@ -3,9 +3,7 @@ package com.taxonic.rdf_mapper;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.eclipse.rdf4j.model.IRI;
@@ -60,7 +58,7 @@ public class TestRdfMapper {
 				.subjectMap(
 					SubjectMapImpl.newBuilder()
 						.template(TestRdfMapper.Example.prefix + "resource/{id}")
-						.classes(set(TestRdfMapper.Example.MyResource))
+						.clazz(TestRdfMapper.Example.MyResource)
 						.build()
 				)
 				.predicateObjectMap(
@@ -153,8 +151,4 @@ public class TestRdfMapper {
 			.collect(Collectors.toList());		
 	}
 	
-	private static <T> Set<T> set(T... elements) {
-		return new LinkedHashSet<>(Arrays.asList(elements));
-	}
-
 }
