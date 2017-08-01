@@ -1,11 +1,17 @@
 package com.taxonic.rdf_mapper.impl;
 
 import java.lang.reflect.Type;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.function.Function;
 
+import org.eclipse.rdf4j.model.IRI;
+import org.eclipse.rdf4j.model.Literal;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Value;
+import org.eclipse.rdf4j.model.vocabulary.XMLSchema;
 
 import com.taxonic.rdf_mapper.Mapper;
 
@@ -27,10 +33,52 @@ class ComplexValueTransformer implements ValueTransformer {
 		this.mapper = mapper;
 		this.typeAdapter = typeAdapter;
 	}
+	
+	private static final Map<IRI, Function<Literal, Object>> literalGetters;
+	
+	static {
+		
+		// TODO umm, somewhat convoluted
+		class CreateLiteralGetters {
+			Map<IRI, Function<Literal, Object>> getters = new LinkedHashMap<>();
+			
+			void add(IRI type, Function<Literal, Object> getter) {
+				getters.put(type, getter);
+			}
+			
+			Map<IRI, Function<Literal, Object>> run() {
+				add(XMLSchema.BOOLEAN, Literal::booleanValue);
+				add(XMLSchema.STRING, Literal::getLabel);
+				add(XMLSchema.DECIMAL, Literal::decimalValue);
+				add(XMLSchema.FLOAT, Literal::floatValue);
+				add(XMLSchema.INT, Literal::intValue);
+				add(XMLSchema.INTEGER, Literal::integerValue); // BigInteger
+				add(XMLSchema.DOUBLE, Literal::doubleValue);
+				// TODO more types, most notably xsd:date and variations
+				return Collections.unmodifiableMap(getters);
+			}
+		}
+		literalGetters = new CreateLiteralGetters().run();
+	}
 
+	private Object transform(Literal literal) {
+		IRI type = literal.getDatatype();
+		Function<Literal, Object> getter = literalGetters.get(type);
+		if (getter == null)
+			throw new RuntimeException("no getter for Literal defined that can handle literal with datatype [" + type + "]");
+		return getter.apply(literal);
+	}
+	
 	@Override
 	public Object transform(Model model, Value value) {
 	
+		if (value instanceof Literal)
+			return transform((Literal) value);
+		
+		
+		// =========== RESOURCE ===========
+		
+		
 		Resource resource = (Resource) value;
 		
 		// determine exact target type
