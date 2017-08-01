@@ -5,7 +5,7 @@
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
 @prefix vocab: <http://data.example.com/def/> .
 
-<#GebouwMapping>
+<#MyMapping>
 
 	rml:logicalSource [
 		rml:source "source-a.json";
