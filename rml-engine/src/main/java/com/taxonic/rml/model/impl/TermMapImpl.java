@@ -1,6 +1,7 @@
 package com.taxonic.rml.model.impl;
 
 import org.eclipse.rdf4j.model.Resource;
+import org.eclipse.rdf4j.model.Value;
 
 import com.taxonic.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.rml.model.TermMap;
@@ -13,7 +14,7 @@ abstract public class TermMapImpl implements TermMap {
 	private String inverseExpression;
 	private String template;
 	private Object termType;
-	private Resource constant;
+	private Value constant;
 
 	public TermMapImpl() {}
 	
@@ -22,7 +23,7 @@ abstract public class TermMapImpl implements TermMap {
 		String inverseExpression,
 		String template,
 		Object termType,
-		Resource constant
+		Value constant
 	) {
 		this.reference = reference;
 		this.inverseExpression = inverseExpression;
@@ -58,7 +59,7 @@ abstract public class TermMapImpl implements TermMap {
 
 	@RdfProperty(Rr.constant)
 	@Override
-	public Resource getConstant() {
+	public Value getConstant() {
 		return constant;
 	}
 
