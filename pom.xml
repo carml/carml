@@ -12,6 +12,7 @@
 
 	<modules>
 		<module>rml-engine</module>
+		<module>rml-model</module>
 		<module>rml-rdf-mapper</module>
 	</modules>
 
