@@ -1,6 +1,11 @@
 package com.taxonic.rml.model.impl;
 
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.Set;
+
+import org.eclipse.rdf4j.model.IRI;
+import org.eclipse.rdf4j.model.Value;
 
 import com.taxonic.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.rdf_mapper.annotations.RdfType;
@@ -31,11 +36,35 @@ public class PredicateObjectMapImpl implements PredicateObjectMap {
 		return predicateMaps;
 	}
 
+	// rr:predicate X is the shorthand for rr:predicateMap [ rr:constant X ]
+	@RdfProperty(Rr.predicate)
+	public void setPredicate(IRI predicate) {
+		setPredicateMaps(
+			Collections.singleton(
+				PredicateMapImpl.newBuilder()
+					.constant(predicate)
+					.build()
+			)
+		);
+	}
+	
 	@RdfProperty(Rr.objectMap)
 	@RdfType(ObjectMapImpl.class)
 	@Override
 	public Set<ObjectMap> getObjectMaps() {
 		return objectMaps;
+	}
+	
+	// rr:object X is the shorthand for rr:objectMap [ rr:constant X ]
+	@RdfProperty(Rr.object)
+	public void setObject(Value object) {
+		setObjectMaps(
+			Collections.singleton(
+				ObjectMapImpl.newBuilder()
+					.constant(object)
+					.build()
+			)
+		);
 	}
 
 	public void setPredicateMaps(Set<PredicateMap> predicateMaps) {

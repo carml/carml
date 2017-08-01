@@ -13,6 +13,7 @@ public class Rr {
 		predicate = NS + "predicate",
 		predicateMap = NS + "predicateMap",
 		subjectMap = NS + "subjectMap",
+		object = NS + "object",
 		objectMap = NS + "objectMap",
 		inverseExpression = NS + "inverseExpression",
 		termType = NS + "termType",
