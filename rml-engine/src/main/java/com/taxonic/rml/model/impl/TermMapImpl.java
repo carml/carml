@@ -124,4 +124,59 @@ abstract public class TermMapImpl implements TermMap {
 		return true;
 	}
 
+	public static class Builder {
+		
+		private String reference;
+		private String inverseExpression;
+		private String template;
+		private Object termType;
+		private Value constant;
+		
+		Builder() {}
+		
+		Builder reference(String reference) {
+			this.reference = reference;
+			return this;
+		}
+		
+		Builder inverseExpression(String inverseExpression) {
+			this.inverseExpression = inverseExpression;
+			return this;
+		}
+		
+		Builder template(String template) {
+			this.template = template;
+			return this;
+		}
+		
+		Builder termType(Object termType) {
+			this.termType = termType;
+			return this;
+		}
+		
+		Builder constant(Value constant) {
+			this.constant = constant;
+			return this;
+		}
+
+		String getReference() {
+			return reference;
+		}
+
+		String getInverseExpression() {
+			return inverseExpression;
+		}
+
+		String getTemplate() {
+			return template;
+		}
+
+		Object getTermType() {
+			return termType;
+		}
+
+		Value getConstant() {
+			return constant;
+		}
+	}
 }

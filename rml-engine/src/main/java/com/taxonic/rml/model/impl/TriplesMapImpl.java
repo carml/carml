@@ -1,5 +1,6 @@
 package com.taxonic.rml.model.impl;
 
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 import com.taxonic.rdf_mapper.annotations.RdfProperty;
@@ -8,6 +9,7 @@ import com.taxonic.rml.model.LogicalSource;
 import com.taxonic.rml.model.PredicateObjectMap;
 import com.taxonic.rml.model.SubjectMap;
 import com.taxonic.rml.model.TriplesMap;
+import com.taxonic.rml.model.impl.TriplesMapImpl.Builder;
 import com.taxonic.rml.vocab.Rml;
 import com.taxonic.rml.vocab.Rr;
 
@@ -99,4 +101,38 @@ public class TriplesMapImpl implements TriplesMap {
 		return true;
 	}
 
+	public static Builder newBuilder() {
+		return new Builder();
+	}
+	
+	public static class Builder {
+		
+		private LogicalSource logicalSource;
+		private SubjectMap subjectMap;
+		private Set<PredicateObjectMap> predicateObjectMaps = new LinkedHashSet<>();
+		
+		public Builder logicalSource(LogicalSource logicalSource) {
+			this.logicalSource = logicalSource;
+			return this;
+		}
+		
+		public Builder subjectMap(SubjectMap subjectMap) {
+			this.subjectMap = subjectMap;
+			return this;
+		}
+		
+		public Builder predicateObjectMap(PredicateObjectMap predicateObjectMap) {
+			predicateObjectMaps.add(predicateObjectMap);
+			return this;
+		}
+
+		public TriplesMapImpl build() {
+			return new TriplesMapImpl(
+				logicalSource,
+				subjectMap,
+				predicateObjectMaps
+			);
+		}
+	}
+	
 }

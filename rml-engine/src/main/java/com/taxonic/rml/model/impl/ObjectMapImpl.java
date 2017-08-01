@@ -1,7 +1,7 @@
 package com.taxonic.rml.model.impl;
 
 import org.eclipse.rdf4j.model.IRI;
-import org.eclipse.rdf4j.model.Resource;
+import org.eclipse.rdf4j.model.Value;
 
 import com.taxonic.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.rml.model.ObjectMap;
@@ -19,7 +19,7 @@ public class ObjectMapImpl extends TermMapImpl implements ObjectMap {
 		String inverseExpression,
 		String template,
 		Object termType,
-		Resource constant,
+		Value constant,
 		IRI datatype,
 		String language
 	) {
@@ -82,4 +82,65 @@ public class ObjectMapImpl extends TermMapImpl implements ObjectMap {
 		return true;
 	}
 
+	public static Builder newBuilder() {
+		return new Builder();
+	}
+	
+	public static class Builder
+		extends com.taxonic.rml.model.impl.TermMapImpl.Builder {
+		
+		private IRI datatype;
+		private String language;
+
+		Builder() {}
+		
+		// TODO the value of extending TermMapImpl.Builder is very small...
+
+		public Builder reference(String reference) {
+			super.reference(reference);
+			return this;
+		}
+		
+		public Builder inverseExpression(String inverseExpression) {
+			super.inverseExpression(inverseExpression);
+			return this;
+		}
+		
+		public Builder template(String template) {
+			super.template(template);
+			return this;
+		}
+		
+		public Builder termType(Object termType) {
+			super.termType(termType);
+			return this;
+		}
+		
+		public Builder constant(Value constant) {
+			super.constant(constant);
+			return this;
+		}
+		
+		public Builder datatype(IRI datatype) {
+			this.datatype = datatype;
+			return this;
+		}
+		
+		public Builder language(String language) {
+			this.language = language;
+			return this;
+		}
+		
+		public ObjectMapImpl build() {
+			return new ObjectMapImpl(
+				getReference(),
+				getInverseExpression(),
+				getTemplate(),
+				getTermType(),
+				getConstant(),
+				datatype,
+				language
+			);
+		}
+	}	
 }

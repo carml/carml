@@ -91,4 +91,37 @@ public class LogicalSourceImpl implements LogicalSource {
 		return true;
 	}
 	
+	public static Builder newBuilder() {
+		return new Builder();
+	}
+	
+	public static class Builder {
+
+		private String source;
+		private String iterator;
+		private IRI referenceFormulation;
+		
+		public Builder source(String source) {
+			this.source = source;
+			return this;
+		}
+		
+		public Builder iterator(String iterator) {
+			this.iterator = iterator;
+			return this;
+		}
+		
+		public Builder referenceFormulation(IRI referenceFormulation) {
+			this.referenceFormulation = referenceFormulation;
+			return this;
+		}
+
+		public LogicalSourceImpl build() {
+			return new LogicalSourceImpl(
+				source,
+				iterator,
+				referenceFormulation
+			);
+		}
+	}
 }

@@ -78,4 +78,30 @@ public class PredicateObjectMapImpl implements PredicateObjectMap {
 		return true;
 	}
 
+	public static Builder newBuilder() {
+		return new Builder();
+	}
+	
+	public static class Builder {
+
+		private Set<PredicateMap> predicateMaps = new LinkedHashSet<>();
+		private Set<ObjectMap> objectMaps = new LinkedHashSet<>();
+		
+		public Builder predicateMap(PredicateMap predicateMap) {
+			predicateMaps.add(predicateMap);
+			return this;
+		}
+		
+		public Builder objectMap(ObjectMap objectMap) {
+			objectMaps.add(objectMap);
+			return this;
+		}
+		
+		public PredicateObjectMapImpl build() {
+			return new PredicateObjectMapImpl(
+				predicateMaps,
+				objectMaps
+			);
+		}
+	}
 }

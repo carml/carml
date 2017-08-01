@@ -3,7 +3,7 @@ package com.taxonic.rml.model.impl;
 import java.util.Set;
 
 import org.eclipse.rdf4j.model.IRI;
-import org.eclipse.rdf4j.model.Resource;
+import org.eclipse.rdf4j.model.Value;
 
 import com.taxonic.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.rml.model.SubjectMap;
@@ -20,7 +20,7 @@ public class SubjectMapImpl extends TermMapImpl implements SubjectMap {
 		String inverseExpression,
 		String template,
 		Object termType,
-		Resource constant,
+		Value constant,
 		Set<IRI> classes
 	) {
 		super(reference, inverseExpression, template, termType, constant);
@@ -65,4 +65,58 @@ public class SubjectMapImpl extends TermMapImpl implements SubjectMap {
 		return true;
 	}
 
+	public static Builder newBuilder() {
+		return new Builder();
+	}
+	
+	public static class Builder
+		extends com.taxonic.rml.model.impl.TermMapImpl.Builder {
+		
+		private Set<IRI> classes;
+
+		Builder() {}
+		
+		// TODO the value of extending TermMapImpl.Builder is very small...
+
+		public Builder reference(String reference) {
+			super.reference(reference);
+			return this;
+		}
+		
+		public Builder inverseExpression(String inverseExpression) {
+			super.inverseExpression(inverseExpression);
+			return this;
+		}
+		
+		public Builder template(String template) {
+			super.template(template);
+			return this;
+		}
+		
+		public Builder termType(Object termType) {
+			super.termType(termType);
+			return this;
+		}
+		
+		public Builder constant(Value constant) {
+			super.constant(constant);
+			return this;
+		}
+		
+		public Builder classes(Set<IRI> classes) {
+			this.classes = classes;
+			return this;
+		}
+		
+		public SubjectMapImpl build() {
+			return new SubjectMapImpl(
+				getReference(),
+				getInverseExpression(),
+				getTemplate(),
+				getTermType(),
+				getConstant(),
+				classes
+			);
+		}
+	}
 }

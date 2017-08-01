@@ -1,6 +1,6 @@
 package com.taxonic.rml.model.impl;
 
-import org.eclipse.rdf4j.model.Resource;
+import org.eclipse.rdf4j.model.Value;
 
 import com.taxonic.rml.model.PredicateMap;
 
@@ -13,7 +13,7 @@ public class PredicateMapImpl extends TermMapImpl implements PredicateMap {
 		String inverseExpression,
 		String template,
 		Object termType,
-		Resource constant
+		Value constant
 	) {
 		super(reference, inverseExpression, template, termType, constant);
 	}
@@ -32,7 +32,52 @@ public class PredicateMapImpl extends TermMapImpl implements PredicateMap {
 		if (getClass() != obj.getClass()) return false;
 		return true;
 	}
-
 	
+	public static Builder newBuilder() {
+		return new Builder();
+	}
+	
+	public static class Builder
+		extends com.taxonic.rml.model.impl.TermMapImpl.Builder {
+		
+		Builder() {}
+		
+		// TODO the value of extending TermMapImpl.Builder is very small...
+
+		public Builder reference(String reference) {
+			super.reference(reference);
+			return this;
+		}
+		
+		public Builder inverseExpression(String inverseExpression) {
+			super.inverseExpression(inverseExpression);
+			return this;
+		}
+		
+		public Builder template(String template) {
+			super.template(template);
+			return this;
+		}
+		
+		public Builder termType(Object termType) {
+			super.termType(termType);
+			return this;
+		}
+		
+		public Builder constant(Value constant) {
+			super.constant(constant);
+			return this;
+		}
+		
+		public PredicateMapImpl build() {
+			return new PredicateMapImpl(
+				getReference(),
+				getInverseExpression(),
+				getTemplate(),
+				getTermType(),
+				getConstant()
+			);
+		}
+	}
 }
 
