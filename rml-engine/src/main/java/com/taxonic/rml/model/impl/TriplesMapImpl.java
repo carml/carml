@@ -1,6 +1,5 @@
 package com.taxonic.rml.model.impl;
 
-import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -12,7 +11,6 @@ import com.taxonic.rml.model.LogicalSource;
 import com.taxonic.rml.model.PredicateObjectMap;
 import com.taxonic.rml.model.SubjectMap;
 import com.taxonic.rml.model.TriplesMap;
-import com.taxonic.rml.model.impl.TriplesMapImpl.Builder;
 import com.taxonic.rml.vocab.Rml;
 import com.taxonic.rml.vocab.Rr;
 

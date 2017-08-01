@@ -4,21 +4,21 @@ public class Rr {
 
 	public static final String
 	
-		NS = "http://www.w3.org/ns/r2rml#",
+		prefix = "http://www.w3.org/ns/r2rml#",
 		
-		clazz = NS + "class",
-		language = NS + "language",
-		datatype = NS + "datatype",
-		template = NS + "template",
-		predicate = NS + "predicate",
-		predicateMap = NS + "predicateMap",
-		subject = NS + "subject",
-		subjectMap = NS + "subjectMap",
-		object = NS + "object",
-		objectMap = NS + "objectMap",
-		inverseExpression = NS + "inverseExpression",
-		termType = NS + "termType",
-		constant = NS + "constant",
-		predicateObjectMap = NS + "predicateObjectMap";
+		clazz = prefix + "class",
+		language = prefix + "language",
+		datatype = prefix + "datatype",
+		template = prefix + "template",
+		predicate = prefix + "predicate",
+		predicateMap = prefix + "predicateMap",
+		subject = prefix + "subject",
+		subjectMap = prefix + "subjectMap",
+		object = prefix + "object",
+		objectMap = prefix + "objectMap",
+		inverseExpression = prefix + "inverseExpression",
+		termType = prefix + "termType",
+		constant = prefix + "constant",
+		predicateObjectMap = prefix + "predicateObjectMap";
 	
 }

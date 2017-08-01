@@ -4,13 +4,13 @@ public class Rml {
 
 	public static final String
 	
-		NS = "http://semweb.mmlab.be/ns/rml#",
+		prefix = "http://semweb.mmlab.be/ns/rml#",
 		
-		BaseSource = NS + "BaseSource",
-		referenceFormulation = NS + "referenceFormulation",
-		source = NS + "source",
-		reference = NS + "reference",
-		iterator = NS + "iterator",
-		logicalSource = NS + "logicalSource";
+		BaseSource = prefix + "BaseSource",
+		referenceFormulation = prefix + "referenceFormulation",
+		source = prefix + "source",
+		reference = prefix + "reference",
+		iterator = prefix + "iterator",
+		logicalSource = prefix + "logicalSource";
 	
 }
