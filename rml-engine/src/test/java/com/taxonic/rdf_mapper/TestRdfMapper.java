@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
+import org.eclipse.rdf4j.model.vocabulary.XMLSchema;
 import org.junit.Test;
 
 import com.taxonic.rdf_mapper.impl.MapperImpl;
@@ -21,13 +22,36 @@ import com.taxonic.rml.model.impl.PredicateObjectMapImpl;
 import com.taxonic.rml.model.impl.SubjectMapImpl;
 import com.taxonic.rml.model.impl.TriplesMapImpl;
 import com.taxonic.rml.util.IoUtils;
-import com.taxonic.rml.vocab.Rml;
 
 public class TestRdfMapper {
 
 	private static final SimpleValueFactory f = SimpleValueFactory.getInstance();
 	
-	private static final IRI logicalSource = f.createIRI(Rml.logicalSource);
+	private static class Rdf {
+		
+		// TODO not too happy about redefining the vocabs here. in pkg "vocab",
+		// they're defined as Strings. here, they're redefined in the RDF4J model API.
+		
+		static class Rml {
+			
+			static IRI iri(String suffix) { return f.createIRI(prefix + suffix); }
+			
+			static final String prefix = "http://semweb.mmlab.be/ns/rml#";
+			
+			static final IRI logicalSource = iri("logicalSource");
+			
+		}
+		
+		static class Example {
+			
+			static IRI iri(String suffix) { return f.createIRI(prefix + suffix); }
+			
+			static final String prefix = "http://data.example.com/";
+			
+			static final IRI MyResource = iri("def/MyResource");
+			
+		}
+	}
 	
 	@Test
 	public void test() {
@@ -44,10 +68,10 @@ public class TestRdfMapper {
 				new SubjectMapImpl(
 					null,
 					null,
-					"http://data.example.com/resource/{id}",
+					Rdf.Example.prefix + "resource/{id}",
 					null,
 					null,
-					set(f.createIRI("http://data.example.com/def/MyResource"))
+					set(Rdf.Example.MyResource)
 				),
 				set(
 					new PredicateObjectMapImpl(
@@ -59,7 +83,7 @@ public class TestRdfMapper {
 								null,
 								null,
 								null,
-								f.createIRI("http://www.w3.org/2001/XMLSchema#date"),
+								XMLSchema.DATE,
 								null
 							)
 						)
@@ -87,7 +111,7 @@ public class TestRdfMapper {
 								null,
 								null,
 								null,
-								f.createIRI("http://www.w3.org/2001/XMLSchema#float"),
+								XMLSchema.FLOAT,
 								null
 							)
 						)
@@ -109,7 +133,7 @@ public class TestRdfMapper {
 		
 		return
 		model
-			.filter(null, logicalSource, null)
+			.filter(null, Rdf.Rml.logicalSource, null)
 			.subjects()
 			.stream()
 			.map(r -> {
