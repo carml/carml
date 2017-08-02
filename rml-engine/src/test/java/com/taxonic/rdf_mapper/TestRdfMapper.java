@@ -46,6 +46,19 @@ public class TestRdfMapper {
 	}
 
 	@Test
+	public void testLoadMappingWithJustALogicalSource() {
+
+		List<TriplesMap> expected = null;
+		
+		// TODO expected = ....
+		
+		List<TriplesMap> result = loadTriplesMaps("test-xyz.rml.ttl");
+		
+		assertEquals(expected, result);
+		
+	}
+	
+	@Test
 	public void test() {
 
 		List<TriplesMap> expected = Arrays.asList(
@@ -59,15 +72,15 @@ public class TestRdfMapper {
 				)
 				.subjectMap(
 					SubjectMapImpl.newBuilder()
-						.template(TestRdfMapper.Example.prefix + "resource/{id}")
-						.clazz(TestRdfMapper.Example.MyResource)
+						.template(Example.prefix + "resource/{id}")
+						.clazz(Example.MyResource)
 						.build()
 				)
 				.predicateObjectMap(
 					PredicateObjectMapImpl.newBuilder()
 						.predicateMap(
 							PredicateMapImpl.newBuilder()
-								.constant(TestRdfMapper.Example.when)
+								.constant(Example.when)
 								.build()
 						)
 						.objectMap(
