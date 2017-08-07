@@ -50,7 +50,12 @@ public class Rdf {
 			objectMap    = iri("objectMap"   ),
 			graph        = iri("graph"       ),
 			graphMap     = iri("graphMap"    ),
-			constant     = iri("constant"    );
+			constant     = iri("constant"    ),
+			
+			
+			Literal		 = iri("Literal"	 ),
+			BlankNode	 = iri("BlankNode"	 ),
+			IRI			 = iri("IRI"	 	 );
 		
 	}
 }

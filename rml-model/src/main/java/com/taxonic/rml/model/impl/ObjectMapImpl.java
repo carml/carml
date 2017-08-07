@@ -18,7 +18,7 @@ public class ObjectMapImpl extends TermMapImpl implements ObjectMap {
 		String reference,
 		String inverseExpression,
 		String template,
-		Object termType,
+		IRI termType,
 		Value constant,
 		IRI datatype,
 		String language
@@ -111,7 +111,7 @@ public class ObjectMapImpl extends TermMapImpl implements ObjectMap {
 			return this;
 		}
 		
-		public Builder termType(Object termType) {
+		public Builder termType(IRI termType) {
 			super.termType(termType);
 			return this;
 		}

@@ -20,7 +20,7 @@ public class SubjectMapImpl extends TermMapImpl implements SubjectMap {
 		String reference,
 		String inverseExpression,
 		String template,
-		Object termType,
+		IRI termType,
 		Value constant,
 		Set<IRI> classes
 	) {
@@ -94,7 +94,7 @@ public class SubjectMapImpl extends TermMapImpl implements SubjectMap {
 			return this;
 		}
 		
-		public Builder termType(Object termType) {
+		public Builder termType(IRI termType) {
 			super.termType(termType);
 			return this;
 		}
@@ -125,4 +125,6 @@ public class SubjectMapImpl extends TermMapImpl implements SubjectMap {
 			);
 		}
 	}
+
+
 }

@@ -19,6 +19,11 @@ public class Rr {
 		inverseExpression = prefix + "inverseExpression",
 		termType = prefix + "termType",
 		constant = prefix + "constant",
-		predicateObjectMap = prefix + "predicateObjectMap";
+		predicateObjectMap = prefix + "predicateObjectMap",
+		
+	
+		IRI = prefix + "IRI",
+		BLANK_NODE = prefix + "BlankNode",
+		LITERAL = prefix + "Literal";
 	
 }
