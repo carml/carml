@@ -51,7 +51,7 @@ abstract public class TermMapImpl implements TermMap {
 	}
 
 	// TODO https://www.w3.org/TR/r2rml/#dfn-term-type
-//	@RdfProperty(Rr.termType)
+	@RdfProperty(Rr.termType)
 	@Override
 	public IRI getTermType() {
 		return termType;

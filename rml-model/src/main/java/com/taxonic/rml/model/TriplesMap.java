@@ -9,5 +9,5 @@ public interface TriplesMap {
 	SubjectMap getSubjectMap();
 	
 	Set<PredicateObjectMap> getPredicateObjectMaps();
-	
+
 }

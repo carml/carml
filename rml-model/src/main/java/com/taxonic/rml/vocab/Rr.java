@@ -17,9 +17,13 @@ public class Rr {
 		object = prefix + "object",
 		objectMap = prefix + "objectMap",
 		inverseExpression = prefix + "inverseExpression",
+		//TO DO Decide whether instead of termType --> dfn-term-type?
 		termType = prefix + "termType",
 		constant = prefix + "constant",
 		predicateObjectMap = prefix + "predicateObjectMap",
+		graphMap = prefix + "graphMap",
+		//TO DO add graph
+		//graph = prefix + "graph",
 		
 	
 		IRI = prefix + "IRI",

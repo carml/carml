@@ -17,6 +17,7 @@ import org.junit.Test;
 import com.taxonic.rml.model.LogicalSource;
 import com.taxonic.rml.model.PredicateMap;
 import com.taxonic.rml.model.TriplesMap;
+import com.taxonic.rml.model.impl.GraphMapImpl;
 import com.taxonic.rml.model.impl.LogicalSourceImpl;
 import com.taxonic.rml.model.impl.ObjectMapImpl;
 import com.taxonic.rml.model.impl.PredicateMapImpl;
@@ -71,13 +72,41 @@ public class TestRdfMapper {
 	}
 	
 	@Test
+	public void testLoadMappingWithGraphMaps() {
+		List<TriplesMap> expected = Arrays.asList(
+				TriplesMapImpl.newBuilder()
+					.logicalSource(
+						LogicalSourceImpl.newBuilder()
+							.source("simple2TestInput.json")
+							.iterator("$.Child")
+							.referenceFormulation(Rdf.Ql.JsonPath)
+							.build()
+					)
+					.subjectMap(
+						SubjectMapImpl.newBuilder()
+							.template(SecondExample.prefix + "Child/{first}/{last}")
+							.clazz(SecondExample.Child)
+							.graphMap(
+									GraphMapImpl.newBuilder()
+									.template("http://example.com/graphID/{BSN}")
+									.build()
+							)
+							.build()
+					)
+					.build()
+		);
+		List<TriplesMap> result = loadTriplesMaps("test15/graphMapMappingSubject.rml.ttl");
+		assertEquals(expected,result);
+	}
+	
+	@Test
 	public void testLoadMappingWithTermTypeLiteral() {
 		List<TriplesMap> expected = Arrays.asList(
 				TriplesMapImpl.newBuilder()
 					.logicalSource(
 						LogicalSourceImpl.newBuilder()
 							.source("simple2TestInput.json")
-							.iterator("$")
+							.iterator("$.Child")
 							.referenceFormulation(Rdf.Ql.JsonPath)
 							.build()
 					)
@@ -96,7 +125,9 @@ public class TestRdfMapper {
 						)
 						.objectMap(
 								ObjectMapImpl.newBuilder()
-								.termType(Rr.BlankNode)
+								.reference("birthday")
+								.datatype(XMLSchema.DATE)
+								.termType(Rr.Literal)
 								.build()
 						)
 						.build()
@@ -106,7 +137,6 @@ public class TestRdfMapper {
 		List<TriplesMap> result = loadTriplesMaps("test14/termTypeMappingLiteral.rml.ttl");
 		assertEquals(result,expected);
 	}
-	
 	@Test
 	public void testLoadMappingWithTermTypeIRI() {
 		List<TriplesMap> expected = Arrays.asList(
@@ -114,7 +144,7 @@ public class TestRdfMapper {
 					.logicalSource(
 						LogicalSourceImpl.newBuilder()
 							.source("simple2TestInput.json")
-							.iterator("$")
+							.iterator("$.Child")
 							.referenceFormulation(Rdf.Ql.JsonPath)
 							.build()
 					)
@@ -135,9 +165,8 @@ public class TestRdfMapper {
 						)
 						.objectMap(
 								ObjectMapImpl.newBuilder()
-								.reference("birthday")
-								.datatype(XMLSchema.DATE)
-								.termType(Rr.Literal)
+								.constant(SecondExample.Unknown)
+								.termType(Rr.IRI)
 								.build()
 						)
 						.build()
@@ -155,7 +184,7 @@ public class TestRdfMapper {
 					.logicalSource(
 						LogicalSourceImpl.newBuilder()
 							.source("simple2TestInput.json")
-							.iterator("$")
+							.iterator("$.Child")
 							.referenceFormulation(Rdf.Ql.JsonPath)
 							.build()
 					)
@@ -192,7 +221,7 @@ public class TestRdfMapper {
 					.logicalSource(
 						LogicalSourceImpl.newBuilder()
 							.source("simple2TestInput.json")
-							.iterator("$")
+							.iterator("$.Child")
 							.referenceFormulation(Rdf.Ql.JsonPath)
 							.build()
 					)
