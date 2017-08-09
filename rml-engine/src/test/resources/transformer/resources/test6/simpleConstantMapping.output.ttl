@@ -1,0 +1,2 @@
+<http://example.com/Child/Amarise/Fernand> a <http://example.com/Child> ;
+	<http://example.com/BSN> <http://example.com/0000> .

@@ -1,0 +1,5 @@
+<http://example.com/Student/5678> a <http://example.com/studentId> ;
+	<http://example.com/hasName> "lauri";
+		<http://example.com/isSPresentString> "yes" .
+
+	

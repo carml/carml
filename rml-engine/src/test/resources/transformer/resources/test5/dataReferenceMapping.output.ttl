@@ -1,0 +1,6 @@
+<http://example.com/Child/Amarise/Fernand> a <http://example.com/Child> ;
+	<http://example.com/age> "5"^^<http://www.w3.org/2001/XMLSchema#int> ;
+	<http://example.com/birthday> "2017-02-16"^^<http://www.w3.org/2001/XMLSchema#date> ;
+	<http://example.com/language> "Nederlands"@nl ;
+	<http://example.com/length> "5.5"^^<http://www.w3.org/2001/XMLSchema#float> ;
+	<http://example.com/loves> "milk"^^<http://example.com/liquid> .
