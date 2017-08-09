@@ -1,7 +1,6 @@
 package com.taxonic.rml.model.impl;
 
 import com.taxonic.rml.model.Join;
-import com.taxonic.rml.model.impl.SubjectMapImpl.Builder;
 import com.taxonic.rml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.rml.vocab.Rr;
 
@@ -48,16 +47,16 @@ public class JoinImpl implements Join{
 	@Override
 	public int hashCode() {
 		final int prime = 31;
-		int result = super.hashCode();
+		int result = 1;
 		result = prime * result + ((child == null) ? 0 : child.hashCode());
 		result = prime * result + ((parent == null) ? 0 : parent.hashCode());
 		return result;
 	}
-	
+
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj) return true;
-		if (!super.equals(obj)) return false;
+		if (obj == null) return false;
 		if (getClass() != obj.getClass()) return false;
 		JoinImpl other = (JoinImpl) obj;
 		if (child == null) {
@@ -70,7 +69,7 @@ public class JoinImpl implements Join{
 		else if (!parent.equals(other.parent)) return false;
 		return true;
 	}
-	
+
 	public static Builder newBuilder() {
 		return new Builder();
 	}
