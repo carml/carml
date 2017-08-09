@@ -54,32 +54,34 @@ public class RefObjectMapImpl implements RefObjectMap {
 			+ ", getJoinConditions()=" + getJoinConditions() + "] ";
 	}
 	
+	
+	
 	@Override
 	public int hashCode() {
 		final int prime = 31;
-		int result = super.hashCode();
-		result = prime * result + ((parentTriplesMap == null) ? 0 : parentTriplesMap.hashCode());
+		int result = 1;
 		result = prime * result + ((joinConditions == null) ? 0 : joinConditions.hashCode());
+		result = prime * result + ((parentTriplesMap == null) ? 0 : parentTriplesMap.hashCode());
 		return result;
 	}
-	
+
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj) return true;
-		if (!super.equals(obj)) return false;
+		if (obj == null) return false;
 		if (getClass() != obj.getClass()) return false;
 		RefObjectMapImpl other = (RefObjectMapImpl) obj;
-		if (parentTriplesMap == null) {
-			if (other.parentTriplesMap != null) return false;
-		}
-		else if (!parentTriplesMap.equals(other.parentTriplesMap)) return false;
 		if (joinConditions == null) {
 			if (other.joinConditions != null) return false;
 		}
 		else if (!joinConditions.equals(other.joinConditions)) return false;
+		if (parentTriplesMap == null) {
+			if (other.parentTriplesMap != null) return false;
+		}
+		else if (!parentTriplesMap.equals(other.parentTriplesMap)) return false;
 		return true;
 	}
-	
+
 	public static Builder newBuilder() {
 		return new Builder();
 	}
