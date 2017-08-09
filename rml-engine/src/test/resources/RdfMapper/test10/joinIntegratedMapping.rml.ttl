@@ -28,7 +28,7 @@
   
  <#CountryMapping>
  	rml:logicalSource [
- 		rml:source "joincountries.json";
+ 		rml:source "joinCountries.json";
     	rml:referenceFormulation ql:JSONPath;
     	rml:iterator "$"
     	];

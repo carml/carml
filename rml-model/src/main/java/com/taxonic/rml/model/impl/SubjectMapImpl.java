@@ -159,6 +159,4 @@ public class SubjectMapImpl extends TermMapImpl implements SubjectMap {
 			);
 		}
 	}
-
-
 }

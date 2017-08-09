@@ -1,0 +1,32 @@
+ex:removeNonLatinCharsFunction a fno:Function;
+    fno:name "The removeNonLatinChars function"^^xsd:string;
+    dcterms:description "This function removes non-alphanumeric characters in the latin alphabet from a string."^^xsd:string;
+    fno:solves ex:removeCharactersProblem;
+    fno:implements ex:removeAlgorithm;
+    fno:expects ( ex:stringA );
+    fno:returns ex:normalizedOutput.
+    
+ex:stringA a fno:Parameter;
+    fno:predicate ex:startString;
+    fno:required "true"^^xsd:boolean.
+    
+ex:startString fno:type xsd:string.
+    
+ex:normalizedOutput a fno:Output;
+    fno:predicate ex:normalizedResult;
+    fno:required "true"^^xsd:boolean.
+    
+ex:normalizedResult fno:type xsd:string.
+
+ex:removeCharactersProblem a fno:Problem;
+    fno:name "The normalization of strings problem"^^xsd:string;
+    dcterms:description "This handles the problem of removing non alphanumeric characters from a string."^^xsd:string;
+    skos:broader ex:removeProblem;
+
+ex:removeAlgorithm a fno:Algorithm;
+    fno:name "The remove/replace with regex algorithm"^^xsd:string;
+    dcterms:description "About how a string is normalized with a replace method with regex."^^xsd:string;
+    
+ex:removeCharsExecution a fno:Execution;
+    fno:executes ex:removeNonLatinCharsFunction;
+    ex:startString "überbla%2ç"^^xsd:string;

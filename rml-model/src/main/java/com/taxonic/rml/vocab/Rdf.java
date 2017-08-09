@@ -28,7 +28,10 @@ public class Rdf {
 		
 		public static final String prefix = "http://semweb.mmlab.be/ns/ql#";
 		
-		public static final IRI JsonPath = iri("JSONPath");
+		public static final IRI 
+			
+			JsonPath 	 = iri("JSONPath"	 ),
+			XPath 	 	 = iri("XPath"		 );
 		
 	}
 	

@@ -1,0 +1,26 @@
+{
+  "brontype" : "TOP10vector",
+  "hoogteniveau" : "0",
+  "objectbegintijd" : "2008-11-24",
+  "bronactualiteit" : "2005-01-01",
+  "bronnauwkeurigheid" : "2000",
+  "visualisatiecode" : "13000",
+  "lokaalid" : "101295495",
+  "_tiles" : [ 49605 ],
+  "bronbeschrijving" : "Digitaal bestand met gecodeerde vectoren. Deze geven tezamen de topografie van Nederland weer op de schaal 1:10.000. Voorloper van TOP10NL.",
+  "namespace" : "NL.TOP10NL",
+  "typegebouw" : "overig",
+  "hoogteklasse" : "laagbouw",
+  "_geometry" : {
+    "type" : "gml",
+    "geometry" : "<gml:Polygon xmlns:gml=\"http://www.opengis.net/gml/3.2\" srsName=\"urn:ogc:def:crs:EPSG::28992\" gml:id=\"LOCAL_ID_1224437\"><gml:exterior><gml:LinearRing><gml:posList srsDimension=\"2\" count=\"11\">211483.444 472778.172 211489.68 472781.308 211499.278 472814.326 211495.839 472819.291 211479.595 472824.013 211476.175 472812.247 211455.557 472818.24 211449.551 472797.576 211461.465 472794.113 211458.904 472785.305 211483.444 472778.172</gml:posList></gml:LinearRing></gml:exterior></gml:Polygon>",
+    "srid" : null,
+    "tiles" : null
+  },
+  "tijdstipregistratie" : "2008-11-24",
+  "_version" : "f4047648-ef94-11e6-82e8-2bf78f72ec2a",
+  "tdncode" : "999",
+  "status" : "in gebruik",
+  "_collection" : "gebouw",
+  "_id" : "nl.top10nl.101295495"
+}
