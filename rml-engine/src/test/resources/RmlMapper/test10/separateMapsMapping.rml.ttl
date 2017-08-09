@@ -4,9 +4,9 @@
 @prefix ql: <http://semweb.mmlab.be/ns/ql#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<#simpleIntegratedMapping> a rr:TriplesMap;
+<#SeparateMapsMapping> a rr:TriplesMap;
 	rml:logicalSource [
-    	rml:source "parentTriplesTestInput.json";
+    	rml:source "SeparateMappingTestInput.json";
     	rml:referenceFormulation ql:JSONPath;
     	rml:iterator "$.colors"
   	];
