@@ -14,6 +14,7 @@
 		<module>rml-engine</module>
 		<module>rml-model</module>
 		<module>rml-rdf-mapper</module>
+		<module>rml-constraints</module>
 	</modules>
 
 	<properties>
