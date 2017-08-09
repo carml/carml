@@ -6,3 +6,8 @@
 
 # maven
 /target/
+
+# Intellij
+.idea/
+*.iml
+*.iws
