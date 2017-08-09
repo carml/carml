@@ -6,6 +6,7 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -182,6 +183,15 @@ public class MapperImpl implements Mapper, MappingCache {
 		throw new RuntimeException("don't know how to create a factory for collection type [" + iterableType.getCanonicalName() + "]");
 	}
 	
+	private Function<Collection<Object>, Collection<Object>> createImmutableTransform(Class<?> iterableType) {
+		if (iterableType == null) return null;
+		if (iterableType.equals(Set.class))
+			return x -> Collections.unmodifiableSet((Set<Object>) x);
+		else if (iterableType.equals(List.class))
+			return x -> Collections.unmodifiableList((List<Object>) x);
+		throw new RuntimeException("don't know how to create a transform to make collections of type [" + iterableType.getCanonicalName() + "] immutable");
+	}
+	
 	private PropertyHandler getRdfPropertyHandler(Method method, Class<?> c) {
 		
 		RdfProperty annotation = method.getAnnotation(RdfProperty.class);
@@ -240,6 +250,7 @@ public class MapperImpl implements Mapper, MappingCache {
 		
 		Class<?> iterableType = propertyType.getIterableType();
 		Supplier<Collection<Object>> createIterable = createCollectionFactory(iterableType);
+		Function<Collection<Object>, Collection<Object>> immutableTransform = createImmutableTransform(iterableType);
 		
 		// TODO use @RdfProperty.handler, if any, instead of the default impl of PropertyHandler below
 		
@@ -268,7 +279,8 @@ public class MapperImpl implements Mapper, MappingCache {
 					
 					Collection<Object> result = createIterable.get();
 					transformed.forEach(result::add);
-					set.accept(instance, result);
+					Collection<Object> immutable = immutableTransform.apply(result);
+					set.accept(instance, immutable);
 					
 				}
 				

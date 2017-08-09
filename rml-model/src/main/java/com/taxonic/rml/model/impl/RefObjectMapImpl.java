@@ -2,11 +2,12 @@ package com.taxonic.rml.model.impl;
 
 import java.util.Set;
 
-import org.eclipse.rdf4j.model.IRI;
-
 import com.taxonic.rml.model.Join;
 import com.taxonic.rml.model.RefObjectMap;
 import com.taxonic.rml.model.TriplesMap;
+import com.taxonic.rml.rdf_mapper.annotations.RdfProperty;
+import com.taxonic.rml.rdf_mapper.annotations.RdfType;
+import com.taxonic.rml.vocab.Rr;
 
 public class RefObjectMapImpl implements RefObjectMap {
 	
@@ -23,15 +24,15 @@ public class RefObjectMapImpl implements RefObjectMap {
 			this.joinConditions = joinConditions;
 	}
 	
-	//TO DO @RdfProperty(Rr.parentTriplesMap)
-	//TO DO @RdfType(ParentTriplesMapImpl.class)
+	@RdfProperty(Rr.parentTriplesMap)
+	@RdfType(TriplesMapImpl.class)
 	@Override
 	public TriplesMap getParentTriplesMap() {
 		return parentTriplesMap;
 	}
 
-	//TO DO @RdfPropery(Rr.joinCondition)
-	//TO DO @RdfType(JoinImpl.class)
+	@RdfProperty(Rr.joinCondition)
+//	TODO @RdfType(JoinImpl.class)
 	@Override
 	public Set<Join> getJoinConditions() {
 		return joinConditions;

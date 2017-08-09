@@ -22,9 +22,11 @@ public class Rr {
 		constant = prefix + "constant",
 		predicateObjectMap = prefix + "predicateObjectMap",
 		graphMap = prefix + "graphMap",
-		//TO DO add graph --> is adding graph in this vocab even necessary?
-		//graph = prefix + "graph",
 		
+		parentTriplesMap = prefix + "parentTriplesMap",
+		joinCondition    = prefix + "joinCondition",
+		child            = prefix + "child",
+		parent           = prefix + "parent",
 	
 		IRI = prefix + "IRI",
 		BLANK_NODE = prefix + "BlankNode",
