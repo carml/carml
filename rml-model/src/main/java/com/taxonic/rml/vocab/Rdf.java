@@ -50,7 +50,16 @@ public class Rdf {
 			objectMap    = iri("objectMap"   ),
 			graph        = iri("graph"       ),
 			graphMap     = iri("graphMap"    ),
-			constant     = iri("constant"    );
+			constant     = iri("constant"    ),
+
+			parentTriplesMap = iri("parentTriplesMap"),
+			joinCondition    = iri("joinCondition"   ),
+			child            = iri("child"           ),
+			parent           = iri("parent"          ),
+
+			Literal		 = iri("Literal"	 ),
+			BlankNode	 = iri("BlankNode"	 ),
+			IRI			 = iri("IRI"	 	 );
 		
 	}
 }

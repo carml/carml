@@ -6,6 +6,7 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -131,9 +132,27 @@ public class MapperImpl implements Mapper, MappingCache {
 		return annotation.value();
 	}
 	
+	private TypeDecider getTypeDeciderFromAnnotation(Method method) {
+		com.taxonic.rml.rdf_mapper.annotations.RdfTypeDecider annotation = method
+			.getAnnotation(com.taxonic.rml.rdf_mapper.annotations.RdfTypeDecider.class);
+		if (annotation != null) {
+			Class<?> deciderClass = annotation.value();
+			try {
+				return (TypeDecider) deciderClass.newInstance();
+			}
+			catch (InstantiationException | IllegalAccessException e) {
+				throw new RuntimeException("failed to instantiate rdf type decider class " + deciderClass.getCanonicalName(), e);
+			}
+		}
+		return null;
+	}
+	
 	private TypeDecider createTypeDecider(Method method, Class<?> elementType) {
 
-		// TODO if @RdfTypeDecider(Xyz.class) is present on property, use that
+		// if @RdfTypeDecider(Xyz.class) is present on property, use that
+		TypeDecider typeDecider = getTypeDeciderFromAnnotation(method);
+		if (typeDecider != null)
+			return typeDecider;
 		
 		// if @RdfType(MyImpl.class) is present on property, use that
 		Class<?> typeFromRdfTypeAnnotation = getTypeFromRdfTypeAnnotation(method);
@@ -162,6 +181,15 @@ public class MapperImpl implements Mapper, MappingCache {
 		else if (iterableType.equals(List.class))
 			return LinkedList::new;
 		throw new RuntimeException("don't know how to create a factory for collection type [" + iterableType.getCanonicalName() + "]");
+	}
+	
+	private Function<Collection<Object>, Collection<Object>> createImmutableTransform(Class<?> iterableType) {
+		if (iterableType == null) return null;
+		if (iterableType.equals(Set.class))
+			return x -> Collections.unmodifiableSet((Set<Object>) x);
+		else if (iterableType.equals(List.class))
+			return x -> Collections.unmodifiableList((List<Object>) x);
+		throw new RuntimeException("don't know how to create a transform to make collections of type [" + iterableType.getCanonicalName() + "] immutable");
 	}
 	
 	private PropertyHandler getRdfPropertyHandler(Method method, Class<?> c) {
@@ -222,6 +250,7 @@ public class MapperImpl implements Mapper, MappingCache {
 		
 		Class<?> iterableType = propertyType.getIterableType();
 		Supplier<Collection<Object>> createIterable = createCollectionFactory(iterableType);
+		Function<Collection<Object>, Collection<Object>> immutableTransform = createImmutableTransform(iterableType);
 		
 		// TODO use @RdfProperty.handler, if any, instead of the default impl of PropertyHandler below
 		
@@ -250,7 +279,8 @@ public class MapperImpl implements Mapper, MappingCache {
 					
 					Collection<Object> result = createIterable.get();
 					transformed.forEach(result::add);
-					set.accept(instance, result);
+					Collection<Object> immutable = immutableTransform.apply(result);
+					set.accept(instance, immutable);
 					
 				}
 				

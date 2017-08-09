@@ -1,5 +1,6 @@
 package com.taxonic.rml.model.impl;
 
+import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Value;
 
 import com.taxonic.rml.model.PredicateMap;
@@ -12,7 +13,7 @@ public class PredicateMapImpl extends TermMapImpl implements PredicateMap {
 		String reference,
 		String inverseExpression,
 		String template,
-		Object termType,
+		IRI termType,
 		Value constant
 	) {
 		super(reference, inverseExpression, template, termType, constant);
@@ -59,7 +60,7 @@ public class PredicateMapImpl extends TermMapImpl implements PredicateMap {
 			return this;
 		}
 		
-		public Builder termType(Object termType) {
+		public Builder termType(IRI termType) {
 			super.termType(termType);
 			return this;
 		}

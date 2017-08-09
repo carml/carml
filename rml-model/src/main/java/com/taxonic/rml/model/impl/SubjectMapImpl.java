@@ -6,13 +6,16 @@ import java.util.Set;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Value;
 
+import com.taxonic.rml.model.GraphMap;
 import com.taxonic.rml.model.SubjectMap;
 import com.taxonic.rml.rdf_mapper.annotations.RdfProperty;
+import com.taxonic.rml.rdf_mapper.annotations.RdfType;
 import com.taxonic.rml.vocab.Rr;
 
 public class SubjectMapImpl extends TermMapImpl implements SubjectMap {
 
 	private Set<IRI> classes;
+	private Set<GraphMap> graphMaps;
 
 	public SubjectMapImpl() {}
 	
@@ -20,14 +23,28 @@ public class SubjectMapImpl extends TermMapImpl implements SubjectMap {
 		String reference,
 		String inverseExpression,
 		String template,
-		Object termType,
+		IRI termType,
 		Value constant,
-		Set<IRI> classes
+		Set<IRI> classes,
+		Set<GraphMap> graphMaps
 	) {
 		super(reference, inverseExpression, template, termType, constant);
 		this.classes = classes;
+		this.graphMaps = graphMaps;
 	}
 
+	
+	@RdfProperty(Rr.graphMap)
+	@RdfType(GraphMapImpl.class)
+	@Override
+	public Set<GraphMap> getGraphMaps() {
+		return graphMaps;
+	}
+	
+	public void setGraphMaps(Set<GraphMap> graphMaps) {
+		this.graphMaps = graphMaps;
+	}
+	
 	@RdfProperty(Rr.clazz)
 	@Override
 	public Set<IRI> getClasses() {
@@ -42,7 +59,7 @@ public class SubjectMapImpl extends TermMapImpl implements SubjectMap {
 	public String toString() {
 		return "SubjectMapImpl [getClasses()=" + getClasses() + ", getReference()=" + getReference()
 			+ ", getInverseExpression()=" + getInverseExpression() + ", getTemplate()=" + getTemplate()
-			+ ", getTermType()=" + getTermType() + ", getConstant()=" + getConstant() + "]";
+			+ ", getTermType()=" + getTermType() + ", getConstant()=" + getConstant() + ", getGraphMaps()=" + getGraphMaps() +"]";
 	}
 
 	@Override
@@ -50,6 +67,7 @@ public class SubjectMapImpl extends TermMapImpl implements SubjectMap {
 		final int prime = 31;
 		int result = super.hashCode();
 		result = prime * result + ((classes == null) ? 0 : classes.hashCode());
+		result = prime * result + ((graphMaps == null) ? 0 : graphMaps.hashCode());
 		return result;
 	}
 
@@ -63,6 +81,10 @@ public class SubjectMapImpl extends TermMapImpl implements SubjectMap {
 			if (other.classes != null) return false;
 		}
 		else if (!classes.equals(other.classes)) return false;
+		if (graphMaps == null) {
+			if (other.graphMaps != null) return false;
+		}
+		else if (!graphMaps.equals(other.graphMaps)) return false;
 		return true;
 	}
 
@@ -74,6 +96,7 @@ public class SubjectMapImpl extends TermMapImpl implements SubjectMap {
 		extends com.taxonic.rml.model.impl.TermMapImpl.Builder {
 		
 		private Set<IRI> classes = new LinkedHashSet<>();
+		private Set<GraphMap> graphMaps = new LinkedHashSet<>();
 
 		Builder() {}
 		
@@ -94,7 +117,7 @@ public class SubjectMapImpl extends TermMapImpl implements SubjectMap {
 			return this;
 		}
 		
-		public Builder termType(Object termType) {
+		public Builder termType(IRI termType) {
 			super.termType(termType);
 			return this;
 		}
@@ -114,6 +137,16 @@ public class SubjectMapImpl extends TermMapImpl implements SubjectMap {
 			return this;
 		}
 		
+		public Builder graphMap(GraphMapImpl graphMapImpl) {
+			graphMaps.add(graphMapImpl);
+			return this;
+		}
+		
+		public Builder graphMaps(Set<GraphMap> graphMaps) {
+			this.graphMaps= graphMaps;
+			return this;
+		}
+		
 		public SubjectMapImpl build() {
 			return new SubjectMapImpl(
 				getReference(),
@@ -121,8 +154,11 @@ public class SubjectMapImpl extends TermMapImpl implements SubjectMap {
 				getTemplate(),
 				getTermType(),
 				getConstant(),
-				classes
+				classes,
+				graphMaps
 			);
 		}
 	}
+
+
 }

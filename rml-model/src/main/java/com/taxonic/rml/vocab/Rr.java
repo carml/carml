@@ -17,8 +17,19 @@ public class Rr {
 		object = prefix + "object",
 		objectMap = prefix + "objectMap",
 		inverseExpression = prefix + "inverseExpression",
+		//TO DO Decide whether instead of termType --> dfn-term-type?
 		termType = prefix + "termType",
 		constant = prefix + "constant",
-		predicateObjectMap = prefix + "predicateObjectMap";
+		predicateObjectMap = prefix + "predicateObjectMap",
+		graphMap = prefix + "graphMap",
+		
+		parentTriplesMap = prefix + "parentTriplesMap",
+		joinCondition    = prefix + "joinCondition",
+		child            = prefix + "child",
+		parent           = prefix + "parent",
+	
+		IRI = prefix + "IRI",
+		BLANK_NODE = prefix + "BlankNode",
+		LITERAL = prefix + "Literal";
 	
 }

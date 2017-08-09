@@ -1,0 +1,1 @@
+<http://example.com/Color> <http://example.com/hasHex> "#000" , "#FFF" , "#FF0" , "#00F" , "#0F0" .
