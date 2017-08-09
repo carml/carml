@@ -63,18 +63,49 @@ public class TestRdfMapper {
 			hasBirthday = iri("hasBirthday"),
 			Unknown = iri("Unknown"),
 			mainGraph = iri("mainGraph"),
-			breakfastItem = iri("breakfastItem"),
-			originatesFrom = iri("originatesFrom"),
-			Country = iri("Country"),
-			officialLanguage = iri("officialLanguage");
+			breakfastItem = iri("ns#breakfastItem"),
+			originatesFrom = iri("ns#originatesFrom"),
+			Country = iri("ns#Country"),
+			officialLanguage = iri("ns#officialLanguage");
 	}
 	
 	private RmlMappingLoader loader = RmlMappingLoader.build();
 	
 	@Test
 	public void testLoadMappingWithJoinIntegration() {
+		
+		TriplesMapImpl parentTriplesMap = TriplesMapImpl.newBuilder()
+			.logicalSource(
+				LogicalSourceImpl.newBuilder()
+					.source("joinCountries.json")
+					.iterator("$")
+					.referenceFormulation(Rdf.Ql.JsonPath)
+					.build()
+			)
+			.subjectMap(
+				SubjectMapImpl.newBuilder()
+					.template("http://country.example.com/{country.name}")
+					.clazz(SecondExample.Country)
+					.build()
+			)
+			.predicateObjectMap(
+				PredicateObjectMapImpl.newBuilder()
+					.predicateMap(
+						PredicateMapImpl.newBuilder()
+							.constant(SecondExample.officialLanguage)
+							.build()
+					)
+					.objectMap(
+							ObjectMapImpl.newBuilder()
+							.reference("country.officialLanguage")
+							.build()
+					)
+					.build()
+			)
+			.build();
+		
 		List<TriplesMap> expected = Arrays.asList(
-				(TriplesMapImpl.newBuilder()
+				TriplesMapImpl.newBuilder()
 					.logicalSource(
 						LogicalSourceImpl.newBuilder()
 							.source("joinBreakfast.xml")
@@ -97,37 +128,7 @@ public class TestRdfMapper {
 							)
 							.objectMap(
 									RefObjectMapImpl.newBuilder()
-									.parentTriplesMap(
-											TriplesMapImpl.newBuilder()
-											.logicalSource(
-													LogicalSourceImpl.newBuilder()
-														.source("joinCountries.json")
-														.iterator("$")
-														.referenceFormulation(Rdf.Ql.JsonPath)
-														.build()
-												)
-												.subjectMap(
-													SubjectMapImpl.newBuilder()
-														.template("http://country.example.com/{country.name}")
-														.clazz(SecondExample.Country)
-														.build()
-												)
-												.predicateObjectMap(
-													PredicateObjectMapImpl.newBuilder()
-														.predicateMap(
-															PredicateMapImpl.newBuilder()
-																.constant(SecondExample.officialLanguage)
-																.build()
-														)
-														.objectMap(
-																ObjectMapImpl.newBuilder()
-																.reference("country.officialLanguage")
-																.build()
-														)
-														.build()
-												)
-												.build()
-									)
+									.parentTriplesMap(parentTriplesMap)
 									.condition(
 											JoinImpl.newBuilder()
 											.child("/breakfast-menu/food/name")
@@ -138,12 +139,15 @@ public class TestRdfMapper {
 								)
 							.build()
 					)
-				).build()
+				.build(),
+				parentTriplesMap
 			);
-		
+
 		List<TriplesMap> result = loader.load("test10/joinIntegratedMapping.rml.ttl");
-		assertEquals(expected,result);
+		
+		assertEquals(expected, result);
 	}
+	
 	@Test
 	public void testLoadMappingWithGraphMapsPredicateObject() {
 		List<TriplesMap> expected = Arrays.asList(
