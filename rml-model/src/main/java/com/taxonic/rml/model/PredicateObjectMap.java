@@ -8,4 +8,6 @@ public interface PredicateObjectMap {
 	
 	Set<ObjectMap> getObjectMaps();
 	
+	Set<GraphMap> getGraphMaps();
+	
 }

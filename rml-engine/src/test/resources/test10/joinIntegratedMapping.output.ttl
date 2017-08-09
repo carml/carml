@@ -1,0 +1,3 @@
+<http://country.example.com/Belgium> a <http://example.com/ns#Country> ;
+	<http://example.com/ns#officialLanguage> "Dutch, French, German" .
+

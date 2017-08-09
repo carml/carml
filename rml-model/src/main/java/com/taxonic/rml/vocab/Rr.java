@@ -22,7 +22,7 @@ public class Rr {
 		constant = prefix + "constant",
 		predicateObjectMap = prefix + "predicateObjectMap",
 		graphMap = prefix + "graphMap",
-		//TO DO add graph
+		//TO DO add graph --> is adding graph in this vocab even necessary?
 		//graph = prefix + "graph",
 		
 	

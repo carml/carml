@@ -68,11 +68,89 @@ public class TestRdfMapper {
 			Child = iri("Child"),
 			language = iri("language"),
 			hasBirthday = iri("hasBirthday"),
-			Unknown = iri("Unknown");
+			Unknown = iri("Unknown"),
+			mainGraph = iri("mainGraph");
 	}
 	
 	@Test
-	public void testLoadMappingWithGraphMaps() {
+	public void testLoadMappingWithJoinIntegration() {
+		List<TriplesMap> expected = null;
+		List<TriplesMap> result = loadTriplesMaps("test10/joinIntegratedMapping.rml.ttl");
+		assertEquals(expected, result);
+	}
+	@Test
+	public void testLoadMappingWithGraphMapsPredicateObject() {
+		List<TriplesMap> expected = Arrays.asList(
+				TriplesMapImpl.newBuilder()
+					.logicalSource(
+						LogicalSourceImpl.newBuilder()
+							.source("simple2TestInput.json")
+							.iterator("$.Child")
+							.referenceFormulation(Rdf.Ql.JsonPath)
+							.build()
+					)
+					.subjectMap(
+						SubjectMapImpl.newBuilder()
+							.template(SecondExample.prefix + "Child/{first}/{last}")
+							.clazz(SecondExample.Child)
+							.build()
+					)
+					.predicateObjectMap(
+						PredicateObjectMapImpl.newBuilder()
+						.predicateMap(
+							PredicateMapImpl.newBuilder()
+							.constant(SecondExample.hasBirthday)
+							.build()
+						)
+						.objectMap(
+							ObjectMapImpl.newBuilder()
+							.reference("birthday")
+							.build()
+						)
+						.graphMap(
+							GraphMapImpl.newBuilder()
+							.template("http://example.com/graphID/{BSN}")
+							.build()
+						)
+						.build()
+					)
+					.build()
+		);
+		List<TriplesMap> result = loadTriplesMaps("test15/graphMapMappingPredObj.rml.ttl");
+		assertEquals(expected,result);
+	}
+	
+	@Test
+	public void testLoadMappingWithGraphMapsSubjectB() {
+		List<TriplesMap> expected = Arrays.asList(
+				TriplesMapImpl.newBuilder()
+					.logicalSource(
+						LogicalSourceImpl.newBuilder()
+							.source("simple2TestInput.json")
+							.iterator("$.Child")
+							.referenceFormulation(Rdf.Ql.JsonPath)
+							.build()
+					)
+					.subjectMap(
+						SubjectMapImpl.newBuilder()
+							.template(SecondExample.prefix + "Child/{first}/{last}")
+							.clazz(SecondExample.Child)
+							.graphMap(
+									GraphMapImpl.newBuilder()
+									.constant(SecondExample.mainGraph)
+									.build()
+							)
+							.build()
+					)
+					.build()
+		);
+		List<TriplesMap> result = loadTriplesMaps("test15/graphMapMappingSubjectB.rml.ttl");
+		assertEquals(expected,result);
+	}
+	
+	
+	@Test
+	public void testLoadMappingWithGraphMapsSubjectA() {
 		List<TriplesMap> expected = Arrays.asList(
 				TriplesMapImpl.newBuilder()
 					.logicalSource(
@@ -95,7 +173,7 @@ public class TestRdfMapper {
 					)
 					.build()
 		);
-		List<TriplesMap> result = loadTriplesMaps("test15/graphMapMappingSubject.rml.ttl");
+		List<TriplesMap> result = loadTriplesMaps("test15/graphMapMappingSubjectA.rml.ttl");
 		assertEquals(expected,result);
 	}
 	
@@ -361,12 +439,12 @@ public class TestRdfMapper {
 	}
 	
 	@Test
-	public void testLoadMappingWithIntegratedMaps() {
+	public void testLoadMappingWithSeparateMaps() {
 		List<TriplesMap> expected = Arrays.asList(
 				(TriplesMapImpl.newBuilder()
 					.logicalSource(
 						LogicalSourceImpl.newBuilder()
-							.source("simpleIntegratedMappingTestInput.json")
+							.source("SeparateMappingTestInput.json")
 							.iterator("$.colors")
 							.referenceFormulation(Rdf.Ql.JsonPath)
 							.build()
@@ -393,7 +471,7 @@ public class TestRdfMapper {
 					)
 				).build()
 		);
-		List<TriplesMap> result = loadTriplesMaps("test10/simpleIntegratedMapping.rml.ttl");
+		List<TriplesMap> result = loadTriplesMaps("test10/separateMapsMappingg.rml.ttl");
 		assertEquals(expected, result);
 		
 	}
@@ -428,6 +506,7 @@ public class TestRdfMapper {
 							.build()
 					)
 				).build(),
+				//TO DO Instead of using another TriplesMap, use a referencing object map instead.
 				TriplesMapImpl.newBuilder()
 					.logicalSource(
 							LogicalSourceImpl.newBuilder()
