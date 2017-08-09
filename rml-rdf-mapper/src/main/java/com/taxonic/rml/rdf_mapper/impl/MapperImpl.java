@@ -131,9 +131,27 @@ public class MapperImpl implements Mapper, MappingCache {
 		return annotation.value();
 	}
 	
+	private TypeDecider getTypeDeciderFromAnnotation(Method method) {
+		com.taxonic.rml.rdf_mapper.annotations.RdfTypeDecider annotation = method
+			.getAnnotation(com.taxonic.rml.rdf_mapper.annotations.RdfTypeDecider.class);
+		if (annotation != null) {
+			Class<?> deciderClass = annotation.value();
+			try {
+				return (TypeDecider) deciderClass.newInstance();
+			}
+			catch (InstantiationException | IllegalAccessException e) {
+				throw new RuntimeException("failed to instantiate rdf type decider class " + deciderClass.getCanonicalName(), e);
+			}
+		}
+		return null;
+	}
+	
 	private TypeDecider createTypeDecider(Method method, Class<?> elementType) {
 
-		// TODO if @RdfTypeDecider(Xyz.class) is present on property, use that
+		// if @RdfTypeDecider(Xyz.class) is present on property, use that
+		TypeDecider typeDecider = getTypeDeciderFromAnnotation(method);
+		if (typeDecider != null)
+			return typeDecider;
 		
 		// if @RdfType(MyImpl.class) is present on property, use that
 		Class<?> typeFromRdfTypeAnnotation = getTypeFromRdfTypeAnnotation(method);
