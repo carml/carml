@@ -1,6 +1,7 @@
 package com.taxonic.rml.engine.template;
 
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -104,7 +105,7 @@ class TemplateImpl implements Template {
 		}
 		
 		private void checkBindings() {
-			if (values.keySet().equals(variables))
+			if (!new LinkedHashSet<>(values.keySet()).equals(variables))
 				throw new RuntimeException("set of bindings [" + values.keySet() +
 					"] does NOT match set of variables in template [" + variables + "]");
 		}
@@ -125,10 +126,12 @@ class TemplateImpl implements Template {
 	
 	static TemplateImpl build(List<Segment> segments) {
 		Set<String> variables =
-			segments.stream()
-				.filter(s -> s instanceof Variable)
-				.map(Segment::getValue)
-				.collect(Collectors.toSet());
+			new LinkedHashSet<>(
+				segments.stream()
+					.filter(s -> s instanceof Variable)
+					.map(Segment::getValue)
+					.collect(Collectors.toSet())
+			);
 		return new TemplateImpl(segments, variables);
 	}
 	
