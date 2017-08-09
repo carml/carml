@@ -12,10 +12,12 @@ import org.junit.Test;
 
 import com.taxonic.rml.model.TriplesMap;
 import com.taxonic.rml.model.impl.GraphMapImpl;
+import com.taxonic.rml.model.impl.JoinImpl;
 import com.taxonic.rml.model.impl.LogicalSourceImpl;
 import com.taxonic.rml.model.impl.ObjectMapImpl;
 import com.taxonic.rml.model.impl.PredicateMapImpl;
 import com.taxonic.rml.model.impl.PredicateObjectMapImpl;
+import com.taxonic.rml.model.impl.RefObjectMapImpl;
 import com.taxonic.rml.model.impl.SubjectMapImpl;
 import com.taxonic.rml.model.impl.TriplesMapImpl;
 import com.taxonic.rml.util.RmlMappingLoader;
@@ -60,16 +62,87 @@ public class TestRdfMapper {
 			language = iri("language"),
 			hasBirthday = iri("hasBirthday"),
 			Unknown = iri("Unknown"),
-			mainGraph = iri("mainGraph");
+			mainGraph = iri("mainGraph"),
+			breakfastItem = iri("breakfastItem"),
+			originatesFrom = iri("originatesFrom"),
+			Country = iri("Country"),
+			officialLanguage = iri("officialLanguage");
 	}
 	
 	private RmlMappingLoader loader = RmlMappingLoader.build();
 	
 	@Test
 	public void testLoadMappingWithJoinIntegration() {
-		List<TriplesMap> expected = null;
+		List<TriplesMap> expected = Arrays.asList(
+				(TriplesMapImpl.newBuilder()
+					.logicalSource(
+						LogicalSourceImpl.newBuilder()
+							.source("joinBreakfast.xml")
+							.iterator("/breakfast-menu/food")
+							.referenceFormulation(Rdf.Ql.XPath)
+							.build()
+					)
+					.subjectMap(
+						SubjectMapImpl.newBuilder()
+							.template("http://food.example.com/{name}")
+							.clazz(SecondExample.breakfastItem)
+							.build()
+					)
+					.predicateObjectMap(
+						PredicateObjectMapImpl.newBuilder()
+							.predicateMap(
+								PredicateMapImpl.newBuilder()
+									.constant(SecondExample.originatesFrom)
+									.build()
+							)
+							.objectMap(
+									RefObjectMapImpl.newBuilder()
+									.parentTriplesMap(
+											TriplesMapImpl.newBuilder()
+											.logicalSource(
+													LogicalSourceImpl.newBuilder()
+														.source("joinCountries.json")
+														.iterator("$")
+														.referenceFormulation(Rdf.Ql.JsonPath)
+														.build()
+												)
+												.subjectMap(
+													SubjectMapImpl.newBuilder()
+														.template("http://country.example.com/{country.name}")
+														.clazz(SecondExample.Country)
+														.build()
+												)
+												.predicateObjectMap(
+													PredicateObjectMapImpl.newBuilder()
+														.predicateMap(
+															PredicateMapImpl.newBuilder()
+																.constant(SecondExample.officialLanguage)
+																.build()
+														)
+														.objectMap(
+																ObjectMapImpl.newBuilder()
+																.reference("country.officialLanguage")
+																.build()
+														)
+														.build()
+												)
+												.build()
+									)
+									.condition(
+											JoinImpl.newBuilder()
+											.child("/breakfast-menu/food/name")
+											.parent("$.country.name")
+											.build()
+									)
+									.build()
+								)
+							.build()
+					)
+				).build()
+			);
+		
 		List<TriplesMap> result = loader.load("test10/joinIntegratedMapping.rml.ttl");
-		assertEquals(expected, result);
+		assertEquals(expected,result);
 	}
 	@Test
 	public void testLoadMappingWithGraphMapsPredicateObject() {
@@ -494,28 +567,31 @@ public class TestRdfMapper {
 									.build()
 							)
 							.objectMap(
-									ObjectMapImpl.newBuilder().build()
-								)
+									RefObjectMapImpl.newBuilder()
+									.parentTriplesMap(
+											TriplesMapImpl.newBuilder()
+											.logicalSource(
+													LogicalSourceImpl.newBuilder()
+														.source("parentTriplesTestInput.json")
+														.iterator("$.colors.code")
+														.referenceFormulation(Rdf.Ql.JsonPath)
+														.build()
+												)
+											.subjectMap(
+													SubjectMapImpl.newBuilder()
+														.template(SecondExample.prefix + "ColorCode/{rgba[0]},{rgba[1]},{rgba[2]}, {rgba[3]")
+														.clazz(SecondExample.RGBA)
+														.build()
+												)
+											.build()
+									)
+									.build()
+							)
 							.build()
+						)
 					)
-				).build(),
-				//TO DO Instead of using another TriplesMap, use a referencing object map instead.
-				TriplesMapImpl.newBuilder()
-					.logicalSource(
-							LogicalSourceImpl.newBuilder()
-								.source("parentTriplesTestInput.json")
-								.iterator("$.colors.code")
-								.referenceFormulation(Rdf.Ql.JsonPath)
-								.build()
-						)
-						.subjectMap(
-							SubjectMapImpl.newBuilder()
-								.template(SecondExample.prefix + "ColorCode/{rgba[0]},{rgba[1]},{rgba[2]}, {rgba[3]}")
-								.clazz(SecondExample.RGBA)
-								.build()
-						)
 				.build()
-		);
+			);
 		
 		List<TriplesMap> result = loader.load("test9/parentTriplesMapping.rml.ttl");
 		assertEquals(result,expected);

@@ -68,7 +68,7 @@ public class PredicateObjectMapImpl implements PredicateObjectMap {
 	@Override
 	public String toString() {
 		return "PredicateObjectMapImpl [getPredicateMaps()=" + getPredicateMaps() + ", getObjectMaps()="
-			+ getObjectMaps() + "getGraphMaps()=" + getGraphMaps() + "]";
+			+ getObjectMaps() + ", getGraphMaps()=" + getGraphMaps() + "]";
 	}
 
 	@Override
