@@ -40,7 +40,7 @@ public class PredicateObjectMapImpl implements PredicateObjectMap {
 	}
 
 	@RdfProperty(Rr.objectMap)
-	@RdfTypeDecider(String.class)
+	@RdfTypeDecider(ObjectMapTypeDecider.class)
 	@Override
 	public Set<BaseObjectMap> getObjectMaps() {
 		return objectMaps;
