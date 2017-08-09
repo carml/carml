@@ -4,18 +4,12 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.eclipse.rdf4j.model.IRI;
-import org.eclipse.rdf4j.model.Literal;
-import org.eclipse.rdf4j.model.Model;
-import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.model.vocabulary.XMLSchema;
 import org.junit.Test;
 
-import com.taxonic.rml.model.LogicalSource;
-import com.taxonic.rml.model.PredicateMap;
 import com.taxonic.rml.model.TriplesMap;
 import com.taxonic.rml.model.impl.GraphMapImpl;
 import com.taxonic.rml.model.impl.LogicalSourceImpl;
@@ -24,10 +18,7 @@ import com.taxonic.rml.model.impl.PredicateMapImpl;
 import com.taxonic.rml.model.impl.PredicateObjectMapImpl;
 import com.taxonic.rml.model.impl.SubjectMapImpl;
 import com.taxonic.rml.model.impl.TriplesMapImpl;
-import com.taxonic.rml.rdf_mapper.Mapper;
-import com.taxonic.rml.rdf_mapper.impl.MapperImpl;
-import com.taxonic.rml.util.IoUtils;
-import com.taxonic.rml.util.RmlConstantShorthandExpander;
+import com.taxonic.rml.util.RmlMappingLoader;
 import com.taxonic.rml.vocab.Rdf;
 import com.taxonic.rml.vocab.Rdf.Rr;
 
@@ -72,10 +63,12 @@ public class TestRdfMapper {
 			mainGraph = iri("mainGraph");
 	}
 	
+	private RmlMappingLoader loader = RmlMappingLoader.build();
+	
 	@Test
 	public void testLoadMappingWithJoinIntegration() {
 		List<TriplesMap> expected = null;
-		List<TriplesMap> result = loadTriplesMaps("test10/joinIntegratedMapping.rml.ttl");
+		List<TriplesMap> result = loader.load("test10/joinIntegratedMapping.rml.ttl");
 		assertEquals(expected, result);
 	}
 	@Test
@@ -116,7 +109,7 @@ public class TestRdfMapper {
 					)
 					.build()
 		);
-		List<TriplesMap> result = loadTriplesMaps("test15/graphMapMappingPredObj.rml.ttl");
+		List<TriplesMap> result = loader.load("test15/graphMapMappingPredObj.rml.ttl");
 		assertEquals(expected,result);
 	}
 	
@@ -144,7 +137,7 @@ public class TestRdfMapper {
 					)
 					.build()
 		);
-		List<TriplesMap> result = loadTriplesMaps("test15/graphMapMappingSubjectB.rml.ttl");
+		List<TriplesMap> result = loader.load("test15/graphMapMappingSubjectB.rml.ttl");
 		assertEquals(expected,result);
 	}
 	
@@ -173,7 +166,7 @@ public class TestRdfMapper {
 					)
 					.build()
 		);
-		List<TriplesMap> result = loadTriplesMaps("test15/graphMapMappingSubjectA.rml.ttl");
+		List<TriplesMap> result = loader.load("test15/graphMapMappingSubjectA.rml.ttl");
 		assertEquals(expected,result);
 	}
 	
@@ -212,7 +205,7 @@ public class TestRdfMapper {
 					)
 					.build()
 		);
-		List<TriplesMap> result = loadTriplesMaps("test14/termTypeMappingLiteral.rml.ttl");
+		List<TriplesMap> result = loader.load("test14/termTypeMappingLiteral.rml.ttl");
 		assertEquals(result,expected);
 	}
 	@Test
@@ -251,7 +244,7 @@ public class TestRdfMapper {
 					)
 					.build()
 		);
-		List<TriplesMap> result = loadTriplesMaps("test14/termTypeMappingIRI.rml.ttl");
+		List<TriplesMap> result = loader.load("test14/termTypeMappingIRI.rml.ttl");
 		assertEquals(result,expected);
 	}
 	
@@ -289,7 +282,7 @@ public class TestRdfMapper {
 					)
 					.build()
 		);
-		List<TriplesMap> result = loadTriplesMaps("test14/termTypeMappingBlankNodeB.rml.ttl");
+		List<TriplesMap> result = loader.load("test14/termTypeMappingBlankNodeB.rml.ttl");
 		assertEquals(result,expected);
 	}
 	@Test
@@ -325,7 +318,7 @@ public class TestRdfMapper {
 					)
 					.build()
 		);
-		List<TriplesMap> result = loadTriplesMaps("test14/termTypeMappingBlankNodeA.rml.ttl");
+		List<TriplesMap> result = loader.load("test14/termTypeMappingBlankNodeA.rml.ttl");
 		assertEquals(result,expected);
 	}
 	
@@ -363,7 +356,7 @@ public class TestRdfMapper {
 					)
 				.build()
 		);
-		List<TriplesMap> result = loadTriplesMaps("test5/languageMapping.rml.ttl");
+		List<TriplesMap> result = loader.load("test5/languageMapping.rml.ttl");
 		assertEquals(result,expected);
 	}
 
@@ -400,7 +393,7 @@ public class TestRdfMapper {
 					.build()
 		);
 		
-		List<TriplesMap> result = loadTriplesMaps("test1/constantSubjectShortcutMapping.rml.ttl");
+		List<TriplesMap> result = loader.load("test1/constantSubjectShortcutMapping.rml.ttl");
 		assertEquals(expected,result);
 	}
 	@Test
@@ -434,7 +427,7 @@ public class TestRdfMapper {
 							.build()
 					)	
 				).build());
-		List<TriplesMap> result = loadTriplesMaps("test1/constantObjectShortcutMapping.rml.ttl");
+		List<TriplesMap> result = loader.load("test1/constantObjectShortcutMapping.rml.ttl");
 		assertEquals(expected,result);
 	}
 	
@@ -471,7 +464,7 @@ public class TestRdfMapper {
 					)
 				).build()
 		);
-		List<TriplesMap> result = loadTriplesMaps("test10/separateMapsMappingg.rml.ttl");
+		List<TriplesMap> result = loader.load("test10/separateMapsMappingg.rml.ttl");
 		assertEquals(expected, result);
 		
 	}
@@ -524,7 +517,7 @@ public class TestRdfMapper {
 				.build()
 		);
 		
-		List<TriplesMap> result = loadTriplesMaps("test9/parentTriplesMapping.rml.ttl");
+		List<TriplesMap> result = loader.load("test9/parentTriplesMapping.rml.ttl");
 		assertEquals(result,expected);
 	}
 	
@@ -543,7 +536,7 @@ public class TestRdfMapper {
 				.build()
 		);
 		
-		List<TriplesMap> result = loadTriplesMaps("logicalSourceTest.rml.ttl");
+		List<TriplesMap> result = loader.load("logicalSourceTest.rml.ttl");
 		
 		assertEquals(expected, result);
 		
@@ -628,35 +621,9 @@ public class TestRdfMapper {
 				.build()
 		);
 		
-		List<TriplesMap> result = loadTriplesMaps("test-a.rml.ttl");
+		List<TriplesMap> result = loader.load("test-a.rml.ttl");
 		
 		assertEquals(expected, result);
-	}
-	
-	private List<TriplesMap> loadTriplesMaps(String resource) {
-
-		Model originalModel = IoUtils.parse(resource);
-		
-		Model model = new RmlConstantShorthandExpander().apply(originalModel);
-		
-		Mapper mapper = new MapperImpl();
-		
-		return
-		model
-			.filter(null, Rdf.Rml.logicalSource, null)
-			.subjects()
-			.stream()
-			.map(r -> {
-				
-				System.out.println("found triples map resource: " + r);
-				
-				TriplesMap map = mapper.map(model, r, TriplesMapImpl.class);
-				
-				System.out.println("triples map object model:\n" + map);
-				
-				return map;
-			})
-			.collect(Collectors.toList());		
 	}
 	
 }
