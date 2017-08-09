@@ -1,0 +1,5 @@
+<http://example.com/Student/1234> a <http://example.com/studentId> ;
+	<http://example.com/isPresentBool> "true"^^<http://www.w3.org/2001/XMLSchema#boolean> ;
+		<http://example.com/isSPresentString> "yes" .
+
+	
