@@ -1,0 +1,48 @@
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+
+@prefix rmlsh: <http://www.taxonic.com/ns/rml-shacl#> .
+
+rmlsh:
+	rdfs:label "SHACL for RML"@en ;
+	rdfs:comment "This shapes graph can be used to validate RML mapping graphs."@en ;
+	sh:declare [
+		sh:prefix "rmlsh" ;
+		sh:namespace "http://www.taxonic.com/ns/rml-shacl#" ;
+	] .
+
+rlmsh:TripleMapShape
+	a sh:NodeShape ;
+	rdfs:label "Triple map shape"@en ;
+	rdfs:comment "Defines constraints describing a well-formed RML triple map."@en ;
+	sh:property [
+		sh:path rml:logicalSource ;
+		sh:node rmlsh:LogicalSourceShape;
+		sh:minCount: 1 ;
+		sh:maxCount: 1 ;
+	] ;
+	sh:xone (
+		[
+			sh:property [
+				sh:path rr:subjectMap
+				sh:node rmlsh:SubjectMapShape
+				sh:minCount: 1 ;
+				sh:maxCount: 1 ;
+			]
+		]
+		[
+			sh:property [
+				sh:path rr:subject
+				sh:nodeKind sh:IRI
+				sh:minCount: 1 ;
+				sh:maxCount: 1 ;
+			]
+		]
+	) ;
+	sh:property [
+		sh:path rr:predicateObjectMap
+		sh:node rmlsh:PredicateObjectMapShape
+	] .
