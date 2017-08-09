@@ -6,7 +6,7 @@ public interface PredicateObjectMap {
 
 	Set<PredicateMap> getPredicateMaps();
 	
-	Set<ObjectMap> getObjectMaps();
+	Set<BaseObjectMap> getObjectMaps();
 	
 	Set<GraphMap> getGraphMaps();
 	

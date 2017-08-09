@@ -3,6 +3,7 @@ package com.taxonic.rml.model.impl;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+import com.taxonic.rml.model.BaseObjectMap;
 import com.taxonic.rml.model.GraphMap;
 import com.taxonic.rml.model.ObjectMap;
 import com.taxonic.rml.model.PredicateMap;
@@ -10,19 +11,20 @@ import com.taxonic.rml.model.PredicateObjectMap;
 import com.taxonic.rml.model.impl.SubjectMapImpl.Builder;
 import com.taxonic.rml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.rml.rdf_mapper.annotations.RdfType;
+import com.taxonic.rml.rdf_mapper.annotations.RdfTypeDecider;
 import com.taxonic.rml.vocab.Rr;
 
 public class PredicateObjectMapImpl implements PredicateObjectMap {
 
 	private Set<PredicateMap> predicateMaps;
-	private Set<ObjectMap> objectMaps;
+	private Set<BaseObjectMap> objectMaps;
 	private Set<GraphMap> graphMaps;
 
 	public PredicateObjectMapImpl() {}
 	
 	public PredicateObjectMapImpl(
 		Set<PredicateMap> predicateMaps,
-		Set<ObjectMap> objectMaps,
+		Set<BaseObjectMap> objectMaps,
 		Set<GraphMap> graphMaps
 	) {
 		this.predicateMaps = predicateMaps;
@@ -38,9 +40,9 @@ public class PredicateObjectMapImpl implements PredicateObjectMap {
 	}
 
 	@RdfProperty(Rr.objectMap)
-	@RdfType(ObjectMapImpl.class)
+	@RdfTypeDecider(String.class)
 	@Override
-	public Set<ObjectMap> getObjectMaps() {
+	public Set<BaseObjectMap> getObjectMaps() {
 		return objectMaps;
 	}
 	
@@ -55,7 +57,7 @@ public class PredicateObjectMapImpl implements PredicateObjectMap {
 		this.predicateMaps = predicateMaps;
 	}
 
-	public void setObjectMaps(Set<ObjectMap> objectMaps) {
+	public void setObjectMaps(Set<BaseObjectMap> objectMaps) {
 		this.objectMaps = objectMaps;
 	}
 
@@ -107,7 +109,7 @@ public class PredicateObjectMapImpl implements PredicateObjectMap {
 	public static class Builder {
 
 		private Set<PredicateMap> predicateMaps = new LinkedHashSet<>();
-		private Set<ObjectMap> objectMaps = new LinkedHashSet<>();
+		private Set<BaseObjectMap> objectMaps = new LinkedHashSet<>();
 		private Set<GraphMap> graphMaps = new LinkedHashSet<>();
 		
 		public Builder predicateMap(PredicateMap predicateMap) {
@@ -115,7 +117,7 @@ public class PredicateObjectMapImpl implements PredicateObjectMap {
 			return this;
 		}
 		
-		public Builder objectMap(ObjectMap objectMap) {
+		public Builder objectMap(BaseObjectMap objectMap) {
 			objectMaps.add(objectMap);
 			return this;
 		}
