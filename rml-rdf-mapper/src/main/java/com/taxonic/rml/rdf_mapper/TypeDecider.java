@@ -1,4 +1,4 @@
-package com.taxonic.rml.rdf_mapper.impl;
+package com.taxonic.rml.rdf_mapper;
 
 import java.lang.reflect.Type;
 

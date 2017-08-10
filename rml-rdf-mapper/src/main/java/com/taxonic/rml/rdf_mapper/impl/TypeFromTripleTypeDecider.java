@@ -9,6 +9,8 @@ import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 
+import com.taxonic.rml.rdf_mapper.TypeDecider;
+
 class TypeFromTripleTypeDecider implements TypeDecider {
 
 	private TypeDecider propertyTypeDecider;

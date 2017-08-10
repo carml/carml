@@ -5,10 +5,8 @@ import java.util.Set;
 
 import com.taxonic.rml.model.BaseObjectMap;
 import com.taxonic.rml.model.GraphMap;
-import com.taxonic.rml.model.ObjectMap;
 import com.taxonic.rml.model.PredicateMap;
 import com.taxonic.rml.model.PredicateObjectMap;
-import com.taxonic.rml.model.impl.SubjectMapImpl.Builder;
 import com.taxonic.rml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.rml.rdf_mapper.annotations.RdfType;
 import com.taxonic.rml.rdf_mapper.annotations.RdfTypeDecider;
