@@ -26,7 +26,7 @@ public class TemplateParserTest {
 		testTemplate(
 			"abc{xyz}",
 			new Text("abc"),
-			new ExpressionSegment("xyz")
+			new ExpressionSegment(0, "xyz")
 		);
 	}
 	
@@ -35,7 +35,7 @@ public class TemplateParserTest {
 		testTemplate(
 			"abc{xyz}x",
 			new Text("abc"),
-			new ExpressionSegment("xyz"),
+			new ExpressionSegment(0, "xyz"),
 			new Text("x")
 		);
 	}
@@ -44,7 +44,7 @@ public class TemplateParserTest {
 	public void testLeadingVariable() {
 		testTemplate(
 			"{xyz}x",
-			new ExpressionSegment("xyz"),
+			new ExpressionSegment(0, "xyz"),
 			new Text("x")
 		);
 	}
@@ -53,7 +53,7 @@ public class TemplateParserTest {
 	public void testVariableOnly() {
 		testTemplate(
 			"{xyz}",
-			new ExpressionSegment("xyz")
+			new ExpressionSegment(0, "xyz")
 		);
 	}
 	
@@ -85,8 +85,8 @@ public class TemplateParserTest {
 	public void testMultipleVariables() {
 		testTemplate(
 			"{abc}{xyz}",
-			new ExpressionSegment("abc"),
-			new ExpressionSegment("xyz")
+			new ExpressionSegment(0, "abc"),
+			new ExpressionSegment(1, "xyz")
 		);
 	}
 	

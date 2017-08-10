@@ -59,8 +59,11 @@ class TemplateImpl implements Template {
 	
 	static class ExpressionSegment extends Segment {
 
-		ExpressionSegment(String value) {
+		private int id;
+
+		ExpressionSegment(int id, String value) {
 			super(value);
+			this.id = id;
 		}
 
 		@Override
@@ -69,6 +72,7 @@ class TemplateImpl implements Template {
 			if (obj == null) return false;
 			if (getClass() != obj.getClass()) return false;
 			ExpressionSegment other = (ExpressionSegment) obj;
+			if (id != other.id) return false;
 			if (getValue() == null) {
 				if (other.getValue() != null) return false;
 			}
@@ -80,6 +84,7 @@ class TemplateImpl implements Template {
 		public int hashCode() {
 			final int prime = 31;
 			int result = 1;
+			result = prime * result + id;
 			result = prime * result + ((getValue() == null) ? 0 : getValue().hashCode());
 			return result;
 		}
