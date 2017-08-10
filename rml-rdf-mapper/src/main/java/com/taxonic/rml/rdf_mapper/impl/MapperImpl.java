@@ -28,9 +28,9 @@ import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 
 import com.taxonic.rml.rdf_mapper.Mapper;
+import com.taxonic.rml.rdf_mapper.TypeDecider;
 import com.taxonic.rml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.rml.rdf_mapper.annotations.RdfType;
-import com.taxonic.rml.rdf_mapper.util.PropertyUtils;
 
 public class MapperImpl implements Mapper, MappingCache {
 

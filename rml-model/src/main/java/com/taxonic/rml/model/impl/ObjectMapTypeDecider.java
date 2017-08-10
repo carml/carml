@@ -5,7 +5,7 @@ import java.lang.reflect.Type;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 
-import com.taxonic.rml.rdf_mapper.impl.TypeDecider;
+import com.taxonic.rml.rdf_mapper.TypeDecider;
 import com.taxonic.rml.vocab.Rdf.Rr;
 
 public class ObjectMapTypeDecider implements TypeDecider {

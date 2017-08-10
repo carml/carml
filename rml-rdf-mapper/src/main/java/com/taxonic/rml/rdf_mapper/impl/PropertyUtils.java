@@ -1,9 +1,9 @@
-package com.taxonic.rml.rdf_mapper.util;
+package com.taxonic.rml.rdf_mapper.impl;
 
 import java.util.Arrays;
 import java.util.function.Function;
 
-public class PropertyUtils {
+class PropertyUtils {
 
 	/**
 	 * @param getterOrSetterName Full name of the getter or setter-method of the property. Example: {@code getName}.
