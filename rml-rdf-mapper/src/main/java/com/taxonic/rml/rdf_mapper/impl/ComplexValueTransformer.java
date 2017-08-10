@@ -14,6 +14,7 @@ import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.vocabulary.XMLSchema;
 
 import com.taxonic.rml.rdf_mapper.Mapper;
+import com.taxonic.rml.rdf_mapper.TypeDecider;
 
 class ComplexValueTransformer implements ValueTransformer {
 
