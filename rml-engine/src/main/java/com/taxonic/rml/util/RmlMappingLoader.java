@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.eclipse.rdf4j.model.Model;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.taxonic.rml.model.TriplesMap;
 import com.taxonic.rml.model.impl.TriplesMapImpl;
@@ -13,7 +15,8 @@ import com.taxonic.rml.rdf_mapper.impl.MapperImpl;
 import com.taxonic.rml.vocab.Rdf;
 
 public class RmlMappingLoader {
-
+	private static final Logger logger = LoggerFactory.getLogger(RmlMappingLoader.class);
+	
 	private RmlConstantShorthandExpander shorthandExpander;
 	
 	public RmlMappingLoader(

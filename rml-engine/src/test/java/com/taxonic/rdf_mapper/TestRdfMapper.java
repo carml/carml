@@ -9,6 +9,8 @@ import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.model.vocabulary.XMLSchema;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.taxonic.rml.model.TriplesMap;
 import com.taxonic.rml.model.impl.GraphMapImpl;
@@ -25,7 +27,9 @@ import com.taxonic.rml.vocab.Rdf;
 import com.taxonic.rml.vocab.Rdf.Rr;
 
 public class TestRdfMapper {
-
+	//TODO Add logger stuff
+	private static final Logger logger = LoggerFactory.getLogger(TestRdfMapper.class);
+	
 	static final SimpleValueFactory f = SimpleValueFactory.getInstance();
 	
 	static class Example {
@@ -73,7 +77,8 @@ public class TestRdfMapper {
 	
 	@Test
 	public void testLoadMappingWithJoinIntegration() {
-		
+        logger.info("testing JoinIntegration mapping");
+        
 		TriplesMapImpl parentTriplesMap = TriplesMapImpl.newBuilder()
 			.logicalSource(
 				LogicalSourceImpl.newBuilder()
