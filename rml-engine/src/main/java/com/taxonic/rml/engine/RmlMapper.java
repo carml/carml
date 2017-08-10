@@ -4,27 +4,40 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
 import org.apache.commons.io.IOUtils;
+import org.eclipse.rdf4j.model.BNode;
 import org.eclipse.rdf4j.model.IRI;
+import org.eclipse.rdf4j.model.Literal;
 import org.eclipse.rdf4j.model.Model;
+import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.ValueFactory;
+import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
+import org.eclipse.rdf4j.rio.RDFFormat;
+import org.eclipse.rdf4j.rio.Rio;
 
 import com.jayway.jsonpath.JsonPath;
 import com.taxonic.rml.engine.template.Template;
-import com.taxonic.rml.engine.template.Template.Builder;
 import com.taxonic.rml.engine.template.TemplateParser;
+import com.taxonic.rml.model.GraphMap;
 import com.taxonic.rml.model.LogicalSource;
+import com.taxonic.rml.model.ObjectMap;
 import com.taxonic.rml.model.PredicateMap;
 import com.taxonic.rml.model.SubjectMap;
+import com.taxonic.rml.model.TermMap;
 import com.taxonic.rml.model.TriplesMap;
+import com.taxonic.rml.vocab.Rdf.Rr;
+
+// TODO re-engineer template so we can use the same expression twice: http://xyz.com/{id}/abc/{id}
 
 public class RmlMapper {
 
@@ -41,15 +54,305 @@ public class RmlMapper {
 
 	public Model map(List<TriplesMap> mapping) {
 		
+		map(mapping.get(0));
+		
 		return null;
 	}
 	
 	private void map(TriplesMap map) {
 		
-	}
-	
-	private void createMapper(TriplesMap map) {
+		
+		Model model = createMapper(map);
+		
+		StringWriter writer = new StringWriter();
+		Rio.write(model, writer, RDFFormat.TURTLE);
+		System.out.println(writer.toString());
+		
 		
 	}
+	
+	private String readSource(String source) {
+		try (Reader reader = new InputStreamReader(
+			sourceResolver.apply(source),
+			StandardCharsets.UTF_8
+		)) {
+			// TODO depending on transitive dependency here, because newer commons-io resulted in conflict with version used by rdf4j
+			return IOUtils.toString(reader);
+		}
+		catch (IOException e) {
+			throw new RuntimeException("error reading source [" + source + "]", e);
+		}
+	}
+	
+	private Model createMapper(TriplesMap map) {
+		
+		LogicalSource logicalSource = map.getLogicalSource();
+		logicalSource.getSource();
+		logicalSource.getReferenceFormulation();
+		logicalSource.getIterator();
+		
+		String json = readSource(logicalSource.getSource());
+		
+		Object value = JsonPath.read(json, logicalSource.getIterator()); 
+		
+		SubjectMap subjectMap = map.getSubjectMap();
+		
+		Function<Function<String, Object>, ? extends Value> subjectGenerator =
+			getSubjectGenerator(subjectMap);
+		
+		// TODO use rr:graph
+		
+		boolean isIterable = Iterable.class.isAssignableFrom(value.getClass());
+		Iterable<?> iterable = isIterable
+			? (Iterable<?>) value
+			: Collections.singleton(value);
+		
+		Model model = new LinkedHashModel();
+			
+		iterable.forEach(e -> {
+			
+			Function<String, Object> evaluate =
+				x -> JsonPath.read(e, x);
+
+			Value subject = subjectGenerator.apply(evaluate);
+			System.out.println(">> " + subject);
+			
+			map.getPredicateObjectMaps().forEach(m -> {
+				
+				m.getPredicateMaps().forEach(p -> {
+					
+					Function<Function<String, Object>, ? extends Value> predicateGenerator =
+						getPredicateGenerator(p);
+					
+					Value predicate = predicateGenerator.apply(evaluate);
+					
+					m.getObjectMaps().forEach(o -> {
+
+						Function<Function<String, Object>, ? extends Value> objectGenerator =
+							getObjectGenerator((ObjectMap) o);
+						
+						Value object = objectGenerator.apply(evaluate);
+						
+						model.add((Resource) subject, (IRI) predicate, object);
+						
+					});
+				});
+			});
+		});
+		
+		return model;
+	}
+	
+	private String createNaturalRdfLexicalForm(Object value) {
+		// TODO https://www.w3.org/TR/r2rml/#dfn-natural-rdf-literal
+		return value.toString();
+	}
+	
+	private ValueFactory f = SimpleValueFactory.getInstance();
+
+	private String baseIri = "http://none.com/"; // TODO ???
+	
+	private boolean isValidIri(String str) {
+		return str.contains(":");
+	}
+	
+	private IRI generateIriTerm(String lexicalForm) {
+		
+		if (isValidIri(lexicalForm))
+			return f.createIRI(lexicalForm);
+			
+		String iri = baseIri + lexicalForm;
+		if (isValidIri(iri))
+			return f.createIRI(iri);
+		
+		throw new RuntimeException("data error: could not generate a valid iri from term lexical form [" + lexicalForm + "] as-is, or prefixed with base iri [" + baseIri + "]");
+		
+	}
+	
+	private static int nextId = 0;
+	
+	private BNode generateBNodeTerm(String lexicalForm) {
+		String id = (nextId ++) + ""; // TODO hash of 'lexicalForm'
+		return f.createBNode(id);
+	}
+	
+	private Value getConstant(TermMap map, List<Class<? extends Value>> allowedConstantTypes) {
+		Value constant = map.getConstant();
+		if (constant == null) return null;
+		if (allowedConstantTypes.stream().noneMatch(c -> c.isInstance(constant)))
+			throw new RuntimeException("encountered constant value of type " + constant.getClass() + ", which is not allowed for this term map");
+		return constant; // constant MUST be an IRI for subject/predicate/graph map
+	}
+	
+	private
+	Function<Function<String, Object>, ? extends Value>
+	getTemplateGenerator(
+		TermMap map,
+		List<IRI> allowedTermTypes
+	) {
+		
+		String templateStr = map.getTemplate();
+		if (templateStr == null) return null;
+		
+		Template template = templateParser.parse(templateStr);
+		Set<String> expressions = template.getVariables();
+		
+		Function<Function<String, Object>, Object> getValue =
+			x -> {
+				Template.Builder templateBuilder = template.newBuilder();
+				expressions.forEach(v ->
+					templateBuilder.bind(v, x.apply(v)));
+				return templateBuilder.create();
+			};
+			
+		return getGenerator(map, getValue, allowedTermTypes);	
+	}
+	
+	private
+	Function<Function<String, Object>, ? extends Value>
+	getReferenceGenerator(
+		TermMap map,
+		List<IRI> allowedTermTypes
+	) {
+		
+		String reference = map.getReference();
+		if (reference == null) return null;
+		
+		Function<Function<String, Object>, Object> getValue =
+			x -> x.apply(reference);
+		
+		return getGenerator(map, getValue, allowedTermTypes);
+	}
+	
+	private IRI determineTermType(TermMap map) {
+		if (map instanceof ObjectMap) {
+			ObjectMap objectMap = (ObjectMap) map;
+			if (
+				isReferenceTermMap(map) ||
+				objectMap.getLanguage() != null ||
+				objectMap.getDatatype() != null
+			)
+				return Rr.Literal;
+		}
+		return Rr.IRI;
+	}
+	
+	private boolean isReferenceTermMap(TermMap map) {
+		return
+			map.getConstant() == null &&
+			map.getReference() != null;
+	}
+	
+	private
+	Function<Function<String, Object>, ? extends Value>
+	getGenerator(
+		TermMap map,
+		Function<Function<String, Object>, Object> getValue,
+		List<IRI> allowedTermTypes
+	) {
+		
+		Function<
+			Function<String, ? extends Value>,
+			Function<Function<String, Object>, ? extends Value>
+		> q = w ->
+			x -> {
+				Object referenceValue = getValue.apply(x);
+				if (referenceValue == null) return null;
+				String lexicalForm = createNaturalRdfLexicalForm(referenceValue);
+				return w.apply(lexicalForm);
+			};
+
+		IRI termType = map.getTermType(); // TODO enum
+		if (termType == null) termType = determineTermType(map);
+		
+		if (!allowedTermTypes.contains(termType))
+			throw new RuntimeException("encountered disallowed term type [" + termType + "]; allowed term types: " + allowedTermTypes);
+		
+		if (termType.equals(Rr.IRI))
+			return q.apply(this::generateIriTerm);
+			
+		if (termType.equals(Rr.BlankNode))
+			return q.apply(this::generateBNodeTerm);
+			
+		if (termType.equals(Rr.Literal)) {
+			// term map is assumed to be an object map if it has term type literal
+			ObjectMap objectMap = (ObjectMap) map;
+			
+			String language = objectMap.getLanguage();
+			if (language != null)
+				return q.apply(lexicalForm ->
+					f.createLiteral(lexicalForm, language));
+				
+			IRI datatype = objectMap.getDatatype();
+			if (datatype != null)
+				return q.apply(lexicalForm ->
+					f.createLiteral(lexicalForm, datatype));
+			
+			return q.apply(lexicalForm ->
+				//f.createLiteral(label, datatype) // TODO infer datatype, see https://www.w3.org/TR/r2rml/#generated-rdf-term - f.e. xsd:integer for Integer instances
+				f.createLiteral(lexicalForm));
+		}
+		
+		throw new RuntimeException("unknown term type " + termType);
+	}
+	
+	private Function<Function<String, Object>, ? extends Value> getObjectGenerator(ObjectMap map) {
+		return getGenerator(
+			map,
+			Arrays.asList(Rr.IRI, Rr.BlankNode, Rr.Literal),
+			Arrays.asList(IRI.class, Literal.class)
+		);
+	}
+	
+	private Function<Function<String, Object>, ? extends Value> getGraphGenerator(GraphMap map) {
+		return getGenerator(
+			map,
+			Arrays.asList(Rr.IRI),
+			Arrays.asList(IRI.class)
+		);
+	}
+	
+	private Function<Function<String, Object>, ? extends Value> getPredicateGenerator(PredicateMap map) {
+		return getGenerator(
+			map,
+			Arrays.asList(Rr.IRI),
+			Arrays.asList(IRI.class)
+		);
+	}
+	
+	private Function<Function<String, Object>, ? extends Value> getSubjectGenerator(SubjectMap map) {
+		return getGenerator(
+			map,
+			Arrays.asList(Rr.BlankNode, Rr.IRI),
+			Arrays.asList(IRI.class)
+		);
+	}
+	
+	private Function<Function<String, Object>, ? extends Value>
+	getGenerator(
+		TermMap map,
+		List<IRI> allowedTermTypes,
+		List<Class<? extends Value>> allowedConstantTypes
+	) {
+		
+		// constant
+		Value constant = getConstant(map, allowedConstantTypes);
+		if (constant != null) return x -> constant;
+
+		Function<Function<String, Object>, ? extends Value> generator;
+		
+		// reference
+		generator = getReferenceGenerator(map, allowedTermTypes);
+		if (generator != null) return generator;
+			
+		// template
+		generator = getTemplateGenerator(map, allowedTermTypes);
+		if (generator != null) return generator;
+		
+		throw new RuntimeException("could not create generator for map [" + map + "]");
+	}
+	
+	// TODO templates should be validated on earlier..
+	
 	
 }
