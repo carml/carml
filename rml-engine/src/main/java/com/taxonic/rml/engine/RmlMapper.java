@@ -4,13 +4,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.IOUtils;
 import org.eclipse.rdf4j.model.BNode;
@@ -22,8 +23,6 @@ import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
-import org.eclipse.rdf4j.rio.RDFFormat;
-import org.eclipse.rdf4j.rio.Rio;
 
 import com.jayway.jsonpath.JsonPath;
 import com.taxonic.rml.engine.template.Template;
@@ -33,6 +32,7 @@ import com.taxonic.rml.model.GraphMap;
 import com.taxonic.rml.model.LogicalSource;
 import com.taxonic.rml.model.ObjectMap;
 import com.taxonic.rml.model.PredicateMap;
+import com.taxonic.rml.model.PredicateObjectMap;
 import com.taxonic.rml.model.SubjectMap;
 import com.taxonic.rml.model.TermMap;
 import com.taxonic.rml.model.TriplesMap;
@@ -40,11 +40,20 @@ import com.taxonic.rml.vocab.Rdf.Rr;
 
 // TODO cache results of evaluated expressions when filling a single template, in case of repeated expressions
 
+// TODO rr:defaultGraph
+
+// TODO template strings should be validated during the validation step?
+
 public class RmlMapper {
 
+	private ValueFactory f = SimpleValueFactory.getInstance();
+
+	private String baseIri = "http://none.com/"; // TODO ???
+	
+	private Function<String, String> encodeIri = IriEncoder.create(); // TODO
+	
 	private Function<String, InputStream> sourceResolver;
 	private TemplateParser templateParser;
-	private Function<String, String> encodeIri = IriEncoder.create(); // TODO
 	
 	public RmlMapper(
 		Function<String, InputStream> sourceResolver,
@@ -55,22 +64,14 @@ public class RmlMapper {
 	}
 
 	public Model map(List<TriplesMap> mapping) {
-		
-		map(mapping.get(0));
-		
-		return null;
+		Model model = new LinkedHashModel();
+		mapping.forEach(m -> map(m, model));
+		return model;
 	}
 	
-	private void map(TriplesMap map) {
-		
-		
-		Model model = createMapper(map);
-		
-		StringWriter writer = new StringWriter();
-		Rio.write(model, writer, RDFFormat.TURTLE);
-		System.out.println(writer.toString());
-		
-		
+	private void map(TriplesMap triplesMap, Model model) {
+		TriplesMapper triplesMapper = createTriplesMapper(triplesMap); // TODO cache mapper instances
+		triplesMapper.map(model);
 	}
 	
 	private String readSource(String source) {
@@ -86,73 +87,81 @@ public class RmlMapper {
 		}
 	}
 	
-	private Model createMapper(TriplesMap map) {
-		
-		LogicalSource logicalSource = map.getLogicalSource();
-		logicalSource.getSource();
-		logicalSource.getReferenceFormulation();
-		logicalSource.getIterator();
-		
-		String json = readSource(logicalSource.getSource());
-		
-		Object value = JsonPath.read(json, logicalSource.getIterator()); 
-		
-		SubjectMap subjectMap = map.getSubjectMap();
-		
-		Function<EvaluateExpression, ? extends Value> subjectGenerator =
-			getSubjectGenerator(subjectMap);
-		
-		// TODO use rr:graph
-		
-		boolean isIterable = Iterable.class.isAssignableFrom(value.getClass());
-		Iterable<?> iterable = isIterable
-			? (Iterable<?>) value
-			: Collections.singleton(value);
-		
-		Model model = new LinkedHashModel();
+	private List<TermGenerator<IRI>> createGraphGenerators(Set<GraphMap> graphMaps) {
+		return graphMaps.stream()
+			.map(this::getGraphGenerator)
+			.collect(Collectors.toList());
+	}
+	
+	private List<PredicateObjectMapper> createPredicateObjectMappers(Set<PredicateObjectMap> predicateObjectMaps) {
+		return predicateObjectMaps.stream().map(m -> {
 			
-		iterable.forEach(e -> {
-			
-			EvaluateExpression evaluate =
-				x -> JsonPath.read(e, x);
-
-			Value subject = subjectGenerator.apply(evaluate);
-			System.out.println(">> " + subject);
-			
-			map.getPredicateObjectMaps().forEach(m -> {
+			List<PredicateMapper> predicateMappers =
+				m.getPredicateMaps().stream().map(p -> {
 				
-				m.getPredicateMaps().forEach(p -> {
+					// TODO support reference object maps (parent triples map)
 					
-					Function<EvaluateExpression, ? extends Value> predicateGenerator =
-						getPredicateGenerator(p);
-					
-					Value predicate = predicateGenerator.apply(evaluate);
-					
-					m.getObjectMaps().forEach(o -> {
-
-						Function<EvaluateExpression, ? extends Value> objectGenerator =
-							getObjectGenerator((ObjectMap) o);
-						
-						Value object = objectGenerator.apply(evaluate);
-						
-						model.add((Resource) subject, (IRI) predicate, object);
-						
-					});
-				});
-			});
-		});
+					List<TermGenerator<Value>> objectGenerators =
+						m.getObjectMaps().stream()
+							.map(o -> getObjectGenerator((ObjectMap) o))
+							.collect(Collectors.toList());
+	
+					return new PredicateMapper(
+						getPredicateGenerator(p),
+						objectGenerators
+					);
+				})
+				.collect(Collectors.toList());
+			
+			return new PredicateObjectMapper(
+				createGraphGenerators(m.getGraphMaps()),
+				predicateMappers
+			);
+		})
+		.collect(Collectors.toList());
+	}
+	
+	private SubjectMapper createSubjectMapper(TriplesMap triplesMap) {
+		SubjectMap subjectMap = triplesMap.getSubjectMap();
+		return
+		new SubjectMapper(
+			getSubjectGenerator(subjectMap),
+			createGraphGenerators(subjectMap.getGraphMaps()),
+			subjectMap.getClasses(),
+			createPredicateObjectMappers(triplesMap.getPredicateObjectMaps())
+		);
+	}
+	
+	private TriplesMapper createTriplesMapper(TriplesMap triplesMap) {
 		
-		return model;
+		LogicalSource logicalSource = triplesMap.getLogicalSource();
+		
+//		logicalSource.getReferenceFormulation();
+		
+		// TODO this all assumes json
+		
+		Supplier<Object> getSource = () -> readSource(logicalSource.getSource());
+		
+		String iterator = logicalSource.getIterator();
+		UnaryOperator<Object> applyIterator =
+			s -> JsonPath.read((String) s, iterator);
+			
+		Function<Object, EvaluateExpression> expressionEvaluatorFactory =
+			object -> expression -> JsonPath.read(object, expression);
+		
+		return
+		new TriplesMapper(
+			getSource,
+			applyIterator,
+			expressionEvaluatorFactory,
+			createSubjectMapper(triplesMap)
+		);
 	}
 	
 	private String createNaturalRdfLexicalForm(Object value) {
 		// TODO https://www.w3.org/TR/r2rml/#dfn-natural-rdf-literal
 		return value.toString();
 	}
-	
-	private ValueFactory f = SimpleValueFactory.getInstance();
-
-	private String baseIri = "http://none.com/"; // TODO ???
 	
 	private boolean isValidIri(String str) {
 		return str.contains(":");
@@ -327,32 +336,36 @@ public class RmlMapper {
 		throw new RuntimeException("unknown term type " + termType);
 	}
 	
-	private Function<EvaluateExpression, ? extends Value> getObjectGenerator(ObjectMap map) {
-		return getGenerator(
+	@SuppressWarnings("unchecked")
+	private TermGenerator<Value> getObjectGenerator(ObjectMap map) {
+		return (TermGenerator<Value>) getGenerator(
 			map,
 			Arrays.asList(Rr.IRI, Rr.BlankNode, Rr.Literal),
 			Arrays.asList(IRI.class, Literal.class)
 		);
 	}
 	
-	private TermGenerator<?> getGraphGenerator(GraphMap map) {
-		return getGenerator(
+	@SuppressWarnings("unchecked")
+	private TermGenerator<IRI> getGraphGenerator(GraphMap map) {
+		return (TermGenerator<IRI>) getGenerator(
 			map,
 			Arrays.asList(Rr.IRI),
 			Arrays.asList(IRI.class)
 		);
 	}
 	
-	private Function<EvaluateExpression, ? extends Value> getPredicateGenerator(PredicateMap map) {
-		return getGenerator(
+	@SuppressWarnings("unchecked")
+	private TermGenerator<IRI> getPredicateGenerator(PredicateMap map) {
+		return (TermGenerator<IRI>) getGenerator(
 			map,
 			Arrays.asList(Rr.IRI),
 			Arrays.asList(IRI.class)
 		);
 	}
 	
-	private Function<EvaluateExpression, ? extends Value> getSubjectGenerator(SubjectMap map) {
-		return getGenerator(
+	@SuppressWarnings("unchecked")
+	private TermGenerator<Resource> getSubjectGenerator(SubjectMap map) {
+		return (TermGenerator<Resource>) getGenerator(
 			map,
 			Arrays.asList(Rr.BlankNode, Rr.IRI),
 			Arrays.asList(IRI.class)
@@ -381,8 +394,5 @@ public class RmlMapper {
 		
 		throw new RuntimeException("could not create generator for map [" + map + "]");
 	}
-	
-	// TODO templates should be validated on earlier..
-	
 	
 }
