@@ -4,15 +4,22 @@ import java.util.Set;
 
 public interface Template {
 
-	Set<String> getVariables();
+	Set<Expression> getExpressions();
 	
 	Builder newBuilder();
 	
 	interface Builder {
 		
-		Builder bind(String variable, Object value);
+		Builder bind(Expression expression, String value);
 		
 		String create();
 		
 	}
+	
+	interface Expression {
+		
+		String getValue();
+		
+	}
+	
 }

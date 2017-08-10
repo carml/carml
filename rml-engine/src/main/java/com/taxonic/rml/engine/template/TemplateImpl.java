@@ -7,6 +7,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.mutable.MutableInt;
+
 class TemplateImpl implements Template {
 
 	abstract static class Segment {
@@ -17,7 +19,7 @@ class TemplateImpl implements Template {
 			this.value = value;
 		}
 
-		String getValue() {
+		public String getValue() {
 			return value;
 		}
 	}
@@ -55,9 +57,9 @@ class TemplateImpl implements Template {
 		}
 	}
 	
-	static class Variable extends Segment {
+	static class ExpressionSegment extends Segment {
 
-		Variable(String value) {
+		ExpressionSegment(String value) {
 			super(value);
 		}
 
@@ -66,7 +68,7 @@ class TemplateImpl implements Template {
 			if (this == obj) return true;
 			if (obj == null) return false;
 			if (getClass() != obj.getClass()) return false;
-			Variable other = (Variable) obj;
+			ExpressionSegment other = (ExpressionSegment) obj;
 			if (getValue() == null) {
 				if (other.getValue() != null) return false;
 			}
@@ -84,32 +86,83 @@ class TemplateImpl implements Template {
 		
 		@Override
 		public String toString() {
-			return "Variable [getValue()=" + getValue() + "]";
+			return "ExpressionSegment [getValue()=" + getValue() + "]";
 		}	
+	}
+
+	private static class ExpressionImpl implements Expression {
+
+		private int id;
+		String value;
+
+		ExpressionImpl(int id, String value) {
+			this.id = id;
+			this.value = value;
+		}
+
+		@Override
+		public String getValue() {
+			return value;
+		}
+
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + id;
+			result = prime * result + ((value == null) ? 0 : value.hashCode());
+			return result;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj) return true;
+			if (obj == null) return false;
+			if (getClass() != obj.getClass()) return false;
+			ExpressionImpl other = (ExpressionImpl) obj;
+			if (id != other.id) return false;
+			if (value == null) {
+				if (other.value != null) return false;
+			}
+			else if (!value.equals(other.value)) return false;
+			return true;
+		}
+
+		@Override
+		public String toString() {
+			return "ExpressionImpl [id=" + id + ", value=" + value + "]";
+		}
 	}
 	
 	private class Builder implements Template.Builder {
 
-		private Map<String, Object> values = new LinkedHashMap<>();
+		private Map<Expression, String> bindings = new LinkedHashMap<>();
 		
 		@Override
-		public Template.Builder bind(String variable, Object value) {
-			values.put(variable, value);
+		public Template.Builder bind(Expression expression, String value) {
+			bindings.put(expression, value);
 			return this;
 		}
 		
-		private Object getVariableValue(String variable) {
-			if (!values.containsKey(variable))
-				throw new RuntimeException("no binding present for variable [" + variable + "]");
-			return values.get(variable);
+		private String getExpressionValue(Expression expression) {
+			if (!bindings.containsKey(expression))
+				throw new RuntimeException("no binding present for expression [" + expression + "]");
+			return bindings.get(expression);
+		}
+		
+		private String getExpressionSegmentValue(ExpressionSegment segment) {
+			Expression expression = expressionSegmentMap.get(segment);
+			if (expression == null)
+				throw new RuntimeException("no Expression instance present corresponding to segment " + segment); // (should never occur)
+			return getExpressionValue(expression);
 		}
 		
 		private void checkBindings() {
-			if (!new LinkedHashSet<>(values.keySet()).equals(variables))
-				throw new RuntimeException("set of bindings [" + values.keySet() +
-					"] does NOT match set of variables in template [" + variables + "]");
+			if (!new LinkedHashSet<>(bindings.keySet()).equals(expressions))
+				throw new RuntimeException("set of bindings [" + bindings.keySet() +
+					"] does NOT match set of expressions in template [" + expressions + "]");
 		}
-
+		
 		@Override
 		public String create() {
 			checkBindings();
@@ -117,35 +170,51 @@ class TemplateImpl implements Template {
 			segments.forEach(s -> {
 				if (s instanceof Text)
 					str.append(s.getValue());
-				else if (s instanceof Variable)
-					str.append(getVariableValue(s.getValue()));
+				else if (s instanceof ExpressionSegment)
+					str.append(getExpressionSegmentValue((ExpressionSegment) s));
 			});
 			return str.toString();
 		}
 	}
 	
+	private static Map<ExpressionSegment, Expression> createExpressionSegmentMap(List<Segment> segments) {
+		MutableInt id = new MutableInt();
+		return segments.stream()
+			.filter(s -> s instanceof ExpressionSegment)
+			.map(s -> (ExpressionSegment) s)
+			.collect(Collectors.toMap(
+				e -> e,
+				e -> new ExpressionImpl(id.getAndIncrement(), e.getValue())
+			));
+	}
+	
 	static TemplateImpl build(List<Segment> segments) {
-		Set<String> variables =
-			new LinkedHashSet<>(
-				segments.stream()
-					.filter(s -> s instanceof Variable)
-					.map(Segment::getValue)
-					.collect(Collectors.toSet())
-			);
-		return new TemplateImpl(segments, variables);
+		Map<ExpressionSegment, Expression> expressionSegmentMap = createExpressionSegmentMap(segments);
+		Set<Expression> expressions = new LinkedHashSet<>(expressionSegmentMap.values());
+		return new TemplateImpl(
+			segments,
+			expressions,
+			expressionSegmentMap
+		);
 	}
 	
 	private List<Segment> segments;
-	private Set<String> variables;
+	private Set<Expression> expressions;
+	private Map<ExpressionSegment, Expression> expressionSegmentMap;
 
-	TemplateImpl(List<Segment> segments, Set<String> variables) {
+	TemplateImpl(
+		List<Segment> segments,
+		Set<Expression> expressions,
+		Map<ExpressionSegment, Expression> expressionSegmentMap
+	) {
 		this.segments = segments;
-		this.variables = variables;
+		this.expressions = expressions;
+		this.expressionSegmentMap = expressionSegmentMap;
 	}
 	
 	@Override
-	public Set<String> getVariables() {
-		return variables;
+	public Set<Expression> getExpressions() {
+		return expressions;
 	}
 
 	@Override
@@ -157,8 +226,9 @@ class TemplateImpl implements Template {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime * result + ((expressionSegmentMap == null) ? 0 : expressionSegmentMap.hashCode());
+		result = prime * result + ((expressions == null) ? 0 : expressions.hashCode());
 		result = prime * result + ((segments == null) ? 0 : segments.hashCode());
-		result = prime * result + ((variables == null) ? 0 : variables.hashCode());
 		return result;
 	}
 
@@ -168,21 +238,25 @@ class TemplateImpl implements Template {
 		if (obj == null) return false;
 		if (getClass() != obj.getClass()) return false;
 		TemplateImpl other = (TemplateImpl) obj;
+		if (expressionSegmentMap == null) {
+			if (other.expressionSegmentMap != null) return false;
+		}
+		else if (!expressionSegmentMap.equals(other.expressionSegmentMap)) return false;
+		if (expressions == null) {
+			if (other.expressions != null) return false;
+		}
+		else if (!expressions.equals(other.expressions)) return false;
 		if (segments == null) {
 			if (other.segments != null) return false;
 		}
 		else if (!segments.equals(other.segments)) return false;
-		if (variables == null) {
-			if (other.variables != null) return false;
-		}
-		else if (!variables.equals(other.variables)) return false;
 		return true;
 	}
 
 	@Override
 	public String toString() {
-		return "TemplateImpl [segments=" + segments + "]";
+		return "TemplateImpl [segments=" + segments + ", expressions=" + expressions + ", expressionSegmentMap="
+			+ expressionSegmentMap + "]";
 	}
-	
-}
 
+}

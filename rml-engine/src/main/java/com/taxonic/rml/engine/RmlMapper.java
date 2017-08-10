@@ -27,6 +27,7 @@ import org.eclipse.rdf4j.rio.Rio;
 
 import com.jayway.jsonpath.JsonPath;
 import com.taxonic.rml.engine.template.Template;
+import com.taxonic.rml.engine.template.Template.Expression;
 import com.taxonic.rml.engine.template.TemplateParser;
 import com.taxonic.rml.model.GraphMap;
 import com.taxonic.rml.model.LogicalSource;
@@ -37,12 +38,13 @@ import com.taxonic.rml.model.TermMap;
 import com.taxonic.rml.model.TriplesMap;
 import com.taxonic.rml.vocab.Rdf.Rr;
 
-// TODO re-engineer template so we can use the same expression twice: http://xyz.com/{id}/abc/{id}
+// TODO cache results of evaluated expressions when filling a single template, in case of repeated expressions
 
 public class RmlMapper {
 
 	private Function<String, InputStream> sourceResolver;
 	private TemplateParser templateParser;
+	private Function<String, String> encodeIri = IriEncoder.create(); // TODO
 	
 	public RmlMapper(
 		Function<String, InputStream> sourceResolver,
@@ -97,7 +99,7 @@ public class RmlMapper {
 		
 		SubjectMap subjectMap = map.getSubjectMap();
 		
-		Function<Function<String, Object>, ? extends Value> subjectGenerator =
+		Function<EvaluateExpression, ? extends Value> subjectGenerator =
 			getSubjectGenerator(subjectMap);
 		
 		// TODO use rr:graph
@@ -111,7 +113,7 @@ public class RmlMapper {
 			
 		iterable.forEach(e -> {
 			
-			Function<String, Object> evaluate =
+			EvaluateExpression evaluate =
 				x -> JsonPath.read(e, x);
 
 			Value subject = subjectGenerator.apply(evaluate);
@@ -121,14 +123,14 @@ public class RmlMapper {
 				
 				m.getPredicateMaps().forEach(p -> {
 					
-					Function<Function<String, Object>, ? extends Value> predicateGenerator =
+					Function<EvaluateExpression, ? extends Value> predicateGenerator =
 						getPredicateGenerator(p);
 					
 					Value predicate = predicateGenerator.apply(evaluate);
 					
 					m.getObjectMaps().forEach(o -> {
 
-						Function<Function<String, Object>, ? extends Value> objectGenerator =
+						Function<EvaluateExpression, ? extends Value> objectGenerator =
 							getObjectGenerator((ObjectMap) o);
 						
 						Value object = objectGenerator.apply(evaluate);
@@ -184,9 +186,7 @@ public class RmlMapper {
 		return constant; // constant MUST be an IRI for subject/predicate/graph map
 	}
 	
-	private
-	Function<Function<String, Object>, ? extends Value>
-	getTemplateGenerator(
+	private TermGenerator<?> getTemplateGenerator(
 		TermMap map,
 		List<IRI> allowedTermTypes
 	) {
@@ -195,22 +195,47 @@ public class RmlMapper {
 		if (templateStr == null) return null;
 		
 		Template template = templateParser.parse(templateStr);
-		Set<String> expressions = template.getVariables();
+		Set<Expression> expressions = template.getExpressions();
 		
-		Function<Function<String, Object>, Object> getValue =
-			x -> {
+		IRI termType = determineTermType(map);
+		
+		Function<EvaluateExpression, Object> getValue =
+			evaluateExpression -> {
 				Template.Builder templateBuilder = template.newBuilder();
-				expressions.forEach(v ->
-					templateBuilder.bind(v, x.apply(v)));
+				expressions.forEach(expression ->
+					templateBuilder.bind(
+						expression,
+						prepareValueForTemplate(
+							evaluateExpression.apply(expression.getValue()),
+							termType.equals(Rr.IRI)
+						)
+					)
+				);
 				return templateBuilder.create();
 			};
 			
-		return getGenerator(map, getValue, allowedTermTypes);	
+		return getGenerator(
+			map,
+			getValue,
+			allowedTermTypes,
+			termType
+		);	
 	}
 	
-	private
-	Function<Function<String, Object>, ? extends Value>
-	getReferenceGenerator(
+	/**
+	 * See https://www.w3.org/TR/r2rml/#from-template
+	 * @param raw
+	 * @return
+	 */
+	private String prepareValueForTemplate(Object raw, boolean makeIriSafe) {
+		if (raw == null) return "NULL";
+		String value = createNaturalRdfLexicalForm(raw);
+		if (makeIriSafe)
+			return encodeIri.apply(value);
+		return value;
+	}
+	
+	private TermGenerator<?> getReferenceGenerator(
 		TermMap map,
 		List<IRI> allowedTermTypes
 	) {
@@ -218,13 +243,23 @@ public class RmlMapper {
 		String reference = map.getReference();
 		if (reference == null) return null;
 		
-		Function<Function<String, Object>, Object> getValue =
-			x -> x.apply(reference);
+		Function<EvaluateExpression, Object> getValue =
+			evaluateExpression -> evaluateExpression.apply(reference);
 		
-		return getGenerator(map, getValue, allowedTermTypes);
+		return getGenerator(
+			map,
+			getValue,
+			allowedTermTypes,
+			determineTermType(map)
+		);
 	}
 	
+	// TODO return an enum
 	private IRI determineTermType(TermMap map) {
+		
+		IRI termType = map.getTermType();
+		if (termType != null) return termType;
+		
 		if (map instanceof ObjectMap) {
 			ObjectMap objectMap = (ObjectMap) map;
 			if (
@@ -243,36 +278,32 @@ public class RmlMapper {
 			map.getReference() != null;
 	}
 	
-	private
-	Function<Function<String, Object>, ? extends Value>
-	getGenerator(
+	private TermGenerator<?> getGenerator(
 		TermMap map,
-		Function<Function<String, Object>, Object> getValue,
-		List<IRI> allowedTermTypes
+		Function<EvaluateExpression, Object> getValue,
+		List<IRI> allowedTermTypes,
+		IRI termType
 	) {
 		
 		Function<
 			Function<String, ? extends Value>,
-			Function<Function<String, Object>, ? extends Value>
-		> q = w ->
-			x -> {
-				Object referenceValue = getValue.apply(x);
+			TermGenerator<?>
+		> createGenerator = generateTerm ->
+			evaluateExpression -> {
+				Object referenceValue = getValue.apply(evaluateExpression);
 				if (referenceValue == null) return null;
 				String lexicalForm = createNaturalRdfLexicalForm(referenceValue);
-				return w.apply(lexicalForm);
+				return generateTerm.apply(lexicalForm);
 			};
 
-		IRI termType = map.getTermType(); // TODO enum
-		if (termType == null) termType = determineTermType(map);
-		
 		if (!allowedTermTypes.contains(termType))
 			throw new RuntimeException("encountered disallowed term type [" + termType + "]; allowed term types: " + allowedTermTypes);
 		
 		if (termType.equals(Rr.IRI))
-			return q.apply(this::generateIriTerm);
+			return createGenerator.apply(this::generateIriTerm);
 			
 		if (termType.equals(Rr.BlankNode))
-			return q.apply(this::generateBNodeTerm);
+			return createGenerator.apply(this::generateBNodeTerm);
 			
 		if (termType.equals(Rr.Literal)) {
 			// term map is assumed to be an object map if it has term type literal
@@ -280,15 +311,15 @@ public class RmlMapper {
 			
 			String language = objectMap.getLanguage();
 			if (language != null)
-				return q.apply(lexicalForm ->
+				return createGenerator.apply(lexicalForm ->
 					f.createLiteral(lexicalForm, language));
 				
 			IRI datatype = objectMap.getDatatype();
 			if (datatype != null)
-				return q.apply(lexicalForm ->
+				return createGenerator.apply(lexicalForm ->
 					f.createLiteral(lexicalForm, datatype));
 			
-			return q.apply(lexicalForm ->
+			return createGenerator.apply(lexicalForm ->
 				//f.createLiteral(label, datatype) // TODO infer datatype, see https://www.w3.org/TR/r2rml/#generated-rdf-term - f.e. xsd:integer for Integer instances
 				f.createLiteral(lexicalForm));
 		}
@@ -296,7 +327,7 @@ public class RmlMapper {
 		throw new RuntimeException("unknown term type " + termType);
 	}
 	
-	private Function<Function<String, Object>, ? extends Value> getObjectGenerator(ObjectMap map) {
+	private Function<EvaluateExpression, ? extends Value> getObjectGenerator(ObjectMap map) {
 		return getGenerator(
 			map,
 			Arrays.asList(Rr.IRI, Rr.BlankNode, Rr.Literal),
@@ -304,7 +335,7 @@ public class RmlMapper {
 		);
 	}
 	
-	private Function<Function<String, Object>, ? extends Value> getGraphGenerator(GraphMap map) {
+	private TermGenerator<?> getGraphGenerator(GraphMap map) {
 		return getGenerator(
 			map,
 			Arrays.asList(Rr.IRI),
@@ -312,7 +343,7 @@ public class RmlMapper {
 		);
 	}
 	
-	private Function<Function<String, Object>, ? extends Value> getPredicateGenerator(PredicateMap map) {
+	private Function<EvaluateExpression, ? extends Value> getPredicateGenerator(PredicateMap map) {
 		return getGenerator(
 			map,
 			Arrays.asList(Rr.IRI),
@@ -320,7 +351,7 @@ public class RmlMapper {
 		);
 	}
 	
-	private Function<Function<String, Object>, ? extends Value> getSubjectGenerator(SubjectMap map) {
+	private Function<EvaluateExpression, ? extends Value> getSubjectGenerator(SubjectMap map) {
 		return getGenerator(
 			map,
 			Arrays.asList(Rr.BlankNode, Rr.IRI),
@@ -328,8 +359,7 @@ public class RmlMapper {
 		);
 	}
 	
-	private Function<Function<String, Object>, ? extends Value>
-	getGenerator(
+	private TermGenerator<?> getGenerator(
 		TermMap map,
 		List<IRI> allowedTermTypes,
 		List<Class<? extends Value>> allowedConstantTypes
@@ -339,7 +369,7 @@ public class RmlMapper {
 		Value constant = getConstant(map, allowedConstantTypes);
 		if (constant != null) return x -> constant;
 
-		Function<Function<String, Object>, ? extends Value> generator;
+		TermGenerator<?> generator;
 		
 		// reference
 		generator = getReferenceGenerator(map, allowedTermTypes);
