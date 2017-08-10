@@ -14,5 +14,15 @@
   	rr:subjectMap [
     	rr:template "http://example.com/Child/{first}/{last}";
     	rr:class ex:Child;
-		rr:graph ex:mainGraph
-  	] .
+		rr:graphMap [ rr:constant <http://example.dataset/test> ];
+  	];
+  	
+  	rr:predicateObjectMap [
+		rr:predicateMap [
+			rr:constant ex:hasBirthday;
+		];
+		rr:objectMap [
+			rml:reference "birthday";
+		];
+		
+	] .

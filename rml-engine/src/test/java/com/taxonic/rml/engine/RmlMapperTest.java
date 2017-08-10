@@ -31,20 +31,19 @@ public class RmlMapperTest {
 	}
 	
 	public void testGraphMapMappingPredObj() {
-		//TODO Create output 
 		testMapping("RmlMapper/test13/graphMapMappingPredObj.rml.ttl",
-				"RmlMapper/test13/graphMapMappingPredObj.output.ttl",
+				"RmlMapper/test13/graphMapMappingPredObj.output.trig",
 				"RmlMapper");
 	}
 	public void testGraphMapMappingSubjectA() {
-		//TODO Create output 
 		testMapping("RmlMapper/test13/graphMapMappingSubjectA.rml.ttl",
-				"RmlMapper/test13/graphMapMappingSubjectA.output.ttl",
+				"RmlMapper/test13/graphMapMappingSubjectA.output.trig",
 				"RmlMapper");
 	}
 	
 	@Test
 	public void testRemoveNonLatinCharsFunction() {
+		//TODO Parse fno.ttl
 		String functionPath = "RmlMapper/test12/removeNonLatinCharsFunction.fn.ttl";
 		testMapping("RmlMapper/test12/removeNonLatinCharsMapping.fnml.ttl",
 				"RmlMapper/test12/removeNonLatinCharsMapping.output.ttl",
@@ -53,6 +52,7 @@ public class RmlMapperTest {
 	
 	@Test
 	public void testToBoolFunction() {
+		//TODO Parse fno.ttl
 		String functionPath = "RmlMapper/test11/toBoolFunction.fnml.ttl";
 		testMapping("RmlMapper/test11/toBoolMapping.fnml.ttl",
 				"RmlMapper/test11/toBoolMapping.output.ttl",
