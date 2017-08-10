@@ -36,7 +36,7 @@ public class TemplateParser {
 	
 	private static class Text extends Segment {}
 	
-	private static class Variable extends Segment {}
+	private static class Expression extends Segment {}
 	
 	public Template parse(String template) {
 
@@ -52,8 +52,8 @@ public class TemplateParser {
 			if (value.isEmpty()) return;
 			if (segment instanceof Text)
 				segments.add(new TemplateImpl.Text(value));
-			else if (segment instanceof Variable)
-				segments.add(new TemplateImpl.Variable(value));
+			else if (segment instanceof Expression)
+				segments.add(new TemplateImpl.ExpressionSegment(value));
 			// (assuming no other segment types)
 		};
 		
@@ -74,19 +74,19 @@ public class TemplateParser {
 					escaping.setTrue();
 				
 				else if (c.equals("{")) {
-					if (segment instanceof Variable)
+					if (segment instanceof Expression)
 						throw new RuntimeException("encountered unescaped nested { character in template [" + template + "]");
 					// (assuming segment is Text)
 					close.run();
-					segmentContainer.setValue(new Variable());
+					segmentContainer.setValue(new Expression());
 				}
 				
 				else if (c.equals("}")) {
-					if (segment instanceof Variable) {
+					if (segment instanceof Expression) {
 						close.run();
 						segmentContainer.setValue(new Text());
 					}
-					// allow adding } outside variables to text segment
+					// allow adding } outside expressions to text segment
 					else segment.append(c);
 					// (assuming no other segment types)
 				}
@@ -96,8 +96,8 @@ public class TemplateParser {
 			});
 		
 		Segment segment = segmentContainer.getValue();
-		if (segment instanceof Variable)
-			throw new RuntimeException("unclosed variable expression in template [" + template + "]");
+		if (segment instanceof Expression)
+			throw new RuntimeException("unclosed expression in template [" + template + "]");
 		close.run();
 		
 		return TemplateImpl.build(segments);

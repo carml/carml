@@ -8,7 +8,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.taxonic.rml.engine.template.TemplateImpl.Text;
-import com.taxonic.rml.engine.template.TemplateImpl.Variable;
+import com.taxonic.rml.engine.template.TemplateImpl.ExpressionSegment;
 import com.taxonic.rml.engine.template.Template;
 import com.taxonic.rml.engine.template.TemplateParser;
 
@@ -26,7 +26,7 @@ public class TemplateParserTest {
 		testTemplate(
 			"abc{xyz}",
 			new Text("abc"),
-			new Variable("xyz")
+			new ExpressionSegment("xyz")
 		);
 	}
 	
@@ -35,7 +35,7 @@ public class TemplateParserTest {
 		testTemplate(
 			"abc{xyz}x",
 			new Text("abc"),
-			new Variable("xyz"),
+			new ExpressionSegment("xyz"),
 			new Text("x")
 		);
 	}
@@ -44,7 +44,7 @@ public class TemplateParserTest {
 	public void testLeadingVariable() {
 		testTemplate(
 			"{xyz}x",
-			new Variable("xyz"),
+			new ExpressionSegment("xyz"),
 			new Text("x")
 		);
 	}
@@ -53,7 +53,7 @@ public class TemplateParserTest {
 	public void testVariableOnly() {
 		testTemplate(
 			"{xyz}",
-			new Variable("xyz")
+			new ExpressionSegment("xyz")
 		);
 	}
 	
@@ -85,8 +85,8 @@ public class TemplateParserTest {
 	public void testMultipleVariables() {
 		testTemplate(
 			"{abc}{xyz}",
-			new Variable("abc"),
-			new Variable("xyz")
+			new ExpressionSegment("abc"),
+			new ExpressionSegment("xyz")
 		);
 	}
 	
