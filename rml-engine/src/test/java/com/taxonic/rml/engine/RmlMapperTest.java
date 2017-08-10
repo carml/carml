@@ -3,10 +3,13 @@ package com.taxonic.rml.engine;
 import static org.junit.Assert.assertEquals;
 
 import java.io.InputStream;
+import java.io.StringWriter;
 import java.util.List;
 import java.util.function.Function;
 
 import org.eclipse.rdf4j.model.Model;
+import org.eclipse.rdf4j.rio.RDFFormat;
+import org.eclipse.rdf4j.rio.Rio;
 import org.junit.Test;
 
 import com.taxonic.rml.engine.template.TemplateParser;
@@ -125,9 +128,15 @@ public class RmlMapperTest {
 			s -> RmlMapperTest.class.getClassLoader().getResourceAsStream(contextPath + "/" + s);
 		RmlMapper mapper = new RmlMapper(sourceResolver, TemplateParser.build());
 		Model result = mapper.map(mapping);
+		printModel(result);
 		Model expected = IoUtils.parse(outputPath);
 		assertEquals(expected, result);
 	}
-	
+
+	private void printModel(Model model) {
+		StringWriter writer = new StringWriter();
+		Rio.write(model, writer, RDFFormat.TURTLE);
+		System.out.println(writer.toString());
+	}
 
 }

@@ -11,13 +11,10 @@ import org.eclipse.rdf4j.model.vocabulary.XMLSchema;
 import org.junit.Test;
 
 import com.taxonic.rml.model.TriplesMap;
-import com.taxonic.rml.model.impl.GraphMapImpl;
-import com.taxonic.rml.model.impl.JoinImpl;
 import com.taxonic.rml.model.impl.LogicalSourceImpl;
 import com.taxonic.rml.model.impl.ObjectMapImpl;
 import com.taxonic.rml.model.impl.PredicateMapImpl;
 import com.taxonic.rml.model.impl.PredicateObjectMapImpl;
-import com.taxonic.rml.model.impl.RefObjectMapImpl;
 import com.taxonic.rml.model.impl.SubjectMapImpl;
 import com.taxonic.rml.model.impl.TriplesMapImpl;
 import com.taxonic.rml.util.RmlMappingLoader;

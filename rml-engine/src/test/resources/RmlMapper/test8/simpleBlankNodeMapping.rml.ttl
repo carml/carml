@@ -13,12 +13,11 @@
 
   	rr:subjectMap [
     	rr:template "http://example.com/Child/{first}/{last}";
-    	rr:class ex:Child
+    	rr:class ex:Child;
+    	rr:termType rr:BlankNode;
   	];
   	
 	rr:predicateObjectMap [
 		rr:predicate ex:BSN;
-		rr:objectMap [
-			rr:termType rr:BlankNode;
-		];
+		rr:constant "25"^^xsd:integer;
 	].

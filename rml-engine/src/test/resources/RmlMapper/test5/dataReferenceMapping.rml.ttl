@@ -12,7 +12,7 @@
   	];
 
   	rr:subjectMap [
-    	rr:template "http://example.com/Child/{first}/{last}";
+    	rr:template "http://example.com/Child/{$.first}/{$.last}";
     	rr:class ex:Child
   	];
   	
