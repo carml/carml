@@ -13,6 +13,10 @@ public class IoUtils {
 		return parse(resource, RDFFormat.TURTLE);
 	}
 	
+	public static Model parseTrig(String resource) {
+		return parse(resource, RDFFormat.TRIG);
+	}
+	
 	public static Model parse(String resource, RDFFormat format) {
 		try (InputStream input = IoUtils.class.getClassLoader().getResourceAsStream(resource)) {
 			return Rio.parse(input, "http://none.com/", format);

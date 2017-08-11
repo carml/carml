@@ -30,11 +30,14 @@ public class RmlMapperTest {
 				"RmlMapper");
 	}
 	
+	@Test
 	public void testGraphMapMappingPredObj() {
 		testMapping("RmlMapper/test13/graphMapMappingPredObj.rml.ttl",
 				"RmlMapper/test13/graphMapMappingPredObj.output.trig",
 				"RmlMapper");
 	}
+	
+	@Test
 	public void testGraphMapMappingSubjectA() {
 		testMapping("RmlMapper/test13/graphMapMappingSubjectA.rml.ttl",
 				"RmlMapper/test13/graphMapMappingSubjectA.output.trig",
@@ -129,8 +132,21 @@ public class RmlMapperTest {
 		RmlMapper mapper = new RmlMapper(sourceResolver, TemplateParser.build());
 		Model result = mapper.map(mapping);
 		printModel(result);
-		Model expected = IoUtils.parse(outputPath);
+		Model expected = IoUtils.parse(outputPath, determineRdfFormat(outputPath));
 		assertEquals(expected, result);
+	}
+	
+	private RDFFormat determineRdfFormat(String path) {
+		int period = path.lastIndexOf(".");
+		if (period == -1)
+			return RDFFormat.TURTLE;
+		String extension = path.substring(period + 1).toLowerCase();
+		if (extension.equals("ttl"))
+			return RDFFormat.TURTLE;
+		if (extension.equals("trig"))
+			return RDFFormat.TRIG;
+		throw new RuntimeException(
+			"could not determine rdf format from file extension [" + extension + "]");
 	}
 
 	private void printModel(Model model) {
