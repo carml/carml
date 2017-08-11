@@ -44,6 +44,11 @@ import com.taxonic.rml.vocab.Rdf.Rr;
 
 // TODO template strings should be validated during the validation step?
 
+/* TODO re-use the ***Mapper instances for equal corresponding ***Map instances.
+ * f.e. if there are 2 equal PredicateMaps in the RML mapping file,
+ * re-use the same PredicateMapper instance
+ */
+
 public class RmlMapper {
 
 	private ValueFactory f = SimpleValueFactory.getInstance();
