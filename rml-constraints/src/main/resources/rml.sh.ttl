@@ -1,3 +1,11 @@
+####################################################################################
+############################### Notes about the spec ###############################
+####################################################################################
+
+# Errors found in the spec:
+# 
+# 
+
 @prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix sh:   <http://www.w3.org/ns/shacl#> .
@@ -18,31 +26,174 @@ rlmsh:TripleMapShape
 	a sh:NodeShape ;
 	rdfs:label "Triple map shape"@en ;
 	rdfs:comment "Defines constraints describing a well-formed RML triple map."@en ;
-	sh:property [
-		sh:path rml:logicalSource ;
-		sh:node rmlsh:LogicalSourceShape;
-		sh:minCount: 1 ;
-		sh:maxCount: 1 ;
-	] ;
+
+
+rmlsh:PredicateObjectMapShape
 	sh:xone (
 		[
 			sh:property [
-				sh:path rr:subjectMap
-				sh:node rmlsh:SubjectMapShape
+				sh:path predicateMap
+
+				sh:node rmlsh:
 				sh:minCount: 1 ;
-				sh:maxCount: 1 ;
+			]
+	)
+
+
+
+rmlsh:TripleMapShape
+	a sh:NodeShape ;
+
+	
+
+	sh:property [
+		sh:path rr:subjectMap ;
+		sh:minCount 1 ;
+		sh:maxCount 1
+	] ;
+	sh:property rmlsh:SubjectMapPropertyShape .
+
+
+rmlsh:SubjectMapPropertyShape
+	a sh:PropertyShape ;
+	sh:path rr:subjectMap ;
+	sh:node rmlsh:TermMapShape ;
+	sh:node rmlsh:SubjectMapPartialShape .
+
+
+
+
+
+rmlsh:TriplesMapShape
+	a sh:PropertyShape ;
+	rdfs:label "Triples map shape"@en ;
+	rdfs:comment "Defines constraints for a well-formed triples map."@en;
+
+	sh:targetClass rr:TriplesMap
+	sh:targetSubjectsOf
+		rr:logicalTable,
+		rml:logicalSource,
+		rr:subject,
+		rr:subjectMap ;
+
+	sh:property [
+		sh:path rr:subjectMap, rr:subject, rr:logicalSource ;
+		sh:maxCount: 1 ;
+	] ;
+		
+	sh:property [
+		sh:path rml:logicalSource ;
+		sh:minCount: 1 ;
+	] ;
+	
+	sh:xone (
+		[
+			sh:property [
+				sh:path rr:subjectMap ;
+				sh:minCount: 1 ;
 			]
 		]
 		[
 			sh:property [
-				sh:path rr:subject
-				sh:nodeKind sh:IRI
+				sh:path rr:subject ;
+				sh:nodeKind sh:IRI ;
 				sh:minCount: 1 ;
-				sh:maxCount: 1 ;
 			]
 		]
 	) ;
 	sh:property [
-		sh:path rr:predicateObjectMap
+		sh:path rr:predicateObjectMap ;
 		sh:node rmlsh:PredicateObjectMapShape
 	] .
+
+
+
+
+rmlsh:TermMapShape
+	a sh:PropertyShape ;
+	rdfs:label "Term map shape"@en ;
+	rdfs:comment "Defines constraints for a well-formed term map."@en;
+
+	sh:targetObjectsOf
+		rr:subjectMap ,
+		rr:predicateMap ,
+		rr:graphMap ,
+		rr:objectMap ;
+
+	sh:targetClass
+		rr:SubjectMap ,
+		rr:PredicateMap ,
+		rr:GraphMap ,
+		rr:ObjectMap ;
+
+	sh:targetSubjectsOf
+		rr:termType,
+
+
+
+rmlsh:SubjectMapShape
+	a sh:PropertyShape ;
+	rdfs:label "Subject map shape"@en ;
+	rdfs:comment "Defines constraints for a well-formed subject map."@en;
+
+	sh:targetObjectsOf rr:subjectMap ;
+	sh:targetClass     rr:SubjectMap ;
+
+	sh:property [
+		sh:path rr:class ;
+		sh:nodeKind sh:IRI ;
+	]
+
+
+rmlsh:ObjectMapShape
+	a sh:PropertyShape ;
+	rdfs:label "Object map shape"@en ;
+	rdfs:comment "Defines constraints for a well-formed object map."@en;
+
+
+rmlsh:RefObjectMapShape
+	a sh:PropertyShape ;
+	rdfs:label "Ref object map shape"@en ;
+	rdfs:comment "Defines constraints for a well-formed ref object map."@en;
+
+
+rmlsh:PredicateMapShape
+	a sh:PropertyShape ;
+	rdfs:label "Predicate map shape"@en ;
+	rdfs:comment "Defines constraints for a well-formed predicate map."@en;
+
+
+rmlsh:PredicateObjectMapShape
+	a sh:PropertyShape ;
+	rdfs:label "Predicate object map shape"@en ;
+	rdfs:comment "Defines constraints for a well-formed predicate object map."@en;
+
+
+rmlsh:BaseSourceShape
+	a sh:PropertyShape ;
+	rdfs:label "Base source shape"@en ;
+	rdfs:comment "Defines constraints for a well-formed base source."@en;
+
+
+rmlsh:LogicalSourceShape
+	a sh:PropertyShape ;
+	rdfs:label "Logical source shape"@en ;
+	rdfs:comment "Defines constraints for a well-formed logical source."@en;
+
+
+rmlsh:ReferenceFormulationShape
+	a sh:PropertyShape ;
+	rdfs:label "Reference formulation shape"@en ;
+	rdfs:comment "Defines constraints for a well-formed reference formulation."@en;
+
+
+rmlsh:GraphMapShape
+	a sh:PropertyShape ;
+	rdfs:label "Graph map shape"@en ;
+	rdfs:comment "Defines constraints for a well-formed graph map."@en;
+
+
+rmlsh:JoinShape
+	a sh:PropertyShape ;
+	rdfs:label "Join shape" @en ;
+	rdfs:comment "Defines constraints for a well-formed join "@en;
