@@ -1,4 +1,6 @@
-##Onbekend wat hier de uitkomst van moet worden!
-<http://example.com/Child/Amarise/Fernand> a <http://example.com/Child> .
 
-<http://example.com/Child/Kelsey/Jirsten> a <http://example.com/Child> .
+# NOTE: algorithm for generating blank node ids will change
+
+_:0 a <http://example.com/Child> .
+
+_:1 a <http://example.com/Child> .

@@ -1,0 +1,373 @@
+@prefix rr: <http://www.w3.org/ns/r2rml#>.
+@prefix rml: <http://semweb.mmlab.be/ns/rml#>.
+@prefix ex: <http://faulty.refObject.example.com/>.
+@prefix ql: <http://semweb.mmlab.be/ns/ql#> .
+
+
+####################################################################################
+#More than one ParentTriplesMap with different rml:source
+####################################################################################
+<#FaultyRefObjectMappingA> a rr:TriplesMap;
+	rml:logicalSource [
+    	rml:source "simpleTestInput.json";
+    	rml:referenceFormulation ql:JSONPath;
+    	rml:iterator "$"
+  	];
+  	
+  	rr:subjectMap [
+    	rr:template "http://faulty.redObject.example.com/Child/{first}";
+    	rr:class ex:FirstName
+  	];
+  	
+	rr:predicateObjectMap [
+		rr:predicate ex:hasParents
+		rr:objectMap [
+			rr:parentTriplesMap <#RefObjectParentA>;
+			rr:parentTriplesMap <#RefObjectParentB>;
+		]
+	].
+	
+	
+	
+	
+<#RefObjectParentA> a rr:TriplesMap;
+	rml:logicalSource [
+    	rml:source "simpleParentTestInput.json";
+    	rml:referenceFormulation ql:JSONPath;
+    	rml:iterator "$.Mother"
+  	];
+  	
+  	rr:subjectMap [
+    	rr:template "http://faulty.redObject.example.com/Parent/{name}";
+    	rr:class ex:mother
+  	].
+  	
+  	
+  	
+  	
+ <#RefObjectParentB> a rr:TriplesMap;
+	rml:logicalSource [
+    	rml:source "simpleParentTestInput.json";
+    	rml:referenceFormulation ql:JSONPath;
+    	rml:iterator "$.Father"
+  	];
+  	
+  	rr:subjectMap [
+    	rr:template "http://faulty.redObject.example.com/Parent/{name}";
+    	rr:class ex:father
+  	].
+	
+
+	
+
+
+####################################################################################
+#More than one ParentTriplesMap w/ similar source
+####################################################################################
+<#FaultyRefObjectMappingB> a rr:TriplesMap;
+	rml:logicalSource [
+    	rml:source "simpleTestInput.json";
+    	rml:referenceFormulation ql:JSONPath;
+    	rml:iterator "$"
+  	];
+  	
+  	rr:subjectMap [
+    	rr:template "http://faulty.redObject.example.com/Child/{first}";
+    	rr:class ex:FirstName
+  	];
+  	
+	rr:predicateObjectMap [
+		rr:predicate ex:hasParents
+		rr:objectMap [
+			rr:parentTriplesMap <#RefObjectParentA>;
+			rr:parentTriplesMap <#RefObjectParentB>;
+		]
+	].
+	
+	
+<#RefObjectParentA> a rr:TriplesMap;
+	rml:logicalSource [
+		rml:source "simpleTestInput.json";
+    	rml:referenceFormulation ql:JSONPath;
+    	rml:iterator "$"
+  	];
+  	
+  	rr:subjectMap [
+    	rr:template "http://faulty.redObject.example.com/Parent/{parents}";
+    	rr:class ex:mother
+  	].
+  	
+  	
+  	
+  	
+ <#RefObjectParentB> a rr:TriplesMap;
+	rml:logicalSource [
+		rml:source "simpleTestInput.json";
+    	rml:referenceFormulation ql:JSONPath;
+    	rml:iterator "$.Father"
+  	];
+  	
+  	rr:subjectMap [
+    	rr:template "http://faulty.redObject.example.com/Parent/{parents}";
+    	rr:class ex:father
+  	].
+	
+
+	
+####################################################################################
+#Only child in joinCondition
+####################################################################################
+<#FaultyRefObjectMappingC> a rr:TriplesMap;
+	rml:logicalSource [
+    	rml:source "simpleTestInput.json";
+    	rml:referenceFormulation ql:JSONPath;
+    	rml:iterator "$"
+  	];
+  	
+  	rr:subjectMap [
+    	rr:template "http://faulty.redObject.example.com/Child/{first}";
+    	rr:class ex:FirstName
+  	];
+  	
+	rr:predicateObjectMap [
+		rr:predicate ex:hasParents
+		rr:objectMap [
+			rr:parentTriplesMap <#RefObjectParentA>;
+			rr:joinCondition [
+        		rr:child "$.parents";
+		]
+	].
+	
+	
+	
+	
+<#RefObjectParentA> a rr:TriplesMap;
+	rml:logicalSource [
+    	rml:source "simpleParentTestInput.json";
+    	rml:referenceFormulation ql:JSONPath;
+    	rml:iterator "$.Mother"
+  	];
+  	
+  	rr:subjectMap [
+    	rr:template "http://faulty.redObject.example.com/Parent/{name}";
+    	rr:class ex:mother
+  	].
+  
+  
+  
+  
+  
+  
+  
+####################################################################################
+#Only parent in joinCondition
+####################################################################################
+<#FaultyRefObjectMappingD> a rr:TriplesMap;
+	rml:logicalSource [
+    	rml:source "simpleTestInput.json";
+    	rml:referenceFormulation ql:JSONPath;
+    	rml:iterator "$"
+  	];
+  	
+  	rr:subjectMap [
+    	rr:template "http://faulty.redObject.example.com/Child/{first}";
+    	rr:class ex:FirstName
+  	];
+  	
+	rr:predicateObjectMap [
+		rr:predicate ex:hasParents
+		rr:objectMap [
+			rr:parentTriplesMap <#RefObjectParentA>;
+			rr:joinCondition [
+        		rr:parent "$.Mother.name"
+		]
+	].
+	
+	
+	
+<#RefObjectParentA> a rr:TriplesMap;
+	rml:logicalSource [
+    	rml:source "simpleParentTestInput.json";
+    	rml:referenceFormulation ql:JSONPath;
+    	rml:iterator "$.Mother"
+  	];
+  	
+  	rr:subjectMap [
+    	rr:template "http://faulty.redObject.example.com/Parent/{name}";
+    	rr:class ex:mother
+  	].
+  	
+  
+ 
+ 
+ 
+ 
+ 
+####################################################################################
+#Two Children w/o parent in joinCondition
+####################################################################################
+<#FaultyRefObjectMappingE> a rr:TriplesMap;
+	rml:logicalSource [
+    	rml:source "simpleTestInput.json";
+    	rml:referenceFormulation ql:JSONPath;
+    	rml:iterator "$"
+  	];
+  	
+  	rr:subjectMap [
+    	rr:template "http://faulty.redObject.example.com/Child/{first}";
+    	rr:class ex:FirstName
+  	];
+  	
+	rr:predicateObjectMap [
+		rr:predicate ex:hasParents
+		rr:objectMap [
+			rr:parentTriplesMap <#RefObjectParentA>;
+			rr:joinCondition [
+        		rr:child "$.parents";
+        		rr:child "$.parents";
+		]
+	].
+	
+	
+	
+<#RefObjectParentA> a rr:TriplesMap;
+	rml:logicalSource [
+    	rml:source "simpleParentTestInput.json";
+    	rml:referenceFormulation ql:JSONPath;
+    	rml:iterator "$.Mother"
+  	];
+  	
+  	rr:subjectMap [
+    	rr:template "http://faulty.redObject.example.com/Parent/{name}";
+    	rr:class ex:mother
+  	].
+  
+ 
+ 
+####################################################################################
+#Two Children w/ parent in joinCondition
+####################################################################################
+<#FaultyRefObjectMappingF> a rr:TriplesMap;
+	rml:logicalSource [
+    	rml:source "simpleTestInput.json";
+    	rml:referenceFormulation ql:JSONPath;
+    	rml:iterator "$"
+  	];
+  	
+  	rr:subjectMap [
+    	rr:template "http://faulty.redObject.example.com/Child/{first}";
+    	rr:class ex:FirstName
+  	];
+  	
+	rr:predicateObjectMap [
+		rr:predicate ex:hasParents
+		rr:objectMap [
+			rr:parentTriplesMap <#RefObjectParentA>;
+			rr:joinCondition [
+        		rr:child "$.parents";
+        		rr:child "$.parents";
+        		rr:parent "$.Mother.name";
+		]
+	].
+	
+	
+	
+<#RefObjectParentA> a rr:TriplesMap;
+	rml:logicalSource [
+    	rml:source "simpleParentTestInput.json";
+    	rml:referenceFormulation ql:JSONPath;
+    	rml:iterator "$.Mother"
+  	];
+  	
+  	rr:subjectMap [
+    	rr:template "http://faulty.redObject.example.com/Parent/{name}";
+    	rr:class ex:mother
+  	].
+ 
+
+
+ 
+ 
+####################################################################################
+#Two parents w/o child in joinCondition
+####################################################################################
+<#FaultyRefObjectMappingG> a rr:TriplesMap;
+	rml:logicalSource [
+    	rml:source "simpleTestInput.json";
+    	rml:referenceFormulation ql:JSONPath;
+    	rml:iterator "$"
+  	];
+  	
+  	rr:subjectMap [
+    	rr:template "http://faulty.redObject.example.com/Child/{first}";
+    	rr:class ex:FirstName
+  	];
+  	
+	rr:predicateObjectMap [
+		rr:predicate ex:hasParents
+		rr:objectMap [
+			rr:parentTriplesMap <#RefObjectParentA>;
+			rr:joinCondition [
+				rr:parent "$.Mother.name";
+        		rr:parent "$.Mother.name";
+		]
+	].
+	
+	
+	
+<#RefObjectParentA> a rr:TriplesMap;
+	rml:logicalSource [
+    	rml:source "simpleParentTestInput.json";
+    	rml:referenceFormulation ql:JSONPath;
+    	rml:iterator "$.Mother"
+  	];
+  	
+  	rr:subjectMap [
+    	rr:template "http://faulty.redObject.example.com/Parent/{name}";
+    	rr:class ex:mother
+  	].
+  	
+  	
+  	
+  	
+  	
+####################################################################################
+#Two parents w/o child in joinCondition
+####################################################################################
+<#FaultyRefObjectMappingH> a rr:TriplesMap;
+	rml:logicalSource [
+    	rml:source "simpleTestInput.json";
+    	rml:referenceFormulation ql:JSONPath;
+    	rml:iterator "$"
+  	];
+  	
+  	rr:subjectMap [
+    	rr:template "http://faulty.redObject.example.com/Child/{first}";
+    	rr:class ex:FirstName
+  	];
+  	
+	rr:predicateObjectMap [
+		rr:predicate ex:hasParents
+		rr:objectMap [
+			rr:parentTriplesMap <#RefObjectParentA>;
+			rr:joinCondition [
+				rr:parent "$.Mother.name";
+        		rr:parent "$.Mother.name";
+        		rr:child "$.parents";
+		]
+	].
+	
+	
+<#RefObjectParentA> a rr:TriplesMap;
+	rml:logicalSource [
+    	rml:source "simpleParentTestInput.json";
+    	rml:referenceFormulation ql:JSONPath;
+    	rml:iterator "$.Mother"
+  	];
+  	
+  	rr:subjectMap [
+    	rr:template "http://faulty.redObject.example.com/Parent/{name}";
+    	rr:class ex:mother
+  	].
+  	
+  	

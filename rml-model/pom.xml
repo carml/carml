@@ -20,7 +20,7 @@
 			<artifactId>rml-rdf-mapper</artifactId>
 			<version>develop-SNAPSHOT</version>
 		</dependency>
-	
+
 	</dependencies>
 
 </project>

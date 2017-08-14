@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.stream.IntStream;
 
 import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.mutable.MutableObject;
 
 public class TemplateParser {
@@ -45,6 +46,8 @@ public class TemplateParser {
 		
 		List<TemplateImpl.Segment> segments = new ArrayList<>();
 		
+		MutableInt nextId = new MutableInt();
+		
 		Runnable close = () -> {
 			Segment segment = segmentContainer.getValue();
 			if (segment == null) return;
@@ -53,7 +56,7 @@ public class TemplateParser {
 			if (segment instanceof Text)
 				segments.add(new TemplateImpl.Text(value));
 			else if (segment instanceof Expression)
-				segments.add(new TemplateImpl.ExpressionSegment(value));
+				segments.add(new TemplateImpl.ExpressionSegment(nextId.getAndIncrement(), value));
 			// (assuming no other segment types)
 		};
 		

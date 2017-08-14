@@ -1,0 +1,58 @@
+@prefix rr: <http://www.w3.org/ns/r2rml#>.
+@prefix rml: <http://semweb.mmlab.be/ns/rml#>.
+@prefix ex: <http://faulty.object.lang.example.com/>.
+@prefix ql: <http://semweb.mmlab.be/ns/ql#> .
+
+
+####################################################################################
+# Wrong object value: template instead of reference
+####################################################################################
+<#FaultyObjectLanguageMappingA> a rr:TriplesMap;
+	rml:logicalSource [
+    	rml:source "simpleTestInput.json";
+    	rml:referenceFormulation ql:JSONPath;
+    	rml:iterator "$"
+  	];
+  	
+  	rr:subjectMap [
+    	rr:template "http://faulty.object.lang.example.com/Child/{first}";
+    	rr:class ex:FirstName;
+    	rr:termType rr:Literal
+  	];
+  	
+	rr:predicateObjectMap [
+		rr:predicate ex:hasParents
+		rr:objectMap [
+			rr:template "http://faulty.object.lang.example.com/Child/{parents}";
+			rr:language "en-us";
+		]
+	].
+	
+	
+
+
+####################################################################################
+# Wrong object value: constant instead of reference
+####################################################################################
+<#FaultyObjectLanguageMappingB> a rr:TriplesMap;
+	rml:logicalSource [
+    	rml:source "simpleTestInput.json";
+    	rml:referenceFormulation ql:JSONPath;
+    	rml:iterator "$"
+  	];
+  	
+  	rr:subjectMap [
+    	rr:template "http://faulty.object.lang.example.com/Child/{first}";
+    	rr:class ex:FirstName;
+    	rr:termType rr:Literal
+  	];
+  	
+	rr:predicateObjectMap [
+		rr:predicate ex:hasParents
+		rr:objectMap [
+			rr:constant <http://faulty.object.lang.example.com/Parent/None>;
+			rr:language "en-us"
+		]
+	].
+	
+

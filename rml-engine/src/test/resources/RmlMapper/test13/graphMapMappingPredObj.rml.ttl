@@ -4,7 +4,7 @@
 @prefix ql: <http://semweb.mmlab.be/ns/ql#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<#SubjectMapping> a rr:TriplesMap;
+<#GraphMapMappingPredObj> a rr:TriplesMap;
 	rml:logicalSource [
     	rml:source "simple2TestInput.json";
     	rml:referenceFormulation ql:JSONPath;
@@ -14,10 +14,26 @@
   	rr:subjectMap [
     	rr:template "http://example.com/Child/{first}/{last}";
     	rr:class ex:Child;
-    	rr:termType rr:BlankNode;
+    	
   	];
   	
-	rr:predicateObjectMap [
-		rr:predicate ex:BSN;
-		rr:constant "25"^^xsd:integer;
-	].
+  	rr:predicateObjectMap [
+		rr:predicateMap [
+			rr:constant ex:hasAge;
+		];
+		rr:objectMap [
+			rml:reference "age";
+		];
+		
+	];
+	
+  	rr:predicateObjectMap [
+		rr:predicateMap [
+			rr:constant ex:hasBirthday;
+		];
+		rr:objectMap [
+			rml:reference "birthday";
+		];
+		rr:graphMap [ rr:constant <http://example.dataset/test> ];
+		
+	] .

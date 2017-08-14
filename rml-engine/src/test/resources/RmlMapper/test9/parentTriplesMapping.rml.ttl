@@ -31,7 +31,7 @@
 	];
 	
 	rr:subjectMap [
-		rr:template "http://example.com/ColorCode/{rgba[0]},{rgba[1]},{rgba[2]}, {rgba[3]}";
+		rr:template "http://example.com/ColorCode/{rgba[0]},{rgba[1]},{rgba[2]},{rgba[3]}";
 		rr:class ex:RGBA
 	].
 	
