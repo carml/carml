@@ -18,15 +18,36 @@ import com.taxonic.rml.util.IoUtils;
 import com.taxonic.rml.util.RmlMappingLoader;
 
 // TODO consider dynamically creating tests using junit and just iterating over sets of input files
-
+// TODO create unit tests with more than one graphMaps w/ several subject classes.
 public class RmlMapperTest {
 
 	private RmlMappingLoader loader = RmlMappingLoader.build();
+
+	@Test
+	public void testGraphMapMappingMultipleGraphsB() {
+		testMapping("RmlMapper/test13/graphMapMappingMultipleGraphsB.rml.ttl",
+				"RmlMapper/test13/graphMapMappingMultipleGraphsB.output.trig",
+				"RmlMapper");
+	}
 	
+	@Test
+	public void testGraphMapMappingMultipleGraphsA() {
+		testMapping("RmlMapper/test13/graphMapMappingMultipleGraphsA.rml.ttl",
+				"RmlMapper/test13/graphMapMappingMultipleGraphsA.output.trig",
+				"RmlMapper");
+	}
+	
+	@Test
+	public void testGraphMapMappingMultipleClasses() {
+		testMapping("RmlMapper/test13/graphMapMappingMultipleClasses.rml.ttl",
+				"RmlMapper/test13/graphMapMappingMultipleClasses.output.trig",
+				"RmlMapper");
+	}
+	
+	@Test
 	public void testGraphMapMappingSubjectB() {
-		//TODO Create output 
 		testMapping("RmlMapper/test13/graphMapMappingSubjectB.rml.ttl",
-				"RmlMapper/test13/graphMapMappingSubjectB.output.ttl",
+				"RmlMapper/test13/graphMapMappingSubjectB.output.trig",
 				"RmlMapper");
 	}
 	
@@ -47,7 +68,8 @@ public class RmlMapperTest {
 	@Test
 	public void testRemoveNonLatinCharsFunction() {
 		//TODO Parse fno.ttl
-		String functionPath = "RmlMapper/test12/removeNonLatinCharsFunction.fn.ttl";
+		//TODO include FNMLFunctions.java too
+		String functionPath = "RmlMapper/test12/removeNonLatinCharsFunction.fno.ttl";
 		testMapping("RmlMapper/test12/removeNonLatinCharsMapping.fnml.ttl",
 				"RmlMapper/test12/removeNonLatinCharsMapping.output.ttl",
 				"RmlMapper");
@@ -56,6 +78,7 @@ public class RmlMapperTest {
 	@Test
 	public void testToBoolFunction() {
 		//TODO Parse fno.ttl
+		//TODO include FNMLFunctions.java too
 		String functionPath = "RmlMapper/test11/toBoolFunction.fnml.ttl";
 		testMapping("RmlMapper/test11/toBoolMapping.fnml.ttl",
 				"RmlMapper/test11/toBoolMapping.output.ttl",
@@ -78,6 +101,7 @@ public class RmlMapperTest {
 	
 	@Test
 	public void testSimpleBlankNodeMapping() {
+		//TODO Note: algorithm for generating blank node ids will change
 		testMapping("RmlMapper/test8/simpleBlankNodeMapping.rml.ttl",
 				"RmlMapper/test8/simpleBlankNodeMapping.output.ttl",
 				"RmlMapper");

@@ -1,6 +1,8 @@
 
 # NOTE: algorithm for generating blank node ids will change
 
-_:0 a <http://example.com/Child> .
+_:0 a <http://example.com/Child> ;
+<http://example.com/BSN> "25"^^<http://www.w3.org/2001/XMLSchema#int> .
 
-_:1 a <http://example.com/Child> .
+_:1 a <http://example.com/Child> ;
+<http://example.com/BSN> "25"^^<http://www.w3.org/2001/XMLSchema#int> .

@@ -19,5 +19,5 @@
   	
 	rr:predicateObjectMap [
 		rr:predicate ex:BSN;
-		rr:constant "25"^^xsd:integer;
+		rr:constant "25"^^xsd:int;
 	].
