@@ -38,8 +38,12 @@ class SubjectMapper {
 			.map(g -> g.apply(evaluate))
 			.collect(Collectors.toList());
 		
+		Resource[] contexts = new Resource[graphs.size()];
+		graphs.toArray(contexts);
+		
 		// generate rdf:type triples from classes
-		classes.forEach(c -> model.add(subject, RDF.TYPE, c));
+		classes.forEach(c -> model.add(subject, RDF.TYPE, c, contexts));
+
 		
 		predicateObjectMappers.forEach(p -> p.map(model, evaluate, subject, graphs));
 	}
