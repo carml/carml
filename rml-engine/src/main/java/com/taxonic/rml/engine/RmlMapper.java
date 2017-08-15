@@ -28,11 +28,13 @@ import com.jayway.jsonpath.JsonPath;
 import com.taxonic.rml.engine.template.Template;
 import com.taxonic.rml.engine.template.Template.Expression;
 import com.taxonic.rml.engine.template.TemplateParser;
+import com.taxonic.rml.model.BaseObjectMap;
 import com.taxonic.rml.model.GraphMap;
 import com.taxonic.rml.model.LogicalSource;
 import com.taxonic.rml.model.ObjectMap;
 import com.taxonic.rml.model.PredicateMap;
 import com.taxonic.rml.model.PredicateObjectMap;
+import com.taxonic.rml.model.RefObjectMap;
 import com.taxonic.rml.model.SubjectMap;
 import com.taxonic.rml.model.TermMap;
 import com.taxonic.rml.model.TriplesMap;
@@ -43,11 +45,6 @@ import com.taxonic.rml.vocab.Rdf.Rr;
 // TODO rr:defaultGraph
 
 // TODO template strings should be validated during the validation step?
-
-/* TODO re-use the ***Mapper instances for equal corresponding ***Map instances.
- * f.e. if there are 2 equal PredicateMaps in the RML mapping file,
- * re-use the same PredicateMapper instance
- */
 
 public class RmlMapper {
 
@@ -105,12 +102,19 @@ public class RmlMapper {
 				m.getPredicateMaps().stream().map(p -> {
 				
 					// TODO support reference object maps (parent triples map)
-					
+
 					List<TermGenerator<Value>> objectGenerators =
 						m.getObjectMaps().stream()
+							.filter(o -> o instanceof ObjectMap)
 							.map(o -> getObjectGenerator((ObjectMap) o))
 							.collect(Collectors.toList());
-	
+					
+					List<RefObjectMapper> refObjectGenerators =
+							m.getObjectMaps().stream()
+								.filter(o -> o instanceof RefObjectMap)
+								.map(o -> createRefObjectMapper((RefObjectMap) o))
+								.collect(Collectors.toList());
+					
 					return new PredicateMapper(
 						getPredicateGenerator(p),
 						objectGenerators
@@ -349,6 +353,23 @@ public class RmlMapper {
 			Arrays.asList(IRI.class, Literal.class)
 		);
 	}
+	
+	@SuppressWarnings("unchecked")
+	private RefObjectMapper createRefObjectMapper(RefObjectMap refObjectMap) {
+		return new RefObjectMapper(
+					refObjectMap.getParentTriplesMap(),
+					refObjectMap.getJoinConditions()
+				);
+	};
+	
+//	@SuppressWarnings("unchecked")
+//	private TermGenerator<Value> createRefObjectMapper(RefObjectMap map) {
+//		return (TermGenerator<Value>) getGenerator(
+//				map,
+//				Arrays.asList(Rr.IRI, Rr.BlankNode, Rr.Literal),
+//				Arrays.asList(IRI.class, Literal.class)
+//				);
+//	};
 	
 	@SuppressWarnings("unchecked")
 	private TermGenerator<IRI> getGraphGenerator(GraphMap map) {
