@@ -124,7 +124,7 @@
   	];
   	
 	rr:predicateObjectMap [
-		rr:graphMap [rr:constant <http://faultyPredicateGraph.example.com>;
+		rr:graphMap [ rr:constant <http://faultyPredicateGraph.example.com> ; ] ;
 	].
 	
 	
@@ -147,12 +147,12 @@
   	
 	rr:predicateObjectMap [
 		rr:predicateMap [
-			rr:graphMap [rr:constant <http://faultyPredicateGraph.example.com>;
-			rr:constant <http://faulty.PredObj.example.com/hasBirthday>
-		]
+			rr:graphMap [ rr:constant <http://faultyPredicateGraph.example.com> ; ] ;
+			rr:constant <http://faulty.PredObj.example.com/hasBirthday> ;
+		] ;
 		rr:objectMap [
-			rml:reference "birthday"
-		];
+			rml:reference "birthday" ;
+		] ;
 	].
 	
 	
@@ -175,11 +175,11 @@
   	
 	rr:predicateObjectMap [
 		rr:predicateMap [
-			rr:constant <http://faulty.PredObj.example.com/hasBirthday>
-		]
+			rr:constant <http://faulty.PredObj.example.com/hasBirthday> ;
+		] ;
 		rr:objectMap [
-			rml:reference "birthday";
-			rr:graphMap [rr:constant <http://faultyPredicateGraph.example.com>;
-		];
-	].
+			rml:reference "birthday" ;
+			rr:graphMap [ rr:constant <http://faultyPredicateGraph.example.com> ; ] ;
+		] ;
+	] .
 

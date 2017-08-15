@@ -11,7 +11,7 @@
 	rml:logicalSource [
     	rml:source "simple2TestInput.json";
     	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$.Childe"
+    	rml:iterator "$.Childe" ;
   	];
   	
   	rr:subjectMap [
@@ -20,7 +20,7 @@
   	];
   	
 	rr:predicateObjectMap [
-		rr:predicate ex:hasParents
+		rr:predicate ex:hasParents ;
 		rr:objectMap [
 			rml:reference "parents"
 		]
@@ -42,7 +42,7 @@
   	];
   	
 	rr:predicateObjectMap [
-		rr:predicate ex:hasParents
+		rr:predicate ex:hasParents ;
 		rr:objectMap [
 			rml:reference "parents"
 		]
@@ -64,7 +64,7 @@
   	];
   	
 	rr:predicateObjectMap [
-		rr:predicate ex:hasBSN
+		rr:predicate ex:hasBSN ;
 		rr:objectMap [
 			rml:reference "BSNe"
 		]

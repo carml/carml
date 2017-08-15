@@ -11,20 +11,20 @@
 	rml:logicalSource [
     	rml:source "simpleTestInput.json";
     	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$"
+    	rml:iterator "$" ;
   	];
   	
   	rr:subjectMap [
     	rr:template "http://faulty.redObject.example.com/Child/{first}";
-    	rr:class ex:FirstName
+    	rr:class ex:FirstName ;
   	];
   	
 	rr:predicateObjectMap [
-		rr:predicate ex:hasParents
+		rr:predicate ex:hasParents ;
 		rr:objectMap [
 			rr:parentTriplesMap <#RefObjectParentA>;
 			rr:parentTriplesMap <#RefObjectParentB>;
-		]
+		] ;
 	].
 	
 	
@@ -34,12 +34,12 @@
 	rml:logicalSource [
     	rml:source "simpleParentTestInput.json";
     	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$.Mother"
+    	rml:iterator "$.Mother" ;
   	];
   	
   	rr:subjectMap [
     	rr:template "http://faulty.redObject.example.com/Parent/{name}";
-    	rr:class ex:mother
+    	rr:class ex:mother ;
   	].
   	
   	
@@ -49,53 +49,51 @@
 	rml:logicalSource [
     	rml:source "simpleParentTestInput.json";
     	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$.Father"
-  	];
+    	rml:iterator "$.Father" ;
+  	] ;
   	
   	rr:subjectMap [
-    	rr:template "http://faulty.redObject.example.com/Parent/{name}";
-    	rr:class ex:father
-  	].
-	
+    	rr:template "http://faulty.redObject.example.com/Parent/{name}" ;
+    	rr:class ex:father ;
+  	] .
 
-	
 
 
 ####################################################################################
 #More than one ParentTriplesMap w/ similar source
 ####################################################################################
-<#FaultyRefObjectMappingB> a rr:TriplesMap;
+<#FaultyRefObjectMappingB> a rr:TriplesMap ;
 	rml:logicalSource [
-    	rml:source "simpleTestInput.json";
-    	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$"
-  	];
+    	rml:source "simpleTestInput.json" ;
+    	rml:referenceFormulation ql:JSONPath ;
+    	rml:iterator "$" ;
+  	] ;
   	
   	rr:subjectMap [
-    	rr:template "http://faulty.redObject.example.com/Child/{first}";
-    	rr:class ex:FirstName
-  	];
+    	rr:template "http://faulty.redObject.example.com/Child/{first}" ;
+    	rr:class ex:FirstName ;
+  	] ;
   	
 	rr:predicateObjectMap [
-		rr:predicate ex:hasParents
+		rr:predicate ex:hasParents ;
 		rr:objectMap [
-			rr:parentTriplesMap <#RefObjectParentA>;
-			rr:parentTriplesMap <#RefObjectParentB>;
-		]
-	].
+			rr:parentTriplesMap <#RefObjectParentA> ;
+			rr:parentTriplesMap <#RefObjectParentB> ;
+		] ;
+	] .
 	
 	
-<#RefObjectParentA> a rr:TriplesMap;
+<#RefObjectParentA> a rr:TriplesMap ;
 	rml:logicalSource [
-		rml:source "simpleTestInput.json";
-    	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$"
-  	];
+		rml:source "simpleTestInput.json" ;
+    	rml:referenceFormulation ql:JSONPath ;
+    	rml:iterator "$" ;
+  	] ;
   	
   	rr:subjectMap [
-    	rr:template "http://faulty.redObject.example.com/Parent/{parents}";
-    	rr:class ex:mother
-  	].
+    	rr:template "http://faulty.redObject.example.com/Parent/{parents}" ;
+    	rr:class ex:mother ;
+  	] .
   	
   	
   	
@@ -130,11 +128,12 @@
   	];
   	
 	rr:predicateObjectMap [
-		rr:predicate ex:hasParents
+		rr:predicate ex:hasParents ;
 		rr:objectMap [
 			rr:parentTriplesMap <#RefObjectParentA>;
 			rr:joinCondition [
-        		rr:child "$.parents";
+				rr:child "$.parents";
+			]
 		]
 	].
 	
@@ -175,12 +174,13 @@
   	];
   	
 	rr:predicateObjectMap [
-		rr:predicate ex:hasParents
+		rr:predicate ex:hasParents ;
 		rr:objectMap [
 			rr:parentTriplesMap <#RefObjectParentA>;
 			rr:joinCondition [
-        		rr:parent "$.Mother.name"
-		]
+				rr:parent "$.Mother.name" ;
+			] ;
+		] ;
 	].
 	
 	
@@ -219,13 +219,14 @@
   	];
   	
 	rr:predicateObjectMap [
-		rr:predicate ex:hasParents
+		rr:predicate ex:hasParents ;
 		rr:objectMap [
 			rr:parentTriplesMap <#RefObjectParentA>;
 			rr:joinCondition [
-        		rr:child "$.parents";
-        		rr:child "$.parents";
-		]
+				rr:child "$.parents";
+				rr:child "$.parents";
+			] ;
+		] ;
 	].
 	
 	
@@ -260,13 +261,14 @@
   	];
   	
 	rr:predicateObjectMap [
-		rr:predicate ex:hasParents
+		rr:predicate ex:hasParents ;
 		rr:objectMap [
 			rr:parentTriplesMap <#RefObjectParentA>;
 			rr:joinCondition [
-        		rr:child "$.parents";
-        		rr:child "$.parents";
-        		rr:parent "$.Mother.name";
+				rr:child "$.parents";
+				rr:child "$.parents";
+				rr:parent "$.Mother.name";
+			]
 		]
 	].
 	
@@ -304,12 +306,13 @@
   	];
   	
 	rr:predicateObjectMap [
-		rr:predicate ex:hasParents
+		rr:predicate ex:hasParents ;
 		rr:objectMap [
 			rr:parentTriplesMap <#RefObjectParentA>;
 			rr:joinCondition [
 				rr:parent "$.Mother.name";
-        		rr:parent "$.Mother.name";
+				rr:parent "$.Mother.name";
+			]
 		]
 	].
 	
@@ -347,13 +350,14 @@
   	];
   	
 	rr:predicateObjectMap [
-		rr:predicate ex:hasParents
+		rr:predicate ex:hasParents ;
 		rr:objectMap [
 			rr:parentTriplesMap <#RefObjectParentA>;
 			rr:joinCondition [
 				rr:parent "$.Mother.name";
-        		rr:parent "$.Mother.name";
-        		rr:child "$.parents";
+				rr:parent "$.Mother.name";
+				rr:child "$.parents";
+			]
 		]
 	].
 	

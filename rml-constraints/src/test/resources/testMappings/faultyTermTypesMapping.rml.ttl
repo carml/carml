@@ -11,17 +11,17 @@
 	rml:logicalSource [
     	rml:source "simpleTestInput.json";
     	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$"
+    	rml:iterator "$" ;
   	];
   	
   	rr:subjectMap [
     	rr:template "http://faulty.termType.example.com/Child/{first}";
     	rr:class ex:FirstName;
-    	rr:termType rr:Literal
+    	rr:termType rr:Literal ;
   	];
   	
 	rr:predicateObjectMap [
-		rr:predicate ex:hasParents
+		rr:predicate ex:hasParents ;
 		rr:objectMap [
 			rml:reference "parents"
 		]
@@ -49,7 +49,7 @@
   	];
   	
 	rr:predicateObjectMap [
-		rr:predicate ex:hasParents
+		rr:predicate ex:hasParents ;
 		rr:objectMap [
 			rml:reference "parents"
 		]
@@ -74,12 +74,12 @@
     	rr:class ex:FirstName;
     	rr:graphMap [
     		rr:constant ex:graphMap;
-    		rr:termType rr:BlankNode
+    		rr:termType rr:BlankNode ;
     	]
   	];
   	
 	rr:predicateObjectMap [
-		rr:predicate ex:hasParents
+		rr:predicate ex:hasParents ;
 		rr:objectMap [
 			rml:reference "parents"
 		]
@@ -108,8 +108,8 @@
 			rr:termType rr:Literal
 		];
 		rr:objectMap [
-			rml:reference "parents"
-		]
+			rml:reference "parents" ;
+		] ;
 	].
 	
 
@@ -136,7 +136,7 @@
 			rr:termType rr:BlankNode
 		];
 		rr:objectMap [
-			rml:reference "parents"
+			rml:reference "parents" ;
 		]
 	].
 	
@@ -171,14 +171,14 @@
 
 ####################################################################################
 # Does not have a termType property and it is not a Literal
-If the term map does not have a rr:termType property, then its term type is:
-
-    rr:Literal, if it is an object map and at least one of the following conditions is true:
-        It is a reference-based term map.
-        It has a rml:referenceFormulation property (and thus a specified language tag).
-        It has a rr:datatype property (and thus a specified datatype).
-    rr:IRI, otherwise.
-
+# If the term map does not have a rr:termType property, then its term type is:
+#
+#    rr:Literal, if it is an object map and at least one of the following conditions is true:
+#        It is a reference-based term map.
+#        It has a rml:referenceFormulation property (and thus a specified language tag).
+#        It has a rr:datatype property (and thus a specified datatype).
+#    rr:IRI, otherwise.
+#
 ####################################################################################
 <#FaultyTermTypeMappingG> a rr:TriplesMap;
 	rml:logicalSource [
@@ -197,9 +197,10 @@ If the term map does not have a rr:termType property, then its term type is:
 			rr:constant ex:hasParents;
 			rr:termType rr:BlankNode
 		];
-		rr:objectMap [
-			rr:constant
-		]
-	].
+#		rr:objectMap [
+#			 rr:constant ; # what was the intention here?
+#		] ;
+	] ;
+	.
 	
 	

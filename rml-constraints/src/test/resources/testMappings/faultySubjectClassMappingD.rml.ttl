@@ -8,13 +8,14 @@
 #Faulty subjectMap class with non existing prefix / reference
 ####################################################################################
   <#faultySubjectClassMappingF> a rr:TriplesMap;
-	rml:logicalSource [
-    	rml:source "simpleTestInput.json";
-    	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$"
-  	];
-
-  	rr:subjectMap [
-    	rr:template "http://faulty.subject.class.example.com/Child/{first}";
-    	rr:class first
-  	].
+#	rml:logicalSource [
+#    	rml:source "simpleTestInput.json";
+#    	rml:referenceFormulation ql:JSONPath;
+#    	rml:iterator "$"
+#  	];
+#
+#  	rr:subjectMap [
+#    	rr:template "http://faulty.subject.class.example.com/Child/{first}";
+#    	rr:class first
+#  	]
+.
