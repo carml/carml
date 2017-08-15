@@ -24,6 +24,41 @@ public class RmlMapperTest {
 	private RmlMappingLoader loader = RmlMappingLoader.build();
 
 	@Test
+	public void testTermTypeMappingBlankNodeC() {
+		testMapping("RmlMapper/test14/termTypeMappingBlankNodeC.rml.ttl",
+				"RmlMapper/test14/termTypeMappingBlankNodeC.output.ttl",
+				"RmlMapper");
+	}
+	
+	@Test
+	public void testTermTypeMappingBlankNodeB() {
+		testMapping("RmlMapper/test14/termTypeMappingBlankNodeB.rml.ttl",
+				"RmlMapper/test14/termTypeMappingBlankNodeB.output.ttl",
+				"RmlMapper");
+	}
+	
+	@Test
+	public void testTermTypeMappingBlankNodeA() {
+		testMapping("RmlMapper/test14/termTypeMappingBlankNodeA.rml.ttl",
+				"RmlMapper/test14/termTypeMappingBlankNodeA.output.ttl",
+				"RmlMapper");
+	}
+	
+	@Test
+	public void testTermTypeMappingLiteral() {
+		testMapping("RmlMapper/test14/termTypeMappingLiteral.rml.ttl",
+				"RmlMapper/test14/termTypeMappingLiteral.output.ttl",
+				"RmlMapper");
+	}
+	
+	@Test
+	public void testTermTypeMappingIRI() {
+		testMapping("RmlMapper/test14/termTypeMappingIRI.rml.ttl",
+				"RmlMapper/test14/termTypeMappingIRI.output.ttl",
+				"RmlMapper");
+	}
+	
+	@Test
 	public void testGraphMapMappingMultipleGraphsB() {
 		testMapping("RmlMapper/test13/graphMapMappingMultipleGraphsB.rml.ttl",
 				"RmlMapper/test13/graphMapMappingMultipleGraphsB.output.trig",
