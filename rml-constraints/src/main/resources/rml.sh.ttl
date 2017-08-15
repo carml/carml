@@ -1,11 +1,3 @@
-####################################################################################
-############################### Notes about the spec ###############################
-####################################################################################
-
-# Errors found in the spec:
-# 
-# 
-
 @prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix sh:   <http://www.w3.org/ns/shacl#> .
@@ -39,30 +31,29 @@ rmlsh:TriplesMapShape
 		rr:subjectMap ;
 
 	sh:property [
-		sh:path rr:subjectMap, rr:subject, rr:logicalSource ;
-		sh:maxCount: 1 ;
-	] ;
-		
-	sh:property [
 		sh:path rml:logicalSource ;
-		sh:minCount: 1 ;
+		sh:minCount 1 ;
+		sh:maxCount 1 ;
 	] ;
 	
 	sh:xone (
 		[
 			sh:property [
 				sh:path rr:subjectMap ;
-				sh:minCount: 1 ;
+				sh:minCount 1 ;
+				sh:maxCount 1 ;
 			]
 		]
 		[
 			sh:property [
 				sh:path rr:subject ;
 				sh:nodeKind sh:IRI ;
-				sh:minCount: 1 ;
+				sh:minCount 1 ;
+				sh:maxCount 1 ;
 			]
 		]
 	) ;
+
 	sh:property [
 		sh:path rr:predicateObjectMap ;
 		sh:node rmlsh:PredicateObjectMapShape
@@ -76,17 +67,19 @@ rmlsh:TermMapShape
 	rdfs:label "Term map shape"@en ;
 	rdfs:comment "Defines constraints for a well-formed term map."@en;
 
+
+	# NOTE: We don't target object maps directly, because not all object maps are term maps; 
+	#       the range for `rr:objectMap` is `rr:ObjectMap` or `rr:RefObjectMap`
+
 	sh:targetObjectsOf
 		rr:subjectMap ,
 		rr:predicateMap ,
-		rr:graphMap ,
-		rr:objectMap ;
+		rr:graphMap ;
 
 	sh:targetClass
 		rr:SubjectMap ,
 		rr:PredicateMap ,
-		rr:GraphMap ,
-		rr:ObjectMap ;
+		rr:GraphMap ;
 
 	sh:targetSubjectsOf
 		rr:constant ,
@@ -94,25 +87,40 @@ rmlsh:TermMapShape
 		rr:template ,
 		rr:termType ;
 
-	sh:property [
-		sh:path rr:constant, rml:reference, rr:template ;
-		sh:maxCount 1 ;
-	] ;
-	sh:xone [
+	sh:xone (
 		sh:property [
 			sh:path rr:constant ;
 			sh:minCount 1 ;
-		] ;
+			sh:maxCount 1 ;
+		]
 		sh:property [
 			sh:path rml:reference ;
 			sh:minCount 1 ;
-		] ;
+			sh:maxCount 1 ;
+		]
 		sh:property [
 			sh:path rr:template ;
 			sh:minCount 1 ;
-		] ;
-	] .
+			sh:maxCount 1 ;
+		]
+	 ) .
 
+rmlsh:ObjectOrRefObjectMapShape
+	a sh:NodeShape ;
+
+	sh:targetSubjectsOf rr:objectMap ;
+
+	sh:xone (
+		sh:property [
+			sh:path rr:objectMap ;
+			sh:node rmlsh:TermMapShape, rmlsh:ObjectMapShape ;
+		]
+		sh:property [
+			sh:path rr:objectMap ;
+			sh:node rmlsh:RefObjectMapShape ;
+		]
+	) ;
+	.
 
 
 rmlsh:SubjectMapShape
@@ -209,7 +217,7 @@ rmlsh:ConstantSubjectPredicateOrGraphShape
 	rdfs:label "Constant value shape for subject, predicate or graph mappings" @en ;
 	rdfs:comment "Defines constraints for a well-formed constant value for a subject, predicate or graph mapping."@en;
 
-	sh:targetObjectsOf rr:constant, rr:subject, rr:predicate,  rr:graph ;
+	sh:path rr:constant, rr:subject, rr:predicate,  rr:graph ;
 	sh:nodeKind sh:IRI .
 
 rmlsh:ConstantObjectShape
@@ -220,3 +228,7 @@ rmlsh:ConstantObjectShape
 	sh:targetObjectsOf rr:object ;
 
 	sh:xone [ sh:nodeKind sh:IRI ; sh:nodeKind sh:literal ] .
+
+# rmlsh:ObjectPropertyShape
+# 	a sh:PropertyShape ;
+# 	sh:path 

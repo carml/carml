@@ -1,62 +1,61 @@
 package com.taxonic.rml.constraints;
 
 
+import static org.apache.logging.log4j.core.util.Loader.getClassLoader;
 import static org.junit.Assert.assertEquals;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
+import org.apache.commons.io.Charsets;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.rdf.model.NodeIterator;
+import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.rdf.model.Selector;
+import org.apache.jena.rdf.model.SimpleSelector;
+import org.apache.jena.rdf.model.impl.PropertyImpl;
+import org.junit.Assert;
 import org.junit.Test;
 import org.topbraid.shacl.validation.ValidationUtil;
 
 public class TripleMapConstraintsTest {
 
-	public static void main(String... args) {
-
-		String common = "@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n" +
-				"@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n" +
-				"@prefix sh:   <http://www.w3.org/ns/shacl#> .\n" +
-				"@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .\n" +
-				"@prefix rml:  <http://www.w3.org/2001/RML#> .\n" +
-				"\n" +
-				"\n" +
-				"@prefix rmlsh: <http://www.taxonic.com/ns/rml-shacl#> .\n";
-		Model data = makeModel(
-				common +
-				"rml:tripleMap\n" +
-				"\trml:logicalSource \"cheesypotatoes\"@en .\n");
-		Model shapes = makeModel(
-				common +
-						"\n" +
-						"rmlsh:TripleMapShape\n" +
-						"\ta sh:NodeShape ;\n" +
-						"\trdfs:label \"Triple map shape\"@en ;\n" +
-						"\trdfs:comment \"Defines constraints describing a well-formed RML triple map.\"@en ;" +
-						"\tsh:targetSubjectsOf rml:logicalSource ;" +
-						"\tsh:property [ sh:path rml:subjectMap; sh:minCount 1 ; ] ." +
-						"\n");
-
-		shapes = loadModel("rml.sh.ttl");
-
-		Resource result = ValidationUtil.validateModel(data, shapes, false);
-		StringWriter w = new StringWriter();
-
-		result.getModel().write(w, "TURTLE");
-		String s = w.toString();
-		int debug = 10;
+	public static void main(String... args) throws IOException {
 
 
+		Model shapes = loadModel("rml.sh.ttl");
 
+		Collection<String> files =
+				IOUtils.readLines(TripleMapConstraintsTest.class.getClassLoader()
+						.getResourceAsStream("testMappings/"), Charsets.UTF_8);
 
-//		ValidationEngineFactory f = ValidationEngineFactory.get();
-//		ValidationEngine validationEngine = f.create(data, null, null, null);
+		String shconforms = "http://www.w3.org/ns/shacl#conforms";
 
-//		validationEngine.getShapesGraph().setShapeFilter();
+		files.stream().forEach(f -> {
+			System.out.printf("loading %s\n", "testMappings/" + f);
+			Model data = loadModel("testMappings/" + f);
+			Resource result = ValidationUtil.validateModel(data, shapes, false);
+
+			NodeIterator nodeIterator = result.getModel().listObjectsOfProperty(new PropertyImpl(shconforms));
+
+			StringBuilder resultThing = new StringBuilder();
+			List<Boolean> conforms = new ArrayList<>(1);
+			nodeIterator.forEachRemaining(n -> conforms.add(n.asLiteral().getBoolean()));
+
+			Assert.assertEquals(1, conforms.size());
+			Assert.assertFalse(f, conforms.get(0));
+
+		});
 
 	}
 
