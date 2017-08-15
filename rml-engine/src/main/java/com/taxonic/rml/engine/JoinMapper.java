@@ -1,26 +1,24 @@
 package com.taxonic.rml.engine;
 
 import java.util.List;
+import java.util.Set;
 
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Value;
 
+import com.taxonic.rml.model.Join;
+
 public class JoinMapper {
 	
-	private TermGenerator<IRI> generator;
-	private List<TermGenerator<Value>> joinGenerators;
+	Set<Join> joinConditions;
 	
+	public JoinMapper(Set<Join> joinConditions) {
+		super();
+		this.joinConditions = joinConditions;
+	}
+
 	void map(Model model, EvaluateExpression evaluate, Resource subject, Resource... contexts) {
-		
-		IRI predicate = generator.apply(evaluate);
-		if (predicate == null) return;
-		
-		joinGenerators.stream()
-			.map(g -> g.apply(evaluate))
-			.filter(o -> o != null)
-			.forEach(o -> model.add(subject, predicate, o, contexts));
-		
 	}
 }
