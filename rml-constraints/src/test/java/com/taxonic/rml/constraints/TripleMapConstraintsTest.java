@@ -4,25 +4,19 @@ package com.taxonic.rml.constraints;
 import static org.apache.logging.log4j.core.util.Loader.getClassLoader;
 import static org.junit.Assert.assertEquals;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
-import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
 import org.apache.commons.io.Charsets;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.NodeIterator;
-import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.Resource;
-import org.apache.jena.rdf.model.Selector;
-import org.apache.jena.rdf.model.SimpleSelector;
 import org.apache.jena.rdf.model.impl.PropertyImpl;
 import org.junit.Assert;
 import org.junit.Test;
@@ -37,13 +31,13 @@ public class TripleMapConstraintsTest {
 
 		Collection<String> files =
 				IOUtils.readLines(TripleMapConstraintsTest.class.getClassLoader()
-						.getResourceAsStream("testMappings/"), Charsets.UTF_8);
+						.getResourceAsStream("faultyMappings/"), Charsets.UTF_8);
 
 		String shconforms = "http://www.w3.org/ns/shacl#conforms";
 
 		files.stream().forEach(f -> {
-			System.out.printf("loading %s\n", "testMappings/" + f);
-			Model data = loadModel("testMappings/" + f);
+			System.out.printf("loading %s\n", "faultyMappings/" + f);
+			Model data = loadModel("faultyMappings/" + f);
 			Resource result = ValidationUtil.validateModel(data, shapes, false);
 
 			NodeIterator nodeIterator = result.getModel().listObjectsOfProperty(new PropertyImpl(shconforms));
