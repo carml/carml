@@ -6,8 +6,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
-
 class IriEncoder {
 
 	static String encode(String input) {

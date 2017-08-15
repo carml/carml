@@ -1,6 +1,7 @@
 package com.taxonic.rml.engine;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
@@ -28,14 +29,17 @@ class PredicateMapper {
 		IRI predicate = generator.apply(evaluate);
 		if (predicate == null) return;
 		
+		Consumer<Value> addObjectTriple =
+			o -> model.add(subject, predicate, o, contexts);
 		
 		objectGenerators.stream()
 			.map(g -> g.apply(evaluate))
 			.filter(o -> o != null)
-			.forEach(o -> model.add(subject, predicate, o, contexts));
+			.forEach(addObjectTriple);
 		
-		if (refObjectMappers == null) return;
-		refObjectMappers.forEach(r -> r.map(model, evaluate, predicate, subject, contexts));
+		refObjectMappers.stream()
+			.flatMap(r -> r.map(evaluate).stream())
+			.forEach(addObjectTriple);
 		
 	}
 }

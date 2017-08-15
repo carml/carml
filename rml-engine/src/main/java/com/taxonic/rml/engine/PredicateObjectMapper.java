@@ -13,14 +13,12 @@ class PredicateObjectMapper {
 	private List<TermGenerator<IRI>> graphGenerators;
 	private List<PredicateMapper> predicateMappers;
 
-	
 	PredicateObjectMapper(
 		List<TermGenerator<IRI>> graphGenerators,
 		List<PredicateMapper> predicateMappers
 	) {
 		this.graphGenerators = graphGenerators;
 		this.predicateMappers = predicateMappers;
-
 	}
 
 	void map(Model model, EvaluateExpression evaluate, Resource subject, List<IRI> subjectGraphs) {

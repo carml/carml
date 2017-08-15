@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -56,18 +57,15 @@ class ParentTriplesMapper {
 		boolean isValidJoin = joinValues.keySet().stream().allMatch(parentExpression -> {
 			Object parentValue = evaluate.apply(parentExpression);
 			Object requiredValue = joinValues.get(parentExpression);
-			return parentValue.equals(requiredValue);
+			return Objects.equals(parentValue, requiredValue);
 		});
 		 if (isValidJoin) {
-			 //TODO Change subjectMapper
 			 Resource subject = subjectGenerator.apply(evaluate);
-			 if (subject == null) return Optional.empty();
-			 
-			 return Optional.of(subject);
+			 return subject == null
+				? Optional.empty()
+				: Optional.of(subject);
 		 }
-		 else {
-			 return Optional.empty();
-		 }
+		 return Optional.empty();
 		
 	}
 }

@@ -1,6 +1,6 @@
 package com.taxonic.rml.engine;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import java.io.InputStream;
 import java.io.StringWriter;

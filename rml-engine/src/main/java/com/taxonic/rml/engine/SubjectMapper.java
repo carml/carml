@@ -41,7 +41,6 @@ class SubjectMapper {
 		Resource[] contexts = new Resource[graphs.size()];
 		graphs.toArray(contexts);
 		
-		//TODO if contexts == null add rr:defaultGraph
 		// generate rdf:type triples from classes
 		classes.forEach(c -> model.add(subject, RDF.TYPE, c, contexts));
 

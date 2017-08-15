@@ -29,7 +29,6 @@ import com.jayway.jsonpath.JsonPath;
 import com.taxonic.rml.engine.template.Template;
 import com.taxonic.rml.engine.template.Template.Expression;
 import com.taxonic.rml.engine.template.TemplateParser;
-import com.taxonic.rml.model.BaseObjectMap;
 import com.taxonic.rml.model.GraphMap;
 import com.taxonic.rml.model.Join;
 import com.taxonic.rml.model.LogicalSource;
@@ -47,6 +46,11 @@ import com.taxonic.rml.vocab.Rdf.Rr;
 // TODO rr:defaultGraph
 
 // TODO template strings should be validated during the validation step?
+
+/* TODO re-use the ***Mapper instances for equal corresponding ***Map instances.
+ * f.e. if there are 2 equal PredicateMaps in the RML mapping file,
+ * re-use the same PredicateMapper instance
+ */
 
 public class RmlMapper {
 
@@ -102,17 +106,17 @@ public class RmlMapper {
 			
 			List<PredicateMapper> predicateMappers =
 				m.getPredicateMaps().stream().map(p -> {
-				
+
 					List<TermGenerator<Value>> objectGenerators =
-				
-					
-					Stream.concat(
+						Stream.concat(
+						
+							// object maps -> object generators
 							m.getObjectMaps().stream()
 								.filter(o -> o instanceof ObjectMap)
-								.map(o -> getObjectGenerator((ObjectMap) o)), 
+								.map(o -> getObjectGenerator((ObjectMap) o)),
 							
-							
-								m.getObjectMaps().stream()
+							// ref objects maps without joins -> object generators
+							m.getObjectMaps().stream()
 								.filter(o -> o instanceof RefObjectMap)
 								.map(o -> (RefObjectMap) o)
 								.filter(o -> o.getJoinConditions().isEmpty())
@@ -123,10 +127,10 @@ public class RmlMapper {
 									}
 									return o;
 								})
-								.map(o -> (TermGenerator<Value>) (TermGenerator) createRefObjectJoinlessMapper(o)))
+								.map(o -> (TermGenerator<Value>) (TermGenerator) // TODO not very nice
+									createRefObjectJoinlessMapper(o))
+						)
 						.collect(Collectors.toList());
-					
-					
 					
 					List<RefObjectMapper> refObjectMappers =
 							m.getObjectMaps().stream()
@@ -136,7 +140,6 @@ public class RmlMapper {
 								.map(o -> createRefObjectMapper(o))
 								.collect(Collectors.toList());
 
-					
 					return new PredicateMapper(
 						getPredicateGenerator(p),
 						objectGenerators,
@@ -416,20 +419,6 @@ public class RmlMapper {
 	private TermGenerator<Resource> createRefObjectJoinlessMapper(RefObjectMap refObjectMap) {
 		return getSubjectGenerator(refObjectMap.getParentTriplesMap().getSubjectMap());
 	}
-	
-	@SuppressWarnings("unchecked")
-	private JoinMapper createJoinMapper(Set<Join> joinConditions) {
-		return new JoinMapper(joinConditions);
-	}
-
-//	@SuppressWarnings("unchecked")
-//	private TermGenerator<Value> createRefObjectMapper(RefObjectMap map) {
-//		return (TermGenerator<Value>) getGenerator(
-//				map,
-//				Arrays.asList(Rr.IRI, Rr.BlankNode, Rr.Literal),
-//				Arrays.asList(IRI.class, Literal.class)
-//				);
-//	};
 	
 	@SuppressWarnings("unchecked")
 	private TermGenerator<IRI> getGraphGenerator(GraphMap map) {
