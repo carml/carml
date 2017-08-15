@@ -40,6 +40,10 @@ class TriplesMapper {
 		iterable.forEach(e -> map(e, model));
 	}
 	
+	public SubjectMapper getSubjectMapper() {
+		return this.subjectMapper;
+	}
+	
 	private void map(Object entry, Model model) {
 		EvaluateExpression evaluate =
 			expressionEvaluatorFactory.apply(entry);

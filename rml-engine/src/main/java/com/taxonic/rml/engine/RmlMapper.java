@@ -12,6 +12,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.io.IOUtils;
 import org.eclipse.rdf4j.model.BNode;
@@ -28,11 +29,14 @@ import com.jayway.jsonpath.JsonPath;
 import com.taxonic.rml.engine.template.Template;
 import com.taxonic.rml.engine.template.Template.Expression;
 import com.taxonic.rml.engine.template.TemplateParser;
+import com.taxonic.rml.model.BaseObjectMap;
 import com.taxonic.rml.model.GraphMap;
+import com.taxonic.rml.model.Join;
 import com.taxonic.rml.model.LogicalSource;
 import com.taxonic.rml.model.ObjectMap;
 import com.taxonic.rml.model.PredicateMap;
 import com.taxonic.rml.model.PredicateObjectMap;
+import com.taxonic.rml.model.RefObjectMap;
 import com.taxonic.rml.model.SubjectMap;
 import com.taxonic.rml.model.TermMap;
 import com.taxonic.rml.model.TriplesMap;
@@ -43,11 +47,6 @@ import com.taxonic.rml.vocab.Rdf.Rr;
 // TODO rr:defaultGraph
 
 // TODO template strings should be validated during the validation step?
-
-/* TODO re-use the ***Mapper instances for equal corresponding ***Map instances.
- * f.e. if there are 2 equal PredicateMaps in the RML mapping file,
- * re-use the same PredicateMapper instance
- */
 
 public class RmlMapper {
 
@@ -98,22 +97,50 @@ public class RmlMapper {
 			.collect(Collectors.toList());
 	}
 	
-	private List<PredicateObjectMapper> createPredicateObjectMappers(Set<PredicateObjectMap> predicateObjectMaps) {
+	private List<PredicateObjectMapper> createPredicateObjectMappers(TriplesMap triplesMap, Set<PredicateObjectMap> predicateObjectMaps) {
 		return predicateObjectMaps.stream().map(m -> {
 			
 			List<PredicateMapper> predicateMappers =
 				m.getPredicateMaps().stream().map(p -> {
 				
-					// TODO support reference object maps (parent triples map)
-					
 					List<TermGenerator<Value>> objectGenerators =
-						m.getObjectMaps().stream()
-							.map(o -> getObjectGenerator((ObjectMap) o))
-							.collect(Collectors.toList());
-	
+				
+					
+					Stream.concat(
+							m.getObjectMaps().stream()
+								.filter(o -> o instanceof ObjectMap)
+								.map(o -> getObjectGenerator((ObjectMap) o)), 
+							
+							
+								m.getObjectMaps().stream()
+								.filter(o -> o instanceof RefObjectMap)
+								.map(o -> (RefObjectMap) o)
+								.filter(o -> o.getJoinConditions().isEmpty())
+								.map(o -> {
+									LogicalSource parentLogicalSource = o.getParentTriplesMap().getLogicalSource();
+									if (!triplesMap.getLogicalSource().equals(parentLogicalSource)) {
+										throw new RuntimeException("Logical sources are not equal: " + parentLogicalSource + ", " + triplesMap.getLogicalSource());
+									}
+									return o;
+								})
+								.map(o -> (TermGenerator<Value>) (TermGenerator) createRefObjectJoinlessMapper(o)))
+						.collect(Collectors.toList());
+					
+					
+					
+					List<RefObjectMapper> refObjectMappers =
+							m.getObjectMaps().stream()
+								.filter(o -> o instanceof RefObjectMap)
+								.map(o -> (RefObjectMap) o)
+								.filter(o -> !o.getJoinConditions().isEmpty())
+								.map(o -> createRefObjectMapper(o))
+								.collect(Collectors.toList());
+
+					
 					return new PredicateMapper(
 						getPredicateGenerator(p),
-						objectGenerators
+						objectGenerators,
+						refObjectMappers
 					);
 				})
 				.collect(Collectors.toList());
@@ -133,7 +160,7 @@ public class RmlMapper {
 			getSubjectGenerator(subjectMap),
 			createGraphGenerators(subjectMap.getGraphMaps()),
 			subjectMap.getClasses(),
-			createPredicateObjectMappers(triplesMap.getPredicateObjectMaps())
+			createPredicateObjectMappers(triplesMap, triplesMap.getPredicateObjectMaps())
 		);
 	}
 	
@@ -161,6 +188,32 @@ public class RmlMapper {
 			expressionEvaluatorFactory,
 			createSubjectMapper(triplesMap)
 		);
+	}
+	
+	private ParentTriplesMapper createParentTriplesMapper(TriplesMap triplesMap) {
+		
+		LogicalSource logicalSource = triplesMap.getLogicalSource();
+		
+//		logicalSource.getReferenceFormulation();
+		
+		// TODO this all assumes json
+		
+		Supplier<Object> getSource = () -> readSource(logicalSource.getSource());
+		
+		String iterator = logicalSource.getIterator();
+		UnaryOperator<Object> applyIterator =
+			s -> JsonPath.read((String) s, iterator);
+			
+		Function<Object, EvaluateExpression> expressionEvaluatorFactory =
+			object -> expression -> JsonPath.read(object, expression);
+		
+		return
+		new ParentTriplesMapper(
+				getSubjectGenerator(triplesMap.getSubjectMap()), 
+				getSource, 
+				applyIterator, 
+				expressionEvaluatorFactory);
+				
 	}
 	
 	private String createNaturalRdfLexicalForm(Object value) {
@@ -349,6 +402,34 @@ public class RmlMapper {
 			Arrays.asList(IRI.class, Literal.class)
 		);
 	}
+	
+	@SuppressWarnings("unchecked")
+	private RefObjectMapper createRefObjectMapper(RefObjectMap refObjectMap) {
+		Set<Join> joinConditions = refObjectMap.getJoinConditions();
+		
+		return new RefObjectMapper(
+					createParentTriplesMapper(refObjectMap.getParentTriplesMap()),
+					joinConditions
+				);
+	};
+	
+	private TermGenerator<Resource> createRefObjectJoinlessMapper(RefObjectMap refObjectMap) {
+		return getSubjectGenerator(refObjectMap.getParentTriplesMap().getSubjectMap());
+	}
+	
+	@SuppressWarnings("unchecked")
+	private JoinMapper createJoinMapper(Set<Join> joinConditions) {
+		return new JoinMapper(joinConditions);
+	}
+
+//	@SuppressWarnings("unchecked")
+//	private TermGenerator<Value> createRefObjectMapper(RefObjectMap map) {
+//		return (TermGenerator<Value>) getGenerator(
+//				map,
+//				Arrays.asList(Rr.IRI, Rr.BlankNode, Rr.Literal),
+//				Arrays.asList(IRI.class, Literal.class)
+//				);
+//	};
 	
 	@SuppressWarnings("unchecked")
 	private TermGenerator<IRI> getGraphGenerator(GraphMap map) {

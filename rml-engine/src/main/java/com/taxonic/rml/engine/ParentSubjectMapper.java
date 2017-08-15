@@ -9,14 +9,14 @@ import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 
-class SubjectMapper {
+class ParentSubjectMapper {
 	
 	private TermGenerator<Resource> generator;
 	private List<TermGenerator<IRI>> graphGenerators;
 	private Set<IRI> classes;
 	private List<PredicateObjectMapper> predicateObjectMappers;
 	
-	SubjectMapper(
+	ParentSubjectMapper(
 		TermGenerator<Resource> generator,
 		List<TermGenerator<IRI>> graphGenerators,
 		Set<IRI> classes,

@@ -27,12 +27,11 @@
 	rml:logicalSource [
 		rml:source "parentTriplesTestInput.json";
 		rml:referenceFormulation ql:JSONPath;
-		rml:iterator "$.colors";
+		rml:iterator "$.colors.code";
 	];
 	
 	rr:subjectMap [
-		rr:template "http://example.com/ColorCode/{code.rgba[0]},{code.rgba[1]},{code.rgba[2]},{code.rgba[3]}";
-		#rml:reference "hex";
+		rr:template "http://example.com/ColorCode/{rgba.[*]}";
 		rr:class ex:RGBA
 	].
 	

@@ -7,12 +7,12 @@
 
 <#JoinIntegratedMapping>
   rml:logicalSource [
-    rml:source "joinBreakfast.xml" ;
-    rml:referenceFormulation ql:XPath ;
-    rml:iterator "/breakfast-menu/food"
+    rml:source "joinBreakfast.json" ;
+    rml:referenceFormulation ql:JSONPath ;
+    rml:iterator "$"
   ];
   rr:subjectMap [
-    rr:template "http://food.example.com/{name}";
+    rr:template "http://food.example.com/{food.name}";
     rr:class ex:breakfastItem ;  
   ];
 
@@ -21,7 +21,7 @@
     rr:objectMap [
       	rr:parentTriplesMap <#CountryMapping>;
 		rr:joinCondition [
-        	rr:child "/breakfast-menu/food/countryOfOrigin";
+        	rr:child "$.food.countryOfOrigin";
         	rr:parent "$.country.name" ] 
       	]
       ].
