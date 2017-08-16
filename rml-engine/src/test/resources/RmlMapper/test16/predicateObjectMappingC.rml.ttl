@@ -19,7 +19,6 @@
   	
 	rr:predicateObjectMap [
 		rr:predicate ex:hasBirthday;
-		rr:predicate ex:hasAge;
 		rr:objectMap [
 			rr:constant exa:Unknown
 		];

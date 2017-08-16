@@ -1,6 +1,6 @@
 package com.taxonic.rml.engine;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 import java.io.InputStream;
 import java.io.StringWriter;
@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.function.Function;
 
 import org.eclipse.rdf4j.model.Model;
-import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.rio.RDFFormat;
 import org.eclipse.rdf4j.rio.Rio;
 import org.junit.Test;
@@ -18,50 +17,55 @@ import com.taxonic.rml.model.TriplesMap;
 import com.taxonic.rml.util.IoUtils;
 import com.taxonic.rml.util.RmlMappingLoader;
 
-public class RefObjectMapperTest {
-
+public class PredObjectMapsTest {
 	private RmlMappingLoader loader = RmlMappingLoader.build();
 
-	//TODO Create better multiJoinConditions examples
 	@Test
-	public void testMultiJoinConditionsA() {
-		testMapping("RmlMapper/test17/multipleJoinConditionsMappingA.rml.ttl",
-				"RmlMapper/test17/multipleJoinConditionsMapping.output.ttl",
-				"RmlMapper");
-	}
-			
-	@Test
-	public void testJoinTriplesMappingDDiffSourceAndIteratorWithList() {
-		testMapping("RmlMapper/test15/joinIntegratedMappingD.rml.ttl",
-				"RmlMapper/test15/joinIntegratedMappingD.output.ttl",
+	public void testPredObjectMappingGOnePredwithJoinCondition() {
+		testMapping("RmlMapper/test16/predicateObjectMappingG.rml.ttl",
+				"RmlMapper/test16/predicateObjectMappingG.output.ttl",
 				"RmlMapper");
 	}
 	
 	@Test
-	public void testJoinTriplesMappingASimilarIteratorAndDiffSource() {
-		testMapping("RmlMapper/test15/joinIntegratedMappingA.rml.ttl",
-				"RmlMapper/test15/joinIntegratedMappingA.output.ttl",
+	public void testPredObjectMappingFOnePredwithTwoParents() {
+		testMapping("RmlMapper/test16/predicateObjectMappingF.rml.ttl",
+				"RmlMapper/test16/predicateObjectMappingF.output.ttl",
 				"RmlMapper");
 	}
 	
 	@Test
-	public void testJoinTriplesMappingBWithDiffIteratorAndSource() {
-		testMapping("RmlMapper/test15/joinIntegratedMappingB.rml.ttl",
-				"RmlMapper/test15/joinIntegratedMappingB.output.ttl",
+	public void testPredObjectMappingEOnePredAndOneParent() {
+		testMapping("RmlMapper/test16/predicateObjectMappingE.rml.ttl",
+				"RmlMapper/test16/predicateObjectMappingE.output.ttl",
 				"RmlMapper");
 	}
 	
 	@Test
-	public void testJoinTriplesMappingCWithDiffIteratorAndSimilarSource() {
-		testMapping("RmlMapper/test15/joinIntegratedMappingC.rml.ttl",
-				"RmlMapper/test15/joinIntegratedMappingC.output.ttl",
+	public void testPredObjectMappingDOnePredAndMultiObjList() {
+		testMapping("RmlMapper/test16/predicateObjectMappingD.rml.ttl",
+				"RmlMapper/test16/predicateObjectMappingD.output.ttl",
 				"RmlMapper");
 	}
 	
 	@Test
-	public void testParentTriplesMapping() {
-		testMapping("RmlMapper/test9/parentTriplesMapping.rml.ttl",
-				"RmlMapper/test9/parentTriplesMapping.output.ttl",
+	public void testPredObjectMappingCOnePredAndMultiObj() {
+		testMapping("RmlMapper/test16/predicateObjectMappingC.rml.ttl",
+				"RmlMapper/test16/predicateObjectMappingC.output.ttl",
+				"RmlMapper");
+	}
+	
+	@Test
+	public void testPredObjectMappingBMultiPredAndObj() {
+		testMapping("RmlMapper/test16/predicateObjectMappingB.rml.ttl",
+				"RmlMapper/test16/predicateObjectMappingB.output.ttl",
+				"RmlMapper");
+	}
+	
+	@Test
+	public void testPredObjectMappingAMultiPredOneObject() {
+		testMapping("RmlMapper/test16/predicateObjectMappingA.rml.ttl",
+				"RmlMapper/test16/predicateObjectMappingA.output.ttl",
 				"RmlMapper");
 	}
 	
@@ -71,13 +75,11 @@ public class RefObjectMapperTest {
 			s -> RmlMapperTest.class.getClassLoader().getResourceAsStream(contextPath + "/" + s);
 		RmlMapper mapper = new RmlMapper(sourceResolver, TemplateParser.build());
 		Model result = mapper.map(mapping);
+		System.out.println("\n Generated triples from test: " + rmlPath);
+		System.out.println("Result: ");
 		printModel(result);
+		System.out.println("Expected: ");
 		Model expected = IoUtils.parse(outputPath, determineRdfFormat(outputPath));
-		
-		System.out.println("Generated from test: " + rmlPath);
-		System.out.println("This is result: ");
-		printModel(result);
-		System.out.println("This is expected: ");
 		printModel(expected);
 		assertEquals(expected, result);
 	}
@@ -101,5 +103,5 @@ public class RefObjectMapperTest {
 		System.out.println(writer.toString());
 	}
 
-}
 
+}

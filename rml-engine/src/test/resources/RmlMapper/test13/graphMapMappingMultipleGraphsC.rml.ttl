@@ -14,6 +14,7 @@
   	rr:subjectMap [
     	rr:template "http://example.com/Child/{first}/{last}";
     	rr:class ex:Child;
+    	rr:class ex:Person;
 		rr:graphMap [ rr:constant <http://example.dataset/test1> ];
 		rr:graphMap [ rr:constant <http://example.dataset/test2> ];
   	];

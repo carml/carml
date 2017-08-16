@@ -2,15 +2,18 @@
 "food": [
 	{
 	"name": "Belgian Waffles",
-	"countryOfOrigin": "Belgium"
+	"countryOfOrigin": "Belgium",
+	"landVanHerkomst": "België"
 	},
 	{		
 	"name": "French Toast",
-	"countryOfOrigin": "France"
+	"countryOfOrigin": "France",
+	"landVanHerkomst": "Frankrijk"
 	},
 	{
 	"name": "Dutch Pancakes",
-	"countryOfOrigin": "Netherlands"
+	"countryOfOrigin": "Netherlands",
+	"landVanHerkomst": "Nedeland"
 	}
 	],
 	

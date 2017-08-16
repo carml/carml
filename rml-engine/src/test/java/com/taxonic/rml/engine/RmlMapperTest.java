@@ -18,7 +18,6 @@ import com.taxonic.rml.util.IoUtils;
 import com.taxonic.rml.util.RmlMappingLoader;
 
 // TODO consider dynamically creating tests using junit and just iterating over sets of input files
-// TODO create unit tests with more than one graphMaps w/ several subject classes.
 public class RmlMapperTest {
 
 	private RmlMappingLoader loader = RmlMappingLoader.build();

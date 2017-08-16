@@ -3,23 +3,24 @@
 @prefix ex: <http://example.com/>.
 @prefix ql: <http://semweb.mmlab.be/ns/ql#> .
 
-<#PredicateObjectMapA> a rr:TriplesMap;
+<#PredicateObjectMapD> a rr:TriplesMap;
 	rml:logicalSource [
-    	rml:source "simpleTestInput.json";
+    	rml:source "predObjectMapTestInput.json";
     	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$"
+    	rml:iterator "$.colors"
   	];
   	
   	rr:subjectMap [
-    	rr:template "http://example.com/Child/{first}";
-    	rr:class ex:childsFirstName
+    	rr:template "http://example.com/Color/{color}";
+    	rr:class ex:colorName
   	];
   	
 	rr:predicateObjectMap [
-		rr:predicate ex:hasBirthday;
-		rr:predicate ex:hasAge;
+		rr:predicate ex:hasCodes;
 		rr:objectMap [
-			rr:constant ex:Unknown
+			rml:reference "code.hex"
+		];
+		rr:objectMap [
+			rml:reference "code.rgba.[*]"
 		]
 	].
-	
