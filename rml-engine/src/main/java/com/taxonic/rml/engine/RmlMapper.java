@@ -123,7 +123,7 @@ public class RmlMapper {
 								.map(o -> {
 									LogicalSource parentLogicalSource = o.getParentTriplesMap().getLogicalSource();
 									if (!triplesMap.getLogicalSource().equals(parentLogicalSource)) {
-										throw new RuntimeException("Logical sources are not equal: " + parentLogicalSource + ", " + triplesMap.getLogicalSource());
+										throw new RuntimeException("Logical sources are not equal. \n Parent: " + parentLogicalSource + ", Child: " + triplesMap.getLogicalSource());
 									}
 									return o;
 								})

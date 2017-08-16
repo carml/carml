@@ -5,9 +5,9 @@
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
 
-<#JoinIntegratedMappingC>
+<#JoinIntegratedMappingD2>
   rml:logicalSource [
-    rml:source "joinBreakfastsAndCountries.json" ;
+    rml:source "joinMultipleBreakfasts.json" ;
     rml:referenceFormulation ql:JSONPath ;
     rml:iterator "$.food"
   ];
@@ -20,16 +20,15 @@
     rr:predicate ex:originatesFrom;
     rr:objectMap [
       	rr:parentTriplesMap <#CountryMapping>;
-      	rr:joinCondition [
-      		rr:child "countryOfOrigin";
-      		rr:parent "name"
-      		]
+		rr:joinCondition [
+        	rr:child "countryOfOrigin";
+        	rr:parent "name" ] 
       	]
       ].
   
  <#CountryMapping>
  	rml:logicalSource [
- 		rml:source "joinBreakfastsAndCountries.json";
+ 		rml:source "joinMultipleCountries.json";
     	rml:referenceFormulation ql:JSONPath;
     	rml:iterator "$.country"
     	];
@@ -37,4 +36,10 @@
     	rr:subjectMap [
    			rr:template "http://country.example.com/{name}";
     		rr:class ex:Country ;
+    	];
+    	
+    	rr:predicateObjectMap [
+    		rr:predicate ex:officialLanguage;
+    		rr:objectMap [
+    			rml:reference "officialLanguage"]
     	] .

@@ -6,3 +6,9 @@
 
 # maven
 /target/
+rml-engine/src/test/resources/RmlMapper/test15/example3.rml.ttl
+rml-engine/src/test/resources/RmlMapper/test15/example3.output.ttl
+rml-engine/src/test/resources/RmlMapper/joinBreakfast2.json
+rml-engine/src/test/resources/RmlMapper/Venue.json
+rml-engine/src/test/resources/RmlMapper/Transport.xml
+rml-engine/src/test/resources/RmlMapper/Airport.csv

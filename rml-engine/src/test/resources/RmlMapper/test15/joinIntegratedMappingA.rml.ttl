@@ -21,8 +21,8 @@
     rr:objectMap [
       	rr:parentTriplesMap <#CountryMapping>;
 		rr:joinCondition [
-        	rr:child "$.food.countryOfOrigin";
-        	rr:parent "$.country.name" ] 
+        	rr:child "food.countryOfOrigin";
+        	rr:parent "country.name" ] 
       	]
       ].
   

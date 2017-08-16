@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.function.Function;
 
 import org.eclipse.rdf4j.model.Model;
+import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.rio.RDFFormat;
 import org.eclipse.rdf4j.rio.Rio;
 import org.junit.Test;
@@ -21,6 +22,15 @@ public class RefObjectMapperTest {
 
 	private RmlMappingLoader loader = RmlMappingLoader.build();
 
+	
+			
+	@Test
+	public void testJoinTriplesMappingDDiffSourceAndIteratorWithList() {
+		testMapping("RmlMapper/test15/joinIntegratedMappingD.rml.ttl",
+				"RmlMapper/test15/joinIntegratedMappingD.output.ttl",
+				"RmlMapper");
+	}
+	
 	@Test
 	public void testJoinTriplesMappingASimilarIteratorAndDiffSource() {
 		testMapping("RmlMapper/test15/joinIntegratedMappingA.rml.ttl",
@@ -58,12 +68,10 @@ public class RefObjectMapperTest {
 		printModel(result);
 		Model expected = IoUtils.parse(outputPath, determineRdfFormat(outputPath));
 		
+		System.out.println("Generated from test: " + rmlPath);
 		System.out.println("This is result: ");
-		result.setNamespace("ex", "http://example.com/");
 		printModel(result);
-		
 		System.out.println("This is expected: ");
-		expected.setNamespace("ex", "http://example.com/");
 		printModel(expected);
 		assertEquals(expected, result);
 	}

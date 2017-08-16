@@ -5,7 +5,7 @@
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
 
-<#JoinIntegratedMapping>
+<#JoinIntegratedMappingB>
   rml:logicalSource [
     rml:source "joinBreakfast.json" ;
     rml:referenceFormulation ql:JSONPath ;
@@ -21,8 +21,8 @@
     rr:objectMap [
       	rr:parentTriplesMap <#CountryMapping>;
       	rr:joinCondition [
-      		rr:child "$.food.countryOfOrigin";
-      		rr:parent "$.country.name"
+      		rr:child "countryOfOrigin";
+      		rr:parent "name"
       	]
       	
      ]
