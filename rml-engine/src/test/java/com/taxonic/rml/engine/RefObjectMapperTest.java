@@ -22,9 +22,23 @@ public class RefObjectMapperTest {
 	private RmlMappingLoader loader = RmlMappingLoader.build();
 
 	@Test
-	public void testJoinTriplesMapping() {
-		testMapping("RmlMapper/test15/joinIntegratedMapping.rml.ttl",
-				"RmlMapper/test15/joinIntegratedMapping.output.ttl",
+	public void testJoinTriplesMappingASimilarIteratorAndDiffSource() {
+		testMapping("RmlMapper/test15/joinIntegratedMappingA.rml.ttl",
+				"RmlMapper/test15/joinIntegratedMappingA.output.ttl",
+				"RmlMapper");
+	}
+	
+	@Test
+	public void testJoinTriplesMappingBWithDiffIteratorAndSource() {
+		testMapping("RmlMapper/test15/joinIntegratedMappingB.rml.ttl",
+				"RmlMapper/test15/joinIntegratedMappingB.output.ttl",
+				"RmlMapper");
+	}
+	
+	@Test
+	public void testJoinTriplesMappingCWithDiffIteratorAndSimilarSource() {
+		testMapping("RmlMapper/test15/joinIntegratedMappingC.rml.ttl",
+				"RmlMapper/test15/joinIntegratedMappingC.output.ttl",
 				"RmlMapper");
 	}
 	

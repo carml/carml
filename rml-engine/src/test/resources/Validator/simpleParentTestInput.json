@@ -1,11 +1,6 @@
 {
-	"Mother": {
-		"name": "Gea",
-		"age":  50
-	},
-	
-	"Father": {
-		"name": "Hildebrand",
-		"age": 60
-	}
+	"Parents": [{
+	"names": "Gea and Hildebrand",
+	"married": "10-10-1900"}]
+
 }

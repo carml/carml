@@ -7,9 +7,9 @@
 
 <#JoinIntegratedMapping>
   rml:logicalSource [
-    rml:source "joinBreakfast.xml" ;
-    rml:referenceFormulation ql:XPath ;
-    rml:iterator "/breakfast-menu/food"
+    rml:source "joinBreakfast2.json" ;
+    rml:referenceFormulation ql:JSONPath ;
+    rml:iterator "$.food"
   ];
   rr:subjectMap [
     rr:template "http://food.example.com/{name}";
@@ -20,26 +20,17 @@
     rr:predicate ex:originatesFrom;
     rr:objectMap [
       	rr:parentTriplesMap <#CountryMapping>;
-		rr:joinCondition [
-        	rr:child "/breakfast-menu/food/name";
-        	rr:parent "$.country.name" ] 
       	]
       ].
   
  <#CountryMapping>
  	rml:logicalSource [
- 		rml:source "joinCountries.json";
+ 		rml:source "joinBreakfast2.json";
     	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$"
+    	rml:iterator "$.food.recipe"
     	];
     	
     	rr:subjectMap [
-   			rr:template "http://country.example.com/{country.name}";
+   			rr:template "http://country.example.com/{countryOfOrigin}";
     		rr:class ex:Country ;
-    	];
-    	
-    	rr:predicateObjectMap [
-    		rr:predicate ex:officialLanguage;
-    		rr:objectMap [
-    			rml:reference "country.officialLanguage"]
     	] .
