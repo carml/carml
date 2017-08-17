@@ -18,36 +18,58 @@ import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.NodeIterator;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.impl.PropertyImpl;
+import org.apache.jena.tdb.sys.SystemTDB;
 import org.junit.Assert;
 import org.junit.Test;
 import org.topbraid.shacl.validation.ValidationUtil;
 
 public class TripleMapConstraintsTest {
 
-	public static void main(String... args) throws IOException {
+	@Test
+	public void test() throws IOException {
 
 
 		Model shapes = loadModel("rml.sh.ttl");
 
-		Collection<String> files =
+		Collection<String> faulty =
 				IOUtils.readLines(TripleMapConstraintsTest.class.getClassLoader()
 						.getResourceAsStream("faultyMappings/"), Charsets.UTF_8);
 
 		String shconforms = "http://www.w3.org/ns/shacl#conforms";
 
-		files.stream().forEach(f -> {
+		faulty.stream().forEach(f -> {
 			System.out.printf("loading %s\n", "faultyMappings/" + f);
 			Model data = loadModel("faultyMappings/" + f);
 			Resource result = ValidationUtil.validateModel(data, shapes, false);
 
 			NodeIterator nodeIterator = result.getModel().listObjectsOfProperty(new PropertyImpl(shconforms));
 
-			StringBuilder resultThing = new StringBuilder();
 			List<Boolean> conforms = new ArrayList<>(1);
 			nodeIterator.forEachRemaining(n -> conforms.add(n.asLiteral().getBoolean()));
 
 			Assert.assertEquals(1, conforms.size());
 			Assert.assertFalse(f, conforms.get(0));
+
+		});
+
+		Collection<String> valid =
+				IOUtils.readLines(TripleMapConstraintsTest.class.getClassLoader()
+						.getResourceAsStream("validMappings/"), Charsets.UTF_8);
+
+
+		System.out.printf("\n\n\ntime for valid mappings \n\n");
+		valid.stream().forEach(f -> {
+			System.out.printf("loading %s\n", "validMappings/" + f);
+			Model data = loadModel("validMappings/" + f);
+			Resource result = ValidationUtil.validateModel(data, shapes, false);
+
+			NodeIterator nodeIterator = result.getModel().listObjectsOfProperty(new PropertyImpl(shconforms));
+
+			List<Boolean> conforms = new ArrayList<>(1);
+			nodeIterator.forEachRemaining(n -> conforms.add(n.asLiteral().getBoolean()));
+
+			Assert.assertEquals(1, conforms.size());
+			Assert.assertTrue(f, conforms.get(0));
 
 		});
 

@@ -132,6 +132,12 @@ rmlsh:SubjectMapShape
 	sh:targetClass     rr:SubjectMap ;
 
 	sh:property [
+		sh:path rr:termType ;
+		sh:maxCount 1 ;
+		sh:in ( rr:IRI rr:BlankNode )
+	] ;
+
+	sh:property [
 		sh:path rr:class ;
 		sh:nodeKind sh:IRI ;
 	] .
@@ -141,6 +147,43 @@ rmlsh:ObjectMapShape
 	a sh:NodeShape ;
 	rdfs:label "Object map shape"@en ;
 	rdfs:comment "Defines constraints for a well-formed object map."@en;
+
+	sh:property [
+		sh:path rr:termType ;
+		sh:maxCount 1 ;
+		sh:in ( rr:IRI rr:BlankNode rr:Literal )
+	] ;
+
+
+	# @INCOMPLETE
+	sh:xone (
+		[
+			sh:property [
+				sh:path rr:termType ;
+				sh:in (rr:IRI rr:BlankNode)
+			]
+		]
+		[
+			sh:property [
+				sh:path rr:termType ;
+				sh:maxCount 0 ;
+			]
+		]
+		[
+			sh:property [
+				sh:path rr:datatype ;
+				sh:minCount 1 ;
+				sh:nodeKind sh:IRI ;
+			]
+		]
+		[
+			sh:property [
+				sh:path rr:datatype ;
+				sh:minCount 1 ;
+				sh:nodeKind sh:IRI ;
+			]
+		]
+	)
 	.
 
 rmlsh:RefObjectMapShape
@@ -153,6 +196,12 @@ rmlsh:PredicateMapShape
 	a sh:NodeShape ;
 	rdfs:label "Predicate map shape"@en ;
 	rdfs:comment "Defines constraints for a well-formed predicate map."@en;
+	
+	sh:property [
+		sh:path rr:termType ;
+		sh:maxCount 1 ;
+		sh:in ( rr:IRI )
+	] ;
 	.
 
 rmlsh:PredicateObjectMapShape
@@ -160,25 +209,20 @@ rmlsh:PredicateObjectMapShape
 	rdfs:label "Predicate object map shape"@en ;
 	rdfs:comment "Defines constraints for a well-formed predicate object map."@en;
 
-	sh:targetSubjectsOf rr:predicate, rr:predicateMap ;
+	sh:targetSubjectsOf rr:predicate, rr:predicateMap, rr:object, rr:objectMap ;
 	sh:targetObjectsOf  rr:predicateObjectMap ;
 	sh:targetClass rr:PredicateObjectMap ;
 
-	sh:property [
-		sh:path rr:predicate, rr:predicateMap, rr:object, rr:objectMap ;
-		sh:maxCount 1 ;
-	] ;
+	sh:or (
+		[ sh:property [ sh:path rr:predicate    ; sh:minCount 1 ; ] ; ]
+		[ sh:property [ sh:path rr:predicateMap ; sh:minCount 1 ; ] ; ]
+	) ;
 
-	sh:xone [
-		sh:property [ sh:path rr:predicate ] ;
-		sh:property [ sh:path rr:predicateMap ] ;
-	] ;
+	sh:or (
+		[ sh:property [ sh:path rr:object    ; sh:minCount 1 ; ] ; ]
+		[ sh:property [ sh:path rr:objectMap ; sh:minCount 1 ; ] ; ]
+	) ;
 
-	sh:xone [
-		sh:property [ sh:path rr:object ] ;
-		sh:property [ sh:path rr:objectMap ] ;
-	] 
-	
 	.
 
 
@@ -192,18 +236,51 @@ rmlsh:LogicalSourceShape
 	a sh:NodeShape ;
 	rdfs:label "Logical source shape"@en ;
 	rdfs:comment "Defines constraints for a well-formed logical source."@en;
+
+	sh:targetClass rml:LogicalSource ;
+	sh:targetObjectsOf rml:logicalSource ;
+
+	sh:property [
+		sh:path rml:source ;
+		sh:minCount 1;
+		sh:maxCount 1;
+	] ;
+
+	# @NOTE: The iterator and referenceFormulation could be required, based on the rml:source. These
+	#        constraints will be checked at run time, and will cause a run time error when violated.
+	sh:property [
+		sh:path rml:iterator ;
+		sh:maxCount 1;
+	] ;
+
+	sh:property [
+		sh:path rml:referenceFormulation ;
+		sh:maxCount 1 ;
+
+		# @NOTE: The namespace sets the range to `rml:ReferenceFormulation`, but in practice, this  
+		#        class does not have any special characteristic. From a practical perspective, it
+		#        seems useful to allow any IRI.
+		sh:nodeKind sh:IRI ;
+	] ;
 	.
 
-rmlsh:ReferenceFormulationShape
-	a sh:NodeShape ;
-	rdfs:label "Reference formulation shape"@en ;
-	rdfs:comment "Defines constraints for a well-formed reference formulation."@en;
-	.
+# rmlsh:ReferenceFormulationShape
+# 	a sh:NodeShape ;
+# 	rdfs:label "Reference formulation shape"@en ;
+# 	rdfs:comment "Defines constraints for a well-formed reference formulation."@en;
+# 	.
 
 rmlsh:GraphMapShape
 	a sh:NodeShape ;
 	rdfs:label "Graph map shape"@en ;
 	rdfs:comment "Defines constraints for a well-formed graph map."@en;
+
+	
+	sh:property [
+		sh:path rr:termType ;
+		sh:maxCount 1 ;
+		sh:in ( rr:IRI )
+	] ;
 	.
 
 rmlsh:JoinShape
