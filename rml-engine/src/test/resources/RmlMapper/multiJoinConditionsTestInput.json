@@ -1,0 +1,90 @@
+{
+"movie": [
+	{
+	"title": "Inside Out",
+	"year": "2015",
+	"movieGenre": "animation",
+	"ageGroup": "kids",
+	"cinema": "De Munt"
+	},
+	{
+	"title": "Up",
+	"year": "2009",
+	"movieGenre": "animation",
+	"ageGroup": "kids",
+	"cinema": "De Kuip"
+	},
+	{
+	"title": "The Exorcist",
+	"year": "1973",
+	"movieGenre": "horror",
+	"ageGroup": "adults",
+	"cinema": "De Munt"
+	},
+	{
+	"title": "The Babadook",
+	"year": "2014",
+	"movieGenre": "horror",
+	"ageGroup": "adults",
+	"cinema": "De Kuip"
+	},
+	{
+	"title": "Love Me If You Dare",
+	"year": "2003",
+	"movieGenre": "romance",
+	"ageGroup": "adults",
+	"cinema": "De Kuip"
+	},
+	{
+	"title": "Dead Space",
+	"year": "2008",
+	"movieGenre": "animation",
+	"ageGroup": "adults",
+	"cinema": "De Kuip"
+	}
+	],
+"person": [
+	{
+	"name": "Alice",
+	"ageGroup": "adults",
+	"favouriteGenre": "horror",
+	"homeLocation": "Amsterdam"
+	},
+	{
+	"name": "Bob",
+	"ageGroup": "adults",
+	"favouriteGenre": "romance",
+	"homeLocation": "Amsterdam"
+	},
+	{
+	"name": "Charlie",
+	"ageGroup": "kids",
+	"favouriteGenre": "animation",
+	"homeLocation": "Rotterdam"
+	},
+	{
+	"name": "Dave",
+	"ageGroup": "kids",
+	"favouriteGenre": "horror",
+	"homeLocation": "Rotterdam"
+	},
+	{
+	"name": "Eve",
+	"ageGroup": "kids",
+	"favouriteGenre": "animation",
+	"homeLocation": "Amsterdam"
+	}
+	],
+"cinema":
+	[
+	{
+ 	"cinemaName": "De Kuip",
+ 	"cinemaLocation": "Rotterdam"
+ 	},
+ 	{
+ 	"cinemaName": "De Munt",
+ 	"cinemaLocation": "Amsterdam"
+ 	}
+ 	]
+ 
+}

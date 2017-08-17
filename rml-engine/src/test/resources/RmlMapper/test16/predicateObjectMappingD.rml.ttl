@@ -1,0 +1,26 @@
+@prefix rr: <http://www.w3.org/ns/r2rml#>.
+@prefix rml: <http://semweb.mmlab.be/ns/rml#>.
+@prefix ex: <http://example.com/>.
+@prefix ql: <http://semweb.mmlab.be/ns/ql#> .
+
+<#PredicateObjectMapD> a rr:TriplesMap;
+	rml:logicalSource [
+    	rml:source "predObjectMapTestInput.json";
+    	rml:referenceFormulation ql:JSONPath;
+    	rml:iterator "$.colors"
+  	];
+  	
+  	rr:subjectMap [
+    	rr:template "http://example.com/Color/{color}";
+    	rr:class ex:colorName
+  	];
+  	
+	rr:predicateObjectMap [
+		rr:predicate ex:hasCodes;
+		rr:objectMap [
+			rml:reference "code.hex"
+		];
+		rr:objectMap [
+			rml:reference "code.rgba.[*]"
+		]
+	].

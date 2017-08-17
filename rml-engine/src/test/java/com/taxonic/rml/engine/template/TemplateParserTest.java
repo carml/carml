@@ -1,16 +1,14 @@
 package com.taxonic.rml.engine.template;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
 
 import org.junit.Before;
 import org.junit.Test;
 
-import com.taxonic.rml.engine.template.TemplateImpl.Text;
 import com.taxonic.rml.engine.template.TemplateImpl.ExpressionSegment;
-import com.taxonic.rml.engine.template.Template;
-import com.taxonic.rml.engine.template.TemplateParser;
+import com.taxonic.rml.engine.template.TemplateImpl.Text;
 
 public class TemplateParserTest {
 

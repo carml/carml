@@ -1,0 +1,19 @@
+<http://transport.example.com/18> a <http://example.com/ns#line> .
+
+<http://transport.example.com/21> a <http://example.com/ns#line> ;
+	<http://example.com/ns#hasEndpoint> <http://station.example.com/Central%20Station> ;
+	<http://example.com/ns#hasEndPoint> <http://station.example.com/Central%20Station> .
+
+<http://transport.example.com/13> a <http://example.com/ns#line> ;
+	<http://example.com/ns#hasEndpoint> <http://station.example.com/Central%20Station> ;
+	<http://example.com/ns#hasEndPoint> <http://station.example.com/Central%20Station> .
+
+<http://transport.example.com/2> a <http://example.com/ns#line> ;
+	<http://example.com/ns#hasEndpoint> <http://station.example.com/Central%20Station> ;
+	<http://example.com/ns#hasEndPoint> <http://station.example.com/Central%20Station> .
+
+<http://transport.example.com/54> a <http://example.com/ns#line> ;
+	<http://example.com/ns#hasEndpoint> <http://station.example.com/Central%20Station> ;
+	<http://example.com/ns#hasEndPoint> <http://station.example.com/Central%20Station> .
+
+<http://transport.example.com/50> a <http://example.com/ns#line> .

@@ -21,7 +21,7 @@
     rr:objectMap [
       	rr:parentTriplesMap <#CountryMapping>;
 		rr:joinCondition [
-        	rr:child "/breakfast-menu/food/name";
+        	rr:child "/breakfast-menu/food/countryOfOrigin";
         	rr:parent "$.country.name" ] 
       	]
       ].

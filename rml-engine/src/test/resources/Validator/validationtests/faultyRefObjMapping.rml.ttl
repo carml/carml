@@ -34,32 +34,28 @@
 	rml:logicalSource [
     	rml:source "simpleParentTestInput.json";
     	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$.Mother"
+    	rml:iterator "$.Parents"
   	];
   	
   	rr:subjectMap [
-    	rr:template "http://faulty.redObject.example.com/Parent/{name}";
+    	rr:template "http://faulty.redObject.example.com/Parent/{names}";
     	rr:class ex:mother
   	].
-  	
-  	
-  	
   	
  <#RefObjectParentB> a rr:TriplesMap;
 	rml:logicalSource [
     	rml:source "simpleParentTestInput.json";
     	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$.Father"
+    	rml:iterator "$.Parents"
   	];
   	
   	rr:subjectMap [
-    	rr:template "http://faulty.redObject.example.com/Parent/{name}";
+    	rr:template "http://faulty.redObject.example.com/Parent/{names}";
     	rr:class ex:father
   	].
 	
 
 	
-
 
 ####################################################################################
 #More than one ParentTriplesMap w/ similar source
@@ -87,13 +83,13 @@
 	
 <#RefObjectParentA> a rr:TriplesMap;
 	rml:logicalSource [
-		rml:source "simpleTestInput.json";
+		rml:source "simpleParentTestInput.json";
     	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$"
+    	rml:iterator "$.Parents"
   	];
   	
   	rr:subjectMap [
-    	rr:template "http://faulty.redObject.example.com/Parent/{parents}";
+    	rr:template "http://faulty.redObject.example.com/Parent/{names}";
     	rr:class ex:mother
   	].
   	
@@ -102,13 +98,13 @@
   	
  <#RefObjectParentB> a rr:TriplesMap;
 	rml:logicalSource [
-		rml:source "simpleTestInput.json";
+		rml:source "simpleParentTestInput.json";
     	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$.Father"
+    	rml:iterator "$.Parents"
   	];
   	
   	rr:subjectMap [
-    	rr:template "http://faulty.redObject.example.com/Parent/{parents}";
+    	rr:template "http://faulty.redObject.example.com/Parent/{name}";
     	rr:class ex:father
   	].
 	
@@ -145,16 +141,13 @@
 	rml:logicalSource [
     	rml:source "simpleParentTestInput.json";
     	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$.Mother"
+    	rml:iterator "$.Parents"
   	];
   	
   	rr:subjectMap [
-    	rr:template "http://faulty.redObject.example.com/Parent/{name}";
+    	rr:template "http://faulty.redObject.example.com/Parent/{names}";
     	rr:class ex:mother
   	].
-  
-  
-  
   
   
   
@@ -179,7 +172,7 @@
 		rr:objectMap [
 			rr:parentTriplesMap <#RefObjectParentA>;
 			rr:joinCondition [
-        		rr:parent "$.Mother.name"
+        		rr:parent "$.Parents.name"
 		]
 	].
 	
@@ -189,7 +182,7 @@
 	rml:logicalSource [
     	rml:source "simpleParentTestInput.json";
     	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$.Mother"
+    	rml:iterator "$.Parents"
   	];
   	
   	rr:subjectMap [
@@ -234,11 +227,11 @@
 	rml:logicalSource [
     	rml:source "simpleParentTestInput.json";
     	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$.Mother"
+    	rml:iterator "$.Parents"
   	];
   	
   	rr:subjectMap [
-    	rr:template "http://faulty.redObject.example.com/Parent/{name}";
+    	rr:template "http://faulty.redObject.example.com/Parent/{names}";
     	rr:class ex:mother
   	].
   
@@ -266,7 +259,7 @@
 			rr:joinCondition [
         		rr:child "$.parents";
         		rr:child "$.parents";
-        		rr:parent "$.Mother.name";
+        		rr:parent "$.Parents.names";
 		]
 	].
 	
@@ -276,11 +269,11 @@
 	rml:logicalSource [
     	rml:source "simpleParentTestInput.json";
     	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$.Mother"
+    	rml:iterator "$.Parents"
   	];
   	
   	rr:subjectMap [
-    	rr:template "http://faulty.redObject.example.com/Parent/{name}";
+    	rr:template "http://faulty.redObject.example.com/Parent/{names}";
     	rr:class ex:mother
   	].
  
@@ -308,8 +301,8 @@
 		rr:objectMap [
 			rr:parentTriplesMap <#RefObjectParentA>;
 			rr:joinCondition [
-				rr:parent "$.Mother.name";
-        		rr:parent "$.Mother.name";
+				rr:parent "$.Parents.names";
+        		rr:parent "$.Parents.names";
 		]
 	].
 	
@@ -319,11 +312,11 @@
 	rml:logicalSource [
     	rml:source "simpleParentTestInput.json";
     	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$.Mother"
+    	rml:iterator "$.Parents"
   	];
   	
   	rr:subjectMap [
-    	rr:template "http://faulty.redObject.example.com/Parent/{name}";
+    	rr:template "http://faulty.redObject.example.com/Parent/{names}";
     	rr:class ex:mother
   	].
   	
@@ -351,8 +344,8 @@
 		rr:objectMap [
 			rr:parentTriplesMap <#RefObjectParentA>;
 			rr:joinCondition [
-				rr:parent "$.Mother.name";
-        		rr:parent "$.Mother.name";
+				rr:parent "$.Parents.names";
+        		rr:parent "$.Parents.names";
         		rr:child "$.parents";
 		]
 	].
@@ -362,12 +355,50 @@
 	rml:logicalSource [
     	rml:source "simpleParentTestInput.json";
     	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$.Mother"
+    	rml:iterator "$.Parents"
   	];
   	
   	rr:subjectMap [
-    	rr:template "http://faulty.redObject.example.com/Parent/{name}";
+    	rr:template "http://faulty.redObject.example.com/Parent/{names}";
     	rr:class ex:mother
   	].
   	
+  
+  
+####################################################################################
+#Child and parent contain different value -> not joinable
+####################################################################################
+<#FaultyRefObjectMappingH> a rr:TriplesMap;
+	rml:logicalSource [
+    	rml:source "simpleTestInput.json";
+    	rml:referenceFormulation ql:JSONPath;
+    	rml:iterator "$"
+  	];
   	
+  	rr:subjectMap [
+    	rr:template "http://faulty.redObject.example.com/Child/{first}";
+    	rr:class ex:FirstName
+  	];
+  	
+	rr:predicateObjectMap [
+		rr:predicate ex:hasParents
+		rr:objectMap [
+			rr:parentTriplesMap <#RefObjectParentA>;
+			rr:joinCondition [
+				rr:parent "$.Parents.names";
+        		rr:child "$.first";
+		]
+	].
+	
+	
+<#RefObjectParentA> a rr:TriplesMap;
+	rml:logicalSource [
+    	rml:source "simpleParentTestInput.json";
+    	rml:referenceFormulation ql:JSONPath;
+    	rml:iterator "$.Parents"
+  	];
+  	
+  	rr:subjectMap [
+    	rr:template "http://faulty.redObject.example.com/Parent/{names}";
+    	rr:class ex:mother
+  	].

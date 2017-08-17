@@ -5,68 +5,9 @@
 
 
 ####################################################################################
-#2 Predicates 1 objectMap
-####################################################################################
-<#FaultyPredicateObjectMappingA> a rr:TriplesMap;
-	rml:logicalSource [
-    	rml:source "simpleTestInput.json";
-    	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$"
-  	];
-  	
-  	rr:subjectMap [
-    	rr:template "http://faulty.predObj.example.com/Child/{first}";
-    	rr:class ex:childsFirstName
-  	];
-  	
-	rr:predicateObjectMap [
-		rr:predicate ex:hasBirthday;
-		rr:predicate ex:hasAge;
-		rr:objectMap [
-			rml:reference "birthday"
-		]
-	].
-	
-	
-	
-	
-	
-	
-####################################################################################
-#2 Predicates 2 objectMaps
-####################################################################################
-<#FaultyPredicateObjectMappingB> a rr:TriplesMap;
-	rml:logicalSource [
-    	rml:source "simpleTestInput.json";
-    	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$"
-  	];
-  	
-  	rr:subjectMap [
-    	rr:template "http://faulty.predObj.example.com/Child/{first}";
-    	rr:class ex:childsFirstName
-  	];
-  	
-	rr:predicateObjectMap [
-		rr:predicate ex:hasBirthday;
-		rr:predicate ex:hasAge;
-		rr:objectMap [
-			rml:reference "birthday"
-		];
-		rr:objectMap [
-			rml:reference "age"
-		]
-	].
-	
-	
-	
-	
-	
-	
-####################################################################################
 #0 Predicate 1 ObjectMap
 ####################################################################################
-<#FaultyPredicateObjectMappingC> a rr:TriplesMap;
+<#FaultyPredicateObjectMappingA> a rr:TriplesMap;
 	rml:logicalSource [
     	rml:source "simpleTestInput.json";
     	rml:referenceFormulation ql:JSONPath;
@@ -91,7 +32,7 @@
 ####################################################################################
 #1 Predicates 0 ObjectMap
 ####################################################################################
-<#FaultyPredicateObjectMappingD> a rr:TriplesMap;
+<#FaultyPredicateObjectMappingB> a rr:TriplesMap;
 	rml:logicalSource [
     	rml:source "simpleTestInput.json";
     	rml:referenceFormulation ql:JSONPath;
@@ -111,7 +52,7 @@
 ####################################################################################
 #Only GraphMap
 ####################################################################################
-<#FaultyPredicateObjectMappingE> a rr:TriplesMap;
+<#FaultyPredicateObjectMappingC> a rr:TriplesMap;
 	rml:logicalSource [
     	rml:source "simpleTestInput.json";
     	rml:referenceFormulation ql:JSONPath;
@@ -133,7 +74,7 @@
 ####################################################################################
 #GraphMap inside predicate
 ####################################################################################
-<#FaultyPredicateObjectMappingF> a rr:TriplesMap;
+<#FaultyPredicateObjectMappingD> a rr:TriplesMap;
 	rml:logicalSource [
     	rml:source "simpleTestInput.json";
     	rml:referenceFormulation ql:JSONPath;
@@ -161,7 +102,7 @@
 ####################################################################################
 #GraphMap inside objectMap
 ####################################################################################
-<#FaultyPredicateObjectMappingF> a rr:TriplesMap;
+<#FaultyPredicateObjectMappingE> a rr:TriplesMap;
 	rml:logicalSource [
     	rml:source "simpleTestInput.json";
     	rml:referenceFormulation ql:JSONPath;

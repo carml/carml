@@ -1,0 +1,25 @@
+<http://example.com/Category/hue> a <http://example.com/category> ;
+	<http://example.com/hasColors> <http://color.example.com/black> , <http://color.example.com/%23000> .
+
+<http://example.com/Category/value> a <http://example.com/category> ;
+	<http://example.com/hasColors> <http://color.example.com/white> , <http://color.example.com/%23FFF> .
+
+<http://example.com/Category/hue> <http://example.com/hasColors> <http://color.example.com/red> , <http://color.example.com/%23FF0> , <http://color.example.com/blue> , <http://color.example.com/%2300F> , <http://color.example.com/yellow> , <http://color.example.com/green> , <http://color.example.com/%230F0> .
+
+<http://color.example.com/black> a <http://example.com/Color> ;
+	<http://example.com/hasHex> <http://color.example.com/%23000> .
+
+<http://color.example.com/white> a <http://example.com/Color> ;
+	<http://example.com/hasHex> <http://color.example.com/%23FFF> .
+
+<http://color.example.com/red> a <http://example.com/Color> ;
+	<http://example.com/hasHex> <http://color.example.com/%23FF0> .
+
+<http://color.example.com/blue> a <http://example.com/Color> ;
+	<http://example.com/hasHex> <http://color.example.com/%2300F> .
+
+<http://color.example.com/yellow> a <http://example.com/Color> ;
+	<http://example.com/hasHex> <http://color.example.com/%23FF0> .
+
+<http://color.example.com/green> a <http://example.com/Color> ;
+	<http://example.com/hasHex> <http://color.example.com/%230F0> .

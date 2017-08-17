@@ -1,0 +1,62 @@
+{
+	"lines": 
+	[
+		{
+			"line": "18",
+			"endPointStation": "Central Station",
+			"endPointLocation": "unknown",
+			"startPoint": "Slotervaart",
+			"type": "bus"
+		},
+		{
+			"line": "21",
+			"endPointStation": "Central Station",
+			"startPoint": "Geuzenveld",
+			"endPointLocation": "city centre",
+			"type": "bus"
+		},
+		{
+			"line": "13",
+			"endPointStation": "Central Station",
+			"endPointLocation": "city centre",
+			"startPoint": "Geuzenveld",
+			"type": "tram"
+		},
+		{	
+			"line": "2",
+			"endPointStation": "Central Station",
+			"endPointLocation": "city centre",
+			"startPoint": "Nieuw Sloten",
+			"type": "tram"
+		},
+		{	
+			"line": "54",
+			"endPointStation": "Central Station",
+			"endPointLocation": "city centre",
+			"startPoint": "Gein",
+			"type": "metro"
+		},
+		{	
+			"line": "50",
+			"endPointStation": "Sloterdijk Station",
+			"endPointLocation": "west",
+			"startPoint": "Gein",
+			"type": "metro"
+		}
+		
+	],
+	"station":
+	[
+		{
+			"name": "Central Station",
+			"availableVehicles": ["bus", "tram", "metro"],
+			"location": "city centre"
+		},
+		{
+			"name": "Jan van Galen Station",
+			"availableVehicles": ["metro", "tram"],
+			"location": "west"
+		}
+	]
+	
+}

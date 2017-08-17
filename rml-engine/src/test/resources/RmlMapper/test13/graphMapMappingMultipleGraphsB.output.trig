@@ -1,0 +1,14 @@
+<http://example.dataset/test1> {
+<http://example.com/Child/Amarise/Fernand> a <http://example.com/Child>;
+<http://example.com/hasBirthday> "2017-02-16";
+<http://example.com/hasAge> "5" .
+<http://example.com/Child/Kelsey/Jirsten> a <http://example.com/Child>;
+<http://example.com/hasBirthday> "2009-04-13";
+<http://example.com/hasAge> "8" .
+}
+
+
+<http://example.dataset/test2> {
+<http://example.com/Child/Amarise/Fernand> <http://example.com/hasBirthday> "2017-02-16" .
+<http://example.com/Child/Kelsey/Jirsten> <http://example.com/hasBirthday> "2009-04-13" .
+}

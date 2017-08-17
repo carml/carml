@@ -1,0 +1,17 @@
+<http://food.example.com/Belgian%20Waffles> a <http://example.com/ns#breakfastItem> ;
+	<http://example.com/ns#originatesFrom> "België"@nl , <http://country.example.com/Belgium> .
+
+<http://food.example.com/French%20Toast> a <http://example.com/ns#breakfastItem> ;
+	<http://example.com/ns#originatesFrom> "Frankrijk"@nl , <http://country.example.com/France> .
+
+<http://food.example.com/Dutch%20Pancakes> a <http://example.com/ns#breakfastItem> ;
+	<http://example.com/ns#originatesFrom> "Nedeland"@nl , <http://country.example.com/Netherlands> .
+
+<http://country.example.com/Belgium> a <http://example.com/ns#Country> ;
+	<http://example.com/ns#hasLanguage> "Dutch, French, German" .
+
+<http://country.example.com/Netherlands> a <http://example.com/ns#Country> ;
+	<http://example.com/ns#hasLanguage> "Dutch" .
+
+<http://country.example.com/France> a <http://example.com/ns#Country> ;
+	<http://example.com/ns#hasLanguage> "French" .

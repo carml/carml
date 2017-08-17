@@ -14,7 +14,7 @@
   	rr:subjectMap [
     	rr:template "http://example.com/Child/{first}/{last}";
     	rr:class ex:Child;
-		rr:graphMap [ rr:constant <http://example.dataset/test> ];
+		rr:graphMap [ rr:template "http://example.dataset/test/{BSN}" ];
   	];
   	
   	rr:predicateObjectMap [

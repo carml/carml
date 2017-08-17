@@ -18,15 +18,70 @@ import com.taxonic.rml.util.IoUtils;
 import com.taxonic.rml.util.RmlMappingLoader;
 
 // TODO consider dynamically creating tests using junit and just iterating over sets of input files
-
 public class RmlMapperTest {
 
 	private RmlMappingLoader loader = RmlMappingLoader.build();
+
+	@Test
+	public void testTermTypeMappingBlankNodeC() {
+		testMapping("RmlMapper/test14/termTypeMappingBlankNodeC.rml.ttl",
+				"RmlMapper/test14/termTypeMappingBlankNodeC.output.ttl",
+				"RmlMapper");
+	}
 	
+	@Test
+	public void testTermTypeMappingBlankNodeB() {
+		testMapping("RmlMapper/test14/termTypeMappingBlankNodeB.rml.ttl",
+				"RmlMapper/test14/termTypeMappingBlankNodeB.output.ttl",
+				"RmlMapper");
+	}
+	
+	@Test
+	public void testTermTypeMappingBlankNodeA() {
+		testMapping("RmlMapper/test14/termTypeMappingBlankNodeA.rml.ttl",
+				"RmlMapper/test14/termTypeMappingBlankNodeA.output.ttl",
+				"RmlMapper");
+	}
+	
+	@Test
+	public void testTermTypeMappingLiteral() {
+		testMapping("RmlMapper/test14/termTypeMappingLiteral.rml.ttl",
+				"RmlMapper/test14/termTypeMappingLiteral.output.ttl",
+				"RmlMapper");
+	}
+	
+	@Test
+	public void testTermTypeMappingIRI() {
+		testMapping("RmlMapper/test14/termTypeMappingIRI.rml.ttl",
+				"RmlMapper/test14/termTypeMappingIRI.output.ttl",
+				"RmlMapper");
+	}
+	
+	@Test
+	public void testGraphMapMappingMultipleGraphsB() {
+		testMapping("RmlMapper/test13/graphMapMappingMultipleGraphsB.rml.ttl",
+				"RmlMapper/test13/graphMapMappingMultipleGraphsB.output.trig",
+				"RmlMapper");
+	}
+	
+	@Test
+	public void testGraphMapMappingMultipleGraphsA() {
+		testMapping("RmlMapper/test13/graphMapMappingMultipleGraphsA.rml.ttl",
+				"RmlMapper/test13/graphMapMappingMultipleGraphsA.output.trig",
+				"RmlMapper");
+	}
+	
+	@Test
+	public void testGraphMapMappingMultipleClasses() {
+		testMapping("RmlMapper/test13/graphMapMappingMultipleClasses.rml.ttl",
+				"RmlMapper/test13/graphMapMappingMultipleClasses.output.trig",
+				"RmlMapper");
+	}
+	
+	@Test
 	public void testGraphMapMappingSubjectB() {
-		//TODO Create output 
 		testMapping("RmlMapper/test13/graphMapMappingSubjectB.rml.ttl",
-				"RmlMapper/test13/graphMapMappingSubjectB.output.ttl",
+				"RmlMapper/test13/graphMapMappingSubjectB.output.trig",
 				"RmlMapper");
 	}
 	
@@ -47,7 +102,8 @@ public class RmlMapperTest {
 	@Test
 	public void testRemoveNonLatinCharsFunction() {
 		//TODO Parse fno.ttl
-		String functionPath = "RmlMapper/test12/removeNonLatinCharsFunction.fn.ttl";
+		//TODO include FNMLFunctions.java too
+		String functionPath = "RmlMapper/test12/removeNonLatinCharsFunction.fno.ttl";
 		testMapping("RmlMapper/test12/removeNonLatinCharsMapping.fnml.ttl",
 				"RmlMapper/test12/removeNonLatinCharsMapping.output.ttl",
 				"RmlMapper");
@@ -56,6 +112,7 @@ public class RmlMapperTest {
 	@Test
 	public void testToBoolFunction() {
 		//TODO Parse fno.ttl
+		//TODO include FNMLFunctions.java too
 		String functionPath = "RmlMapper/test11/toBoolFunction.fnml.ttl";
 		testMapping("RmlMapper/test11/toBoolMapping.fnml.ttl",
 				"RmlMapper/test11/toBoolMapping.output.ttl",
@@ -78,6 +135,7 @@ public class RmlMapperTest {
 	
 	@Test
 	public void testSimpleBlankNodeMapping() {
+		//TODO Note: algorithm for generating blank node ids will change
 		testMapping("RmlMapper/test8/simpleBlankNodeMapping.rml.ttl",
 				"RmlMapper/test8/simpleBlankNodeMapping.output.ttl",
 				"RmlMapper");

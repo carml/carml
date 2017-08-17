@@ -13,7 +13,7 @@ class IriEncoder {
 	}
 	
 	static Function<String, String> create() {
-
+		
 		/* percent-encode any char not in the 'iunreserved' production rule:
 		   iunreserved    = ALPHA / DIGIT / "-" / "." / "_" / "~" / ucschar
 		   ucschar        = %xA0-D7FF / %xF900-FDCF / %xFDF0-FFEF
@@ -37,6 +37,7 @@ class IriEncoder {
 			}
 		}
 		
+		//TODO currently encodes commas too, check whether correct?
 		String rangesStr =
 			"%xA0-D7FF / %xF900-FDCF / %xFDF0-FFEF " +
 				"/ %x10000-1FFFD / %x20000-2FFFD / %x30000-3FFFD " +
@@ -54,6 +55,9 @@ class IriEncoder {
 				);
 			})
 			.collect(Collectors.toList());
+		
+		
+		
 		
 		return s -> {
 			

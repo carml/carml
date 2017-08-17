@@ -12,7 +12,7 @@ class PredicateObjectMapper {
 	
 	private List<TermGenerator<IRI>> graphGenerators;
 	private List<PredicateMapper> predicateMappers;
-	
+
 	PredicateObjectMapper(
 		List<TermGenerator<IRI>> graphGenerators,
 		List<PredicateMapper> predicateMappers
