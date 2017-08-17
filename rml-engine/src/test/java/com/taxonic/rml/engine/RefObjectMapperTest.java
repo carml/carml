@@ -22,11 +22,18 @@ public class RefObjectMapperTest {
 
 	private RmlMappingLoader loader = RmlMappingLoader.build();
 
-	//TODO Create better multiJoinConditions examples
+	@Test
+	public void testMultiJoinConditionsBMultiTriplesMap() {
+		//TODO check whether inference is possible with join conditions
+		testMapping("RmlMapper/test17/multipleJoinConditionsMappingB.rml.ttl",
+				"RmlMapper/test17/multipleJoinConditionsMappingB.output.ttl",
+				"RmlMapper");
+	}
+	
 	@Test
 	public void testMultiJoinConditionsA() {
 		testMapping("RmlMapper/test17/multipleJoinConditionsMappingA.rml.ttl",
-				"RmlMapper/test17/multipleJoinConditionsMapping.output.ttl",
+				"RmlMapper/test17/multipleJoinConditionsMappingB.output.ttl",
 				"RmlMapper");
 	}
 			

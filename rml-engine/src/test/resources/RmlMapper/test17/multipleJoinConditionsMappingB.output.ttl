@@ -1,0 +1,30 @@
+<http://person.example.com/Alice> a <http://example.com/ns#movieWatcher> ;
+	<http://example.com/ns#hasAvailableMovie> <http://movie.example.com/The%20Exorcist> , <http://movie.example.com/The%20Babadook> ;
+	<http://example.com/ns#hasAvailableCinema> <http://cinema.example.com/De%20Munt> .
+
+<http://person.example.com/Bob> a <http://example.com/ns#movieWatcher> ;
+	<http://example.com/ns#hasAvailableMovie> <http://movie.example.com/Love%20Me%20If%20You%20Dare> ;
+	<http://example.com/ns#hasAvailableCinema> <http://cinema.example.com/De%20Munt> .
+
+<http://person.example.com/Charlie> a <http://example.com/ns#movieWatcher> ;
+	<http://example.com/ns#hasAvailableMovie> <http://movie.example.com/Inside%20Out> , <http://movie.example.com/Up> ;
+	<http://example.com/ns#hasAvailableCinema> <http://cinema.example.com/De%20Kuip> .
+
+<http://person.example.com/Dave> a <http://example.com/ns#movieWatcher> ;
+	<http://example.com/ns#hasAvailableCinema> <http://cinema.example.com/De%20Kuip> .
+
+<http://person.example.com/Eve> a <http://example.com/ns#movieWatcher> ;
+	<http://example.com/ns#hasAvailableMovie> <http://movie.example.com/Inside%20Out> , <http://movie.example.com/Up> ;
+	<http://example.com/ns#hasAvailableCinema> <http://cinema.example.com/De%20Munt> .
+
+<http://movie.example.com/Inside%20Out> <http://example.com/ns#playsIn> <http://cinema.example.com/De%20Munt> .
+
+<http://movie.example.com/Up> <http://example.com/ns#playsIn> <http://cinema.example.com/De%20Kuip> .
+
+<http://movie.example.com/The%20Exorcist> <http://example.com/ns#playsIn> <http://cinema.example.com/De%20Munt> .
+
+<http://movie.example.com/The%20Babadook> <http://example.com/ns#playsIn> <http://cinema.example.com/De%20Kuip> .
+
+<http://movie.example.com/Love%20Me%20If%20You%20Dare> <http://example.com/ns#playsIn> <http://cinema.example.com/De%20Kuip> .
+
+<http://movie.example.com/Dead%20Space> <http://example.com/ns#playsIn> <http://cinema.example.com/De%20Kuip> .

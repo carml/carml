@@ -1,0 +1,30 @@
+@prefix rr: <http://www.w3.org/ns/r2rml#>.
+@prefix rml: <http://semweb.mmlab.be/ns/rml#>.
+@prefix ex: <http://faulty.termType.example.com/>.
+@prefix ql: <http://semweb.mmlab.be/ns/ql#> .
+
+####################################################################################
+# Wrong termType predicateMap Literal
+####################################################################################
+<#FaultyTermTypeMappingD> a rr:TriplesMap;
+	rml:logicalSource [
+    	rml:source "simpleTestInput.json";
+    	rml:referenceFormulation ql:JSONPath;
+    	rml:iterator "$"
+  	];
+  	
+  	rr:subjectMap [
+    	rr:template "http://faulty.termType.example.com/Child/{first}";
+    	rr:class ex:FirstName;
+  	];
+  	
+	rr:predicateObjectMap [
+		rr:predicateMap [
+			rr:constant ex:hasParents;
+			rr:termType rr:Literal
+		];
+		rr:objectMap [
+			rml:reference "parents"
+		]
+	].
+	
