@@ -15,7 +15,8 @@
     	rml:iterator "$"
   	];
 
-  	rr:subjectMap [
-    	rr:template "http://faulty.subject.class.example.com/Child/{first}";
-    	rr:class <>
-  	].
+#  	rr:subjectMap [
+#    	rr:template "http://faulty.subject.class.example.com/Child/{first}";
+#    	rr:class <>
+#  	]
+  	.

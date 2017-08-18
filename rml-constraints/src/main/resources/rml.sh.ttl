@@ -47,17 +47,12 @@ rmlsh:TriplesMapShape
 		[
 			sh:property [
 				sh:path rr:subject ;
-				sh:nodeKind sh:IRI ;
 				sh:minCount 1 ;
 				sh:maxCount 1 ;
 			]
 		]
-	) ;
-
-	sh:property [
-		sh:path rr:predicateObjectMap ;
-		sh:node rmlsh:PredicateObjectMapShape
-	] .
+	) ; 
+	.
 
 
 
@@ -88,22 +83,28 @@ rmlsh:TermMapShape
 		rr:termType ;
 
 	sh:xone (
-		sh:property [
-			sh:path rr:constant ;
-			sh:minCount 1 ;
-			sh:maxCount 1 ;
+		[
+			sh:property [
+				sh:path rr:constant ;
+				sh:minCount 1 ;
+				sh:maxCount 1 ;
+			]
 		]
-		sh:property [
-			sh:path rml:reference ;
-			sh:minCount 1 ;
-			sh:maxCount 1 ;
+		[
+			sh:property [
+				sh:path rml:reference ;
+				sh:minCount 1 ;
+				sh:maxCount 1 ;
+			]
 		]
-		sh:property [
-			sh:path rr:template ;
-			sh:minCount 1 ;
-			sh:maxCount 1 ;
+		[
+			sh:property [
+				sh:path rr:template ;
+				sh:minCount 1 ;
+				sh:maxCount 1 ;
+			]
 		]
-	 ) .
+	) .
 
 rmlsh:ObjectOrRefObjectMapShape
 	a sh:NodeShape ;
@@ -111,13 +112,17 @@ rmlsh:ObjectOrRefObjectMapShape
 	sh:targetSubjectsOf rr:objectMap ;
 
 	sh:xone (
-		sh:property [
-			sh:path rr:objectMap ;
-			sh:node rmlsh:TermMapShape, rmlsh:ObjectMapShape ;
+		[
+			sh:property [
+				sh:path rr:objectMap ;
+				sh:node rmlsh:TermMapShape, rmlsh:ObjectMapShape ;
+			]
 		]
-		sh:property [
-			sh:path rr:objectMap ;
-			sh:node rmlsh:RefObjectMapShape ;
+		[
+			sh:property [
+				sh:path rr:objectMap ;
+				sh:node rmlsh:RefObjectMapShape ;
+			]
 		]
 	) ;
 	.
@@ -131,16 +136,16 @@ rmlsh:SubjectMapShape
 	sh:targetObjectsOf rr:subjectMap ;
 	sh:targetClass     rr:SubjectMap ;
 
-	sh:property [
-		sh:path rr:termType ;
-		sh:maxCount 1 ;
-		sh:in ( rr:IRI rr:BlankNode )
-	] ;
+	sh:and (
+		[ sh:property [ sh:path rr:termType ; sh:maxCount 1 ; ] ; ]
+		[ sh:property [ sh:path rr:termType ; sh:in ( rr:IRI rr:BlankNode ) ; ] ; ]
+	) ;
 
 	sh:property [
 		sh:path rr:class ;
 		sh:nodeKind sh:IRI ;
-	] .
+	] ;
+	.
 
 
 rmlsh:ObjectMapShape
@@ -148,48 +153,56 @@ rmlsh:ObjectMapShape
 	rdfs:label "Object map shape"@en ;
 	rdfs:comment "Defines constraints for a well-formed object map."@en;
 
-	sh:property [
-		sh:path rr:termType ;
-		sh:maxCount 1 ;
-		sh:in ( rr:IRI rr:BlankNode rr:Literal )
-	] ;
+	sh:and(
+		[ sh:property [ sh:path rr:termType ; sh:maxCount 1 ; ] ; ]
+		[ sh:property [ sh:path rr:termType ; sh:in ( rr:IRI rr:BlankNode rr:Literal ) ; ] ; ]
+	) ;
 
 
 	# @INCOMPLETE
-	sh:xone (
-		[
-			sh:property [
-				sh:path rr:termType ;
-				sh:in (rr:IRI rr:BlankNode)
-			]
-		]
-		[
-			sh:property [
-				sh:path rr:termType ;
-				sh:maxCount 0 ;
-			]
-		]
-		[
-			sh:property [
-				sh:path rr:datatype ;
-				sh:minCount 1 ;
-				sh:nodeKind sh:IRI ;
-			]
-		]
-		[
-			sh:property [
-				sh:path rr:datatype ;
-				sh:minCount 1 ;
-				sh:nodeKind sh:IRI ;
-			]
-		]
-	)
+	# sh:xone (
+	# 	[
+	# 		sh:property [
+	# 			sh:path rr:termType ;
+	# 			sh:in (rr:IRI rr:BlankNode)
+	# 		]
+	# 	]
+	# 	[
+	# 		sh:property [
+	# 			sh:path rr:termType ;
+	# 			sh:maxCount 0 ;
+	# 		]
+	# 	]
+	# 	[
+	# 		sh:property [
+	# 			sh:path rr:datatype ;
+	# 			sh:minCount 1 ;
+	# 			sh:nodeKind sh:IRI ;
+	# 		]
+	# 	]
+	# 	[
+	# 		sh:property [
+	# 			sh:path rr:datatype ;
+	# 			sh:minCount 1 ;
+	# 			sh:nodeKind sh:IRI ;
+	# 		]
+	# 	]
+	# )
 	.
 
 rmlsh:RefObjectMapShape
 	a sh:NodeShape ;
 	rdfs:label "Ref object map shape"@en ;
 	rdfs:comment "Defines constraints for a well-formed ref object map."@en;
+
+	sh:targetClass rr:RefObjectMap ;
+	sh:targetSubjectsOf rr:parentTriplesMap, rr:joinCondition ;
+	sh:targetObjectsOf rr:refObjectMap ;
+
+	sh:and (
+		[ sh:property [ sh:path rr:parentTriplesMap ; sh:minCount 1 ; sh:maxCount 1 ; ] ; ]
+		[ sh:property [ sh:path rr:parentTriplesMap ; sh:nodeKind sh:IRI ; ] ; ]
+	) ;
 	.
 
 rmlsh:PredicateMapShape
@@ -197,11 +210,10 @@ rmlsh:PredicateMapShape
 	rdfs:label "Predicate map shape"@en ;
 	rdfs:comment "Defines constraints for a well-formed predicate map."@en;
 	
-	sh:property [
-		sh:path rr:termType ;
-		sh:maxCount 1 ;
-		sh:in ( rr:IRI )
-	] ;
+	sh:and ( 
+		[ sh:property [ sh:path rr:termType ; sh:maxCount 1 ; ] ; ]
+		[ sh:property [ sh:path rr:termType ; sh:hasValue rr:IRI ; ] ; ]
+	) ;
 	.
 
 rmlsh:PredicateObjectMapShape
@@ -275,23 +287,39 @@ rmlsh:GraphMapShape
 	rdfs:label "Graph map shape"@en ;
 	rdfs:comment "Defines constraints for a well-formed graph map."@en;
 
-	
-	sh:property [
-		sh:path rr:termType ;
-		sh:maxCount 1 ;
-		sh:in ( rr:IRI )
-	] ;
+	sh:targetClass rr:GraphMap ;
+	sh:targetObjecsOf rr:graphMap ;
+
+
+	sh:and (
+		[ sh:property [ sh:path rr:termType ; sh:maxCount 1 ; ] ]
+		[ sh:property [ sh:path rr:termType ; sh:hasValue rr:IRI ; ] ]
+	) ;
 	.
 
 rmlsh:JoinShape
 	a sh:NodeShape ;
-	rdfs:label "Join shape" @en ;
+	rdfs:label "Join shape"@en ;
 	rdfs:comment "Defines constraints for a well-formed join "@en;
+
+	sh:targetClass rr:Join ;
+	sh:targetSubjectsOf rr:parent, rr:child ;
+	sh:targetObjectsOf rr:joinCondition ;
+
+	sh:and (
+		[ sh:property [ sh:path rr:child ;  sh:minCount 1 ; sh:maxCount 1 ; ] ]
+		[ sh:property [ sh:path rr:child ;  sh:nodeKind sh:Literal ; ] ]
+	) ;
+
+	sh:and (
+		[ sh:property [ sh:path rr:parent ; sh:minCount 1 ; sh:maxCount 1 ; ] ]
+		[ sh:property [ sh:path rr:parent ; sh:nodeKind sh:Literal ; ] ]
+	) ;
 	.
 
 rmlsh:ConstantSubjectPredicateOrGraphShape
 	a sh:PropertyShape ;
-	rdfs:label "Constant value shape for subject, predicate or graph mappings" @en ;
+	rdfs:label "Constant value shape for subject, predicate or graph mappings"@en ;
 	rdfs:comment "Defines constraints for a well-formed constant value for a subject, predicate or graph mapping."@en;
 
 	sh:path rr:constant, rr:subject, rr:predicate,  rr:graph ;
@@ -299,12 +327,12 @@ rmlsh:ConstantSubjectPredicateOrGraphShape
 
 rmlsh:ConstantObjectShape
 	a sh:PropertyShape ;
-	rdfs:label "Constant value shape for object mappings" @en ;
+	rdfs:label "Constant value shape for object mappings"@en ;
 	rdfs:comment "Defines constraints for a well-formed constant value for an object mapping."@en;
 
 	sh:targetObjectsOf rr:object ;
 
-	sh:xone [ sh:nodeKind sh:IRI ; sh:nodeKind sh:literal ] .
+	sh:xone ( [ sh:nodeKind sh:IRI ; ] [ sh:nodeKind sh:literal ] ) .
 
 # rmlsh:ObjectPropertyShape
 # 	a sh:PropertyShape ;

@@ -7,6 +7,7 @@ import static org.junit.Assert.assertEquals;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -17,6 +18,7 @@ import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.NodeIterator;
 import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.rdf.model.impl.NTripleWriter;
 import org.apache.jena.rdf.model.impl.PropertyImpl;
 import org.apache.jena.tdb.sys.SystemTDB;
 import org.junit.Assert;
@@ -37,20 +39,20 @@ public class TripleMapConstraintsTest {
 
 		String shconforms = "http://www.w3.org/ns/shacl#conforms";
 
-		faulty.stream().forEach(f -> {
-			System.out.printf("loading %s\n", "faultyMappings/" + f);
-			Model data = loadModel("faultyMappings/" + f);
-			Resource result = ValidationUtil.validateModel(data, shapes, false);
-
-			NodeIterator nodeIterator = result.getModel().listObjectsOfProperty(new PropertyImpl(shconforms));
-
-			List<Boolean> conforms = new ArrayList<>(1);
-			nodeIterator.forEachRemaining(n -> conforms.add(n.asLiteral().getBoolean()));
-
-			Assert.assertEquals(1, conforms.size());
-			Assert.assertFalse(f, conforms.get(0));
-
-		});
+//		faulty.stream().forEach(f -> {
+//			System.out.printf("loading %s\n", "faultyMappings/" + f);
+//			Model data = loadModel("faultyMappings/" + f);
+//			Resource result = ValidationUtil.validateModel(data, shapes, false);
+//
+//			NodeIterator nodeIterator = result.getModel().listObjectsOfProperty(new PropertyImpl(shconforms));
+//
+//			List<Boolean> conforms = new ArrayList<>(1);
+//			nodeIterator.forEachRemaining(n -> conforms.add(n.asLiteral().getBoolean()));
+//
+//			Assert.assertEquals(1, conforms.size());
+//			Assert.assertFalse(f, conforms.get(0));
+//
+//		});
 
 		Collection<String> valid =
 				IOUtils.readLines(TripleMapConstraintsTest.class.getClassLoader()
@@ -67,6 +69,16 @@ public class TripleMapConstraintsTest {
 
 			List<Boolean> conforms = new ArrayList<>(1);
 			nodeIterator.forEachRemaining(n -> conforms.add(n.asLiteral().getBoolean()));
+
+			String resString = "test";
+			if (!conforms.get(0)) {
+
+				StringWriter resWriter = new StringWriter();
+				new NTripleWriter().write(result.getModel(), resWriter, "urn:x");
+				resString = resWriter.toString();
+
+
+			}
 
 			Assert.assertEquals(1, conforms.size());
 			Assert.assertTrue(f, conforms.get(0));
