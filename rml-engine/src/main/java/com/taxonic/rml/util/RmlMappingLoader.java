@@ -1,21 +1,19 @@
 package com.taxonic.rml.util;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Set;
+import java.util.function.Function;
 
 import org.eclipse.rdf4j.model.Model;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import org.eclipse.rdf4j.model.Resource;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.taxonic.rml.model.TriplesMap;
 import com.taxonic.rml.model.impl.TriplesMapImpl;
-import com.taxonic.rml.rdf_mapper.Mapper;
-import com.taxonic.rml.rdf_mapper.impl.MapperImpl;
+import com.taxonic.rml.rdf_mapper.util.RdfObjectLoader;
 import com.taxonic.rml.vocab.Rdf;
 
 public class RmlMappingLoader {
-	private static final Logger logger = LoggerFactory.getLogger(RmlMappingLoader.class);
 	
 	private RmlConstantShorthandExpander shorthandExpander;
 	
@@ -25,23 +23,21 @@ public class RmlMappingLoader {
 		this.shorthandExpander = shorthandExpander;
 	}
 
+	// TODO: PM: shouldn't the return type be Set?
 	public List<TriplesMap> load(String resource) {
 
 		Model originalModel = IoUtils.parse(resource);
 		
-		Model model = shorthandExpander.apply(originalModel);
+		return 
+			ImmutableList.copyOf(
+				RdfObjectLoader.load(
+					selectTriplesMaps, 
+					TriplesMapImpl.class, 
+					originalModel, 
+					shorthandExpander
+				)
+			);
 		
-		Mapper mapper = new MapperImpl();
-		
-		return
-		Collections.unmodifiableList(
-			model
-				.filter(null, Rdf.Rml.logicalSource, null)
-				.subjects()
-				.stream()
-				.<TriplesMap>map(r -> mapper.map(model, r, TriplesMapImpl.class))
-				.collect(Collectors.toList())
-		);
 	}
 	
 	public static RmlMappingLoader build() {
@@ -49,4 +45,12 @@ public class RmlMappingLoader {
 			new RmlConstantShorthandExpander()
 		);
 	}
+	
+	private static Function<Model, Set<Resource>> selectTriplesMaps = 
+		model ->
+			ImmutableSet.copyOf(
+				model
+				.filter(null, Rdf.Rml.logicalSource, null)
+				.subjects()
+			);
 }
