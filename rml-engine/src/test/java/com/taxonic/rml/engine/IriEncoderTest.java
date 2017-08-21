@@ -13,6 +13,7 @@ public class IriEncoderTest {
 	// TODO could use a lot more tests
 	@Test
 	public void variousTests() {
+
 		test("hello there", "hello%20there");
 		test("[test]", "%5btest%5d");
 		test("", "");
@@ -23,6 +24,7 @@ public class IriEncoderTest {
 		test("(test)", "%28test%29");
 		test("http://example.com","http%3a%2f%2fexample.com");
 		test("100%", "100%25");
+		test("1,2", "1%2c2");
 	}
 	
 	private void test(String toEncode, String expectedResult) {
