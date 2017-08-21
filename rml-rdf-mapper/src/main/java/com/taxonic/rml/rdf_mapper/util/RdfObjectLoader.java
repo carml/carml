@@ -1,13 +1,11 @@
 package com.taxonic.rml.rdf_mapper.util;
 
-import com.google.common.collect.ImmutableSet;
 import com.taxonic.rml.rdf_mapper.Mapper;
 import com.taxonic.rml.rdf_mapper.impl.MapperImpl;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.repository.Repository;
@@ -37,10 +35,10 @@ public class RdfObjectLoader {
 		Mapper mapper = new MapperImpl();
 		Set<Resource> resources = resourceSelector.apply(model);
 		
-		return ImmutableSet.copyOf(resources
+		return resources
 			.stream()
 			.<T> map(r -> mapper.map(model, r, clazz))
-			.collect(Collectors.toSet()));
+			.collect(ImmutableCollectors.toImmutableSet());
 	}
 	
 	public static <T> Set<T> 
