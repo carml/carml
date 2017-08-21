@@ -5,12 +5,12 @@
 
 <#ReadSourceMapping> a rr:TriplesMap;
 	rml:logicalSource [
-    	rml:source "simpleTestInput.csv";
-    	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$"
-  	];
+		rml:source "simpleTestInput.csv";
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$"
+	];
 
-  	rr:subjectMap [
-    	rr:template "http://example.com/Child/{first}/{last}";
-    	rr:class ex:Child
-  	].
+	rr:subjectMap [
+		rr:template "http://example.com/Child/{first}/{last}";
+		rr:class ex:Child
+	].

@@ -6,47 +6,47 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
 
 <#PredicateObjectMapG>
-  rml:logicalSource [
-    rml:source "joinBreakfastsAndCountries.json" ;
-    rml:referenceFormulation ql:JSONPath ;
-    rml:iterator "$.food"
-  ];
-  rr:subjectMap [
-    rr:template "http://food.example.com/{name}";
-    rr:class ex:breakfastItem ;  
-  ];
+rml:logicalSource [
+	rml:source "joinBreakfastsAndCountries.json" ;
+	rml:referenceFormulation ql:JSONPath ;
+	rml:iterator "$.food"
+];
+rr:subjectMap [
+	rr:template "http://food.example.com/{name}";
+	rr:class ex:breakfastItem ;
+];
 
-  rr:predicateObjectMap [
-    rr:predicate ex:originatesFrom;
-    rr:objectMap [
-    	rml:reference "landVanHerkomst";
-    	rr:language "nl"
-    ];
-    rr:objectMap [
-      	rr:parentTriplesMap <#CountryMapping>;
-      	rr:joinCondition [
-      		rr:child "countryOfOrigin";
-      		rr:parent "name"
-      		]
-      	]
-      ].
-  
- <#CountryMapping>
- 	rml:logicalSource [
- 		rml:source "joinBreakfastsAndCountries.json";
-    	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$.country"
-    	];
-    	
-    	rr:subjectMap [
-   			rr:template "http://country.example.com/{name}";
-    		rr:class ex:Country ;
-    	];
-    	
-    	rr:predicateObjectMap [
-    		rr:predicate ex:hasLanguage;
-    		rr:objectMap [
-    			rml:reference "officialLanguage"
-    		]
-    	] .
-    	
+rr:predicateObjectMap [
+	rr:predicate ex:originatesFrom;
+	rr:objectMap [
+		rml:reference "landVanHerkomst";
+		rr:language "nl"
+	];
+	rr:objectMap [
+		rr:parentTriplesMap <#CountryMapping>;
+		rr:joinCondition [
+			rr:child "countryOfOrigin";
+			rr:parent "name"
+			]
+		]
+	].
+
+<#CountryMapping>
+	rml:logicalSource [
+		rml:source "joinBreakfastsAndCountries.json";
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$.country"
+		];
+		
+		rr:subjectMap [
+ 			rr:template "http://country.example.com/{name}";
+			rr:class ex:Country ;
+		];
+		
+		rr:predicateObjectMap [
+			rr:predicate ex:hasLanguage;
+			rr:objectMap [
+				rml:reference "officialLanguage"
+			]
+		] .
+		

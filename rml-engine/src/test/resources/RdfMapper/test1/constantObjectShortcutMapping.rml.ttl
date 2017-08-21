@@ -7,15 +7,12 @@
 
 <#ConstantObjectShortcutMapping> a rr:TriplesMap;
 	rml:logicalSource [
-    	rml:source "constantShortcutMappingTestInput.json";
-    	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$.colors"
-  	];
+		rml:source "constantShortcutMappingTestInput.json";
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$.colors"
+	];
 
- 	rr:subjectMap [ rr:template "http://example.com/Color/{color}" ] ;
- 	
- 	
-  	  	
+	rr:subjectMap [ rr:template "http://example.com/Color/{color}" ] ;
 	rr:predicateObjectMap [
 		rr:predicate ex:hasHex;
 		rr:object ascii:hex

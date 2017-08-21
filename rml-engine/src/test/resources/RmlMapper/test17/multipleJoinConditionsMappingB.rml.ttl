@@ -6,71 +6,71 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
 
 <#MultiJoinConditionMappingB>
-  rml:logicalSource [
-    rml:source "multiJoinConditionsTestInput.json" ;
-    rml:referenceFormulation ql:JSONPath ;
-    rml:iterator "$.person"
-  ];
-  rr:subjectMap [
-    rr:template "http://person.example.com/{name}";
-    rr:class ex:movieWatcher;  
-  ];
+rml:logicalSource [
+	rml:source "multiJoinConditionsTestInput.json" ;
+	rml:referenceFormulation ql:JSONPath ;
+	rml:iterator "$.person"
+];
+rr:subjectMap [
+	rr:template "http://person.example.com/{name}";
+	rr:class ex:movieWatcher;
+];
 
-  rr:predicateObjectMap [
-    rr:predicate ex:hasAvailableMovie;
-    rr:objectMap [
-      	rr:parentTriplesMap <#MovieMapping>;
-      	rr:joinCondition [
-      		rr:child "favouriteGenre";
-      		rr:parent "movieGenre"
-      		];
-      	rr:joinCondition [
-      		rr:child "ageGroup";
-      		rr:parent "ageGroup"
-      		]
-      	]
-   ];
-   
-  rr:predicateObjectMap [
-    rr:predicate ex:hasAvailableCinema;
-    rr:objectMap [
-      	rr:parentTriplesMap <#CinemaMapping>;
-      	rr:joinCondition [
-      		rr:child "homeLocation";
-      		rr:parent "cinemaLocation"
-      		];
-      	]
-   ].
-  
+rr:predicateObjectMap [
+	rr:predicate ex:hasAvailableMovie;
+	rr:objectMap [
+		rr:parentTriplesMap <#MovieMapping>;
+		rr:joinCondition [
+			rr:child "favouriteGenre";
+			rr:parent "movieGenre"
+			];
+		rr:joinCondition [
+			rr:child "ageGroup";
+			rr:parent "ageGroup"
+			]
+		]
+ ];
+ 
+rr:predicateObjectMap [
+	rr:predicate ex:hasAvailableCinema;
+	rr:objectMap [
+		rr:parentTriplesMap <#CinemaMapping>;
+		rr:joinCondition [
+			rr:child "homeLocation";
+			rr:parent "cinemaLocation"
+			];
+		]
+ ].
+
  <#MovieMapping>
  	rml:logicalSource [
  		rml:source "multiJoinConditionsTestInput.json";
-    	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$.movie"
-    	];
-    	
-    	rr:subjectMap [
-   			rr:template "http://movie.example.com/{title}";
-    	];
-    	
-    	rr:predicateObjectMap [
-    		rr:predicate ex:playsIn;
-    		rr:objectMap [
-      	rr:parentTriplesMap <#CinemaMapping>;
-      	rr:joinCondition [
-      		rr:child "cinema";
-      		rr:parent "cinemaName"
-      		];
-      	]
-   	].
-   	
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$.movie"
+		];
+		
+		rr:subjectMap [
+ 			rr:template "http://movie.example.com/{title}";
+		];
+		
+		rr:predicateObjectMap [
+			rr:predicate ex:playsIn;
+			rr:objectMap [
+		rr:parentTriplesMap <#CinemaMapping>;
+		rr:joinCondition [
+			rr:child "cinema";
+			rr:parent "cinemaName"
+			];
+		]
+	].
+	
 <#CinemaMapping>
- 	rml:logicalSource [
- 		rml:source "multiJoinConditionsTestInput.json";
-    	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$.cinema"
-    	];
-    	
-    	rr:subjectMap [
-   			rr:template "http://cinema.example.com/{cinemaName}";
-    	] .
+	rml:logicalSource [
+		rml:source "multiJoinConditionsTestInput.json";
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$.cinema"
+		];
+		
+		rr:subjectMap [
+			rr:template "http://cinema.example.com/{cinemaName}";
+		] .

@@ -11,15 +11,15 @@
 
 
 <#LogicalSource> rml:source "toBoolFunctionTestInput.json";
-    	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$" .
-    	
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$" .
+		
 <#toBoolMapping> a rr:TriplesMap;
 	rml:logicalSource <#LogicalSource>;
-  	rr:subjectMap [
-    	rr:template "http://example.com/Student/{ID}";
-    	rr:class ex:studentId
-  	];
+	rr:subjectMap [
+		rr:template "http://example.com/Student/{ID}";
+		rr:class ex:studentId
+	];
 	rr:predicateObjectMap <#StringPresentMapping> ;
 	rr:predicateObjectMap <#BoolPresentMapping> .
 
@@ -37,9 +37,9 @@
 <#toBoolFunctionMap> fnml:functionValue [
 	rml:logicalSource <#LogicalSource>;
 	rr:subjectMap [
-    	rr:template "http://example.com/Student/{ID}";
-    	rr:class ex:studentId
-  	];
+		rr:template "http://example.com/Student/{ID}";
+		rr:class ex:studentId
+	];
 	rr:predicateObjectMap [
 		rr:predicate fno:executes;
 		rr:objectMap [ 

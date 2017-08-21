@@ -8,16 +8,15 @@
 ####################################################################################
 <#FaultyTermTypeMappingE> a rr:TriplesMap;
 	rml:logicalSource [
-    	rml:source "simpleTestInput.json";
-    	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$"
-  	];
-  	
-  	rr:subjectMap [
-    	rr:template "http://faulty.termType.example.com/Child/{first}";
-    	rr:class ex:FirstName;
-  	];
-  	
+		rml:source "simpleTestInput.json";
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$"
+		];
+		
+	rr:subjectMap [
+		rr:template "http://faulty.termType.example.com/Child/{first}";
+		rr:class ex:FirstName;
+	];
 	rr:predicateObjectMap [
 		rr:predicateMap [
 			rr:template "http://example.com/{last}";

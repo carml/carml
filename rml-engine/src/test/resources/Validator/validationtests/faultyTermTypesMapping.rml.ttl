@@ -9,17 +9,17 @@
 ####################################################################################
 <#FaultyTermTypeMappingA> a rr:TriplesMap;
 	rml:logicalSource [
-    	rml:source "simpleTestInput.json";
-    	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$"
-  	];
-  	
-  	rr:subjectMap [
-    	rr:template "http://faulty.termType.example.com/Child/{first}";
-    	rr:class ex:FirstName;
-    	rr:termType rr:Literal
-  	];
-  	
+		rml:source "simpleTestInput.json";
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$"
+	];
+	
+	rr:subjectMap [
+		rr:template "http://faulty.termType.example.com/Child/{first}";
+		rr:class ex:FirstName;
+		rr:termType rr:Literal
+	];
+	
 	rr:predicateObjectMap [
 		rr:predicate ex:hasParents
 		rr:objectMap [
@@ -34,20 +34,20 @@
 ####################################################################################
 <#FaultyTermTypeMappingB> a rr:TriplesMap;
 	rml:logicalSource [
-    	rml:source "simpleTestInput.json";
-    	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$"
-  	];
-  	
-  	rr:subjectMap [
-    	rr:template "http://faulty.termType.example.com/Child/{first}";
-    	rr:class ex:FirstName;
-    	rr:graphMap [
-    		rr:constant ex:graphMap;
-    		rr:termType rr:Literal
-    	]
-  	];
-  	
+		rml:source "simpleTestInput.json";
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$"
+	];
+	
+	rr:subjectMap [
+		rr:template "http://faulty.termType.example.com/Child/{first}";
+		rr:class ex:FirstName;
+		rr:graphMap [
+			rr:constant ex:graphMap;
+			rr:termType rr:Literal
+		]
+	];
+	
 	rr:predicateObjectMap [
 		rr:predicate ex:hasParents
 		rr:objectMap [
@@ -64,20 +64,20 @@
 ####################################################################################
 <#FaultyTermTypeMappingC> a rr:TriplesMap;
 	rml:logicalSource [
-    	rml:source "simpleTestInput.json";
-    	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$"
-  	];
-  	
-  	rr:subjectMap [
-    	rr:template "http://faulty.termType.example.com/Child/{first}";
-    	rr:class ex:FirstName;
-    	rr:graphMap [
-    		rr:constant ex:graphMap;
-    		rr:termType rr:BlankNode
-    	]
-  	];
-  	
+		rml:source "simpleTestInput.json";
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$"
+	];
+	
+	rr:subjectMap [
+		rr:template "http://faulty.termType.example.com/Child/{first}";
+		rr:class ex:FirstName;
+		rr:graphMap [
+			rr:constant ex:graphMap;
+			rr:termType rr:BlankNode
+		]
+	];
+	
 	rr:predicateObjectMap [
 		rr:predicate ex:hasParents
 		rr:objectMap [
@@ -92,16 +92,16 @@
 ####################################################################################
 <#FaultyTermTypeMappingD> a rr:TriplesMap;
 	rml:logicalSource [
-    	rml:source "simpleTestInput.json";
-    	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$"
-  	];
-  	
-  	rr:subjectMap [
-    	rr:template "http://faulty.termType.example.com/Child/{first}";
-    	rr:class ex:FirstName;
-  	];
-  	
+		rml:source "simpleTestInput.json";
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$"
+	];
+	
+	rr:subjectMap [
+		rr:template "http://faulty.termType.example.com/Child/{first}";
+		rr:class ex:FirstName;
+	];
+	
 	rr:predicateObjectMap [
 		rr:predicateMap [
 			rr:constant ex:hasParents;
@@ -120,16 +120,16 @@
 ####################################################################################
 <#FaultyTermTypeMappingE> a rr:TriplesMap;
 	rml:logicalSource [
-    	rml:source "simpleTestInput.json";
-    	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$"
-  	];
-  	
-  	rr:subjectMap [
-    	rr:template "http://faulty.termType.example.com/Child/{first}";
-    	rr:class ex:FirstName;
-  	];
-  	
+		rml:source "simpleTestInput.json";
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$"
+	];
+	
+	rr:subjectMap [
+		rr:template "http://faulty.termType.example.com/Child/{first}";
+		rr:class ex:FirstName;
+	];
+	
 	rr:predicateObjectMap [
 		rr:predicateMap [
 			rr:constant ex:hasParents;

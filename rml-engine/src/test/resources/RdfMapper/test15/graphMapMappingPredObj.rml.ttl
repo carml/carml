@@ -6,17 +6,17 @@
 
 <#GraphMapMappingPredObj> a rr:TriplesMap;
 	rml:logicalSource [
-    	rml:source "simple2TestInput.json";
-    	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$.Child"
-  	];
+		rml:source "simple2TestInput.json";
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$.Child"
+	];
 
-  	rr:subjectMap [
-    	rr:template "http://example.com/Child/{first}/{last}";
-    	rr:class ex:Child;
-  	];
-  	
-  	rr:predicateObjectMap [
+	rr:subjectMap [
+		rr:template "http://example.com/Child/{first}/{last}";
+		rr:class ex:Child;
+	];
+	
+	rr:predicateObjectMap [
 		rr:predicateMap [
 			rr:constant ex:hasBirthday;
 		];

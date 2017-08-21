@@ -8,20 +8,20 @@
 ####################################################################################
 <#FaultyTermTypeMappingB> a rr:TriplesMap;
 	rml:logicalSource [
-    	rml:source "simpleTestInput.json";
-    	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$"
-  	];
-  	
-  	rr:subjectMap [
-    	rr:template "http://faulty.termType.example.com/Child/{first}";
-    	rr:class ex:FirstName;
-    	rr:graphMap [
-    		rr:template "http://graph.example.com/{BSN}";
-    		rr:termType rr:Literal
-    	]
-  	];
-  	
+		rml:source "simpleTestInput.json";
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$"
+	];
+	
+	rr:subjectMap [
+		rr:template "http://faulty.termType.example.com/Child/{first}";
+		rr:class ex:FirstName;
+		rr:graphMap [
+			rr:template "http://graph.example.com/{BSN}";
+			rr:termType rr:Literal
+		]
+	];
+	
 	rr:predicateObjectMap [
 		rr:predicate ex:hasParents;
 		rr:objectMap [

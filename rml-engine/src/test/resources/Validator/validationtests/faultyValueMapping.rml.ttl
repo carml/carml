@@ -9,16 +9,16 @@
 ####################################################################################
 <#FaultyValueMappingA> a rr:TriplesMap;
 	rml:logicalSource [
-    	rml:source "simple2TestInput.json";
-    	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$.Childe"
-  	];
-  	
-  	rr:subjectMap [
-    	rr:template "http://faulty.value.example.com/Child/{first}";
-    	rr:class ex:FirstName;
-  	];
-  	
+		rml:source "simple2TestInput.json";
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$.Childe"
+	];
+	
+	rr:subjectMap [
+		rr:template "http://faulty.value.example.com/Child/{first}";
+		rr:class ex:FirstName;
+	];
+	
 	rr:predicateObjectMap [
 		rr:predicate ex:hasParents
 		rr:objectMap [
@@ -31,16 +31,16 @@
 ####################################################################################
 <#FaultyValueMappingB> a rr:TriplesMap;
 	rml:logicalSource [
-    	rml:source "simple2TestInput.json";
-    	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$.Child"
-  	];
-  	
-  	rr:subjectMap [
-    	rr:template "http://faulty.value.example.com/Child/{firste}";
-    	rr:class ex:FirstName;
-  	];
-  	
+		rml:source "simple2TestInput.json";
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$.Child"
+	];
+	
+	rr:subjectMap [
+		rr:template "http://faulty.value.example.com/Child/{firste}";
+		rr:class ex:FirstName;
+	];
+	
 	rr:predicateObjectMap [
 		rr:predicate ex:hasParents
 		rr:objectMap [
@@ -53,16 +53,16 @@
 ####################################################################################
 <#FaultyValueMappingC> a rr:TriplesMap;
 	rml:logicalSource [
-    	rml:source "simple2TestInput.json";
-    	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$.Child"
-  	];
-  	
-  	rr:subjectMap [
-    	rr:template "http://faulty.value.example.com/Child/{first}";
-    	rr:class ex:FirstName;
-  	];
-  	
+		rml:source "simple2TestInput.json";
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$.Child"
+	];
+	
+	rr:subjectMap [
+		rr:template "http://faulty.value.example.com/Child/{first}";
+		rr:class ex:FirstName;
+	];
+	
 	rr:predicateObjectMap [
 		rr:predicate ex:hasBSN
 		rr:objectMap [

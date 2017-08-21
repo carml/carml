@@ -1,32 +1,32 @@
 ex:toBoolFunction a fno:Function;
-    fno:name "The toBool function"^^xsd:string;
-    dcterms:description "This function turns a string (yes/no) into a boolean (true/false)."^^xsd:string;
-    fno:solves ex:stringProblem;
-    fno:implements ex:boolAlgorithm;
-    fno:expects ( ex:stringA );
-    fno:returns ex:boolOutput.
-    
+	fno:name "The toBool function"^^xsd:string;
+	dcterms:description "This function turns a string (yes/no) into a boolean (true/false)."^^xsd:string;
+	fno:solves ex:stringProblem;
+	fno:implements ex:boolAlgorithm;
+	fno:expects ( ex:stringA );
+	fno:returns ex:boolOutput.
+	
 ex:stringA a fno:Parameter;
-    fno:predicate ex:startString;
-    fno:required "true"^^xsd:boolean.
-    
+	fno:predicate ex:startString;
+	fno:required "true"^^xsd:boolean.
+	
 ex:startString fno:type xsd:string.
-    
+	
 ex:boolOutput a fno:Output;
-    fno:predicate ex:boolResult;
-    fno:required "true"^^xsd:boolean.
-    
+	fno:predicate ex:boolResult;
+	fno:required "true"^^xsd:boolean.
+	
 ex:boolResult fno:type xsd:boolean.
 
 ex:stringProblem a fno:Problem;
-    fno:name "The string to boolean problem"^^xsd:string;
-    dcterms:description "This handles the problem of turning a string into a boolean."^^xsd:string;
-    skos:broader ex:convertionProblem;
+	fno:name "The string to boolean problem"^^xsd:string;
+	dcterms:description "This handles the problem of turning a string into a boolean."^^xsd:string;
+	skos:broader ex:convertionProblem;
 
 ex:boolAlgorithm a fno:Algorithm;
-    fno:name "The string to boolean algorithm"^^xsd:string;
-    dcterms:description "About how a string is converted into a boolean."^^xsd:string;
-    
+	fno:name "The string to boolean algorithm"^^xsd:string;
+	dcterms:description "About how a string is converted into a boolean."^^xsd:string;
+	
 ex:toBoolExecution a fno:Execution;
-    fno:executes ex:toBoolFunction;
-    ex:startString "nee"^^xsd:string;
+	fno:executes ex:toBoolFunction;
+	ex:startString "nee"^^xsd:string;

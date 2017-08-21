@@ -5,16 +5,16 @@
 
 <#PredicateObjectMapF> a rr:TriplesMap;
 	rml:logicalSource [
-    	rml:source "predObjectMapTestInput.json";
-    	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$.colors"
-  	];
-  	
-  	rr:subjectMap [
-    	rr:template "http://example.com/Category/{category}";
-    	rr:class ex:category
-  	];
-  	
+		rml:source "predObjectMapTestInput.json";
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$.colors"
+	];
+	
+	rr:subjectMap [
+		rr:template "http://example.com/Category/{category}";
+		rr:class ex:category
+	];
+	
 	rr:predicateObjectMap [
 		rr:predicate ex:hasColors;
 		rr:objectMap [

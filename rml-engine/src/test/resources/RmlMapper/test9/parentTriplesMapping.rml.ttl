@@ -6,16 +6,16 @@
 
 <#ParentTriplesMapping> a rr:TriplesMap;
 	rml:logicalSource [
-    	rml:source "parentTriplesTestInput.json";
-    	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$.colors"
-  	];
+		rml:source "parentTriplesTestInput.json";
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$.colors"
+	];
 
-  	rr:subjectMap [
-    	rr:template "http://example.com/Color/{color}";
-    	rr:class ex:Color
-  	];
-  	
+	rr:subjectMap [
+		rr:template "http://example.com/Color/{color}";
+		rr:class ex:Color
+	];
+	
 	rr:predicateObjectMap [
 		rr:predicate ex:hasCode;
 		rr:objectMap [

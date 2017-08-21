@@ -9,17 +9,17 @@
 ####################################################################################
 <#FaultyObjectLanguageMappingA> a rr:TriplesMap;
 	rml:logicalSource [
-    	rml:source "simpleTestInput.json";
-    	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$"
-  	];
-  	
-  	rr:subjectMap [
-    	rr:template "http://faulty.object.lang.example.com/Child/{first}";
-    	rr:class ex:FirstName;
-    	rr:termType rr:Literal
-  	];
-  	
+		rml:source "simpleTestInput.json";
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$"
+	];
+	
+	rr:subjectMap [
+		rr:template "http://faulty.object.lang.example.com/Child/{first}";
+		rr:class ex:FirstName;
+		rr:termType rr:Literal
+	];
+	
 	rr:predicateObjectMap [
 		rr:predicate ex:hasParents
 		rr:objectMap [
@@ -36,17 +36,17 @@
 ####################################################################################
 <#FaultyObjectLanguageMappingB> a rr:TriplesMap;
 	rml:logicalSource [
-    	rml:source "simpleTestInput.json";
-    	rml:referenceFormulation ql:JSONPath;
-    	rml:iterator "$"
-  	];
-  	
-  	rr:subjectMap [
-    	rr:template "http://faulty.object.lang.example.com/Child/{first}";
-    	rr:class ex:FirstName;
-    	rr:termType rr:Literal
-  	];
-  	
+		rml:source "simpleTestInput.json";
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$"
+	];
+	
+	rr:subjectMap [
+		rr:template "http://faulty.object.lang.example.com/Child/{first}";
+		rr:class ex:FirstName;
+		rr:termType rr:Literal
+	];
+	
 	rr:predicateObjectMap [
 		rr:predicate ex:hasParents
 		rr:objectMap [
