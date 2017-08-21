@@ -7,41 +7,41 @@
 
 <#ExceptionConstantValueMapping>
 rml:logicalSource[
-	rml:source"joinBreakfastsAndCountries.json";
-	rml:referenceFormulationql:JSONPath;
-	rml:iterator"$.food"
+	rml:source "joinBreakfastsAndCountries.json";
+	rml:referenceFormulation ql:JSONPath;
+	rml:iterator "$.food"
 ];
 rr:subjectMap[
-	rr:template"http://food.example.com/{name}";
-	rr:classex:breakfastItem;
+	rr:template "http://food.example.com/{name}";
+	rr:class ex:breakfastItem;
 ];
 
 rr:predicateObjectMap[
-	rr:predicate"http://example.com/originatesFrom";
+	rr:predicate "http://example.com/originatesFrom";
 	rr:objectMap[
-		rr:parentTriplesMap<#CountryMapping>;
+		rr:parentTriplesMap <#CountryMapping>;
 		rr:joinCondition[
-			rr:child"countryOfOrigin";
-			rr:parent"name"
+			rr:child "countryOfOrigin";
+			rr:parent "name"
 		]
 	]
 ].
 
 <#CountryMapping>
 	rml:logicalSource[
-		rml:source"joinBreakfastsAndCountries.json";
-		rml:referenceFormulationql:JSONPath;
-		rml:iterator"$.country"
+		rml:source "joinBreakfastsAndCountries.json";
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$.country"
 		];
 		
 		rr:subjectMap[
-			rr:template"http://country.example.com/{name}";
-			rr:classex:Country;
+			rr:template "http://country.example.com/{name}";
+			rr:class ex:Country;
 		];
 		
 		rr:predicateObjectMap[
-			rr:predicateex:hasLanguage;
+			rr:predicate ex:hasLanguage;
 			rr:objectMap[
-				rml:reference"officialLanguage"
+				rml:reference "officialLanguage"
 			]
 		].

@@ -16,7 +16,7 @@ public class RefObjectMapperTest extends MappingTest {
 	public void testMultiJoinConditionsA() {
 		testMapping("RmlMapper",
 				"RmlMapper/test17/multipleJoinConditionsMappingA.rml.ttl",
-				"RmlMapper/test17/multipleJoinConditionsMappingB.output.ttl");
+				"RmlMapper/test17/multipleJoinConditionsMappingA.output.ttl");
 	}
 			
 	@Test
@@ -54,6 +54,12 @@ public class RefObjectMapperTest extends MappingTest {
 				"RmlMapper/test9/parentTriplesMapping.output.ttl");
 	}
 	
+	@Test
+	public void testParentTriplesMappingWithList() {
+		testMapping("RmlMapper",
+				"RmlMapper/test9/parentTriplesMappingList.rml.ttl",
+				"RmlMapper/test9/parentTriplesMappingList.output.ttl");
+	}
 
 
 }
