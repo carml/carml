@@ -1,0 +1,12 @@
+{
+"food": {
+	"names": {
+		"name": "Belgian Waffles",
+		"naam": "Belgische Wafels"
+		},
+	"recipe": { 
+		"countryOfOrigin": "Belgium",
+		"landVanHerkomst": "Belgie"
+		}
+	}
+}

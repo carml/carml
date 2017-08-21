@@ -1,43 +1,111 @@
 package com.taxonic.rml.engine;
 
+import static org.hamcrest.CoreMatchers.startsWith;
+import java.io.InputStream;
+import java.util.function.Function;
+
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
+
+import com.taxonic.rml.engine.template.TemplateParser;
 
 public class ExceptionsTest extends MappingTest {
 	
-	@Test(expected = Exception.class)
-	public void testReadSourceException() {
-		testMapping("RmlMapper",
-				"RmlMapper/exceptionTests/exceptionReadSourceMapping.rml.ttl");
+	
+    @Rule 
+    public ExpectedException thrown = ExpectedException.none();
+	
+    @Test
+    public void testInvalidIRIGeneratorException() {
+    	thrown.expect(RuntimeException.class);
+    	thrown.expectMessage(startsWith("data error: could not generate a vald iri from term lexical form"));
+		testMapping("RmlMapper/exceptionTests/exceptionInvalidIRIMapping.rml.ttl",
+				"RmlMapper", null);
+    }
+    
+    @Test
+    public void testGeneratorMappingException() {
+    	thrown.expect(RuntimeException.class);
+    	thrown.expectMessage(startsWith("could not create generator for map"));
+		testMapping("RmlMapper/exceptionTests/exceptionGeneratorMappping.rml.ttl",
+				"RmlMapper", null);
+    }
+    
+    @Test
+    public void testUnknownTermTypeException() {
+    	thrown.expect(RuntimeException.class);
+    	thrown.expectMessage(startsWith("encountered disallowed term type"));
+		testMapping("RmlMapper/exceptionTests/exceptionUnknownTermTypeMapping.rml.ttl",
+				"RmlMapper", null);
+    }
+    
+    @Test
+    public void testConstantValueException() {
+    	thrown.expect(RuntimeException.class);
+    	thrown.expectMessage(startsWith("encountered constant value of type"));
+		testMapping("RmlMapper/exceptionTests/exceptionConstantValueMapping.rml.ttl",
+				"RmlMapper", null);
+    }
+    
+    @Test
+    public void testEqualLogicalSourceException() {
+    	thrown.expect(RuntimeException.class);
+    	thrown.expectMessage(startsWith("Logical sources are not equal."));
+		testMapping("RmlMapper/exceptionTests/exceptionEqualLogicalSourceMapping.rml.ttl",
+				"RmlMapper", null);
+    }
+    
+	@Test
+	public void testReadSourceException() throws RuntimeException{
+		Function<String, InputStream> sourceResolver =
+				s -> RmlMapperTest.class.getClassLoader().getResourceAsStream("RmlMapper" + "/" + s);
+		RmlMapper tm = new RmlMapper(sourceResolver, TemplateParser.build());
+		//TODO change readSource back to private.
+		String result = tm.readSource("exceptions.json");
+		System.out.println(result);
 	}
 	
-	@Test(expected = Exception.class)
+	@Test
 	public void testTermTypeExceptionA() {
-		testMapping("RmlMapper",
-				"RmlMapper/exceptionTests/exceptionTermTypeMappingA.rml.ttl");
+		thrown.expect(RuntimeException.class);
+        thrown.expectMessage(startsWith("encountered disallowed term type"));
+		testMapping("RmlMapper/exceptionTests/exceptionTermTypeMappingA.rml.ttl",
+				"RmlMapper", null);
 	}
 	
-	@Test(expected = Exception.class)
+	@Test
 	public void testTermTypeExceptionB() {
-		testMapping("RmlMapper",
-				"RmlMapper/exceptionTests/exceptionTermTypeMappingB.rml.ttl");
+		thrown.expect(RuntimeException.class);
+        thrown.expectMessage(startsWith("encountered disallowed term type"));
+		testMapping("RmlMapper/exceptionTests/exceptionTermTypeMappingB.rml.ttl",
+				"RmlMapper", null);
 	}
 	
-	@Test(expected = Exception.class)
+	@Test
 	public void testTermTypeExceptionC() {
-		testMapping("RmlMapper",
-				"RmlMapper/exceptionTests/exceptionTermTypeMappingC.rml.ttl");
+		thrown.expect(RuntimeException.class);
+        thrown.expectMessage(startsWith("encountered disallowed term type"));
+		testMapping("RmlMapper/exceptionTests/exceptionTermTypeMappingC.rml.ttl",
+				"RmlMapper", null);
 	}
 	
-	@Test(expected = Exception.class)
+	@Test
 	public void testTermTypeExceptionD() {
-		testMapping("RmlMapper",
-				"RmlMapper/exceptionTests/exceptionTermTypeMappingD.rml.ttl");
+		thrown.expect(RuntimeException.class);
+        thrown.expectMessage(startsWith("encountered disallowed term type"));
+		testMapping("RmlMapper/exceptionTests/exceptionTermTypeMappingD.rml.ttl",
+				"RmlMapper", null);
 	}
 	
-	@Test(expected = Exception.class)
+	@Test
 	public void testTermTypeExceptionE() {
-		testMapping("RmlMapper",
-				"RmlMapper/exceptionTests/exceptionTermTypeMappingE.rml.ttl");
+		thrown.expect(RuntimeException.class);
+        thrown.expectMessage(startsWith("encountered disallowed term type"));
+		testMapping("RmlMapper/exceptionTests/exceptionTermTypeMappingE.rml.ttl",
+				"RmlMapper", null);
+	}
+	
+
 	}
 
-}

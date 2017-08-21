@@ -4,7 +4,7 @@
 @prefix ql: <http://semweb.mmlab.be/ns/ql#> .
 
 ####################################################################################
-# Wrong termType predicateMap BlankNode
+# Wrong termType predicateMap BlankNode w/ template
 ####################################################################################
 <#FaultyTermTypeMappingE> a rr:TriplesMap;
 	rml:logicalSource [
@@ -20,7 +20,7 @@
   	
 	rr:predicateObjectMap [
 		rr:predicateMap [
-			rr:constant ex:hasParents;
+			rr:template "http://example.com/{last}";
 			rr:termType rr:BlankNode
 		];
 		rr:objectMap [
