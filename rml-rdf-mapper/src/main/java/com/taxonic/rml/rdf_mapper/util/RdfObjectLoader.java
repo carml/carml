@@ -1,14 +1,17 @@
 package com.taxonic.rml.rdf_mapper.util;
 
-import com.taxonic.rml.rdf_mapper.Mapper;
-import com.taxonic.rml.rdf_mapper.impl.MapperImpl;
-import java.util.Objects;
+import static java.util.Objects.requireNonNull;
+
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
+
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.repository.Repository;
+
+import com.taxonic.rml.rdf_mapper.Mapper;
+import com.taxonic.rml.rdf_mapper.impl.MapperImpl;
 
 public class RdfObjectLoader {
 	
@@ -27,18 +30,12 @@ public class RdfObjectLoader {
 			Class<T> clazz,
 			Model model
 		) {
-		
-		Objects.requireNonNull(resourceSelector, RESOURCE_SELECTOR_MSG);
-		Objects.requireNonNull(clazz, CLASS_MSG);
-		Objects.requireNonNull(model, MODEL_MSG);
-		
-		Mapper mapper = new MapperImpl();
-		Set<Resource> resources = resourceSelector.apply(model);
-		
-		return resources
-			.stream()
-			.<T> map(r -> mapper.map(model, r, clazz))
-			.collect(ImmutableCollectors.toImmutableSet());
+
+		requireNonNull(resourceSelector, RESOURCE_SELECTOR_MSG);
+		requireNonNull(clazz, CLASS_MSG);
+		requireNonNull(model, MODEL_MSG);
+
+		return load(resourceSelector, clazz, model, m -> m);
 	}
 	
 	public static <T> Set<T> 
@@ -49,12 +46,18 @@ public class RdfObjectLoader {
 			UnaryOperator<Model> modelAdapter
 		) {
 		
-		Objects.requireNonNull(resourceSelector, RESOURCE_SELECTOR_MSG);
-		Objects.requireNonNull(clazz, CLASS_MSG);
-		Objects.requireNonNull(model, MODEL_MSG);
-		Objects.requireNonNull(modelAdapter, MODEL_ADAPTER_MSG);
+		requireNonNull(resourceSelector, RESOURCE_SELECTOR_MSG);
+		requireNonNull(clazz, CLASS_MSG);
+		requireNonNull(model, MODEL_MSG);
+		requireNonNull(modelAdapter, MODEL_ADAPTER_MSG);
 		
-		return load(resourceSelector, clazz, modelAdapter.apply(model));
+		Mapper mapper = new MapperImpl();
+		Set<Resource> resources = resourceSelector.apply(model);
+		
+		return resources
+			.stream()
+			.<T> map(r -> mapper.map(modelAdapter.apply(model), r, clazz))
+			.collect(ImmutableCollectors.toImmutableSet());
 	}
 	
 	public static <T> Set<T> 
@@ -65,14 +68,12 @@ public class RdfObjectLoader {
 			String sparqlQuery
 		) {
 		
-		Objects.requireNonNull(resourceSelector, RESOURCE_SELECTOR_MSG);
-		Objects.requireNonNull(clazz, CLASS_MSG);
-		Objects.requireNonNull(repository, REPOSITORY_MSG);
-		Objects.requireNonNull(sparqlQuery, SPARQL_QUERY_MSG);
+		requireNonNull(resourceSelector, RESOURCE_SELECTOR_MSG);
+		requireNonNull(clazz, CLASS_MSG);
+		requireNonNull(repository, REPOSITORY_MSG);
+		requireNonNull(sparqlQuery, SPARQL_QUERY_MSG);
 		
-		Model model = QueryUtils.getModelFromRepo(repository, sparqlQuery);
-		
-		return load(resourceSelector, clazz, model);		
+		return load(resourceSelector, clazz, repository, sparqlQuery, m -> m);
 	}
 	
 	public static <T> Set<T> 
@@ -84,15 +85,15 @@ public class RdfObjectLoader {
 			UnaryOperator<Model> modelAdapter
 		) {
 		
-		Objects.requireNonNull(resourceSelector, RESOURCE_SELECTOR_MSG);
-		Objects.requireNonNull(clazz, CLASS_MSG);
-		Objects.requireNonNull(repository, REPOSITORY_MSG);
-		Objects.requireNonNull(sparqlQuery, SPARQL_QUERY_MSG);
-		Objects.requireNonNull(modelAdapter, MODEL_ADAPTER_MSG);
+		requireNonNull(resourceSelector, RESOURCE_SELECTOR_MSG);
+		requireNonNull(clazz, CLASS_MSG);
+		requireNonNull(repository, REPOSITORY_MSG);
+		requireNonNull(sparqlQuery, SPARQL_QUERY_MSG);
+		requireNonNull(modelAdapter, MODEL_ADAPTER_MSG);
 		
 		Model model = QueryUtils.getModelFromRepo(repository, sparqlQuery);
 		
-		return load(resourceSelector, clazz, modelAdapter.apply(model));		
+		return load(resourceSelector, clazz, model, modelAdapter);		
 	}
 	
 	public static <T> Set<T> 
@@ -103,13 +104,11 @@ public class RdfObjectLoader {
 			Resource... contexts
 		) {
 		
-		Objects.requireNonNull(resourceSelector, RESOURCE_SELECTOR_MSG);
-		Objects.requireNonNull(clazz, CLASS_MSG);
-		Objects.requireNonNull(repository, REPOSITORY_MSG);
+		requireNonNull(resourceSelector, RESOURCE_SELECTOR_MSG);
+		requireNonNull(clazz, CLASS_MSG);
+		requireNonNull(repository, REPOSITORY_MSG);
 		
-		Model model = QueryUtils.getModelFromRepo(repository, contexts);
-		
-		return load(resourceSelector, clazz, model);		
+		return load(resourceSelector, clazz, repository, m -> m, contexts);		
 	}
 	
 	public static <T> Set<T> 
@@ -121,14 +120,14 @@ public class RdfObjectLoader {
 			Resource... contexts
 		) {
 		
-		Objects.requireNonNull(resourceSelector, RESOURCE_SELECTOR_MSG);
-		Objects.requireNonNull(clazz, CLASS_MSG);
-		Objects.requireNonNull(repository, REPOSITORY_MSG);
-		Objects.requireNonNull(modelAdapter, MODEL_ADAPTER_MSG);
+		requireNonNull(resourceSelector, RESOURCE_SELECTOR_MSG);
+		requireNonNull(clazz, CLASS_MSG);
+		requireNonNull(repository, REPOSITORY_MSG);
+		requireNonNull(modelAdapter, MODEL_ADAPTER_MSG);
 		
 		Model model = QueryUtils.getModelFromRepo(repository, contexts);
 		
-		return load(resourceSelector, clazz, modelAdapter.apply(model));		
+		return load(resourceSelector, clazz, model, modelAdapter);		
 	}
 
 }

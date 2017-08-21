@@ -15,7 +15,6 @@ public class Person {
 	private Set<String> colleagues;
 	private Set<Person> knows;
 	
-	// TODO: PM: can we also have a @RdfProperty that expects an IRI?
 	static final String SCHEMAORG = "http://schema.org/";
 	static final String SCHEMAORG_NAME = SCHEMAORG + "name";
 	static final String SCHEMAORG_GENDER = SCHEMAORG + "gender";
