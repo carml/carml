@@ -5,8 +5,14 @@ import org.junit.Test;
 public class RefObjectMapperTest extends MappingTest {
 
 	@Test
+	public void testMultiJoinConditionsCWithBlankNode() {
+		testMapping("RmlMapper",
+				"RmlMapper/test17/multipleJoinConditionsMappingC.rml.ttl",
+				"RmlMapper/test17/multipleJoinConditionsMappingC.output.ttl");
+	}
+	
+	@Test
 	public void testMultiJoinConditionsBMultiTriplesMap() {
-		//TODO check whether inference is possible with join conditions
 		testMapping("RmlMapper",
 				"RmlMapper/test17/multipleJoinConditionsMappingB.rml.ttl",
 				"RmlMapper/test17/multipleJoinConditionsMappingB.output.ttl");
