@@ -21,7 +21,7 @@
   	];
   	
 	rr:predicateObjectMap [
-		rr:predicate ex:hasParents
+		rr:predicate ex:hasParents;
 		rr:objectMap [
 			rml:reference "parents"
 		]

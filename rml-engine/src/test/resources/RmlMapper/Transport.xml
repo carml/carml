@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<transport>
+    <bus id="106">
+        <route>
+            <stop id="1">Schiphol Airport</stop>
+            <stop id="2">Beurs van Berlage</stop>
+        </route>
+    </bus>
+    <bus id="25">
+        <route>
+            <stop id="645">Int. Airport</stop>
+            <stop id="651">Conference center</stop>
+        </route>
+    </bus>
+</transport>

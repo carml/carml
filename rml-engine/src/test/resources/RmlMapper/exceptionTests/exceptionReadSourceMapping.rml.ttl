@@ -5,7 +5,7 @@
 
 <#ReadSourceMapping> a rr:TriplesMap;
 	rml:logicalSource [
-    	rml:source "simpleTestInput.json";
+    	rml:source "simpleTestInput.csv";
     	rml:referenceFormulation ql:JSONPath;
     	rml:iterator "$"
   	];

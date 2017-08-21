@@ -82,7 +82,7 @@ public class RmlMapper {
 		triplesMapper.map(model);
 	}
 	
-	private String readSource(String source) {
+	public String readSource(String source) {
 		try (Reader reader = new InputStreamReader(
 			sourceResolver.apply(source),
 			StandardCharsets.UTF_8
@@ -393,7 +393,6 @@ public class RmlMapper {
 				//f.createLiteral(label, datatype) // TODO infer datatype, see https://www.w3.org/TR/r2rml/#generated-rdf-term - f.e. xsd:integer for Integer instances
 				f.createLiteral(lexicalForm));
 		}
-		
 		throw new RuntimeException("unknown term type " + termType);
 	}
 	
