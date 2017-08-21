@@ -60,6 +60,34 @@ public class RefObjectMapperTest extends MappingTest {
 				"RmlMapper/test9/parentTriplesMappingList.rml.ttl",
 				"RmlMapper/test9/parentTriplesMappingList.output.ttl");
 	}
+	
+	@Test
+	public void testParentTriplesMappingWithBlankNodeSubjectTemplate() {
+		testMapping("RmlMapper",
+				"RmlMapper/test9/parentTriplesMappingBlankNodeA.rml.ttl",
+				"RmlMapper/test9/parentTriplesMappingBlankNode.output.ttl");
+	}
+	
+	@Test
+	public void testParentTriplesMappingWithBlankNodeSubjectReference() {
+		testMapping("RmlMapper",
+				"RmlMapper/test9/parentTriplesMappingBlankNodeB.rml.ttl",
+				"RmlMapper/test9/parentTriplesMappingBlankNode.output.ttl");
+	}
+	
+	@Test
+	public void testParentTriplesMappingWithBlankNodeParentTemplate() {
+		testMapping("RmlMapper",
+				"RmlMapper/test9/parentTriplesMappingBlankNodeParentA.rml.ttl",
+				"RmlMapper/test9/parentTriplesMappingBlankNodeParent.output.ttl");
+	}
+	
+	@Test
+	public void testParentTriplesMappingWithBlankNodeParentReference() {
+		testMapping("RmlMapper",
+				"RmlMapper/test9/parentTriplesMappingBlankNodeParentB.rml.ttl",
+				"RmlMapper/test9/parentTriplesMappingBlankNodeParent.output.ttl");
+	}
 
 
 }
