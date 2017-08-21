@@ -1,0 +1,29 @@
+<http://example.com/Color/black> a <http://example.com/Color> ;
+	<http://example.com/hasCode> <http://example.com/ColorCode/%5b255%2c255%2c255%2c1%5d> .
+
+<http://example.com/Color/white> a <http://example.com/Color> ;
+	<http://example.com/hasCode> <http://example.com/ColorCode/%5b0%2c0%2c0%2c1%5d> .
+
+<http://example.com/Color/red> a <http://example.com/Color> ;
+	<http://example.com/hasCode> <http://example.com/ColorCode/%5b255%2c0%2c0%2c1%5d> .
+
+<http://example.com/Color/blue> a <http://example.com/Color> ;
+	<http://example.com/hasCode> <http://example.com/ColorCode/%5b0%2c0%2c255%2c1%5d> .
+
+<http://example.com/Color/yellow> a <http://example.com/Color> ;
+	<http://example.com/hasCode> <http://example.com/ColorCode/%5b255%2c255%2c0%2c1%5d> .
+
+<http://example.com/Color/green> a <http://example.com/Color> ;
+	<http://example.com/hasCode> <http://example.com/ColorCode/%5b0%2c255%2c0%2c1%5d> .
+
+<http://example.com/ColorCode/%5b255%2c255%2c255%2c1%5d> a <http://example.com/RGBA> .
+
+<http://example.com/ColorCode/%5b0%2c0%2c0%2c1%5d> a <http://example.com/RGBA> .
+
+<http://example.com/ColorCode/%5b255%2c0%2c0%2c1%5d> a <http://example.com/RGBA> .
+
+<http://example.com/ColorCode/%5b0%2c0%2c255%2c1%5d> a <http://example.com/RGBA> .
+
+<http://example.com/ColorCode/%5b255%2c255%2c0%2c1%5d> a <http://example.com/RGBA> .
+
+<http://example.com/ColorCode/%5b0%2c255%2c0%2c1%5d> a <http://example.com/RGBA> .
