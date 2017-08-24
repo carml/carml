@@ -242,11 +242,20 @@ public class RmlMapper {
 		
 	}
 	
-	private static int nextId = 0;
-	
 	private BNode generateBNodeTerm(String lexicalForm) {
-		String id = (nextId ++) + ""; // TODO hash of 'lexicalForm'
+		// TODO consider hash of 'lexicalForm' instead
+		String id = createValidBNodeId(lexicalForm);
+		// TODO not sure if successively generated ids for the
+		// same lexical form should have a different id (suffix -1, -2, -3, etc.)
 		return f.createBNode(id);
+	}
+	
+	private String createValidBNodeId(String lexicalForm) {
+		StringBuilder id = new StringBuilder("bnode");
+		String suffix = lexicalForm.replaceAll("[^a-zA-Z_0-9-]+", "");
+		if (!suffix.isEmpty())
+			id.append("-").append(suffix);
+		return id.toString();
 	}
 	
 	private Value getConstant(TermMap map, List<Class<? extends Value>> allowedConstantTypes) {
