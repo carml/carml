@@ -5,6 +5,7 @@ import org.eclipse.rdf4j.model.Value;
 
 import com.taxonic.rml.model.ObjectMap;
 import com.taxonic.rml.model.TermType;
+import com.taxonic.rml.model.TriplesMap;
 import com.taxonic.rml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.rml.vocab.Rr;
 
@@ -21,10 +22,11 @@ public class ObjectMapImpl extends TermMapImpl implements ObjectMap {
 		String template,
 		TermType termType,
 		Value constant,
+		TriplesMap functionValue,
 		IRI datatype,
 		String language
 	) {
-		super(reference, inverseExpression, template, termType, constant);
+		super(reference, inverseExpression, template, termType, constant, functionValue);
 		this.datatype = datatype;
 		this.language = language;
 	}
@@ -54,7 +56,7 @@ public class ObjectMapImpl extends TermMapImpl implements ObjectMap {
 		return "ObjectMapImpl [getDatatype()=" + getDatatype() + ", getLanguage()=" + getLanguage()
 			+ ", getReference()=" + getReference() + ", getInverseExpression()=" + getInverseExpression()
 			+ ", getTemplate()=" + getTemplate() + ", getTermType()=" + getTermType() + ", getConstant()="
-			+ getConstant() + "]";
+			+ getConstant() + ", getFunctionValue()=" + getFunctionValue() + "]";
 	}
 
 	@Override
@@ -92,10 +94,6 @@ public class ObjectMapImpl extends TermMapImpl implements ObjectMap {
 		
 		private IRI datatype;
 		private String language;
-
-		Builder() {}
-		
-		// TODO the value of extending TermMapImpl.Builder is very small...
 
 		public Builder reference(String reference) {
 			super.reference(reference);
@@ -139,6 +137,7 @@ public class ObjectMapImpl extends TermMapImpl implements ObjectMap {
 				getTemplate(),
 				getTermType(),
 				getConstant(),
+				getFunctionValue(),
 				datatype,
 				language
 			);

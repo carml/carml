@@ -4,6 +4,7 @@ import org.eclipse.rdf4j.model.Value;
 
 import com.taxonic.rml.model.PredicateMap;
 import com.taxonic.rml.model.TermType;
+import com.taxonic.rml.model.TriplesMap;
 
 public class PredicateMapImpl extends TermMapImpl implements PredicateMap {
 
@@ -14,18 +15,19 @@ public class PredicateMapImpl extends TermMapImpl implements PredicateMap {
 		String inverseExpression,
 		String template,
 		TermType termType,
-		Value constant
+		Value constant,
+		TriplesMap functionValue
 	) {
-		super(reference, inverseExpression, template, termType, constant);
+		super(reference, inverseExpression, template, termType, constant, functionValue);
 	}
 
 	@Override
 	public String toString() {
 		return "PredicateMapImpl [getReference()=" + getReference() + ", getInverseExpression()="
 			+ getInverseExpression() + ", getTemplate()=" + getTemplate() + ", getTermType()=" + getTermType()
-			+ ", getConstant()=" + getConstant() + "]";
+			+ ", getConstant()=" + getConstant() + ", getFunctionValue()=" + getFunctionValue() + "]";
 	}
-	
+
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj) return true;
@@ -41,10 +43,6 @@ public class PredicateMapImpl extends TermMapImpl implements PredicateMap {
 	public static class Builder
 		extends com.taxonic.rml.model.impl.TermMapImpl.Builder {
 		
-		Builder() {}
-		
-		// TODO the value of extending TermMapImpl.Builder is very small...
-
 		public Builder reference(String reference) {
 			super.reference(reference);
 			return this;
@@ -76,7 +74,8 @@ public class PredicateMapImpl extends TermMapImpl implements PredicateMap {
 				getInverseExpression(),
 				getTemplate(),
 				getTermType(),
-				getConstant()
+				getConstant(),
+				getFunctionValue()
 			);
 		}
 	}
