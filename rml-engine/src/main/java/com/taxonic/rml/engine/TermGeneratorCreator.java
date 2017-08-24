@@ -1,6 +1,5 @@
 package com.taxonic.rml.engine;
 
-import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -10,15 +9,14 @@ import java.util.function.Supplier;
 import org.eclipse.rdf4j.model.BNode;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Literal;
-import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
-import org.eclipse.rdf4j.rio.RDFFormat;
-import org.eclipse.rdf4j.rio.Rio;
+import org.eclipse.rdf4j.model.util.Models;
 
+import com.taxonic.rml.engine.function.ExecuteFunction;
 import com.taxonic.rml.engine.template.Template;
 import com.taxonic.rml.engine.template.TemplateParser;
 import com.taxonic.rml.model.GraphMap;
@@ -29,6 +27,7 @@ import com.taxonic.rml.model.TermMap;
 import com.taxonic.rml.model.TermType;
 import com.taxonic.rml.model.TriplesMap;
 import com.taxonic.rml.util.IriEncoder;
+import com.taxonic.rml.vocab.Rdf;
 
 class TermGeneratorCreator {
 	
@@ -212,8 +211,19 @@ class TermGeneratorCreator {
 				LinkedHashModel model = new LinkedHashModel();
 				Resource execution = executionMapper.map(model, evaluateExpression);
 				
+				IRI functionIri =
+					Models.objectIRI(
+						model.filter(execution, Rdf.Fno.executes, null)
+					)
+					.orElseThrow(() -> new RuntimeException(
+						"function execution does not have fno:executes value"));
 				
-				return "62";
+				ExecuteFunction function =
+					mapper.getFunction(functionIri)
+						.orElseThrow(() -> new RuntimeException(
+							"no function registered for function IRI [" + functionIri + "]"));
+
+				return function.execute(model, execution);
 			};
 		
 		return Optional.of(getGenerator(

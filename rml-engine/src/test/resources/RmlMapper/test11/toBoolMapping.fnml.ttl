@@ -32,25 +32,24 @@
 <#BoolPresentMapping> a rr:predicateObjectMap;
 	rr:predicate ex:isPresentBool;
 	rr:objectMap <#toBoolFunctionMap> .
-	
 
-<#toBoolFunctionMap> fnml:functionValue [
-	rml:logicalSource <#LogicalSource>;
-	rr:subjectMap [
-		rr:template "http://example.com/Student/{ID}";
-		rr:class ex:studentId
-	];
-	rr:predicateObjectMap [
-		rr:predicate fno:executes;
-		rr:objectMap [ 
-			rr:constant ex:toBoolFunction;
-		]
-	];
-	rr:predicateObjectMap [
-		rr:predicate ex:startString;
-		rr:objectMap [
-			rml:reference "present";
-			rr:datatype xsd:bool
-		]
-	];	
-] .
+<#toBoolFunctionMap>
+	rr:termType rr:Literal;
+	rr:datatype xsd:bool;
+	fnml:functionValue [
+		rml:logicalSource <#LogicalSource>;
+		rr:subjectMap [
+			rr:template "http://example.com/Student/{ID}/isPresent";
+		];
+		rr:predicateObjectMap [
+			rr:predicate fno:executes;
+			rr:object ex:toBoolFunction;
+		];
+		rr:predicateObjectMap [
+			rr:predicate ex:startString;
+			rr:objectMap [
+				rml:reference "present";
+				rr:datatype xsd:bool
+			]
+		];
+	] .

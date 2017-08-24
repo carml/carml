@@ -6,6 +6,7 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -21,6 +22,8 @@ import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 
 import com.jayway.jsonpath.JsonPath;
+import com.taxonic.rml.engine.function.ExecuteFunction;
+import com.taxonic.rml.engine.function.Functions;
 import com.taxonic.rml.model.BaseObjectMap;
 import com.taxonic.rml.model.GraphMap;
 import com.taxonic.rml.model.Join;
@@ -47,11 +50,21 @@ public class RmlMapper {
 	private Function<String, InputStream> sourceResolver;
 	
 	private TermGeneratorCreator termGenerators = TermGeneratorCreator.create(this); // TODO
-	
+
+	private Functions functions = new Functions(); // TODO
+
 	public RmlMapper(
 		Function<String, InputStream> sourceResolver
 	) {
 		this.sourceResolver = sourceResolver;
+	}
+
+	public void addFunctions(Object fn) {
+		functions.addFunctions(fn);
+	}
+	
+	public Optional<ExecuteFunction> getFunction(IRI iri) {
+		return functions.getFunction(iri);
 	}
 
 	public Model map(List<TriplesMap> mapping) {
