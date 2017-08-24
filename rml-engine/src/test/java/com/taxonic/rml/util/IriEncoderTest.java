@@ -1,4 +1,4 @@
-package com.taxonic.rml.engine;
+package com.taxonic.rml.util;
 
 import static org.junit.Assert.assertEquals;
 
@@ -6,11 +6,13 @@ import java.util.function.Function;
 
 import org.junit.Test;
 
+import com.taxonic.rml.util.IriEncoder;
+
 public class IriEncoderTest {
 
 	private Function<String, String> encoder = IriEncoder.create();
 
-	// TODO could use a lot more tests
+	// TODO could use a lot more tests, such as chinese characters
 	@Test
 	public void variousTests() {
 

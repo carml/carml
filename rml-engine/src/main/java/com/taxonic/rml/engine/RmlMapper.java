@@ -40,6 +40,7 @@ import com.taxonic.rml.model.SubjectMap;
 import com.taxonic.rml.model.TermMap;
 import com.taxonic.rml.model.TermType;
 import com.taxonic.rml.model.TriplesMap;
+import com.taxonic.rml.util.IriEncoder;
 
 // TODO cache results of evaluated expressions when filling a single template, in case of repeated expressions
 

@@ -1,4 +1,4 @@
-package com.taxonic.rml.engine;
+package com.taxonic.rml.util;
 
 import java.util.Arrays;
 import java.util.List;
@@ -6,9 +6,20 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-class IriEncoder implements Function<String, String> {
+/**
+ * Percent-encodes any characters in a {@code String} that are
+ * NOT one of the following:
+ * - alphabetic, as per {@code Character::isAlphabetic}
+ * - a digit, as per {@code Character::isDigit)
+ * - a dash (-), dot (.), underscore (_) or tilde (~)
+ * - part of any of the ranges of character codes specified when
+ *   creating the {@code IriEncoder} through its constructor {@link #IriEncoder()}.
+ *   When creating an {@code IriEncoder} through {@link #create}, these ranges
+ *   correspond to the {@code ucschar} production rule from RFC-TODO.
+ */
+public class IriEncoder implements Function<String, String> {
 
-	static String encode(String input) {
+	public static String encode(String input) {
 		return create().apply(input);
 	}
 	
@@ -26,7 +37,7 @@ class IriEncoder implements Function<String, String> {
 		}
 	}
 	
-	static Function<String, String> create() {
+	public static Function<String, String> create() {
 		
 		/* percent-encode any char not in the 'iunreserved' production rule:
 		   iunreserved    = ALPHA / DIGIT / "-" / "." / "_" / "~" / ucschar
@@ -60,7 +71,7 @@ class IriEncoder implements Function<String, String> {
 	
 	private List<Range> ranges;
 
-	IriEncoder(List<Range> ranges) {
+	public IriEncoder(List<Range> ranges) {
 		this.ranges = ranges;
 	}
 
