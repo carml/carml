@@ -84,14 +84,52 @@ public class RmlMapper {
 			.collect(Collectors.toList());
 	}
 	
-	private Stream<TermGenerator<Value>> getObjectMapGenerators(Set<BaseObjectMap> objectMaps) {
+	
+	
+	
+	
+	
+	private Stream<TermGenerator<Value>> getObjectMapGenerators(
+		Set<BaseObjectMap> objectMaps
+	) {
 		return objectMaps.stream()
 			.filter(o -> o instanceof ObjectMap)
 			.map(o -> termGenerators.getObjectGenerator((ObjectMap) o));
 	}
+
+	private RefObjectMap checkLogicalSource(RefObjectMap o, LogicalSource logicalSource) {
+		LogicalSource parentLogicalSource = o.getParentTriplesMap().getLogicalSource();
+		if (!logicalSource.equals(parentLogicalSource))
+			throw new RuntimeException(
+				"Logical sources are not equal.\n" +
+				"Parent: " + parentLogicalSource + "\n" +
+				"Child: " + logicalSource
+			);
+		return o;
+	}
+	
+	private Stream<TermGenerator<Value>> getJoinlessRefObjectMapGenerators(
+		Set<BaseObjectMap> objectMaps, LogicalSource logicalSource
+	) {
+		return objectMaps.stream()
+			.filter(o -> o instanceof RefObjectMap)
+			.map(o -> (RefObjectMap) o)
+			.filter(o -> o.getJoinConditions().isEmpty())
+			.map(o -> checkLogicalSource(o, logicalSource))
+			.map(o -> (TermGenerator<Value>) (Object) // TODO not very nice
+				createRefObjectJoinlessMapper(o));
+	}
+	
+	private TermGenerator<Resource> createRefObjectJoinlessMapper(RefObjectMap refObjectMap) {
+		return termGenerators.getSubjectGenerator(
+			refObjectMap.getParentTriplesMap().getSubjectMap()
+		);
+	}
 	
 	private List<PredicateObjectMapper> createPredicateObjectMappers(TriplesMap triplesMap, Set<PredicateObjectMap> predicateObjectMaps) {
 		return predicateObjectMaps.stream().map(m -> {
+			
+			Set<BaseObjectMap> objectMaps = m.getObjectMaps();
 			
 			List<PredicateMapper> predicateMappers =
 				m.getPredicateMaps().stream().map(p -> {
@@ -100,32 +138,22 @@ public class RmlMapper {
 						Stream.concat(
 						
 							// object maps -> object generators
-							getObjectMapGenerators(m.getObjectMaps()),
+							getObjectMapGenerators(objectMaps),
 							
-							// ref objects maps without joins -> object generators
-							m.getObjectMaps().stream()
-								.filter(o -> o instanceof RefObjectMap)
-								.map(o -> (RefObjectMap) o)
-								.filter(o -> o.getJoinConditions().isEmpty())
-								.map(o -> {
-									LogicalSource parentLogicalSource = o.getParentTriplesMap().getLogicalSource();
-									if (!triplesMap.getLogicalSource().equals(parentLogicalSource)) {
-										throw new RuntimeException("Logical sources are not equal. \n Parent: " + parentLogicalSource + ", Child: " + triplesMap.getLogicalSource());
-									}
-									return o;
-								})
-								.map(o -> (TermGenerator<Value>) (TermGenerator) // TODO not very nice
-									createRefObjectJoinlessMapper(o))
+							// ref object maps without joins -> object generators.
+							// ref object maps without joins MUST have an identical logical source.
+							getJoinlessRefObjectMapGenerators(objectMaps, triplesMap.getLogicalSource())
+							
 						)
 						.collect(Collectors.toList());
 					
 					List<RefObjectMapper> refObjectMappers =
-							m.getObjectMaps().stream()
-								.filter(o -> o instanceof RefObjectMap)
-								.map(o -> (RefObjectMap) o)
-								.filter(o -> !o.getJoinConditions().isEmpty())
-								.map(o -> createRefObjectMapper(o))
-								.collect(Collectors.toList());
+						objectMaps.stream()
+							.filter(o -> o instanceof RefObjectMap)
+							.map(o -> (RefObjectMap) o)
+							.filter(o -> !o.getJoinConditions().isEmpty())
+							.map(o -> createRefObjectMapper(o))
+							.collect(Collectors.toList());
 
 					return new PredicateMapper(
 						termGenerators.getPredicateGenerator(p),
@@ -214,10 +242,4 @@ public class RmlMapper {
 		);
 	};
 	
-	private TermGenerator<Resource> createRefObjectJoinlessMapper(RefObjectMap refObjectMap) {
-		return termGenerators.getSubjectGenerator(
-			refObjectMap.getParentTriplesMap().getSubjectMap()
-		);
-	}
-
 }
