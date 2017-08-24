@@ -44,6 +44,13 @@ public class MapperImpl implements Mapper, MappingCache {
 		// assuming class without type parameters for now
 		Class<?> c = (Class<?>) type;
 		
+		if (c.isEnum()) {
+			throw new RuntimeException("cannot create an instance of "
+				+ "enum type [" + c.getCanonicalName() + "]. you should probably "
+					+ "place an instance of the enum type in the MappingCache "
+					+ "prior to mapping.");
+		}
+		
 		// build meta-model
 		// TODO cache
 		List<PropertyHandler> propertyHandlers =

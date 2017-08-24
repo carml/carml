@@ -10,6 +10,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import com.taxonic.rml.engine.template.TemplateParser;
+import com.taxonic.rml.model.TermType;
 
 public class ExceptionsTest extends MappingTest {
 
@@ -26,7 +27,7 @@ public class ExceptionsTest extends MappingTest {
 	@Test
 	public void testUnknownTermTypeException() {
 		thrown.expect(RuntimeException.class);
-		thrown.expectMessage(startsWith("encountered disallowed term type"));
+		thrown.expectMessage(startsWith("cannot create an instance of enum type [" + TermType.class.getCanonicalName() + "]"));
 		testMapping("RmlMapper", "RmlMapper/exceptionTests/exceptionUnknownTermTypeMapping.rml.ttl", null);
 	}
 
