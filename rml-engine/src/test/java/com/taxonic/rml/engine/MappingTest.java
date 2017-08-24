@@ -11,7 +11,6 @@ import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.rio.RDFFormat;
 import org.eclipse.rdf4j.rio.Rio;
 
-import com.taxonic.rml.engine.template.TemplateParser;
 import com.taxonic.rml.model.TriplesMap;
 import com.taxonic.rml.util.IoUtils;
 import com.taxonic.rml.util.RmlMappingLoader;
@@ -28,7 +27,7 @@ class MappingTest {
 		List<TriplesMap> mapping = loader.load(rmlPath);
 		Function<String, InputStream> sourceResolver =
 			s -> RmlMapperTest.class.getClassLoader().getResourceAsStream(contextPath + "/" + s);
-		RmlMapper mapper = new RmlMapper(sourceResolver, TemplateParser.build());
+		RmlMapper mapper = new RmlMapper(sourceResolver);
 		Model result = mapper.map(mapping);
 		
 		System.out.println("Generated from test: " + rmlPath);
