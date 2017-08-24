@@ -6,10 +6,24 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-class IriEncoder {
+class IriEncoder implements Function<String, String> {
 
 	static String encode(String input) {
 		return create().apply(input);
+	}
+	
+	static class Range {
+		
+		final int from, to;
+
+		Range(int from, int to) {
+			this.from = from;
+			this.to = to;
+		}
+		
+		boolean includes(int value) {
+			return value >= from && value <= to;
+		}
 	}
 	
 	static Function<String, String> create() {
@@ -23,20 +37,6 @@ class IriEncoder {
 		                  / %xA0000-AFFFD / %xB0000-BFFFD / %xC0000-CFFFD
 		                  / %xD0000-DFFFD / %xE1000-EFFFD			 */
 
-		class Range {
-			
-			final int from, to;
-
-			Range(int from, int to) {
-				this.from = from;
-				this.to = to;
-			}
-			
-			boolean includes(int value) {
-				return value >= from && value <= to;
-			}
-		}
-		
 		String rangesStr =
 			"%xA0-D7FF / %xF900-FDCF / %xFDF0-FFEF " +
 				"/ %x10000-1FFFD / %x20000-2FFFD / %x30000-3FFFD " +
@@ -55,32 +55,37 @@ class IriEncoder {
 			})
 			.collect(Collectors.toList());
 		
-		
-		
-		
-		return s -> {
-			
-			StringBuilder result = new StringBuilder();
-			
-			s.codePoints().flatMap(c -> {
-				
-				if (
-					Character.isAlphabetic(c) ||
-					Character.isDigit(c) ||
-					c == '-' ||
-					c == '.' ||
-					c == '_' ||
-					c == '~' ||
-					ranges.stream().anyMatch(r -> r.includes(c))
-				)
-					return IntStream.of(c);
+		return new IriEncoder(ranges);
+	}
+	
+	private List<Range> ranges;
 
-				// percent-encode
-				return ("%" + Integer.toHexString(c)).codePoints();
-			})
-			.forEach(c -> result.append((char) c));
-			return result.toString();
-		};
+	IriEncoder(List<Range> ranges) {
+		this.ranges = ranges;
+	}
+
+	@Override
+	public String apply(String s) {
+		StringBuilder result = new StringBuilder();
+		
+		s.codePoints().flatMap(c -> {
+			
+			if (
+				Character.isAlphabetic(c) ||
+				Character.isDigit(c) ||
+				c == '-' ||
+				c == '.' ||
+				c == '_' ||
+				c == '~' ||
+				ranges.stream().anyMatch(r -> r.includes(c))
+			)
+				return IntStream.of(c);
+
+			// percent-encode
+			return ("%" + Integer.toHexString(c)).codePoints();
+		})
+		.forEach(c -> result.append((char) c));
+		return result.toString();
 	}
 	
 }
