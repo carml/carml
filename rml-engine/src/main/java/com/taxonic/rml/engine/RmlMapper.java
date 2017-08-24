@@ -40,7 +40,6 @@ import com.taxonic.rml.model.SubjectMap;
 import com.taxonic.rml.model.TermMap;
 import com.taxonic.rml.model.TermType;
 import com.taxonic.rml.model.TriplesMap;
-import com.taxonic.rml.vocab.Rdf.Rr;
 
 // TODO cache results of evaluated expressions when filling a single template, in case of repeated expressions
 
@@ -278,7 +277,7 @@ public class RmlMapper {
 						expression,
 						prepareValueForTemplate(
 							evaluateExpression.apply(expression.getValue()),
-							termType.equals(Rr.IRI)
+							termType.equals(TermType.IRI)
 						)
 					)
 				);
