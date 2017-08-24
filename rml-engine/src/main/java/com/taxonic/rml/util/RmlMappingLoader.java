@@ -4,15 +4,19 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 
+import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.taxonic.rml.model.TermType;
 import com.taxonic.rml.model.TriplesMap;
 import com.taxonic.rml.model.impl.TriplesMapImpl;
+import com.taxonic.rml.rdf_mapper.impl.MappingCache;
 import com.taxonic.rml.rdf_mapper.util.RdfObjectLoader;
 import com.taxonic.rml.vocab.Rdf;
+import com.taxonic.rml.vocab.Rdf.Rr;
 
 public class RmlMappingLoader {
 	
@@ -36,14 +40,26 @@ public class RmlMappingLoader {
 					TriplesMapImpl.class, 
 					originalModel, 
 					shorthandExpander,
-					m -> {
-						m.addCachedMapping(Rdf.Rr.BlankNode, TermType.class, TermType.BLANK_NODE);
-						m.addCachedMapping(Rdf.Rr.IRI, TermType.class, TermType.IRI);
-						m.addCachedMapping(Rdf.Rr.Literal, TermType.class, TermType.LITERAL);
-					}
+					this::addTermTypes
 				)
 			);
 		
+	}
+	
+	private void addTermTypes(MappingCache cache) {
+		class AddTermTypes {
+			
+			void add(IRI iri, TermType termType) {
+				cache.addCachedMapping(iri, TermType.class, termType);
+			}
+			
+			void run() {
+				add(Rr.BlankNode, TermType.BLANK_NODE);
+				add(Rr.IRI      , TermType.IRI       );
+				add(Rr.Literal  , TermType.LITERAL   );
+			}
+		}
+		new AddTermTypes().run();
 	}
 	
 	public static RmlMappingLoader build() {
