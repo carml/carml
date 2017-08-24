@@ -37,7 +37,7 @@ public class IriEncoder implements Function<String, String> {
 		}
 	}
 	
-	public static Function<String, String> create() {
+	public static IriEncoder create() {
 		
 		/* percent-encode any char not in the 'iunreserved' production rule:
 		   iunreserved    = ALPHA / DIGIT / "-" / "." / "_" / "~" / ucschar

@@ -59,7 +59,7 @@ public class RmlMapper {
 
 	private String baseIri = "http://none.com/"; // TODO ???
 	
-	private Function<String, String> encodeIri = IriEncoder.create(); // TODO
+	private IriEncoder encodeIri = IriEncoder.create(); // TODO
 	
 	private Function<String, InputStream> sourceResolver;
 	private TemplateParser templateParser;
