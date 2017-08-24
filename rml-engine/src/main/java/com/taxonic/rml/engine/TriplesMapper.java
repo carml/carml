@@ -27,7 +27,9 @@ class TriplesMapper {
 	}
 
 	private Iterable<?> createIterable(Object value) {
-		boolean isIterable = Iterable.class.isAssignableFrom(value.getClass());
+		if (value == null)
+			return Collections.emptyList();
+		boolean isIterable = value instanceof Iterable;
 		return isIterable
 			? (Iterable<?>) value
 			: Collections.singleton(value);
