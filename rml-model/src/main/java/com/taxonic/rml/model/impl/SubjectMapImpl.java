@@ -8,6 +8,7 @@ import org.eclipse.rdf4j.model.Value;
 
 import com.taxonic.rml.model.GraphMap;
 import com.taxonic.rml.model.SubjectMap;
+import com.taxonic.rml.model.TermType;
 import com.taxonic.rml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.rml.rdf_mapper.annotations.RdfType;
 import com.taxonic.rml.vocab.Rr;
@@ -23,7 +24,7 @@ public class SubjectMapImpl extends TermMapImpl implements SubjectMap {
 		String reference,
 		String inverseExpression,
 		String template,
-		IRI termType,
+		TermType termType,
 		Value constant,
 		Set<IRI> classes,
 		Set<GraphMap> graphMaps
@@ -117,7 +118,7 @@ public class SubjectMapImpl extends TermMapImpl implements SubjectMap {
 			return this;
 		}
 		
-		public Builder termType(IRI termType) {
+		public Builder termType(TermType termType) {
 			super.termType(termType);
 			return this;
 		}

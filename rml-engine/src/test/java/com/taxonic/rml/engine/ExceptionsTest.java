@@ -1,7 +1,6 @@
 package com.taxonic.rml.engine;
 
 import static org.hamcrest.CoreMatchers.startsWith;
-import static org.junit.Assert.assertEquals;
 
 import java.io.InputStream;
 import java.util.function.Function;

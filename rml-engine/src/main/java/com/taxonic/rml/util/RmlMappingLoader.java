@@ -8,6 +8,7 @@ import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.taxonic.rml.model.TermType;
 import com.taxonic.rml.model.TriplesMap;
 import com.taxonic.rml.model.impl.TriplesMapImpl;
 import com.taxonic.rml.rdf_mapper.util.RdfObjectLoader;
@@ -34,7 +35,12 @@ public class RmlMappingLoader {
 					selectTriplesMaps, 
 					TriplesMapImpl.class, 
 					originalModel, 
-					shorthandExpander
+					shorthandExpander,
+					m -> {
+						m.addCachedMapping(Rdf.Rr.BlankNode, TermType.class, TermType.BLANK_NODE);
+						m.addCachedMapping(Rdf.Rr.IRI, TermType.class, TermType.IRI);
+						m.addCachedMapping(Rdf.Rr.Literal, TermType.class, TermType.LITERAL);
+					}
 				)
 			);
 		
