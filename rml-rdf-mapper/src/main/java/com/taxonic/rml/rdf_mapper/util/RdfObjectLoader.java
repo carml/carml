@@ -3,6 +3,7 @@ package com.taxonic.rml.rdf_mapper.util;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
@@ -10,17 +11,19 @@ import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.repository.Repository;
 
-import com.taxonic.rml.rdf_mapper.Mapper;
 import com.taxonic.rml.rdf_mapper.impl.MapperImpl;
+import com.taxonic.rml.rdf_mapper.impl.MappingCache;
 
 public class RdfObjectLoader {
 	
-	private static final String RESOURCE_SELECTOR_MSG = "A resource selector must be provided";
-	private static final String CLASS_MSG = "A class must be provided";
-	private static final String MODEL_MSG = "A model must be provided";
-	private static final String MODEL_ADAPTER_MSG = "A model adapter must be provided";
-	private static final String REPOSITORY_MSG = "A repository must be provided";
-	private static final String SPARQL_QUERY_MSG = "A SPARQL query must be provided";
+	private static final String
+		RESOURCE_SELECTOR_MSG = "A resource selector must be provided",
+		CLASS_MSG = "A class must be provided",
+		MODEL_MSG = "A model must be provided",
+		MODEL_ADAPTER_MSG = "A model adapter must be provided",
+		REPOSITORY_MSG = "A repository must be provided",
+		SPARQL_QUERY_MSG = "A SPARQL query must be provided",
+		POPULATE_CACHE_MSG = "A cache populator must be provided";
 		
 	private RdfObjectLoader() {}
 	
@@ -30,28 +33,36 @@ public class RdfObjectLoader {
 			Class<T> clazz,
 			Model model
 		) {
-
-		requireNonNull(resourceSelector, RESOURCE_SELECTOR_MSG);
-		requireNonNull(clazz, CLASS_MSG);
-		requireNonNull(model, MODEL_MSG);
-
-		return load(resourceSelector, clazz, model, m -> m);
+		
+		return load(resourceSelector, clazz, model, m -> m, c -> {});
 	}
 	
-	public static <T> Set<T> 
-		load(
-			Function<Model, Set<Resource>> resourceSelector, 
-			Class<T> clazz,
-			Model model,
-			UnaryOperator<Model> modelAdapter
-		) {
+	public static <T> Set<T> load(
+		Function<Model, Set<Resource>> resourceSelector, 
+		Class<T> clazz,
+		Model model,
+		UnaryOperator<Model> modelAdapter
+	) {
+		return load(resourceSelector, clazz, model, modelAdapter, c -> {});
+	}
+		
+	public static <T> Set<T> load(
+		Function<Model, Set<Resource>> resourceSelector, 
+		Class<T> clazz,
+		Model model,
+		UnaryOperator<Model> modelAdapter,
+		Consumer<MappingCache> populateCache
+	) {
 		
 		requireNonNull(resourceSelector, RESOURCE_SELECTOR_MSG);
 		requireNonNull(clazz, CLASS_MSG);
 		requireNonNull(model, MODEL_MSG);
 		requireNonNull(modelAdapter, MODEL_ADAPTER_MSG);
+		requireNonNull(populateCache, POPULATE_CACHE_MSG);
 		
-		Mapper mapper = new MapperImpl();
+		MapperImpl mapper = new MapperImpl();
+		populateCache.accept(mapper);
+		
 		Set<Resource> resources = resourceSelector.apply(model);
 		
 		return resources
@@ -68,11 +79,6 @@ public class RdfObjectLoader {
 			String sparqlQuery
 		) {
 		
-		requireNonNull(resourceSelector, RESOURCE_SELECTOR_MSG);
-		requireNonNull(clazz, CLASS_MSG);
-		requireNonNull(repository, REPOSITORY_MSG);
-		requireNonNull(sparqlQuery, SPARQL_QUERY_MSG);
-		
 		return load(resourceSelector, clazz, repository, sparqlQuery, m -> m);
 	}
 	
@@ -85,15 +91,12 @@ public class RdfObjectLoader {
 			UnaryOperator<Model> modelAdapter
 		) {
 		
-		requireNonNull(resourceSelector, RESOURCE_SELECTOR_MSG);
-		requireNonNull(clazz, CLASS_MSG);
 		requireNonNull(repository, REPOSITORY_MSG);
 		requireNonNull(sparqlQuery, SPARQL_QUERY_MSG);
-		requireNonNull(modelAdapter, MODEL_ADAPTER_MSG);
 		
 		Model model = QueryUtils.getModelFromRepo(repository, sparqlQuery);
 		
-		return load(resourceSelector, clazz, model, modelAdapter);		
+		return load(resourceSelector, clazz, model, modelAdapter, c -> {});		
 	}
 	
 	public static <T> Set<T> 
@@ -103,10 +106,6 @@ public class RdfObjectLoader {
 			Repository repository, 
 			Resource... contexts
 		) {
-		
-		requireNonNull(resourceSelector, RESOURCE_SELECTOR_MSG);
-		requireNonNull(clazz, CLASS_MSG);
-		requireNonNull(repository, REPOSITORY_MSG);
 		
 		return load(resourceSelector, clazz, repository, m -> m, contexts);		
 	}
@@ -120,14 +119,11 @@ public class RdfObjectLoader {
 			Resource... contexts
 		) {
 		
-		requireNonNull(resourceSelector, RESOURCE_SELECTOR_MSG);
-		requireNonNull(clazz, CLASS_MSG);
 		requireNonNull(repository, REPOSITORY_MSG);
-		requireNonNull(modelAdapter, MODEL_ADAPTER_MSG);
 		
 		Model model = QueryUtils.getModelFromRepo(repository, contexts);
 		
-		return load(resourceSelector, clazz, model, modelAdapter);		
+		return load(resourceSelector, clazz, model, modelAdapter, c -> {});		
 	}
 
 }

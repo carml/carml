@@ -1,9 +1,9 @@
 package com.taxonic.rml.model.impl;
 
-import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Value;
 
 import com.taxonic.rml.model.GraphMap;
+import com.taxonic.rml.model.TermType;
 
 public class GraphMapImpl extends TermMapImpl implements GraphMap{
 
@@ -13,7 +13,7 @@ public class GraphMapImpl extends TermMapImpl implements GraphMap{
 			String reference,
 			String inverseExpression,
 			String template,
-			IRI termType,
+			TermType termType,
 			Value constant
 		) {
 			super(reference, inverseExpression, template, termType, constant);
@@ -60,7 +60,7 @@ public class GraphMapImpl extends TermMapImpl implements GraphMap{
 				return this;
 			}
 			
-			public Builder termType(IRI termType) {
+			public Builder termType(TermType termType) {
 				super.termType(termType);
 				return this;
 			}

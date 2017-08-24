@@ -1,9 +1,9 @@
 package com.taxonic.rml.model.impl;
 
-import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Value;
 
 import com.taxonic.rml.model.TermMap;
+import com.taxonic.rml.model.TermType;
 import com.taxonic.rml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.rml.vocab.Rml;
 import com.taxonic.rml.vocab.Rr;
@@ -13,7 +13,7 @@ abstract public class TermMapImpl implements TermMap {
 	private String reference;
 	private String inverseExpression;
 	private String template;
-	private IRI termType;
+	private TermType termType;
 	private Value constant;
 
 	public TermMapImpl() {}
@@ -22,7 +22,7 @@ abstract public class TermMapImpl implements TermMap {
 		String reference,
 		String inverseExpression,
 		String template,
-		IRI termType,
+		TermType termType,
 		Value constant
 	) {
 		this.reference = reference;
@@ -53,7 +53,7 @@ abstract public class TermMapImpl implements TermMap {
 	// TODO https://www.w3.org/TR/r2rml/#dfn-term-type
 	@RdfProperty(Rr.termType)
 	@Override
-	public IRI getTermType() {
+	public TermType getTermType() {
 		return termType;
 	}
 
@@ -75,7 +75,7 @@ abstract public class TermMapImpl implements TermMap {
 		this.template = template;
 	}
 
-	public void setTermType(IRI termType) {
+	public void setTermType(TermType termType) {
 		this.termType = termType;
 	}
 
@@ -129,7 +129,7 @@ abstract public class TermMapImpl implements TermMap {
 		private String reference;
 		private String inverseExpression;
 		private String template;
-		private IRI termType;
+		private TermType termType;
 		private Value constant;
 		
 		Builder() {}
@@ -149,7 +149,7 @@ abstract public class TermMapImpl implements TermMap {
 			return this;
 		}
 		
-		Builder termType(IRI termType) {
+		Builder termType(TermType termType) {
 			this.termType = termType;
 			return this;
 		}
@@ -171,7 +171,7 @@ abstract public class TermMapImpl implements TermMap {
 			return template;
 		}
 		
-		IRI getTermType() {
+		TermType getTermType() {
 			return termType;
 		}
 

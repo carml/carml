@@ -38,8 +38,8 @@ import com.taxonic.rml.model.PredicateObjectMap;
 import com.taxonic.rml.model.RefObjectMap;
 import com.taxonic.rml.model.SubjectMap;
 import com.taxonic.rml.model.TermMap;
+import com.taxonic.rml.model.TermType;
 import com.taxonic.rml.model.TriplesMap;
-import com.taxonic.rml.vocab.Rdf.Rr;
 
 // TODO cache results of evaluated expressions when filling a single template, in case of repeated expressions
 
@@ -258,7 +258,7 @@ public class RmlMapper {
 	
 	private TermGenerator<?> getTemplateGenerator(
 		TermMap map,
-		List<IRI> allowedTermTypes
+		List<TermType> allowedTermTypes
 	) {
 		
 		String templateStr = map.getTemplate();
@@ -267,7 +267,7 @@ public class RmlMapper {
 		Template template = templateParser.parse(templateStr);
 		Set<Expression> expressions = template.getExpressions();
 		
-		IRI termType = determineTermType(map);
+		TermType termType = determineTermType(map);
 		
 		Function<EvaluateExpression, Object> getValue =
 			evaluateExpression -> {
@@ -277,7 +277,7 @@ public class RmlMapper {
 						expression,
 						prepareValueForTemplate(
 							evaluateExpression.apply(expression.getValue()),
-							termType.equals(Rr.IRI)
+							termType.equals(TermType.IRI)
 						)
 					)
 				);
@@ -307,7 +307,7 @@ public class RmlMapper {
 	
 	private TermGenerator<?> getReferenceGenerator(
 		TermMap map,
-		List<IRI> allowedTermTypes
+		List<TermType> allowedTermTypes
 	) {
 		
 		String reference = map.getReference();
@@ -324,10 +324,9 @@ public class RmlMapper {
 		);
 	}
 	
-	// TODO return an enum
-	private IRI determineTermType(TermMap map) {
+	private TermType determineTermType(TermMap map) {
 		
-		IRI termType = map.getTermType();
+		TermType termType = map.getTermType();
 		if (termType != null) return termType;
 		
 		if (map instanceof ObjectMap) {
@@ -337,9 +336,9 @@ public class RmlMapper {
 				objectMap.getLanguage() != null ||
 				objectMap.getDatatype() != null
 			)
-				return Rr.Literal;
+				return TermType.LITERAL;
 		}
-		return Rr.IRI;
+		return TermType.IRI;
 	}
 	
 	private boolean isReferenceTermMap(TermMap map) {
@@ -351,8 +350,8 @@ public class RmlMapper {
 	private TermGenerator<?> getGenerator(
 		TermMap map,
 		Function<EvaluateExpression, Object> getValue,
-		List<IRI> allowedTermTypes,
-		IRI termType
+		List<TermType> allowedTermTypes,
+		TermType termType
 	) {
 		
 		Function<
@@ -369,43 +368,48 @@ public class RmlMapper {
 		if (!allowedTermTypes.contains(termType))
 			throw new RuntimeException("encountered disallowed term type [" + termType + "]; allowed term types: " + allowedTermTypes);
 		
-		if (termType.equals(Rr.IRI))
-			return createGenerator.apply(this::generateIriTerm);
+		switch (termType) {
 			
-		if (termType.equals(Rr.BlankNode))
-			return createGenerator.apply(this::generateBNodeTerm);
-			
-		if (termType.equals(Rr.Literal)) {
-			// term map is assumed to be an object map if it has term type literal
-			ObjectMap objectMap = (ObjectMap) map;
-			
-			String language = objectMap.getLanguage();
-			if (language != null)
-				return createGenerator.apply(lexicalForm ->
+			case IRI:
+				return createGenerator.apply(this::generateIriTerm);
+				
+			case BLANK_NODE:
+				return createGenerator.apply(this::generateBNodeTerm);
+				
+			case LITERAL:
+				
+				// term map is assumed to be an object map if it has term type literal
+				ObjectMap objectMap = (ObjectMap) map;
+				
+				String language = objectMap.getLanguage();
+				if (language != null)
+					return createGenerator.apply(lexicalForm ->
 					f.createLiteral(lexicalForm, language));
 				
-			IRI datatype = objectMap.getDatatype();
-			if (datatype != null)
-				return createGenerator.apply(lexicalForm ->
+				IRI datatype = objectMap.getDatatype();
+				if (datatype != null)
+					return createGenerator.apply(lexicalForm ->
 					f.createLiteral(lexicalForm, datatype));
-			
-			return createGenerator.apply(lexicalForm ->
+				
+				return createGenerator.apply(lexicalForm ->
 				//f.createLiteral(label, datatype) // TODO infer datatype, see https://www.w3.org/TR/r2rml/#generated-rdf-term - f.e. xsd:integer for Integer instances
 				f.createLiteral(lexicalForm));
+				
+			default:
+				throw new RuntimeException("unknown term type " + termType);
+				
 		}
-		throw new RuntimeException("unknown term type " + termType);
 	}
 	
 	@SuppressWarnings("unchecked")
 	private TermGenerator<Value> getObjectGenerator(ObjectMap map) {
 		return (TermGenerator<Value>) getGenerator(
 			map,
-			Arrays.asList(Rr.IRI, Rr.BlankNode, Rr.Literal),
+			Arrays.asList(TermType.IRI, TermType.BLANK_NODE, TermType.LITERAL),
 			Arrays.asList(IRI.class, Literal.class)
 		);
 	}
 	
-	@SuppressWarnings("unchecked")
 	private RefObjectMapper createRefObjectMapper(RefObjectMap refObjectMap) {
 		Set<Join> joinConditions = refObjectMap.getJoinConditions();
 		
@@ -423,7 +427,7 @@ public class RmlMapper {
 	private TermGenerator<IRI> getGraphGenerator(GraphMap map) {
 		return (TermGenerator<IRI>) getGenerator(
 			map,
-			Arrays.asList(Rr.IRI),
+			Arrays.asList(TermType.IRI),
 			Arrays.asList(IRI.class)
 		);
 	}
@@ -432,7 +436,7 @@ public class RmlMapper {
 	private TermGenerator<IRI> getPredicateGenerator(PredicateMap map) {
 		return (TermGenerator<IRI>) getGenerator(
 			map,
-			Arrays.asList(Rr.IRI),
+			Arrays.asList(TermType.IRI),
 			Arrays.asList(IRI.class)
 		);
 	}
@@ -441,14 +445,14 @@ public class RmlMapper {
 	private TermGenerator<Resource> getSubjectGenerator(SubjectMap map) {
 		return (TermGenerator<Resource>) getGenerator(
 			map,
-			Arrays.asList(Rr.BlankNode, Rr.IRI),
+			Arrays.asList(TermType.BLANK_NODE, TermType.IRI),
 			Arrays.asList(IRI.class)
 		);
 	}
 	
 	private TermGenerator<?> getGenerator(
 		TermMap map,
-		List<IRI> allowedTermTypes,
+		List<TermType> allowedTermTypes,
 		List<Class<? extends Value>> allowedConstantTypes
 	) {
 		
@@ -456,7 +460,7 @@ public class RmlMapper {
 		Value constant = getConstant(map, allowedConstantTypes);
 		if (constant != null) return x -> constant;
 
-		TermGenerator<?> generator;
+		TermGenerator<?> generator;	
 		
 		// reference
 		generator = getReferenceGenerator(map, allowedTermTypes);
