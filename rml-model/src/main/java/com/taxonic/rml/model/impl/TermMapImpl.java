@@ -4,7 +4,10 @@ import org.eclipse.rdf4j.model.Value;
 
 import com.taxonic.rml.model.TermMap;
 import com.taxonic.rml.model.TermType;
+import com.taxonic.rml.model.TriplesMap;
 import com.taxonic.rml.rdf_mapper.annotations.RdfProperty;
+import com.taxonic.rml.rdf_mapper.annotations.RdfType;
+import com.taxonic.rml.vocab.Fnml;
 import com.taxonic.rml.vocab.Rml;
 import com.taxonic.rml.vocab.Rr;
 
@@ -15,6 +18,7 @@ abstract public class TermMapImpl implements TermMap {
 	private String template;
 	private TermType termType;
 	private Value constant;
+	private TriplesMap functionValue;
 
 	public TermMapImpl() {}
 	
@@ -23,13 +27,15 @@ abstract public class TermMapImpl implements TermMap {
 		String inverseExpression,
 		String template,
 		TermType termType,
-		Value constant
+		Value constant,
+		TriplesMap functionValue
 	) {
 		this.reference = reference;
 		this.inverseExpression = inverseExpression;
 		this.template = template;
 		this.termType = termType;
 		this.constant = constant;
+		this.functionValue = functionValue;
 	}
 
 	@RdfProperty(Rml.reference)
@@ -62,6 +68,13 @@ abstract public class TermMapImpl implements TermMap {
 	public Value getConstant() {
 		return constant;
 	}
+	
+	@RdfProperty(Fnml.functionValue)
+	@RdfType(TriplesMapImpl.class)
+	@Override
+	public TriplesMap getFunctionValue() {
+		return functionValue;
+	}
 
 	public void setReference(String reference) {
 		this.reference = reference;
@@ -82,12 +95,17 @@ abstract public class TermMapImpl implements TermMap {
 	public void setConstant(Value constant) {
 		this.constant = constant;
 	}
+	
+	public void setFunctionValue(TriplesMap functionValue) {
+		this.functionValue = functionValue;
+	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((constant == null) ? 0 : constant.hashCode());
+		result = prime * result + ((functionValue == null) ? 0 : functionValue.hashCode());
 		result = prime * result + ((inverseExpression == null) ? 0 : inverseExpression.hashCode());
 		result = prime * result + ((reference == null) ? 0 : reference.hashCode());
 		result = prime * result + ((template == null) ? 0 : template.hashCode());
@@ -105,6 +123,10 @@ abstract public class TermMapImpl implements TermMap {
 			if (other.constant != null) return false;
 		}
 		else if (!constant.equals(other.constant)) return false;
+		if (functionValue == null) {
+			if (other.functionValue != null) return false;
+		}
+		else if (!functionValue.equals(other.functionValue)) return false;
 		if (inverseExpression == null) {
 			if (other.inverseExpression != null) return false;
 		}
@@ -117,10 +139,7 @@ abstract public class TermMapImpl implements TermMap {
 			if (other.template != null) return false;
 		}
 		else if (!template.equals(other.template)) return false;
-		if (termType == null) {
-			if (other.termType != null) return false;
-		}
-		else if (!termType.equals(other.termType)) return false;
+		if (termType != other.termType) return false;
 		return true;
 	}
 
@@ -131,8 +150,7 @@ abstract public class TermMapImpl implements TermMap {
 		private String template;
 		private TermType termType;
 		private Value constant;
-		
-		Builder() {}
+		private TriplesMap functionValue;
 		
 		Builder reference(String reference) {
 			this.reference = reference;
@@ -158,6 +176,11 @@ abstract public class TermMapImpl implements TermMap {
 			this.constant = constant;
 			return this;
 		}
+		
+		Builder functionValue(TriplesMap functionValue) {
+			this.functionValue = functionValue;
+			return this;
+		}
 
 		String getReference() {
 			return reference;
@@ -177,6 +200,10 @@ abstract public class TermMapImpl implements TermMap {
 
 		Value getConstant() {
 			return constant;
+		}
+
+		TriplesMap getFunctionValue() {
+			return functionValue;
 		}
 	}
 }

@@ -84,22 +84,22 @@ public class RmlMapperTest extends MappingTest {
 	
 	@Test
 	public void testRemoveNonLatinCharsFunction() {
-		//TODO Parse fno.ttl
-		//TODO include FNMLFunctions.java too
-		String functionPath = "RmlMapper/test12/removeNonLatinCharsFunction.fno.ttl";
-		testMapping("RmlMapper",
-				"RmlMapper/test12/removeNonLatinCharsMapping.fnml.ttl",
-				"RmlMapper/test12/removeNonLatinCharsMapping.output.ttl");
+		testMapping(
+			"RmlMapper",
+			"RmlMapper/test12/removeNonLatinCharsMapping.fnml.ttl",
+			"RmlMapper/test12/removeNonLatinCharsMapping.output.ttl",
+			m -> m.addFunctions(new RmlFunctions())
+		);
 	}
 	
 	@Test
 	public void testToBoolFunction() {
-		//TODO Parse fno.ttl
-		//TODO include FNMLFunctions.java too
-		String functionPath = "RmlMapper/test11/toBoolFunction.fnml.ttl";
-		testMapping("RmlMapper",
-				"RmlMapper/test11/toBoolMapping.fnml.ttl",
-				"RmlMapper/test11/toBoolMapping.output.ttl");
+		testMapping(
+			"RmlMapper",
+			"RmlMapper/test11/toBoolMapping.fnml.ttl",
+			"RmlMapper/test11/toBoolMapping.output.ttl",
+			m -> m.addFunctions(new RmlFunctions())
+		);
 	}
 	
 	@Test

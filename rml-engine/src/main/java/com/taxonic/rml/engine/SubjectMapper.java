@@ -28,10 +28,10 @@ class SubjectMapper {
 		this.predicateObjectMappers = predicateObjectMappers;
 	}
 
-	void map(Model model, EvaluateExpression evaluate) {
+	Resource map(Model model, EvaluateExpression evaluate) {
 		
 		Resource subject = generator.apply(evaluate);
-		if (subject == null) return;
+		if (subject == null) return null;
 		
 		// use graphs when generating statements later
 		List<IRI> graphs = graphGenerators.stream()
@@ -46,5 +46,7 @@ class SubjectMapper {
 
 		
 		predicateObjectMappers.forEach(p -> p.map(model, evaluate, subject, graphs));
+		
+		return subject;
 	}
 }

@@ -14,4 +14,6 @@ public interface TermMap {
 
 	Value getConstant();
 	
+	TriplesMap getFunctionValue();
+
 }

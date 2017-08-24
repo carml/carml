@@ -5,13 +5,13 @@ import static org.junit.Assert.assertEquals;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.rio.RDFFormat;
 import org.eclipse.rdf4j.rio.Rio;
 
-import com.taxonic.rml.engine.template.TemplateParser;
 import com.taxonic.rml.model.TriplesMap;
 import com.taxonic.rml.util.IoUtils;
 import com.taxonic.rml.util.RmlMappingLoader;
@@ -24,11 +24,25 @@ class MappingTest {
 		testMapping(contextPath, rmlPath, null);
 	}
 	
-	void testMapping(String contextPath, String rmlPath, String outputPath) {
+	void testMapping(
+		String contextPath,
+		String rmlPath,
+		String outputPath
+	) {
+		testMapping(contextPath, rmlPath, outputPath, m -> {});
+	}
+	
+	void testMapping(
+		String contextPath,
+		String rmlPath,
+		String outputPath,
+		Consumer<RmlMapper> configureMapper
+	) {
 		List<TriplesMap> mapping = loader.load(rmlPath);
 		Function<String, InputStream> sourceResolver =
 			s -> RmlMapperTest.class.getClassLoader().getResourceAsStream(contextPath + "/" + s);
-		RmlMapper mapper = new RmlMapper(sourceResolver, TemplateParser.build());
+		RmlMapper mapper = new RmlMapper(sourceResolver);
+		configureMapper.accept(mapper);
 		Model result = mapper.map(mapping);
 		
 		System.out.println("Generated from test: " + rmlPath);
