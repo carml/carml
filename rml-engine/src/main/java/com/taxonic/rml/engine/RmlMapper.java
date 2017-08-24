@@ -7,7 +7,9 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
@@ -258,21 +260,25 @@ public class RmlMapper {
 		return id.toString();
 	}
 	
-	private Value getConstant(TermMap map, List<Class<? extends Value>> allowedConstantTypes) {
+	private Optional<TermGenerator<Value>> getConstantGenerator(
+		TermMap map,
+		List<Class<? extends Value>> allowedConstantTypes
+	) {
 		Value constant = map.getConstant();
-		if (constant == null) return null;
+		if (constant == null) return Optional.empty();
 		if (allowedConstantTypes.stream().noneMatch(c -> c.isInstance(constant)))
-			throw new RuntimeException("encountered constant value of type " + constant.getClass() + ", which is not allowed for this term map");
-		return constant; // constant MUST be an IRI for subject/predicate/graph map
+			throw new RuntimeException("encountered constant value of type " +
+				constant.getClass() + ", which is not allowed for this term map");
+		return Optional.of(e -> constant);
 	}
 	
-	private TermGenerator<?> getTemplateGenerator(
+	private Optional<TermGenerator<Value>> getTemplateGenerator(
 		TermMap map,
 		List<TermType> allowedTermTypes
 	) {
 		
 		String templateStr = map.getTemplate();
-		if (templateStr == null) return null;
+		if (templateStr == null) return Optional.empty();
 		
 		Template template = templateParser.parse(templateStr);
 		Set<Expression> expressions = template.getExpressions();
@@ -294,12 +300,12 @@ public class RmlMapper {
 				return templateBuilder.create();
 			};
 			
-		return getGenerator(
+		return Optional.of(getGenerator(
 			map,
 			getValue,
 			allowedTermTypes,
 			termType
-		);	
+		));
 	}
 	
 	/**
@@ -315,23 +321,23 @@ public class RmlMapper {
 		return value;
 	}
 	
-	private TermGenerator<?> getReferenceGenerator(
+	private Optional<TermGenerator<Value>> getReferenceGenerator(
 		TermMap map,
 		List<TermType> allowedTermTypes
 	) {
 		
 		String reference = map.getReference();
-		if (reference == null) return null;
+		if (reference == null) return Optional.empty();
 		
 		Function<EvaluateExpression, Object> getValue =
 			evaluateExpression -> evaluateExpression.apply(reference);
 		
-		return getGenerator(
+		return Optional.of(getGenerator(
 			map,
 			getValue,
 			allowedTermTypes,
 			determineTermType(map)
-		);
+		));
 	}
 	
 	private TermType determineTermType(TermMap map) {
@@ -357,7 +363,7 @@ public class RmlMapper {
 			map.getReference() != null;
 	}
 	
-	private TermGenerator<?> getGenerator(
+	private TermGenerator<Value> getGenerator(
 		TermMap map,
 		Function<EvaluateExpression, Object> getValue,
 		List<TermType> allowedTermTypes,
@@ -366,7 +372,7 @@ public class RmlMapper {
 		
 		Function<
 			Function<String, ? extends Value>,
-			TermGenerator<?>
+			TermGenerator<Value>
 		> createGenerator = generateTerm ->
 			evaluateExpression -> {
 				Object referenceValue = getValue.apply(evaluateExpression);
@@ -394,16 +400,16 @@ public class RmlMapper {
 				String language = objectMap.getLanguage();
 				if (language != null)
 					return createGenerator.apply(lexicalForm ->
-					f.createLiteral(lexicalForm, language));
+						f.createLiteral(lexicalForm, language));
 				
 				IRI datatype = objectMap.getDatatype();
 				if (datatype != null)
 					return createGenerator.apply(lexicalForm ->
-					f.createLiteral(lexicalForm, datatype));
+						f.createLiteral(lexicalForm, datatype));
 				
 				return createGenerator.apply(lexicalForm ->
-				//f.createLiteral(label, datatype) // TODO infer datatype, see https://www.w3.org/TR/r2rml/#generated-rdf-term - f.e. xsd:integer for Integer instances
-				f.createLiteral(lexicalForm));
+					//f.createLiteral(label, datatype) // TODO infer datatype, see https://www.w3.org/TR/r2rml/#generated-rdf-term - f.e. xsd:integer for Integer instances
+					f.createLiteral(lexicalForm));
 				
 			default:
 				throw new RuntimeException("unknown term type " + termType);
@@ -465,22 +471,26 @@ public class RmlMapper {
 		List<TermType> allowedTermTypes,
 		List<Class<? extends Value>> allowedConstantTypes
 	) {
-		
-		// constant
-		Value constant = getConstant(map, allowedConstantTypes);
-		if (constant != null) return x -> constant;
-
-		TermGenerator<?> generator;	
-		
-		// reference
-		generator = getReferenceGenerator(map, allowedTermTypes);
-		if (generator != null) return generator;
+		return
+		Arrays.<Supplier<Optional<TermGenerator<Value>>>>asList(
 			
-		// template
-		generator = getTemplateGenerator(map, allowedTermTypes);
-		if (generator != null) return generator;
-		
-		throw new RuntimeException("could not create generator for map [" + map + "]");
+			// constant
+			() -> getConstantGenerator(map, allowedConstantTypes),
+			
+			// reference
+			() -> getReferenceGenerator(map, allowedTermTypes),
+			
+			// template
+			() -> getTemplateGenerator(map, allowedTermTypes)
+			
+		)
+		.stream()
+		.map(s -> s.get())
+		.filter(o -> o.isPresent())
+		.map(o -> o.get())
+		.findFirst()
+		.orElseThrow(() ->
+			new RuntimeException("could not create generator for map [" + map + "]"));
 	}
 	
 }
