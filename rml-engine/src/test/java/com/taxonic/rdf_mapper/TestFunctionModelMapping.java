@@ -1,0 +1,100 @@
+package com.taxonic.rdf_mapper;
+
+import static org.junit.Assert.assertEquals;
+
+import java.util.Arrays;
+import java.util.List;
+
+import org.eclipse.rdf4j.model.IRI;
+import org.eclipse.rdf4j.model.ValueFactory;
+import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
+import org.junit.Test;
+
+import com.taxonic.rml.model.TriplesMap;
+import com.taxonic.rml.model.impl.LogicalSourceImpl;
+import com.taxonic.rml.model.impl.ObjectMapImpl;
+import com.taxonic.rml.model.impl.PredicateMapImpl;
+import com.taxonic.rml.model.impl.PredicateObjectMapImpl;
+import com.taxonic.rml.model.impl.TriplesMapImpl;
+import com.taxonic.rml.util.RmlMappingLoader;
+import com.taxonic.rml.vocab.Rdf;
+
+public class TestFunctionModelMapping {
+
+	private RmlMappingLoader loader = RmlMappingLoader.build();
+	
+	static final ValueFactory f = SimpleValueFactory.getInstance();
+	
+	static class Ex {
+		
+		static final String prefix = "http://example.com/";
+		
+		static IRI iri(String localName) {
+			return f.createIRI(prefix, localName);
+		}
+		
+		static final IRI
+			toBoolFunction = iri("toBoolFunction"),
+			isPresentBool = iri("isPresentBool");
+		
+	}
+	
+	@Test
+	public void test() {
+
+		TriplesMap functionMap =
+			TriplesMapImpl.newBuilder()
+				.logicalSource(
+					LogicalSourceImpl.newBuilder()
+						.build()
+				)
+				.predicateObjectMap(
+					PredicateObjectMapImpl.newBuilder()
+						.predicateMap(
+							PredicateMapImpl.newBuilder()
+								.constant(Rdf.Fno.executes)
+								.build()
+						)
+						.objectMap(
+							ObjectMapImpl.newBuilder()
+								.constant(Ex.toBoolFunction)
+								.build()
+						)
+						.build()
+				)
+				.build();
+		
+		TriplesMapImpl main =
+			TriplesMapImpl.newBuilder()
+				.logicalSource(
+					LogicalSourceImpl.newBuilder()
+						.build()
+				)
+				.predicateObjectMap(
+					PredicateObjectMapImpl.newBuilder()
+						.predicateMap(
+							PredicateMapImpl.newBuilder()
+								.constant(Ex.isPresentBool)
+								.build()
+						)
+						.objectMap(
+							ObjectMapImpl.newBuilder()
+								.functionValue(functionMap)
+								.build()
+						)
+						.build()
+				)
+				.build();
+		
+		List<TriplesMap> expected = Arrays.asList(
+			main,
+			functionMap
+		);
+
+		List<TriplesMap> result = loader.load("RmlMapper/test11/toBoolMapping2.fnml.ttl");
+		
+		assertEquals(expected, result);
+		
+	}
+
+}

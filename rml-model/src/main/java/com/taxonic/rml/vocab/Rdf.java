@@ -65,4 +65,34 @@ public class Rdf {
 			IRI			 = iri("IRI"	 	 );
 		
 	}
+
+	public static class Fnml {
+
+		static IRI iri(String suffix) {
+			return f.createIRI(prefix + suffix);
+		}
+		
+		public static final String prefix = "http://semweb.mmlab.be/ns/fnml#";
+		
+		public static final IRI
+		
+			functionValue = iri("functionValue");
+		
+	}
+	
+	public static class Fno {
+		
+		static IRI iri(String suffix) {
+			return f.createIRI(prefix + suffix);
+		}
+		
+		public static final String prefix = "http://semweb.datasciencelab.be/ns/function#";
+		
+		public static final IRI
+		
+			Execution = iri("Execution"),
+			executes = iri("executes");
+		
+	}	
+	
 }

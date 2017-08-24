@@ -1,5 +1,6 @@
 package com.taxonic.rml.engine;
 
+import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -9,10 +10,14 @@ import java.util.function.Supplier;
 import org.eclipse.rdf4j.model.BNode;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Literal;
+import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.ValueFactory;
+import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
+import org.eclipse.rdf4j.rio.RDFFormat;
+import org.eclipse.rdf4j.rio.Rio;
 
 import com.taxonic.rml.engine.template.Template;
 import com.taxonic.rml.engine.template.TemplateParser;
@@ -22,6 +27,7 @@ import com.taxonic.rml.model.PredicateMap;
 import com.taxonic.rml.model.SubjectMap;
 import com.taxonic.rml.model.TermMap;
 import com.taxonic.rml.model.TermType;
+import com.taxonic.rml.model.TriplesMap;
 import com.taxonic.rml.util.IriEncoder;
 
 class TermGeneratorCreator {
@@ -30,13 +36,15 @@ class TermGeneratorCreator {
 	private String baseIri;
 	private Function<String, String> encodeIri;
 	private TemplateParser templateParser;
+	private RmlMapper mapper;
 
-	static TermGeneratorCreator create() {
+	static TermGeneratorCreator create(RmlMapper mapper) {
 		return new TermGeneratorCreator(
 			SimpleValueFactory.getInstance(),
 			"http://none.com/",
 			IriEncoder.create(),
-			TemplateParser.build()
+			TemplateParser.build(),
+			mapper
 		);
 	}
 	
@@ -44,12 +52,14 @@ class TermGeneratorCreator {
 		ValueFactory valueFactory,
 		String baseIri,
 		Function<String, String> encodeIri,
-		TemplateParser templateParser
+		TemplateParser templateParser,
+		RmlMapper mapper
 	) {
 		this.f = valueFactory;
 		this.baseIri = baseIri;
 		this.encodeIri = encodeIri;
 		this.templateParser = templateParser;
+		this.mapper = mapper;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -103,7 +113,10 @@ class TermGeneratorCreator {
 			() -> getReferenceGenerator(map, allowedTermTypes),
 			
 			// template
-			() -> getTemplateGenerator(map, allowedTermTypes)
+			() -> getTemplateGenerator(map, allowedTermTypes),
+			
+			// functionValue
+			() -> getFunctionValueGenerator(map, allowedTermTypes)
 			
 		)
 		.stream()
@@ -171,6 +184,37 @@ class TermGeneratorCreator {
 		
 		Function<EvaluateExpression, Object> getValue =
 			evaluateExpression -> evaluateExpression.apply(reference);
+		
+		return Optional.of(getGenerator(
+			map,
+			getValue,
+			allowedTermTypes,
+			determineTermType(map)
+		));
+	}
+	
+	private Optional<TermGenerator<Value>> getFunctionValueGenerator(
+		TermMap map,
+		List<TermType> allowedTermTypes
+	) {
+		
+		TriplesMap executionMap = map.getFunctionValue();
+		SubjectMapper executionMapper = mapper.createSubjectMapper(executionMap);
+		
+		// when 'executionMap' is evaluated, the generated triples
+		// describe a fno:Execution instance, which we can then execute.
+		
+		// TODO check that executionMap has an idential logical source
+
+		Function<EvaluateExpression, Object> getValue =
+			evaluateExpression -> {
+				
+				LinkedHashModel model = new LinkedHashModel();
+				Resource execution = executionMapper.map(model, evaluateExpression);
+				
+				
+				return "62";
+			};
 		
 		return Optional.of(getGenerator(
 			map,

@@ -127,6 +127,11 @@ public class SubjectMapImpl extends TermMapImpl implements SubjectMap {
 			return this;
 		}
 		
+		public Builder functionValue(TriplesMap functionValue) {
+			super.functionValue(functionValue);
+			return this;
+		}
+		
 		public Builder clazz(IRI clazz) {
 			classes.add(clazz);
 			return this;

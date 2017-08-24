@@ -1,3 +1,7 @@
+
+# this mapping is JUST for testing if the model is correctly loaded.
+# NOT intended for actual execution.
+
 @prefix fno: <http://semweb.datasciencelab.be/ns/function#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
@@ -9,48 +13,20 @@
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix fnml:   <http://semweb.mmlab.be/ns/fnml#> .
 
-
-<#LogicalSource> rml:source "toBoolFunctionTestInput.json";
-		rml:referenceFormulation ql:JSONPath;
-		rml:iterator "$" .
-		
 <#toBoolMapping> a rr:TriplesMap;
-	rml:logicalSource <#LogicalSource>;
-	rr:subjectMap [
-		rr:template "http://example.com/Student/{ID}";
-		rr:class ex:studentId
-	];
-	rr:predicateObjectMap <#StringPresentMapping> ;
+	rml:logicalSource [];
 	rr:predicateObjectMap <#BoolPresentMapping> .
 
-<#StringPresentMapping> a rr:predicateObjectMap;
-	rr:predicate ex:isPresentString;
-	rr:objectMap [
-		rml:reference "present";
-	] .
-	
-<#BoolPresentMapping> a rr:predicateObjectMap;
+<#BoolPresentMapping>
 	rr:predicate ex:isPresentBool;
 	rr:objectMap <#toBoolFunctionMap> .
-	
 
 <#toBoolFunctionMap> fnml:functionValue [
-	rml:logicalSource <#LogicalSource>;
-	rr:subjectMap [
-		rr:template "http://example.com/Student/{ID}";
-		rr:class ex:studentId
-	];
+	rml:logicalSource [];
 	rr:predicateObjectMap [
 		rr:predicate fno:executes;
 		rr:objectMap [ 
 			rr:constant ex:toBoolFunction;
 		]
 	];
-	rr:predicateObjectMap [
-		rr:predicate ex:startString;
-		rr:objectMap [
-			rml:reference "present";
-			rr:datatype xsd:bool
-		]
-	];	
 ] .

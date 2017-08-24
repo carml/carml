@@ -120,6 +120,11 @@ public class ObjectMapImpl extends TermMapImpl implements ObjectMap {
 			return this;
 		}
 		
+		public Builder functionValue(TriplesMap functionValue) {
+			super.functionValue(functionValue);
+			return this;
+		}
+		
 		public Builder datatype(IRI datatype) {
 			this.datatype = datatype;
 			return this;

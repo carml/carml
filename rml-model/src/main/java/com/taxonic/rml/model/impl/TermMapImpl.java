@@ -6,6 +6,7 @@ import com.taxonic.rml.model.TermMap;
 import com.taxonic.rml.model.TermType;
 import com.taxonic.rml.model.TriplesMap;
 import com.taxonic.rml.rdf_mapper.annotations.RdfProperty;
+import com.taxonic.rml.rdf_mapper.annotations.RdfType;
 import com.taxonic.rml.vocab.Fnml;
 import com.taxonic.rml.vocab.Rml;
 import com.taxonic.rml.vocab.Rr;
@@ -69,6 +70,7 @@ abstract public class TermMapImpl implements TermMap {
 	}
 	
 	@RdfProperty(Fnml.functionValue)
+	@RdfType(TriplesMapImpl.class)
 	@Override
 	public TriplesMap getFunctionValue() {
 		return functionValue;

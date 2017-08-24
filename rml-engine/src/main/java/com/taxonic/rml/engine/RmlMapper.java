@@ -46,7 +46,7 @@ public class RmlMapper {
 
 	private Function<String, InputStream> sourceResolver;
 	
-	private TermGeneratorCreator termGenerators = TermGeneratorCreator.create(); // TODO
+	private TermGeneratorCreator termGenerators = TermGeneratorCreator.create(this); // TODO
 	
 	public RmlMapper(
 		Function<String, InputStream> sourceResolver
@@ -171,7 +171,7 @@ public class RmlMapper {
 		.collect(Collectors.toList());
 	}
 	
-	private SubjectMapper createSubjectMapper(TriplesMap triplesMap) {
+	SubjectMapper createSubjectMapper(TriplesMap triplesMap) {
 		SubjectMap subjectMap = triplesMap.getSubjectMap();
 		return
 		new SubjectMapper(

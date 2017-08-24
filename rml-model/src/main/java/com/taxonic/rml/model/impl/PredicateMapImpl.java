@@ -5,6 +5,7 @@ import org.eclipse.rdf4j.model.Value;
 import com.taxonic.rml.model.PredicateMap;
 import com.taxonic.rml.model.TermType;
 import com.taxonic.rml.model.TriplesMap;
+import com.taxonic.rml.model.impl.ObjectMapImpl.Builder;
 
 public class PredicateMapImpl extends TermMapImpl implements PredicateMap {
 
@@ -65,6 +66,11 @@ public class PredicateMapImpl extends TermMapImpl implements PredicateMap {
 		
 		public Builder constant(Value constant) {
 			super.constant(constant);
+			return this;
+		}
+		
+		public Builder functionValue(TriplesMap functionValue) {
+			super.functionValue(functionValue);
 			return this;
 		}
 		
