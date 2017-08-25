@@ -69,8 +69,40 @@ public class RmlMapper {
 
 	public Model map(List<TriplesMap> mapping) {
 		Model model = new LinkedHashModel();
-		mapping.forEach(m -> map(m, model));
+		mapping.stream()
+			.filter(m -> !isTriplesMapOnlyUsedAsFunctionValue(m, mapping))
+			.forEach(m -> map(m, model));
 		return model;
+	}
+	
+	private boolean isTriplesMapOnlyUsedAsFunctionValue(TriplesMap map, List<TriplesMap> mapping) {
+		return
+			isTriplesMapUsedAsFunctionValue(map, mapping) &&
+			!isTriplesMapUsedInRefObjectMap(map, mapping);
+	}
+	
+	private boolean isTriplesMapUsedAsFunctionValue(TriplesMap map, List<TriplesMap> mapping) {
+		
+		// TODO
+		
+		return false;
+	}
+	
+	private boolean isTriplesMapUsedInRefObjectMap(TriplesMap map, List<TriplesMap> mapping) {
+		return
+		mapping.stream()
+		
+			// get all referencing object maps
+			.flatMap(m -> m.getPredicateObjectMaps().stream())
+			.flatMap(p -> p.getObjectMaps().stream())
+			.filter(o -> o instanceof RefObjectMap)
+			.map(o -> (RefObjectMap) o)
+			
+			// check that no referencing object map
+			// has 'map' as its parent triples map
+			.map(o -> o.getParentTriplesMap())
+			.anyMatch(map::equals);
+		
 	}
 	
 	private void map(TriplesMap triplesMap, Model model) {

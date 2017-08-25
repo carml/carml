@@ -13,23 +13,23 @@ public class RmlFunctions {
 			
 			toBoolFunction = prefix + "toBoolFunction",
 			
-			startString = prefix + "startString";
+			startString = prefix + "startString",
+			
+			removeNonLatinCharsFunction = prefix + "removeNonLatinCharsFunction";
 		
 	}
 	
 	@FnoFunction(Ex.toBoolFunction)
 	public boolean toBoolFunction(
 		@FnoParam(Ex.startString) String startString
-	) {	
-		if (startString.toLowerCase().equals("yes")) {
-			return true;
-		}
-		else {
-			return false;
-		}
+	) {
+		return startString.toLowerCase().equals("yes");
 	}
 	
-	public String removeNonLatinCharsFunction(String inputString) {
+	@FnoFunction(Ex.removeNonLatinCharsFunction)
+	public String removeNonLatinCharsFunction(
+		@FnoParam(Ex.startString) String inputString
+	) {
 		return inputString.replaceAll("[^A-Za-z0-9]", "");
 	}
 	
