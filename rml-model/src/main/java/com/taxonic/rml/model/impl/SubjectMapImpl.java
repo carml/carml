@@ -8,6 +8,8 @@ import org.eclipse.rdf4j.model.Value;
 
 import com.taxonic.rml.model.GraphMap;
 import com.taxonic.rml.model.SubjectMap;
+import com.taxonic.rml.model.TermType;
+import com.taxonic.rml.model.TriplesMap;
 import com.taxonic.rml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.rml.rdf_mapper.annotations.RdfType;
 import com.taxonic.rml.vocab.Rr;
@@ -23,12 +25,13 @@ public class SubjectMapImpl extends TermMapImpl implements SubjectMap {
 		String reference,
 		String inverseExpression,
 		String template,
-		IRI termType,
+		TermType termType,
 		Value constant,
+		TriplesMap functionValue,
 		Set<IRI> classes,
 		Set<GraphMap> graphMaps
 	) {
-		super(reference, inverseExpression, template, termType, constant);
+		super(reference, inverseExpression, template, termType, constant, functionValue);
 		this.classes = classes;
 		this.graphMaps = graphMaps;
 	}
@@ -57,9 +60,10 @@ public class SubjectMapImpl extends TermMapImpl implements SubjectMap {
 
 	@Override
 	public String toString() {
-		return "SubjectMapImpl [getClasses()=" + getClasses() + ", getReference()=" + getReference()
-			+ ", getInverseExpression()=" + getInverseExpression() + ", getTemplate()=" + getTemplate()
-			+ ", getTermType()=" + getTermType() + ", getConstant()=" + getConstant() + ", getGraphMaps()=" + getGraphMaps() +"]";
+		return "SubjectMapImpl [getGraphMaps()=" + getGraphMaps() + ", getClasses()=" + getClasses()
+			+ ", getReference()=" + getReference() + ", getInverseExpression()=" + getInverseExpression()
+			+ ", getTemplate()=" + getTemplate() + ", getTermType()=" + getTermType() + ", getConstant()="
+			+ getConstant() + ", getFunctionValue()=" + getFunctionValue() + "]";
 	}
 
 	@Override
@@ -98,10 +102,6 @@ public class SubjectMapImpl extends TermMapImpl implements SubjectMap {
 		private Set<IRI> classes = new LinkedHashSet<>();
 		private Set<GraphMap> graphMaps = new LinkedHashSet<>();
 
-		Builder() {}
-		
-		// TODO the value of extending TermMapImpl.Builder is very small...
-
 		public Builder reference(String reference) {
 			super.reference(reference);
 			return this;
@@ -117,13 +117,18 @@ public class SubjectMapImpl extends TermMapImpl implements SubjectMap {
 			return this;
 		}
 		
-		public Builder termType(IRI termType) {
+		public Builder termType(TermType termType) {
 			super.termType(termType);
 			return this;
 		}
 		
 		public Builder constant(Value constant) {
 			super.constant(constant);
+			return this;
+		}
+		
+		public Builder functionValue(TriplesMap functionValue) {
+			super.functionValue(functionValue);
 			return this;
 		}
 		
@@ -154,6 +159,7 @@ public class SubjectMapImpl extends TermMapImpl implements SubjectMap {
 				getTemplate(),
 				getTermType(),
 				getConstant(),
+				getFunctionValue(),
 				classes,
 				graphMaps
 			);

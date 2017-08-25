@@ -1,7 +1,6 @@
 package com.taxonic.rml.engine;
 
 import static org.hamcrest.CoreMatchers.startsWith;
-import static org.junit.Assert.assertEquals;
 
 import java.io.InputStream;
 import java.util.function.Function;
@@ -10,7 +9,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import com.taxonic.rml.engine.template.TemplateParser;
+import com.taxonic.rml.model.TermType;
 
 public class ExceptionsTest extends MappingTest {
 
@@ -35,7 +34,7 @@ public class ExceptionsTest extends MappingTest {
 	@Test
 	public void testUnknownTermTypeException() {
 		thrown.expect(RuntimeException.class);
-		thrown.expectMessage(startsWith("encountered disallowed term type"));
+		thrown.expectMessage(startsWith("cannot create an instance of enum type [" + TermType.class.getCanonicalName() + "]"));
 		testMapping("RmlMapper", "RmlMapper/exceptionTests/exceptionUnknownTermTypeMapping.rml.ttl", null);
 	}
 
@@ -57,7 +56,7 @@ public class ExceptionsTest extends MappingTest {
 	public void testReadSourceException() throws RuntimeException {
 		Function<String, InputStream> sourceResolver = s -> RmlMapperTest.class.getClassLoader()
 				.getResourceAsStream("RmlMapper" + "/" + s);
-		RmlMapper tm = new RmlMapper(sourceResolver, TemplateParser.build());
+		RmlMapper tm = new RmlMapper(sourceResolver);
 		// TODO change readSource back to private.
 		String result = tm.readSource("exceptions.json");
 		assert (result.equals("{\"name\":\"carml\"}"));

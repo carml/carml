@@ -1,6 +1,5 @@
 package com.taxonic.rml.model;
 
-import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Value;
 
 public interface TermMap {
@@ -11,8 +10,10 @@ public interface TermMap {
 	
 	String getTemplate();
 	
-	IRI getTermType();
+	TermType getTermType();
 
 	Value getConstant();
 	
+	TriplesMap getFunctionValue();
+
 }

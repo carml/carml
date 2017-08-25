@@ -1,10 +1,13 @@
 package com.taxonic.rml.model.impl;
 
-import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Value;
 
 import com.taxonic.rml.model.TermMap;
+import com.taxonic.rml.model.TermType;
+import com.taxonic.rml.model.TriplesMap;
 import com.taxonic.rml.rdf_mapper.annotations.RdfProperty;
+import com.taxonic.rml.rdf_mapper.annotations.RdfType;
+import com.taxonic.rml.vocab.Fnml;
 import com.taxonic.rml.vocab.Rml;
 import com.taxonic.rml.vocab.Rr;
 
@@ -13,8 +16,9 @@ abstract public class TermMapImpl implements TermMap {
 	private String reference;
 	private String inverseExpression;
 	private String template;
-	private IRI termType;
+	private TermType termType;
 	private Value constant;
+	private TriplesMap functionValue;
 
 	public TermMapImpl() {}
 	
@@ -22,14 +26,16 @@ abstract public class TermMapImpl implements TermMap {
 		String reference,
 		String inverseExpression,
 		String template,
-		IRI termType,
-		Value constant
+		TermType termType,
+		Value constant,
+		TriplesMap functionValue
 	) {
 		this.reference = reference;
 		this.inverseExpression = inverseExpression;
 		this.template = template;
 		this.termType = termType;
 		this.constant = constant;
+		this.functionValue = functionValue;
 	}
 
 	@RdfProperty(Rml.reference)
@@ -53,7 +59,7 @@ abstract public class TermMapImpl implements TermMap {
 	// TODO https://www.w3.org/TR/r2rml/#dfn-term-type
 	@RdfProperty(Rr.termType)
 	@Override
-	public IRI getTermType() {
+	public TermType getTermType() {
 		return termType;
 	}
 
@@ -61,6 +67,13 @@ abstract public class TermMapImpl implements TermMap {
 	@Override
 	public Value getConstant() {
 		return constant;
+	}
+	
+	@RdfProperty(Fnml.functionValue)
+	@RdfType(TriplesMapImpl.class)
+	@Override
+	public TriplesMap getFunctionValue() {
+		return functionValue;
 	}
 
 	public void setReference(String reference) {
@@ -75,12 +88,16 @@ abstract public class TermMapImpl implements TermMap {
 		this.template = template;
 	}
 
-	public void setTermType(IRI termType) {
+	public void setTermType(TermType termType) {
 		this.termType = termType;
 	}
 
 	public void setConstant(Value constant) {
 		this.constant = constant;
+	}
+	
+	public void setFunctionValue(TriplesMap functionValue) {
+		this.functionValue = functionValue;
 	}
 
 	@Override
@@ -88,6 +105,7 @@ abstract public class TermMapImpl implements TermMap {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((constant == null) ? 0 : constant.hashCode());
+		result = prime * result + ((functionValue == null) ? 0 : functionValue.hashCode());
 		result = prime * result + ((inverseExpression == null) ? 0 : inverseExpression.hashCode());
 		result = prime * result + ((reference == null) ? 0 : reference.hashCode());
 		result = prime * result + ((template == null) ? 0 : template.hashCode());
@@ -105,6 +123,10 @@ abstract public class TermMapImpl implements TermMap {
 			if (other.constant != null) return false;
 		}
 		else if (!constant.equals(other.constant)) return false;
+		if (functionValue == null) {
+			if (other.functionValue != null) return false;
+		}
+		else if (!functionValue.equals(other.functionValue)) return false;
 		if (inverseExpression == null) {
 			if (other.inverseExpression != null) return false;
 		}
@@ -117,10 +139,7 @@ abstract public class TermMapImpl implements TermMap {
 			if (other.template != null) return false;
 		}
 		else if (!template.equals(other.template)) return false;
-		if (termType == null) {
-			if (other.termType != null) return false;
-		}
-		else if (!termType.equals(other.termType)) return false;
+		if (termType != other.termType) return false;
 		return true;
 	}
 
@@ -129,10 +148,9 @@ abstract public class TermMapImpl implements TermMap {
 		private String reference;
 		private String inverseExpression;
 		private String template;
-		private IRI termType;
+		private TermType termType;
 		private Value constant;
-		
-		Builder() {}
+		private TriplesMap functionValue;
 		
 		Builder reference(String reference) {
 			this.reference = reference;
@@ -149,13 +167,18 @@ abstract public class TermMapImpl implements TermMap {
 			return this;
 		}
 		
-		Builder termType(IRI termType) {
+		Builder termType(TermType termType) {
 			this.termType = termType;
 			return this;
 		}
 		
 		Builder constant(Value constant) {
 			this.constant = constant;
+			return this;
+		}
+		
+		Builder functionValue(TriplesMap functionValue) {
+			this.functionValue = functionValue;
 			return this;
 		}
 
@@ -171,12 +194,16 @@ abstract public class TermMapImpl implements TermMap {
 			return template;
 		}
 		
-		IRI getTermType() {
+		TermType getTermType() {
 			return termType;
 		}
 
 		Value getConstant() {
 			return constant;
+		}
+
+		TriplesMap getFunctionValue() {
+			return functionValue;
 		}
 	}
 }

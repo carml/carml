@@ -12,7 +12,7 @@
 	];
 
 	rr:subjectMap [
-		rr:template "";
+		rr:template "{first}";
 		rr:class ex:Child;
 		rr:termType rr:BlankNode;
 	];

@@ -10,6 +10,7 @@ import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.model.vocabulary.XMLSchema;
 import org.junit.Test;
 
+import com.taxonic.rml.model.TermType;
 import com.taxonic.rml.model.TriplesMap;
 import com.taxonic.rml.model.impl.LogicalSourceImpl;
 import com.taxonic.rml.model.impl.ObjectMapImpl;
@@ -19,7 +20,6 @@ import com.taxonic.rml.model.impl.SubjectMapImpl;
 import com.taxonic.rml.model.impl.TriplesMapImpl;
 import com.taxonic.rml.util.RmlMappingLoader;
 import com.taxonic.rml.vocab.Rdf;
-import com.taxonic.rml.vocab.Rdf.Rr;
 
 public class TestRdfMapperTermType {
 
@@ -70,7 +70,7 @@ public class TestRdfMapperTermType {
 								ObjectMapImpl.newBuilder()
 								.reference("birthday")
 								.datatype(XMLSchema.DATE)
-								.termType(Rr.Literal)
+								.termType(TermType.LITERAL)
 								.build()
 						)
 						.build()
@@ -95,7 +95,7 @@ public class TestRdfMapperTermType {
 						SubjectMapImpl.newBuilder()
 							.template(SecondExample.prefix + "Child/{first}/{last}")
 							.clazz(SecondExample.Child)
-							.termType(Rr.IRI)
+							.termType(TermType.IRI)
 							.build()
 					)
 					.predicateObjectMap(
@@ -103,13 +103,13 @@ public class TestRdfMapperTermType {
 						.predicateMap(
 								PredicateMapImpl.newBuilder()
 								.constant(SecondExample.hasBirthday)
-								.termType(Rr.IRI)
+								.termType(TermType.IRI)
 								.build()
 						)
 						.objectMap(
 								ObjectMapImpl.newBuilder()
 								.constant(SecondExample.Unknown)
-								.termType(Rr.IRI)
+								.termType(TermType.IRI)
 								.build()
 						)
 						.build()
@@ -133,7 +133,7 @@ public class TestRdfMapperTermType {
 					)
 					.subjectMap(
 						SubjectMapImpl.newBuilder()
-							.termType(Rr.BlankNode)
+							.termType(TermType.BLANK_NODE)
 							.clazz(SecondExample.Child)
 							.build()
 					)
@@ -183,7 +183,7 @@ public class TestRdfMapperTermType {
 						)
 						.objectMap(
 								ObjectMapImpl.newBuilder()
-								.termType(Rr.BlankNode)
+								.termType(TermType.BLANK_NODE)
 								.build()
 						)
 						.build()

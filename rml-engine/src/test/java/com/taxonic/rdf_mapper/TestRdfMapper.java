@@ -12,6 +12,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.taxonic.rml.model.TermType;
 import com.taxonic.rml.model.TriplesMap;
 import com.taxonic.rml.model.impl.GraphMapImpl;
 import com.taxonic.rml.model.impl.JoinImpl;
@@ -24,7 +25,6 @@ import com.taxonic.rml.model.impl.SubjectMapImpl;
 import com.taxonic.rml.model.impl.TriplesMapImpl;
 import com.taxonic.rml.util.RmlMappingLoader;
 import com.taxonic.rml.vocab.Rdf;
-import com.taxonic.rml.vocab.Rdf.Rr;
 
 public class TestRdfMapper {
 	//TODO Add logger stuff
@@ -280,7 +280,7 @@ public class TestRdfMapper {
 								ObjectMapImpl.newBuilder()
 								.reference("birthday")
 								.datatype(XMLSchema.DATE)
-								.termType(Rr.Literal)
+								.termType(TermType.LITERAL)
 								.build()
 						)
 						.build()
@@ -305,7 +305,7 @@ public class TestRdfMapper {
 						SubjectMapImpl.newBuilder()
 							.template(SecondExample.prefix + "Child/{first}/{last}")
 							.clazz(SecondExample.Child)
-							.termType(Rr.IRI)
+							.termType(TermType.IRI)
 							.build()
 					)
 					.predicateObjectMap(
@@ -313,13 +313,13 @@ public class TestRdfMapper {
 						.predicateMap(
 								PredicateMapImpl.newBuilder()
 								.constant(SecondExample.hasBirthday)
-								.termType(Rr.IRI)
+								.termType(TermType.IRI)
 								.build()
 						)
 						.objectMap(
 								ObjectMapImpl.newBuilder()
 								.constant(SecondExample.Unknown)
-								.termType(Rr.IRI)
+								.termType(TermType.IRI)
 								.build()
 						)
 						.build()
@@ -343,7 +343,7 @@ public class TestRdfMapper {
 					)
 					.subjectMap(
 						SubjectMapImpl.newBuilder()
-							.termType(Rr.BlankNode)
+							.termType(TermType.BLANK_NODE)
 							.clazz(SecondExample.Child)
 							.build()
 					)
@@ -393,7 +393,7 @@ public class TestRdfMapper {
 						)
 						.objectMap(
 								ObjectMapImpl.newBuilder()
-								.termType(Rr.BlankNode)
+								.termType(TermType.BLANK_NODE)
 								.build()
 						)
 						.build()

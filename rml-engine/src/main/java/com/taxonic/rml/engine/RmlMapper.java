@@ -5,8 +5,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -15,31 +15,24 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.io.IOUtils;
-import org.eclipse.rdf4j.model.BNode;
 import org.eclipse.rdf4j.model.IRI;
-import org.eclipse.rdf4j.model.Literal;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Value;
-import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
-import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 
 import com.jayway.jsonpath.JsonPath;
-import com.taxonic.rml.engine.template.Template;
-import com.taxonic.rml.engine.template.Template.Expression;
-import com.taxonic.rml.engine.template.TemplateParser;
+import com.taxonic.rml.engine.function.ExecuteFunction;
+import com.taxonic.rml.engine.function.Functions;
+import com.taxonic.rml.model.BaseObjectMap;
 import com.taxonic.rml.model.GraphMap;
 import com.taxonic.rml.model.Join;
 import com.taxonic.rml.model.LogicalSource;
 import com.taxonic.rml.model.ObjectMap;
-import com.taxonic.rml.model.PredicateMap;
 import com.taxonic.rml.model.PredicateObjectMap;
 import com.taxonic.rml.model.RefObjectMap;
 import com.taxonic.rml.model.SubjectMap;
-import com.taxonic.rml.model.TermMap;
 import com.taxonic.rml.model.TriplesMap;
-import com.taxonic.rml.vocab.Rdf.Rr;
 
 // TODO cache results of evaluated expressions when filling a single template, in case of repeated expressions
 
@@ -54,21 +47,24 @@ import com.taxonic.rml.vocab.Rdf.Rr;
 
 public class RmlMapper {
 
-	private ValueFactory f = SimpleValueFactory.getInstance();
-
-	private String baseIri = "http://none.com/"; // TODO ???
-	
-	private Function<String, String> encodeIri = IriEncoder.create(); // TODO
-	
 	private Function<String, InputStream> sourceResolver;
-	private TemplateParser templateParser;
 	
+	private TermGeneratorCreator termGenerators = TermGeneratorCreator.create(this); // TODO
+
+	private Functions functions = new Functions(); // TODO
+
 	public RmlMapper(
-		Function<String, InputStream> sourceResolver,
-		TemplateParser templateParser
+		Function<String, InputStream> sourceResolver
 	) {
 		this.sourceResolver = sourceResolver;
-		this.templateParser = templateParser;
+	}
+
+	public void addFunctions(Object fn) {
+		functions.addFunctions(fn);
+	}
+	
+	public Optional<ExecuteFunction> getFunction(IRI iri) {
+		return functions.getFunction(iri);
 	}
 
 	public Model map(List<TriplesMap> mapping) {
@@ -97,12 +93,56 @@ public class RmlMapper {
 	
 	private List<TermGenerator<IRI>> createGraphGenerators(Set<GraphMap> graphMaps) {
 		return graphMaps.stream()
-			.map(this::getGraphGenerator)
+			.map(termGenerators::getGraphGenerator)
 			.collect(Collectors.toList());
+	}
+	
+	
+	
+	
+	
+	
+	private Stream<TermGenerator<Value>> getObjectMapGenerators(
+		Set<BaseObjectMap> objectMaps
+	) {
+		return objectMaps.stream()
+			.filter(o -> o instanceof ObjectMap)
+			.map(o -> termGenerators.getObjectGenerator((ObjectMap) o));
+	}
+
+	private RefObjectMap checkLogicalSource(RefObjectMap o, LogicalSource logicalSource) {
+		LogicalSource parentLogicalSource = o.getParentTriplesMap().getLogicalSource();
+		if (!logicalSource.equals(parentLogicalSource))
+			throw new RuntimeException(
+				"Logical sources are not equal.\n" +
+				"Parent: " + parentLogicalSource + "\n" +
+				"Child: " + logicalSource
+			);
+		return o;
+	}
+	
+	private Stream<TermGenerator<Value>> getJoinlessRefObjectMapGenerators(
+		Set<BaseObjectMap> objectMaps, LogicalSource logicalSource
+	) {
+		return objectMaps.stream()
+			.filter(o -> o instanceof RefObjectMap)
+			.map(o -> (RefObjectMap) o)
+			.filter(o -> o.getJoinConditions().isEmpty())
+			.map(o -> checkLogicalSource(o, logicalSource))
+			.map(o -> (TermGenerator<Value>) (Object) // TODO not very nice
+				createRefObjectJoinlessMapper(o));
+	}
+	
+	private TermGenerator<Resource> createRefObjectJoinlessMapper(RefObjectMap refObjectMap) {
+		return termGenerators.getSubjectGenerator(
+			refObjectMap.getParentTriplesMap().getSubjectMap()
+		);
 	}
 	
 	private List<PredicateObjectMapper> createPredicateObjectMappers(TriplesMap triplesMap, Set<PredicateObjectMap> predicateObjectMaps) {
 		return predicateObjectMaps.stream().map(m -> {
+			
+			Set<BaseObjectMap> objectMaps = m.getObjectMaps();
 			
 			List<PredicateMapper> predicateMappers =
 				m.getPredicateMaps().stream().map(p -> {
@@ -111,37 +151,25 @@ public class RmlMapper {
 						Stream.concat(
 						
 							// object maps -> object generators
-							m.getObjectMaps().stream()
-								.filter(o -> o instanceof ObjectMap)
-								.map(o -> getObjectGenerator((ObjectMap) o)),
+							getObjectMapGenerators(objectMaps),
 							
-							// ref objects maps without joins -> object generators
-							m.getObjectMaps().stream()
-								.filter(o -> o instanceof RefObjectMap)
-								.map(o -> (RefObjectMap) o)
-								.filter(o -> o.getJoinConditions().isEmpty())
-								.map(o -> {
-									LogicalSource parentLogicalSource = o.getParentTriplesMap().getLogicalSource();
-									if (!triplesMap.getLogicalSource().equals(parentLogicalSource)) {
-										throw new RuntimeException("Logical sources are not equal. \n Parent: " + parentLogicalSource + ", Child: " + triplesMap.getLogicalSource());
-									}
-									return o;
-								})
-								.map(o -> (TermGenerator<Value>) (TermGenerator) // TODO not very nice
-									createRefObjectJoinlessMapper(o))
+							// ref object maps without joins -> object generators.
+							// ref object maps without joins MUST have an identical logical source.
+							getJoinlessRefObjectMapGenerators(objectMaps, triplesMap.getLogicalSource())
+							
 						)
 						.collect(Collectors.toList());
 					
 					List<RefObjectMapper> refObjectMappers =
-							m.getObjectMaps().stream()
-								.filter(o -> o instanceof RefObjectMap)
-								.map(o -> (RefObjectMap) o)
-								.filter(o -> !o.getJoinConditions().isEmpty())
-								.map(o -> createRefObjectMapper(o))
-								.collect(Collectors.toList());
+						objectMaps.stream()
+							.filter(o -> o instanceof RefObjectMap)
+							.map(o -> (RefObjectMap) o)
+							.filter(o -> !o.getJoinConditions().isEmpty())
+							.map(o -> createRefObjectMapper(o))
+							.collect(Collectors.toList());
 
 					return new PredicateMapper(
-						getPredicateGenerator(p),
+						termGenerators.getPredicateGenerator(p),
 						objectGenerators,
 						refObjectMappers
 					);
@@ -156,11 +184,11 @@ public class RmlMapper {
 		.collect(Collectors.toList());
 	}
 	
-	private SubjectMapper createSubjectMapper(TriplesMap triplesMap) {
+	SubjectMapper createSubjectMapper(TriplesMap triplesMap) {
 		SubjectMap subjectMap = triplesMap.getSubjectMap();
 		return
 		new SubjectMapper(
-			getSubjectGenerator(subjectMap),
+			termGenerators.getSubjectGenerator(subjectMap),
 			createGraphGenerators(subjectMap.getGraphMaps()),
 			subjectMap.getClasses(),
 			createPredicateObjectMappers(triplesMap, triplesMap.getPredicateObjectMaps())
@@ -212,261 +240,19 @@ public class RmlMapper {
 		
 		return
 		new ParentTriplesMapper(
-				getSubjectGenerator(triplesMap.getSubjectMap()), 
-				getSource, 
-				applyIterator, 
-				expressionEvaluatorFactory);
-				
-	}
-	
-	private String createNaturalRdfLexicalForm(Object value) {
-		// TODO https://www.w3.org/TR/r2rml/#dfn-natural-rdf-literal
-		return value.toString();
-	}
-	
-	private boolean isValidIri(String str) {
-		return str.contains(":");
-	}
-	
-	private IRI generateIriTerm(String lexicalForm) {
-		
-		if (isValidIri(lexicalForm))
-			return f.createIRI(lexicalForm);
-			
-		String iri = baseIri + lexicalForm;
-		if (isValidIri(iri))
-			return f.createIRI(iri);
-		
-		throw new RuntimeException("data error: could not generate a valid iri from term lexical form [" + lexicalForm + "] as-is, or prefixed with base iri [" + baseIri + "]");
-		
-	}
-	
-	private static int nextId = 0;
-	
-	private BNode generateBNodeTerm(String lexicalForm) {
-		String id = (nextId ++) + ""; // TODO hash of 'lexicalForm'
-		return f.createBNode(id);
-	}
-	
-	private Value getConstant(TermMap map, List<Class<? extends Value>> allowedConstantTypes) {
-		Value constant = map.getConstant();
-		if (constant == null) return null;
-		if (allowedConstantTypes.stream().noneMatch(c -> c.isInstance(constant)))
-			throw new RuntimeException("encountered constant value of type " + constant.getClass() + ", which is not allowed for this term map");
-		return constant; // constant MUST be an IRI for subject/predicate/graph map
-	}
-	
-	private TermGenerator<?> getTemplateGenerator(
-		TermMap map,
-		List<IRI> allowedTermTypes
-	) {
-		
-		String templateStr = map.getTemplate();
-		if (templateStr == null) return null;
-		
-		Template template = templateParser.parse(templateStr);
-		Set<Expression> expressions = template.getExpressions();
-		
-		IRI termType = determineTermType(map);
-		
-		Function<EvaluateExpression, Object> getValue =
-			evaluateExpression -> {
-				Template.Builder templateBuilder = template.newBuilder();
-				expressions.forEach(expression ->
-					templateBuilder.bind(
-						expression,
-						prepareValueForTemplate(
-							evaluateExpression.apply(expression.getValue()),
-							termType.equals(Rr.IRI)
-						)
-					)
-				);
-				return templateBuilder.create();
-			};
-			
-		return getGenerator(
-			map,
-			getValue,
-			allowedTermTypes,
-			termType
-		);	
-	}
-	
-	/**
-	 * See https://www.w3.org/TR/r2rml/#from-template
-	 * @param raw
-	 * @return
-	 */
-	private String prepareValueForTemplate(Object raw, boolean makeIriSafe) {
-		if (raw == null) return "NULL";
-		String value = createNaturalRdfLexicalForm(raw);
-		if (makeIriSafe)
-			return encodeIri.apply(value);
-		return value;
-	}
-	
-	private TermGenerator<?> getReferenceGenerator(
-		TermMap map,
-		List<IRI> allowedTermTypes
-	) {
-		
-		String reference = map.getReference();
-		if (reference == null) return null;
-		
-		Function<EvaluateExpression, Object> getValue =
-			evaluateExpression -> evaluateExpression.apply(reference);
-		
-		return getGenerator(
-			map,
-			getValue,
-			allowedTermTypes,
-			determineTermType(map)
+			termGenerators.getSubjectGenerator(triplesMap.getSubjectMap()), 
+			getSource, 
+			applyIterator, 
+			expressionEvaluatorFactory
 		);
 	}
-	
-	// TODO return an enum
-	private IRI determineTermType(TermMap map) {
-		
-		IRI termType = map.getTermType();
-		if (termType != null) return termType;
-		
-		if (map instanceof ObjectMap) {
-			ObjectMap objectMap = (ObjectMap) map;
-			if (
-				isReferenceTermMap(map) ||
-				objectMap.getLanguage() != null ||
-				objectMap.getDatatype() != null
-			)
-				return Rr.Literal;
-		}
-		return Rr.IRI;
-	}
-	
-	private boolean isReferenceTermMap(TermMap map) {
-		return
-			map.getConstant() == null &&
-			map.getReference() != null;
-	}
-	
-	private TermGenerator<?> getGenerator(
-		TermMap map,
-		Function<EvaluateExpression, Object> getValue,
-		List<IRI> allowedTermTypes,
-		IRI termType
-	) {
-		
-		Function<
-			Function<String, ? extends Value>,
-			TermGenerator<?>
-		> createGenerator = generateTerm ->
-			evaluateExpression -> {
-				Object referenceValue = getValue.apply(evaluateExpression);
-				if (referenceValue == null) return null;
-				String lexicalForm = createNaturalRdfLexicalForm(referenceValue);
-				return generateTerm.apply(lexicalForm);
-			};
 
-		if (!allowedTermTypes.contains(termType))
-			throw new RuntimeException("encountered disallowed term type [" + termType + "]; allowed term types: " + allowedTermTypes);
-		
-		if (termType.equals(Rr.IRI))
-			return createGenerator.apply(this::generateIriTerm);
-			
-		if (termType.equals(Rr.BlankNode))
-			return createGenerator.apply(this::generateBNodeTerm);
-			
-		if (termType.equals(Rr.Literal)) {
-			// term map is assumed to be an object map if it has term type literal
-			ObjectMap objectMap = (ObjectMap) map;
-			
-			String language = objectMap.getLanguage();
-			if (language != null)
-				return createGenerator.apply(lexicalForm ->
-					f.createLiteral(lexicalForm, language));
-				
-			IRI datatype = objectMap.getDatatype();
-			if (datatype != null)
-				return createGenerator.apply(lexicalForm ->
-					f.createLiteral(lexicalForm, datatype));
-			
-			return createGenerator.apply(lexicalForm ->
-				//f.createLiteral(label, datatype) // TODO infer datatype, see https://www.w3.org/TR/r2rml/#generated-rdf-term - f.e. xsd:integer for Integer instances
-				f.createLiteral(lexicalForm));
-		}
-		throw new RuntimeException("unknown term type " + termType);
-	}
-	
-	@SuppressWarnings("unchecked")
-	private TermGenerator<Value> getObjectGenerator(ObjectMap map) {
-		return (TermGenerator<Value>) getGenerator(
-			map,
-			Arrays.asList(Rr.IRI, Rr.BlankNode, Rr.Literal),
-			Arrays.asList(IRI.class, Literal.class)
-		);
-	}
-	
-	@SuppressWarnings("unchecked")
 	private RefObjectMapper createRefObjectMapper(RefObjectMap refObjectMap) {
 		Set<Join> joinConditions = refObjectMap.getJoinConditions();
-		
 		return new RefObjectMapper(
-					createParentTriplesMapper(refObjectMap.getParentTriplesMap()),
-					joinConditions
-				);
+			createParentTriplesMapper(refObjectMap.getParentTriplesMap()),
+			joinConditions
+		);
 	};
-	
-	private TermGenerator<Resource> createRefObjectJoinlessMapper(RefObjectMap refObjectMap) {
-		return getSubjectGenerator(refObjectMap.getParentTriplesMap().getSubjectMap());
-	}
-	
-	@SuppressWarnings("unchecked")
-	private TermGenerator<IRI> getGraphGenerator(GraphMap map) {
-		return (TermGenerator<IRI>) getGenerator(
-			map,
-			Arrays.asList(Rr.IRI),
-			Arrays.asList(IRI.class)
-		);
-	}
-	
-	@SuppressWarnings("unchecked")
-	private TermGenerator<IRI> getPredicateGenerator(PredicateMap map) {
-		return (TermGenerator<IRI>) getGenerator(
-			map,
-			Arrays.asList(Rr.IRI),
-			Arrays.asList(IRI.class)
-		);
-	}
-	
-	@SuppressWarnings("unchecked")
-	private TermGenerator<Resource> getSubjectGenerator(SubjectMap map) {
-		return (TermGenerator<Resource>) getGenerator(
-			map,
-			Arrays.asList(Rr.BlankNode, Rr.IRI),
-			Arrays.asList(IRI.class)
-		);
-	}
-	
-	private TermGenerator<?> getGenerator(
-		TermMap map,
-		List<IRI> allowedTermTypes,
-		List<Class<? extends Value>> allowedConstantTypes
-	) {
-		
-		// constant
-		Value constant = getConstant(map, allowedConstantTypes);
-		if (constant != null) return x -> constant;
-
-		TermGenerator<?> generator;
-		
-		// reference
-		generator = getReferenceGenerator(map, allowedTermTypes);
-		if (generator != null) return generator;
-			
-		// template
-		generator = getTemplateGenerator(map, allowedTermTypes);
-		if (generator != null) return generator;
-		
-		throw new RuntimeException("could not create generator for map [" + map + "]");
-	}
 	
 }

@@ -6,7 +6,6 @@ import java.util.Set;
 import com.taxonic.rml.model.Join;
 import com.taxonic.rml.model.RefObjectMap;
 import com.taxonic.rml.model.TriplesMap;
-import com.taxonic.rml.model.impl.SubjectMapImpl.Builder;
 import com.taxonic.rml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.rml.rdf_mapper.annotations.RdfType;
 import com.taxonic.rml.vocab.Rr;

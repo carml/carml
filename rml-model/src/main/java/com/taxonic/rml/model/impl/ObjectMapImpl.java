@@ -4,6 +4,8 @@ import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Value;
 
 import com.taxonic.rml.model.ObjectMap;
+import com.taxonic.rml.model.TermType;
+import com.taxonic.rml.model.TriplesMap;
 import com.taxonic.rml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.rml.vocab.Rr;
 
@@ -18,12 +20,13 @@ public class ObjectMapImpl extends TermMapImpl implements ObjectMap {
 		String reference,
 		String inverseExpression,
 		String template,
-		IRI termType,
+		TermType termType,
 		Value constant,
+		TriplesMap functionValue,
 		IRI datatype,
 		String language
 	) {
-		super(reference, inverseExpression, template, termType, constant);
+		super(reference, inverseExpression, template, termType, constant, functionValue);
 		this.datatype = datatype;
 		this.language = language;
 	}
@@ -53,7 +56,7 @@ public class ObjectMapImpl extends TermMapImpl implements ObjectMap {
 		return "ObjectMapImpl [getDatatype()=" + getDatatype() + ", getLanguage()=" + getLanguage()
 			+ ", getReference()=" + getReference() + ", getInverseExpression()=" + getInverseExpression()
 			+ ", getTemplate()=" + getTemplate() + ", getTermType()=" + getTermType() + ", getConstant()="
-			+ getConstant() + "]";
+			+ getConstant() + ", getFunctionValue()=" + getFunctionValue() + "]";
 	}
 
 	@Override
@@ -92,10 +95,6 @@ public class ObjectMapImpl extends TermMapImpl implements ObjectMap {
 		private IRI datatype;
 		private String language;
 
-		Builder() {}
-		
-		// TODO the value of extending TermMapImpl.Builder is very small...
-
 		public Builder reference(String reference) {
 			super.reference(reference);
 			return this;
@@ -111,13 +110,18 @@ public class ObjectMapImpl extends TermMapImpl implements ObjectMap {
 			return this;
 		}
 		
-		public Builder termType(IRI termType) {
+		public Builder termType(TermType termType) {
 			super.termType(termType);
 			return this;
 		}
 		
 		public Builder constant(Value constant) {
 			super.constant(constant);
+			return this;
+		}
+		
+		public Builder functionValue(TriplesMap functionValue) {
+			super.functionValue(functionValue);
 			return this;
 		}
 		
@@ -138,6 +142,7 @@ public class ObjectMapImpl extends TermMapImpl implements ObjectMap {
 				getTemplate(),
 				getTermType(),
 				getConstant(),
+				getFunctionValue(),
 				datatype,
 				language
 			);
