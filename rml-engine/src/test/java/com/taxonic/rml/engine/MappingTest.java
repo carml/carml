@@ -44,7 +44,7 @@ class MappingTest {
 		assertEquals(expected, result);
 	}
 	
-	private RDFFormat determineRdfFormat(String path) {
+	RDFFormat determineRdfFormat(String path) {
 		int period = path.lastIndexOf(".");
 		if (period == -1)
 			return RDFFormat.TURTLE;

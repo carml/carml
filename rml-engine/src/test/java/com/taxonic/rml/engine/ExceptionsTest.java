@@ -16,7 +16,15 @@ public class ExceptionsTest extends MappingTest {
 
 	@Rule
 	public ExpectedException thrown = ExpectedException.none();
-
+	
+	@Test
+	public void testFormatException() {
+		//TODO change visibility of determineRdfFormat back to private
+		thrown.expect(RuntimeException.class);
+		thrown.expectMessage(startsWith("could not determine rdf format from file extension"));
+		determineRdfFormat("RmlMapper/exceptionTests/exceptionFormat.jsonld");
+	}
+	
 	@Test
 	public void testGeneratorMappingException() {
 		thrown.expect(RuntimeException.class);
