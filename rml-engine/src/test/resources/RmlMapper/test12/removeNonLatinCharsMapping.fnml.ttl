@@ -10,10 +10,10 @@
 @prefix fnml:   <http://semweb.mmlab.be/ns/fnml#> .
 
 
-<#LogicalSource> rml:source "removeNonLatinCharsTestInput.json";
-		rml:referenceFormulation ql:JSONPath;
-		rml:iterator "$" .
-		
+<#LogicalSource> rml:source "removeNonLatinCharsFunctionTestInput.json";
+	rml:referenceFormulation ql:JSONPath;
+	rml:iterator "$" .
+
 <#toBoolMapping> a rr:TriplesMap;
 	rml:logicalSource <#LogicalSource>;
 	rr:subjectMap [
@@ -35,20 +35,17 @@
 <#removeNonLatinCharsFunctionMapName> fnml:functionValue [
 	rml:logicalSource <#LogicalSource>;
 	rr:subjectMap [
-		rr:template "http://example.com/Student/{ID}";
-		rr:class ex:studentId
+		rr:template "http://example.com/Student/{ID}/removeNonLatinCharsFunctionMapName";
 	];
 	rr:predicateObjectMap [
 		rr:predicate fno:executes;
-		rr:objectMap [ 
-			rr:constant ex:removeNonLatinCharsFunction;
-		]
+		rr:object ex:removeNonLatinCharsFunction;
 	];
 	
 	rr:predicateObjectMap [
 		rr:predicate ex:startString;
 		rr:objectMap [
-			rr:reference "name";
+			rml:reference "name";
 		]
 	]
 ].
@@ -56,19 +53,16 @@
 <#removeNonLatinCharsFunctionMapLastName> fnml:functionValue [
 	rml:logicalSource <#LogicalSource>;
 	rr:subjectMap [
-		rr:template "http://example.com/Student/{ID}";
-		rr:class ex:studentId
+		rr:template "http://example.com/Student/{ID}/removeNonLatinCharsFunctionMapLastName";
 	];
 	rr:predicateObjectMap [
 		rr:predicate fno:executes;
-		rr:objectMap [ 
-			rr:constant ex:removeNonLatinCharsFunction;
-		]
+		rr:object ex:removeNonLatinCharsFunction;
 	];
 	rr:predicateObjectMap [
 		rr:predicate ex:startString;
 		rr:objectMap [
-			rr:reference "name";
+			rml:reference "name";
 		]
 	]
 ].

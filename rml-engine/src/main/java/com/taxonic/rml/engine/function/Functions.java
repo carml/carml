@@ -63,9 +63,8 @@ public class Functions {
 					.collect(Collectors.toList());
 				
 				try {
-					return method.invoke(obj, arguments.toArray())
-						// TODO return value adapter?
-						.toString();
+					// TODO return value adapter?
+					return method.invoke(obj, arguments.toArray());
 				}
 				catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
 					throw new RuntimeException("error executing function", e);
