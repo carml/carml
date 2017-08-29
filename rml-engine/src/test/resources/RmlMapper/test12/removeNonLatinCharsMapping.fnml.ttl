@@ -41,7 +41,6 @@
 		rr:predicate fno:executes;
 		rr:object ex:removeNonLatinCharsFunction;
 	];
-	
 	rr:predicateObjectMap [
 		rr:predicate ex:startString;
 		rr:objectMap [
@@ -62,7 +61,7 @@
 	rr:predicateObjectMap [
 		rr:predicate ex:startString;
 		rr:objectMap [
-			rml:reference "name";
+			rml:reference "lastName";
 		]
 	]
 ].

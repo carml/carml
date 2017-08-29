@@ -20,17 +20,10 @@
 		rr:template "http://example.com/Student/{ID}";
 		rr:class ex:studentId
 	];
-	rr:predicateObjectMap <#StringPresentMapping> ;
 	rr:predicateObjectMap <#BoolPresentMapping> .
 
-<#StringPresentMapping> a rr:predicateObjectMap;
-	rr:predicate ex:isPresentString;
-	rr:objectMap [
-		rml:reference "present";
-	] .
-	
 <#BoolPresentMapping> a rr:predicateObjectMap;
-	rr:predicate ex:isPresentBool;
+	rr:predicate ex:isPresent;
 	rr:objectMap <#toBoolFunctionMap> .
 
 <#toBoolFunctionMap>

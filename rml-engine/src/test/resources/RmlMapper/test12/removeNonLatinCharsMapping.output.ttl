@@ -1,5 +1,9 @@
 <http://example.com/Student/5678> a <http://example.com/studentId> ;
-	<http://example.com/hasName> "lauri";
-		<http://example.com/isSPresentString> "yes" .
-
+	<http://example.com/hasName> "Lauri" ;
+	<http://example.com/hasLastName> "Rondolo" .
 	
+<http://example.com/Student/5678/removeNonLatinCharsFunctionMapName> <http://semweb.datasciencelab.be/ns/function#executes> <http://example.com/removeNonLatinCharsFunction> ;
+	<http://example.com/startString> "Lauri%" .
+
+<http://example.com/Student/5678/removeNonLatinCharsFunctionMapLastName> <http://semweb.datasciencelab.be/ns/function#executes> <http://example.com/removeNonLatinCharsFunction> ;
+	<http://example.com/startString> "Rondolo%" .
