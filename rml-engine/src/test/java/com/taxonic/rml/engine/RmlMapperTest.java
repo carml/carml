@@ -103,6 +103,16 @@ public class RmlMapperTest extends MappingTest {
 	}
 	
 	@Test
+	public void testNestedFunction() {
+		testMapping(
+			"RmlMapper",
+			"RmlMapper/test18/nestedFunctionMapping.fnml.ttl",
+			"RmlMapper/test18/nestedFunctionMapping.output.ttl",
+			m -> m.addFunctions(new RmlFunctions())
+		);
+	}
+	
+	@Test
 	public void testSeparateMapsMapping() {
 		testMapping("RmlMapper",
 				"RmlMapper/test10/separateMapsMapping.rml.ttl",

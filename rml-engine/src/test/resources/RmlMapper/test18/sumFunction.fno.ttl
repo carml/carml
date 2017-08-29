@@ -1,0 +1,41 @@
+ex:sumFunction a fno:Function;
+	fno:name "The sum function"^^xsd:string;
+	dcterms:description "This function sums an integer and the output of a function."^^xsd:string;
+	fno:solves ex:sumProblem;
+	fno:implements ex:sumAlgorithm;
+	fno:expects ( fno:toIntFunction, ex:intParameter );
+	fno:returns ex:sumOutput.
+	
+fno:toIntFunction a fno:Parameter;
+	fno:predicate ex:toIntFunctionParam;
+	fno:required "true"^^xsd:boolean.
+	
+fno:averageFunction fno:type fno:Function.
+
+ex:intParameter a fno:Parameter;
+	fno:predicate ex:intParam;
+	fno:required "true"^^xsd:boolean.  
+
+ex:intParameter fno:type xsd:integer.
+
+ex:sumOutput a fno:Output;
+	fno:predicate ex:sumResult;
+	fno:required "true"^^xsd:boolean.
+	
+ex:sumResult fno:type xsd:integer.
+
+ex:sumProblem a fno:Problem;
+	fno:name "The sum of int and a list of ints problem"^^xsd:string;
+	dcterms:description "This handles the problem of taking the sum of an integer and a list of integers."^^xsd:string;
+
+ex:sumAlgorithm a fno:Algorithm;
+	fno:name "The sum algorithm"^^xsd:string;
+	dcterms:description "About how an int and a list of ints are summed together."^^xsd:string;
+	
+ex:sumExecution a fno:Execution;
+	fno:executes ex:sumFunction;
+	ex:toIntFunctionParam fno:toIntFunction;
+	ex:IntParam "99"^^^xsd:int.
+	
+
+

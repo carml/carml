@@ -1,6 +1,7 @@
 package com.taxonic.rml.engine;
 
 import com.taxonic.rml.engine.function.FnoFunction;
+import com.taxonic.rml.engine.function.FnoOutput;
 import com.taxonic.rml.engine.function.FnoParam;
 
 public class RmlFunctions {
@@ -15,8 +16,17 @@ public class RmlFunctions {
 			
 			startString = prefix + "startString",
 			
-			removeNonLatinCharsFunction = prefix + "removeNonLatinCharsFunction";
-		
+			stringParam = prefix + "stringParam",
+			
+			removeNonLatinCharsFunction = prefix + "removeNonLatinCharsFunction",
+			
+			sumFunction = prefix + "sumFunction",
+			
+			toIntFunction = prefix + "toIntFunction",
+			
+			toIntOutput = prefix + "toIntOutput",
+			
+			intParam = prefix + "intParam";
 	}
 	
 	@FnoFunction(Ex.toBoolFunction)
@@ -37,4 +47,18 @@ public class RmlFunctions {
 		return inputString.toLowerCase();
 	}
 	
+	@FnoFunction(Ex.toIntFunction)
+	public int toIntFunction(
+			@FnoParam(Ex.stringParam) String inputString
+	) {
+		return Integer.parseInt(inputString);
+	}
+	
+	@FnoFunction(Ex.sumFunction)
+	public int sumFunction(
+			//TODO This probably should be @FnoOutput
+			@FnoParam(Ex.toIntOutput) int toIntOutput, @FnoParam(Ex.intParam) int inputInt
+	) {
+		return toIntOutput + inputInt;
+	}
 }
