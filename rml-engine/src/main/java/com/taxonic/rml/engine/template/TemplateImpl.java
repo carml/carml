@@ -4,7 +4,9 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -141,21 +143,21 @@ class TemplateImpl implements Template {
 	
 	private class Builder implements Template.Builder {
 
-		private Map<Expression, String> bindings = new LinkedHashMap<>();
+		private Map<Expression, Function<Expression, Optional<String>>> bindings = new LinkedHashMap<>();
 		
 		@Override
-		public Template.Builder bind(Expression expression, String value) {
-			bindings.put(expression, value);
+		public Template.Builder bind(Expression expression, Function<Expression, Optional<String>> templateValue) {
+			bindings.put(expression, templateValue);
 			return this;
 		}
 		
-		private String getExpressionValue(Expression expression) {
+		private Optional<String> getExpressionValue(Expression expression) {
 			if (!bindings.containsKey(expression))
 				throw new RuntimeException("no binding present for expression [" + expression + "]");
-			return bindings.get(expression);
+			return bindings.get(expression).apply(expression);
 		}
 		
-		private String getExpressionSegmentValue(ExpressionSegment segment) {
+		private Optional<String> getExpressionSegmentValue(ExpressionSegment segment) {
 			Expression expression = expressionSegmentMap.get(segment);
 			if (expression == null)
 				throw new RuntimeException("no Expression instance present corresponding to segment " + segment); // (should never occur)
@@ -169,16 +171,27 @@ class TemplateImpl implements Template {
 		}
 		
 		@Override
-		public String create() {
+		public Optional<Object> create() {
 			checkBindings();
 			StringBuilder str = new StringBuilder();
-			segments.forEach(s -> {
-				if (s instanceof Text)
+			
+			for (Segment s : segments) {
+				if (s instanceof Text) {
 					str.append(s.getValue());
-				else if (s instanceof ExpressionSegment)
-					str.append(getExpressionSegmentValue((ExpressionSegment) s));
-			});
-			return str.toString();
+				} else if (s instanceof ExpressionSegment) {
+					Optional<String> value = getExpressionSegmentValue((ExpressionSegment) s);
+					if (value.isPresent()) {
+						str.append(value.get());
+					} else {
+						// Return null when an expression value is null.
+						// see https://www.w3.org/TR/r2rml/#from-template
+						// and https://www.w3.org/TR/r2rml/#generated-rdf-term
+						// TODO: PM: is this the best place to check this? Could possibly be handled at builder.
+						return Optional.empty();
+					}
+				}
+			}			
+			return Optional.of(str.toString());
 		}
 	}
 	

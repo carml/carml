@@ -23,7 +23,7 @@ import org.eclipse.rdf4j.model.util.Models;
 
 public class Functions {
 
-	private static final ValueFactory f = SimpleValueFactory.getInstance();
+	private static final ValueFactory VF = SimpleValueFactory.getInstance();
 	
 	private Map<IRI, ExecuteFunction> functions = new LinkedHashMap<>();
 	
@@ -35,8 +35,8 @@ public class Functions {
 		Arrays.asList(fn.getClass().getMethods())
 			.stream()
 			.map(m -> createFunctionExecutor(fn, m))
-			.filter(o -> o.isPresent())
-			.map(o -> o.get())
+			.filter(Optional::isPresent)
+			.map(Optional::get)
 			.forEach(f -> functions.put(f.getIri(), f));
 	}
 
@@ -44,7 +44,7 @@ public class Functions {
 		
 		FnoFunction function = method.getAnnotation(FnoFunction.class);
 		if (function == null) return Optional.empty();
-		IRI iri = f.createIRI(function.value());
+		IRI iri = VF.createIRI(function.value());
 		
 		List<ExtractParameter> parameterExtractors =
 			Arrays.asList(method.getParameters())
@@ -84,7 +84,7 @@ public class Functions {
 		if (param == null)
 			throw new RuntimeException("no @" + FnoParam.class.getName() +
 				" annotation present on parameter");
-		IRI iri = f.createIRI(param.value());
+		IRI iri = VF.createIRI(param.value());
 		
 		Type type = parameter.getType();
 		

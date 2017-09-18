@@ -3,6 +3,7 @@ package com.taxonic.rml.engine;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.eclipse.rdf4j.model.Resource;
@@ -30,8 +31,10 @@ public class RefObjectMapper {
 	private Map<String, Object> createJoinValues(EvaluateExpression evaluate) {
 		Map<String, Object> joinValues = new LinkedHashMap<>();
 		joinConditions.stream().forEach(j -> {
-			Object childValue = evaluate.apply(j.getChildReference());
-			joinValues.put(j.getParentReference(), childValue);
+			Optional<Object> childValue = evaluate.apply(j.getChildReference());
+			childValue.ifPresent(c -> joinValues.put(j.getParentReference(), c));
+			//TODO: PM: what should happen when there is no childValue found?
+			// log a warning? and ignore the mapping?
 		});
 		return joinValues;
 	}
