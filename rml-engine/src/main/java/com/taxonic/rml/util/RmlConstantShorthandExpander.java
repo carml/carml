@@ -10,8 +10,8 @@ import static com.taxonic.rml.vocab.Rdf.Rr.predicateMap;
 import static com.taxonic.rml.vocab.Rdf.Rr.subject;
 import static com.taxonic.rml.vocab.Rdf.Rr.subjectMap;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +21,7 @@ import org.eclipse.rdf4j.model.BNode;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
+import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
@@ -56,7 +57,7 @@ public class RmlConstantShorthandExpander implements UnaryOperator<Model> {
 				add(predicate, predicateMap);
 				add(object, objectMap);
 				add(graph, graphMap);
-				return Collections.unmodifiableMap(expandedPredicates);
+				return ImmutableMap.copyOf(expandedPredicates);
 			}
 		}
 		expandedPredicates = new CreateExpandedPredicates().run();
@@ -73,27 +74,25 @@ public class RmlConstantShorthandExpander implements UnaryOperator<Model> {
 	public Model apply(Model input) {
 		
 		Model model = new LinkedHashModel();
-		
-		input.forEach(statement -> {
-			
-			IRI p = statement.getPredicate();
-			
-			// add statements that are NOT shortcut properties
-			// as-is to the result model
-			if (!shortcutPredicates.contains(p)) {
-				model.add(statement);
-				return;
-			}
-			
-			// 'p' is a shortcut predicate
-			Resource context = statement.getContext();
-			BNode bNode = f.createBNode();
-			// TODO verify that 'context' works properly, even if it is null
-			model.add(statement.getSubject(), getExpandedPredicate(p), bNode, context);
-			model.add(bNode, constant, statement.getObject(), context);
-			
-		});
-		
+		input.forEach(statement -> expandStatements(model, statement));
 		return model;
+	}
+	
+	private void expandStatements(Model model, Statement statement) {
+		IRI p = statement.getPredicate();
+		
+		// add statements that are NOT shortcut properties
+		// as-is to the result model
+		if (!shortcutPredicates.contains(p)) {
+			model.add(statement);
+			return;
+		}
+		
+		// 'p' is a shortcut predicate
+		Resource context = statement.getContext();
+		BNode bNode = f.createBNode();
+		// TODO verify that 'context' works properly, even if it is null
+		model.add(statement.getSubject(), getExpandedPredicate(p), bNode, context);
+		model.add(bNode, constant, statement.getObject(), context);
 	}
 }

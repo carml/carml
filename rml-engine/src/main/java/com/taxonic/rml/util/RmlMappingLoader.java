@@ -1,5 +1,6 @@
 package com.taxonic.rml.util;
 
+import java.io.InputStream;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
@@ -7,7 +8,7 @@ import java.util.function.Function;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
-
+import org.eclipse.rdf4j.rio.RDFFormat;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.taxonic.rml.model.TermType;
@@ -29,6 +30,7 @@ public class RmlMappingLoader {
 	}
 
 	// TODO: PM: shouldn't the return type be Set?
+	// TODO: I don't think we need this method. User should always specify his RDF format.
 	public List<TriplesMap> load(String resource) {
 
 		Model originalModel = IoUtils.parse(resource);
@@ -43,7 +45,26 @@ public class RmlMappingLoader {
 					this::addTermTypes
 				)
 			);
-		
+	}
+	
+	public List<TriplesMap> load(String resource, RDFFormat rdfFormat) {
+		InputStream input = RmlMappingLoader.class.getClassLoader().getResourceAsStream(resource);		
+		return load(input, rdfFormat);
+	}
+	
+	public List<TriplesMap> load(InputStream input, RDFFormat rdfFormat) {
+		// TODO: PM do we really need IoUtils?
+		Model originalModel = IoUtils.parse(input, rdfFormat);
+		return
+			ImmutableList.copyOf(
+				RdfObjectLoader.load(
+					selectTriplesMaps, 
+					TriplesMapImpl.class, 
+					originalModel, 
+					shorthandExpander,
+					this::addTermTypes
+				)
+			);
 	}
 	
 	private void addTermTypes(MappingCache cache) {
