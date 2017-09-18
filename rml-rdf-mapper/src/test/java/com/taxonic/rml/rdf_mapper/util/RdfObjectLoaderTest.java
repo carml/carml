@@ -227,4 +227,6 @@ public class RdfObjectLoaderTest {
 		assertThat("", address.getPostalCode(), is("24060"));
 	}
 
+	
+	//TODO: PM: add test for populateCache
 }

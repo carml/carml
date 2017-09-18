@@ -1,4 +1,4 @@
-package com.taxonic.rml.engine;
+package com.taxonic.rml.engine.iotests;
 
 import static org.junit.Assert.assertEquals;
 
@@ -11,7 +11,7 @@ import java.util.function.Function;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.rio.RDFFormat;
 import org.eclipse.rdf4j.rio.Rio;
-
+import com.taxonic.rml.engine.RmlMapper;
 import com.taxonic.rml.model.TriplesMap;
 import com.taxonic.rml.util.IoUtils;
 import com.taxonic.rml.util.RmlMappingLoader;
@@ -59,16 +59,10 @@ class MappingTest {
 	}
 	
 	RDFFormat determineRdfFormat(String path) {
-		int period = path.lastIndexOf(".");
-		if (period == -1)
-			return RDFFormat.TURTLE;
-		String extension = path.substring(period + 1).toLowerCase();
-		if (extension.equals("ttl"))
-			return RDFFormat.TURTLE;
-		if (extension.equals("trig"))
-			return RDFFormat.TRIG;
-		throw new RuntimeException(
-			"could not determine rdf format from file extension [" + extension + "]");
+		return 
+			Rio.getParserFormatForFileName(path)
+			.orElseThrow(() -> 
+				new RuntimeException("could not determine rdf format from file [" + path + "]"));
 	}
 
 	private void printModel(Model model) {

@@ -1,4 +1,4 @@
-package com.taxonic.rml.engine;
+package com.taxonic.rml.engine.iotests;
 
 import org.junit.Test;
 

@@ -1,7 +1,6 @@
-package com.taxonic.rml.engine;
+package com.taxonic.rml.engine.iotests;
 
 import com.taxonic.rml.engine.function.FnoFunction;
-import com.taxonic.rml.engine.function.FnoOutput;
 import com.taxonic.rml.engine.function.FnoParam;
 
 public class RmlFunctions {
@@ -49,15 +48,15 @@ public class RmlFunctions {
 	
 	@FnoFunction(Ex.toIntFunction)
 	public int toIntFunction(
-			@FnoParam(Ex.stringParam) String inputString
+		@FnoParam(Ex.stringParam) String inputString
 	) {
 		return Integer.parseInt(inputString);
 	}
 	
 	@FnoFunction(Ex.sumFunction)
 	public int sumFunction(
-			//TODO This probably should be @FnoOutput
-			@FnoParam(Ex.toIntOutput) int toIntOutput, @FnoParam(Ex.intParam) int inputInt
+		//TODO This probably should be @FnoOutput
+		@FnoParam(Ex.toIntOutput) int toIntOutput, @FnoParam(Ex.intParam) int inputInt
 	) {
 		return toIntOutput + inputInt;
 	}
