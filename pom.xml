@@ -15,7 +15,6 @@
 		<module>carml-model</module>
 		<module>carml-rdf-mapper</module>
 		<module>carml-constraints</module>
-		<module>carml-cli</module>
 	</modules>
 
 	<properties>
