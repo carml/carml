@@ -1,6 +1,9 @@
 package com.taxonic.carml.util;
 
+import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -8,7 +11,7 @@ import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.rio.RDFFormat;
-
+import org.jooq.lambda.Unchecked;
 import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.model.TermType;
 import com.taxonic.carml.model.TriplesMap;
@@ -30,6 +33,16 @@ public class RmlMappingLoader {
 
 	public Set<TriplesMap> load(String resource, RDFFormat rdfFormat) {
 		InputStream input = RmlMappingLoader.class.getClassLoader().getResourceAsStream(resource);		
+		return load(input, rdfFormat);
+	}
+	
+	public Set<TriplesMap> load(Path pathToFile, RDFFormat rdfFormat) {
+		InputStream input;
+		try {
+			input = Files.newInputStream(pathToFile);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}		
 		return load(input, rdfFormat);
 	}
 	
