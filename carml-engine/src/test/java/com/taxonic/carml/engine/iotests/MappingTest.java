@@ -2,11 +2,9 @@ package com.taxonic.carml.engine.iotests;
 
 import static org.junit.Assert.assertEquals;
 
-import java.io.InputStream;
 import java.io.StringWriter;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.rio.RDFFormat;
@@ -37,13 +35,12 @@ class MappingTest {
 		String contextPath,
 		String rmlPath,
 		String outputPath,
-		Consumer<RmlMapper> configureMapper
+		Consumer<RmlMapper.Builder> configureMapper
 	) {
 		Set<TriplesMap> mapping = loader.load(rmlPath, RDFFormat.TURTLE);
-		Function<String, InputStream> sourceResolver =
-			s -> RmlMapperTest.class.getClassLoader().getResourceAsStream(contextPath + "/" + s);
-		RmlMapper mapper = new RmlMapper(sourceResolver);
-		configureMapper.accept(mapper);
+		RmlMapper.Builder builder = RmlMapper.newBuilder().classPathResolver(contextPath);
+		configureMapper.accept(builder);
+		RmlMapper mapper = builder.build();
 		Model result = mapper.map(mapping);
 		
 		System.out.println("Generated from test: " + rmlPath);

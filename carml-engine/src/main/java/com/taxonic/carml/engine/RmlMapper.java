@@ -5,6 +5,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -20,6 +22,8 @@ import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
+import org.jooq.lambda.Unchecked;
+
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.Option;
@@ -48,6 +52,47 @@ import com.taxonic.carml.model.TriplesMap;
 
 public class RmlMapper {
 
+	public static Builder newBuilder() {
+		return new Builder();
+	}
+	
+	public static class Builder {
+		
+		private Functions functions = new Functions(); // TODO
+		private Function<String, InputStream> sourceResolver;
+		
+		public Builder addFunctions(Object fn) {
+			functions.addFunctions(fn);
+			return this;
+		}
+		
+		public Builder sourceResolver(Function<String, InputStream> sourceResolver) {
+			this.sourceResolver = sourceResolver;
+			return this;
+		}
+		
+		public Builder fileResolver(Path basePath) {
+			sourceResolver(
+				Unchecked.function(
+					s -> Files.newInputStream(basePath.resolve(s))
+				)
+			);
+			return this;
+		}
+
+		public Builder classPathResolver(String basePath) {
+			sourceResolver(
+				s -> RmlMapper.class.getClassLoader()
+					.getResourceAsStream(basePath + "/" + s)
+			);
+			return this;
+		}
+		
+		public RmlMapper build() {
+			return new RmlMapper(sourceResolver, functions);
+		}
+	}
+	
 	private Function<String, InputStream> sourceResolver;
 	
 	private static Configuration JSONPATH_CONF = Configuration.builder()
@@ -55,18 +100,16 @@ public class RmlMapper {
 	
 	private TermGeneratorCreator termGenerators = TermGeneratorCreator.create(this); // TODO
 
-	private Functions functions = new Functions(); // TODO
+	private Functions functions;
 
 	public RmlMapper(
-		Function<String, InputStream> sourceResolver
+		Function<String, InputStream> sourceResolver,
+		Functions functions
 	) {
 		this.sourceResolver = sourceResolver;
+		this.functions = functions;
 	}
 
-	public void addFunctions(Object fn) {
-		functions.addFunctions(fn);
-	}
-	
 	public Optional<ExecuteFunction> getFunction(IRI iri) {
 		return functions.getFunction(iri);
 	}

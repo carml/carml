@@ -33,6 +33,12 @@
 			<version>2.4.0</version>
 		</dependency>
 
+		<dependency>
+			<groupId>org.jooq</groupId>
+			<artifactId>jool</artifactId>
+			<version>0.9.12</version>
+		</dependency>
+
 	</dependencies>
 
 </project>

@@ -1,10 +1,8 @@
 package com.taxonic.carml.engine.iotests;
 
-import static org.hamcrest.core.Is.is;
 import static org.hamcrest.CoreMatchers.startsWith;
+import static org.hamcrest.core.Is.is;
 
-import java.io.InputStream;
-import java.util.function.Function;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -64,9 +62,7 @@ public class ExceptionsTest extends MappingTest {
 
 	@Test
 	public void testReadSourceException() throws RuntimeException {
-		Function<String, InputStream> sourceResolver = s -> RmlMapperTest.class.getClassLoader()
-				.getResourceAsStream("RmlMapper" + "/" + s);
-		RmlMapper tm = new RmlMapper(sourceResolver);
+		RmlMapper tm = RmlMapper.newBuilder().classPathResolver("RmlMapper").build();
 		// TODO change readSource back to private.
 		String result = tm.readSource("exceptions.json");
 		assert (result.equals("{\"name\":\"carml\"}"));
