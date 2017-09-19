@@ -38,6 +38,7 @@ class ParentTriplesMapper {
 			: Collections.singleton(value);
 	}
 	
+	//TODO: PM: should return Set<Resource>
 	List<Resource> map(Map<String, Object> joinValues) {
 		Object source = getSource.get();
 		Object value = applyIterator.apply(source);
@@ -47,7 +48,6 @@ class ParentTriplesMapper {
 			map(e, joinValues)
 				.ifPresent(results::add));
 		return results;
-		
 	}
 	
 	private Optional<Resource> map(Object entry, Map<String, Object> joinValues) {
@@ -55,15 +55,14 @@ class ParentTriplesMapper {
 		EvaluateExpression evaluate =
 			expressionEvaluatorFactory.apply(entry);
 		boolean isValidJoin = joinValues.keySet().stream().allMatch(parentExpression -> {
-			Object parentValue = evaluate.apply(parentExpression);
+			Optional<Object> parentValue = evaluate.apply(parentExpression);
 			Object requiredValue = joinValues.get(parentExpression);
-			return Objects.equals(parentValue, requiredValue);
+			return parentValue
+					.map(p -> Objects.equals(p, requiredValue))
+					.orElse(false);
 		});
 		 if (isValidJoin) {
-			 Resource subject = subjectGenerator.apply(evaluate);
-			 return subject == null
-				? Optional.empty()
-				: Optional.of(subject);
+			 return subjectGenerator.apply(evaluate);
 		 }
 		 return Optional.empty();
 		

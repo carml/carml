@@ -1,6 +1,8 @@
 package com.taxonic.rml.engine.template;
 
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 
 public interface Template {
 
@@ -10,9 +12,9 @@ public interface Template {
 	
 	interface Builder {
 		
-		Builder bind(Expression expression, String value);
+		Builder bind(Expression expression, Function<Expression, Optional<String>> templateValue);
 		
-		String create();
+		Optional<Object> create();
 		
 	}
 	

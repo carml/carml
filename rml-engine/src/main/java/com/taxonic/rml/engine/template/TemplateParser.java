@@ -39,6 +39,7 @@ public class TemplateParser {
 	
 	private static class Expression extends Segment {}
 	
+	// TODO: PM: reduce cognitive complexity by splitting up in sub-methods
 	public Template parse(String template) {
 
 		MutableBoolean escaping = new MutableBoolean(false);

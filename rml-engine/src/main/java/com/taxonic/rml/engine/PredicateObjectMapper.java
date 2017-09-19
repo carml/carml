@@ -1,6 +1,7 @@
 package com.taxonic.rml.engine;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -28,6 +29,8 @@ class PredicateObjectMapper {
 				subjectGraphs.stream(),
 				graphGenerators.stream()
 					.map(g -> g.apply(evaluate))
+					.filter(Optional::isPresent)
+					.map(Optional::get)
 			)
 			.collect(Collectors.toList());
 		

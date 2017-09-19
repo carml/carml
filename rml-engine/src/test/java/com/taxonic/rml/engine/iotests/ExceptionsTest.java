@@ -1,14 +1,14 @@
-package com.taxonic.rml.engine;
+package com.taxonic.rml.engine.iotests;
 
+import static org.hamcrest.core.Is.is;
 import static org.hamcrest.CoreMatchers.startsWith;
 
 import java.io.InputStream;
 import java.util.function.Function;
-
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-
+import com.taxonic.rml.engine.RmlMapper;
 import com.taxonic.rml.model.TermType;
 
 public class ExceptionsTest extends MappingTest {
@@ -19,9 +19,11 @@ public class ExceptionsTest extends MappingTest {
 	@Test
 	public void testFormatException() {
 		//TODO change visibility of determineRdfFormat back to private
+		// PM: uhh are we testing tests here? 
 		thrown.expect(RuntimeException.class);
-		thrown.expectMessage(startsWith("could not determine rdf format from file extension"));
-		determineRdfFormat("RmlMapper/exceptionTests/exceptionFormat.jsonld");
+		String fileName = "RmlMapper/exceptionTests/exceptionFormat.jsonld";
+		thrown.expectMessage(is(String.format("could not determine rdf format from file [%s]", fileName)));
+		determineRdfFormat(fileName);
 	}
 	
 	@Test
@@ -34,7 +36,14 @@ public class ExceptionsTest extends MappingTest {
 	@Test
 	public void testUnknownTermTypeException() {
 		thrown.expect(RuntimeException.class);
-		thrown.expectMessage(startsWith("cannot create an instance of enum type [" + TermType.class.getCanonicalName() + "]"));
+		thrown.expectMessage(
+			startsWith(
+				String.format(
+					"cannot create an instance of enum type [%s]", 
+					TermType.class.getCanonicalName()
+				)
+			)
+		);
 		testMapping("RmlMapper", "RmlMapper/exceptionTests/exceptionUnknownTermTypeMapping.rml.ttl", null);
 	}
 

@@ -25,4 +25,13 @@ public class IoUtils {
 			throw new RuntimeException("failed to parse resource [" + resource + "] as [" + format + "]", e);
 		}
 	}
+	
+	public static Model parse(InputStream input, RDFFormat format) {
+		try (InputStream is = input) {
+			return Rio.parse(is, "http://none.com/", format);
+		}
+		catch (IOException e) {
+			throw new RuntimeException("failed to parse inputstream [" + input + "] as [" + format + "]", e);
+		}
+	}
 }

@@ -1,6 +1,7 @@
 package com.taxonic.rml.engine;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -28,14 +29,17 @@ class SubjectMapper {
 		this.predicateObjectMappers = predicateObjectMappers;
 	}
 
-	Resource map(Model model, EvaluateExpression evaluate) {
-		
-		Resource subject = generator.apply(evaluate);
-		if (subject == null) return null;
-		
+	Optional<Resource> map(Model model, EvaluateExpression evaluate) {
+		Optional<Resource> subject = generator.apply(evaluate);
+		return subject.map(s -> mapSubject(s, model, evaluate));
+	}
+	
+	private Resource mapSubject(Resource subject, Model model, EvaluateExpression evaluate) {
 		// use graphs when generating statements later
 		List<IRI> graphs = graphGenerators.stream()
 			.map(g -> g.apply(evaluate))
+			.filter(Optional::isPresent)
+			.map(Optional::get)
 			.collect(Collectors.toList());
 		
 		Resource[] contexts = new Resource[graphs.size()];
@@ -44,7 +48,6 @@ class SubjectMapper {
 		// generate rdf:type triples from classes
 		classes.forEach(c -> model.add(subject, RDF.TYPE, c, contexts));
 
-		
 		predicateObjectMappers.forEach(p -> p.map(model, evaluate, subject, graphs));
 		
 		return subject;

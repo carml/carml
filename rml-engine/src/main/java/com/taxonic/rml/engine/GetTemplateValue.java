@@ -1,12 +1,14 @@
 package com.taxonic.rml.engine;
 
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
 import com.taxonic.rml.engine.template.Template;
 import com.taxonic.rml.engine.template.Template.Expression;
 
-class GetTemplateValue implements Function<EvaluateExpression, Object> {
+class GetTemplateValue implements Function<EvaluateExpression, Optional<Object>> {
 
 	private Template template;
 	private Set<Expression> expressions;
@@ -26,18 +28,23 @@ class GetTemplateValue implements Function<EvaluateExpression, Object> {
 	}
 
 	@Override
-	public Object apply(EvaluateExpression evaluateExpression) {
-		
+	public Optional<Object> apply(EvaluateExpression evaluateExpression) {
 		Template.Builder templateBuilder = template.newBuilder();
-		expressions.forEach(e ->
-			templateBuilder.bind(
-				e,
-				prepareValueForTemplate(
-					evaluateExpression.apply(e.getValue())
-				)
-			)
-		);
+		expressions.forEach(e -> bindTemplateExpression(e, evaluateExpression, templateBuilder));
 		return templateBuilder.create();
+	}
+	
+	private Template.Builder bindTemplateExpression(
+		Expression expression, 
+		EvaluateExpression evaluateExpression, 
+		Template.Builder templateBuilder
+	) {
+		return templateBuilder.bind(
+			expression,
+			e -> evaluateExpression
+				.apply(e.getValue())
+				.map(this::prepareValueForTemplate)
+		);
 	}
 	
 	/**
@@ -46,7 +53,7 @@ class GetTemplateValue implements Function<EvaluateExpression, Object> {
 	 * @return
 	 */
 	private String prepareValueForTemplate(Object raw) {
-		if (raw == null) return "NULL";
+		Objects.requireNonNull(raw);
 		String value = createNaturalRdfLexicalForm.apply(raw);
 		return transformValue.apply(value);
 	}

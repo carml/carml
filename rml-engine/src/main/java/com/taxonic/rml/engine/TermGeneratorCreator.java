@@ -5,10 +5,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
-
+import java.util.stream.Collectors;
 import org.eclipse.rdf4j.model.BNode;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Literal;
+import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.ValueFactory;
@@ -26,6 +27,7 @@ import com.taxonic.rml.model.SubjectMap;
 import com.taxonic.rml.model.TermMap;
 import com.taxonic.rml.model.TermType;
 import com.taxonic.rml.model.TriplesMap;
+import com.taxonic.rml.util.CollectorUtils;
 import com.taxonic.rml.util.IriEncoder;
 import com.taxonic.rml.vocab.Rdf;
 
@@ -103,28 +105,27 @@ class TermGeneratorCreator {
 		List<Class<? extends Value>> allowedConstantTypes
 	) {
 		return
-		Arrays.<Supplier<Optional<TermGenerator<Value>>>>asList(
-			
-			// constant
-			() -> getConstantGenerator(map, allowedConstantTypes),
-			
-			// reference
-			() -> getReferenceGenerator(map, allowedTermTypes),
-			
-			// template
-			() -> getTemplateGenerator(map, allowedTermTypes),
-			
-			// functionValue
-			() -> getFunctionValueGenerator(map, allowedTermTypes)
-			
-		)
-		.stream()
-		.map(s -> s.get())
-		.filter(o -> o.isPresent())
-		.map(o -> o.get())
-		.findFirst()
-		.orElseThrow(() ->
-			new RuntimeException("could not create generator for map [" + map + "]"));
+			Arrays.<Supplier<Optional<TermGenerator<Value>>>>asList(
+				
+				// constant
+				() -> getConstantGenerator(map, allowedConstantTypes),
+				
+				// reference
+				() -> getReferenceGenerator(map, allowedTermTypes),
+				
+				// template
+				() -> getTemplateGenerator(map, allowedTermTypes),
+				
+				// functionValue
+				() -> getFunctionValueGenerator(map, allowedTermTypes)
+				
+			)
+			.stream()
+			.map(Supplier::get)
+			.filter(Optional::isPresent)
+			.map(Optional::get)
+			// TODO: PM: could be that we get more than one generator, the error message doesn't make sense then.
+			.collect(CollectorUtils.toOnlyListItem("could not create generator for map [" + map + "]"));
 	}
 	
 	private Optional<TermGenerator<Value>> getConstantGenerator(
@@ -136,7 +137,7 @@ class TermGeneratorCreator {
 		if (allowedConstantTypes.stream().noneMatch(c -> c.isInstance(constant)))
 			throw new RuntimeException("encountered constant value of type " +
 				constant.getClass() + ", which is not allowed for this term map");
-		return Optional.of(e -> constant);
+		return Optional.of(e -> Optional.of(constant));
 	}
 	
 	private Optional<TermGenerator<Value>> getTemplateGenerator(
@@ -157,7 +158,7 @@ class TermGeneratorCreator {
 			? encodeIri
 			: v -> v;
 		
-		Function<EvaluateExpression, Object> getValue =
+		Function<EvaluateExpression, Optional<Object>> getValue =
 			new GetTemplateValue(
 				template,
 				template.getExpressions(),
@@ -181,7 +182,7 @@ class TermGeneratorCreator {
 		String reference = map.getReference();
 		if (reference == null) return Optional.empty();
 		
-		Function<EvaluateExpression, Object> getValue =
+		Function<EvaluateExpression, Optional<Object>> getValue =
 			evaluateExpression -> evaluateExpression.apply(reference);
 		
 		return Optional.of(getGenerator(
@@ -197,7 +198,10 @@ class TermGeneratorCreator {
 		List<TermType> allowedTermTypes
 	) {
 		
+		// TODO: make nicer use of optional
 		TriplesMap executionMap = map.getFunctionValue();
+		if (executionMap == null) return Optional.empty();
+		 
 		SubjectMapper executionMapper = mapper.createSubjectMapper(executionMap);
 		
 		// when 'executionMap' is evaluated, the generated triples
@@ -205,26 +209,8 @@ class TermGeneratorCreator {
 		
 		// TODO check that executionMap has an idential logical source
 
-		Function<EvaluateExpression, Object> getValue =
-			evaluateExpression -> {
-				
-				LinkedHashModel model = new LinkedHashModel();
-				Resource execution = executionMapper.map(model, evaluateExpression);
-				
-				IRI functionIri =
-					Models.objectIRI(
-						model.filter(execution, Rdf.Fno.executes, null)
-					)
-					.orElseThrow(() -> new RuntimeException(
-						"function execution does not have fno:executes value"));
-				
-				ExecuteFunction function =
-					mapper.getFunction(functionIri)
-						.orElseThrow(() -> new RuntimeException(
-							"no function registered for function IRI [" + functionIri + "]"));
-
-				return function.execute(model, execution);
-			};
+		Function<EvaluateExpression, Optional<Object>> getValue =
+			evaluateExpression -> functionEvaluation(evaluateExpression, executionMapper);
 		
 		return Optional.of(getGenerator(
 			map,
@@ -232,6 +218,31 @@ class TermGeneratorCreator {
 			allowedTermTypes,
 			determineTermType(map)
 		));
+	}
+	
+	private Optional<Object> functionEvaluation(EvaluateExpression evaluateExpression, SubjectMapper executionMapper) {
+		Model model = new LinkedHashModel();
+		Optional<Resource> execution = executionMapper.map(model, evaluateExpression);
+		
+		return execution.map(e -> mapExecution(e, model));
+	}
+	
+	private Object mapExecution(Resource execution, Model model) {
+		IRI functionIri = getFunctionIRI(execution, model);
+		ExecuteFunction function =
+				mapper.getFunction(functionIri)
+					.orElseThrow(() -> new RuntimeException(
+						"no function registered for function IRI [" + functionIri + "]"));
+
+		return function.execute(model, execution);
+	}
+	
+	private IRI getFunctionIRI(Resource execution, Model model) {
+		return Models.objectIRI(
+				model.filter(execution, Rdf.Fno.executes, null)
+			)
+			.orElseThrow(() -> new RuntimeException(
+				"function execution does not have fno:executes value"));
 	}
 	
 	private TermType determineTermType(TermMap map) {
@@ -264,7 +275,7 @@ class TermGeneratorCreator {
 
 	private TermGenerator<Value> getGenerator(
 		TermMap map,
-		Function<EvaluateExpression, Object> getValue,
+		Function<EvaluateExpression, Optional<Object>> getValue,
 		List<TermType> allowedTermTypes,
 		TermType termType
 	) {
@@ -274,10 +285,11 @@ class TermGeneratorCreator {
 			TermGenerator<Value>
 		> createGenerator = generateTerm ->
 			evaluateExpression -> {
-				Object referenceValue = getValue.apply(evaluateExpression);
-				if (referenceValue == null) return null;
-				String lexicalForm = createNaturalRdfLexicalForm(referenceValue);
-				return generateTerm.apply(lexicalForm);
+				Optional<Object> referenceValue = getValue.apply(evaluateExpression);
+				return referenceValue.map(r -> Optional.ofNullable(generateTerm.apply(createNaturalRdfLexicalForm(r))).orElse(null));
+//				if (referenceValue == null) return null;
+//				String lexicalForm = createNaturalRdfLexicalForm(referenceValue);
+//				return generateTerm.apply(lexicalForm);
 			};
 
 		if (!allowedTermTypes.contains(termType))

@@ -157,7 +157,7 @@ public class RmlMapper {
 		return o;
 	}
 	
-	private Stream<TermGenerator<Value>> getJoinlessRefObjectMapGenerators(
+	private Stream<TermGenerator<? extends Value>> getJoinlessRefObjectMapGenerators(
 		Set<BaseObjectMap> objectMaps, LogicalSource logicalSource
 	) {
 		return objectMaps.stream()
@@ -165,8 +165,7 @@ public class RmlMapper {
 			.map(o -> (RefObjectMap) o)
 			.filter(o -> o.getJoinConditions().isEmpty())
 			.map(o -> checkLogicalSource(o, logicalSource))
-			.map(o -> (TermGenerator<Value>) (Object) // TODO not very nice
-				createRefObjectJoinlessMapper(o));
+			.map(this::createRefObjectJoinlessMapper);
 	}
 	
 	private TermGenerator<Resource> createRefObjectJoinlessMapper(RefObjectMap refObjectMap) {
@@ -175,6 +174,7 @@ public class RmlMapper {
 		);
 	}
 	
+	// TODO: PM: reduce cognitive complexity by splitting up in sub-methods
 	private List<PredicateObjectMapper> createPredicateObjectMappers(TriplesMap triplesMap, Set<PredicateObjectMap> predicateObjectMaps) {
 		return predicateObjectMaps.stream().map(m -> {
 			
@@ -183,7 +183,7 @@ public class RmlMapper {
 			List<PredicateMapper> predicateMappers =
 				m.getPredicateMaps().stream().map(p -> {
 
-					List<TermGenerator<Value>> objectGenerators =
+					List<TermGenerator<? extends Value>> objectGenerators =
 						Stream.concat(
 						
 							// object maps -> object generators
@@ -246,7 +246,8 @@ public class RmlMapper {
 			s -> JsonPath.using(JSONPATH_CONF).parse((String) s).read(iterator);
 		
 		Function<Object, EvaluateExpression> expressionEvaluatorFactory =
-			object -> expression -> JsonPath.using(JSONPATH_CONF).parse(object).read(expression);
+			object -> expression -> Optional.ofNullable(
+				JsonPath.using(JSONPATH_CONF).parse(object).read(expression));
 		
 		return
 		new TriplesMapper(
@@ -269,10 +270,11 @@ public class RmlMapper {
 		
 		String iterator = logicalSource.getIterator();
 		UnaryOperator<Object> applyIterator =
-			s -> JsonPath.using(JSONPATH_CONF).parse(s).read(iterator);
+			s -> JsonPath.using(JSONPATH_CONF).parse((String) s).read(iterator);
 			
 		Function<Object, EvaluateExpression> expressionEvaluatorFactory =
-			object -> expression -> JsonPath.using(JSONPATH_CONF).parse(object).read(expression);
+			object -> expression -> Optional.ofNullable(
+				JsonPath.using(JSONPATH_CONF).parse(object).read(expression));
 		
 		return
 		new ParentTriplesMapper(
