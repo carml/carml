@@ -92,6 +92,11 @@ public class Functions {
 		
 		if (type.equals(Integer.TYPE) || type.equals(Integer.class)) {
 			adapter = v -> {
+				if (v == null) {
+					// Return null for empty function parameter
+					return null;
+				}
+				
 				if (!(v instanceof Literal))
 					throw new IllegalArgumentException(
 						"value [" + v + "] was not a literal, which is expected " +
@@ -104,6 +109,11 @@ public class Functions {
 		
 		else if (type.equals(String.class)) {
 			adapter = v -> {
+				if (v == null) {
+					// Return null for empty function parameter
+					return null;
+				}
+				
 				if (!(v instanceof Literal))
 					throw new IllegalArgumentException(
 						"value [" + v + "] was not a literal, which is expected " +
@@ -124,8 +134,7 @@ public class Functions {
 			@Override
 			public Object extract(Model model, Resource subject) {
 				Optional<Value> object = Models.object(model.filter(subject, iri, null));
-				Value value = object.orElseThrow(() ->
-					new RuntimeException("no value present for parameter " + iri));
+				Value value = object.orElse(null);
 				return adapter.apply(value);
 			}
 		};

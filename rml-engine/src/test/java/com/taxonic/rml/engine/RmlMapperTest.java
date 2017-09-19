@@ -175,5 +175,7 @@ public class RmlMapperTest extends MappingTest {
 					"RmlMapper/test2/subjectMapping.rml.ttl",
 					"RmlMapper/test2/subjectMapping.output.ttl");
 	}
+	
+	//TODO: PM: add test for rml:reference and rr:template where a value is not found.
 
 }
