@@ -1,7 +1,5 @@
 package com.taxonic.carml.util;
 
-import com.google.common.collect.ImmutableMap;
-
 import static com.taxonic.carml.vocab.Rdf.Rr.constant;
 import static com.taxonic.carml.vocab.Rdf.Rr.graph;
 import static com.taxonic.carml.vocab.Rdf.Rr.graphMap;
@@ -26,6 +24,8 @@ import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
+
+import com.google.common.collect.ImmutableMap;
 
 /**
  * Replaces RML constant shortcut properties by their expanded/full form.

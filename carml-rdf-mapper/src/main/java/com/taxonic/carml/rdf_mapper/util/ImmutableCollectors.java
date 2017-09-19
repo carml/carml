@@ -1,8 +1,9 @@
 package com.taxonic.carml.rdf_mapper.util;
 
+import java.util.stream.Collector;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.util.stream.Collector;
 
 public class ImmutableCollectors {
 	

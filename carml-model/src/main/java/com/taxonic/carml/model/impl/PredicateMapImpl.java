@@ -5,7 +5,6 @@ import org.eclipse.rdf4j.model.Value;
 import com.taxonic.carml.model.PredicateMap;
 import com.taxonic.carml.model.TermType;
 import com.taxonic.carml.model.TriplesMap;
-import com.taxonic.carml.model.impl.ObjectMapImpl.Builder;
 
 public class PredicateMapImpl extends TermMapImpl implements PredicateMap {
 

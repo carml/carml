@@ -7,16 +7,13 @@ import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.IsNull.nullValue;
 import static org.junit.Assert.assertThat;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.taxonic.carml.rdf_mapper.util.RdfObjectLoader;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.rdf4j.common.iteration.Iterations;
 import org.eclipse.rdf4j.model.Literal;
@@ -38,6 +35,9 @@ import org.eclipse.rdf4j.sail.memory.MemoryStore;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 
 public class RdfObjectLoaderTest {
 

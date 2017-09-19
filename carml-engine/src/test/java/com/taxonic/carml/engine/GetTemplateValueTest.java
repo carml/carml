@@ -6,14 +6,13 @@ import static org.mockito.Mockito.when;
 
 import java.util.Optional;
 import java.util.function.Function;
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
-import com.taxonic.carml.engine.EvaluateExpression;
-import com.taxonic.carml.engine.GetTemplateValue;
 import com.taxonic.carml.engine.template.Template;
 import com.taxonic.carml.engine.template.TemplateParser;
 

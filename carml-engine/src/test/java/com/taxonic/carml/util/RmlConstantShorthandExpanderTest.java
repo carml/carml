@@ -1,13 +1,9 @@
 package com.taxonic.carml.util;
 
-import static com.taxonic.carml.vocab.Rdf.Rr;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertThat;
-
-import com.google.common.collect.Iterators;
-import com.taxonic.carml.util.RmlConstantShorthandExpander;
 
 import org.eclipse.rdf4j.model.BNode;
 import org.eclipse.rdf4j.model.IRI;
@@ -19,6 +15,9 @@ import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.google.common.collect.Iterators;
+import com.taxonic.carml.vocab.Rdf.Rr;
 
 public class RmlConstantShorthandExpanderTest {
 

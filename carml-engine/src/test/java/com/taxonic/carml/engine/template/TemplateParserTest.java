@@ -7,9 +7,6 @@ import java.util.Arrays;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.taxonic.carml.engine.template.Template;
-import com.taxonic.carml.engine.template.TemplateImpl;
-import com.taxonic.carml.engine.template.TemplateParser;
 import com.taxonic.carml.engine.template.TemplateImpl.ExpressionSegment;
 import com.taxonic.carml.engine.template.TemplateImpl.Text;
 

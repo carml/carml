@@ -2,6 +2,7 @@ package com.taxonic.carml.rdf_mapper.util;
 
 import java.util.Arrays;
 import java.util.Objects;
+
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.query.QueryResults;

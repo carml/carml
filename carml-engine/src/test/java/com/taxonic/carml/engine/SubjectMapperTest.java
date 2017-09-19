@@ -1,5 +1,9 @@
 package com.taxonic.carml.engine;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
@@ -9,17 +13,8 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import com.taxonic.carml.engine.EvaluateExpression;
-import com.taxonic.carml.engine.PredicateObjectMapper;
-import com.taxonic.carml.engine.SubjectMapper;
-import com.taxonic.carml.engine.TermGenerator;
-import com.taxonic.carml.engine.TermGeneratorCreator;
 import com.taxonic.carml.model.SubjectMap;
 import com.taxonic.carml.model.impl.SubjectMapImpl;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
 
 public class SubjectMapperTest {
 

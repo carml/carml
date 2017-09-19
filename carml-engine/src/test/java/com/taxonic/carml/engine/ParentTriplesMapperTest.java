@@ -22,9 +22,6 @@ import org.mockito.junit.MockitoRule;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.taxonic.carml.engine.EvaluateExpression;
-import com.taxonic.carml.engine.ParentTriplesMapper;
-import com.taxonic.carml.engine.TermGenerator;
 
 public class ParentTriplesMapperTest {
 	

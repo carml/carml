@@ -6,8 +6,6 @@ import java.util.function.Function;
 
 import org.junit.Test;
 
-import com.taxonic.carml.util.IriEncoder;
-
 public class IriEncoderTest {
 
 	private Function<String, String> encoder = IriEncoder.create();
