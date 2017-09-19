@@ -13,5 +13,8 @@
     <artifactId>rml-cli</artifactId>
     <version>develop-SNAPSHOT</version>
 
+	<packaging>jar</packaging>
+
+	<name>rml-cli</name>
 
 </project>
