@@ -21,7 +21,7 @@
 	];
 	rr:predicateObjectMap <#SumScoreMapping> .
 
-<#SumScoreMapping> a rr:predicateObjectMap;
+<#SumScoreMapping> a rr:PredicateObjectMap;
 	rr:predicate ex:hasSumScore;
 	rr:objectMap <#SumFunctionMapping> .
 
@@ -31,18 +31,18 @@
 	fnml:functionValue [
 		rml:logicalSource <#LogicalSource>;
 		rr:subjectMap [
-			rr:template "http://example.com/Student/{studentId}";
+			rr:template "http://example.com/Student/{studentId}/sumScoreExecution";
 		];
 		rr:predicateObjectMap [
 			rr:predicate fno:executes;
 			rr:object ex:sumFunction;
 		];
 		rr:predicateObjectMap [
-			rr:predicate ex:toIntFunctionParam;
+			rr:predicate ex:toIntOutput;
 			rr:objectMap <#ToIntFunctionMapping>
 		];
 		rr:predicateObjectMap [
-			rr:predicate ex:IntParam;
+			rr:predicate ex:intParam;
 			rr:objectMap [
 				rml:reference "secondScore";
 			]
@@ -55,7 +55,7 @@
 	fnml:functionValue [
 		rml:logicalSource <#LogicalSource>;
 		rr:subjectMap [
-			rr:template "http://example.com/Student/{studentId}";
+			rr:template "http://example.com/Student/{studentId}/toIntFunctionExecution";
 		];
 		rr:predicateObjectMap [
 			rr:predicate fno:executes;
