@@ -1,18 +1,17 @@
 package com.taxonic.rml.engine;
 
-import static org.hamcrest.core.Is.is;
 import static org.hamcrest.collection.IsIn.isIn;
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
+
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.vocabulary.SKOS;
 import org.junit.Rule;
@@ -20,6 +19,9 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 public class ParentTriplesMapperTest {
 	
@@ -61,7 +63,7 @@ public class ParentTriplesMapperTest {
 		when(expressionEvaluatorFactory.apply(entry)).thenReturn(evaluate);
 		when(subjectGenerator.apply(evaluate)).thenReturn(Optional.of(SKOS.CONCEPT));
 		ParentTriplesMapper mapper = new ParentTriplesMapper(subjectGenerator, getSource, applyIterator, expressionEvaluatorFactory);
-		List<Resource> resources = mapper.map(joinValues);
+		Set<Resource> resources = mapper.map(joinValues);
 		assertThat(resources.size(), is(1));
 		assertThat(SKOS.CONCEPT, isIn(resources));
 	}

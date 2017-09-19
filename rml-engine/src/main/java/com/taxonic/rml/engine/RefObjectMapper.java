@@ -1,7 +1,6 @@
 package com.taxonic.rml.engine;
 
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -23,7 +22,7 @@ public class RefObjectMapper {
 		this.joinConditions = joinConditions;
 	}
 
-	List<Resource> map(EvaluateExpression evaluate) {
+	Set<Resource> map(EvaluateExpression evaluate) {
 		Map<String, Object> joinValues = createJoinValues(evaluate);
 		return parentTriplesMapper.map(joinValues);
 	}

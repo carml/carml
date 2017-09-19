@@ -2,10 +2,12 @@ package com.taxonic.rml.engine;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
@@ -38,12 +40,11 @@ class ParentTriplesMapper {
 			: Collections.singleton(value);
 	}
 	
-	//TODO: PM: should return Set<Resource>
-	List<Resource> map(Map<String, Object> joinValues) {
+	Set<Resource> map(Map<String, Object> joinValues) {
 		Object source = getSource.get();
 		Object value = applyIterator.apply(source);
 		Iterable<?> iterable = createIterable(value);
-		List<Resource> results = new ArrayList<>();
+		Set<Resource> results = new LinkedHashSet<>();
 		iterable.forEach(e -> 
 			map(e, joinValues)
 				.ifPresent(results::add));
