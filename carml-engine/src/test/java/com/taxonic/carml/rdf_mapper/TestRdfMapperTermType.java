@@ -2,14 +2,14 @@ package com.taxonic.carml.rdf_mapper;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.Set;
 
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.model.vocabulary.XMLSchema;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.model.TermType;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.model.impl.LogicalSourceImpl;
@@ -41,7 +41,7 @@ public class TestRdfMapperTermType extends RmlLoader {
 	
 	@Test
 	public void testLoadMappingWithTermTypeLiteral() {
-		List<TriplesMap> expected = Arrays.asList(
+		Set<TriplesMap> expected = ImmutableSet.of(
 				TriplesMapImpl.newBuilder()
 					.logicalSource(
 						LogicalSourceImpl.newBuilder()
@@ -74,12 +74,12 @@ public class TestRdfMapperTermType extends RmlLoader {
 					)
 					.build()
 		);
-		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test14/termTypeMappingLiteral.rml.ttl");
+		Set<TriplesMap> result = loadRmlFromTtl("RdfMapper/test14/termTypeMappingLiteral.rml.ttl");
 		assertEquals(result,expected);
 	}
 	@Test
 	public void testLoadMappingWithTermTypeIRI() {
-		List<TriplesMap> expected = Arrays.asList(
+		Set<TriplesMap> expected = ImmutableSet.of(
 				TriplesMapImpl.newBuilder()
 					.logicalSource(
 						LogicalSourceImpl.newBuilder()
@@ -113,13 +113,13 @@ public class TestRdfMapperTermType extends RmlLoader {
 					)
 					.build()
 		);
-		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test14/termTypeMappingIRI.rml.ttl");
+		Set<TriplesMap> result = loadRmlFromTtl("RdfMapper/test14/termTypeMappingIRI.rml.ttl");
 		assertEquals(result,expected);
 	}
 	
 	@Test
 	public void testLoadMappingWithTermTypeBlankNodeB() {
-		List<TriplesMap> expected = Arrays.asList(
+		Set<TriplesMap> expected = ImmutableSet.of(
 				TriplesMapImpl.newBuilder()
 					.logicalSource(
 						LogicalSourceImpl.newBuilder()
@@ -151,12 +151,12 @@ public class TestRdfMapperTermType extends RmlLoader {
 					)
 					.build()
 		);
-		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test14/termTypeMappingBlankNodeB.rml.ttl");
+		Set<TriplesMap> result = loadRmlFromTtl("RdfMapper/test14/termTypeMappingBlankNodeB.rml.ttl");
 		assertEquals(result,expected);
 	}
 	@Test
 	public void testLoadMappingWithTermTypeBlankNodeA() {
-		List<TriplesMap> expected = Arrays.asList(
+		Set<TriplesMap> expected = ImmutableSet.of(
 				TriplesMapImpl.newBuilder()
 					.logicalSource(
 						LogicalSourceImpl.newBuilder()
@@ -187,7 +187,7 @@ public class TestRdfMapperTermType extends RmlLoader {
 					)
 					.build()
 		);
-		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test14/termTypeMappingBlankNodeA.rml.ttl");
+		Set<TriplesMap> result = loadRmlFromTtl("RdfMapper/test14/termTypeMappingBlankNodeA.rml.ttl");
 		assertEquals(result,expected);
 	}
 	

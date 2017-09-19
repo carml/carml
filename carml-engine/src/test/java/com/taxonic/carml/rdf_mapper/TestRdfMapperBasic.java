@@ -2,14 +2,14 @@ package com.taxonic.carml.rdf_mapper;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.Set;
 
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.model.vocabulary.XMLSchema;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.model.impl.LogicalSourceImpl;
 import com.taxonic.carml.model.impl.ObjectMapImpl;
@@ -60,7 +60,7 @@ public class TestRdfMapperBasic extends RmlLoader {
 	
 	@Test
 	public void testLoadMappingWithLanguage() {
-		List<TriplesMap> expected = Arrays.asList(
+		Set<TriplesMap> expected = ImmutableSet.of(
 				TriplesMapImpl.newBuilder()
 					.logicalSource(
 						LogicalSourceImpl.newBuilder()
@@ -92,13 +92,13 @@ public class TestRdfMapperBasic extends RmlLoader {
 					)
 				.build()
 		);
-		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test5/languageMapping.rml.ttl");
+		Set<TriplesMap> result = loadRmlFromTtl("RdfMapper/test5/languageMapping.rml.ttl");
 		assertEquals(result,expected);
 	}
 
 	@Test
 	public void testLoadMappingWithSubjectConstantShortcut() {
-		List<TriplesMap> expected = Arrays.asList(
+		Set<TriplesMap> expected = ImmutableSet.of(
 				TriplesMapImpl.newBuilder()
 					.logicalSource(
 						LogicalSourceImpl.newBuilder()
@@ -129,13 +129,13 @@ public class TestRdfMapperBasic extends RmlLoader {
 					.build()
 		);
 		
-		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test1/constantSubjectShortcutMapping.rml.ttl");
+		Set<TriplesMap> result = loadRmlFromTtl("RdfMapper/test1/constantSubjectShortcutMapping.rml.ttl");
 		assertEquals(expected,result);
 	}
 	
 	@Test
 	public void testLoadMappingWithObjectConstantShortcut() {
-		List<TriplesMap> expected = Arrays.asList(
+		Set<TriplesMap> expected = ImmutableSet.of(
 				(TriplesMapImpl.newBuilder()
 					.logicalSource(
 						LogicalSourceImpl.newBuilder()
@@ -164,13 +164,13 @@ public class TestRdfMapperBasic extends RmlLoader {
 							.build()
 					)	
 				).build());
-		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test1/constantObjectShortcutMapping.rml.ttl");
+		Set<TriplesMap> result = loadRmlFromTtl("RdfMapper/test1/constantObjectShortcutMapping.rml.ttl");
 		assertEquals(expected,result);
 	}
 	
 	@Test
 	public void testLoadMappingWithSeparateMaps() {
-		List<TriplesMap> expected = Arrays.asList(
+		Set<TriplesMap> expected = ImmutableSet.of(
 				(TriplesMapImpl.newBuilder()
 					.logicalSource(
 						LogicalSourceImpl.newBuilder()
@@ -201,7 +201,7 @@ public class TestRdfMapperBasic extends RmlLoader {
 					)
 				).build()
 		);
-		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test10/separateMapsMappingg.rml.ttl");
+		Set<TriplesMap> result = loadRmlFromTtl("RdfMapper/test10/separateMapsMappingg.rml.ttl");
 		assertEquals(expected, result);
 		
 	}
@@ -209,7 +209,7 @@ public class TestRdfMapperBasic extends RmlLoader {
 	@Test
 	public void testLoadMappingWithJustALogicalSource() {
 
-		List<TriplesMap> expected = Arrays.asList(
+		Set<TriplesMap> expected = ImmutableSet.of(
 			TriplesMapImpl.newBuilder()
 				.logicalSource(
 					LogicalSourceImpl.newBuilder()
@@ -221,7 +221,7 @@ public class TestRdfMapperBasic extends RmlLoader {
 				.build()
 		);
 		
-		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/logicalSourceTest.rml.ttl");
+		Set<TriplesMap> result = loadRmlFromTtl("RdfMapper/logicalSourceTest.rml.ttl");
 		
 		assertEquals(expected, result);
 		
@@ -230,7 +230,7 @@ public class TestRdfMapperBasic extends RmlLoader {
 	@Test
 	public void test() {
 
-		List<TriplesMap> expected = Arrays.asList(
+		Set<TriplesMap> expected = ImmutableSet.of(
 			TriplesMapImpl.newBuilder()
 				.logicalSource(
 					LogicalSourceImpl.newBuilder()
@@ -306,7 +306,7 @@ public class TestRdfMapperBasic extends RmlLoader {
 				.build()
 		);
 		
-		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test-a.rml.ttl");
+		Set<TriplesMap> result = loadRmlFromTtl("RdfMapper/test-a.rml.ttl");
 		
 		assertEquals(expected, result);
 	}

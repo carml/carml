@@ -4,7 +4,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.InputStream;
 import java.io.StringWriter;
-import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -39,7 +39,7 @@ class MappingTest {
 		String outputPath,
 		Consumer<RmlMapper> configureMapper
 	) {
-		List<TriplesMap> mapping = loader.load(rmlPath, RDFFormat.TURTLE);
+		Set<TriplesMap> mapping = loader.load(rmlPath, RDFFormat.TURTLE);
 		Function<String, InputStream> sourceResolver =
 			s -> RmlMapperTest.class.getClassLoader().getResourceAsStream(contextPath + "/" + s);
 		RmlMapper mapper = new RmlMapper(sourceResolver);

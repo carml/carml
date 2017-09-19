@@ -2,13 +2,13 @@ package com.taxonic.carml.rdf_mapper;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.Set;
 
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.model.impl.JoinImpl;
 import com.taxonic.carml.model.impl.LogicalSourceImpl;
@@ -77,7 +77,7 @@ public class TestRdfMapperParentTriplesMap extends RmlLoader {
 			)
 			.build();
 		
-		List<TriplesMap> expected = Arrays.asList(
+		Set<TriplesMap> expected = ImmutableSet.of(
 				TriplesMapImpl.newBuilder()
 					.logicalSource(
 						LogicalSourceImpl.newBuilder()
@@ -116,7 +116,7 @@ public class TestRdfMapperParentTriplesMap extends RmlLoader {
 				parentTriplesMap
 			);
 
-		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test10/joinIntegratedMapping.rml.ttl");
+		Set<TriplesMap> result = loadRmlFromTtl("RdfMapper/test10/joinIntegratedMapping.rml.ttl");
 		
 		assertEquals(expected, result);
 	}
@@ -139,7 +139,7 @@ public class TestRdfMapperParentTriplesMap extends RmlLoader {
 					)
 				.build();
 		
-		List<TriplesMap> expected = Arrays.asList(
+		Set<TriplesMap> expected = ImmutableSet.of(
 				(TriplesMapImpl.newBuilder()
 					.logicalSource(
 						LogicalSourceImpl.newBuilder()
@@ -187,7 +187,7 @@ public class TestRdfMapperParentTriplesMap extends RmlLoader {
 					).build(),
 				parentTriplesMap			);
 		
-		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test9/parentTriplesMapping.rml.ttl");
+		Set<TriplesMap> result = loadRmlFromTtl("RdfMapper/test9/parentTriplesMapping.rml.ttl");
 		assertEquals(result,expected);
 	}
 	

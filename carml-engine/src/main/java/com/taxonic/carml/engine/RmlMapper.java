@@ -71,7 +71,7 @@ public class RmlMapper {
 		return functions.getFunction(iri);
 	}
 
-	public Model map(List<TriplesMap> mapping) {
+	public Model map(Set<TriplesMap> mapping) {
 		Model model = new LinkedHashModel();
 		mapping.stream()
 			.filter(m -> !isTriplesMapOnlyUsedAsFunctionValue(m, mapping))
@@ -79,20 +79,20 @@ public class RmlMapper {
 		return model;
 	}
 	
-	private boolean isTriplesMapOnlyUsedAsFunctionValue(TriplesMap map, List<TriplesMap> mapping) {
+	private boolean isTriplesMapOnlyUsedAsFunctionValue(TriplesMap map, Set<TriplesMap> mapping) {
 		return
 			isTriplesMapUsedAsFunctionValue(map, mapping) &&
 			!isTriplesMapUsedInRefObjectMap(map, mapping);
 	}
 	
-	private boolean isTriplesMapUsedAsFunctionValue(TriplesMap map, List<TriplesMap> mapping) {
+	private boolean isTriplesMapUsedAsFunctionValue(TriplesMap map, Set<TriplesMap> mapping) {
 		
 		// TODO
 		
 		return false;
 	}
 	
-	private boolean isTriplesMapUsedInRefObjectMap(TriplesMap map, List<TriplesMap> mapping) {
+	private boolean isTriplesMapUsedInRefObjectMap(TriplesMap map, Set<TriplesMap> mapping) {
 		return
 		mapping.stream()
 		

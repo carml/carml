@@ -2,13 +2,13 @@ package com.taxonic.carml.rdf_mapper;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.Set;
 
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.model.impl.GraphMapImpl;
 import com.taxonic.carml.model.impl.LogicalSourceImpl;
@@ -40,7 +40,7 @@ public class TestRdfMapperGraphMaps extends RmlLoader {
 	
 	@Test
 	public void testLoadMappingWithGraphMapsPredicateObject() {
-		List<TriplesMap> expected = Arrays.asList(
+		Set<TriplesMap> expected = ImmutableSet.of(
 				TriplesMapImpl.newBuilder()
 					.logicalSource(
 						LogicalSourceImpl.newBuilder()
@@ -76,13 +76,13 @@ public class TestRdfMapperGraphMaps extends RmlLoader {
 					)
 					.build()
 		);
-		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test15/graphMapMappingPredObj.rml.ttl");
+		Set<TriplesMap> result = loadRmlFromTtl("RdfMapper/test15/graphMapMappingPredObj.rml.ttl");
 		assertEquals(expected,result);
 	}
 	
 	@Test
 	public void testLoadMappingWithGraphMapsSubjectB() {
-		List<TriplesMap> expected = Arrays.asList(
+		Set<TriplesMap> expected = ImmutableSet.of(
 				TriplesMapImpl.newBuilder()
 					.logicalSource(
 						LogicalSourceImpl.newBuilder()
@@ -104,13 +104,13 @@ public class TestRdfMapperGraphMaps extends RmlLoader {
 					)
 					.build()
 		);
-		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test15/graphMapMappingSubjectB.rml.ttl");
+		Set<TriplesMap> result = loadRmlFromTtl("RdfMapper/test15/graphMapMappingSubjectB.rml.ttl");
 		assertEquals(expected,result);
 	}
 	
 	@Test
 	public void testLoadMappingWithGraphMapsSubjectA() {
-		List<TriplesMap> expected = Arrays.asList(
+		Set<TriplesMap> expected = ImmutableSet.of(
 				TriplesMapImpl.newBuilder()
 					.logicalSource(
 						LogicalSourceImpl.newBuilder()
@@ -132,7 +132,7 @@ public class TestRdfMapperGraphMaps extends RmlLoader {
 					)
 					.build()
 		);
-		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test15/graphMapMappingSubjectA.rml.ttl");
+		Set<TriplesMap> result = loadRmlFromTtl("RdfMapper/test15/graphMapMappingSubjectA.rml.ttl");
 		assertEquals(expected,result);
 	}
 	

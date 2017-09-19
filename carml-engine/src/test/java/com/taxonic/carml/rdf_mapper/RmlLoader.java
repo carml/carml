@@ -1,6 +1,6 @@
 package com.taxonic.carml.rdf_mapper;
 
-import java.util.List;
+import java.util.Set;
 
 import org.eclipse.rdf4j.rio.RDFFormat;
 
@@ -11,7 +11,7 @@ class RmlLoader {
 
 	private RmlMappingLoader loader = RmlMappingLoader.build();
 
-	protected List<TriplesMap> loadRmlFromTtl(String resource) {
+	protected Set<TriplesMap> loadRmlFromTtl(String resource) {
 		return loader.load(resource, RDFFormat.TURTLE);
 	}
 

@@ -1,7 +1,6 @@
 package com.taxonic.carml.util;
 
 import java.io.InputStream;
-import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -9,7 +8,7 @@ import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.rio.RDFFormat;
-import com.google.common.collect.ImmutableList;
+
 import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.model.TermType;
 import com.taxonic.carml.model.TriplesMap;
@@ -29,18 +28,16 @@ public class RmlMappingLoader {
 		this.shorthandExpander = shorthandExpander;
 	}
 
-	// TODO: PM: shouldn't the return type be Set?
-	
-	public List<TriplesMap> load(String resource, RDFFormat rdfFormat) {
+	public Set<TriplesMap> load(String resource, RDFFormat rdfFormat) {
 		InputStream input = RmlMappingLoader.class.getClassLoader().getResourceAsStream(resource);		
 		return load(input, rdfFormat);
 	}
 	
-	public List<TriplesMap> load(InputStream input, RDFFormat rdfFormat) {
+	public Set<TriplesMap> load(InputStream input, RDFFormat rdfFormat) {
 		// TODO: PM do we really need IoUtils?
 		Model originalModel = IoUtils.parse(input, rdfFormat);
 		return
-			ImmutableList.copyOf(
+			ImmutableSet.<TriplesMap>copyOf(
 				RdfObjectLoader.load(
 					selectTriplesMaps, 
 					TriplesMapImpl.class, 

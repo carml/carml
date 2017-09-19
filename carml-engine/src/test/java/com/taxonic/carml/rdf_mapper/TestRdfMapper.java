@@ -2,8 +2,7 @@ package com.taxonic.carml.rdf_mapper;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.Set;
 
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
@@ -12,6 +11,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.model.TermType;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.model.impl.GraphMapImpl;
@@ -106,7 +106,7 @@ public class TestRdfMapper extends RmlLoader {
 			)
 			.build();
 		
-		List<TriplesMap> expected = Arrays.asList(
+		Set<TriplesMap> expected = ImmutableSet.of(
 				TriplesMapImpl.newBuilder()
 					.logicalSource(
 						LogicalSourceImpl.newBuilder()
@@ -145,14 +145,14 @@ public class TestRdfMapper extends RmlLoader {
 				parentTriplesMap
 			);
 
-		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test10/joinIntegratedMapping.rml.ttl");
+		Set<TriplesMap> result = loadRmlFromTtl("RdfMapper/test10/joinIntegratedMapping.rml.ttl");
 		
 		assertEquals(expected, result);
 	}
 	
 	@Test
 	public void testLoadMappingWithGraphMapsPredicateObject() {
-		List<TriplesMap> expected = Arrays.asList(
+		Set<TriplesMap> expected = ImmutableSet.of(
 				TriplesMapImpl.newBuilder()
 					.logicalSource(
 						LogicalSourceImpl.newBuilder()
@@ -188,13 +188,13 @@ public class TestRdfMapper extends RmlLoader {
 					)
 					.build()
 		);
-		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test15/graphMapMappingPredObj.rml.ttl");
+		Set<TriplesMap> result = loadRmlFromTtl("RdfMapper/test15/graphMapMappingPredObj.rml.ttl");
 		assertEquals(expected,result);
 	}
 	
 	@Test
 	public void testLoadMappingWithGraphMapsSubjectB() {
-		List<TriplesMap> expected = Arrays.asList(
+		Set<TriplesMap> expected = ImmutableSet.of(
 				TriplesMapImpl.newBuilder()
 					.logicalSource(
 						LogicalSourceImpl.newBuilder()
@@ -216,14 +216,14 @@ public class TestRdfMapper extends RmlLoader {
 					)
 					.build()
 		);
-		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test15/graphMapMappingSubjectB.rml.ttl");
+		Set<TriplesMap> result = loadRmlFromTtl("RdfMapper/test15/graphMapMappingSubjectB.rml.ttl");
 		assertEquals(expected,result);
 	}
 	
 	
 	@Test
 	public void testLoadMappingWithGraphMapsSubjectA() {
-		List<TriplesMap> expected = Arrays.asList(
+		Set<TriplesMap> expected = ImmutableSet.of(
 				TriplesMapImpl.newBuilder()
 					.logicalSource(
 						LogicalSourceImpl.newBuilder()
@@ -245,13 +245,13 @@ public class TestRdfMapper extends RmlLoader {
 					)
 					.build()
 		);
-		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test15/graphMapMappingSubjectA.rml.ttl");
+		Set<TriplesMap> result = loadRmlFromTtl("RdfMapper/test15/graphMapMappingSubjectA.rml.ttl");
 		assertEquals(expected,result);
 	}
 	
 	@Test
 	public void testLoadMappingWithTermTypeLiteral() {
-		List<TriplesMap> expected = Arrays.asList(
+		Set<TriplesMap> expected = ImmutableSet.of(
 				TriplesMapImpl.newBuilder()
 					.logicalSource(
 						LogicalSourceImpl.newBuilder()
@@ -284,12 +284,12 @@ public class TestRdfMapper extends RmlLoader {
 					)
 					.build()
 		);
-		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test14/termTypeMappingLiteral.rml.ttl");
+		Set<TriplesMap> result = loadRmlFromTtl("RdfMapper/test14/termTypeMappingLiteral.rml.ttl");
 		assertEquals(result,expected);
 	}
 	@Test
 	public void testLoadMappingWithTermTypeIRI() {
-		List<TriplesMap> expected = Arrays.asList(
+		Set<TriplesMap> expected = ImmutableSet.of(
 				TriplesMapImpl.newBuilder()
 					.logicalSource(
 						LogicalSourceImpl.newBuilder()
@@ -323,13 +323,13 @@ public class TestRdfMapper extends RmlLoader {
 					)
 					.build()
 		);
-		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test14/termTypeMappingIRI.rml.ttl");
+		Set<TriplesMap> result = loadRmlFromTtl("RdfMapper/test14/termTypeMappingIRI.rml.ttl");
 		assertEquals(result,expected);
 	}
 	
 	@Test
 	public void testLoadMappingWithTermTypeBlankNodeB() {
-		List<TriplesMap> expected = Arrays.asList(
+		Set<TriplesMap> expected = ImmutableSet.of(
 				TriplesMapImpl.newBuilder()
 					.logicalSource(
 						LogicalSourceImpl.newBuilder()
@@ -361,12 +361,12 @@ public class TestRdfMapper extends RmlLoader {
 					)
 					.build()
 		);
-		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test14/termTypeMappingBlankNodeB.rml.ttl");
+		Set<TriplesMap> result = loadRmlFromTtl("RdfMapper/test14/termTypeMappingBlankNodeB.rml.ttl");
 		assertEquals(result,expected);
 	}
 	@Test
 	public void testLoadMappingWithTermTypeBlankNodeA() {
-		List<TriplesMap> expected = Arrays.asList(
+		Set<TriplesMap> expected = ImmutableSet.of(
 				TriplesMapImpl.newBuilder()
 					.logicalSource(
 						LogicalSourceImpl.newBuilder()
@@ -397,13 +397,13 @@ public class TestRdfMapper extends RmlLoader {
 					)
 					.build()
 		);
-		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test14/termTypeMappingBlankNodeA.rml.ttl");
+		Set<TriplesMap> result = loadRmlFromTtl("RdfMapper/test14/termTypeMappingBlankNodeA.rml.ttl");
 		assertEquals(result,expected);
 	}
 	
 	@Test
 	public void testLoadMappingWithLanguage() {
-		List<TriplesMap> expected = Arrays.asList(
+		Set<TriplesMap> expected = ImmutableSet.of(
 				TriplesMapImpl.newBuilder()
 					.logicalSource(
 						LogicalSourceImpl.newBuilder()
@@ -435,13 +435,13 @@ public class TestRdfMapper extends RmlLoader {
 					)
 				.build()
 		);
-		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test5/languageMapping.rml.ttl");
+		Set<TriplesMap> result = loadRmlFromTtl("RdfMapper/test5/languageMapping.rml.ttl");
 		assertEquals(result,expected);
 	}
 
 	@Test
 	public void testLoadMappingWithSubjectConstantShortcut() {
-		List<TriplesMap> expected = Arrays.asList(
+		Set<TriplesMap> expected = ImmutableSet.of(
 				TriplesMapImpl.newBuilder()
 					.logicalSource(
 						LogicalSourceImpl.newBuilder()
@@ -472,12 +472,12 @@ public class TestRdfMapper extends RmlLoader {
 					.build()
 		);
 		
-		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test1/constantSubjectShortcutMapping.rml.ttl");
+		Set<TriplesMap> result = loadRmlFromTtl("RdfMapper/test1/constantSubjectShortcutMapping.rml.ttl");
 		assertEquals(expected,result);
 	}
 	@Test
 	public void testLoadMappingWithObjectConstantShortcut() {
-		List<TriplesMap> expected = Arrays.asList(
+		Set<TriplesMap> expected = ImmutableSet.of(
 				(TriplesMapImpl.newBuilder()
 					.logicalSource(
 						LogicalSourceImpl.newBuilder()
@@ -506,13 +506,13 @@ public class TestRdfMapper extends RmlLoader {
 							.build()
 					)	
 				).build());
-		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test1/constantObjectShortcutMapping.rml.ttl");
+		Set<TriplesMap> result = loadRmlFromTtl("RdfMapper/test1/constantObjectShortcutMapping.rml.ttl");
 		assertEquals(expected,result);
 	}
 	
 	@Test
 	public void testLoadMappingWithSeparateMaps() {
-		List<TriplesMap> expected = Arrays.asList(
+		Set<TriplesMap> expected = ImmutableSet.of(
 				(TriplesMapImpl.newBuilder()
 					.logicalSource(
 						LogicalSourceImpl.newBuilder()
@@ -543,7 +543,7 @@ public class TestRdfMapper extends RmlLoader {
 					)
 				).build()
 		);
-		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test10/separateMapsMappingg.rml.ttl");
+		Set<TriplesMap> result = loadRmlFromTtl("RdfMapper/test10/separateMapsMappingg.rml.ttl");
 		assertEquals(expected, result);
 		
 	}
@@ -566,7 +566,7 @@ public class TestRdfMapper extends RmlLoader {
 					)
 				.build();
 		
-		List<TriplesMap> expected = Arrays.asList(
+		Set<TriplesMap> expected = ImmutableSet.of(
 				(TriplesMapImpl.newBuilder()
 					.logicalSource(
 						LogicalSourceImpl.newBuilder()
@@ -614,14 +614,14 @@ public class TestRdfMapper extends RmlLoader {
 					).build(),
 				parentTriplesMap			);
 		
-		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test9/parentTriplesMapping.rml.ttl");
+		Set<TriplesMap> result = loadRmlFromTtl("RdfMapper/test9/parentTriplesMapping.rml.ttl");
 		assertEquals(result,expected);
 	}
 	
 	@Test
 	public void testLoadMappingWithJustALogicalSource() {
 
-		List<TriplesMap> expected = Arrays.asList(
+		Set<TriplesMap> expected = ImmutableSet.of(
 			TriplesMapImpl.newBuilder()
 				.logicalSource(
 					LogicalSourceImpl.newBuilder()
@@ -633,7 +633,7 @@ public class TestRdfMapper extends RmlLoader {
 				.build()
 		);
 		
-		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/logicalSourceTest.rml.ttl");
+		Set<TriplesMap> result = loadRmlFromTtl("RdfMapper/logicalSourceTest.rml.ttl");
 		
 		assertEquals(expected, result);
 		
@@ -642,7 +642,7 @@ public class TestRdfMapper extends RmlLoader {
 	@Test
 	public void test() {
 
-		List<TriplesMap> expected = Arrays.asList(
+		Set<TriplesMap> expected = ImmutableSet.of(
 			TriplesMapImpl.newBuilder()
 				.logicalSource(
 					LogicalSourceImpl.newBuilder()
@@ -718,7 +718,7 @@ public class TestRdfMapper extends RmlLoader {
 				.build()
 		);
 		
-		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test-a.rml.ttl");
+		Set<TriplesMap> result = loadRmlFromTtl("RdfMapper/test-a.rml.ttl");
 		
 		assertEquals(expected, result);
 	}
