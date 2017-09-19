@@ -2,20 +2,20 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>com.taxonic.rml</groupId>
-	<artifactId>rml</artifactId>
+	<groupId>com.taxonic.carml</groupId>
+	<artifactId>carml</artifactId>
 	<version>develop-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
-	<name>rml</name>
-	<url>https://www.taxonic.com/</url>
+	<name>carml</name>
+	<url>https://github.com/carml</url>
 
 	<modules>
-		<module>rml-engine</module>
-		<module>rml-model</module>
-		<module>rml-rdf-mapper</module>
-		<module>rml-constraints</module>
-		<module>rml-cli</module>
+		<module>carml-engine</module>
+		<module>carml-model</module>
+		<module>carml-rdf-mapper</module>
+		<module>carml-constraints</module>
+		<module>carml-cli</module>
 	</modules>
 
 	<properties>
@@ -24,7 +24,7 @@
 		<maven.compiler.target>1.8</maven.compiler.target>
 		<rdf4j.version>2.2.1</rdf4j.version>
 		<log4j.version>2.8.2</log4j.version>
-		<mockito.version>2.8.47</mockito.version>
+		<mockito.version>2.10.0</mockito.version>
 	</properties>
 
 	<dependencies>
@@ -96,13 +96,13 @@
 			<version>1.3</version>
 			<scope>test</scope>
 		</dependency>
-		
+
 		<dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-core</artifactId>
-            <version>${mockito.version}</version>
-            <scope>test</scope>
-        </dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-core</artifactId>
+			<version>${mockito.version}</version>
+			<scope>test</scope>
+		</dependency>
 	
 		<dependency>
 			<groupId>com.google.guava</groupId>
@@ -111,18 +111,5 @@
 		</dependency>
 		
 	</dependencies>
-
-	<distributionManagement>
-		<repository>
-			<id>nexus</id>
-			<name>Releases</name>
-			<url>https://nexus.cicd.taxonic.com/repository/maven-releases</url>
-		</repository>
-		<snapshotRepository>
-			<id>nexus</id>
-			<name>Snapshot</name>
-			<url>https://nexus.cicd.taxonic.com/repository/maven-snapshots</url>
-		</snapshotRepository>
-	</distributionManagement>
 
 </project>

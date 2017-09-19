@@ -3,15 +3,15 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
-		<groupId>com.taxonic.rml</groupId>
-		<artifactId>rml</artifactId>
+		<groupId>com.taxonic.carml</groupId>
+		<artifactId>carml</artifactId>
 		<version>develop-SNAPSHOT</version>
 	</parent>
 	
-	<artifactId>rml-rdf-mapper</artifactId>
+	<artifactId>carml-rdf-mapper</artifactId>
 	<packaging>jar</packaging>
 
-	<name>rml-rdf-mapper</name>
+	<name>carml-rdf-mapper</name>
 
 	<dependencies>
 
