@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
 import org.eclipse.rdf4j.model.BNode;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Literal;
@@ -27,7 +28,6 @@ import com.taxonic.rml.model.SubjectMap;
 import com.taxonic.rml.model.TermMap;
 import com.taxonic.rml.model.TermType;
 import com.taxonic.rml.model.TriplesMap;
-import com.taxonic.rml.util.CollectorUtils;
 import com.taxonic.rml.util.IriEncoder;
 import com.taxonic.rml.vocab.Rdf;
 
@@ -104,7 +104,7 @@ class TermGeneratorCreator {
 		List<TermType> allowedTermTypes,
 		List<Class<? extends Value>> allowedConstantTypes
 	) {
-		return
+		List<TermGenerator<Value>> generators =
 			Arrays.<Supplier<Optional<TermGenerator<Value>>>>asList(
 				
 				// constant
@@ -124,8 +124,14 @@ class TermGeneratorCreator {
 			.map(Supplier::get)
 			.filter(Optional::isPresent)
 			.map(Optional::get)
-			// TODO: PM: could be that we get more than one generator, the error message doesn't make sense then.
-			.collect(CollectorUtils.toOnlyListItem("could not create generator for map [" + map + "]"));
+			.collect(Collectors.toList());
+		
+		if (generators.isEmpty())
+			throw new RuntimeException("could not create generator for map [" + map + "]");
+		if (generators.size() > 1)
+			throw new RuntimeException(generators.size() + " generators were created for map [" + map + "]; "
+				+ "should be only 1. this is due to a term map specifying f.e. both an rr:reference and rr:constant");
+		return generators.get(0);
 	}
 	
 	private Optional<TermGenerator<Value>> getConstantGenerator(
