@@ -30,22 +30,6 @@ public class RmlMappingLoader {
 	}
 
 	// TODO: PM: shouldn't the return type be Set?
-	// TODO: I don't think we need this method. User should always specify his RDF format.
-	public List<TriplesMap> load(String resource) {
-
-		Model originalModel = IoUtils.parse(resource);
-		
-		return 
-			ImmutableList.copyOf(
-				RdfObjectLoader.load(
-					selectTriplesMaps, 
-					TriplesMapImpl.class, 
-					originalModel, 
-					shorthandExpander,
-					this::addTermTypes
-				)
-			);
-	}
 	
 	public List<TriplesMap> load(String resource, RDFFormat rdfFormat) {
 		InputStream input = RmlMappingLoader.class.getClassLoader().getResourceAsStream(resource);		

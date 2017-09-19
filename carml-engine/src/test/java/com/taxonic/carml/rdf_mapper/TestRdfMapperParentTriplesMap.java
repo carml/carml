@@ -18,10 +18,9 @@ import com.taxonic.carml.model.impl.PredicateObjectMapImpl;
 import com.taxonic.carml.model.impl.RefObjectMapImpl;
 import com.taxonic.carml.model.impl.SubjectMapImpl;
 import com.taxonic.carml.model.impl.TriplesMapImpl;
-import com.taxonic.carml.util.RmlMappingLoader;
 import com.taxonic.carml.vocab.Rdf;
 
-public class TestRdfMapperParentTriplesMap {
+public class TestRdfMapperParentTriplesMap extends RmlLoader {
 
 	static final SimpleValueFactory f = SimpleValueFactory.getInstance();
 	
@@ -44,8 +43,6 @@ public class TestRdfMapperParentTriplesMap {
 			Country = iri("ns#Country"),
 			officialLanguage = iri("ns#officialLanguage");
 	}
-	
-	private RmlMappingLoader loader = RmlMappingLoader.build();
 	
 	@Test
 	public void testLoadMappingWithJoinIntegration() {
@@ -119,7 +116,7 @@ public class TestRdfMapperParentTriplesMap {
 				parentTriplesMap
 			);
 
-		List<TriplesMap> result = loader.load("RdfMapper/test10/joinIntegratedMapping.rml.ttl");
+		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test10/joinIntegratedMapping.rml.ttl");
 		
 		assertEquals(expected, result);
 	}
@@ -190,7 +187,7 @@ public class TestRdfMapperParentTriplesMap {
 					).build(),
 				parentTriplesMap			);
 		
-		List<TriplesMap> result = loader.load("RdfMapper/test9/parentTriplesMapping.rml.ttl");
+		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test9/parentTriplesMapping.rml.ttl");
 		assertEquals(result,expected);
 	}
 	

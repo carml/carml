@@ -17,10 +17,9 @@ import com.taxonic.carml.model.impl.PredicateMapImpl;
 import com.taxonic.carml.model.impl.PredicateObjectMapImpl;
 import com.taxonic.carml.model.impl.SubjectMapImpl;
 import com.taxonic.carml.model.impl.TriplesMapImpl;
-import com.taxonic.carml.util.RmlMappingLoader;
 import com.taxonic.carml.vocab.Rdf;
 
-public class TestRdfMapperBasic {
+public class TestRdfMapperBasic extends RmlLoader {
 
 	static final SimpleValueFactory f = SimpleValueFactory.getInstance();
 	
@@ -59,8 +58,6 @@ public class TestRdfMapperBasic {
 			hasBirthday = iri("hasBirthday");
 	}
 	
-	private RmlMappingLoader loader = RmlMappingLoader.build();
-	
 	@Test
 	public void testLoadMappingWithLanguage() {
 		List<TriplesMap> expected = Arrays.asList(
@@ -95,7 +92,7 @@ public class TestRdfMapperBasic {
 					)
 				.build()
 		);
-		List<TriplesMap> result = loader.load("RdfMapper/test5/languageMapping.rml.ttl");
+		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test5/languageMapping.rml.ttl");
 		assertEquals(result,expected);
 	}
 
@@ -132,7 +129,7 @@ public class TestRdfMapperBasic {
 					.build()
 		);
 		
-		List<TriplesMap> result = loader.load("RdfMapper/test1/constantSubjectShortcutMapping.rml.ttl");
+		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test1/constantSubjectShortcutMapping.rml.ttl");
 		assertEquals(expected,result);
 	}
 	
@@ -167,7 +164,7 @@ public class TestRdfMapperBasic {
 							.build()
 					)	
 				).build());
-		List<TriplesMap> result = loader.load("RdfMapper/test1/constantObjectShortcutMapping.rml.ttl");
+		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test1/constantObjectShortcutMapping.rml.ttl");
 		assertEquals(expected,result);
 	}
 	
@@ -204,7 +201,7 @@ public class TestRdfMapperBasic {
 					)
 				).build()
 		);
-		List<TriplesMap> result = loader.load("RdfMapper/test10/separateMapsMappingg.rml.ttl");
+		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test10/separateMapsMappingg.rml.ttl");
 		assertEquals(expected, result);
 		
 	}
@@ -224,7 +221,7 @@ public class TestRdfMapperBasic {
 				.build()
 		);
 		
-		List<TriplesMap> result = loader.load("RdfMapper/logicalSourceTest.rml.ttl");
+		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/logicalSourceTest.rml.ttl");
 		
 		assertEquals(expected, result);
 		
@@ -309,7 +306,7 @@ public class TestRdfMapperBasic {
 				.build()
 		);
 		
-		List<TriplesMap> result = loader.load("RdfMapper/test-a.rml.ttl");
+		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test-a.rml.ttl");
 		
 		assertEquals(expected, result);
 	}

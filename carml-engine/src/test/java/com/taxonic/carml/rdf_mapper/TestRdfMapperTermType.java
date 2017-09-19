@@ -18,10 +18,9 @@ import com.taxonic.carml.model.impl.PredicateMapImpl;
 import com.taxonic.carml.model.impl.PredicateObjectMapImpl;
 import com.taxonic.carml.model.impl.SubjectMapImpl;
 import com.taxonic.carml.model.impl.TriplesMapImpl;
-import com.taxonic.carml.util.RmlMappingLoader;
 import com.taxonic.carml.vocab.Rdf;
 
-public class TestRdfMapperTermType {
+public class TestRdfMapperTermType extends RmlLoader {
 
 	static final SimpleValueFactory f = SimpleValueFactory.getInstance();
 	
@@ -39,8 +38,6 @@ public class TestRdfMapperTermType {
 			language = iri("language"),
 			hasBirthday = iri("hasBirthday");
 	}
-	
-	private RmlMappingLoader loader = RmlMappingLoader.build();
 	
 	@Test
 	public void testLoadMappingWithTermTypeLiteral() {
@@ -77,7 +74,7 @@ public class TestRdfMapperTermType {
 					)
 					.build()
 		);
-		List<TriplesMap> result = loader.load("RdfMapper/test14/termTypeMappingLiteral.rml.ttl");
+		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test14/termTypeMappingLiteral.rml.ttl");
 		assertEquals(result,expected);
 	}
 	@Test
@@ -116,7 +113,7 @@ public class TestRdfMapperTermType {
 					)
 					.build()
 		);
-		List<TriplesMap> result = loader.load("RdfMapper/test14/termTypeMappingIRI.rml.ttl");
+		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test14/termTypeMappingIRI.rml.ttl");
 		assertEquals(result,expected);
 	}
 	
@@ -154,7 +151,7 @@ public class TestRdfMapperTermType {
 					)
 					.build()
 		);
-		List<TriplesMap> result = loader.load("RdfMapper/test14/termTypeMappingBlankNodeB.rml.ttl");
+		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test14/termTypeMappingBlankNodeB.rml.ttl");
 		assertEquals(result,expected);
 	}
 	@Test
@@ -190,7 +187,7 @@ public class TestRdfMapperTermType {
 					)
 					.build()
 		);
-		List<TriplesMap> result = loader.load("RdfMapper/test14/termTypeMappingBlankNodeA.rml.ttl");
+		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test14/termTypeMappingBlankNodeA.rml.ttl");
 		assertEquals(result,expected);
 	}
 	

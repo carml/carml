@@ -17,10 +17,9 @@ import com.taxonic.carml.model.impl.PredicateMapImpl;
 import com.taxonic.carml.model.impl.PredicateObjectMapImpl;
 import com.taxonic.carml.model.impl.SubjectMapImpl;
 import com.taxonic.carml.model.impl.TriplesMapImpl;
-import com.taxonic.carml.util.RmlMappingLoader;
 import com.taxonic.carml.vocab.Rdf;
 
-public class TestRdfMapperGraphMaps {
+public class TestRdfMapperGraphMaps extends RmlLoader {
 
 	static final SimpleValueFactory f = SimpleValueFactory.getInstance();
 	
@@ -38,8 +37,6 @@ public class TestRdfMapperGraphMaps {
 			hasBirthday = iri("hasBirthday"),
 			mainGraph = iri("mainGraph");
 	}
-	
-	private RmlMappingLoader loader = RmlMappingLoader.build();
 	
 	@Test
 	public void testLoadMappingWithGraphMapsPredicateObject() {
@@ -79,7 +76,7 @@ public class TestRdfMapperGraphMaps {
 					)
 					.build()
 		);
-		List<TriplesMap> result = loader.load("RdfMapper/test15/graphMapMappingPredObj.rml.ttl");
+		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test15/graphMapMappingPredObj.rml.ttl");
 		assertEquals(expected,result);
 	}
 	
@@ -107,7 +104,7 @@ public class TestRdfMapperGraphMaps {
 					)
 					.build()
 		);
-		List<TriplesMap> result = loader.load("RdfMapper/test15/graphMapMappingSubjectB.rml.ttl");
+		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test15/graphMapMappingSubjectB.rml.ttl");
 		assertEquals(expected,result);
 	}
 	
@@ -135,7 +132,7 @@ public class TestRdfMapperGraphMaps {
 					)
 					.build()
 		);
-		List<TriplesMap> result = loader.load("RdfMapper/test15/graphMapMappingSubjectA.rml.ttl");
+		List<TriplesMap> result = loadRmlFromTtl("RdfMapper/test15/graphMapMappingSubjectA.rml.ttl");
 		assertEquals(expected,result);
 	}
 	

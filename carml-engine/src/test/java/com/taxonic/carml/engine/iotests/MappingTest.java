@@ -39,7 +39,7 @@ class MappingTest {
 		String outputPath,
 		Consumer<RmlMapper> configureMapper
 	) {
-		List<TriplesMap> mapping = loader.load(rmlPath);
+		List<TriplesMap> mapping = loader.load(rmlPath, RDFFormat.TURTLE);
 		Function<String, InputStream> sourceResolver =
 			s -> RmlMapperTest.class.getClassLoader().getResourceAsStream(contextPath + "/" + s);
 		RmlMapper mapper = new RmlMapper(sourceResolver);
