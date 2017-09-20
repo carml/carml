@@ -4,7 +4,7 @@ CARML
 
 (**Disclaimer:** The current state of CARML is early beta.
 The team expects to deliver a release in November 2017.
-The next release will offer improved code quality, more test coverage, more documentation and several features currently on the product backlog.
+The next release will offer improved code quality, more test coverage, more documentation and several features currently on the product backlog.)
 
 CARML is being developed by [Taxonic](http://www.taxonic.com) in cooperation with [Kadaster](https://www.kadaster.com/).
 
