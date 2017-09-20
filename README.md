@@ -20,11 +20,10 @@ Table of Contents
 - [Introduction](#introduction)
 - [Getting started](#getting-started)
 - [Validating your RML mapping](#validating-your-rml-mapping)
-- [Input stream extension](input-stream-extension)
+- [Input stream extension](#input-stream-extension)
 - [Function extension](#function-extension)
 - [Supported data source types](#supported-data-source-types)
 - [Roadmap](#roadmap)
----
 
 Releases
 ----
