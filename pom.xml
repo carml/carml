@@ -4,7 +4,7 @@
 
 	<groupId>com.taxonic.carml</groupId>
 	<artifactId>carml</artifactId>
-	<version>0.0.1</version>
+	<version>develop-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
 	<name>carml</name>
