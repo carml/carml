@@ -60,7 +60,7 @@ Model result = mapper.map(mapping);
 
 Validating your RML mapping
 ---------------------------
-We're not set up for full mapping validation yet. But, to help you get those first nasty mapping errors out, we've created a [SHACL](https://www.w3.org/TR/shacl/) shapes graph <!---TODO point to shapes file---> ([here](https://github.com/carml/carml/tree/master/rml.sh.ttl))that validates RML mappings. You can use the [SHACL playground](http://shacl.org/playground/) to easily test your mapping.
+We're not set up for full mapping validation yet. But, to help you get those first nasty mapping errors out, we've created a [SHACL](https://www.w3.org/TR/shacl/) shapes graph ([here](https://github.com/carml/carml/tree/master/rml.sh.ttl)) that validates RML mappings. You can use the [SHACL playground](http://shacl.org/playground/) to easily test your mapping.
 
 Input stream extension
 ---------------------
@@ -163,13 +163,13 @@ A function can be created in any `.java` class. The function should be annotated
 ```java
 public class RmlFunctions {
 
-  @FnoFunction("http://example.org/sumFunction")
-  public int sumFunction(
-    @FnoParam("http://example.org/intParameterA") int intA,
-    @FnoParam("http://example.org/intParameterB") int intB
-  ) {
-  	return intA + intB;
-  }
+	@FnoFunction("http://example.org/sumFunction")
+	public int sumFunction(
+		@FnoParam("http://example.org/intParameterA") int intA,
+		@FnoParam("http://example.org/intParameterB") int intB
+  	) {
+  		return intA + intB;
+  	}
 
 }
 ```
@@ -178,11 +178,11 @@ The class or classes containing the annotated functions can then be registered o
 
 ```java
 RmlMapper mapper =
-		RmlMapper
-			.newBuilder()
-			.classPathResolver(contextPath)
-			.addFunctions(new RmlFunctions())
-			.build();
+	RmlMapper
+		.newBuilder()
+		.classPathResolver(contextPath)
+		.addFunctions(new RmlFunctions())
+		.build();
 Model result = mapper.map(mapping);
 ```
 
