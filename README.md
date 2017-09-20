@@ -31,7 +31,7 @@ Table of Contents
 
 Releases
 ----
-pending - CARML 0.0.1
+20 Sep 2017 - CARML 0.0.1
 
 Introduction
 ------------
@@ -114,7 +114,7 @@ A recent development related to RML is the possibility of adding functions to th
 Because we believe that this extension can already be of great value, we've already adopted it in CARML.
 
 <!--- TODO: explain that the function execution is a finisher, that is it runs the normal mapping, which creates the function execution triples, and the described execution is in turn evaluated and results in the term map value. --->
-The way it works is, you create a you describe the execution of a function in terms of the [Function Ontology (FnO)](https://fno.io/).
+The way it works is, you describe the execution of a function in terms of the [Function Ontology (FnO)](https://fno.io/).
 
 Take for example the SumFunction example of the [FnO spec](http://users.ugent.be/~bjdmeest/function/#complete-example). This defines an instance `ex:sumFunction` of class `fno:Function` that is able to compute the sum of two values provided as parameters of the function at execution time.
 
@@ -190,7 +190,7 @@ RmlMapper mapper =
 Model result = mapper.map(mapping);
 ```
 
-It is recommended to describe and publish new functions in FnO for interpretability of mappings, and, possibly, reuse of functions, but it's not mandatory for CARML.
+It is recommended to describe and publish new functions in terms of FnO for interpretability of mappings, and, possibly, reuse of functions, but it's not mandatory for use in CARML.
 
 Note that it is currently possible to specify and use function executions as parameters of other function executions in CARML, although this is not (yet?) expressible in FnO.
 
