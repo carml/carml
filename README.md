@@ -51,7 +51,7 @@ Set<TriplesMap> mapping =
 RmlMapper mapper =
 	RmlMapper
 		.newBuilder()
-		.classPathResolver(contextPath)
+		.fileResolver(Paths.get("folder/containing/data/sources"))
 		.addFunctions(new RmlFunctions())
 		.build();
 
