@@ -116,7 +116,7 @@ Take for example the SumFunction example of the [FnO spec](http://users.ugent.be
 
 It also describes an instance `ex:sumExecution` of `fno:execution`, which `fno:executes` `ex:sumFunction` which descibes an instance of an execution of the defined sum function. In this case with parameters 2 and 4.
 
-To be able to use this in RML mappings we use executions of instances of `fno:Function` to determine the value of a term map. The execution
+To be able to use this in RML mappings we use executions of instances of `fno:Function` to determine the value of a term map. The execution of a function can be seen as a post-processing step in the evaluation of a term map.
 
 ```
 @prefix rr: <http://www.w3.org/ns/r2rml#> .
