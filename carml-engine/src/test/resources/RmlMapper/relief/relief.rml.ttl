@@ -1,0 +1,207 @@
+#Mappings for relief.json: 
+#<#ReliefMapping>
+
+@prefix rr: <http://www.w3.org/ns/r2rml#>.
+@prefix rml: <http://semweb.mmlab.be/ns/rml#> .
+@prefix ql: <http://semweb.mmlab.be/ns/ql#> .
+@prefix vocab: <http://brt.basisregistraties.overheid.nl/def/top10nl#> .
+@prefix brt_beg: <http://brt.basisregistraties.overheid.nl/id/begrip/> .
+@prefix ogc: <http://www.opengis.net/ont/geosparql#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix pdok: <http://data.pdok.nl/def/pdok#> .
+@prefix void: <http://rdfs.org/ns/void#> .
+
+
+<#ReliefMapping>
+	rml:logicalSource [
+		rml:source "relief.json";
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$";
+    ];
+	
+    rr:subjectMap [
+		rr:template "http://brt.basisregistraties.overheid.nl/top10nl/id/{_collection}/{lokaalid}";
+		rr:class vocab:Relief;
+		rr:class vocab:TaludHoogteverschil;
+		rr:graphMap [ rr:constant <http://brt.basisregistraties.overheid.nl/id/dataset/top10nl/2017020100000000> ];
+    ];
+    
+    rr:predicateObjectMap [
+		rr:predicate rdfs:label;
+		rr:objectMap [
+			rr:template "Relief {lokaalid}"; 
+			rr:language "nl";
+		]
+	];
+	
+	rr:predicateObjectMap [
+		rr:predicate ogc:hasGeometry;
+		rr:objectMap [
+			rr:parentTriplesMap <#HogeZijdeMapping>;
+		]
+	];
+	
+	rr:predicateObjectMap [
+		rr:predicate ogc:hasGeometry;
+		rr:objectMap [
+			rr:parentTriplesMap <#LageZijdeMapping>;
+		]
+	];
+	
+	rr:predicateObjectMap [
+		rr:predicate vocab:bronactualiteit;
+		rr:objectMap [
+			rml:reference "bronactualiteit";
+			rr:datatype xsd:date;
+		]
+	];
+	
+	rr:predicateObjectMap [
+		rr:predicate vocab:bronbeschrijving;
+		rr:objectMap [ 
+			rml:reference "bronbeschrijving";
+			]
+	];
+	
+	rr:predicateObjectMap [
+		rr:predicate vocab:bronnauwkeurigheid;
+		rr:objectMap [
+			rml:reference "bronnauwkeurigheid";
+			rr:datatype xsd:float;
+		]
+	];
+	
+	rr:predicateObjectMap [
+		rr:predicate vocab:brontype;
+		rr:objectMap [
+			rr:template "http://brt.basisregistraties.overheid.nl/id/begrip/{brontype}";
+			];
+	];
+
+	rr:predicateObjectMap [
+		rr:predicate vocab:hoogteniveau;
+		rr:objectMap [
+			rml:reference "hoogteniveau";
+			rr:datatype xsd:int
+		]
+	];
+	
+	rr:predicateObjectMap [
+		rr:predicate vocab:objectBeginTijd;
+		rr:objectMap [
+			rml:reference "objectbegintijd";
+			rr:datatype xsd:date;
+		]
+	];
+	
+	rr:predicateObjectMap [
+		rr:predicate vocab:tdnCode;
+		rr:objectMap [
+			rml:reference "tdncode";
+			rr:datatype xsd:int;
+		]
+	];
+	
+	rr:predicateObjectMap [
+		rr:predicate vocab:tijdstipRegistratie;
+		rr:objectMap [
+			rml:reference "tijdstipregistratie";
+			rr:datatype xsd:date;
+		]
+	];
+	
+		rr:predicateObjectMap [
+		rr:predicate vocab:visualisatieCode;
+		rr:objectMap [
+			rml:reference "visualisatiecode";
+			rr:datatype xsd:int;
+		]
+	];
+	
+	rr:predicateObjectMap [
+		rr:predicate void:inDataset;
+		rr:objectMap [
+			rr:constant <http://brt.basisregistraties.overheid.nl/id/dataset/top10nl/2017020100000000>;
+		]
+	];
+	
+	rr:predicateObjectMap [
+		rr:predicate vocab:hogeZijdeTaludGeometrie;
+		rr:objectMap [
+			rr:parentTriplesMap <#HogeZijdeMapping>;
+		]
+	];
+
+	rr:predicateObjectMap [
+		rr:predicate vocab:lageZijdeTaludGeometrie;
+		rr:objectMap [
+			rr:parentTriplesMap <#LageZijdeMapping>;
+		]
+	];
+	
+	rr:predicateObjectMap [
+		rr:predicate vocab:hoogteklasse;
+		rr:objectMap [
+			rr:constant <http://brt.basisregistraties.overheid.nl/id/begrip/_2_5Meter>;
+		]
+	].
+
+<#HogeZijdeMapping>
+	rml:logicalSource [
+		rml:source "relief.json";
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$.hogezijde";
+    ];
+	
+    rr:subjectMap [
+		rr:constant <http://brt.basisregistraties.overheid.nl/top10nl/id/geometry/241A2CF0862A870444C21FD80FC4846D>;
+		rr:class ogc:Geometry;
+		rr:graphMap [ rr:constant <http://brt.basisregistraties.overheid.nl/id/dataset/top10nl/2017020100000000> ];
+    ];
+    
+	rr:predicateObjectMap [
+		rr:predicate ogc:asWKT;
+		rr:objectMap [
+			rr:constant "LINESTRING (5.004748999724979 52.19773043096574, 5.004647448217835 52.19775409095199, 5.004526291282483 52.19780221548204, 5.003395894624719 52.19838260333877, 5.00216967140697 52.19900410253444, 5.001998840585934 52.199093811613885, 5.001192525303336 52.19951329878315, 5.000822217945628 52.19970416070249, 5.000800268457551 52.1997152519446, 5.000721405279749 52.19975315680051, 5.000640409439042 52.19981091801833, 5.000602984347305 52.199842190474065, 5.000554588522804 52.19988863463513, 5.0005263274991245 52.19993420095972, 5.0005042536293605 52.19997978753418, 5.000493107289734 52.2000168533437, 5.000480488253503 52.20008536320544, 5.000480070351994 52.20013345641586, 5.000580781110429 52.20052568816299, 5.0008074865570125 52.200551803040504, 5.000877075053156 52.200595029073895, 5.000921057395384 52.20065771114963, 5.000933123771816 52.20073202711147, 5.000881775297683 52.20078657787174, 5.000798714161823 52.200829304566824, 5.000728393221147 52.20087207289104, 5.000677984523871 52.200907635078444, 5.000790748473766 52.20136429576606, 5.000809801450142 52.201432504799584, 5.000869443920982 52.201645966174105, 5.000850367931684 52.201887041703266, 5.000914520717082 52.202126996309936, 5.001243458745289 52.20329290175399, 5.001451903493037 52.20405355016228, 5.001538149503136 52.204125016385895, 5.001601618018232 52.20414086263889, 5.001849738643957 52.204133852867116)";
+			rr:datatype ogc:wktLiteral;
+		]
+	];
+	
+    rr:predicateObjectMap [
+    	rr:predicate pdok:asWKT-RD;
+    	rr:objectMap [
+    		rml:reference "geometry";
+    	]
+    ].
+    
+<#LageZijdeMapping>
+	rml:logicalSource [
+		rml:source "relief.json";
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$.lagezijde";
+    ];
+	
+    rr:subjectMap [
+		rr:constant <http://brt.basisregistraties.overheid.nl/top10nl/id/geometry/2A9723AAB26586BA9AFDA21E1A229C80>;
+		rr:class ogc:Geometry;
+		rr:graphMap [ rr:constant <http://brt.basisregistraties.overheid.nl/id/dataset/top10nl/2017020100000000> ];
+    ];
+    
+	rr:predicateObjectMap [
+		rr:predicate ogc:asWKT;
+		rr:objectMap [
+			rr:constant "LINESTRING (5.004680166995756 52.19776783166642, 5.004637759131068 52.19779055069993, 5.00456555367896 52.19781191487021, 5.00310372181568 52.19857085014601, 5.002047214639046 52.199125669912725, 5.002046891373769 52.19912583962984, 5.00127009524944 52.1995299732774, 5.001269732801379 52.19953297407217, 5.001260362901276 52.19954913077386, 5.001232877192646 52.19956443733569, 5.00122135193377 52.199574439225216, 5.0009437911710215 52.199730470638066, 5.000812858340673 52.19981008915971, 5.000734465745573 52.1998611629266, 5.000677091054841 52.1999039825733, 5.0006348966555425 52.19994881125214, 5.0005908121970375 52.20000072523026, 5.000570849254271 52.20004578843653, 5.000561019722913 52.200079452125294, 5.000560683972202 52.200118099258006, 5.000650133072237 52.20046644182223, 5.000813081972205 52.20048521157275, 5.000831775301574 52.200488661185105, 5.000861493786981 52.200500999998695, 5.0009310822570745 52.200544226000616, 5.000950137565837 52.20056159014011, 5.000994119978601 52.20062427218916, 5.00099482781945 52.20062529913106, 5.001001186035998 52.200641021887144, 5.001013252541842 52.20071533784123, 5.001013698626361 52.200721244389335, 5.0010065192383255 52.20074283695808, 5.001001358724496 52.20074922849979, 5.0009500103134314 52.2008037792896, 5.000935089469635 52.20081564852892, 5.000929445066641 52.20081880281952, 5.0008493225558395 52.20086002019513, 5.000784133771787 52.20089966854184, 5.000763911408249 52.20091393817603, 5.000870162006365 52.20134419781668, 5.000948701699742 52.201625328385376, 5.000950020444542 52.20163518350007, 5.00094991146113 52.20163762786837, 5.0009313120681025 52.201872718988966, 5.000993821890067 52.20210651142885, 5.001322690814891 52.20327217375382, 5.001322761617042 52.203272443623746, 5.001527549283115 52.20401972385422, 5.0015852983967255 52.2040675755189, 5.0016162455653115 52.20408529293674, 5.001843429477228 52.204076902588724)";
+			rr:datatype ogc:wktLiteral;
+		]
+	];
+	
+    rr:predicateObjectMap [
+    	rr:predicate pdok:asWKT-RD;
+    	rr:objectMap [
+    		rml:reference "geometry";
+    	]
+    ].
+
+	

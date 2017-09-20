@@ -1,0 +1,126 @@
+@prefix rr: <http://www.w3.org/ns/r2rml#>.
+@prefix rml: <http://semweb.mmlab.be/ns/rml#>.
+@prefix ex: <http://faulty.predObj.example.com/>.
+@prefix ql: <http://semweb.mmlab.be/ns/ql#> .
+
+
+####################################################################################
+#0 Predicate 1 ObjectMap
+####################################################################################
+<#FaultyPredicateObjectMappingA> a rr:TriplesMap;
+	rml:logicalSource [
+		rml:source "simpleTestInput.json";
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$"
+	];
+	
+	rr:subjectMap [
+		rr:template "http://faulty.predObj.example.com/Child/{first}";
+		rr:class ex:childsFirstName
+	];
+	
+	rr:predicateObjectMap [
+		rr:objectMap [
+			rml:reference "birthday"
+		];
+	].
+	
+
+
+
+
+####################################################################################
+#1 Predicates 0 ObjectMap
+####################################################################################
+<#FaultyPredicateObjectMappingB> a rr:TriplesMap;
+	rml:logicalSource [
+		rml:source "simpleTestInput.json";
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$"
+	];
+	
+	rr:subjectMap [
+		rr:template "http://faulty.predObj.example.com/Child/{first}";
+		rr:class ex:childsFirstName
+	];
+	
+	rr:predicateObjectMap [
+		rr:predicate ex:hasBirthday;
+	].
+
+
+####################################################################################
+#Only GraphMap
+####################################################################################
+<#FaultyPredicateObjectMappingC> a rr:TriplesMap;
+	rml:logicalSource [
+		rml:source "simpleTestInput.json";
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$"
+	];
+	
+	rr:subjectMap [
+		rr:template "http://faulty.predObj.example.com/Child/{first}";
+		rr:class ex:childsFirstName
+	];
+	
+	rr:predicateObjectMap [
+		rr:graphMap [rr:constant <http://faultyPredicateGraph.example.com>;
+	].
+	
+	
+	
+
+####################################################################################
+#GraphMap inside predicate
+####################################################################################
+<#FaultyPredicateObjectMappingD> a rr:TriplesMap;
+	rml:logicalSource [
+		rml:source "simpleTestInput.json";
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$"
+	];
+	
+	rr:subjectMap [
+		rr:template "http://faulty.predObj.example.com/Child/{first}";
+		rr:class ex:childsFirstName
+	];
+	
+	rr:predicateObjectMap [
+		rr:predicateMap [
+			rr:graphMap [rr:constant <http://faultyPredicateGraph.example.com>;
+			rr:constant <http://faulty.PredObj.example.com/hasBirthday>
+		]
+		rr:objectMap [
+			rml:reference "birthday"
+		];
+	].
+	
+	
+	
+	
+####################################################################################
+#GraphMap inside objectMap
+####################################################################################
+<#FaultyPredicateObjectMappingE> a rr:TriplesMap;
+	rml:logicalSource [
+		rml:source "simpleTestInput.json";
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$"
+	];
+	
+	rr:subjectMap [
+		rr:template "http://faulty.predObj.example.com/Child/{first}";
+		rr:class ex:childsFirstName
+	];
+	
+	rr:predicateObjectMap [
+		rr:predicateMap [
+			rr:constant <http://faulty.PredObj.example.com/hasBirthday>
+		]
+		rr:objectMap [
+			rml:reference "birthday";
+			rr:graphMap [rr:constant <http://faultyPredicateGraph.example.com>;
+		];
+	].
+

@@ -1,0 +1,173 @@
+#Mappings for gebouw.json: 
+#<#GebouwMapping>
+
+@prefix rr: <http://www.w3.org/ns/r2rml#>.
+@prefix rml: <http://semweb.mmlab.be/ns/rml#> .
+@prefix ql: <http://semweb.mmlab.be/ns/ql#> .
+@prefix vocab: <http://brt.basisregistraties.overheid.nl/def/top10nl#> .
+@prefix brt_beg: <http://brt.basisregistraties.overheid.nl/id/begrip/> .
+@prefix ogc: <http://www.opengis.net/ont/geosparql#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix pdok: <http://data.pdok.nl/def/pdok#> .
+@prefix void: <http://rdfs.org/ns/void#> .
+<#GebouwMapping>
+	rml:logicalSource [
+		rml:source "gebouw.json";
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$";
+    ];
+	
+    rr:subjectMap [
+		rr:template "http://brt.basisregistraties.overheid.nl/def/top10nl/id/{_collection}/{lokaalid}";
+		rr:class vocab:Overig_gebouw;
+		rr:class vocab:Gebouw;
+		rr:graphMap [ rr:constant <http://brt.basisregistraties.overheid.nl/id/dataset/top10nl/2017020100000000> ];
+		
+    ];
+    
+    rr:predicateObjectMap [
+		rr:predicate vocab:bronactualiteit;
+		rr:objectMap [
+			rml:reference "bronactualiteit";
+			rr:datatype xsd:date;
+		]
+	];x
+	
+	rr:predicateObjectMap [
+		rr:predicate vocab:bronbeschrijving;
+		rr:objectMap [ 
+			rml:reference "bronbeschrijving";
+			]
+	];
+	
+	rr:predicateObjectMap [
+		rr:predicate vocab:bronnauwkeurigheid;
+		rr:objectMap [
+			rml:reference "bronnauwkeurigheid";
+			rr:datatype xsd:float;
+		]
+	];
+	
+	rr:predicateObjectMap [
+		rr:predicate vocab:brontype;
+		rr:objectMap [
+			rr:template "http://brt.basisregistraties.overheid.nl/id/begrip/{brontype}";
+			];
+	];
+
+	rr:predicateObjectMap [
+		rr:predicate vocab:hoogteklasse;
+		rr:objectMap [
+			rr:template "http://brt.basisregistraties.overheid.nl/id/begrip/{hoogteklasse}";
+			];
+	];
+	
+	rr:predicateObjectMap [
+		rr:predicate vocab:hoogteniveau;
+		rr:objectMap [
+			rml:reference "hoogteniveau";
+			rr:datatype xsd:int
+		]
+	];
+
+	rr:predicateObjectMap [
+		rr:predicate vocab:objectBeginTijd;
+		rr:objectMap [
+			rml:reference "objectbegintijd";
+			rr:datatype xsd:date;
+		]
+	];
+	
+	rr:predicateObjectMap [
+		rr:predicate vocab:tdnCode;
+		rr:objectMap [
+			rml:reference "tdncode";
+			rr:datatype xsd:int;
+		]
+	];
+	
+	rr:predicateObjectMap [
+		rr:predicate vocab:tijdstipRegistratie;
+		rr:objectMap [
+			rml:reference "tijdstipregistratie";
+			rr:datatype xsd:date;
+		]
+	];
+	
+		rr:predicateObjectMap [
+		rr:predicate vocab:visualisatieCode;
+		rr:objectMap [
+			rml:reference "visualisatiecode";
+			rr:datatype xsd:int;
+		]
+	];
+	
+	rr:predicateObjectMap [
+		rr:predicate void:inDataset;
+		rr:objectMap [
+			rr:constant <http://brt.basisregistraties.overheid.nl/id/dataset/top10nl/2017020100000000>;
+		]
+	];
+	
+	rr:predicateObjectMap [
+		rr:predicate vocab:geometrie;
+		rr:objectMap [
+			rr:constant "http://brt.basisregistraties.overheid.nl/top10nl/id/geometry/BB5C4BC72C4AD429503172C324047895http://brt.basisregistraties.overheid.nl/top10nl/id/geometry/BB5C4BC72C4AD429503172C324047895";
+		]
+	];
+	
+	rr:predicateObjectMap [
+		rr:predicate ogc:hasGeometry;
+		rr:objectMap [
+		rr:parentTriplesMap <#GeometrieMapping>;
+		]
+	];
+	
+		rr:predicateObjectMap [
+		rr:predicate rdfs:label;
+		rr:objectMap [
+			rr:constant "Gebouw 101295495";
+			rr:language "nl"
+		]
+	];
+	
+		rr:predicateObjectMap [
+		rr:predicate vocab:status;
+		rr:objectMap [
+			rr:template "http://brt.basisregistraties.overheid.nl/id/begrip/{status}";
+		]
+	].
+	
+
+
+
+<#GeometrieMapping>
+	rml:logicalSource [
+		rml:source "gebouw.json";
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$._geometry";
+    ];
+	
+    rr:subjectMap [
+		rr:constant <http://brt.basisregistraties.overheid.nl/top10nl/id/geometry/BB5C4BC72C4AD429503172C324047895>;
+		rr:class ogc:Geometry;
+		rr:graphMap [ rr:constant <http://brt.basisregistraties.overheid.nl/id/dataset/top10nl/2017020100000000> ];
+    ];
+    
+	rr:predicateObjectMap [
+		rr:predicate ogc:asWKT;
+		rr:objectMap [
+			rr:constant "POLYGON ((6.214160556621427 52.240161023801484, 6.214252370175528 52.240188567371035, 6.214398392221196 52.24048431592365, 6.21434887708355 52.24052928931585, 6.21411186505761 52.24057339243438, 6.214059834062499 52.24046800198641, 6.2137590020173565 52.240523975505944, 6.213667629813001 52.240338883537305, 6.213841463427744 52.24030653997347, 6.213802502187694 52.24022764492319, 6.214160556621427 52.240161023801484))";
+			rr:datatype ogc:wktLiteral;
+		]
+	];
+	
+    rr:predicateObjectMap [
+    	rr:predicate pdok:asWKT-RD;
+    	rr:objectMap [
+    		rml:reference "geometry";
+    		]
+    ].
+	

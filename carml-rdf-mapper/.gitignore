@@ -1,14 +1,9 @@
 
 # eclipse
+/.checkstyle
 /.classpath
 /.project
 /.settings/
-.factorypath
 
 # maven
 /target/
-
-# Intellij
-.idea/
-*.iml
-*.iws

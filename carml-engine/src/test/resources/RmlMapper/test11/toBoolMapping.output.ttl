@@ -1,0 +1,7 @@
+<http://example.com/Student/1234> a <http://example.com/studentId> ;
+	<http://example.com/isPresent> "true"^^<http://www.w3.org/2001/XMLSchema#bool> .
+
+<http://example.com/Student/1234/isPresent> <http://semweb.datasciencelab.be/ns/function#executes> <http://example.com/toBoolFunction> ;
+	<http://example.com/startString> "yes"^^<http://www.w3.org/2001/XMLSchema#bool> .
+
+	

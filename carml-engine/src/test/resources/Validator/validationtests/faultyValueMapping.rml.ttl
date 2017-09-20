@@ -1,0 +1,71 @@
+@prefix rr: <http://www.w3.org/ns/r2rml#>.
+@prefix rml: <http://semweb.mmlab.be/ns/rml#>.
+@prefix ex: <http://faulty.value.example.com/>.
+@prefix ql: <http://semweb.mmlab.be/ns/ql#> .
+
+
+####################################################################################
+# Wrong Iterator typo
+####################################################################################
+<#FaultyValueMappingA> a rr:TriplesMap;
+	rml:logicalSource [
+		rml:source "simple2TestInput.json";
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$.Childe"
+	];
+	
+	rr:subjectMap [
+		rr:template "http://faulty.value.example.com/Child/{first}";
+		rr:class ex:FirstName;
+	];
+	
+	rr:predicateObjectMap [
+		rr:predicate ex:hasParents
+		rr:objectMap [
+			rml:reference "parents"
+		]
+	].
+
+####################################################################################
+# Wrong template value typo in subjectMap
+####################################################################################
+<#FaultyValueMappingB> a rr:TriplesMap;
+	rml:logicalSource [
+		rml:source "simple2TestInput.json";
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$.Child"
+	];
+	
+	rr:subjectMap [
+		rr:template "http://faulty.value.example.com/Child/{firste}";
+		rr:class ex:FirstName;
+	];
+	
+	rr:predicateObjectMap [
+		rr:predicate ex:hasParents
+		rr:objectMap [
+			rml:reference "parents"
+		]
+	].
+
+####################################################################################
+# Wrong reference value typo in objectMap
+####################################################################################
+<#FaultyValueMappingC> a rr:TriplesMap;
+	rml:logicalSource [
+		rml:source "simple2TestInput.json";
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$.Child"
+	];
+	
+	rr:subjectMap [
+		rr:template "http://faulty.value.example.com/Child/{first}";
+		rr:class ex:FirstName;
+	];
+	
+	rr:predicateObjectMap [
+		rr:predicate ex:hasBSN
+		rr:objectMap [
+			rml:reference "BSNe"
+		]
+	].

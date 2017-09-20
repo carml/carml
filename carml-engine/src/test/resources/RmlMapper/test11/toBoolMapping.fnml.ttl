@@ -1,0 +1,48 @@
+@prefix fno: <http://semweb.datasciencelab.be/ns/function#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rr: <http://www.w3.org/ns/r2rml#>.
+@prefix rml: <http://semweb.mmlab.be/ns/rml#>.
+@prefix ex: <http://example.com/>.
+@prefix ql: <http://semweb.mmlab.be/ns/ql#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix fnml:   <http://semweb.mmlab.be/ns/fnml#> .
+
+
+<#LogicalSource> rml:source "toBoolFunctionTestInput.json";
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$" .
+		
+<#toBoolMapping> a rr:TriplesMap;
+	rml:logicalSource <#LogicalSource>;
+	rr:subjectMap [
+		rr:template "http://example.com/Student/{ID}";
+		rr:class ex:studentId
+	];
+	rr:predicateObjectMap <#BoolPresentMapping> .
+
+<#BoolPresentMapping> a rr:predicateObjectMap;
+	rr:predicate ex:isPresent;
+	rr:objectMap <#toBoolFunctionMap> .
+
+<#toBoolFunctionMap>
+	rr:termType rr:Literal;
+	rr:datatype xsd:bool;
+	fnml:functionValue [
+		rml:logicalSource <#LogicalSource>;
+		rr:subjectMap [
+			rr:template "http://example.com/Student/{ID}/isPresent";
+		];
+		rr:predicateObjectMap [
+			rr:predicate fno:executes;
+			rr:object ex:toBoolFunction;
+		];
+		rr:predicateObjectMap [
+			rr:predicate ex:startString;
+			rr:objectMap [
+				rml:reference "present";
+				rr:datatype xsd:bool
+			]
+		];
+	] .

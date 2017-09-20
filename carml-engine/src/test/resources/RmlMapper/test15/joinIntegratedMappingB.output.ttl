@@ -1,0 +1,4 @@
+<http://food.example.com/Belgian%20Waffles> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example.com/ns#breakfastItem>;
+	<http://example.com/ns#originatesFrom> <http://country.example.com/Belgium> . 
+
+<http://country.example.com/Belgium> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example.com/ns#Country> .

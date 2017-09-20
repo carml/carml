@@ -1,0 +1,11 @@
+{
+    "venue": {
+        "latitude": "51.0500000",
+        "longitude": "3.7166700"
+    },
+    "location": {
+        "continent": "Europe",
+        "country": "BE",
+        "city": "Brussels"
+    }
+}

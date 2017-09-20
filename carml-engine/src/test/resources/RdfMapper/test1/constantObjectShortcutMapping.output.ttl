@@ -1,0 +1,12 @@
+
+<http://example.com/Color/black> <http://example.com/hasHex> <http://www.asciitable.com/hex> .
+
+<http://example.com/Color/white> <http://example.com/hasHex> <http://www.asciitable.com/hex> .
+
+<http://example.com/Color/red> <http://example.com/hasHex> <http://www.asciitable.com/hex> .
+
+<http://example.com/Color/blue> <http://example.com/hasHex> <http://www.asciitable.com/hex> .
+
+<http://example.com/Color/yellow> <http://example.com/hasHex> <http://www.asciitable.com/hex> .
+
+<http://example.com/Color/green> <http://example.com/hasHex> <http://www.asciitable.com/hex> .

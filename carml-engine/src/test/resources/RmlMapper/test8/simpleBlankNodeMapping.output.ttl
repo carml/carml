@@ -1,0 +1,8 @@
+
+# NOTE: algorithm for generating blank node ids will change
+
+_:bnode-Amarise a <http://example.com/Child> ;
+<http://example.com/BSN> "25"^^<http://www.w3.org/2001/XMLSchema#int> .
+
+_:bnode-Kelsey a <http://example.com/Child> ;
+<http://example.com/BSN> "25"^^<http://www.w3.org/2001/XMLSchema#int> .

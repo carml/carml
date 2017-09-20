@@ -1,0 +1,45 @@
+@prefix rr: <http://www.w3.org/ns/r2rml#>.
+@prefix rml: <http://semweb.mmlab.be/ns/rml#>.
+@prefix ql: <http://semweb.mmlab.be/ns/ql#>.
+@prefix ex: <http://example.com/ns#>.
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+
+<#JoinIntegratedMapping>
+rml:logicalSource [
+	rml:source "joinBreakfast.json" ;
+	rml:referenceFormulation ql:JSONPath ;
+	rml:iterator "$"
+];
+rr:subjectMap [
+	rr:template "http://food.example.com/{food.name}";
+	rr:class ex:breakfastItem ;
+];
+
+rr:predicateObjectMap [
+	rr:predicate ex:originatesFrom;
+	rr:objectMap [
+		rr:parentTriplesMap <#CountryMapping>;
+		rr:joinCondition [
+			rr:child "food.countryOfOrigin";
+			rr:parent "country.name" ] 
+		]
+	].
+
+ <#CountryMapping>
+	rml:logicalSource [
+		rml:source "joinCountries.json";
+		rml:referenceFormulation ql:JSONPath;
+		rml:iterator "$"
+		];
+		
+		rr:subjectMap [
+			rr:template "http://country.example.com/{country.name}";
+			rr:class ex:Country ;
+		];
+		
+		rr:predicateObjectMap [
+			rr:predicate ex:officialLanguage;
+			rr:objectMap [
+				rml:reference "country.officialLanguage"]
+		] .

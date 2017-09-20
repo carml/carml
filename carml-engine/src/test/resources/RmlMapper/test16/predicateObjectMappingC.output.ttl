@@ -1,0 +1,2 @@
+<http://example.com/Child/Amarise> a <http://example.com/childsFirstName> ;
+	<http://example.com/hasBirthday> <http://example.com/age/Unknown> , <http://example.com/birthday/Unknown> .
