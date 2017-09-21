@@ -23,19 +23,14 @@ class PredicateObjectMapper {
 	}
 
 	void map(Model model, EvaluateExpression evaluate, Resource subject, List<IRI> subjectGraphs) {
-		
-		List<IRI> graphs =
-			Stream.concat(
+
+		Resource[] contexts = Stream.concat(
 				subjectGraphs.stream(),
 				graphGenerators.stream()
-					.map(g -> g.apply(evaluate))
-					.filter(Optional::isPresent)
-					.map(Optional::get)
-			)
-			.collect(Collectors.toList());
-		
-		Resource[] contexts = new Resource[graphs.size()];
-		graphs.toArray(contexts);
+						.map(g -> g.apply(evaluate))
+						.filter(Optional::isPresent)
+						.map(Optional::get)
+		).toArray(Resource[]::new);
 		
 		predicateMappers.forEach(p -> p.map(model, evaluate, subject, contexts));
 		
