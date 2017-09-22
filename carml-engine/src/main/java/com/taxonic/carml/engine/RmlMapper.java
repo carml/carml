@@ -1,5 +1,7 @@
 package com.taxonic.carml.engine;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -54,6 +56,8 @@ import com.taxonic.carml.model.TriplesMap;
  */
 
 public class RmlMapper {
+	
+	private static final String DEFAULT_STREAM_NAME = "DEFAULT";
 
 	public static Builder newBuilder() {
 		return new Builder();
@@ -149,8 +153,12 @@ public class RmlMapper {
 				return Optional.empty();
 			
 			NameableStream stream = (NameableStream) o;
-			String name = stream.getStreamName();
-			return Optional.of(mapper.getInputStream(name));
+			Optional<String> name = Optional.ofNullable(stream.getStreamName());
+			InputStream resolved =
+				name.isPresent() ?
+					mapper.getInputStream(name.get()) :
+					mapper.getInputStream(DEFAULT_STREAM_NAME);
+			return Optional.of(resolved);
 		}
 	}
 	
@@ -446,7 +454,23 @@ public class RmlMapper {
 	
 	private Map<String, InputStream> inputStreams = new LinkedHashMap<>();
 	
+	public void bindInputStream(InputStream inputStream) {
+		requireNonNull(
+			inputStream, 
+			"input stream should be provided when binding stream to mapper"
+		);
+		inputStreams.put(DEFAULT_STREAM_NAME, inputStream);
+	}
+	
 	public void bindInputStream(String name, InputStream inputStream) {
+		requireNonNull(
+			name, 
+			"Name should be specified when binding named stream to mapper"
+		);
+		requireNonNull(
+			inputStream, 
+			"input stream should be provided when binding named stream to mapper"
+		);
 		inputStreams.put(name, inputStream);
 	}
 	
