@@ -28,7 +28,7 @@ class MappingTest {
 		String rmlPath,
 		String outputPath
 	) {
-		testMapping(contextPath, rmlPath, outputPath, m -> {});
+		testMapping(contextPath, rmlPath, outputPath, m -> {}, m -> {});
 	}
 	
 	void testMapping(
@@ -37,10 +37,21 @@ class MappingTest {
 		String outputPath,
 		Consumer<RmlMapper.Builder> configureMapper
 	) {
+		testMapping(contextPath, rmlPath, outputPath, configureMapper, m -> {});
+	}
+	
+	void testMapping(
+		String contextPath,
+		String rmlPath,
+		String outputPath,
+		Consumer<RmlMapper.Builder> configureMapper,
+		Consumer<RmlMapper> configureMapperInstance
+	) {
 		Set<TriplesMap> mapping = loader.load(rmlPath, RDFFormat.TURTLE);
 		RmlMapper.Builder builder = RmlMapper.newBuilder().classPathResolver(contextPath);
 		configureMapper.accept(builder);
 		RmlMapper mapper = builder.build();
+		configureMapperInstance.accept(mapper);
 		Model result = mapper.map(mapping);
 		
 		System.out.println("Generated from test: " + rmlPath);

@@ -8,7 +8,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -23,7 +25,6 @@ import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
-import org.jooq.lambda.Unchecked;
 
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.JsonPath;
@@ -31,6 +32,7 @@ import com.jayway.jsonpath.Option;
 import com.taxonic.carml.engine.function.ExecuteFunction;
 import com.taxonic.carml.engine.function.Functions;
 import com.taxonic.carml.model.BaseObjectMap;
+import com.taxonic.carml.model.CarmlStream;
 import com.taxonic.carml.model.GraphMap;
 import com.taxonic.carml.model.Join;
 import com.taxonic.carml.model.LogicalSource;
@@ -108,10 +110,47 @@ public class RmlMapper {
 		}
 		
 		public RmlMapper build() {
-			return new RmlMapper(
-				new CompositeSourceResolver(sourceResolvers),
-				functions
-			);
+			
+			CarmlStreamResolver carmlStreamResolver = new CarmlStreamResolver();
+
+			RmlMapper mapper =
+				new RmlMapper(
+					new CompositeSourceResolver(
+						// prepend carml stream resolver to regular resolvers
+						Stream.concat(
+							Stream.of(carmlStreamResolver),
+							sourceResolvers.stream()
+						)
+						.collect(Collectors.toList())
+					),
+					functions
+				);
+			
+			// carmlStreamResolver needs a reference to the mapper, since
+			// input streams will be bound by name through the mapper instance
+			carmlStreamResolver.setMapper(mapper);
+			
+			return mapper;
+		}
+	}
+	
+	private static class CarmlStreamResolver implements SourceResolver {
+
+		private RmlMapper mapper;
+		
+		public void setMapper(RmlMapper mapper) {
+			this.mapper = mapper;
+		}
+
+		@Override
+		public Optional<InputStream> apply(Object o) {
+			
+			if (!(o instanceof CarmlStream))
+				return Optional.empty();
+			
+			CarmlStream stream = (CarmlStream) o;
+			String name = stream.getStreamName();
+			return Optional.of(mapper.getInputStream(name));
 		}
 	}
 	
@@ -404,5 +443,18 @@ public class RmlMapper {
 			joinConditions
 		);
 	};
+	
+	private Map<String, InputStream> inputStreams = new LinkedHashMap<>();
+	
+	public void bindInputStream(String name, InputStream inputStream) {
+		inputStreams.put(name, inputStream);
+	}
+	
+	private InputStream getInputStream(String name) {
+		if (!inputStreams.containsKey(name))
+			throw new RuntimeException("attempting to get input stream by "
+				+ "name [" + name + "], but no such binding is present");
+		return inputStreams.get(name);
+	}
 	
 }
