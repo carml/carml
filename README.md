@@ -1,3 +1,7 @@
+<p align="center">
+<img src="https://raw.githubusercontent.com/carml/carml.github.io/master/carml-logo.png" height="100" alt="carml">
+</p>
+
 CARML
 =====================
 **A pretty sweet RML engine**
