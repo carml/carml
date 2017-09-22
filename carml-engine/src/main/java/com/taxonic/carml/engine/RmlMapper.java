@@ -75,38 +75,38 @@ public class RmlMapper {
 		}
 		
 		public Builder fileResolver(Path basePath) {
-			sourceResolver(
-				o -> {
-					if (!(o instanceof String))
-						return Optional.empty();
-					String s = (String) o;
-					Path path = basePath.resolve(s);
-					InputStream inputStream;
-					try {
-						inputStream = Files.newInputStream(path);
-					}
-					catch (Exception e) {
-						throw new RuntimeException("could not create input stream for path [" + path + "]");
-					}
-					return Optional.of(inputStream);
-				}
-			);
+			sourceResolver(o -> resolveFilePathToInputStream(o, basePath));
 			return this;
+		}
+		
+		private Optional<InputStream> resolveFilePathToInputStream(Object object, Path basePath) {
+			if (!(object instanceof String))
+				return Optional.empty();
+			String s = (String) object;
+			Path path = basePath.resolve(s);
+			InputStream inputStream;
+			try {
+				inputStream = Files.newInputStream(path);
+			}
+			catch (Exception e) {
+				throw new RuntimeException("could not create input stream for path [" + path + "]");
+			}
+			return Optional.of(inputStream);
 		}
 
 		public Builder classPathResolver(String basePath) {
-			sourceResolver(
-				o -> {
-					if (!(o instanceof String))
-						return Optional.empty();
-					String s = (String) o;
-					return Optional.of(
-						RmlMapper.class.getClassLoader()
-							.getResourceAsStream(basePath + "/" + s)
-					);
-				}
-			);
+			sourceResolver(o -> resolveClassPathToInputStream(o, basePath));
 			return this;
+		}
+		
+		private Optional<InputStream> resolveClassPathToInputStream(Object object, String basePath) {
+			if (!(object instanceof String))
+				return Optional.empty();
+			String s = (String) object;
+			return Optional.of(
+				RmlMapper.class.getClassLoader()
+					.getResourceAsStream(basePath + "/" + s)
+			);
 		}
 		
 		public RmlMapper build() {
