@@ -4,7 +4,7 @@ import org.eclipse.rdf4j.model.IRI;
 
 public interface LogicalSource {
 
-	String getSource();
+	Object getSource();
 	
 	String getIterator();
 	

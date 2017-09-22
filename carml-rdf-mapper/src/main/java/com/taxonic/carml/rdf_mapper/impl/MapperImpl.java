@@ -39,6 +39,7 @@ import com.taxonic.carml.rdf_mapper.TypeDecider;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.rdf_mapper.annotations.RdfType;
 import com.taxonic.carml.rdf_mapper.qualifiers.PropertyPredicate;
+import com.taxonic.carml.rdf_mapper.qualifiers.PropertySetter;
 
 public class MapperImpl implements Mapper, MappingCache {
 
@@ -236,7 +237,7 @@ public class MapperImpl implements Mapper, MappingCache {
 					// gather qualifiers on setter
 					List<Annotation> qualifiers =
 						Arrays.asList(m.getAnnotations()).stream()
-							.filter(a -> a.getClass().getAnnotation(Qualifier.class) != null)
+							.filter(a -> a.annotationType().getAnnotation(Qualifier.class) != null)
 							.collect(Collectors.toList());
 					
 					// determine property/setter type
@@ -337,8 +338,10 @@ public class MapperImpl implements Mapper, MappingCache {
 					private Optional<Object> getQualifierValue(Class<? extends Annotation> qualifier) {
 						if (qualifier.equals(PropertyPredicate.class))
 							return Optional.of(predicate);
+						if (qualifier.equals(PropertySetter.class))
+							return Optional.of(set);
 						
-						// ..
+						// TODO ..
 						
 						return Optional.empty();
 					}

@@ -8,14 +8,14 @@ import com.taxonic.carml.vocab.Rml;
 
 public class LogicalSourceImpl implements LogicalSource {
 
-	private String source;
+	private Object source;
 	private String iterator;
 	private IRI referenceFormulation;
 
 	public LogicalSourceImpl() {}
 	
 	public LogicalSourceImpl(
-		String source,
+		Object source,
 		String iterator,
 		IRI referenceFormulation
 	) {
@@ -24,9 +24,12 @@ public class LogicalSourceImpl implements LogicalSource {
 		this.referenceFormulation = referenceFormulation;
 	}
 
-	@RdfProperty(Rml.source)
+	@RdfProperty(
+		value = Rml.source,
+		handler = LogicalSourceSourcePropertyHandler.class
+	)
 	@Override
-	public String getSource() {
+	public Object getSource() {
 		return source;
 	}
 
@@ -42,7 +45,7 @@ public class LogicalSourceImpl implements LogicalSource {
 		return referenceFormulation;
 	}
 
-	public void setSource(String source) {
+	public void setSource(Object source) {
 		this.source = source;
 	}
 
@@ -97,11 +100,11 @@ public class LogicalSourceImpl implements LogicalSource {
 	
 	public static class Builder {
 
-		private String source;
+		private Object source;
 		private String iterator;
 		private IRI referenceFormulation;
 		
-		public Builder source(String source) {
+		public Builder source(Object source) {
 			this.source = source;
 			return this;
 		}

@@ -282,7 +282,7 @@ public class RmlMapper {
 		
 		// TODO this all assumes json
 		
-		Supplier<Object> getSource = () -> readSource(logicalSource.getSource());
+		Supplier<Object> getSource = () -> readSource((String) logicalSource.getSource()); // XXX assuming String for now
 		
 		String iterator = logicalSource.getIterator();
 		UnaryOperator<Object> applyIterator =
@@ -309,7 +309,7 @@ public class RmlMapper {
 		
 		// TODO this all assumes json
 		
-		Supplier<Object> getSource = () -> readSource(logicalSource.getSource());
+		Supplier<Object> getSource = () -> readSource((String) logicalSource.getSource()); // XXX assuming String for now
 		
 		String iterator = logicalSource.getIterator();
 		UnaryOperator<Object> applyIterator =
