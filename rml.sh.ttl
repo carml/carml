@@ -6,6 +6,8 @@
 @prefix rr: <http://www.w3.org/ns/r2rml#> .
 @prefix rml: <http://semweb.mmlab.be/ns/rml#> .
 
+@prefix carml: <http://carml.taxonic.com/carml/> .
+
 @prefix rmlsh: <http://www.taxonic.com/ns/rml-shacl#> .
 
 rmlsh:
@@ -35,7 +37,7 @@ rmlsh:TriplesMapShape
 		sh:minCount 1 ;
 		sh:maxCount 1 ;
 	] ;
-	
+
 	sh:xone (
 		[
 			sh:property [
@@ -51,7 +53,7 @@ rmlsh:TriplesMapShape
 				sh:maxCount 1 ;
 			]
 		]
-	) ; 
+	) ;
 	.
 
 
@@ -63,7 +65,7 @@ rmlsh:TermMapShape
 	rdfs:comment "Defines constraints for a well-formed term map."@en;
 
 
-	# NOTE: We don't target object maps directly, because not all object maps are term maps; 
+	# NOTE: We don't target object maps directly, because not all object maps are term maps;
 	#       the range for `rr:objectMap` is `rr:ObjectMap` or `rr:RefObjectMap`
 
 	sh:targetObjectsOf
@@ -209,8 +211,8 @@ rmlsh:PredicateMapShape
 	a sh:NodeShape ;
 	rdfs:label "Predicate map shape"@en ;
 	rdfs:comment "Defines constraints for a well-formed predicate map."@en;
-	
-	sh:and ( 
+
+	sh:and (
 		[ sh:property [ sh:path rr:termType ; sh:maxCount 1 ; ] ; ]
 		[ sh:property [ sh:path rr:termType ; sh:hasValue rr:IRI ; ] ; ]
 	) ;
@@ -251,30 +253,69 @@ rmlsh:LogicalSourceShape
 
 	sh:targetClass rml:LogicalSource ;
 	sh:targetObjectsOf rml:logicalSource ;
-
-	sh:property [
-		sh:path rml:source ;
-		sh:minCount 1;
-		sh:maxCount 1;
-	] ;
+	sh:targetSubjectsOf rml:source ;
 
 	# @NOTE: The iterator and referenceFormulation could be required, based on the rml:source. These
 	#        constraints will be checked at run time, and will cause a run time error when violated.
-	sh:property [
-		sh:path rml:iterator ;
-		sh:maxCount 1;
-	] ;
+	sh:property
+		[
+			sh:message "LogicalSource should have one and only one source." ;
+			sh:path rml:source ;
+			sh:minCount 1;
+			sh:maxCount 1;
+		] ,
+		[
+			sh:message "Logical source's source should be either a source location string or a valid carml stream description" ;
+			sh:path rml:source ;
+			sh:or (
+				[
+					sh:nodeKind sh:Literal ;
+					sh:datatype xsd:string ;
+				]
 
-	sh:property [
-		sh:path rml:referenceFormulation ;
-		sh:maxCount 1 ;
+				[
+					sh:node rmlsh:CarmlStreamShape ;
+				]
+			)
+		] ,
+		[
+			sh:message "LogicalSource should have at most one iterator." ;
+			sh:path rml:iterator ;
+			sh:maxCount 1;
+		] ,
+		[
+			sh:message "LogicalSource should have at most one reference formulation." ;
+			sh:path rml:referenceFormulation ;
+			sh:maxCount 1 ;
 
-		# @NOTE: The namespace sets the range to `rml:ReferenceFormulation`, but in practice, this  
-		#        class does not have any special characteristic. From a practical perspective, it
-		#        seems useful to allow any IRI.
-		sh:nodeKind sh:IRI ;
-	] ;
-	.
+			# @NOTE: The namespace sets the range to `rml:ReferenceFormulation`, but in practice, this
+			#        class does not have any special characteristic. From a practical perspective, it
+			#        seems useful to allow any IRI.
+			sh:nodeKind sh:IRI ;
+		]
+.
+
+rmlsh:CarmlStreamShape
+ 	a sh:NodeShape ;
+	sh:targetClass carml:Stream ;
+	sh:message "Carml stream is ill-formed." ;
+	sh:property
+		[
+			sh:path rdf:type ;
+			sh:minCount 1 ;
+			sh:hasValue carml:Stream ;
+		] ,
+		[
+			sh:message "Carlm stream can have at most one stream name.";
+			sh:path carml:streamName ;
+			sh:maxCount 1 ;
+			sh:nodeKind sh:Literal ;
+			sh:datatype xsd:string ;
+		] ;
+.
+
+
+
 
 # rmlsh:ReferenceFormulationShape
 # 	a sh:NodeShape ;
@@ -336,4 +377,4 @@ rmlsh:ConstantObjectShape
 
 # rmlsh:ObjectPropertyShape
 # 	a sh:PropertyShape ;
-# 	sh:path 
+# 	sh:path
