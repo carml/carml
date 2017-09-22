@@ -2,6 +2,7 @@ package com.taxonic.carml.rdf_mapper.impl;
 
 import java.lang.reflect.Type;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.eclipse.rdf4j.model.IRI;
@@ -11,11 +12,15 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 
 import com.taxonic.carml.rdf_mapper.TypeDecider;
 
-class TypeFromTripleTypeDecider implements TypeDecider {
+public class TypeFromTripleTypeDecider implements TypeDecider {
 
-	private TypeDecider propertyTypeDecider;
+	private Optional<TypeDecider> propertyTypeDecider;
 	
-	TypeFromTripleTypeDecider(TypeDecider propertyTypeDecider) {
+	public TypeFromTripleTypeDecider() {
+		this(Optional.empty());
+	}
+	
+	public TypeFromTripleTypeDecider(Optional<TypeDecider> propertyTypeDecider) {
 		this.propertyTypeDecider = propertyTypeDecider;
 	}
 
@@ -32,8 +37,8 @@ class TypeFromTripleTypeDecider implements TypeDecider {
 			throw new RuntimeException("multiple rdf:type triples found for resource [" + resource + "]; can't handle that yet");
 		
 		// if no rdf:type, use property type (or its registered implementation) as target type
-		if (rdfTypes.isEmpty())
-			return propertyTypeDecider.decide(model, resource);
+		if (rdfTypes.isEmpty() && propertyTypeDecider.isPresent())
+			return propertyTypeDecider.get().decide(model, resource);
 		
 		IRI rdfType = rdfTypes.get(0);
 		// TODO mapper.getJavaType(rdfType) : Type

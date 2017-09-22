@@ -1,5 +1,6 @@
 package com.taxonic.carml.rdf_mapper.impl;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
@@ -12,11 +13,16 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
+import javax.inject.Inject;
+import javax.inject.Qualifier;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.rdf4j.model.IRI;
@@ -28,9 +34,11 @@ import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 
 import com.taxonic.carml.rdf_mapper.Mapper;
+import com.taxonic.carml.rdf_mapper.PropertyHandler;
 import com.taxonic.carml.rdf_mapper.TypeDecider;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.rdf_mapper.annotations.RdfType;
+import com.taxonic.carml.rdf_mapper.qualifiers.PropertyPredicate;
 
 public class MapperImpl implements Mapper, MappingCache {
 
@@ -82,12 +90,6 @@ public class MapperImpl implements Mapper, MappingCache {
 		@SuppressWarnings("unchecked")
 		T result = (T) instance;
 		return result;
-	}
-	
-	private static interface PropertyHandler {
-		
-		void handle(Model model, Resource resource, Object instance);
-		
 	}
 	
 	private static class PropertyType {
@@ -176,7 +178,7 @@ public class MapperImpl implements Mapper, MappingCache {
 		// use rdf:type triple, if present.
 		//   => the rdf:type value would have to correspond to an @RdfType annotation on a registered class.
 		//      TODO probably scan propertyType for @RdfType to register it, here or elsewhere..
-		return new TypeFromTripleTypeDecider(propertyTypeDecider);
+		return new TypeFromTripleTypeDecider(Optional.of(propertyTypeDecider));
 		
 	}
 	
@@ -197,6 +199,73 @@ public class MapperImpl implements Mapper, MappingCache {
 		else if (iterableType.equals(List.class))
 			return x -> Collections.unmodifiableList((List<Object>) x);
 		throw new RuntimeException("don't know how to create a transform to make collections of type [" + iterableType.getCanonicalName() + "] immutable");
+	}
+	
+	private static interface DependencyResolver {
+		
+		Object resolve(Type type, List<Annotation> qualifiers);
+		
+	}
+	
+	private Optional<PropertyHandler> getSpecifiedPropertyHandler(
+		RdfProperty annotation,
+		DependencyResolver resolver
+	) {
+		
+		if (annotation.handler().equals(PropertyHandler.class))
+			return Optional.empty();
+		
+		Class<? extends PropertyHandler> handlerCls = annotation.handler();
+		PropertyHandler handler;
+		try {
+			handler = handlerCls.newInstance();
+		}
+		catch (InstantiationException | IllegalAccessException e) {
+			throw new RuntimeException("could not instantiate specified "
+				+ "PropertyHandler class [" + handlerCls.getCanonicalName() + "]");
+		}
+		
+		// do dependency injection through setter methods annotated with @Inject
+		List<Consumer<Object>> setterInjectors =
+			Arrays.asList(handlerCls.getMethods()).stream()
+			
+				// find methods annotated with @Inject
+				.filter(m -> m.getAnnotation(Inject.class) != null)
+				.<Consumer<Object>>map(m -> {
+					
+					// gather qualifiers on setter
+					List<Annotation> qualifiers =
+						Arrays.asList(m.getAnnotations()).stream()
+							.filter(a -> a.getClass().getAnnotation(Qualifier.class) != null)
+							.collect(Collectors.toList());
+					
+					// determine property/setter type
+					List<Type> parameterTypes = Arrays.asList(m.getGenericParameterTypes());
+					if (parameterTypes.isEmpty() || parameterTypes.size() > 1)
+						throw new RuntimeException("method [" + m.getName() + "], annotated "
+							+ "with @Inject does NOT take exactly 1 parameter; it takes " + parameterTypes.size());
+					Type propertyType = parameterTypes.get(0);
+					
+					return instance -> {
+	
+						Object propertyValue = resolver.resolve(propertyType, qualifiers);
+						try {
+							m.invoke(instance, propertyValue);
+						}
+						catch (
+							IllegalAccessException |
+							IllegalArgumentException |
+							InvocationTargetException e
+						) {
+							throw new RuntimeException("error invoking setter [" + m.getName() + "]", e);
+						}
+					};
+				})
+			.collect(Collectors.toList());
+		
+		setterInjectors.forEach(i -> i.accept(handler));
+		
+		return Optional.of(handler);
 	}
 	
 	private PropertyHandler getRdfPropertyHandler(Method method, Class<?> c) {
@@ -259,7 +328,61 @@ public class MapperImpl implements Mapper, MappingCache {
 		Supplier<Collection<Object>> createIterable = createCollectionFactory(iterableType);
 		Function<Collection<Object>, Collection<Object>> immutableTransform = createImmutableTransform(iterableType);
 		
-		// TODO use @RdfProperty.handler, if any, instead of the default impl of PropertyHandler below
+		// get handler from @RdfProperty.handler, if any
+		Optional<PropertyHandler> handler =
+			getSpecifiedPropertyHandler(
+				annotation,
+				new DependencyResolver() {
+			
+					private Optional<Object> getQualifierValue(Class<? extends Annotation> qualifier) {
+						if (qualifier.equals(PropertyPredicate.class))
+							return Optional.of(predicate);
+						
+						// ..
+						
+						return Optional.empty();
+					}
+					
+					private Optional<Object> getValueByType(Type type) {
+						if (type.equals(Mapper.class))
+							return Optional.of(MapperImpl.this);
+						else if (type.equals(MappingCache.class))
+							return Optional.of(MapperImpl.this);
+						
+						// TODO ..
+						
+						return Optional.empty();
+					}
+					
+					@Override
+					public Object resolve(Type type, List<Annotation> qualifiers) {
+						
+						// try simple mapping of a present qualifier to a value
+						Optional<Object> qualifierValue =
+							qualifiers.stream()
+								.map(Annotation::annotationType)
+								.map(t -> getQualifierValue(t))
+								.filter(Optional::isPresent)
+								.map(Optional::get)
+								.findFirst();
+						if (qualifierValue.isPresent())
+							return qualifierValue.get();
+						
+						Optional<Object> valueByType = getValueByType(type);
+						if (valueByType.isPresent())
+							return valueByType.get();
+						
+						
+						// TODO ..
+						
+						
+						throw new RuntimeException(
+							"could not resolve dependency for type [" + type + "] and "
+								+ "qualifiers [" + qualifiers + "]");
+					}
+				}
+			);
+		if (handler.isPresent()) return handler.get();
 		
 		return new PropertyHandler() {
 

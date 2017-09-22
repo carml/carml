@@ -16,7 +16,7 @@ import org.eclipse.rdf4j.model.vocabulary.XMLSchema;
 import com.taxonic.carml.rdf_mapper.Mapper;
 import com.taxonic.carml.rdf_mapper.TypeDecider;
 
-class ComplexValueTransformer implements ValueTransformer {
+public class ComplexValueTransformer implements ValueTransformer {
 
 	private TypeDecider typeDecider;
 	private MappingCache mappingCache;
