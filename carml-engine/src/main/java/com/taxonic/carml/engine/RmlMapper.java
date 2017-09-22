@@ -32,7 +32,7 @@ import com.jayway.jsonpath.Option;
 import com.taxonic.carml.engine.function.ExecuteFunction;
 import com.taxonic.carml.engine.function.Functions;
 import com.taxonic.carml.model.BaseObjectMap;
-import com.taxonic.carml.model.CarmlStream;
+import com.taxonic.carml.model.NameableStream;
 import com.taxonic.carml.model.GraphMap;
 import com.taxonic.carml.model.Join;
 import com.taxonic.carml.model.LogicalSource;
@@ -116,7 +116,7 @@ public class RmlMapper {
 			RmlMapper mapper =
 				new RmlMapper(
 					new CompositeSourceResolver(
-						// prepend carml stream resolver to regular resolvers
+						// prepend carml stream resolver to regular resolvers 
 						Stream.concat(
 							Stream.of(carmlStreamResolver),
 							sourceResolvers.stream()
@@ -145,10 +145,10 @@ public class RmlMapper {
 		@Override
 		public Optional<InputStream> apply(Object o) {
 			
-			if (!(o instanceof CarmlStream))
+			if (!(o instanceof NameableStream))
 				return Optional.empty();
 			
-			CarmlStream stream = (CarmlStream) o;
+			NameableStream stream = (NameableStream) o;
 			String name = stream.getStreamName();
 			return Optional.of(mapper.getInputStream(name));
 		}

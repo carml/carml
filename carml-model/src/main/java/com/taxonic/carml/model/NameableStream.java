@@ -1,6 +1,6 @@
 package com.taxonic.carml.model;
 
-public interface CarmlStream {
+public interface NameableStream {
 
 	String getStreamName();
 	

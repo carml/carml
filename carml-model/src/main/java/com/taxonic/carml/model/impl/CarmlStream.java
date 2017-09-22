@@ -1,16 +1,16 @@
 package com.taxonic.carml.model.impl;
 
-import com.taxonic.carml.model.CarmlStream;
+import com.taxonic.carml.model.NameableStream;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.vocab.Carml;
 
-public class CarmlStreamImpl implements CarmlStream {
+public class CarmlStream implements NameableStream {
 
 	private String streamName;
 	
-	public CarmlStreamImpl() {}
+	public CarmlStream() {}
 	
-	public CarmlStreamImpl(String streamName) {
+	public CarmlStream(String streamName) {
 		this.streamName = streamName;
 	}
 
@@ -37,7 +37,7 @@ public class CarmlStreamImpl implements CarmlStream {
 		if (this == obj) return true;
 		if (obj == null) return false;
 		if (getClass() != obj.getClass()) return false;
-		CarmlStreamImpl other = (CarmlStreamImpl) obj;
+		CarmlStream other = (CarmlStream) obj;
 		if (streamName == null) {
 			if (other.streamName != null) return false;
 		}
