@@ -44,7 +44,7 @@ public class LogicalSourceSourcePropertyHandler implements PropertyHandler {
 		// map 'object' to some complex type
 		// TODO quite nasty to create the transformer here
 		ComplexValueTransformer transformer = new ComplexValueTransformer(
-			new TypeFromTripleTypeDecider(),
+			new TypeFromTripleTypeDecider(mapper),
 			mappingCache,
 			mapper,
 			o -> o

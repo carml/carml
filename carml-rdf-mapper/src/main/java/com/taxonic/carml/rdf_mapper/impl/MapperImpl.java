@@ -179,7 +179,7 @@ public class MapperImpl implements Mapper, MappingCache {
 		// use rdf:type triple, if present.
 		//   => the rdf:type value would have to correspond to an @RdfType annotation on a registered class.
 		//      TODO probably scan propertyType for @RdfType to register it, here or elsewhere..
-		return new TypeFromTripleTypeDecider(Optional.of(propertyTypeDecider));
+		return new TypeFromTripleTypeDecider(this, Optional.of(propertyTypeDecider));
 		
 	}
 	
@@ -464,6 +464,21 @@ public class MapperImpl implements Mapper, MappingCache {
 	@Override
 	public void addCachedMapping(Resource resource, Type targetType, Object value) {
 		cachedMappings.put(Pair.of(resource, targetType), value);
-	}	
+	}
+
+	private Map<IRI, Type> types = new LinkedHashMap<>();
+	
+	@Override
+	public Type getType(IRI rdfType) {
+		if (!types.containsKey(rdfType))
+			throw new RuntimeException("could not find a java type "
+				+ "corresponding to rdf type [" + rdfType + "]");
+		return types.get(rdfType);
+	}
+	
+	@Override
+	public void addType(IRI rdfType, Type type) {
+		types.put(rdfType, type);
+	}
 	
 }

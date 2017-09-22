@@ -14,6 +14,7 @@ import org.eclipse.rdf4j.rio.RDFFormat;
 import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.model.TermType;
 import com.taxonic.carml.model.TriplesMap;
+import com.taxonic.carml.model.impl.CarmlStreamImpl;
 import com.taxonic.carml.model.impl.TriplesMapImpl;
 import com.taxonic.carml.rdf_mapper.impl.MappingCache;
 import com.taxonic.carml.rdf_mapper.util.RdfObjectLoader;
@@ -55,7 +56,10 @@ public class RmlMappingLoader {
 					TriplesMapImpl.class, 
 					originalModel, 
 					shorthandExpander,
-					this::addTermTypes
+					this::addTermTypes,
+					m -> {
+						m.addType(Rdf.Carml.Stream, CarmlStreamImpl.class);
+					}
 				)
 			);
 	}

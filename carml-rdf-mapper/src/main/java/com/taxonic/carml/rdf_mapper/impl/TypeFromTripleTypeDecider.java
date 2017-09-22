@@ -10,17 +10,20 @@ import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 
+import com.taxonic.carml.rdf_mapper.Mapper;
 import com.taxonic.carml.rdf_mapper.TypeDecider;
 
 public class TypeFromTripleTypeDecider implements TypeDecider {
 
+	private Mapper mapper;
 	private Optional<TypeDecider> propertyTypeDecider;
 	
-	public TypeFromTripleTypeDecider() {
-		this(Optional.empty());
+	public TypeFromTripleTypeDecider(Mapper mapper) {
+		this(mapper, Optional.empty());
 	}
 	
-	public TypeFromTripleTypeDecider(Optional<TypeDecider> propertyTypeDecider) {
+	public TypeFromTripleTypeDecider(Mapper mapper, Optional<TypeDecider> propertyTypeDecider) {
+		this.mapper = mapper;
 		this.propertyTypeDecider = propertyTypeDecider;
 	}
 
@@ -41,9 +44,7 @@ public class TypeFromTripleTypeDecider implements TypeDecider {
 			return propertyTypeDecider.get().decide(model, resource);
 		
 		IRI rdfType = rdfTypes.get(0);
-		// TODO mapper.getJavaType(rdfType) : Type
-		throw new RuntimeException("cannot resolve java type for rdf type [" + rdfType + "]");
-		
+		return mapper.getType(rdfType);
 	}
 
 }

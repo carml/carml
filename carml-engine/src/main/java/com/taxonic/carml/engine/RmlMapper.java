@@ -7,6 +7,7 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -59,41 +60,82 @@ public class RmlMapper {
 	public static class Builder {
 		
 		private Functions functions = new Functions(); // TODO
-		private Function<String, InputStream> sourceResolver;
+		private List<SourceResolver> sourceResolvers = new ArrayList<>();
 		
 		public Builder addFunctions(Object fn) {
 			functions.addFunctions(fn);
 			return this;
 		}
 		
-		public Builder sourceResolver(Function<String, InputStream> sourceResolver) {
-			this.sourceResolver = sourceResolver;
+		public Builder sourceResolver(SourceResolver sourceResolver) {
+			sourceResolvers.add(sourceResolver);
 			return this;
 		}
 		
 		public Builder fileResolver(Path basePath) {
 			sourceResolver(
-				Unchecked.function(
-					s -> Files.newInputStream(basePath.resolve(s))
-				)
+				o -> {
+					if (!(o instanceof String))
+						return Optional.empty();
+					String s = (String) o;
+					Path path = basePath.resolve(s);
+					InputStream inputStream;
+					try {
+						inputStream = Files.newInputStream(path);
+					}
+					catch (Exception e) {
+						throw new RuntimeException("could not create input stream for path [" + path + "]");
+					}
+					return Optional.of(inputStream);
+				}
 			);
 			return this;
 		}
 
 		public Builder classPathResolver(String basePath) {
 			sourceResolver(
-				s -> RmlMapper.class.getClassLoader()
-					.getResourceAsStream(basePath + "/" + s)
+				o -> {
+					if (!(o instanceof String))
+						return Optional.empty();
+					String s = (String) o;
+					return Optional.of(
+						RmlMapper.class.getClassLoader()
+							.getResourceAsStream(basePath + "/" + s)
+					);
+				}
 			);
 			return this;
 		}
 		
 		public RmlMapper build() {
-			return new RmlMapper(sourceResolver, functions);
+			return new RmlMapper(
+				new CompositeSourceResolver(sourceResolvers),
+				functions
+			);
 		}
 	}
 	
-	private Function<String, InputStream> sourceResolver;
+	private static class CompositeSourceResolver implements Function<Object, InputStream> {
+
+		private List<SourceResolver> resolvers;
+		
+		CompositeSourceResolver(List<SourceResolver> resolvers) {
+			this.resolvers = resolvers;
+		}
+
+		@Override
+		public InputStream apply(Object source) {
+			return
+			resolvers.stream()
+				.map(r -> r.apply(source))
+				.filter(Optional::isPresent)
+				.map(Optional::get)
+				.findFirst()
+				.orElseThrow(() -> new RuntimeException("could not resolve source [" + source + "]"));
+		}
+	}
+	
+	private Function<Object, InputStream> sourceResolver;
 	
 	private static Configuration JSONPATH_CONF = Configuration.builder()
 			   .options(Option.DEFAULT_PATH_LEAF_TO_NULL).build();
@@ -103,7 +145,7 @@ public class RmlMapper {
 	private Functions functions;
 
 	public RmlMapper(
-		Function<String, InputStream> sourceResolver,
+		Function<Object, InputStream> sourceResolver,
 		Functions functions
 	) {
 		this.sourceResolver = sourceResolver;
@@ -157,7 +199,7 @@ public class RmlMapper {
 		triplesMapper.map(model);
 	}
 	
-	public String readSource(String source) {
+	public String readSource(Object source) {
 		try (Reader reader = new InputStreamReader(
 			sourceResolver.apply(source),
 			StandardCharsets.UTF_8
@@ -274,7 +316,36 @@ public class RmlMapper {
 		);
 	}
 	
-	private TriplesMapper createTriplesMapper(TriplesMap triplesMap) {
+	private static class TriplesMapperComponents {
+		
+		Supplier<Object> getSource;
+		UnaryOperator<Object> applyIterator;
+		Function<Object, EvaluateExpression> expressionEvaluatorFactory;
+		
+		TriplesMapperComponents(
+			Supplier<Object> getSource,
+			UnaryOperator<Object> applyIterator,
+			Function<Object, EvaluateExpression> expressionEvaluatorFactory
+		) {
+			this.getSource = getSource;
+			this.applyIterator = applyIterator;
+			this.expressionEvaluatorFactory = expressionEvaluatorFactory;
+		}
+
+		Supplier<Object> getGetSource() {
+			return getSource;
+		}
+
+		UnaryOperator<Object> getApplyIterator() {
+			return applyIterator;
+		}
+
+		Function<Object, EvaluateExpression> getExpressionEvaluatorFactory() {
+			return expressionEvaluatorFactory;
+		}
+	}
+	
+	private TriplesMapperComponents getTriplesMapperComponents(TriplesMap triplesMap) {
 		
 		LogicalSource logicalSource = triplesMap.getLogicalSource();
 		
@@ -282,7 +353,8 @@ public class RmlMapper {
 		
 		// TODO this all assumes json
 		
-		Supplier<Object> getSource = () -> readSource((String) logicalSource.getSource()); // XXX assuming String for now
+		Object source = logicalSource.getSource();
+		Supplier<Object> getSource = () -> readSource(source);
 		
 		String iterator = logicalSource.getIterator();
 		UnaryOperator<Object> applyIterator =
@@ -291,40 +363,37 @@ public class RmlMapper {
 		Function<Object, EvaluateExpression> expressionEvaluatorFactory =
 			object -> expression -> Optional.ofNullable(
 				JsonPath.using(JSONPATH_CONF).parse(object).read(expression));
+
+		return new TriplesMapperComponents(
+			getSource,
+			applyIterator,
+			expressionEvaluatorFactory
+		);
+	}
+	
+	private TriplesMapper createTriplesMapper(TriplesMap triplesMap) {
+		
+		TriplesMapperComponents components = getTriplesMapperComponents(triplesMap);
 		
 		return
 		new TriplesMapper(
-			getSource,
-			applyIterator,
-			expressionEvaluatorFactory,
+			components.getGetSource(),
+			components.getApplyIterator(),
+			components.getExpressionEvaluatorFactory(),
 			createSubjectMapper(triplesMap)
 		);
 	}
 	
 	private ParentTriplesMapper createParentTriplesMapper(TriplesMap triplesMap) {
 		
-		LogicalSource logicalSource = triplesMap.getLogicalSource();
-		
-//		logicalSource.getReferenceFormulation();
-		
-		// TODO this all assumes json
-		
-		Supplier<Object> getSource = () -> readSource((String) logicalSource.getSource()); // XXX assuming String for now
-		
-		String iterator = logicalSource.getIterator();
-		UnaryOperator<Object> applyIterator =
-			s -> JsonPath.using(JSONPATH_CONF).parse((String) s).read(iterator);
-			
-		Function<Object, EvaluateExpression> expressionEvaluatorFactory =
-			object -> expression -> Optional.ofNullable(
-				JsonPath.using(JSONPATH_CONF).parse(object).read(expression));
-		
+		TriplesMapperComponents components = getTriplesMapperComponents(triplesMap);
+
 		return
 		new ParentTriplesMapper(
 			termGenerators.getSubjectGenerator(triplesMap.getSubjectMap()), 
-			getSource, 
-			applyIterator, 
-			expressionEvaluatorFactory
+			components.getGetSource(),
+			components.getApplyIterator(),
+			components.getExpressionEvaluatorFactory()
 		);
 	}
 
