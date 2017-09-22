@@ -466,19 +466,19 @@ public class MapperImpl implements Mapper, MappingCache {
 		cachedMappings.put(Pair.of(resource, targetType), value);
 	}
 
-	private Map<IRI, Type> types = new LinkedHashMap<>();
+	private Map<IRI, Type> decidableTypes = new LinkedHashMap<>();
 	
 	@Override
-	public Type getType(IRI rdfType) {
-		if (!types.containsKey(rdfType))
+	public Type getDecidableType(IRI rdfType) {
+		if (!decidableTypes.containsKey(rdfType))
 			throw new RuntimeException("could not find a java type "
 				+ "corresponding to rdf type [" + rdfType + "]");
-		return types.get(rdfType);
+		return decidableTypes.get(rdfType);
 	}
 	
 	@Override
-	public void addType(IRI rdfType, Type type) {
-		types.put(rdfType, type);
+	public void addDecidableType(IRI rdfType, Type type) {
+		decidableTypes.put(rdfType, type);
 	}
 	
 }

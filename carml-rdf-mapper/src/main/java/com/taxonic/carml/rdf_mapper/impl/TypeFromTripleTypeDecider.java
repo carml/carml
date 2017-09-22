@@ -44,7 +44,7 @@ public class TypeFromTripleTypeDecider implements TypeDecider {
 			return propertyTypeDecider.get().decide(model, resource);
 		
 		IRI rdfType = rdfTypes.get(0);
-		return mapper.getType(rdfType);
+		return mapper.getDecidableType(rdfType);
 	}
 
 }

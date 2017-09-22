@@ -10,8 +10,8 @@ public interface Mapper {
 
 	<T> T map(Model model, Resource resource, Type type);
 	
-	Type getType(IRI rdfType);
+	Type getDecidableType(IRI rdfType);
 
-	void addType(IRI rdfType, Type type);
+	void addDecidableType(IRI rdfType, Type type);
 	
 }
