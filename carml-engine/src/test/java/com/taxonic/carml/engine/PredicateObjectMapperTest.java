@@ -81,4 +81,37 @@ public class PredicateObjectMapperTest {
 		verify(childMapper).map(model, evaluator, subjectIRI, expectedContext);
 
 	}
+
+	@Test
+	public void map_withPassedAndOwnGraphs_removesDuplicatesFromConcatenatedContext() throws Exception {
+		SimpleValueFactory f = SimpleValueFactory.getInstance();
+		IRI subjectIRI = f.createIRI("http://foo.bar/subjectIRI");
+
+		PredicateMapper childMapper = mock(PredicateMapper.class);
+
+		Model model = new ModelBuilder().build();
+		EvaluateExpression evaluator = null;
+
+		IRI subjectGraphIri = f.createIRI("http://subject.context/graph");
+		IRI ownGraphIri = f.createIRI("http://own.context/graph");
+
+		List<IRI> subjectContext = Arrays.asList(subjectGraphIri, ownGraphIri, ownGraphIri, subjectGraphIri);
+		List<IRI> ownContext = Arrays.asList(ownGraphIri, subjectGraphIri, subjectGraphIri, ownGraphIri);
+		IRI[] expectedContext = new IRI[] { subjectGraphIri, ownGraphIri };
+
+		List<TermGenerator<IRI>> ownGraphGenerators = ownContext.stream()
+				.map(graphIri -> {
+					TermGenerator<IRI> generator = (TermGenerator<IRI>) mock(TermGenerator.class);
+					when(generator.apply(evaluator)).thenReturn(Optional.of(graphIri)).getMock();
+					return generator;
+				})
+				.collect(Collectors.toList());
+
+
+		PredicateObjectMapper testSubject = new PredicateObjectMapper(ownGraphGenerators, Collections.singletonList(childMapper));
+		testSubject.map(model, evaluator, subjectIRI, subjectContext);
+
+		verify(childMapper).map(model, evaluator, subjectIRI, expectedContext);
+
+	}
 }
