@@ -57,9 +57,7 @@ public class RmlMappingLoader {
 					originalModel, 
 					shorthandExpander,
 					this::addTermTypes,
-					m -> {
-						m.addType(Rdf.Carml.Stream, CarmlStream.class);
-					}
+					m -> m.addType(Rdf.Carml.Stream, CarmlStream.class)
 				)
 			);
 	}
