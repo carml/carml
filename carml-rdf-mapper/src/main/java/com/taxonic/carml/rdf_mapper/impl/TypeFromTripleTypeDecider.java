@@ -40,8 +40,13 @@ public class TypeFromTripleTypeDecider implements TypeDecider {
 			throw new RuntimeException("multiple rdf:type triples found for resource [" + resource + "]; can't handle that yet");
 		
 		// if no rdf:type, use property type (or its registered implementation) as target type
-		if (rdfTypes.isEmpty() && propertyTypeDecider.isPresent())
-			return propertyTypeDecider.get().decide(model, resource);
+		if (rdfTypes.isEmpty()) {
+			if(propertyTypeDecider.isPresent()) {
+				return propertyTypeDecider.get().decide(model, resource);
+			} else {
+				throw new RuntimeException(String.format("No decidable type found for %s. Register decidable type on rdf mapper.", resource));
+			}
+		}
 		
 		IRI rdfType = rdfTypes.get(0);
 		return mapper.getDecidableType(rdfType);
