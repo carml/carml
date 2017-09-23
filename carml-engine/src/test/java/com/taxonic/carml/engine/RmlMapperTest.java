@@ -118,8 +118,21 @@ public class RmlMapperTest {
 		InputStream inputStream = IOUtils.toInputStream(input);
 		InputStream secondInputStream = IOUtils.toInputStream(secondInput);
 		mapper.bindInputStream(inputStream);
+		assertThat(mapper.readSource(new CarmlStream()), is(input));
 		mapper.bindInputStream(secondInputStream);
 		assertThat(mapper.readSource(new CarmlStream()), is(secondInput));
+	}
+	
+	@Test
+	public void mapper_boundWithMultipleNamedInputStreams_shouldReadLastBoundStream() {
+		String streamName = "foo";
+		String secondStreamName = "bar";
+		InputStream inputStream = IOUtils.toInputStream(input);
+		InputStream secondInputStream = IOUtils.toInputStream(secondInput);
+		mapper.bindInputStream(streamName, inputStream);
+		assertThat(mapper.readSource(new CarmlStream(streamName)), is(input));
+		mapper.bindInputStream(secondStreamName, secondInputStream);
+		assertThat(mapper.readSource(new CarmlStream(secondStreamName)), is(secondInput));
 	}
 	
 	@Test
