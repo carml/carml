@@ -99,6 +99,7 @@ public class SubjectMapperTest {
 		);
 		List<TermGenerator<IRI>> graphGenerators = graphs.stream()
 				.map(graphIri -> {
+					@SuppressWarnings("unchecked")
 					TermGenerator<IRI> generator = (TermGenerator<IRI>) mock(TermGenerator.class);
 					when(generator.apply(evaluator)).thenReturn(Optional.of(graphIri));
 					return generator;
@@ -138,6 +139,7 @@ public class SubjectMapperTest {
 		);
 		List<TermGenerator<IRI>> graphGenerators = graphs.stream()
 				.map(graphIri -> {
+					@SuppressWarnings("unchecked")
 					TermGenerator<IRI> generator = (TermGenerator<IRI>) mock(TermGenerator.class);
 					when(generator.apply(evaluator)).thenReturn(Optional.of(graphIri));
 					return generator;

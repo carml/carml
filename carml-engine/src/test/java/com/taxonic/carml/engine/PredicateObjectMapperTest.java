@@ -68,6 +68,7 @@ public class PredicateObjectMapperTest {
 
 		List<TermGenerator<IRI>> ownGraphGenerators = ownContext.stream()
 				.map(graphIri -> {
+					@SuppressWarnings("unchecked")
 					TermGenerator<IRI> generator = (TermGenerator<IRI>) mock(TermGenerator.class);
 					when(generator.apply(evaluator)).thenReturn(Optional.of(graphIri)).getMock();
 					return generator;
@@ -101,6 +102,7 @@ public class PredicateObjectMapperTest {
 
 		List<TermGenerator<IRI>> ownGraphGenerators = ownContext.stream()
 				.map(graphIri -> {
+					@SuppressWarnings("unchecked")
 					TermGenerator<IRI> generator = (TermGenerator<IRI>) mock(TermGenerator.class);
 					when(generator.apply(evaluator)).thenReturn(Optional.of(graphIri)).getMock();
 					return generator;
