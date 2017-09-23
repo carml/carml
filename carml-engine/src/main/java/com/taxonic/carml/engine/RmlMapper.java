@@ -2,11 +2,8 @@ package com.taxonic.carml.engine;
 
 import static java.util.Objects.requireNonNull;
 
-import java.io.IOException;
+import java.io.BufferedInputStream;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -20,8 +17,6 @@ import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import org.apache.commons.io.IOUtils;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
@@ -43,6 +38,7 @@ import com.taxonic.carml.model.PredicateObjectMap;
 import com.taxonic.carml.model.RefObjectMap;
 import com.taxonic.carml.model.SubjectMap;
 import com.taxonic.carml.model.TriplesMap;
+import com.taxonic.carml.util.IoUtils;
 
 // TODO cache results of evaluated expressions when filling a single template, in case of repeated expressions
 
@@ -95,7 +91,7 @@ public class RmlMapper {
 			catch (Exception e) {
 				throw new RuntimeException("could not create input stream for path [" + path + "]");
 			}
-			return Optional.of(inputStream);
+			return Optional.of(ensureResettableStream(inputStream));
 		}
 
 		public Builder classPathResolver(String basePath) {
@@ -107,9 +103,11 @@ public class RmlMapper {
 			if (!(object instanceof String))
 				return Optional.empty();
 			String s = (String) object;
+			
 			return Optional.of(
-				RmlMapper.class.getClassLoader()
-					.getResourceAsStream(basePath + "/" + s)
+				ensureResettableStream(
+					RmlMapper.class.getClassLoader().getResourceAsStream(basePath + "/" + s)
+				)
 			);
 		}
 		
@@ -178,7 +176,8 @@ public class RmlMapper {
 				.filter(Optional::isPresent)
 				.map(Optional::get)
 				.findFirst()
-				.orElseThrow(() -> new RuntimeException("could not resolve source [" + source + "]"));
+				.orElseThrow(() -> 
+					new RuntimeException(String.format("could not resolve source [%s]", source)));
 		}
 	}
 	
@@ -247,16 +246,10 @@ public class RmlMapper {
 	}
 	
 	public String readSource(Object source) {
-		try (Reader reader = new InputStreamReader(
-			sourceResolver.apply(source),
-			StandardCharsets.UTF_8
-		)) {
-			// TODO depending on transitive dependency here, because newer commons-io resulted in conflict with version used by rdf4j
-			return IOUtils.toString(reader);
-		}
-		catch (IOException e) {
-			throw new RuntimeException("error reading source [" + source + "]", e);
-		}
+		//TODO: PM: ideally we should make a single pass on input streams, 
+		//          but this requires some refactoring.
+		//			Also for large sources, transforming to String is not viable.
+		return IoUtils.readAndResetInputStream(sourceResolver.apply(source));
 	}
 	
 	private List<TermGenerator<IRI>> createGraphGenerators(Set<GraphMap> graphMaps) {
@@ -264,11 +257,6 @@ public class RmlMapper {
 			.map(termGenerators::getGraphGenerator)
 			.collect(Collectors.toList());
 	}
-	
-	
-	
-	
-	
 	
 	private Stream<TermGenerator<Value>> getObjectMapGenerators(
 		Set<BaseObjectMap> objectMaps
@@ -450,7 +438,7 @@ public class RmlMapper {
 			createParentTriplesMapper(refObjectMap.getParentTriplesMap()),
 			joinConditions
 		);
-	};
+	}
 	
 	private Map<String, InputStream> inputStreams = new LinkedHashMap<>();
 	
@@ -459,7 +447,7 @@ public class RmlMapper {
 			inputStream, 
 			"input stream should be provided when binding stream to mapper"
 		);
-		inputStreams.put(DEFAULT_STREAM_NAME, inputStream);
+		bindInputStream(DEFAULT_STREAM_NAME, inputStream);
 	}
 	
 	public void bindInputStream(String name, InputStream inputStream) {
@@ -471,14 +459,29 @@ public class RmlMapper {
 			inputStream, 
 			"input stream should be provided when binding named stream to mapper"
 		);
-		inputStreams.put(name, inputStream);
+		
+		inputStreams.put(name, ensureResettableStream(inputStream));
 	}
 	
 	private InputStream getInputStream(String name) {
-		if (!inputStreams.containsKey(name))
-			throw new RuntimeException("attempting to get input stream by "
-				+ "name [" + name + "], but no such binding is present");
+		if (!inputStreams.containsKey(name)) {
+			String message = 
+				name.equals(DEFAULT_STREAM_NAME) ?
+					"attempting to get the bound input stream, but no binding was present" :
+					String.format("attempting to get input stream by "
+							+ "name [%s], but no such binding is present", name);
+			throw new RuntimeException(message);
+		}
 		return inputStreams.get(name);
+	}
+	
+	// We need to be able to mark and reset a stream
+	private static InputStream ensureResettableStream(InputStream inputStream) {
+		if (!inputStream.markSupported()) {
+			// return a markable stream
+			return new BufferedInputStream(inputStream);
+		}
+		return inputStream;
 	}
 	
 }
