@@ -185,7 +185,7 @@ Supported Data Source Types
 
 | Data source type          | Reference query language                                       |
 | :------------------------ | :------------------------------------------------------------- |
-| JSON                      | [Jayway JsonPath 2.3.0](https://github.com/json-path/JsonPath) |
+| JSON                      | [Jayway JsonPath 2.4.0](https://github.com/json-path/JsonPath) |
 
 Coming soon:
 XML, CSV
