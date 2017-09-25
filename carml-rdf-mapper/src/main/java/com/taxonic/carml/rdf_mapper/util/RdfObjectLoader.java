@@ -11,6 +11,7 @@ import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.repository.Repository;
 
+import com.taxonic.carml.rdf_mapper.Mapper;
 import com.taxonic.carml.rdf_mapper.impl.MapperImpl;
 import com.taxonic.carml.rdf_mapper.impl.MappingCache;
 
@@ -34,7 +35,7 @@ public class RdfObjectLoader {
 			Model model
 		) {
 		
-		return load(resourceSelector, clazz, model, m -> m, c -> {});
+		return load(resourceSelector, clazz, model, m -> m, c -> {}, m -> {});
 	}
 	
 	public static <T> Set<T> load(
@@ -43,7 +44,7 @@ public class RdfObjectLoader {
 		Model model,
 		UnaryOperator<Model> modelAdapter
 	) {
-		return load(resourceSelector, clazz, model, modelAdapter, c -> {});
+		return load(resourceSelector, clazz, model, modelAdapter, c -> {}, m -> {});
 	}
 		
 	public static <T> Set<T> load(
@@ -51,7 +52,8 @@ public class RdfObjectLoader {
 		Class<T> clazz,
 		Model model,
 		UnaryOperator<Model> modelAdapter,
-		Consumer<MappingCache> populateCache
+		Consumer<MappingCache> populateCache,
+		Consumer<Mapper> configureMapper
 	) {
 		
 		requireNonNull(resourceSelector, RESOURCE_SELECTOR_MSG);
@@ -62,6 +64,7 @@ public class RdfObjectLoader {
 		
 		MapperImpl mapper = new MapperImpl();
 		populateCache.accept(mapper);
+		configureMapper.accept(mapper);
 		
 		Set<Resource> resources = resourceSelector.apply(model);
 		
@@ -96,7 +99,7 @@ public class RdfObjectLoader {
 		
 		Model model = QueryUtils.getModelFromRepo(repository, sparqlQuery);
 		
-		return load(resourceSelector, clazz, model, modelAdapter, c -> {});		
+		return load(resourceSelector, clazz, model, modelAdapter, c -> {}, m -> {});		
 	}
 	
 	public static <T> Set<T> 
@@ -123,7 +126,7 @@ public class RdfObjectLoader {
 		
 		Model model = QueryUtils.getModelFromRepo(repository, contexts);
 		
-		return load(resourceSelector, clazz, model, modelAdapter, c -> {});		
+		return load(resourceSelector, clazz, model, modelAdapter, c -> {}, m -> {});		
 	}
 
 }

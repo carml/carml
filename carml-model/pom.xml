@@ -16,6 +16,12 @@
 	<dependencies>
 	
 		<dependency>
+			<groupId>javax.inject</groupId>
+			<artifactId>javax.inject</artifactId>
+			<version>1</version>
+		</dependency>
+	
+		<dependency>
 			<groupId>com.taxonic.carml</groupId>
 			<artifactId>carml-rdf-mapper</artifactId>
 			<version>develop-SNAPSHOT</version>

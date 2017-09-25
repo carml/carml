@@ -2,6 +2,7 @@ package com.taxonic.carml.rdf_mapper.impl;
 
 import java.lang.reflect.Type;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.eclipse.rdf4j.model.IRI;
@@ -9,13 +10,20 @@ import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 
+import com.taxonic.carml.rdf_mapper.Mapper;
 import com.taxonic.carml.rdf_mapper.TypeDecider;
 
-class TypeFromTripleTypeDecider implements TypeDecider {
+public class TypeFromTripleTypeDecider implements TypeDecider {
 
-	private TypeDecider propertyTypeDecider;
+	private Mapper mapper;
+	private Optional<TypeDecider> propertyTypeDecider;
 	
-	TypeFromTripleTypeDecider(TypeDecider propertyTypeDecider) {
+	public TypeFromTripleTypeDecider(Mapper mapper) {
+		this(mapper, Optional.empty());
+	}
+	
+	public TypeFromTripleTypeDecider(Mapper mapper, Optional<TypeDecider> propertyTypeDecider) {
+		this.mapper = mapper;
 		this.propertyTypeDecider = propertyTypeDecider;
 	}
 
@@ -32,13 +40,16 @@ class TypeFromTripleTypeDecider implements TypeDecider {
 			throw new RuntimeException("multiple rdf:type triples found for resource [" + resource + "]; can't handle that yet");
 		
 		// if no rdf:type, use property type (or its registered implementation) as target type
-		if (rdfTypes.isEmpty())
-			return propertyTypeDecider.decide(model, resource);
+		if (rdfTypes.isEmpty()) {
+			if(propertyTypeDecider.isPresent()) {
+				return propertyTypeDecider.get().decide(model, resource);
+			} else {
+				throw new RuntimeException(String.format("No decidable type found for %s. Register decidable type on rdf mapper.", resource));
+			}
+		}
 		
 		IRI rdfType = rdfTypes.get(0);
-		// TODO mapper.getJavaType(rdfType) : Type
-		throw new RuntimeException("cannot resolve java type for rdf type [" + rdfType + "]");
-		
+		return mapper.getDecidableType(rdfType);
 	}
 
 }

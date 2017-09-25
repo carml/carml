@@ -1,0 +1,22 @@
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix carml: <http://carml.taxonic.com/carml/> .
+
+carml:
+	a owl:Ontology ;
+	rdfs:label "CARML RML extension vocabulary"@en ;
+	rdfs:comment "This vocabulary defines terms that extend the RML specification."@en ;
+.
+
+carml:Stream a rdfs:Class ;
+  rdfs:label "Stream"@en ;
+  rdfs:isDefinedBy carml: ;
+	rdfs:comment "A stream is a sequence of data."@en ;
+.
+
+carml:streamName a rdf:Property ;
+  rdfs:domain carml:Stream ;
+  rdfs:isDefinedBy carml: ;
+	rdfs:comment "A name to identify a stream."@en ;
+.

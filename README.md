@@ -68,44 +68,29 @@ We're not set up for full mapping validation yet. But, to help you get those fir
 
 Input stream extension
 ---------------------
-In development.
-<!---
-When it comes to non-database sources, the current RML spec only supports the specification of file based sources in an `rml:LogicalSource`. However, it is often very useful to be able to transform input stream sources.
+When it comes to non-database sources, the current RML spec only supports the specification of file based sources in an `rml:LogicalSource`. However, it is often very useful to be able to transform stream sources.
 
-To this end CARML introduces 'Named Input Streams'.
-Which follows the following definition (NOTE: not yet dereferencable):
-```
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
-@prefix carml: <http://carml.github.io/carml/> .
-
-carml:InputStream a rdfs:Class .
-
-carml:streamName a rdf:Property ;
-  rdfs:domain carml:InputStream ;
-.
-```
+To this end CARML introduces the notion of 'Named Streams'.
+Which follows the ontology defined [here](https://github.com/carml/carml/tree/master/carml.ttl).
 
 So now, you can define streams in your mapping like so:
 ```
 :SomeLogicalSource
   rml:source [
     a carml:InputStream ;
+    # NOTE: name is not mandatory and can be left unspecified, when working with a single stream
     carml:streamName "stream-A" ;
   ];
   rml:referenceFormulation ql:JSONPath;
   rml:iterator "$"
 .
 ```
-
 In order to provide access to the input stream, it needs to be registered on the mapper.
-
-Note that it is possible to register several streams, allowing you to combine several streams to create your desired RDF output.
-
 ```java
-TODO
+RmlMapper mapper = RmlMapper.newBuilder().build();
+mapper.bindInputStream("stream-A", inputStream);
 ```
-
---->
+Note that it is possible to register several streams, allowing you to combine several streams to create your desired RDF output.
 
 Function extension
 ------------------
@@ -200,14 +185,13 @@ Supported Data Source Types
 
 | Data source type          | Reference query language                                       |
 | :------------------------ | :------------------------------------------------------------- |
-| JSON                      | [Jayway JsonPath 2.3.0](https://github.com/json-path/JsonPath) |
+| JSON                      | [Jayway JsonPath 2.4.0](https://github.com/json-path/JsonPath) |
 
 Coming soon:
 XML, CSV
 
 Roadmap
 -------
-* Add support for input streams (currently developing)
 * Add support for XML sources
 * Add support for CSV sources
 * CARML Command line interface

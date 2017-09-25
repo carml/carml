@@ -95,4 +95,19 @@ public class Rdf {
 		
 	}	
 	
+	public static class Carml {
+		
+		static IRI iri(String suffix) {
+			return f.createIRI(prefix + suffix);
+		}
+		
+		public static final String prefix = "http://carml.taxonic.com/carml/";
+		
+		public static final IRI
+		
+			Stream = iri("Stream"),
+			streamName = iri("streamName");
+		
+	}	
+		
 }
