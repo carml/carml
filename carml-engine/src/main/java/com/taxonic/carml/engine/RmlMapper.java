@@ -135,7 +135,7 @@ public class RmlMapper {
 			RmlMapper mapper =
 				new RmlMapper(
 					new CompositeSourceResolver(
-						// prepend carml stream resolver to regular logical_source_resolver
+						// prepend carml stream resolver to regular resolvers
 						Stream.concat(
 							Stream.of(carmlStreamResolver),
 							sourceResolvers.stream()
