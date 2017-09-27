@@ -5,6 +5,8 @@
 
 @prefix rr: <http://www.w3.org/ns/r2rml#> .
 @prefix rml: <http://semweb.mmlab.be/ns/rml#> .
+@prefix fnml: <http://semweb.mmlab.be/ns/fnml#> .
+@prefix fno: <http://semweb.datasciencelab.be/ns/function#> .
 
 @prefix carml: <http://carml.taxonic.com/carml/> .
 
@@ -82,11 +84,14 @@ rmlsh:TermMapShape
 		rr:constant ,
 		rml:reference ,
 		rr:template ,
-		rr:termType ;
+		rr:termType ,
+		fnml:functionValue ;
 
+	sh:message "invalid TermMap" ;
 	sh:xone (
 		[
 			sh:property [
+				sh:message "a" ;
 				sh:path rr:constant ;
 				sh:minCount 1 ;
 				sh:maxCount 1 ;
@@ -94,6 +99,7 @@ rmlsh:TermMapShape
 		]
 		[
 			sh:property [
+				sh:message "b" ;
 				sh:path rml:reference ;
 				sh:minCount 1 ;
 				sh:maxCount 1 ;
@@ -101,7 +107,16 @@ rmlsh:TermMapShape
 		]
 		[
 			sh:property [
+				sh:message "c" ;
 				sh:path rr:template ;
+				sh:minCount 1 ;
+				sh:maxCount 1 ;
+			]
+		]
+		[
+			sh:property [
+				sh:message "d" ;
+				sh:path fnml:functionValue ;
 				sh:minCount 1 ;
 				sh:maxCount 1 ;
 			]
@@ -378,3 +393,28 @@ rmlsh:ConstantObjectShape
 # rmlsh:ObjectPropertyShape
 # 	a sh:PropertyShape ;
 # 	sh:path
+
+rmlsh:FunctionTermMapShape
+	a sh:NodeShape ;
+	sh:targetObjectsOf fnml:functionValue ;
+	sh:message "Functional term map is ill-formed." ;
+	sh:property [
+		sh:path rr:predicateObjectMap ;
+		sh:qualifiedMinCount  1 ;
+		sh:qualifiedMaxCount  1 ;
+		sh:qualifiedValueShape rmlsh:FunctionExecutionPOM ;
+	];
+.
+
+rmlsh:FunctionExecutionPOM
+	sh:or	(
+		[
+			sh:path rr:predicate ;
+			sh:hasValue fno:executes ;
+		]
+		[
+		 	sh:path (rr:predicateMap rr:constant ) ;
+			sh:hasValue fno:executes ;
+		]
+	) ;
+.
