@@ -1,7 +1,8 @@
-package com.taxonic.carml.resolvers;
+package com.taxonic.carml.logical_source_resolver;
 
 import com.taxonic.carml.engine.EvaluateExpression;
 
+import java.io.InputStream;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -10,11 +11,11 @@ public interface LogicalSourceResolver<T> {
 	SourceIterator<T> getSourceIterator();
 	ExpressionEvaluatorFactory<T> getExpressionEvaluatorFactory();
 
-	default Supplier<Iterable<T>> bindSource(Object source, String iteratorExpression) {
+	default Supplier<Iterable<T>> bindSource(InputStream source, String iteratorExpression) {
 		return () -> getSourceIterator().apply(source, iteratorExpression);
 	}
 
-	interface SourceIterator<T> extends BiFunction<Object, String, Iterable<T>> {
+	interface SourceIterator<T> extends BiFunction<InputStream, String, Iterable<T>> {
 
 	}
 

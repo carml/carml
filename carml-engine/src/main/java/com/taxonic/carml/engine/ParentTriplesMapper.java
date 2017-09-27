@@ -1,6 +1,6 @@
 package com.taxonic.carml.engine;
 
-import com.taxonic.carml.resolvers.LogicalSourceResolver;
+import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
 
 import org.eclipse.rdf4j.model.Resource;
 

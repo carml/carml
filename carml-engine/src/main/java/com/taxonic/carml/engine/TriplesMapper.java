@@ -1,6 +1,6 @@
 package com.taxonic.carml.engine;
 
-import com.taxonic.carml.resolvers.LogicalSourceResolver;
+import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
 
 import java.util.function.Supplier;
 

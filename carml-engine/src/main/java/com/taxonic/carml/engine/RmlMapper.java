@@ -1,10 +1,9 @@
 package com.taxonic.carml.engine;
 
-import com.jayway.jsonpath.Configuration;
-import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.Option;
 import com.taxonic.carml.engine.function.ExecuteFunction;
 import com.taxonic.carml.engine.function.Functions;
+import com.taxonic.carml.logical_source_resolver.JsonPathResolver;
+import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
 import com.taxonic.carml.model.BaseObjectMap;
 import com.taxonic.carml.model.GraphMap;
 import com.taxonic.carml.model.Join;
@@ -15,7 +14,6 @@ import com.taxonic.carml.model.PredicateObjectMap;
 import com.taxonic.carml.model.RefObjectMap;
 import com.taxonic.carml.model.SubjectMap;
 import com.taxonic.carml.model.TriplesMap;
-import com.taxonic.carml.resolvers.LogicalSourceResolver;
 import com.taxonic.carml.util.IoUtils;
 import com.taxonic.carml.vocab.Rdf;
 
@@ -30,7 +28,6 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -67,6 +64,7 @@ public class RmlMapper {
 		
 		private Functions functions = new Functions(); // TODO
 		private List<SourceResolver> sourceResolvers = new ArrayList<>();
+		private Map<IRI, LogicalSourceResolver<?>> logicalSourceResolvers = new HashMap<>();
 		
 		public Builder addFunctions(Object fn) {
 			functions.addFunctions(fn);
@@ -80,6 +78,21 @@ public class RmlMapper {
 		
 		public Builder fileResolver(Path basePath) {
 			sourceResolver(o -> resolveFilePathToInputStream(o, basePath));
+			return this;
+		}
+
+		public Builder addDefaultLogicalSourceResolvers() {
+			this.logicalSourceResolvers.put(Rdf.Ql.JsonPath, new JsonPathResolver());
+			return this;
+		}
+
+		public Builder setLogicalSourceResolver(IRI iri, LogicalSourceResolver resolver) {
+			this.logicalSourceResolvers.put(iri, resolver);
+			return this;
+		}
+
+		public Builder removeLogicalSourceResolver(IRI iri) {
+			this.logicalSourceResolvers.remove(iri);
 			return this;
 		}
 		
@@ -122,13 +135,14 @@ public class RmlMapper {
 			RmlMapper mapper =
 				new RmlMapper(
 					new CompositeSourceResolver(
-						// prepend carml stream resolver to regular resolvers 
+						// prepend carml stream resolver to regular logical_source_resolver
 						Stream.concat(
 							Stream.of(carmlStreamResolver),
 							sourceResolvers.stream()
 						)
 						.collect(Collectors.toList())
 					),
+					logicalSourceResolvers,
 					functions
 				);
 			
@@ -186,9 +200,8 @@ public class RmlMapper {
 	}
 	
 	private Function<Object, InputStream> sourceResolver;
-	
-	private static Configuration JSONPATH_CONF = Configuration.builder()
-			   .options(Option.DEFAULT_PATH_LEAF_TO_NULL).build();
+
+	private Map<IRI, LogicalSourceResolver<?>> logicalSourceResolvers;
 	
 	private TermGeneratorCreator termGenerators = TermGeneratorCreator.create(this); // TODO
 
@@ -196,12 +209,13 @@ public class RmlMapper {
 
 	public RmlMapper(
 		Function<Object, InputStream> sourceResolver,
+		Map<IRI, LogicalSourceResolver<?>> logicalSourceResolvers,
 		Functions functions
 	) {
 		this.sourceResolver = sourceResolver;
 		this.functions = functions;
 
-		this.resolverImplementations.put(Rdf.Ql.JsonPath, new JsonPathResolver());
+		this.logicalSourceResolvers = logicalSourceResolvers;
 	}
 
 	public Optional<ExecuteFunction> getFunction(IRI iri) {
@@ -360,10 +374,10 @@ public class RmlMapper {
 	private static class TriplesMapperComponents<T> {
 		
 		LogicalSourceResolver<T> logicalSourceResolver;
-		private final Object source;
+		private final InputStream source;
 		private final String iteratorExpression;
 
-		public TriplesMapperComponents(LogicalSourceResolver<T> logicalSourceResolver, Object source, String iteratorExpression) {
+		public TriplesMapperComponents(LogicalSourceResolver<T> logicalSourceResolver, InputStream source, String iteratorExpression) {
 			this.logicalSourceResolver = logicalSourceResolver;
 			this.source = source;
 			this.iteratorExpression = iteratorExpression;
@@ -378,41 +392,19 @@ public class RmlMapper {
 		}
 	}
 
-	private class JsonPathResolver implements LogicalSourceResolver<Object> {
-
-		public SourceIterator<Object> getSourceIterator() {
-			return (source, iteratorExpression) -> {
-				String s = readSource(source);
-				Object data = JsonPath.using(JSONPATH_CONF).parse(s).read(iteratorExpression);
-
-				boolean isIterable = Iterable.class.isAssignableFrom(data.getClass());
-				return isIterable
-						? (Iterable<Object>) data
-						: Collections.singleton(data);
-			};
-		}
-
-		public ExpressionEvaluatorFactory<Object> getExpressionEvaluatorFactory() {
-			return object -> expression -> Optional.ofNullable(
-					JsonPath.using(JSONPATH_CONF).parse(object).read(expression));
-		}
-	}
-
-	private Map<IRI, LogicalSourceResolver<?>> resolverImplementations = new HashMap<>();
-
-	
 	private TriplesMapperComponents getTriplesMapperComponents(TriplesMap triplesMap) {
 		
 		LogicalSource logicalSource = triplesMap.getLogicalSource();
 
 		IRI referenceFormulation = logicalSource.getReferenceFormulation();
-		if (!resolverImplementations.containsKey(referenceFormulation)) {
+		if (!logicalSourceResolvers.containsKey(referenceFormulation)) {
 			throw new RuntimeException(String.format("Unsupported reference formulation %s", referenceFormulation));
 		}
 
 		return new TriplesMapperComponents(
-			resolverImplementations.get(referenceFormulation),
-				logicalSource.getSource(), logicalSource.getIterator()
+			logicalSourceResolvers.get(referenceFormulation),
+			sourceResolver.apply(logicalSource.getSource()),
+			logicalSource.getIterator()
 		);
 	}
 	

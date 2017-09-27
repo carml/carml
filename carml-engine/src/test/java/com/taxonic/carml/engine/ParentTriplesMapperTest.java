@@ -8,9 +8,7 @@ import static org.mockito.Mockito.when;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.function.UnaryOperator;
 
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.vocabulary.SKOS;
@@ -23,7 +21,7 @@ import org.mockito.junit.MockitoRule;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-import com.taxonic.carml.resolvers.LogicalSourceResolver;
+import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
 
 public class ParentTriplesMapperTest {
 	

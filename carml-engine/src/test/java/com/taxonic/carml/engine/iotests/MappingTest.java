@@ -48,7 +48,9 @@ class MappingTest {
 		Consumer<RmlMapper> configureMapperInstance
 	) {
 		Set<TriplesMap> mapping = loader.load(rmlPath, RDFFormat.TURTLE);
-		RmlMapper.Builder builder = RmlMapper.newBuilder().classPathResolver(contextPath);
+		RmlMapper.Builder builder = RmlMapper.newBuilder()
+				.addDefaultLogicalSourceResolvers()
+				.classPathResolver(contextPath);
 		configureMapper.accept(builder);
 		RmlMapper mapper = builder.build();
 		configureMapperInstance.accept(mapper);
