@@ -11,18 +11,18 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 
-class ParentTriplesMapper<SourceType> {
+class ParentTriplesMapper<T> {
 	
 	private TermGenerator<Resource> subjectGenerator;
 
-	private Supplier<Iterable<SourceType>> getIterator;
-	private LogicalSourceResolver.ExpressionEvaluatorFactory<SourceType> expressionEvaluatorFactory;
+	private Supplier<Iterable<T>> getIterator;
+	private LogicalSourceResolver.ExpressionEvaluatorFactory<T> expressionEvaluatorFactory;
 
 		ParentTriplesMapper(
 			TermGenerator<Resource> subjectGenerator,
 
-			Supplier<Iterable<SourceType>> getIterator,
-			LogicalSourceResolver.ExpressionEvaluatorFactory<SourceType> expressionEvaluatorFactory
+			Supplier<Iterable<T>> getIterator,
+			LogicalSourceResolver.ExpressionEvaluatorFactory<T> expressionEvaluatorFactory
 	) {
 		this.subjectGenerator = subjectGenerator;
 		this.getIterator = getIterator;
@@ -38,7 +38,7 @@ class ParentTriplesMapper<SourceType> {
 		return results;
 	}
 	
-	private Optional<Resource> map(SourceType entry, Map<String, Object> joinValues) {
+	private Optional<Resource> map(T entry, Map<String, Object> joinValues) {
 		// example of joinValues: key: "$.country.name", value: "Belgium"
 		EvaluateExpression evaluate =
 			expressionEvaluatorFactory.apply(entry);

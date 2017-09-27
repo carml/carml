@@ -6,18 +6,18 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-public abstract class LogicalSourceResolver<SourceType> {
-	public abstract SourceIterator<SourceType> getSourceIterator();
-	public abstract ExpressionEvaluatorFactory<SourceType> getExpressionEvaluatorFactory();
+public interface LogicalSourceResolver<T> {
+	SourceIterator<T> getSourceIterator();
+	ExpressionEvaluatorFactory<T> getExpressionEvaluatorFactory();
 
-	public Supplier<Iterable<SourceType>> bindSource(Object source, String iteratorExpression) {
+	default Supplier<Iterable<T>> bindSource(Object source, String iteratorExpression) {
 		return () -> getSourceIterator().apply(source, iteratorExpression);
 	}
 
-	public interface SourceIterator<SourceType> extends BiFunction<Object, String, Iterable<SourceType>> {
+	interface SourceIterator<T> extends BiFunction<Object, String, Iterable<T>> {
 
 	}
 
-	public interface ExpressionEvaluatorFactory<SourceType> extends Function<SourceType, EvaluateExpression> { }
+	interface ExpressionEvaluatorFactory<T> extends Function<T, EvaluateExpression> { }
 
 }

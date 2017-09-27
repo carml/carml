@@ -357,51 +357,48 @@ public class RmlMapper {
 		);
 	}
 	
-	private static class TriplesMapperComponents {
+	private static class TriplesMapperComponents<T> {
 		
-		LogicalSourceResolver logicalSourceResolver;
+		LogicalSourceResolver<T> logicalSourceResolver;
 		private final Object source;
 		private final String iteratorExpression;
 
-		public TriplesMapperComponents(LogicalSourceResolver logicalSourceResolver, Object source, String iteratorExpression) {
+		public TriplesMapperComponents(LogicalSourceResolver<T> logicalSourceResolver, Object source, String iteratorExpression) {
 			this.logicalSourceResolver = logicalSourceResolver;
 			this.source = source;
 			this.iteratorExpression = iteratorExpression;
 		}
 
-		Supplier<Iterable<?>> getIterator() {
+		Supplier<Iterable<T>> getIterator() {
 			return logicalSourceResolver.bindSource(source, iteratorExpression);
 		}
 
-		LogicalSourceResolver.ExpressionEvaluatorFactory getExpressionEvaluatorFactory() {
+		LogicalSourceResolver.ExpressionEvaluatorFactory<T> getExpressionEvaluatorFactory() {
 			return logicalSourceResolver.getExpressionEvaluatorFactory();
 		}
 	}
 
-	private class JsonPathResolver extends LogicalSourceResolver<Object> {
+	private class JsonPathResolver implements LogicalSourceResolver<Object> {
 
-
-		@Override
 		public SourceIterator<Object> getSourceIterator() {
 			return (source, iteratorExpression) -> {
 				String s = readSource(source);
 				Object data = JsonPath.using(JSONPATH_CONF).parse(s).read(iteratorExpression);
-				boolean isIterable = Iterable.class.isAssignableFrom(data.getClass());
 
+				boolean isIterable = Iterable.class.isAssignableFrom(data.getClass());
 				return isIterable
 						? (Iterable<Object>) data
 						: Collections.singleton(data);
 			};
 		}
 
-		@Override
 		public ExpressionEvaluatorFactory<Object> getExpressionEvaluatorFactory() {
 			return object -> expression -> Optional.ofNullable(
 					JsonPath.using(JSONPATH_CONF).parse(object).read(expression));
 		}
 	}
 
-	private Map<IRI, LogicalSourceResolver> resolverImplementations = new HashMap<>();
+	private Map<IRI, LogicalSourceResolver<?>> resolverImplementations = new HashMap<>();
 
 	
 	private TriplesMapperComponents getTriplesMapperComponents(TriplesMap triplesMap) {
@@ -410,9 +407,9 @@ public class RmlMapper {
 
 		IRI referenceFormulation = logicalSource.getReferenceFormulation();
 		if (!resolverImplementations.containsKey(referenceFormulation)) {
-			throw new RuntimeException("Unsupported reference formulation!");
+			throw new RuntimeException(String.format("Unsupported reference formulation %s", referenceFormulation));
 		}
-		
+
 		return new TriplesMapperComponents(
 			resolverImplementations.get(referenceFormulation),
 				logicalSource.getSource(), logicalSource.getIterator()
