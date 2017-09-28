@@ -6,15 +6,15 @@ import java.util.function.Supplier;
 
 import org.eclipse.rdf4j.model.Model;
 
-class TriplesMapper<SourceType> {
+class TriplesMapper<T> {
 	
-	private Supplier<Iterable<SourceType>> getIterator;
-	private LogicalSourceResolver.ExpressionEvaluatorFactory<SourceType> expressionEvaluatorFactory;
+	private Supplier<Iterable<T>> getIterator;
+	private LogicalSourceResolver.ExpressionEvaluatorFactory<T> expressionEvaluatorFactory;
 	private SubjectMapper subjectMapper;
 	
 	TriplesMapper(
-		Supplier<Iterable<SourceType>> getIterator,
-		LogicalSourceResolver.ExpressionEvaluatorFactory<SourceType> expressionEvaluatorFactory,
+		Supplier<Iterable<T>> getIterator,
+		LogicalSourceResolver.ExpressionEvaluatorFactory<T> expressionEvaluatorFactory,
 		SubjectMapper subjectMapper
 	) {
 		this.getIterator = getIterator;
@@ -26,7 +26,7 @@ class TriplesMapper<SourceType> {
 		getIterator.get().forEach(e -> map(e, model));
 	}
 	
-	private void map(SourceType entry, Model model) {
+	private void map(T entry, Model model) {
 		EvaluateExpression evaluate =
 			expressionEvaluatorFactory.apply(entry);
 		subjectMapper.map(model, evaluate);

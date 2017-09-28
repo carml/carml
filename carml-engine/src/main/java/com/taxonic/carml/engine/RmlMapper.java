@@ -371,7 +371,7 @@ public class RmlMapper {
 		);
 	}
 	
-	private static class TriplesMapperComponents<T> {
+	static class TriplesMapperComponents<T> {
 		
 		LogicalSourceResolver<T> logicalSourceResolver;
 		private final InputStream source;
@@ -392,7 +392,7 @@ public class RmlMapper {
 		}
 	}
 
-	private TriplesMapperComponents getTriplesMapperComponents(TriplesMap triplesMap) {
+	TriplesMapperComponents getTriplesMapperComponents(TriplesMap triplesMap) {
 		
 		LogicalSource logicalSource = triplesMap.getLogicalSource();
 
