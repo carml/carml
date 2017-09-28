@@ -175,7 +175,14 @@ public class RmlMapperTest extends MappingTest {
 					"RmlMapper/test2/subjectMapping.rml.ttl",
 					"RmlMapper/test2/subjectMapping.output.ttl");
 	}
-	
+
+	@Test
+	public void testXmlResolver() {
+		testMapping("RmlMapper",
+				"RmlMapper/xmlTest/mapping.ttl",
+				"RmlMapper/xmlTest/expected-output.ttl");
+	}
+
 	//TODO: PM: add test for rml:reference and rr:template where a value is not found.
 
 }
