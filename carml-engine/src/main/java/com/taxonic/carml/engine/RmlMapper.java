@@ -10,6 +10,7 @@ import com.taxonic.carml.model.Join;
 import com.taxonic.carml.model.LogicalSource;
 import com.taxonic.carml.model.NameableStream;
 import com.taxonic.carml.model.ObjectMap;
+import com.taxonic.carml.model.PredicateMap;
 import com.taxonic.carml.model.PredicateObjectMap;
 import com.taxonic.carml.model.RefObjectMap;
 import com.taxonic.carml.model.SubjectMap;
@@ -312,43 +313,15 @@ public class RmlMapper {
 		);
 	}
 	
-	// TODO: PM: reduce cognitive complexity by splitting up in sub-methods
 	private Set<PredicateObjectMapper> createPredicateObjectMappers(TriplesMap triplesMap, Set<PredicateObjectMap> predicateObjectMaps) {
 		return predicateObjectMaps.stream().map(m -> {
 			
 			Set<BaseObjectMap> objectMaps = m.getObjectMaps();
 			
 			Set<PredicateMapper> predicateMappers =
-				m.getPredicateMaps().stream().map(p -> {
-
-					Set<TermGenerator<? extends Value>> objectGenerators =
-						Stream.concat(
-						
-							// object maps -> object generators
-							getObjectMapGenerators(objectMaps),
-							
-							// ref object maps without joins -> object generators.
-							// ref object maps without joins MUST have an identical logical source.
-							getJoinlessRefObjectMapGenerators(objectMaps, triplesMap.getLogicalSource())
-							
-						)
-						.collect(ImmutableCollectors.toImmutableSet());
-					
-					Set<RefObjectMapper> refObjectMappers =
-						objectMaps.stream()
-							.filter(o -> o instanceof RefObjectMap)
-							.map(o -> (RefObjectMap) o)
-							.filter(o -> !o.getJoinConditions().isEmpty())
-							.map(o -> createRefObjectMapper(o))
-							.collect(ImmutableCollectors.toImmutableSet());
-
-					return new PredicateMapper(
-						termGenerators.getPredicateGenerator(p),
-						objectGenerators,
-						refObjectMappers
-					);
-				})
-				.collect(ImmutableCollectors.toImmutableSet());
+				m.getPredicateMaps().stream()
+					.map(p -> createPredicateMapper(p, objectMaps, triplesMap))
+					.collect(ImmutableCollectors.toImmutableSet());
 			
 			return new PredicateObjectMapper(
 				createGraphGenerators(m.getGraphMaps()),
@@ -356,6 +329,39 @@ public class RmlMapper {
 			);
 		})
 		.collect(ImmutableCollectors.toImmutableSet());
+	}
+	
+	PredicateMapper createPredicateMapper(
+		PredicateMap predicateMap, 
+		Set<BaseObjectMap> objectMaps, 
+		TriplesMap triplesMap
+	) {
+		Set<TermGenerator<? extends Value>> objectGenerators =
+			Stream.concat(
+			
+				// object maps -> object generators
+				getObjectMapGenerators(objectMaps),
+				
+				// ref object maps without joins -> object generators.
+				// ref object maps without joins MUST have an identical logical source.
+				getJoinlessRefObjectMapGenerators(objectMaps, triplesMap.getLogicalSource())
+				
+			)
+			.collect(ImmutableCollectors.toImmutableSet());
+			
+		Set<RefObjectMapper> refObjectMappers =
+			objectMaps.stream()
+				.filter(o -> o instanceof RefObjectMap)
+				.map(o -> (RefObjectMap) o)
+				.filter(o -> !o.getJoinConditions().isEmpty())
+				.map(this::createRefObjectMapper)
+				.collect(ImmutableCollectors.toImmutableSet());
+
+		return new PredicateMapper(
+			termGenerators.getPredicateGenerator(predicateMap),
+			objectGenerators,
+			refObjectMappers
+		);
 	}
 	
 	SubjectMapper createSubjectMapper(TriplesMap triplesMap) {
