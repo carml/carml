@@ -35,7 +35,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -86,7 +85,7 @@ public class RmlMapper {
 			return this;
 		}
 
-		public Builder setLogicalSourceResolver(IRI iri, LogicalSourceResolver resolver) {
+		public Builder setLogicalSourceResolver(IRI iri, LogicalSourceResolver<?> resolver) {
 			this.logicalSourceResolvers.put(iri, resolver);
 			return this;
 		}
@@ -261,7 +260,7 @@ public class RmlMapper {
 	}
 	
 	private void map(TriplesMap triplesMap, Model model) {
-		TriplesMapper triplesMapper = createTriplesMapper(triplesMap); // TODO cache mapper instances
+		TriplesMapper<?> triplesMapper = createTriplesMapper(triplesMap); // TODO cache mapper instances
 		triplesMapper.map(model);
 	}
 	
@@ -370,29 +369,10 @@ public class RmlMapper {
 			createPredicateObjectMappers(triplesMap, triplesMap.getPredicateObjectMaps())
 		);
 	}
-	
-	static class TriplesMapperComponents<T> {
-		
-		LogicalSourceResolver<T> logicalSourceResolver;
-		private final InputStream source;
-		private final String iteratorExpression;
 
-		public TriplesMapperComponents(LogicalSourceResolver<T> logicalSourceResolver, InputStream source, String iteratorExpression) {
-			this.logicalSourceResolver = logicalSourceResolver;
-			this.source = source;
-			this.iteratorExpression = iteratorExpression;
-		}
-
-		Supplier<Iterable<T>> getIterator() {
-			return logicalSourceResolver.bindSource(source, iteratorExpression);
-		}
-
-		LogicalSourceResolver.ExpressionEvaluatorFactory<T> getExpressionEvaluatorFactory() {
-			return logicalSourceResolver.getExpressionEvaluatorFactory();
-		}
-	}
-
-	TriplesMapperComponents getTriplesMapperComponents(TriplesMap triplesMap) {
+	// TODO: Use of generic wildcard type is quite smelly, but at this point we cannot know which type
+	// will be provided by the user. 
+	TriplesMapperComponents<?> getTriplesMapperComponents(TriplesMap triplesMap) {
 		
 		LogicalSource logicalSource = triplesMap.getLogicalSource();
 
@@ -401,34 +381,32 @@ public class RmlMapper {
 			throw new RuntimeException(String.format("Unsupported reference formulation %s", referenceFormulation));
 		}
 
-		return new TriplesMapperComponents(
+		return new TriplesMapperComponents<>(
 			logicalSourceResolvers.get(referenceFormulation),
 			sourceResolver.apply(logicalSource.getSource()),
 			logicalSource.getIterator()
 		);
 	}
 	
-	private TriplesMapper createTriplesMapper(TriplesMap triplesMap) {
+	private TriplesMapper<?> createTriplesMapper(TriplesMap triplesMap) {
 		
-		TriplesMapperComponents components = getTriplesMapperComponents(triplesMap);
+		TriplesMapperComponents<?> components = getTriplesMapperComponents(triplesMap);
 		
 		return
-		new TriplesMapper(
-			components.getIterator(),
-			components.getExpressionEvaluatorFactory(),
+		new TriplesMapper<>(
+			components,
 			createSubjectMapper(triplesMap)
 		);
 	}
 	
-	private ParentTriplesMapper createParentTriplesMapper(TriplesMap triplesMap) {
+	private ParentTriplesMapper<?> createParentTriplesMapper(TriplesMap triplesMap) {
 		
-		TriplesMapperComponents components = getTriplesMapperComponents(triplesMap);
+		TriplesMapperComponents<?> components = getTriplesMapperComponents(triplesMap);
 
 		return
-		new ParentTriplesMapper(
+		new ParentTriplesMapper<>(
 			termGenerators.getSubjectGenerator(triplesMap.getSubjectMap()),
-			components.getIterator(),
-			components.getExpressionEvaluatorFactory()
+			components
 		);
 	}
 

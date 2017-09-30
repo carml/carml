@@ -200,14 +200,14 @@ public class RmlMapperTest {
 	public void mapper_builtWithLogicalSoucreResolvers_shouldUseTheCorrectResolver() throws IOException {
 		ValueFactory f = SimpleValueFactory.getInstance();
 		IRI expectedIRI = f.createIRI("http://this.iri/isUsed");
-		Iterable expectedSourceData = Collections.singletonList("expected");
-		LogicalSourceResolver.SourceIterator expectedSourceIterator = (a, b) -> expectedSourceData;
-		LogicalSourceResolver.ExpressionEvaluatorFactory expectedFactory = a -> null;
-		LogicalSourceResolver expectedResolver = new LogicalSourceResolverContainer(
+		Iterable<String> expectedSourceData = Collections.singletonList("expected");
+		LogicalSourceResolver.SourceIterator<String> expectedSourceIterator = (a, b) -> expectedSourceData;
+		LogicalSourceResolver.ExpressionEvaluatorFactory<String> expectedFactory = a -> null;
+		LogicalSourceResolver<String> expectedResolver = new LogicalSourceResolverContainer<>(
 				expectedSourceIterator, expectedFactory);
 
 		IRI unusedIRI = f.createIRI("http://this.iri/isNotUsed");
-		LogicalSourceResolver unusedResolver = new LogicalSourceResolverContainer(null, null);
+		LogicalSourceResolver<String> unusedResolver = new LogicalSourceResolverContainer<>(null, null);
 
 		SourceResolver sourceResolver = mock(SourceResolver.class);
 		InputStream input = new ByteArrayInputStream("foo".getBytes());
@@ -223,7 +223,7 @@ public class RmlMapperTest {
 		when(logicalSourceMap.getLogicalSource())
 				.thenReturn(new LogicalSourceImpl(null, null, expectedIRI));
 
-		RmlMapper.TriplesMapperComponents components = mapper.getTriplesMapperComponents(logicalSourceMap);
+		TriplesMapperComponents<?> components = mapper.getTriplesMapperComponents(logicalSourceMap);
 
 		Assert.assertSame(expectedFactory, components.getExpressionEvaluatorFactory());
 		Assert.assertSame(expectedSourceData, components.getIterator().get());
@@ -234,7 +234,7 @@ public class RmlMapperTest {
 	public void mapper_usedWithUnknownReferenceFormulation_shouldThrowException() throws IOException {
 		ValueFactory f = SimpleValueFactory.getInstance();
 		IRI unusedIRI = f.createIRI("http://this.iri/isNotUsed");
-		LogicalSourceResolver unusedResolver = new LogicalSourceResolverContainer(null, null);
+		LogicalSourceResolver<?> unusedResolver = new LogicalSourceResolverContainer<>(null, null);
 
 		SourceResolver sourceResolver = mock(SourceResolver.class);
 		InputStream input = new ByteArrayInputStream("foo".getBytes());
@@ -259,23 +259,23 @@ public class RmlMapperTest {
 		mapper.getTriplesMapperComponents(logicalSourceMap);
 	}
 
-	private static class LogicalSourceResolverContainer implements LogicalSourceResolver {
+	private static class LogicalSourceResolverContainer<T> implements LogicalSourceResolver<T> {
 
-		SourceIterator sourceIterator;
-		ExpressionEvaluatorFactory evaluatorFactory;
+		SourceIterator<T> sourceIterator;
+		ExpressionEvaluatorFactory<T> evaluatorFactory;
 
-		public LogicalSourceResolverContainer(SourceIterator sourceIterator, ExpressionEvaluatorFactory evaluatorFactory) {
+		public LogicalSourceResolverContainer(SourceIterator<T> sourceIterator, ExpressionEvaluatorFactory<T> evaluatorFactory) {
 			this.sourceIterator = sourceIterator;
 			this.evaluatorFactory = evaluatorFactory;
 		}
 
 		@Override
-		public SourceIterator getSourceIterator() {
+		public SourceIterator<T> getSourceIterator() {
 			return sourceIterator;
 		}
 
 		@Override
-		public ExpressionEvaluatorFactory getExpressionEvaluatorFactory() {
+		public ExpressionEvaluatorFactory<T> getExpressionEvaluatorFactory() {
 			return evaluatorFactory;
 		}
 	}

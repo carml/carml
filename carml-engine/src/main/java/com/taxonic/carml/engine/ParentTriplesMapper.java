@@ -1,5 +1,6 @@
 package com.taxonic.carml.engine;
 
+import com.taxonic.carml.engine.TriplesMapperComponents;
 import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
 
 import org.eclipse.rdf4j.model.Resource;
@@ -18,17 +19,26 @@ class ParentTriplesMapper<T> {
 	private Supplier<Iterable<T>> getIterator;
 	private LogicalSourceResolver.ExpressionEvaluatorFactory<T> expressionEvaluatorFactory;
 
-		ParentTriplesMapper(
-			TermGenerator<Resource> subjectGenerator,
-
-			Supplier<Iterable<T>> getIterator,
-			LogicalSourceResolver.ExpressionEvaluatorFactory<T> expressionEvaluatorFactory
+	ParentTriplesMapper(
+		TermGenerator<Resource> subjectGenerator,
+		TriplesMapperComponents<T>  trMapperComponents
+	) {
+		this(
+			subjectGenerator, 
+			trMapperComponents.getIterator(), 
+			trMapperComponents.getExpressionEvaluatorFactory()
+		);
+	}
+	
+	ParentTriplesMapper(
+		TermGenerator<Resource> subjectGenerator,
+		Supplier<Iterable<T>> getIterator,
+		LogicalSourceResolver.ExpressionEvaluatorFactory<T> expressionEvaluatorFactory
 	) {
 		this.subjectGenerator = subjectGenerator;
 		this.getIterator = getIterator;
 		this.expressionEvaluatorFactory = expressionEvaluatorFactory;
 	}
-	
 
 	Set<Resource> map(Map<String, Object> joinValues) {
 		Set<Resource> results = new LinkedHashSet<>();

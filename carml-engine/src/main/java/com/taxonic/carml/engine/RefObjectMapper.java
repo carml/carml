@@ -11,11 +11,11 @@ import com.taxonic.carml.model.Join;
 
 public class RefObjectMapper {
 	
-	private ParentTriplesMapper parentTriplesMapper;
+	private ParentTriplesMapper<?> parentTriplesMapper;
 	private Set<Join> joinConditions;
 	
 	RefObjectMapper(
-		ParentTriplesMapper parentTriplesMapper,
+		ParentTriplesMapper<?> parentTriplesMapper,
 		Set<Join> joinConditions
 	) {
 		this.parentTriplesMapper = parentTriplesMapper;

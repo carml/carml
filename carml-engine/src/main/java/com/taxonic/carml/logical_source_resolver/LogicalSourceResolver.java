@@ -15,10 +15,8 @@ public interface LogicalSourceResolver<T> {
 		return () -> getSourceIterator().apply(source, iteratorExpression);
 	}
 
-	interface SourceIterator<T> extends BiFunction<InputStream, String, Iterable<T>> {
+	interface SourceIterator<T> extends BiFunction<InputStream, String, Iterable<T>> {}
 
-	}
-
-	interface ExpressionEvaluatorFactory<T> extends Function<T, EvaluateExpression> { }
+	interface ExpressionEvaluatorFactory<T> extends Function<T, EvaluateExpression> {}
 
 }
