@@ -1,12 +1,34 @@
 package com.taxonic.carml.engine;
 
-import static java.util.Objects.requireNonNull;
+import com.taxonic.carml.engine.function.ExecuteFunction;
+import com.taxonic.carml.engine.function.Functions;
+import com.taxonic.carml.logical_source_resolver.JsonPathResolver;
+import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
+import com.taxonic.carml.model.BaseObjectMap;
+import com.taxonic.carml.model.GraphMap;
+import com.taxonic.carml.model.Join;
+import com.taxonic.carml.model.LogicalSource;
+import com.taxonic.carml.model.NameableStream;
+import com.taxonic.carml.model.ObjectMap;
+import com.taxonic.carml.model.PredicateObjectMap;
+import com.taxonic.carml.model.RefObjectMap;
+import com.taxonic.carml.model.SubjectMap;
+import com.taxonic.carml.model.TriplesMap;
+import com.taxonic.carml.util.IoUtils;
+import com.taxonic.carml.vocab.Rdf;
+
+import org.eclipse.rdf4j.model.IRI;
+import org.eclipse.rdf4j.model.Model;
+import org.eclipse.rdf4j.model.Resource;
+import org.eclipse.rdf4j.model.Value;
+import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 
 import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,31 +36,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.eclipse.rdf4j.model.IRI;
-import org.eclipse.rdf4j.model.Model;
-import org.eclipse.rdf4j.model.Resource;
-import org.eclipse.rdf4j.model.Value;
-import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 
-import com.jayway.jsonpath.Configuration;
-import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.Option;
-import com.taxonic.carml.engine.function.ExecuteFunction;
-import com.taxonic.carml.engine.function.Functions;
-import com.taxonic.carml.model.BaseObjectMap;
-import com.taxonic.carml.model.NameableStream;
-import com.taxonic.carml.model.GraphMap;
-import com.taxonic.carml.model.Join;
-import com.taxonic.carml.model.LogicalSource;
-import com.taxonic.carml.model.ObjectMap;
-import com.taxonic.carml.model.PredicateObjectMap;
-import com.taxonic.carml.model.RefObjectMap;
-import com.taxonic.carml.model.SubjectMap;
-import com.taxonic.carml.model.TriplesMap;
-import com.taxonic.carml.util.IoUtils;
+import static java.util.Objects.requireNonNull;
 
 // TODO cache results of evaluated expressions when filling a single template, in case of repeated expressions
 
@@ -63,6 +64,7 @@ public class RmlMapper {
 		
 		private Functions functions = new Functions(); // TODO
 		private List<SourceResolver> sourceResolvers = new ArrayList<>();
+		private Map<IRI, LogicalSourceResolver<?>> logicalSourceResolvers = new HashMap<>();
 		
 		public Builder addFunctions(Object fn) {
 			functions.addFunctions(fn);
@@ -76,6 +78,21 @@ public class RmlMapper {
 		
 		public Builder fileResolver(Path basePath) {
 			sourceResolver(o -> resolveFilePathToInputStream(o, basePath));
+			return this;
+		}
+
+		public Builder addDefaultLogicalSourceResolvers() {
+			this.logicalSourceResolvers.put(Rdf.Ql.JsonPath, new JsonPathResolver());
+			return this;
+		}
+
+		public Builder setLogicalSourceResolver(IRI iri, LogicalSourceResolver resolver) {
+			this.logicalSourceResolvers.put(iri, resolver);
+			return this;
+		}
+
+		public Builder removeLogicalSourceResolver(IRI iri) {
+			this.logicalSourceResolvers.remove(iri);
 			return this;
 		}
 		
@@ -118,13 +135,14 @@ public class RmlMapper {
 			RmlMapper mapper =
 				new RmlMapper(
 					new CompositeSourceResolver(
-						// prepend carml stream resolver to regular resolvers 
+						// prepend carml stream resolver to regular resolvers
 						Stream.concat(
 							Stream.of(carmlStreamResolver),
 							sourceResolvers.stream()
 						)
 						.collect(Collectors.toList())
 					),
+					logicalSourceResolvers,
 					functions
 				);
 			
@@ -182,9 +200,8 @@ public class RmlMapper {
 	}
 	
 	private Function<Object, InputStream> sourceResolver;
-	
-	private static Configuration JSONPATH_CONF = Configuration.builder()
-			   .options(Option.DEFAULT_PATH_LEAF_TO_NULL).build();
+
+	private Map<IRI, LogicalSourceResolver<?>> logicalSourceResolvers;
 	
 	private TermGeneratorCreator termGenerators = TermGeneratorCreator.create(this); // TODO
 
@@ -192,10 +209,13 @@ public class RmlMapper {
 
 	public RmlMapper(
 		Function<Object, InputStream> sourceResolver,
+		Map<IRI, LogicalSourceResolver<?>> logicalSourceResolvers,
 		Functions functions
 	) {
 		this.sourceResolver = sourceResolver;
 		this.functions = functions;
+
+		this.logicalSourceResolvers = logicalSourceResolvers;
 	}
 
 	public Optional<ExecuteFunction> getFunction(IRI iri) {
@@ -351,58 +371,40 @@ public class RmlMapper {
 		);
 	}
 	
-	private static class TriplesMapperComponents {
+	static class TriplesMapperComponents<T> {
 		
-		Supplier<Object> getSource;
-		UnaryOperator<Object> applyIterator;
-		Function<Object, EvaluateExpression> expressionEvaluatorFactory;
-		
-		TriplesMapperComponents(
-			Supplier<Object> getSource,
-			UnaryOperator<Object> applyIterator,
-			Function<Object, EvaluateExpression> expressionEvaluatorFactory
-		) {
-			this.getSource = getSource;
-			this.applyIterator = applyIterator;
-			this.expressionEvaluatorFactory = expressionEvaluatorFactory;
+		LogicalSourceResolver<T> logicalSourceResolver;
+		private final InputStream source;
+		private final String iteratorExpression;
+
+		public TriplesMapperComponents(LogicalSourceResolver<T> logicalSourceResolver, InputStream source, String iteratorExpression) {
+			this.logicalSourceResolver = logicalSourceResolver;
+			this.source = source;
+			this.iteratorExpression = iteratorExpression;
 		}
 
-		Supplier<Object> getGetSource() {
-			return getSource;
+		Supplier<Iterable<T>> getIterator() {
+			return logicalSourceResolver.bindSource(source, iteratorExpression);
 		}
 
-		UnaryOperator<Object> getApplyIterator() {
-			return applyIterator;
-		}
-
-		Function<Object, EvaluateExpression> getExpressionEvaluatorFactory() {
-			return expressionEvaluatorFactory;
+		LogicalSourceResolver.ExpressionEvaluatorFactory<T> getExpressionEvaluatorFactory() {
+			return logicalSourceResolver.getExpressionEvaluatorFactory();
 		}
 	}
-	
-	private TriplesMapperComponents getTriplesMapperComponents(TriplesMap triplesMap) {
+
+	TriplesMapperComponents getTriplesMapperComponents(TriplesMap triplesMap) {
 		
 		LogicalSource logicalSource = triplesMap.getLogicalSource();
-		
-//		logicalSource.getReferenceFormulation();
-		
-		// TODO this all assumes json
-		
-		Object source = logicalSource.getSource();
-		Supplier<Object> getSource = () -> readSource(source);
-		
-		String iterator = logicalSource.getIterator();
-		UnaryOperator<Object> applyIterator =
-			s -> JsonPath.using(JSONPATH_CONF).parse((String) s).read(iterator);
-		
-		Function<Object, EvaluateExpression> expressionEvaluatorFactory =
-			object -> expression -> Optional.ofNullable(
-				JsonPath.using(JSONPATH_CONF).parse(object).read(expression));
+
+		IRI referenceFormulation = logicalSource.getReferenceFormulation();
+		if (!logicalSourceResolvers.containsKey(referenceFormulation)) {
+			throw new RuntimeException(String.format("Unsupported reference formulation %s", referenceFormulation));
+		}
 
 		return new TriplesMapperComponents(
-			getSource,
-			applyIterator,
-			expressionEvaluatorFactory
+			logicalSourceResolvers.get(referenceFormulation),
+			sourceResolver.apply(logicalSource.getSource()),
+			logicalSource.getIterator()
 		);
 	}
 	
@@ -412,8 +414,7 @@ public class RmlMapper {
 		
 		return
 		new TriplesMapper(
-			components.getGetSource(),
-			components.getApplyIterator(),
+			components.getIterator(),
 			components.getExpressionEvaluatorFactory(),
 			createSubjectMapper(triplesMap)
 		);
@@ -425,9 +426,8 @@ public class RmlMapper {
 
 		return
 		new ParentTriplesMapper(
-			termGenerators.getSubjectGenerator(triplesMap.getSubjectMap()), 
-			components.getGetSource(),
-			components.getApplyIterator(),
+			termGenerators.getSubjectGenerator(triplesMap.getSubjectMap()),
+			components.getIterator(),
 			components.getExpressionEvaluatorFactory()
 		);
 	}

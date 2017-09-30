@@ -8,9 +8,7 @@ import static org.mockito.Mockito.when;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.function.UnaryOperator;
 
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.vocabulary.SKOS;
@@ -23,19 +21,18 @@ import org.mockito.junit.MockitoRule;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
+
 public class ParentTriplesMapperTest {
 	
 	@Mock
 	private TermGenerator<Resource> subjectGenerator;
 	
 	@Mock
-	private Supplier<Object> getSource;
+	private Supplier<Iterable<Object>> getIterator;
 	
 	@Mock
-	private UnaryOperator<Object> applyIterator;
-	
-	@Mock
-	private Function<Object, EvaluateExpression> expressionEvaluatorFactory;
+	private LogicalSourceResolver.ExpressionEvaluatorFactory expressionEvaluatorFactory;
 	
 	@Rule 
 	public MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -57,12 +54,10 @@ public class ParentTriplesMapperTest {
 
 	@Test
 	public void parentTriplesMapper_givenJoinConditions() {
-		when(getSource.get()).thenReturn("");
-		when(applyIterator.apply(""))
-			.thenReturn(ImmutableList.of(entry));
+		when(getIterator.get()).thenReturn(ImmutableList.of(entry));
 		when(expressionEvaluatorFactory.apply(entry)).thenReturn(evaluate);
 		when(subjectGenerator.apply(evaluate)).thenReturn(Optional.of(SKOS.CONCEPT));
-		ParentTriplesMapper mapper = new ParentTriplesMapper(subjectGenerator, getSource, applyIterator, expressionEvaluatorFactory);
+		ParentTriplesMapper mapper = new ParentTriplesMapper(subjectGenerator, getIterator, expressionEvaluatorFactory);
 		Set<Resource> resources = mapper.map(joinValues);
 		assertThat(resources.size(), is(1));
 		assertThat(SKOS.CONCEPT, isIn(resources));

@@ -1,55 +1,44 @@
 package com.taxonic.carml.engine;
 
-import java.util.Collections;
+import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
+
+import org.eclipse.rdf4j.model.Resource;
+
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.function.UnaryOperator;
 
-import org.eclipse.rdf4j.model.Resource;
-
-class ParentTriplesMapper {
+class ParentTriplesMapper<T> {
 	
 	private TermGenerator<Resource> subjectGenerator;
-	private Supplier<Object> getSource;
-	private UnaryOperator<Object> applyIterator;
-	private Function<Object, EvaluateExpression> expressionEvaluatorFactory;
-	
-	ParentTriplesMapper(
-		TermGenerator<Resource> subjectGenerator,
-		Supplier<Object> getSource,
-		UnaryOperator<Object> applyIterator,
-		Function<Object, EvaluateExpression> expressionEvaluatorFactory
+
+	private Supplier<Iterable<T>> getIterator;
+	private LogicalSourceResolver.ExpressionEvaluatorFactory<T> expressionEvaluatorFactory;
+
+		ParentTriplesMapper(
+			TermGenerator<Resource> subjectGenerator,
+
+			Supplier<Iterable<T>> getIterator,
+			LogicalSourceResolver.ExpressionEvaluatorFactory<T> expressionEvaluatorFactory
 	) {
 		this.subjectGenerator = subjectGenerator;
-		this.getSource = getSource;
-		this.applyIterator = applyIterator;
+		this.getIterator = getIterator;
 		this.expressionEvaluatorFactory = expressionEvaluatorFactory;
 	}
-
-	private Iterable<?> createIterable(Object value) {
-		boolean isIterable = Iterable.class.isAssignableFrom(value.getClass());
-		return isIterable
-			? (Iterable<?>) value
-			: Collections.singleton(value);
-	}
 	
+
 	Set<Resource> map(Map<String, Object> joinValues) {
-		Object source = getSource.get();
-		Object value = applyIterator.apply(source);
-		Iterable<?> iterable = createIterable(value);
 		Set<Resource> results = new LinkedHashSet<>();
-		iterable.forEach(e -> 
+		getIterator.get().forEach(e ->
 			map(e, joinValues)
 				.ifPresent(results::add));
 		return results;
 	}
 	
-	private Optional<Resource> map(Object entry, Map<String, Object> joinValues) {
+	private Optional<Resource> map(T entry, Map<String, Object> joinValues) {
 		// example of joinValues: key: "$.country.name", value: "Belgium"
 		EvaluateExpression evaluate =
 			expressionEvaluatorFactory.apply(entry);

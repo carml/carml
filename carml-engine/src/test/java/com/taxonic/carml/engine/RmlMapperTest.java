@@ -1,25 +1,42 @@
 package com.taxonic.carml.engine;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
-
+import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
 import com.taxonic.carml.model.NameableStream;
+import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.model.impl.CarmlStream;
+import com.taxonic.carml.model.impl.LogicalSourceImpl;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.eclipse.rdf4j.model.IRI;
+import org.eclipse.rdf4j.model.ValueFactory;
+import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
+
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import java.util.Collections;
+import java.util.Optional;
+
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.startsWith;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class RmlMapperTest {
-	
+
 	RmlMapper mapper;
 	NameableStream stream;
 	final String input = "test input";
@@ -177,5 +194,89 @@ public class RmlMapperTest {
 		exception.expect(RuntimeException.class);
 		exception.expectMessage(String.format("could not resolve source [%s]", source));
 		mapper.readSource(source);
+	}
+
+	@Test
+	public void mapper_builtWithLogicalSoucreResolvers_shouldUseTheCorrectResolver() throws IOException {
+		ValueFactory f = SimpleValueFactory.getInstance();
+		IRI expectedIRI = f.createIRI("http://this.iri/isUsed");
+		Iterable expectedSourceData = Collections.singletonList("expected");
+		LogicalSourceResolver.SourceIterator expectedSourceIterator = (a, b) -> expectedSourceData;
+		LogicalSourceResolver.ExpressionEvaluatorFactory expectedFactory = a -> null;
+		LogicalSourceResolver expectedResolver = new LogicalSourceResolverContainer(
+				expectedSourceIterator, expectedFactory);
+
+		IRI unusedIRI = f.createIRI("http://this.iri/isNotUsed");
+		LogicalSourceResolver unusedResolver = new LogicalSourceResolverContainer(null, null);
+
+		SourceResolver sourceResolver = mock(SourceResolver.class);
+		InputStream input = new ByteArrayInputStream("foo".getBytes());
+		when(sourceResolver.apply(any())).thenReturn(Optional.of(input));
+
+		RmlMapper mapper = RmlMapper.newBuilder()
+				.sourceResolver(sourceResolver)
+				.setLogicalSourceResolver(expectedIRI, expectedResolver)
+				.setLogicalSourceResolver(unusedIRI, unusedResolver)
+				.build();
+
+		TriplesMap logicalSourceMap = mock(TriplesMap.class);
+		when(logicalSourceMap.getLogicalSource())
+				.thenReturn(new LogicalSourceImpl(null, null, expectedIRI));
+
+		RmlMapper.TriplesMapperComponents components = mapper.getTriplesMapperComponents(logicalSourceMap);
+
+		Assert.assertSame(expectedFactory, components.getExpressionEvaluatorFactory());
+		Assert.assertSame(expectedSourceData, components.getIterator().get());
+
+	}
+
+	@Test
+	public void mapper_usedWithUnknownReferenceFormulation_shouldThrowException() throws IOException {
+		ValueFactory f = SimpleValueFactory.getInstance();
+		IRI unusedIRI = f.createIRI("http://this.iri/isNotUsed");
+		LogicalSourceResolver unusedResolver = new LogicalSourceResolverContainer(null, null);
+
+		SourceResolver sourceResolver = mock(SourceResolver.class);
+		InputStream input = new ByteArrayInputStream("foo".getBytes());
+		when(sourceResolver.apply(any())).thenReturn(Optional.of(input));
+
+		RmlMapper mapper = RmlMapper.newBuilder()
+				.sourceResolver(sourceResolver)
+				.setLogicalSourceResolver(unusedIRI, unusedResolver)
+				.build();
+
+		IRI unsupportedRefFormulation = f.createIRI("http://this.iri/isNotSupported");
+
+		TriplesMap logicalSourceMap = mock(TriplesMap.class);
+		when(logicalSourceMap.getLogicalSource())
+				.thenReturn(new LogicalSourceImpl(null, null, unsupportedRefFormulation));
+
+
+		exception.expect(RuntimeException.class);
+		exception.expectMessage(startsWith("Unsupported reference formulation"));
+		exception.expectMessage(contains(unsupportedRefFormulation.toString()));
+
+		mapper.getTriplesMapperComponents(logicalSourceMap);
+	}
+
+	private static class LogicalSourceResolverContainer implements LogicalSourceResolver {
+
+		SourceIterator sourceIterator;
+		ExpressionEvaluatorFactory evaluatorFactory;
+
+		public LogicalSourceResolverContainer(SourceIterator sourceIterator, ExpressionEvaluatorFactory evaluatorFactory) {
+			this.sourceIterator = sourceIterator;
+			this.evaluatorFactory = evaluatorFactory;
+		}
+
+		@Override
+		public SourceIterator getSourceIterator() {
+			return sourceIterator;
+		}
+
+		@Override
+		public ExpressionEvaluatorFactory getExpressionEvaluatorFactory() {
+			return evaluatorFactory;
+		}
 	}
 }

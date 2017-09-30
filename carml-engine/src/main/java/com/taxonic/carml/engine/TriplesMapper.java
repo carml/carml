@@ -1,48 +1,32 @@
 package com.taxonic.carml.engine;
 
-import java.util.Collections;
-import java.util.function.Function;
+import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
+
 import java.util.function.Supplier;
-import java.util.function.UnaryOperator;
 
 import org.eclipse.rdf4j.model.Model;
 
-class TriplesMapper {
+class TriplesMapper<T> {
 	
-	private Supplier<Object> getSource;
-	private UnaryOperator<Object> applyIterator;
-	private Function<Object, EvaluateExpression> expressionEvaluatorFactory;
+	private Supplier<Iterable<T>> getIterator;
+	private LogicalSourceResolver.ExpressionEvaluatorFactory<T> expressionEvaluatorFactory;
 	private SubjectMapper subjectMapper;
 	
 	TriplesMapper(
-		Supplier<Object> getSource,
-		UnaryOperator<Object> applyIterator,
-		Function<Object, EvaluateExpression> expressionEvaluatorFactory,
+		Supplier<Iterable<T>> getIterator,
+		LogicalSourceResolver.ExpressionEvaluatorFactory<T> expressionEvaluatorFactory,
 		SubjectMapper subjectMapper
 	) {
-		this.getSource = getSource;
-		this.applyIterator = applyIterator;
+		this.getIterator = getIterator;
 		this.expressionEvaluatorFactory = expressionEvaluatorFactory;
 		this.subjectMapper = subjectMapper;
 	}
-
-	private Iterable<?> createIterable(Object value) {
-		if (value == null)
-			return Collections.emptyList();
-		boolean isIterable = value instanceof Iterable;
-		return isIterable
-			? (Iterable<?>) value
-			: Collections.singleton(value);
-	}
 	
 	void map(Model model) {
-		Object source = getSource.get();
-		Object value = applyIterator.apply(source);
-		Iterable<?> iterable = createIterable(value);
-		iterable.forEach(e -> map(e, model));
+		getIterator.get().forEach(e -> map(e, model));
 	}
 	
-	private void map(Object entry, Model model) {
+	private void map(T entry, Model model) {
 		EvaluateExpression evaluate =
 			expressionEvaluatorFactory.apply(entry);
 		subjectMapper.map(model, evaluate);
