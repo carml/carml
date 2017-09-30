@@ -14,6 +14,7 @@ import com.taxonic.carml.model.PredicateObjectMap;
 import com.taxonic.carml.model.RefObjectMap;
 import com.taxonic.carml.model.SubjectMap;
 import com.taxonic.carml.model.TriplesMap;
+import com.taxonic.carml.rdf_mapper.util.ImmutableCollectors;
 import com.taxonic.carml.util.IoUtils;
 import com.taxonic.carml.vocab.Rdf;
 
@@ -27,15 +28,13 @@ import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Objects.requireNonNull;
@@ -62,7 +61,7 @@ public class RmlMapper {
 	public static class Builder {
 		
 		private Functions functions = new Functions(); // TODO
-		private List<SourceResolver> sourceResolvers = new ArrayList<>();
+		private Set<SourceResolver> sourceResolvers = new HashSet<>();
 		private Map<IRI, LogicalSourceResolver<?>> logicalSourceResolvers = new HashMap<>();
 		
 		public Builder addFunctions(Object fn) {
@@ -139,7 +138,7 @@ public class RmlMapper {
 							Stream.of(carmlStreamResolver),
 							sourceResolvers.stream()
 						)
-						.collect(Collectors.toList())
+						.collect(ImmutableCollectors.toImmutableSet())
 					),
 					logicalSourceResolvers,
 					functions
@@ -179,9 +178,9 @@ public class RmlMapper {
 	
 	private static class CompositeSourceResolver implements Function<Object, InputStream> {
 
-		private List<SourceResolver> resolvers;
+		private Set<SourceResolver> resolvers;
 		
-		CompositeSourceResolver(List<SourceResolver> resolvers) {
+		CompositeSourceResolver(Set<SourceResolver> resolvers) {
 			this.resolvers = resolvers;
 		}
 
@@ -271,10 +270,10 @@ public class RmlMapper {
 		return IoUtils.readAndResetInputStream(sourceResolver.apply(source));
 	}
 	
-	private List<TermGenerator<IRI>> createGraphGenerators(Set<GraphMap> graphMaps) {
+	private Set<TermGenerator<IRI>> createGraphGenerators(Set<GraphMap> graphMaps) {
 		return graphMaps.stream()
 			.map(termGenerators::getGraphGenerator)
-			.collect(Collectors.toList());
+			.collect(ImmutableCollectors.toImmutableSet());
 	}
 	
 	private Stream<TermGenerator<Value>> getObjectMapGenerators(
@@ -314,15 +313,15 @@ public class RmlMapper {
 	}
 	
 	// TODO: PM: reduce cognitive complexity by splitting up in sub-methods
-	private List<PredicateObjectMapper> createPredicateObjectMappers(TriplesMap triplesMap, Set<PredicateObjectMap> predicateObjectMaps) {
+	private Set<PredicateObjectMapper> createPredicateObjectMappers(TriplesMap triplesMap, Set<PredicateObjectMap> predicateObjectMaps) {
 		return predicateObjectMaps.stream().map(m -> {
 			
 			Set<BaseObjectMap> objectMaps = m.getObjectMaps();
 			
-			List<PredicateMapper> predicateMappers =
+			Set<PredicateMapper> predicateMappers =
 				m.getPredicateMaps().stream().map(p -> {
 
-					List<TermGenerator<? extends Value>> objectGenerators =
+					Set<TermGenerator<? extends Value>> objectGenerators =
 						Stream.concat(
 						
 							// object maps -> object generators
@@ -333,15 +332,15 @@ public class RmlMapper {
 							getJoinlessRefObjectMapGenerators(objectMaps, triplesMap.getLogicalSource())
 							
 						)
-						.collect(Collectors.toList());
+						.collect(ImmutableCollectors.toImmutableSet());
 					
-					List<RefObjectMapper> refObjectMappers =
+					Set<RefObjectMapper> refObjectMappers =
 						objectMaps.stream()
 							.filter(o -> o instanceof RefObjectMap)
 							.map(o -> (RefObjectMap) o)
 							.filter(o -> !o.getJoinConditions().isEmpty())
 							.map(o -> createRefObjectMapper(o))
-							.collect(Collectors.toList());
+							.collect(ImmutableCollectors.toImmutableSet());
 
 					return new PredicateMapper(
 						termGenerators.getPredicateGenerator(p),
@@ -349,14 +348,14 @@ public class RmlMapper {
 						refObjectMappers
 					);
 				})
-				.collect(Collectors.toList());
+				.collect(ImmutableCollectors.toImmutableSet());
 			
 			return new PredicateObjectMapper(
 				createGraphGenerators(m.getGraphMaps()),
 				predicateMappers
 			);
 		})
-		.collect(Collectors.toList());
+		.collect(ImmutableCollectors.toImmutableSet());
 	}
 	
 	SubjectMapper createSubjectMapper(TriplesMap triplesMap) {

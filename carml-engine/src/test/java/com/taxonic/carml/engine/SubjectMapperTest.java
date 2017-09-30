@@ -13,16 +13,15 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.Set;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import com.google.common.collect.ImmutableSet;
+import com.taxonic.carml.rdf_mapper.util.ImmutableCollectors;
 
 public class SubjectMapperTest {
 
@@ -47,13 +46,19 @@ public class SubjectMapperTest {
 		PredicateObjectMapper mockMapper2 = mock(PredicateObjectMapper.class);
 		PredicateObjectMapper mockMapper3 = mock(PredicateObjectMapper.class);
 		PredicateObjectMapper mockMapper4 = mock(PredicateObjectMapper.class);
-		List<PredicateObjectMapper> predObjMappers = Arrays.asList(mockMapper1, mockMapper2, mockMapper3, mockMapper4);
+		Set<PredicateObjectMapper> predObjMappers = 
+			ImmutableSet.of(mockMapper1, mockMapper2, mockMapper3, mockMapper4);
 
 		Model model = new ModelBuilder().build();
-		SubjectMapper s = new SubjectMapper(subjectGenerator, Collections.emptyList(), Collections.emptySet(), predObjMappers);
+		SubjectMapper s = 
+			new SubjectMapper(subjectGenerator, ImmutableSet.of(), ImmutableSet.of(), predObjMappers);
+		
 		s.map(model, evaluator);
 
-		predObjMappers.forEach(mapper -> verify(mapper).map(model, evaluator, subjectIRI, Collections.emptyList()));
+		predObjMappers.forEach(
+			mapper -> 
+				verify(mapper)
+				.map(model, evaluator, subjectIRI, ImmutableSet.of()));
 	}
 
 	@Test
@@ -66,13 +71,15 @@ public class SubjectMapperTest {
 		when(subjectGenerator.apply(evaluator))
 				.thenReturn(Optional.of(subjectIRI));
 
-		HashSet<IRI> expectedClasses = new HashSet<>();
-		expectedClasses.add(f.createIRI("http://www.none.invalid/foo"));
-		expectedClasses.add(f.createIRI("http://www.none.invalid/bar"));
-		expectedClasses.add(f.createIRI("http://www.none.invalid/baz"));
+		Set<IRI> expectedClasses = 
+			ImmutableSet.of(
+				f.createIRI("http://www.none.invalid/foo"),
+				f.createIRI("http://www.none.invalid/bar"),
+				f.createIRI("http://www.none.invalid/baz")
+			);
 
 		Model model = new ModelBuilder().build();
-		SubjectMapper s = new SubjectMapper(subjectGenerator, Collections.emptyList(), expectedClasses, Collections.emptyList());
+		SubjectMapper s = new SubjectMapper(subjectGenerator, ImmutableSet.of(), expectedClasses, ImmutableSet.of());
 		s.map(model, evaluator);
 
 		expectedClasses.forEach(iri -> Assert.assertTrue(model.contains(subjectIRI, RDF.TYPE, iri)));
@@ -91,30 +98,34 @@ public class SubjectMapperTest {
 				.thenReturn(Optional.of(subjectIRI));
 
 
-		List<IRI> graphs = Arrays.asList(
+		Set<IRI> graphs = 
+			ImmutableSet.of(
 				f.createIRI("http://www.none.invalid/graph1"),
 				f.createIRI("http://www.none.invalid/graph2"),
 				f.createIRI("http://www.none.invalid/graph3"),
 				f.createIRI("http://www.none.invalid/graph4")
-		);
-		List<TermGenerator<IRI>> graphGenerators = graphs.stream()
+			);
+		Set<TermGenerator<IRI>> graphGenerators = 
+			graphs.stream()
 				.map(graphIri -> {
 					@SuppressWarnings("unchecked")
 					TermGenerator<IRI> generator = (TermGenerator<IRI>) mock(TermGenerator.class);
 					when(generator.apply(evaluator)).thenReturn(Optional.of(graphIri));
 					return generator;
 				})
-				.collect(Collectors.toList());
+				.collect(ImmutableCollectors.toImmutableSet());
 
 
-		HashSet<IRI> expectedClasses = new HashSet<>();
-		expectedClasses.add(f.createIRI("http://www.none.invalid/foo"));
-		expectedClasses.add(f.createIRI("http://www.none.invalid/bar"));
-		expectedClasses.add(f.createIRI("http://www.none.invalid/baz"));
+		Set<IRI> expectedClasses = 
+			ImmutableSet.of(
+				f.createIRI("http://www.none.invalid/foo"),
+				f.createIRI("http://www.none.invalid/bar"),
+				f.createIRI("http://www.none.invalid/baz")
+			);
 
 
 		Model model = new ModelBuilder().build();
-		SubjectMapper s = new SubjectMapper(subjectGenerator, graphGenerators, expectedClasses, Collections.emptyList());
+		SubjectMapper s = new SubjectMapper(subjectGenerator, graphGenerators, expectedClasses, ImmutableSet.of());
 		s.map(model, evaluator);
 
 		expectedClasses.forEach(iri ->
@@ -131,20 +142,22 @@ public class SubjectMapperTest {
 
 		EvaluateExpression evaluator = null;
 
-		List<IRI> graphs = Arrays.asList(
+		Set<IRI> graphs = 
+			ImmutableSet.of(
 				f.createIRI("http://www.none.invalid/graph1"),
 				f.createIRI("http://www.none.invalid/graph2"),
 				f.createIRI("http://www.none.invalid/graph3"),
 				f.createIRI("http://www.none.invalid/graph4")
-		);
-		List<TermGenerator<IRI>> graphGenerators = graphs.stream()
+			);
+		Set<TermGenerator<IRI>> graphGenerators =
+			graphs.stream()
 				.map(graphIri -> {
 					@SuppressWarnings("unchecked")
 					TermGenerator<IRI> generator = (TermGenerator<IRI>) mock(TermGenerator.class);
 					when(generator.apply(evaluator)).thenReturn(Optional.of(graphIri));
 					return generator;
 				})
-				.collect(Collectors.toList());
+				.collect(ImmutableCollectors.toImmutableSet());
 
 
 		when(subjectGenerator.apply(evaluator))
@@ -154,10 +167,11 @@ public class SubjectMapperTest {
 		PredicateObjectMapper mockMapper2 = mock(PredicateObjectMapper.class);
 		PredicateObjectMapper mockMapper3 = mock(PredicateObjectMapper.class);
 		PredicateObjectMapper mockMapper4 = mock(PredicateObjectMapper.class);
-		List<PredicateObjectMapper> predObjMappers = Arrays.asList(mockMapper1, mockMapper2, mockMapper3, mockMapper4);
+		Set<PredicateObjectMapper> predObjMappers = 
+			ImmutableSet.of(mockMapper1, mockMapper2, mockMapper3, mockMapper4);
 
 		Model m = new ModelBuilder().build();
-		SubjectMapper s = new SubjectMapper(subjectGenerator, graphGenerators, Collections.emptySet(), predObjMappers);
+		SubjectMapper s = new SubjectMapper(subjectGenerator, graphGenerators, ImmutableSet.of(), predObjMappers);
 		s.map(m, evaluator);
 
 		predObjMappers.forEach(mapper -> verify(mapper).map(m, evaluator, subjectIRI, graphs));
