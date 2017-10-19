@@ -12,8 +12,8 @@ The next release will offer improved code quality, more test coverage, more docu
 
 CARML is being developed by [Taxonic](http://www.taxonic.com) in cooperation with [Kadaster](https://www.kadaster.com/).
 
+[![Build Status](https://api.travis-ci.org/carml/carml.svg?branch=master)](https://travis-ci.org/carml/carml)
 <!--- TODO: uncomment once available
-[![Build Status](...)](https://travis-ci.org/....)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.taxonic.carml/.../badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.taxonic.carml/...)
 [![Javadoc](....)](...)
 --->

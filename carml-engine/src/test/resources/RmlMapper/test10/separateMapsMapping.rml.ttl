@@ -6,7 +6,7 @@
 
 <#SeparateMapsMapping> a rr:TriplesMap;
 	rml:logicalSource [
-		rml:source "SeparateMappingTestInput.json";
+		rml:source "separateMappingTestInput.json";
 		rml:referenceFormulation ql:JSONPath;
 		rml:iterator "$.colors"
 	];

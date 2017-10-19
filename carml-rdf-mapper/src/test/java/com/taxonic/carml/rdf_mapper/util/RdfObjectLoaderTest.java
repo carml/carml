@@ -97,13 +97,14 @@ public class RdfObjectLoaderTest {
 	}
 	
 	@Before
-	public void loadData() 
-			throws RDFParseException, UnsupportedRDFormatException, IOException {
+	public void loadData() {
 		
 		try (InputStream input = 
 				RdfObjectLoaderTest.class.getResourceAsStream("Person-and-Event.jsonld")) {
 			
 			model = Rio.parse(input, "", RDFFormat.JSONLD);
+		} catch(IOException e) {
+			throw new RuntimeException(e);
 		}
 		
 
@@ -117,6 +118,8 @@ public class RdfObjectLoaderTest {
 					RdfObjectLoaderTest.class.getResourceAsStream(REPO_CONTEXTS)) {
 				
 				conn.add(input, "", RDFFormat.TRIG);
+			} catch(IOException e) {
+				throw new RuntimeException(e);
 			}
 			
 			try (RepositoryResult<Statement> result = conn.getStatements(null, null, null)) {
@@ -125,6 +128,8 @@ public class RdfObjectLoaderTest {
 					Iterations.asSet(result),
 					is(not(empty()))
 				);
+			} catch (Exception e) {
+				throw new RuntimeException(e);
 			}
 			
 		}

@@ -19,8 +19,6 @@ import org.eclipse.rdf4j.repository.RepositoryConnection;
 import org.eclipse.rdf4j.repository.RepositoryResult;
 import org.eclipse.rdf4j.repository.sail.SailRepository;
 import org.eclipse.rdf4j.rio.RDFFormat;
-import org.eclipse.rdf4j.rio.RDFParseException;
-import org.eclipse.rdf4j.rio.UnsupportedRDFormatException;
 import org.eclipse.rdf4j.sail.memory.MemoryStore;
 import org.junit.After;
 import org.junit.Before;
@@ -40,8 +38,7 @@ public class QueryUtilsTest {
 	private Repository repo;
 	
 	@Before
-	public void setupRepo() 
-			throws RDFParseException, UnsupportedRDFormatException, IOException {
+	public void setupRepo() {
 		
 		repo = new SailRepository(new MemoryStore());
 		repo.initialize();
@@ -52,6 +49,8 @@ public class QueryUtilsTest {
 					RdfObjectLoaderTest.class.getResourceAsStream(REPO_CONTEXTS)) {
 				
 				conn.add(input, "", RDFFormat.TRIG);
+			} catch(IOException e) {
+				throw new RuntimeException(e);
 			}
 			
 			try (RepositoryResult<Statement> result = conn.getStatements(null, null, null)) {
@@ -60,6 +59,8 @@ public class QueryUtilsTest {
 					Iterations.asSet(result),
 					is(not(empty()))
 				);
+			} catch (Exception e) {
+				throw new RuntimeException(e);
 			}
 			
 		}
