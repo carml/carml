@@ -1,7 +1,7 @@
 package com.taxonic.carml.engine;
 
-import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import org.eclipse.rdf4j.model.IRI;
@@ -10,18 +10,18 @@ import org.eclipse.rdf4j.model.Resource;
 
 class PredicateObjectMapper {
 	
-	private List<TermGenerator<IRI>> graphGenerators;
-	private List<PredicateMapper> predicateMappers;
+	private Set<TermGenerator<IRI>> graphGenerators;
+	private Set<PredicateMapper> predicateMappers;
 
 	PredicateObjectMapper(
-		List<TermGenerator<IRI>> graphGenerators,
-		List<PredicateMapper> predicateMappers
+		Set<TermGenerator<IRI>> graphGenerators,
+		Set<PredicateMapper> predicateMappers
 	) {
 		this.graphGenerators = graphGenerators;
 		this.predicateMappers = predicateMappers;
 	}
 
-	void map(Model model, EvaluateExpression evaluate, Resource subject, List<IRI> subjectGraphs) {
+	void map(Model model, EvaluateExpression evaluate, Resource subject, Set<IRI> subjectGraphs) {
 
 		Resource[] contexts = Stream
 				.concat(

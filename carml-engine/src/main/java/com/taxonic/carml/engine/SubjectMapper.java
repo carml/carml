@@ -1,9 +1,8 @@
 package com.taxonic.carml.engine;
 
-import java.util.List;
+import com.taxonic.carml.rdf_mapper.util.ImmutableCollectors;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
@@ -13,15 +12,15 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 class SubjectMapper {
 	
 	private TermGenerator<Resource> generator;
-	private List<TermGenerator<IRI>> graphGenerators;
+	private Set<TermGenerator<IRI>> graphGenerators;
 	private Set<IRI> classes;
-	private List<PredicateObjectMapper> predicateObjectMappers;
+	private Set<PredicateObjectMapper> predicateObjectMappers;
 	
 	SubjectMapper(
 		TermGenerator<Resource> generator,
-		List<TermGenerator<IRI>> graphGenerators,
+		Set<TermGenerator<IRI>> graphGenerators,
 		Set<IRI> classes,
-		List<PredicateObjectMapper> predicateObjectMappers
+		Set<PredicateObjectMapper> predicateObjectMappers
 	) {
 		this.generator = generator;
 		this.graphGenerators = graphGenerators;
@@ -36,11 +35,11 @@ class SubjectMapper {
 	
 	private Resource mapSubject(Resource subject, Model model, EvaluateExpression evaluate) {
 		// use graphs when generating statements later
-		List<IRI> graphs = graphGenerators.stream()
+		Set<IRI> graphs = graphGenerators.stream()
 			.map(g -> g.apply(evaluate))
 			.filter(Optional::isPresent)
 			.map(Optional::get)
-			.collect(Collectors.toList());
+			.collect(ImmutableCollectors.toImmutableSet());
 		
 		Resource[] contexts = new Resource[graphs.size()];
 		graphs.toArray(contexts);

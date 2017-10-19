@@ -3,6 +3,7 @@ package com.taxonic.carml.engine;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -17,7 +18,7 @@ import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.model.util.Models;
-
+import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.engine.function.ExecuteFunction;
 import com.taxonic.carml.engine.template.Template;
 import com.taxonic.carml.engine.template.TemplateParser;
@@ -67,8 +68,8 @@ class TermGeneratorCreator {
 	TermGenerator<Value> getObjectGenerator(ObjectMap map) {
 		return (TermGenerator<Value>) getGenerator(
 			map,
-			Arrays.asList(TermType.IRI, TermType.BLANK_NODE, TermType.LITERAL),
-			Arrays.asList(IRI.class, Literal.class)
+			ImmutableSet.of(TermType.IRI, TermType.BLANK_NODE, TermType.LITERAL),
+			ImmutableSet.of(IRI.class, Literal.class)
 		);
 	}
 
@@ -76,8 +77,8 @@ class TermGeneratorCreator {
 	TermGenerator<IRI> getGraphGenerator(GraphMap map) {
 		return (TermGenerator<IRI>) getGenerator(
 			map,
-			Arrays.asList(TermType.IRI),
-			Arrays.asList(IRI.class)
+			ImmutableSet.of(TermType.IRI),
+			ImmutableSet.of(IRI.class)
 		);
 	}
 	
@@ -85,8 +86,8 @@ class TermGeneratorCreator {
 	TermGenerator<IRI> getPredicateGenerator(PredicateMap map) {
 		return (TermGenerator<IRI>) getGenerator(
 			map,
-			Arrays.asList(TermType.IRI),
-			Arrays.asList(IRI.class)
+			ImmutableSet.of(TermType.IRI),
+			ImmutableSet.of(IRI.class)
 		);
 	}
 	
@@ -94,15 +95,15 @@ class TermGeneratorCreator {
 	TermGenerator<Resource> getSubjectGenerator(SubjectMap map) {
 		return (TermGenerator<Resource>) getGenerator(
 			map,
-			Arrays.asList(TermType.BLANK_NODE, TermType.IRI),
-			Arrays.asList(IRI.class)
+			ImmutableSet.of(TermType.BLANK_NODE, TermType.IRI),
+			ImmutableSet.of(IRI.class)
 		);
 	}
 
 	private TermGenerator<?> getGenerator(
 		TermMap map,
-		List<TermType> allowedTermTypes,
-		List<Class<? extends Value>> allowedConstantTypes
+		Set<TermType> allowedTermTypes,
+		Set<Class<? extends Value>> allowedConstantTypes
 	) {
 		List<TermGenerator<Value>> generators =
 			Arrays.<Supplier<Optional<TermGenerator<Value>>>>asList(
@@ -136,7 +137,7 @@ class TermGeneratorCreator {
 	
 	private Optional<TermGenerator<Value>> getConstantGenerator(
 		TermMap map,
-		List<Class<? extends Value>> allowedConstantTypes
+		Set<Class<? extends Value>> allowedConstantTypes
 	) {
 		Value constant = map.getConstant();
 		if (constant == null) return Optional.empty();
@@ -148,7 +149,7 @@ class TermGeneratorCreator {
 	
 	private Optional<TermGenerator<Value>> getTemplateGenerator(
 		TermMap map,
-		List<TermType> allowedTermTypes
+		Set<TermType> allowedTermTypes
 	) {
 		
 		String templateStr = map.getTemplate();
@@ -182,7 +183,7 @@ class TermGeneratorCreator {
 
 	private Optional<TermGenerator<Value>> getReferenceGenerator(
 		TermMap map,
-		List<TermType> allowedTermTypes
+		Set<TermType> allowedTermTypes
 	) {
 		
 		String reference = map.getReference();
@@ -201,7 +202,7 @@ class TermGeneratorCreator {
 	
 	private Optional<TermGenerator<Value>> getFunctionValueGenerator(
 		TermMap map,
-		List<TermType> allowedTermTypes
+		 Set<TermType> allowedTermTypes
 	) {
 		
 		// TODO: make nicer use of optional
@@ -282,7 +283,7 @@ class TermGeneratorCreator {
 	private TermGenerator<Value> getGenerator(
 		TermMap map,
 		Function<EvaluateExpression, Optional<Object>> getValue,
-		List<TermType> allowedTermTypes,
+		Set<TermType> allowedTermTypes,
 		TermType termType
 	) {
 		
