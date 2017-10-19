@@ -130,6 +130,10 @@ public class RmlMapper {
 		public RmlMapper build() {
 			
 			CarmlStreamResolver carmlStreamResolver = new CarmlStreamResolver();
+			
+			if (logicalSourceResolvers.isEmpty()) {
+				addDefaultLogicalSourceResolvers();
+			}
 
 			RmlMapper mapper =
 				new RmlMapper(
