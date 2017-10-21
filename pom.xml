@@ -169,6 +169,16 @@
 
 	<profiles>
 		<profile>
+			<!-- TODO: temporarily disabled javadoc linting. must fix javadoc. -->
+			<id>doclint-java8-disable</id>
+			<activation>
+				<jdk>[1.8,)</jdk>
+			</activation>
+			<properties>
+				<javadoc.opts>-Xdoclint:none</javadoc.opts>
+			</properties>
+		</profile>
+		<profile>
 			<id>release</id>
 			<build>
 				<plugins>
@@ -204,6 +214,10 @@
 								<goals>
 									<goal>jar</goal>
 								</goals>
+								<!-- TODO: temporarily disabled javadoc linting. must fix javadoc. -->
+								<configuration>
+									<additionalparam>${javadoc.opts}</additionalparam>
+								</configuration>
 							</execution>
 						</executions>
 					</plugin>
@@ -228,15 +242,6 @@
 			<properties>
 				<skipTests>true</skipTests>
 				<skipITs>true</skipITs>
-			</properties>
-		</profile>
-		<profile>
-			<id>doclint-java8-disable</id>
-			<activation>
-				<jdk>[1.8,)</jdk>
-			</activation>
-			<properties>
-				<javadoc.opts>-Xdoclint:none</javadoc.opts>
 			</properties>
 		</profile>
 	</profiles>
