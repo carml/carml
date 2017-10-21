@@ -30,7 +30,7 @@ Releases
 ----
 20 Sep 2017 - CARML 0.0.1
 
-20 Okt 2017 - CARML 0.1.0
+21 Oct 2017 - CARML 0.1.0
 
 Introduction
 ------------
