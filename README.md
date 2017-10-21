@@ -13,10 +13,7 @@ The next release will offer improved code quality, more test coverage, more docu
 CARML is being developed by [Taxonic](http://www.taxonic.com) in cooperation with [Kadaster](https://www.kadaster.com/).
 
 [![Build Status](https://api.travis-ci.org/carml/carml.svg?branch=master)](https://travis-ci.org/carml/carml)
-<!--- TODO: uncomment once available
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.taxonic.carml/.../badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.taxonic.carml/...)
-[![Javadoc](....)](...)
---->
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.taxonic.carml/carml/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.taxonic.carml/carml)
 
 Table of Contents
 -----------------
@@ -32,6 +29,7 @@ Table of Contents
 Releases
 ----
 20 Sep 2017 - CARML 0.0.1
+
 20 Okt 2017 - CARML 0.1.0
 
 Introduction
@@ -43,7 +41,16 @@ RML is defined as a superset of [R2RML](https://www.w3.org/TR/r2rml/) which is a
 
 Getting started
 ---------------
-[ CARML will soon be available at the Central Maven Repository. ]
+
+CARML is available from the Central Maven Repository.
+
+```xml
+<dependency>
+    <groupId>com.taxonic.carml</groupId>
+    <artifactId>carml-engine</artifactId>
+    <version>0.1.0</version>
+</dependency>
+```
 
 CARML is based on [RDF4J](http://rdf4j.org/), and currently the Mapper directly outputs an [RDF4J Model](http://docs.rdf4j.org/javadoc/2.0/org/eclipse/rdf4j/model/package-summary.html).
 
