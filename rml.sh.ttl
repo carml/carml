@@ -437,7 +437,7 @@ rmlsh:FunctionTermMapShape
 	sh:targetObjectsOf fnml:functionValue ;
 	sh:message "Functional term map is ill-formed." ;
 	sh:property [
-		sh:message "Functional term map should have one and only one function executing predicate object map."
+		sh:message "Functional term map should have one and only one function executing predicate object map." ;
 		sh:path rr:predicateObjectMap ;
 		sh:qualifiedMinCount  1 ;
 		sh:qualifiedMaxCount  1 ;
