@@ -85,7 +85,7 @@ So now, you can define streams in your mapping like so:
 ```
 :SomeLogicalSource
   rml:source [
-    a carml:InputStream ;
+    a carml:Stream ;
     # NOTE: name is not mandatory and can be left unspecified, when working with a single stream
     carml:streamName "stream-A" ;
   ];
