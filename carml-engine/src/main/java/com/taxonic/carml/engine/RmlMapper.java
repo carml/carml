@@ -16,7 +16,6 @@ import com.taxonic.carml.model.RefObjectMap;
 import com.taxonic.carml.model.SubjectMap;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.rdf_mapper.util.ImmutableCollectors;
-import com.taxonic.carml.util.IoUtils;
 import com.taxonic.carml.vocab.Rdf;
 
 import org.eclipse.rdf4j.model.IRI;
@@ -266,13 +265,6 @@ public class RmlMapper {
 	private void map(TriplesMap triplesMap, Model model) {
 		TriplesMapper<?> triplesMapper = createTriplesMapper(triplesMap); // TODO cache mapper instances
 		triplesMapper.map(model);
-	}
-	
-	public String readSource(Object source) {
-		//TODO: PM: ideally we should make a single pass on input streams, 
-		//          but this requires some refactoring.
-		//			Also for large sources, transforming to String is not viable.
-		return IoUtils.readAndResetInputStream(sourceResolver.apply(source));
 	}
 	
 	private Set<TermGenerator<IRI>> createGraphGenerators(Set<GraphMap> graphMaps) {
