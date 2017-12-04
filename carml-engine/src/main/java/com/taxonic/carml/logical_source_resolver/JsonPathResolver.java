@@ -5,8 +5,6 @@ import com.google.common.collect.Iterables;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.Option;
-import com.taxonic.carml.util.IoUtils;
-
 import java.util.Optional;
 
 public class JsonPathResolver implements LogicalSourceResolver<Object> {
@@ -15,9 +13,9 @@ public class JsonPathResolver implements LogicalSourceResolver<Object> {
 			.options(Option.DEFAULT_PATH_LEAF_TO_NULL).build();
 
 	public SourceIterator<Object> getSourceIterator() {
+		System.out.println("here");
 		return (source, iteratorExpression) -> {
-			String s = IoUtils.readAndResetInputStream(source);
-			Object data = JsonPath.using(JSONPATH_CONF).parse(s).read(iteratorExpression);
+			Object data = JsonPath.using(JSONPATH_CONF).parse(source).read(iteratorExpression);
 
 			boolean isIterable = Iterable.class.isAssignableFrom(data.getClass());
 			return isIterable

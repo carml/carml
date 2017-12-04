@@ -5,9 +5,7 @@ import com.taxonic.carml.model.NameableStream;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.model.impl.CarmlStream;
 import com.taxonic.carml.model.impl.LogicalSourceImpl;
-import com.taxonic.carml.util.IoUtils;
 import com.taxonic.carml.util.RmlMappingLoader;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.ValueFactory;
@@ -19,14 +17,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Optional;
 
@@ -54,11 +46,11 @@ public class RmlMapperTest {
 	}
 
 	@Test
-	public void mapper_boundWithUnnamedInputStream_shouldReadInputStream() {
+	public void mapper_boundWithUnnamedInputStream_shouldReadInputStream() throws IOException {
 		stream = new CarmlStream();
 		InputStream inputStream = IOUtils.toInputStream(input);
 		mapper.bindInputStream(inputStream);
-		assertThat(IoUtils.readAndResetInputStream(inputStream), is(input));
+		assertThat(mapper.getSourceManager().getSource(RmlMapper.DEFAULT_STREAM_NAME), is(input));
 	}
 	
 	@Test
@@ -67,7 +59,7 @@ public class RmlMapperTest {
 		stream = new CarmlStream(streamName);
 		InputStream inputStream = IOUtils.toInputStream(input);
 		mapper.bindInputStream(streamName, inputStream);
-		assertThat(IoUtils.readAndResetInputStream(inputStream), is(input));
+		assertThat(mapper.getSourceManager().getSource(streamName), is(input));
 	}
 	
 	@Test
@@ -78,7 +70,7 @@ public class RmlMapperTest {
 		mapper.bindInputStream(inputStream);
 		
 		exception.expect(RuntimeException.class);
-		exception.expectMessage(String.format("attempting to get input stream by "
+		exception.expectMessage(String.format("attempting to get source by "
 				+ "name [%s], but no such binding is present", streamName));
 		
 		RmlMappingLoader loader = RmlMappingLoader.build();
@@ -95,14 +87,14 @@ public class RmlMapperTest {
 		mapper.bindInputStream(streamName, inputStream);
 		
 		exception.expect(RuntimeException.class);
-		exception.expectMessage(String.format("attempting to get input stream by "
+		exception.expectMessage(String.format("attempting to get source by "
 				+ "name [%s], but no such binding is present", unknownStreamName));
 		
 		RmlMappingLoader loader = RmlMappingLoader.build();
 		InputStream input = RmlMapperTest.class.getResourceAsStream("simple.namedcarml.rml.ttl");
 		mapper.map(loader.load(input, RDFFormat.TURTLE));
 		
-		assertThat(IoUtils.readAndResetInputStream(inputStream), is(input));
+		assertThat(mapper.getSourceManager().getSource(streamName), is(input));
 	}
 	
 	@Test
@@ -110,14 +102,13 @@ public class RmlMapperTest {
 		String streamName = "foo";
 		String secondStreamName = "bar";
 		stream = new CarmlStream(streamName);
-		NameableStream secondStream = new CarmlStream(secondStreamName);
 		InputStream inputStream = IOUtils.toInputStream(input);
 		String secondInput = "second test input";
 		InputStream secondInputStream = IOUtils.toInputStream(secondInput);
 		mapper.bindInputStream(streamName, inputStream);
 		mapper.bindInputStream(secondStreamName, secondInputStream);
-		assertThat(IoUtils.readAndResetInputStream(inputStream), is(input));
-		assertThat(IoUtils.readAndResetInputStream(secondInputStream), is(secondInput));
+		assertThat(mapper.getSourceManager().getSource(streamName), is(input));
+		assertThat(mapper.getSourceManager().getSource(secondStreamName), is(secondInput));
 	}
 	
 	@Test
@@ -125,8 +116,6 @@ public class RmlMapperTest {
 		String streamName = "foo";
 		String secondStreamName = "bar";
 		stream = new CarmlStream(streamName);
-		NameableStream secondStream = new CarmlStream(secondStreamName);
-		NameableStream unnamedStream = new CarmlStream();
 		InputStream inputStream = IOUtils.toInputStream(input);
 		InputStream secondInputStream = IOUtils.toInputStream(secondInput);
 		String unnamedInput = "unnamed test input";
@@ -134,9 +123,9 @@ public class RmlMapperTest {
 		mapper.bindInputStream(streamName, inputStream);
 		mapper.bindInputStream(secondStreamName, secondInputStream);
 		mapper.bindInputStream(unnamedInputStream);
-		assertThat(IoUtils.readAndResetInputStream(inputStream), is(input));
-		assertThat(IoUtils.readAndResetInputStream(secondInputStream), is(secondInput));
-		assertThat(IoUtils.readAndResetInputStream(unnamedInputStream), is(unnamedInput));
+		assertThat(mapper.getSourceManager().getSource(streamName), is(input));
+		assertThat(mapper.getSourceManager().getSource(secondStreamName), is(secondInput));
+		assertThat(mapper.getSourceManager().getSource(RmlMapper.DEFAULT_STREAM_NAME), is(unnamedInput));
 	}
 	
 	@Test
@@ -144,9 +133,9 @@ public class RmlMapperTest {
 		InputStream inputStream = IOUtils.toInputStream(input);
 		InputStream secondInputStream = IOUtils.toInputStream(secondInput);
 		mapper.bindInputStream(inputStream);
-		assertThat(IoUtils.readAndResetInputStream(inputStream), is(input));
+		assertThat(mapper.getSourceManager().getSource(RmlMapper.DEFAULT_STREAM_NAME), is(input));
 		mapper.bindInputStream(secondInputStream);
-		assertThat(IoUtils.readAndResetInputStream(secondInputStream), is(secondInput));
+		assertThat(mapper.getSourceManager().getSource(RmlMapper.DEFAULT_STREAM_NAME), is(secondInput));
 	}
 	
 	@Test
@@ -156,15 +145,15 @@ public class RmlMapperTest {
 		InputStream inputStream = IOUtils.toInputStream(input);
 		InputStream secondInputStream = IOUtils.toInputStream(secondInput);
 		mapper.bindInputStream(streamName, inputStream);
-		assertThat(IoUtils.readAndResetInputStream(inputStream), is(input));
+		assertThat(mapper.getSourceManager().getSource(streamName), is(input));
 		mapper.bindInputStream(secondStreamName, secondInputStream);
-		assertThat(IoUtils.readAndResetInputStream(secondInputStream), is(secondInput));
+		assertThat(mapper.getSourceManager().getSource(secondStreamName), is(secondInput));
 	}
 	
 	@Test
 	public void mapper_notFindingBoundUnnamedInputStream_shouldThrowException() {
 		exception.expect(RuntimeException.class);
-		exception.expectMessage("attempting to get the bound input stream, but no binding was present");
+		exception.expectMessage("attempting to get source, but no binding was present");
 		RmlMappingLoader loader = RmlMappingLoader.build();
 		InputStream input = RmlMapperTest.class.getResourceAsStream("simple.carml.rml.ttl");
 		mapper.map(loader.load(input, RDFFormat.TURTLE));
@@ -174,52 +163,24 @@ public class RmlMapperTest {
 	public void mapper_notFindingBoundNamedInputStreams_shouldThrowException() {
 		String streamName = "foo";
 		exception.expect(RuntimeException.class);
-		exception.expectMessage(String.format("attempting to get input stream by "
+		exception.expectMessage(String.format("attempting to get source by "
 				+ "name [%s], but no such binding is present", streamName));
 		RmlMappingLoader loader = RmlMappingLoader.build();
 		InputStream input = RmlMapperTest.class.getResourceAsStream("simple.namedcarml.rml.ttl");
 		mapper.map(loader.load(input, RDFFormat.TURTLE));
 	}
 	
-//	@Test
-	//TODO mock
-	public void mapper_boundWithUnresettableInputStream_shouldStillResolve() throws IOException {
-		File file = new File(RmlMapperTest.class.getResource("fileForFileInputStream.txt").getFile());
-		String fileContents = FileUtils.readFileToString(file);
-		InputStream inputStream = new FileInputStream(file);
-		assertThat(inputStream.markSupported(), is(false));
-		mapper.bindInputStream(inputStream);
-		RmlMappingLoader loader = RmlMappingLoader.build();
-		InputStream input = RmlMapperTest.class.getResourceAsStream("simple.carml.rml.ttl");
-		mapper.map(loader.load(input, RDFFormat.TURTLE));
-//		assertThat(IoUtils.readAndResetInputStream(inputStream), is(fileContents));
-	}
-	
-//	@Test
-	// TODO: mock
-	public void mapper_builtWithFileResolver_shouldResolveFile() throws IOException {
-		String fileName = "fileForFileInputStream.txt";
-		File file = new File(RmlMapperTest.class.getResource(fileName).getFile());
-		Path basePath = Paths.get(file.getParent());
-		RmlMapper fileMapper = RmlMapper.newBuilder().fileResolver(basePath).build();
-		String fileContents = FileUtils.readFileToString(file);
-//		assertThat(fileMapper.readSource(fileName), is(fileContents));
-	}
-	
-//	@Test
-	//TODO: does this test still make sense?
+	@Test
 	public void mapper_withNoBoundSource_shouldThrowException() throws IOException {
-		String source = "some source";
 		exception.expect(RuntimeException.class);
-		exception.expectMessage(String.format("could not resolve source [%s]", source));
+		exception.expectMessage("attempting to get source, but no binding was present");
 		RmlMappingLoader loader = RmlMappingLoader.build();
 		InputStream input = RmlMapperTest.class.getResourceAsStream("simple.carml.rml.ttl");
 		mapper.map(loader.load(input, RDFFormat.TURTLE));
-//		mapper.readSource(source);
 	}
 
 	@Test
-	public void mapper_builtWithLogicalSoucreResolvers_shouldUseTheCorrectResolver() throws IOException {
+	public void mapper_builtWithLogicalSourceResolvers_shouldUseTheCorrectResolver() throws IOException {
 		ValueFactory f = SimpleValueFactory.getInstance();
 		IRI expectedIRI = f.createIRI("http://this.iri/isUsed");
 		Iterable<String> expectedSourceData = Collections.singletonList("expected");
@@ -232,7 +193,7 @@ public class RmlMapperTest {
 		LogicalSourceResolver<String> unusedResolver = new LogicalSourceResolverContainer<>(null, null);
 
 		SourceResolver sourceResolver = mock(SourceResolver.class);
-		InputStream input = new ByteArrayInputStream("foo".getBytes());
+		String input = "foo";
 		when(sourceResolver.apply(any())).thenReturn(Optional.of(input));
 
 		RmlMapper mapper = RmlMapper.newBuilder()
@@ -259,7 +220,7 @@ public class RmlMapperTest {
 		LogicalSourceResolver<?> unusedResolver = new LogicalSourceResolverContainer<>(null, null);
 
 		SourceResolver sourceResolver = mock(SourceResolver.class);
-		InputStream input = new ByteArrayInputStream("foo".getBytes());
+		String input = "foo";
 		when(sourceResolver.apply(any())).thenReturn(Optional.of(input));
 
 		RmlMapper mapper = RmlMapper.newBuilder()
