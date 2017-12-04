@@ -45,7 +45,6 @@ public class GetTemplateValueTest {
 				createNaturalRdfLexicalForm
 			);
 		Optional<Object>templateValue = getTemplateValue.apply(evaluateExpression);
-		System.out.println(templateValue);
 		assertThat(templateValue.isPresent(), is(true));
 		assertThat(templateValue.get().toString(), is("abctransformed"));
 	}
@@ -65,7 +64,6 @@ public class GetTemplateValueTest {
 				createNaturalRdfLexicalForm
 			);
 		Optional<Object>templateValue = getTemplateValue.apply(evaluateExpression);
-		System.out.println(templateValue);
 		assertThat(templateValue.isPresent(), is(true));
 		assertThat(templateValue.get().toString(), is("abctransformedtransformed"));
 	}
@@ -85,7 +83,6 @@ public class GetTemplateValueTest {
 				createNaturalRdfLexicalForm
 			);
 		Optional<Object> templateValue = getTemplateValue.apply(evaluateExpression);
-		System.out.println(templateValue);
 		assertThat(templateValue.isPresent(), is(false));
 	}
 

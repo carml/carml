@@ -16,7 +16,6 @@ import com.taxonic.carml.model.RefObjectMap;
 import com.taxonic.carml.model.SubjectMap;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.rdf_mapper.util.ImmutableCollectors;
-import com.taxonic.carml.util.IoUtils;
 import com.taxonic.carml.vocab.Rdf;
 
 import org.eclipse.rdf4j.model.IRI;
@@ -25,13 +24,13 @@ import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 
-import java.io.BufferedInputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -53,7 +52,28 @@ import static java.util.Objects.requireNonNull;
 
 public class RmlMapper {
 	
-	private static final String DEFAULT_STREAM_NAME = "DEFAULT";
+	static final String DEFAULT_STREAM_NAME = "DEFAULT";
+	
+	private LogicalSourceManager sourceManager;
+	
+	private Function<Object, String> sourceResolver;
+
+	private Map<IRI, LogicalSourceResolver<?>> logicalSourceResolvers;
+	
+	private TermGeneratorCreator termGenerators = TermGeneratorCreator.create(this); // TODO
+
+	private Functions functions;
+
+	public RmlMapper(
+		Function<Object, String> sourceResolver,
+		Map<IRI, LogicalSourceResolver<?>> logicalSourceResolvers,
+		Functions functions
+	) {
+		this.sourceManager = new LogicalSourceManager();
+		this.sourceResolver = sourceResolver;
+		this.functions = functions;
+		this.logicalSourceResolvers = logicalSourceResolvers;
+	}
 
 	public static Builder newBuilder() {
 		return new Builder();
@@ -76,55 +96,28 @@ public class RmlMapper {
 		}
 		
 		public Builder fileResolver(Path basePath) {
-			sourceResolver(o -> resolveFilePathToInputStream(o, basePath));
+			sourceResolvers.add(new FileResolver(basePath));
 			return this;
 		}
 
 		public Builder addDefaultLogicalSourceResolvers() {
-			this.logicalSourceResolvers.put(Rdf.Ql.JsonPath, new JsonPathResolver());
+			logicalSourceResolvers.put(Rdf.Ql.JsonPath, new JsonPathResolver());
 			return this;
 		}
 
 		public Builder setLogicalSourceResolver(IRI iri, LogicalSourceResolver<?> resolver) {
-			this.logicalSourceResolvers.put(iri, resolver);
+			logicalSourceResolvers.put(iri, resolver);
 			return this;
 		}
 
 		public Builder removeLogicalSourceResolver(IRI iri) {
-			this.logicalSourceResolvers.remove(iri);
+			logicalSourceResolvers.remove(iri);
 			return this;
-		}
-		
-		private Optional<InputStream> resolveFilePathToInputStream(Object object, Path basePath) {
-			if (!(object instanceof String))
-				return Optional.empty();
-			String s = (String) object;
-			Path path = basePath.resolve(s);
-			InputStream inputStream;
-			try {
-				inputStream = Files.newInputStream(path);
-			}
-			catch (Exception e) {
-				throw new RuntimeException("could not create input stream for path [" + path + "]");
-			}
-			return Optional.of(ensureResettableStream(inputStream));
 		}
 
 		public Builder classPathResolver(String basePath) {
-			sourceResolver(o -> resolveClassPathToInputStream(o, basePath));
+			sourceResolvers.add(new ClassPathResolver(basePath));
 			return this;
-		}
-		
-		private Optional<InputStream> resolveClassPathToInputStream(Object object, String basePath) {
-			if (!(object instanceof String))
-				return Optional.empty();
-			String s = (String) object;
-			
-			return Optional.of(
-				ensureResettableStream(
-					RmlMapper.class.getClassLoader().getResourceAsStream(basePath + "/" + s)
-				)
-			);
 		}
 		
 		public RmlMapper build() {
@@ -134,9 +127,8 @@ public class RmlMapper {
 			if (logicalSourceResolvers.isEmpty()) {
 				addDefaultLogicalSourceResolvers();
 			}
-
-			RmlMapper mapper =
-				new RmlMapper(
+			
+			CompositeSourceResolver compositeResolver = 
 					new CompositeSourceResolver(
 						// prepend carml stream resolver to regular resolvers
 						Stream.concat(
@@ -144,44 +136,118 @@ public class RmlMapper {
 							sourceResolvers.stream()
 						)
 						.collect(ImmutableCollectors.toImmutableSet())
-					),
+					); 
+
+			RmlMapper mapper =
+				new RmlMapper(
+					compositeResolver,
 					logicalSourceResolvers,
 					functions
 				);
 			
-			// carmlStreamResolver needs a reference to the mapper, since
-			// input streams will be bound by name through the mapper instance
-			carmlStreamResolver.setMapper(mapper);
 			
+			
+			// Resolvers need a reference to the source manager, to manage
+			// the caching of sources.
+			compositeResolver.setSourceManager(mapper.getSourceManager());
+						
 			return mapper;
 		}
 	}
 	
-	private static class CarmlStreamResolver implements SourceResolver {
-
-		private RmlMapper mapper;
+	private static class FileResolver implements SourceResolver {
 		
-		public void setMapper(RmlMapper mapper) {
-			this.mapper = mapper;
+		private LogicalSourceManager sourceManager;
+		private Path basePath;
+		
+		FileResolver(Path basePath) {
+			this.basePath = basePath;
+		}
+		
+		public void setSourceManager(LogicalSourceManager sourceManager) {
+			this.sourceManager = sourceManager;
 		}
 
 		@Override
-		public Optional<InputStream> apply(Object o) {
+		public Optional<String> apply(Object o) {
+			if (!(o instanceof String))
+				return Optional.empty();
+			String fileName = (String) o;
+			Path path = basePath.resolve(fileName);
+			String sourceName = path.toString();
+	
+			// Cache source if not already done.
+			if (!sourceManager.hasSource(sourceName)) {
+				try {
+					sourceManager.addSource(sourceName, new String(Files.readAllBytes(path), StandardCharsets.UTF_8));
+				} catch (IOException e) {
+					throw new RuntimeException(
+							"could not create file source for path [" + path + "]");
+				}
+			}
+
+			return Optional.of(sourceManager.getSource(sourceName));
+		}
+		
+	}
+	
+	private static class ClassPathResolver implements SourceResolver {
+		
+		private LogicalSourceManager sourceManager;
+		private String basePath;
+		
+		ClassPathResolver(String basePath) {
+			this.basePath = basePath;
+		}
+		
+		public void setSourceManager(LogicalSourceManager sourceManager) {
+			this.sourceManager = sourceManager;
+		}
+
+		@Override
+		public Optional<String> apply(Object o) {
+			if (!(o instanceof String)) {
+				return Optional.empty();
+			}
+			String sourceName = basePath + "/" + (String) o;
+			
+			// Cache source if not already done.
+			if (!sourceManager.hasSource(sourceName)) {
+				sourceManager.addSource(sourceName, 
+						RmlMapper.class.getClassLoader()
+								.getResourceAsStream(sourceName));
+			}
+			
+			return Optional.of(sourceManager.getSource(sourceName));
+		}
+		
+	}
+	
+	private static class CarmlStreamResolver implements SourceResolver {
+
+		private LogicalSourceManager sourceManager;
+		
+		public void setSourceManager(LogicalSourceManager sourceManager) {
+			this.sourceManager = sourceManager;
+		}
+
+		@Override
+		public Optional<String> apply(Object o) {
 			
 			if (!(o instanceof NameableStream))
 				return Optional.empty();
 			
 			NameableStream stream = (NameableStream) o;
 			Optional<String> name = Optional.ofNullable(stream.getStreamName());
-			InputStream resolved =
+			String resolved =
 				name.isPresent() ?
-					mapper.getInputStream(name.get()) :
-					mapper.getInputStream(DEFAULT_STREAM_NAME);
+					sourceManager.getSource(name.get()) :
+					sourceManager.getSource(DEFAULT_STREAM_NAME);
 			return Optional.of(resolved);
 		}
 	}
 	
-	private static class CompositeSourceResolver implements Function<Object, InputStream> {
+	private static class CompositeSourceResolver implements Function<Object, String> {
 
 		private Set<SourceResolver> resolvers;
 		
@@ -190,7 +256,7 @@ public class RmlMapper {
 		}
 
 		@Override
-		public InputStream apply(Object source) {
+		public String apply(Object source) {
 			return
 			resolvers.stream()
 				.map(r -> r.apply(source))
@@ -200,25 +266,14 @@ public class RmlMapper {
 				.orElseThrow(() -> 
 					new RuntimeException(String.format("could not resolve source [%s]", source)));
 		}
+		
+		void setSourceManager(LogicalSourceManager sourceManager) {
+			resolvers.forEach(r -> r.setSourceManager(sourceManager));
+		}
 	}
 	
-	private Function<Object, InputStream> sourceResolver;
-
-	private Map<IRI, LogicalSourceResolver<?>> logicalSourceResolvers;
-	
-	private TermGeneratorCreator termGenerators = TermGeneratorCreator.create(this); // TODO
-
-	private Functions functions;
-
-	public RmlMapper(
-		Function<Object, InputStream> sourceResolver,
-		Map<IRI, LogicalSourceResolver<?>> logicalSourceResolvers,
-		Functions functions
-	) {
-		this.sourceResolver = sourceResolver;
-		this.functions = functions;
-
-		this.logicalSourceResolvers = logicalSourceResolvers;
+	public LogicalSourceManager getSourceManager() {
+		return this.sourceManager;
 	}
 
 	public Optional<ExecuteFunction> getFunction(IRI iri) {
@@ -230,6 +285,7 @@ public class RmlMapper {
 		mapping.stream()
 			.filter(m -> !isTriplesMapOnlyUsedAsFunctionValue(m, mapping))
 			.forEach(m -> map(m, model));
+		this.sourceManager.clear();
 		return model;
 	}
 	
@@ -266,13 +322,6 @@ public class RmlMapper {
 	private void map(TriplesMap triplesMap, Model model) {
 		TriplesMapper<?> triplesMapper = createTriplesMapper(triplesMap); // TODO cache mapper instances
 		triplesMapper.map(model);
-	}
-	
-	public String readSource(Object source) {
-		//TODO: PM: ideally we should make a single pass on input streams, 
-		//          but this requires some refactoring.
-		//			Also for large sources, transforming to String is not viable.
-		return IoUtils.readAndResetInputStream(sourceResolver.apply(source));
 	}
 	
 	private Set<TermGenerator<IRI>> createGraphGenerators(Set<GraphMap> graphMaps) {
@@ -370,6 +419,12 @@ public class RmlMapper {
 	
 	SubjectMapper createSubjectMapper(TriplesMap triplesMap) {
 		SubjectMap subjectMap = triplesMap.getSubjectMap();
+		if (subjectMap == null) {
+			throw new RuntimeException(
+					String.format("Subject map must be specified in triples map %s", 
+							triplesMap));
+		}
+		
 		return
 		new SubjectMapper(
 			termGenerators.getSubjectGenerator(subjectMap),
@@ -427,8 +482,6 @@ public class RmlMapper {
 		);
 	}
 	
-	private Map<String, InputStream> inputStreams = new LinkedHashMap<>();
-	
 	public void bindInputStream(InputStream inputStream) {
 		requireNonNull(
 			inputStream, 
@@ -447,28 +500,6 @@ public class RmlMapper {
 			"input stream should be provided when binding named stream to mapper"
 		);
 		
-		inputStreams.put(name, ensureResettableStream(inputStream));
-	}
-	
-	private InputStream getInputStream(String name) {
-		if (!inputStreams.containsKey(name)) {
-			String message = 
-				name.equals(DEFAULT_STREAM_NAME) ?
-					"attempting to get the bound input stream, but no binding was present" :
-					String.format("attempting to get input stream by "
-							+ "name [%s], but no such binding is present", name);
-			throw new RuntimeException(message);
-		}
-		return inputStreams.get(name);
-	}
-	
-	// We need to be able to mark and reset a stream
-	private static InputStream ensureResettableStream(InputStream inputStream) {
-		if (!inputStream.markSupported()) {
-			// return a markable stream
-			return new BufferedInputStream(inputStream);
-		}
-		return inputStream;
-	}
-	
+		sourceManager.addSource(name, inputStream);
+	}	
 }
