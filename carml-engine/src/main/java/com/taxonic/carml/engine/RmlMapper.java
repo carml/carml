@@ -4,6 +4,7 @@ import com.taxonic.carml.engine.function.ExecuteFunction;
 import com.taxonic.carml.engine.function.Functions;
 import com.taxonic.carml.logical_source_resolver.JsonPathResolver;
 import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
+import com.taxonic.carml.logical_source_resolver.CsvResolver;
 import com.taxonic.carml.model.BaseObjectMap;
 import com.taxonic.carml.model.GraphMap;
 import com.taxonic.carml.model.Join;
@@ -102,6 +103,7 @@ public class RmlMapper {
 
 		public Builder addDefaultLogicalSourceResolvers() {
 			logicalSourceResolvers.put(Rdf.Ql.JsonPath, new JsonPathResolver());
+			logicalSourceResolvers.put(Rdf.Ql.Csv, new CsvResolver());
 			return this;
 		}
 

@@ -1,0 +1,28 @@
+<http://example.com/data/car/Ford-E350> a <http://example.com/car/Car> ;
+	<http://example.com/car/make> <http://example.com/data/make/Ford> ;
+	<http://purl.org/dc/terms/description> "ac, abs, moon" ;
+	<http://example.com/car/year> <http://example.com/data/year/1997> ;
+	<http://example.com/car/price> "3000,00" .
+
+<http://example.com/data/car/Chevy-Venture%20%22Extended%20Edition%22> a <http://example.com/car/Car> ;
+	<http://example.com/car/make> <http://example.com/data/make/Chevy> ;
+	<http://example.com/car/year> <http://example.com/data/year/1999> ;
+	<http://example.com/car/price> "4900,00" .
+
+<http://example.com/data/car/Chevy-Venture%20%22Extended%20Edition%2c%20Very%20Large%22> a <http://example.com/car/Car> ;
+	<http://example.com/car/make> <http://example.com/data/make/Chevy> ;
+	<http://example.com/car/year> <http://example.com/data/year/1999> ;
+	<http://example.com/car/price> "5000,00" .
+
+<http://example.com/data/car/Jeep-Grand%20Cherokee> a <http://example.com/car/Car> ;
+	<http://example.com/car/make> <http://example.com/data/make/Jeep> ;
+	<http://purl.org/dc/terms/description> """MUST SELL!
+air, moon roof, loaded""" ;
+	<http://example.com/car/year> <http://example.com/data/year/1996> ;
+	<http://example.com/car/price> "4799,00" .
+
+<http://example.com/data/make/Ford> a <http://example.com/car/CarMake> .
+
+<http://example.com/data/make/Chevy> a <http://example.com/car/CarMake> .
+
+<http://example.com/data/make/Jeep> a <http://example.com/car/CarMake> .
