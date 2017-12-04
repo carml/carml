@@ -9,7 +9,7 @@
 @prefix fnml:   <http://semweb.mmlab.be/ns/fnml#> .
 
 
-<#LogicalSource> rml:source "NestedFunctionTestInput.json";
+<#LogicalSource> rml:source "nestedFunctionTestInput.json";
 	rml:referenceFormulation ql:JSONPath;
 	rml:iterator "$" .
 

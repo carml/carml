@@ -32,7 +32,7 @@ public class ParentTriplesMapperTest {
 	private Supplier<Iterable<Object>> getIterator;
 	
 	@Mock
-	private LogicalSourceResolver.ExpressionEvaluatorFactory expressionEvaluatorFactory;
+	private LogicalSourceResolver.ExpressionEvaluatorFactory<Object> expressionEvaluatorFactory;
 	
 	@Rule 
 	public MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -57,12 +57,13 @@ public class ParentTriplesMapperTest {
 		when(getIterator.get()).thenReturn(ImmutableList.of(entry));
 		when(expressionEvaluatorFactory.apply(entry)).thenReturn(evaluate);
 		when(subjectGenerator.apply(evaluate)).thenReturn(Optional.of(SKOS.CONCEPT));
-		ParentTriplesMapper mapper = new ParentTriplesMapper(subjectGenerator, getIterator, expressionEvaluatorFactory);
+		ParentTriplesMapper<Object> mapper = new ParentTriplesMapper<>(subjectGenerator, getIterator, expressionEvaluatorFactory);
 		Set<Resource> resources = mapper.map(joinValues);
 		assertThat(resources.size(), is(1));
 		assertThat(SKOS.CONCEPT, isIn(resources));
 	}
 	
+	// TODO
 	public void parentTriplesMapper_notGivenJoinConditions() {
 		
 	}

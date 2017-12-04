@@ -1,7 +1,7 @@
 package com.taxonic.carml.engine;
 
-import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import org.eclipse.rdf4j.model.IRI;
@@ -12,13 +12,13 @@ import org.eclipse.rdf4j.model.Value;
 class PredicateMapper {
 	
 	private TermGenerator<IRI> generator;
-	private List<TermGenerator<? extends Value>> objectGenerators;
-	private List<RefObjectMapper> refObjectMappers;
+	private Set<TermGenerator<? extends Value>> objectGenerators;
+	private Set<RefObjectMapper> refObjectMappers;
 	
 	PredicateMapper(
 		TermGenerator<IRI> generator,
-		List<TermGenerator<? extends Value>> objectGenerators,
-		List<RefObjectMapper> refObjectMappers
+		Set<TermGenerator<? extends Value>> objectGenerators,
+		Set<RefObjectMapper> refObjectMappers
 	) {
 		this.generator = generator;
 		this.objectGenerators = objectGenerators;

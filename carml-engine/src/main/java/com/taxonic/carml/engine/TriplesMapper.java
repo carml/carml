@@ -1,5 +1,6 @@
 package com.taxonic.carml.engine;
 
+import com.taxonic.carml.engine.TriplesMapperComponents;
 import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
 
 import java.util.function.Supplier;
@@ -11,6 +12,17 @@ class TriplesMapper<T> {
 	private Supplier<Iterable<T>> getIterator;
 	private LogicalSourceResolver.ExpressionEvaluatorFactory<T> expressionEvaluatorFactory;
 	private SubjectMapper subjectMapper;
+	
+	TriplesMapper(
+		TriplesMapperComponents<T> trMapperComponents,
+		SubjectMapper subjectMapper
+	) {
+		this(
+			trMapperComponents.getIterator(), 
+			trMapperComponents.getExpressionEvaluatorFactory(),
+			subjectMapper
+		);
+	}
 	
 	TriplesMapper(
 		Supplier<Iterable<T>> getIterator,
