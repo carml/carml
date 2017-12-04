@@ -176,6 +176,27 @@ public class RmlMapperTest extends MappingTest {
 					"RmlMapper/test2/subjectMapping.output.ttl");
 	}
 	
+	@Test
+	public void testCsvMapping() {
+		testMapping("RmlMapper", 
+					"RmlMapper/csv/cars.rml.ttl",
+					"RmlMapper/csv/cars.output.ttl");
+	}
+	
+	@Test
+	public void testCsvEuMapping() {
+		testMapping("RmlMapper", 
+					"RmlMapper/csv/cars-eu.rml.ttl",
+					"RmlMapper/csv/cars-eu.output.ttl");
+	}
+	
+	@Test
+	public void testCsvPipeDelimeterMapping() {
+		testMapping("RmlMapper", 
+					"RmlMapper/csv/cars-pipe.rml.ttl",
+					"RmlMapper/csv/cars.output.ttl");
+	}
+	
 	//TODO: PM: add test for rml:reference and rr:template where a value is not found.
 
 }
