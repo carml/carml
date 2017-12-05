@@ -31,6 +31,8 @@ Releases
 
 21 Oct 2017 - CARML 0.1.0
 
+05 Dec 2017 - CARML 0.1.1
+
 Introduction
 ------------
 CARML is a java library that transforms structured sources to RDF based as declared in and [RML](http://rml.io) mapping, in accordance with the [RML spec](http://rml.io/spec.html). It is considered by many as the optimal choice for mapping structured sources to RDF.
@@ -47,11 +49,11 @@ CARML is available from the Central Maven Repository.
 <dependency>
     <groupId>com.taxonic.carml</groupId>
     <artifactId>carml-engine</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.1</version>
 </dependency>
 ```
 
-CARML is based on [RDF4J](http://rdf4j.org/), and currently the Mapper directly outputs an [RDF4J Model](http://docs.rdf4j.org/javadoc/2.0/org/eclipse/rdf4j/model/package-summary.html).
+CARML is built on [RDF4J](http://rdf4j.org/), and currently the Mapper directly outputs an [RDF4J Model](http://docs.rdf4j.org/javadoc/2.0/org/eclipse/rdf4j/model/package-summary.html).
 
 ```java
 Set<TriplesMap> mapping =
@@ -62,8 +64,6 @@ Set<TriplesMap> mapping =
 RmlMapper mapper =
 	RmlMapper
 		.newBuilder()
-		.fileResolver(Paths.get("folder/containing/data/sources"))
-		.addFunctions(new RmlFunctions())
 		.build();
 
 Model result = mapper.map(mapping);
@@ -176,8 +176,7 @@ The class or classes containing the annotated functions can then be registered o
 RmlMapper mapper =
 	RmlMapper
 		.newBuilder()
-		.classPathResolver(contextPath)
-		.addFunctions(new RmlFunctions())
+		.addFunctions(new YourRmlFunctions())
 		.build();
 Model result = mapper.map(mapping);
 ```
@@ -201,4 +200,5 @@ Roadmap
 * CARML Command line interface
 * Better support for large sources
 * Improved join / parent triples map performance
+* Support RDF store connections
 * Split off provisional RDF Mapper as separate library
