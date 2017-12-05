@@ -120,7 +120,7 @@ To be able to use this in RML mappings we use executions of instances of `fno:Fu
 @prefix fnml:   <http://semweb.mmlab.be/ns/fnml#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix fno: <http://semweb.datasciencelab.be/ns/function#> .
-@prefix ex: <http://example.org#> .
+@prefix ex: <http://example.org/> .
 
 ex:sumValuePredicateObjectMap
   rr:predicate ex:total ;
