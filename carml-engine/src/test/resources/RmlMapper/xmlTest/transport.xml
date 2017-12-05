@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- This example is copied from http://rml.io/spec.html#example-XML -->
+<transport>
+    <bus id="25">
+        <route>
+            <stop id="645">International Airport</stop>
+            <!--<stop id="651">Conference center</stop>-->
+        </route>
+    </bus>
+</transport>

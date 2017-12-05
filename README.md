@@ -7,16 +7,12 @@ CARML
 **A pretty sweet RML engine**
 
 (**Disclaimer:** The current state of CARML is early beta.
-The team expects to deliver a release in November 2017.
 The next release will offer improved code quality, more test coverage, more documentation and several features currently on the product backlog.)
 
 CARML is being developed by [Taxonic](http://www.taxonic.com) in cooperation with [Kadaster](https://www.kadaster.com/).
 
 [![Build Status](https://api.travis-ci.org/carml/carml.svg?branch=master)](https://travis-ci.org/carml/carml)
-<!--- TODO: uncomment once available
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.taxonic.carml/.../badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.taxonic.carml/...)
-[![Javadoc](....)](...)
---->
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.taxonic.carml/carml/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.taxonic.carml/carml)
 
 Table of Contents
 -----------------
@@ -32,7 +28,10 @@ Table of Contents
 Releases
 ----
 20 Sep 2017 - CARML 0.0.1
-20 Okt 2017 - CARML 0.1.0
+
+21 Oct 2017 - CARML 0.1.0
+
+05 Dec 2017 - CARML 0.1.1
 
 Introduction
 ------------
@@ -43,9 +42,18 @@ RML is defined as a superset of [R2RML](https://www.w3.org/TR/r2rml/) which is a
 
 Getting started
 ---------------
-[ CARML will soon be available at the Central Maven Repository. ]
 
-CARML is based on [RDF4J](http://rdf4j.org/), and currently the Mapper directly outputs an [RDF4J Model](http://docs.rdf4j.org/javadoc/2.0/org/eclipse/rdf4j/model/package-summary.html).
+CARML is available from the Central Maven Repository.
+
+```xml
+<dependency>
+    <groupId>com.taxonic.carml</groupId>
+    <artifactId>carml-engine</artifactId>
+    <version>0.1.1</version>
+</dependency>
+```
+
+CARML is built on [RDF4J](http://rdf4j.org/), and currently the Mapper directly outputs an [RDF4J Model](http://docs.rdf4j.org/javadoc/2.0/org/eclipse/rdf4j/model/package-summary.html).
 
 ```java
 Set<TriplesMap> mapping =
@@ -56,8 +64,6 @@ Set<TriplesMap> mapping =
 RmlMapper mapper =
 	RmlMapper
 		.newBuilder()
-		.fileResolver(Paths.get("folder/containing/data/sources"))
-		.addFunctions(new RmlFunctions())
 		.build();
 
 Model result = mapper.map(mapping);
@@ -78,7 +84,7 @@ So now, you can define streams in your mapping like so:
 ```
 :SomeLogicalSource
   rml:source [
-    a carml:InputStream ;
+    a carml:Stream ;
     # NOTE: name is not mandatory and can be left unspecified, when working with a single stream
     carml:streamName "stream-A" ;
   ];
@@ -114,7 +120,7 @@ To be able to use this in RML mappings we use executions of instances of `fno:Fu
 @prefix fnml:   <http://semweb.mmlab.be/ns/fnml#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix fno: <http://semweb.datasciencelab.be/ns/function#> .
-@prefix ex: <http://example.org#> .
+@prefix ex: <http://example.org/> .
 
 ex:sumValuePredicateObjectMap
   rr:predicate ex:total ;
@@ -170,8 +176,7 @@ The class or classes containing the annotated functions can then be registered o
 RmlMapper mapper =
 	RmlMapper
 		.newBuilder()
-		.classPathResolver(contextPath)
-		.addFunctions(new RmlFunctions())
+		.addFunctions(new YourRmlFunctions())
 		.build();
 Model result = mapper.map(mapping);
 ```
@@ -184,18 +189,16 @@ Note that it is currently possible to specify and use function executions as par
 Supported Data Source Types
 ---------------------------
 
-| Data source type          | Reference query language                                       |
-| :------------------------ | :------------------------------------------------------------- |
-| JSON                      | [Jayway JsonPath 2.4.0](https://github.com/json-path/JsonPath) |
-
-Coming soon:
-XML, CSV
+| Data source type | Reference query language                           | Implementation                                                      |
+| :--------------- | :------------------------------------------------- | :-------------------------------------------------------------      |
+| JSON             | [JsonPath](http://goessner.net/articles/JsonPath/) | [Jayway JsonPath 2.4.0](https://github.com/json-path/JsonPath)      |
+| XML              | [XPath](https://www.w3.org/TR/xpath-31/)           | [Saxon-HE 9.8.0-6](http://saxon.sourceforge.net/#F9.8HE)            |
+| CSV              | n/a                                                | [Univocity 2.5.9](https://github.com/uniVocity/univocity-parsers) |
 
 Roadmap
 -------
-* Add support for XML sources
-* Add support for CSV sources
 * CARML Command line interface
 * Better support for large sources
 * Improved join / parent triples map performance
+* Support RDF store connections
 * Split off provisional RDF Mapper as separate library

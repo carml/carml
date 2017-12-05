@@ -5,7 +5,7 @@
 
 	<groupId>com.taxonic.carml</groupId>
 	<artifactId>carml</artifactId>
-	<version>0.1.0</version>
+	<version>0.1.1</version>
 	<packaging>pom</packaging>
 
 	<name>carml</name>
@@ -54,7 +54,7 @@
 		<url>https://github.com/carml/carml</url>
 		<connection>scm:git:git@github.com:carml/carml.git</connection>
 		<developerConnection>scm:git:git@github.com:carml/carml.git</developerConnection>
-		<tag>HEAD</tag>
+		<tag>v0.1.1</tag>
 	</scm>
 
 	<modules>
@@ -67,9 +67,9 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.8</maven.compiler.target>
-		<rdf4j.version>2.2.1</rdf4j.version>
+		<rdf4j.version>2.2.2</rdf4j.version>
 		<log4j.version>2.8.2</log4j.version>
-		<mockito.version>2.10.0</mockito.version>
+		<mockito.version>2.11.0</mockito.version>
 	</properties>
 
 	<dependencies>

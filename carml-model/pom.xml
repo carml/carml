@@ -5,26 +5,26 @@
 	<parent>
 		<groupId>com.taxonic.carml</groupId>
 		<artifactId>carml</artifactId>
-		<version>0.1.0</version>
+		<version>0.1.1</version>
 	</parent>
-	
+
 	<artifactId>carml-model</artifactId>
 	<packaging>jar</packaging>
 
 	<name>carml-model</name>
 
 	<dependencies>
-	
+
 		<dependency>
 			<groupId>javax.inject</groupId>
 			<artifactId>javax.inject</artifactId>
 			<version>1</version>
 		</dependency>
-	
+
 		<dependency>
 			<groupId>com.taxonic.carml</groupId>
 			<artifactId>carml-rdf-mapper</artifactId>
-			<version>0.1.0</version>
+			<version>0.1.1</version>
 		</dependency>
 
 	</dependencies>

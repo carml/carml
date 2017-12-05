@@ -7,7 +7,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import com.taxonic.carml.engine.RmlMapper;
 import com.taxonic.carml.model.TermType;
 
 public class ExceptionsTest extends MappingTest {
@@ -58,14 +57,6 @@ public class ExceptionsTest extends MappingTest {
 		thrown.expect(RuntimeException.class);
 		thrown.expectMessage(startsWith("Logical sources are not equal."));
 		testMapping("RmlMapper", "RmlMapper/exceptionTests/exceptionEqualLogicalSourceMapping.rml.ttl", null);
-	}
-
-	@Test
-	public void testReadSourceException() throws RuntimeException {
-		RmlMapper tm = RmlMapper.newBuilder().classPathResolver("RmlMapper").build();
-		// TODO change readSource back to private.
-		String result = tm.readSource("exceptions.json");
-		assert (result.equals("{\"name\":\"carml\"}"));
 	}
 
 	@Test

@@ -42,7 +42,6 @@ public class IriEncoderTest {
 
 	private void test(String toEncode, String expectedResult) {
 		String encoded = encode(toEncode);
-		System.out.println(toEncode + " ==> " + encoded);
 		assertEquals(expectedResult, encoded);
 	}
 	
