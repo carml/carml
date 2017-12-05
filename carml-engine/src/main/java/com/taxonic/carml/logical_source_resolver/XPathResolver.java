@@ -49,9 +49,9 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
 				XdmItem value = selector.evaluateSingle();
 				return Optional.ofNullable(value.getStringValue());
 			} catch (SaxonApiException e) {
-				System.out.println(entry);
-				System.out.println(expression);
-				throw new RuntimeException(e);
+				throw new RuntimeException(String.format(
+						"Error applying XPath expression [%s] to entry [%s]", entry, expression), 
+						e);
 			}
 		};
 	}
