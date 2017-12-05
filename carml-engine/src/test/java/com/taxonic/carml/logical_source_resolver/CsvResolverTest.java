@@ -9,8 +9,8 @@ import com.taxonic.carml.engine.EvaluateExpression;
 import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver.ExpressionEvaluatorFactory;
 import com.univocity.parsers.common.record.Record;
 import java.util.List;
+import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mock;
 
 public class CsvResolverTest {
 	
@@ -24,8 +24,12 @@ public class CsvResolverTest {
 			"1997^Ford^E350^\"ac, abs, moon\"^3000.00\r\n" + 
 			"1999^Chevy^\"Venture \"\"Extended Edition\"\"\"^\"\"^4900.00" ;
 	
-	@Mock
-	CsvResolver csvResolver = new CsvResolver();
+	private CsvResolver csvResolver;
+	
+	@Before
+	public void init() {
+		csvResolver = new CsvResolver();
+	}
 	
 	@Test
 	public void sourceIterator_givenCsv_shoulReturnAllRecords() {	
@@ -39,7 +43,6 @@ public class CsvResolverTest {
 		List<Record> records = Lists.newArrayList(recordIterator);
 		assertThat(records.size(), is(2));
 		assertThat(records.get(0).getValues().length, is(5));
-		records.forEach(System.out::println);
 	}
 	
 	@Test
