@@ -5,6 +5,8 @@
 
 @prefix rr: <http://www.w3.org/ns/r2rml#> .
 @prefix rml: <http://semweb.mmlab.be/ns/rml#> .
+@prefix fnml: <http://semweb.mmlab.be/ns/fnml#> .
+@prefix fno: <http://semweb.datasciencelab.be/ns/function#> .
 
 @prefix carml: <http://carml.taxonic.com/carml/> .
 
@@ -16,14 +18,14 @@ rmlsh:
 	sh:declare [
 		sh:prefix "rmlsh" ;
 		sh:namespace "http://www.taxonic.com/ns/rml-shacl#" ;
-	] .
-
-
+	] ;
+.
 
 rmlsh:TriplesMapShape
 	a sh:NodeShape ;
 	rdfs:label "Triples map shape"@en ;
-	rdfs:comment "Defines constraints for a well-formed triples map."@en;
+	rdfs:comment "Defines constraints for a well-formed triples map."@en ;
+	sh:message "TriplesMap is ill-formed." ;
 
 	sh:targetClass rr:TriplesMap ;
 	sh:targetSubjectsOf
@@ -33,6 +35,7 @@ rmlsh:TriplesMapShape
 		rr:subjectMap ;
 
 	sh:property [
+		sh:message "Triples map should have one and only one logical source." ;
 		sh:path rml:logicalSource ;
 		sh:minCount 1 ;
 		sh:maxCount 1 ;
@@ -54,16 +57,13 @@ rmlsh:TriplesMapShape
 			]
 		]
 	) ;
-	.
-
-
-
+.
 
 rmlsh:TermMapShape
 	a sh:NodeShape ;
 	rdfs:label "Term map shape"@en ;
-	rdfs:comment "Defines constraints for a well-formed term map."@en;
-
+	rdfs:comment "Defines constraints for a well-formed term map."@en ;
+	sh:message "Term map is ill-formed." ;
 
 	# NOTE: We don't target object maps directly, because not all object maps are term maps;
 	#       the range for `rr:objectMap` is `rr:ObjectMap` or `rr:RefObjectMap`
@@ -82,7 +82,8 @@ rmlsh:TermMapShape
 		rr:constant ,
 		rml:reference ,
 		rr:template ,
-		rr:termType ;
+		rr:termType ,
+		fnml:functionValue ;
 
 	sh:xone (
 		[
@@ -106,11 +107,29 @@ rmlsh:TermMapShape
 				sh:maxCount 1 ;
 			]
 		]
-	) .
+		[
+			sh:property [
+				sh:path fnml:functionValue ;
+				sh:minCount 1 ;
+				sh:maxCount 1 ;
+			]
+		]
+	) ;
+.
+
+rmlsh:TermMapTermTypeShape
+	a sh:NodeShape ;
+	sh:targetSubjectsOf rr:termType ;
+	sh:property [
+		sh:message "Term map may have at most one value for rr:termType." ;
+		sh:path rr:termType ;
+		sh:maxCount 1 ;
+	]
+.
 
 rmlsh:ObjectOrRefObjectMapShape
 	a sh:NodeShape ;
-
+	# TODO: PM: could we not use sh:targetObjectsOf?
 	sh:targetSubjectsOf rr:objectMap ;
 
 	sh:xone (
@@ -127,39 +146,41 @@ rmlsh:ObjectOrRefObjectMapShape
 			]
 		]
 	) ;
-	.
-
+.
 
 rmlsh:SubjectMapShape
 	a sh:NodeShape ;
 	rdfs:label "Subject map shape"@en ;
-	rdfs:comment "Defines constraints for a well-formed subject map."@en;
+	rdfs:comment "Defines constraints for a well-formed subject map."@en ;
+	sh:message "Subject map is ill-formed" ;
 
 	sh:targetObjectsOf rr:subjectMap ;
 	sh:targetClass     rr:SubjectMap ;
 
-	sh:and (
-		[ sh:property [ sh:path rr:termType ; sh:maxCount 1 ; ] ; ]
-		[ sh:property [ sh:path rr:termType ; sh:in ( rr:IRI rr:BlankNode ) ; ] ; ]
-	) ;
-
-	sh:property [
-		sh:path rr:class ;
-		sh:nodeKind sh:IRI ;
-	] ;
-	.
-
+	sh:property
+		[
+			sh:message "Value for rr:termType on subject map should be rr:IRI or rr:BlankNode." ;
+			sh:path rr:termType ;
+			sh:in ( rr:IRI rr:BlankNode ) ;
+		] ,
+		[
+			sh:message "Value of rr:class in subject map should be an IRI" ;
+			sh:path rr:class ;
+			sh:nodeKind sh:IRI ;
+		] ;
+.
 
 rmlsh:ObjectMapShape
 	a sh:NodeShape ;
 	rdfs:label "Object map shape"@en ;
-	rdfs:comment "Defines constraints for a well-formed object map."@en;
+	rdfs:comment "Defines constraints for a well-formed object map."@en ;
+	sh:message "Object map is ill-formed" ;
 
-	sh:and(
-		[ sh:property [ sh:path rr:termType ; sh:maxCount 1 ; ] ; ]
-		[ sh:property [ sh:path rr:termType ; sh:in ( rr:IRI rr:BlankNode rr:Literal ) ; ] ; ]
-	) ;
-
+	sh:property [
+		sh:message "Value for rr:termType on subject map should be rr:IRI or rr:BlankNode or rr:Literal." ;
+		sh:path rr:termType ;
+		sh:in ( rr:IRI rr:BlankNode rr:Literal ) ;
+	] ;
 
 	# @INCOMPLETE
 	# sh:xone (
@@ -190,66 +211,85 @@ rmlsh:ObjectMapShape
 	# 		]
 	# 	]
 	# )
-	.
+.
 
 rmlsh:RefObjectMapShape
 	a sh:NodeShape ;
 	rdfs:label "Ref object map shape"@en ;
-	rdfs:comment "Defines constraints for a well-formed ref object map."@en;
+	rdfs:comment "Defines constraints for a well-formed ref object map."@en ;
+	sh:message "Referencing object map is ill-formed" ;
 
 	sh:targetClass rr:RefObjectMap ;
 	sh:targetSubjectsOf rr:parentTriplesMap, rr:joinCondition ;
 	sh:targetObjectsOf rr:refObjectMap ;
 
-	sh:and (
-		[ sh:property [ sh:path rr:parentTriplesMap ; sh:minCount 1 ; sh:maxCount 1 ; ] ; ]
-		[ sh:property [ sh:path rr:parentTriplesMap ; sh:nodeKind sh:IRI ; ] ; ]
-	) ;
-	.
+	sh:property
+		[
+			sh:message "Referencing object map should have one and only one parent triples map." ;
+			sh:path rr:parentTriplesMap ;
+			sh:minCount 1 ;
+			sh:maxCount 1 ;
+		] ,
+		[
+			sh:message "Value of rr:parentTriplesMap op referencing object map should be rr:IRI." ;
+			sh:path rr:parentTriplesMap ;
+			sh:nodeKind sh:IRI ;
+		] ;
+.
 
 rmlsh:PredicateMapShape
 	a sh:NodeShape ;
 	rdfs:label "Predicate map shape"@en ;
-	rdfs:comment "Defines constraints for a well-formed predicate map."@en;
+	rdfs:comment "Defines constraints for a well-formed predicate map."@en ;
+	sh:message "Predicate map is ill-formed" ;
 
-	sh:and (
-		[ sh:property [ sh:path rr:termType ; sh:maxCount 1 ; ] ; ]
-		[ sh:property [ sh:path rr:termType ; sh:hasValue rr:IRI ; ] ; ]
-	) ;
-	.
+	sh:targetObjectsOf rr:predicateMap ;
+
+	sh:property [
+		sh:message "Value for rr:termType on predicate map should be rr:IRI." ;
+		sh:path rr:termType ;
+		sh:in ( rr:IRI ) ;
+	] ;
+.
 
 rmlsh:PredicateObjectMapShape
 	a sh:NodeShape ;
 	rdfs:label "Predicate object map shape"@en ;
-	rdfs:comment "Defines constraints for a well-formed predicate object map."@en;
+	rdfs:comment "Defines constraints for a well-formed predicate object map."@en ;
+	sh:message "Predicate object map is ill-formed" ;
 
 	sh:targetSubjectsOf rr:predicate, rr:predicateMap, rr:object, rr:objectMap ;
 	sh:targetObjectsOf  rr:predicateObjectMap ;
 	sh:targetClass rr:PredicateObjectMap ;
 
-	sh:or (
-		[ sh:property [ sh:path rr:predicate    ; sh:minCount 1 ; ] ; ]
-		[ sh:property [ sh:path rr:predicateMap ; sh:minCount 1 ; ] ; ]
-	) ;
-
-	sh:or (
-		[ sh:property [ sh:path rr:object    ; sh:minCount 1 ; ] ; ]
-		[ sh:property [ sh:path rr:objectMap ; sh:minCount 1 ; ] ; ]
-	) ;
-
-	.
-
+	sh:property
+		[
+			sh:message "Predicate object map should have at least one predicate map." ;
+			sh:path [
+				sh:alternativePath (rr:predicate rr:predicateMap) ;
+			] ;
+			sh:minCount 1 ;
+		] ,
+		[
+			sh:message "Predicate object map should have at least one object map." ;
+			sh:path [
+				sh:alternativePath (rr:object rr:objectMap) ;
+			] ;
+			sh:minCount 1 ;
+		] ;
+.
 
 rmlsh:BaseSourceShape
 	a sh:NodeShape ;
 	rdfs:label "Base source shape"@en ;
-	rdfs:comment "Defines constraints for a well-formed base source."@en;
-	.
+	rdfs:comment "Defines constraints for a well-formed base source."@en ;
+.
 
 rmlsh:LogicalSourceShape
 	a sh:NodeShape ;
 	rdfs:label "Logical source shape"@en ;
-	rdfs:comment "Defines constraints for a well-formed logical source."@en;
+	rdfs:comment "Defines constraints for a well-formed logical source."@en ;
+	sh:message "Logical source is ill-formed" ;
 
 	sh:targetClass rml:LogicalSource ;
 	sh:targetObjectsOf rml:logicalSource ;
@@ -292,7 +332,7 @@ rmlsh:LogicalSourceShape
 			#        class does not have any special characteristic. From a practical perspective, it
 			#        seems useful to allow any IRI.
 			sh:nodeKind sh:IRI ;
-		]
+		] ;
 .
 
 rmlsh:CarmlStreamShape
@@ -314,67 +354,106 @@ rmlsh:CarmlStreamShape
 		] ;
 .
 
-
-
-
 # rmlsh:ReferenceFormulationShape
 # 	a sh:NodeShape ;
 # 	rdfs:label "Reference formulation shape"@en ;
 # 	rdfs:comment "Defines constraints for a well-formed reference formulation."@en;
-# 	.
+# .
 
 rmlsh:GraphMapShape
 	a sh:NodeShape ;
 	rdfs:label "Graph map shape"@en ;
-	rdfs:comment "Defines constraints for a well-formed graph map."@en;
+	rdfs:comment "Defines constraints for a well-formed graph map."@en ;
+	sh:message "Graph map is ill-formed" ;
 
 	sh:targetClass rr:GraphMap ;
-	sh:targetObjecsOf rr:graphMap ;
+	sh:targetObjectsOf rr:graphMap ;
 
-
-	sh:and (
-		[ sh:property [ sh:path rr:termType ; sh:maxCount 1 ; ] ]
-		[ sh:property [ sh:path rr:termType ; sh:hasValue rr:IRI ; ] ]
-	) ;
-	.
+	sh:property [
+		sh:message "Value for rr:termType on graph map should be rr:IRI." ;
+		sh:path rr:termType ;
+		sh:in ( rr:IRI ) ;
+	] ;
+.
 
 rmlsh:JoinShape
 	a sh:NodeShape ;
 	rdfs:label "Join shape"@en ;
-	rdfs:comment "Defines constraints for a well-formed join "@en;
+	rdfs:comment "Defines constraints for a well-formed join "@en ;
+	sh:message "Join is ill-formed" ;
 
 	sh:targetClass rr:Join ;
 	sh:targetSubjectsOf rr:parent, rr:child ;
 	sh:targetObjectsOf rr:joinCondition ;
 
-	sh:and (
-		[ sh:property [ sh:path rr:child ;  sh:minCount 1 ; sh:maxCount 1 ; ] ]
-		[ sh:property [ sh:path rr:child ;  sh:nodeKind sh:Literal ; ] ]
-	) ;
-
-	sh:and (
-		[ sh:property [ sh:path rr:parent ; sh:minCount 1 ; sh:maxCount 1 ; ] ]
-		[ sh:property [ sh:path rr:parent ; sh:nodeKind sh:Literal ; ] ]
-	) ;
-	.
+	sh:property
+		[
+			sh:message "Join should have one and only one child." ;
+			sh:path rr:child ;
+			sh:minCount 1 ;
+			sh:maxCount 1 ;
+		] ,
+		[
+			sh:message "Value of child in join should be a literal value." ;
+			sh:path rr:child ;
+			sh:nodeKind sh:Literal ;
+		] ,
+		[
+			sh:message "Join should have one and only one parent." ;
+			sh:path rr:parent ;
+			sh:minCount 1 ;
+			sh:maxCount 1 ;
+		] ,
+		[
+			sh:message "Join should have at least one parent." ;
+			sh:path rr:parent ;
+			sh:nodeKind sh:Literal ;
+		] ;
+.
 
 rmlsh:ConstantSubjectPredicateOrGraphShape
 	a sh:PropertyShape ;
 	rdfs:label "Constant value shape for subject, predicate or graph mappings"@en ;
-	rdfs:comment "Defines constraints for a well-formed constant value for a subject, predicate or graph mapping."@en;
+	rdfs:comment "Defines constraints for a well-formed constant value for a subject, predicate or graph mapping."@en ;
+	sh:message "A triple with an RML shorthand constant as predicate should have an IRI in the object position." ;
 
 	sh:path rr:constant, rr:subject, rr:predicate,  rr:graph ;
-	sh:nodeKind sh:IRI .
+	sh:nodeKind sh:IRI ;
+.
 
 rmlsh:ConstantObjectShape
 	a sh:PropertyShape ;
 	rdfs:label "Constant value shape for object mappings"@en ;
-	rdfs:comment "Defines constraints for a well-formed constant value for an object mapping."@en;
+	rdfs:comment "Defines constraints for a well-formed constant value for an object mapping."@en ;
+ 	sh:message "Constant value for object mapping is ill-formed" ;
 
 	sh:targetObjectsOf rr:object ;
 
-	sh:xone ( [ sh:nodeKind sh:IRI ; ] [ sh:nodeKind sh:literal ] ) .
+	sh:xone ( [ sh:nodeKind sh:IRI ; ] [ sh:nodeKind sh:literal ] )
+.
 
-# rmlsh:ObjectPropertyShape
-# 	a sh:PropertyShape ;
-# 	sh:path
+rmlsh:FunctionTermMapShape
+	a sh:NodeShape ;
+	sh:targetObjectsOf fnml:functionValue ;
+	sh:message "Functional term map is ill-formed." ;
+	sh:property [
+		sh:message "Functional term map should have one and only one function executing predicate object map." ;
+		sh:path rr:predicateObjectMap ;
+		sh:qualifiedMinCount  1 ;
+		sh:qualifiedMaxCount  1 ;
+		sh:qualifiedValueShape rmlsh:FunctionExecutionPOM ;
+	];
+.
+
+rmlsh:FunctionExecutionPOM
+	sh:or	(
+		[
+			sh:path rr:predicate ;
+			sh:hasValue fno:executes ;
+		]
+		[
+		 	sh:path (rr:predicateMap rr:constant ) ;
+			sh:hasValue fno:executes ;
+		]
+	) ;
+.
