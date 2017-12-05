@@ -13,15 +13,25 @@ import net.sf.saxon.s9api.XdmNode;
 
 public class XPathResolver implements LogicalSourceResolver<XdmItem> {
 	
-	Processor xpathProcessor;
-	XPathCompiler xpath;
+	private Processor xpathProcessor;
+	private XPathCompiler xpath;
+	private boolean autoNodeTextExtraction;
 	
 	public XPathResolver() {
+		this(true);
+	}
+	
+	public XPathResolver(boolean autoNodeTextExtraction) {
+		this.autoNodeTextExtraction = autoNodeTextExtraction;
 		this.xpathProcessor = new Processor(false);
 		this.xpath = xpathProcessor.newXPathCompiler();
 		this.xpath.setCaching(true);
 	}
-
+	
+	public boolean autoExtractsNodeText() {
+		return autoNodeTextExtraction;
+	}
+	
 	@Override
 	public SourceIterator<XdmItem> getSourceIterator() {
 		return this::getIterableXpathResult;
@@ -47,7 +57,14 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
 				XPathSelector selector = xpath.compile(expression).load();
 				selector.setContextItem(entry);
 				XdmItem value = selector.evaluateSingle();
-				return Optional.ofNullable(value.getStringValue());
+				
+				if (value == null) {
+					return Optional.empty();
+				}
+				
+				String result = autoNodeTextExtraction ? value.getStringValue() : value.toString();
+				return Optional.of(result);
+				
 			} catch (SaxonApiException e) {
 				throw new RuntimeException(String.format(
 						"Error applying XPath expression [%s] to entry [%s]", entry, expression), 
