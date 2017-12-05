@@ -2,13 +2,10 @@ package com.taxonic.carml.engine;
 
 import com.taxonic.carml.engine.function.ExecuteFunction;
 import com.taxonic.carml.engine.function.Functions;
+import com.taxonic.carml.logical_source_resolver.CsvResolver;
 import com.taxonic.carml.logical_source_resolver.JsonPathResolver;
 import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
-<<<<<<< HEAD
 import com.taxonic.carml.logical_source_resolver.XPathResolver;
-=======
-import com.taxonic.carml.logical_source_resolver.CsvResolver;
->>>>>>> origin/develop
 import com.taxonic.carml.model.BaseObjectMap;
 import com.taxonic.carml.model.GraphMap;
 import com.taxonic.carml.model.Join;
