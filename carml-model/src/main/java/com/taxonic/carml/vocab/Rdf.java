@@ -31,7 +31,8 @@ public class Rdf {
 		public static final IRI 
 			
 			JsonPath 	 = iri("JSONPath"	 ),
-			XPath 	 	 = iri("XPath"		 );
+			XPath 	 	 = iri("XPath"		 ),
+			Csv 	 	 = iri("CSV"		 );
 		
 	}
 	
