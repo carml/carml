@@ -1,51 +1,58 @@
 package com.taxonic.carml.logical_source_resolver;
 
-
-import com.sun.xml.internal.ws.util.xml.NodeListIterator;
-
-import org.w3c.dom.Document;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-
+import java.io.StringReader;
 import java.util.Optional;
+import javax.xml.transform.stream.StreamSource;
+import net.sf.saxon.s9api.DocumentBuilder;
+import net.sf.saxon.s9api.Processor;
+import net.sf.saxon.s9api.SaxonApiException;
+import net.sf.saxon.s9api.XPathCompiler;
+import net.sf.saxon.s9api.XPathSelector;
+import net.sf.saxon.s9api.XdmItem;
+import net.sf.saxon.s9api.XdmNode;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathExpressionException;
-import javax.xml.xpath.XPathFactory;
-
-public class XPathResolver implements LogicalSourceResolver<Node> {
-
-	private XPath xpath = XPathFactory.newInstance().newXPath();
-
-	@Override
-	public SourceIterator<Node> getSourceIterator() {
-		return (inputStream, iteratorExpression) -> {
-			try {
-
-				DocumentBuilder documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-				Document doc = documentBuilder.parse(inputStream);
-				Object result = xpath.evaluate(iteratorExpression, doc, XPathConstants.NODESET);
-
-				return () -> new NodeListIterator((NodeList) result);
-			} catch (Exception e) {
-				throw new RuntimeException(e);
-			}
-		};
+public class XPathResolver implements LogicalSourceResolver<XdmItem> {
+	
+	Processor xpathProcessor;
+	XPathCompiler xpath;
+	
+	public XPathResolver() {
+		this.xpathProcessor = new Processor(false);
+		this.xpath = xpathProcessor.newXPathCompiler();
+		this.xpath.setCaching(true);
 	}
 
 	@Override
-	public ExpressionEvaluatorFactory<Node> getExpressionEvaluatorFactory() {
+	public SourceIterator<XdmItem> getSourceIterator() {
+		return this::getIterableXpathResult;
+	}
+	
+	private Iterable<XdmItem> getIterableXpathResult(String source, String iteratorExpression) {
+		DocumentBuilder documentBuilder = xpathProcessor.newDocumentBuilder();
+		StringReader reader = new StringReader(source);
+		try {
+			XdmNode item = documentBuilder.build(new StreamSource(reader));
+			XPathSelector selector = xpath.compile(iteratorExpression).load();
+			selector.setContextItem(item);
+			return selector;
+		} catch (SaxonApiException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	@Override
+	public ExpressionEvaluatorFactory<XdmItem> getExpressionEvaluatorFactory() {
 		return entry -> expression -> {
 			try {
-				String result= xpath.evaluate(expression, entry);
-				return Optional.ofNullable(result);
-			} catch (XPathExpressionException e) {
+				XPathSelector selector = xpath.compile(expression).load();
+				selector.setContextItem(entry);
+				XdmItem value = selector.evaluateSingle();
+				return Optional.ofNullable(value.getStringValue());
+			} catch (SaxonApiException e) {
+				System.out.println(entry);
+				System.out.println(expression);
 				throw new RuntimeException(e);
 			}
 		};
 	}
-
 }
