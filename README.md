@@ -7,7 +7,6 @@ CARML
 **A pretty sweet RML engine**
 
 (**Disclaimer:** The current state of CARML is early beta.
-The team expects to deliver a release in November 2017.
 The next release will offer improved code quality, more test coverage, more documentation and several features currently on the product backlog.)
 
 CARML is being developed by [Taxonic](http://www.taxonic.com) in cooperation with [Kadaster](https://www.kadaster.com/).
@@ -191,17 +190,14 @@ Note that it is currently possible to specify and use function executions as par
 Supported Data Source Types
 ---------------------------
 
-| Data source type          | Reference query language                                       |
-| :------------------------ | :------------------------------------------------------------- |
-| JSON                      | [Jayway JsonPath 2.4.0](https://github.com/json-path/JsonPath) |
-
-Coming soon:
-XML, CSV
+| Data source type | Reference query language                           | Implementation                                                      |
+| :--------------- | :------------------------------------------------- | :-------------------------------------------------------------      |
+| JSON             | [JsonPath](http://goessner.net/articles/JsonPath/) | [Jayway JsonPath 2.4.0](https://github.com/json-path/JsonPath)      |
+| XML              | [XPath](https://www.w3.org/TR/xpath-31/)           | [Saxon-HE 9.8.0-6](http://saxon.sourceforge.net/#F9.8HE)            |
+| CSV              | n/a                                                | [Univocity 2.5.9](https://github.com/uniVocity/univocity-parsers) |
 
 Roadmap
 -------
-* Add support for XML sources
-* Add support for CSV sources
 * CARML Command line interface
 * Better support for large sources
 * Improved join / parent triples map performance

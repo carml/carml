@@ -1,0 +1,10 @@
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
+@prefix transit: <http://vocab.org/transit/terms/>.
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+
+<http://trans.example.com/25> rdf:type transit:Stop.
+<http://trans.example.com/25> transit:stop "645"^^xsd:int.
+<http://trans.example.com/25> rdfs:label "International Airport".
+# <http://trans.example.com/25> transit:stop "651"^^xsd:int.
+# <http://trans.example.com/25> rdfs:label "Conference center".
