@@ -4,14 +4,14 @@ import com.taxonic.carml.model.Join;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.vocab.Rr;
 
-public class JoinImpl implements Join{
+public class CarmlJoin implements Join{
 
 	private String child;
 	private String parent;
 	
-	public JoinImpl() {}
+	public CarmlJoin() {}
 	
-	public JoinImpl(
+	public CarmlJoin(
 			String child,
 			String parent
 	) {
@@ -41,7 +41,7 @@ public class JoinImpl implements Join{
 	
 	@Override
 	public String toString() {
-		return "JoinImpl [getChildReference()=" + getChildReference() + ", getParentReference()=" + getParentReference() + "]";
+		return "CarmlJoin [getChildReference()=" + getChildReference() + ", getParentReference()=" + getParentReference() + "]";
 	}
 	
 	@Override
@@ -58,7 +58,7 @@ public class JoinImpl implements Join{
 		if (this == obj) return true;
 		if (obj == null) return false;
 		if (getClass() != obj.getClass()) return false;
-		JoinImpl other = (JoinImpl) obj;
+		CarmlJoin other = (CarmlJoin) obj;
 		if (child == null) {
 			if (other.child != null) return false;
 		}
@@ -91,8 +91,8 @@ public class JoinImpl implements Join{
 			return this;
 		}
 		
-		public JoinImpl build() {
-			return new JoinImpl(
+		public CarmlJoin build() {
+			return new CarmlJoin(
 				child,
 				parent
 			);

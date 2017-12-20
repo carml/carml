@@ -41,7 +41,7 @@ import com.taxonic.carml.rdf_mapper.annotations.RdfType;
 import com.taxonic.carml.rdf_mapper.qualifiers.PropertyPredicate;
 import com.taxonic.carml.rdf_mapper.qualifiers.PropertySetter;
 
-public class MapperImpl implements Mapper, MappingCache {
+public class CarmlMapper implements Mapper, MappingCache {
 
 	// type is the exact type of instance we need; eg. NOT a supertype.
 	// so no unbound type parameters. no interface, unless a list or so.
@@ -356,9 +356,9 @@ public class MapperImpl implements Mapper, MappingCache {
 					
 					private Optional<Object> getValueByType(Type type) {
 						if (type.equals(Mapper.class))
-							return Optional.of(MapperImpl.this);
+							return Optional.of(CarmlMapper.this);
 						else if (type.equals(MappingCache.class))
-							return Optional.of(MapperImpl.this);
+							return Optional.of(CarmlMapper.this);
 						
 						// TODO ..
 						

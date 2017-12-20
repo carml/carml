@@ -45,7 +45,7 @@ public class TemplateParser {
 		MutableBoolean escaping = new MutableBoolean(false);
 		MutableObject<Segment> segmentContainer = new MutableObject<Segment>(new Text());
 		
-		List<TemplateImpl.Segment> segments = new ArrayList<>();
+		List<CarmlTemplate.Segment> segments = new ArrayList<>();
 		
 		MutableInt nextId = new MutableInt();
 		
@@ -55,9 +55,9 @@ public class TemplateParser {
 			String value = segment.value();
 			if (value.isEmpty()) return;
 			if (segment instanceof Text)
-				segments.add(new TemplateImpl.Text(value));
+				segments.add(new CarmlTemplate.Text(value));
 			else if (segment instanceof Expression)
-				segments.add(new TemplateImpl.ExpressionSegment(nextId.getAndIncrement(), value));
+				segments.add(new CarmlTemplate.ExpressionSegment(nextId.getAndIncrement(), value));
 			// (assuming no other segment types)
 		};
 		
@@ -104,7 +104,7 @@ public class TemplateParser {
 			throw new RuntimeException("unclosed expression in template [" + template + "]");
 		close.run();
 		
-		return TemplateImpl.build(segments);
+		return CarmlTemplate.build(segments);
 	}
 	
 }

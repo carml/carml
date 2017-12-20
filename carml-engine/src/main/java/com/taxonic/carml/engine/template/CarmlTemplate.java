@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.mutable.MutableInt;
 
-class TemplateImpl implements Template {
+class CarmlTemplate implements Template {
 
 	abstract static class Segment {
 		
@@ -206,10 +206,10 @@ class TemplateImpl implements Template {
 			));
 	}
 	
-	static TemplateImpl build(List<Segment> segments) {
+	static CarmlTemplate build(List<Segment> segments) {
 		Map<ExpressionSegment, Expression> expressionSegmentMap = createExpressionSegmentMap(segments);
 		Set<Expression> expressions = new LinkedHashSet<>(expressionSegmentMap.values());
-		return new TemplateImpl(
+		return new CarmlTemplate(
 			segments,
 			expressions,
 			expressionSegmentMap
@@ -220,7 +220,7 @@ class TemplateImpl implements Template {
 	private Set<Expression> expressions;
 	private Map<ExpressionSegment, Expression> expressionSegmentMap;
 
-	TemplateImpl(
+	CarmlTemplate(
 		List<Segment> segments,
 		Set<Expression> expressions,
 		Map<ExpressionSegment, Expression> expressionSegmentMap
@@ -255,7 +255,7 @@ class TemplateImpl implements Template {
 		if (this == obj) return true;
 		if (obj == null) return false;
 		if (getClass() != obj.getClass()) return false;
-		TemplateImpl other = (TemplateImpl) obj;
+		CarmlTemplate other = (CarmlTemplate) obj;
 		if (expressionSegmentMap == null) {
 			if (other.expressionSegmentMap != null) return false;
 		}
@@ -273,7 +273,7 @@ class TemplateImpl implements Template {
 
 	@Override
 	public String toString() {
-		return "TemplateImpl [segments=" + segments + ", expressions=" + expressions + ", expressionSegmentMap="
+		return "CarmlTemplate [segments=" + segments + ", expressions=" + expressions + ", expressionSegmentMap="
 			+ expressionSegmentMap + "]";
 	}
 

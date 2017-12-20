@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.util.Set;
 import java.util.function.Function;
 
+import com.taxonic.carml.model.impl.CarmlTriplesMap;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
@@ -15,7 +16,6 @@ import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.model.TermType;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.model.impl.CarmlStream;
-import com.taxonic.carml.model.impl.TriplesMapImpl;
 import com.taxonic.carml.rdf_mapper.impl.MappingCache;
 import com.taxonic.carml.rdf_mapper.util.RdfObjectLoader;
 import com.taxonic.carml.vocab.Rdf;
@@ -53,7 +53,7 @@ public class RmlMappingLoader {
 			ImmutableSet.<TriplesMap>copyOf(
 				RdfObjectLoader.load(
 					selectTriplesMaps, 
-					TriplesMapImpl.class, 
+					CarmlTriplesMap.class,
 					originalModel, 
 					shorthandExpander,
 					this::addTermTypes,

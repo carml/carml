@@ -4,20 +4,14 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.Set;
 
+import com.taxonic.carml.model.impl.*;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.model.TriplesMap;
-import com.taxonic.carml.model.impl.JoinImpl;
-import com.taxonic.carml.model.impl.LogicalSourceImpl;
-import com.taxonic.carml.model.impl.ObjectMapImpl;
-import com.taxonic.carml.model.impl.PredicateMapImpl;
-import com.taxonic.carml.model.impl.PredicateObjectMapImpl;
-import com.taxonic.carml.model.impl.RefObjectMapImpl;
-import com.taxonic.carml.model.impl.SubjectMapImpl;
-import com.taxonic.carml.model.impl.TriplesMapImpl;
+import com.taxonic.carml.model.impl.CarmlJoin;
 import com.taxonic.carml.vocab.Rdf;
 
 public class TestRdfMapperParentTriplesMap extends RmlLoader {
@@ -47,29 +41,29 @@ public class TestRdfMapperParentTriplesMap extends RmlLoader {
 	@Test
 	public void testLoadMappingWithJoinIntegration() {
 		
-		TriplesMapImpl parentTriplesMap = TriplesMapImpl.newBuilder()
+		CarmlTriplesMap parentTriplesMap = CarmlTriplesMap.newBuilder()
 			.logicalSource(
-				LogicalSourceImpl.newBuilder()
+				CarmlLogicalSource.newBuilder()
 					.source("joinCountries.json")
 					.iterator("$")
 					.referenceFormulation(Rdf.Ql.JsonPath)
 					.build()
 			)
 			.subjectMap(
-				SubjectMapImpl.newBuilder()
+				CarmlSubjectMap.newBuilder()
 					.template("http://country.example.com/{country.name}")
 					.clazz(SecondExample.Country)
 					.build()
 			)
 			.predicateObjectMap(
-				PredicateObjectMapImpl.newBuilder()
+				CarmlPredicateObjectMap.newBuilder()
 					.predicateMap(
-						PredicateMapImpl.newBuilder()
+						CarmlPredicateMap.newBuilder()
 							.constant(SecondExample.officialLanguage)
 							.build()
 					)
 					.objectMap(
-							ObjectMapImpl.newBuilder()
+							CarmlObjectMap.newBuilder()
 							.reference("country.officialLanguage")
 							.build()
 					)
@@ -78,32 +72,32 @@ public class TestRdfMapperParentTriplesMap extends RmlLoader {
 			.build();
 		
 		Set<TriplesMap> expected = ImmutableSet.of(
-				TriplesMapImpl.newBuilder()
+				CarmlTriplesMap.newBuilder()
 					.logicalSource(
-						LogicalSourceImpl.newBuilder()
+						CarmlLogicalSource.newBuilder()
 							.source("joinBreakfast.xml")
 							.iterator("/breakfast-menu/food")
 							.referenceFormulation(Rdf.Ql.XPath)
 							.build()
 					)
 					.subjectMap(
-						SubjectMapImpl.newBuilder()
+						CarmlSubjectMap.newBuilder()
 							.template("http://food.example.com/{name}")
 							.clazz(SecondExample.breakfastItem)
 							.build()
 					)
 					.predicateObjectMap(
-						PredicateObjectMapImpl.newBuilder()
+						CarmlPredicateObjectMap.newBuilder()
 							.predicateMap(
-								PredicateMapImpl.newBuilder()
+								CarmlPredicateMap.newBuilder()
 									.constant(SecondExample.originatesFrom)
 									.build()
 							)
 							.objectMap(
-									RefObjectMapImpl.newBuilder()
+									CarmlRefObjectMap.newBuilder()
 									.parentTriplesMap(parentTriplesMap)
 									.condition(
-											JoinImpl.newBuilder()
+											CarmlJoin.newBuilder()
 											.child("/breakfast-menu/food/name")
 											.parent("$.country.name")
 											.build()
@@ -123,16 +117,16 @@ public class TestRdfMapperParentTriplesMap extends RmlLoader {
 	
 	@Test
 	public void testLoadMappingWithParentTriples() {
-		TriplesMap parentTriplesMap = TriplesMapImpl.newBuilder()
+		TriplesMap parentTriplesMap = CarmlTriplesMap.newBuilder()
 				.logicalSource(
-						LogicalSourceImpl.newBuilder()
+						CarmlLogicalSource.newBuilder()
 							.source("parentTriplesTestInput.json")
 							.iterator("$.colors.code")
 							.referenceFormulation(Rdf.Ql.JsonPath)
 							.build()
 					)
 				.subjectMap(
-						SubjectMapImpl.newBuilder()
+						CarmlSubjectMap.newBuilder()
 							.template(SecondExample.prefix + "ColorCode/{rgba[0]},{rgba[1]},{rgba[2]}, {rgba[3]}")
 							.clazz(SecondExample.RGBA)
 							.build()
@@ -140,40 +134,40 @@ public class TestRdfMapperParentTriplesMap extends RmlLoader {
 				.build();
 		
 		Set<TriplesMap> expected = ImmutableSet.of(
-				(TriplesMapImpl.newBuilder()
+				(CarmlTriplesMap.newBuilder()
 					.logicalSource(
-						LogicalSourceImpl.newBuilder()
+						CarmlLogicalSource.newBuilder()
 							.source("parentTriplesTestInput.json")
 							.iterator("$.colors")
 							.referenceFormulation(Rdf.Ql.JsonPath)
 							.build()
 					)
 					.subjectMap(
-						SubjectMapImpl.newBuilder()
+						CarmlSubjectMap.newBuilder()
 							.template(SecondExample.prefix + "Color/{color}")
 							.clazz(SecondExample.Color)
 							.build()
 					)
 					.predicateObjectMap(
-						PredicateObjectMapImpl.newBuilder()
+						CarmlPredicateObjectMap.newBuilder()
 							.predicateMap(
-								PredicateMapImpl.newBuilder()
+								CarmlPredicateMap.newBuilder()
 									.constant(SecondExample.hasCode)
 									.build()
 							)
 							.objectMap(
-									RefObjectMapImpl.newBuilder()
+									CarmlRefObjectMap.newBuilder()
 									.parentTriplesMap(
-											TriplesMapImpl.newBuilder()
+											CarmlTriplesMap.newBuilder()
 											.logicalSource(
-													LogicalSourceImpl.newBuilder()
+													CarmlLogicalSource.newBuilder()
 														.source("parentTriplesTestInput.json")
 														.iterator("$.colors.code")
 														.referenceFormulation(Rdf.Ql.JsonPath)
 														.build()
 												)
 											.subjectMap(
-													SubjectMapImpl.newBuilder()
+													CarmlSubjectMap.newBuilder()
 														.template(SecondExample.prefix + "ColorCode/{rgba[0]},{rgba[1]},{rgba[2]}, {rgba[3]}")
 														.clazz(SecondExample.RGBA)
 														.build()

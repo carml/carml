@@ -11,7 +11,7 @@ import com.taxonic.carml.vocab.Fnml;
 import com.taxonic.carml.vocab.Rml;
 import com.taxonic.carml.vocab.Rr;
 
-abstract public class TermMapImpl implements TermMap {
+abstract public class CarmlTermMap implements TermMap {
 
 	private String reference;
 	private String inverseExpression;
@@ -20,9 +20,9 @@ abstract public class TermMapImpl implements TermMap {
 	private Value constant;
 	private TriplesMap functionValue;
 
-	public TermMapImpl() {}
+	public CarmlTermMap() {}
 	
-	public TermMapImpl(
+	public CarmlTermMap(
 		String reference,
 		String inverseExpression,
 		String template,
@@ -70,7 +70,7 @@ abstract public class TermMapImpl implements TermMap {
 	}
 	
 	@RdfProperty(Fnml.functionValue)
-	@RdfType(TriplesMapImpl.class)
+	@RdfType(CarmlTriplesMap.class)
 	@Override
 	public TriplesMap getFunctionValue() {
 		return functionValue;
@@ -118,7 +118,7 @@ abstract public class TermMapImpl implements TermMap {
 		if (this == obj) return true;
 		if (obj == null) return false;
 		if (getClass() != obj.getClass()) return false;
-		TermMapImpl other = (TermMapImpl) obj;
+		CarmlTermMap other = (CarmlTermMap) obj;
 		if (constant == null) {
 			if (other.constant != null) return false;
 		}

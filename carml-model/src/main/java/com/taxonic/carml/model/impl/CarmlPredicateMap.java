@@ -6,11 +6,11 @@ import com.taxonic.carml.model.PredicateMap;
 import com.taxonic.carml.model.TermType;
 import com.taxonic.carml.model.TriplesMap;
 
-public class PredicateMapImpl extends TermMapImpl implements PredicateMap {
+public class CarmlPredicateMap extends CarmlTermMap implements PredicateMap {
 
-	public PredicateMapImpl() {}
+	public CarmlPredicateMap() {}
 	
-	public PredicateMapImpl(
+	public CarmlPredicateMap(
 		String reference,
 		String inverseExpression,
 		String template,
@@ -23,7 +23,7 @@ public class PredicateMapImpl extends TermMapImpl implements PredicateMap {
 
 	@Override
 	public String toString() {
-		return "PredicateMapImpl [getReference()=" + getReference() + ", getInverseExpression()="
+		return "CarmlPredicateMap [getReference()=" + getReference() + ", getInverseExpression()="
 			+ getInverseExpression() + ", getTemplate()=" + getTemplate() + ", getTermType()=" + getTermType()
 			+ ", getConstant()=" + getConstant() + ", getFunctionValue()=" + getFunctionValue() + "]";
 	}
@@ -41,7 +41,7 @@ public class PredicateMapImpl extends TermMapImpl implements PredicateMap {
 	}
 	
 	public static class Builder
-		extends com.taxonic.carml.model.impl.TermMapImpl.Builder {
+		extends CarmlTermMap.Builder {
 		
 		public Builder reference(String reference) {
 			super.reference(reference);
@@ -73,8 +73,8 @@ public class PredicateMapImpl extends TermMapImpl implements PredicateMap {
 			return this;
 		}
 		
-		public PredicateMapImpl build() {
-			return new PredicateMapImpl(
+		public CarmlPredicateMap build() {
+			return new CarmlPredicateMap(
 				getReference(),
 				getInverseExpression(),
 				getTemplate(),

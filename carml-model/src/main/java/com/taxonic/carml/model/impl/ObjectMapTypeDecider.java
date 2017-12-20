@@ -13,8 +13,8 @@ public class ObjectMapTypeDecider implements TypeDecider {
 	@Override
 	public Type decide(Model model, Resource resource) {
 		if (model.contains(resource, Rr.parentTriplesMap, null))
-			return RefObjectMapImpl.class;
-		return ObjectMapImpl.class;
+			return CarmlRefObjectMap.class;
+		return CarmlObjectMap.class;
 	}
 
 }
