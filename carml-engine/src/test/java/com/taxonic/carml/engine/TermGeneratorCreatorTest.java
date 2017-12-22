@@ -2,7 +2,7 @@ package com.taxonic.carml.engine;
 
 import com.taxonic.carml.engine.template.TemplateParser;
 import com.taxonic.carml.model.TermType;
-import com.taxonic.carml.model.impl.ObjectMapImpl;
+import com.taxonic.carml.model.impl.CarmlObjectMap;
 
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Value;
@@ -26,7 +26,7 @@ public class TermGeneratorCreatorTest {
 
 		RuntimeException exception = null;
 		try{
-			tgc.getObjectGenerator(new ObjectMapImpl("foo.bar", null, "foo{foo.bar}", TermType.LITERAL, null, null, null, null));
+			tgc.getObjectGenerator(new CarmlObjectMap("foo.bar", null, "foo{foo.bar}", TermType.LITERAL, null, null, null, null));
 
 			Assert.assertFalse("Should have thrown exception", true);
 		} catch(RuntimeException e) {
@@ -46,7 +46,7 @@ public class TermGeneratorCreatorTest {
 		TermGeneratorCreator tgc = new TermGeneratorCreator(f, baseIri, null, TemplateParser.build(), null);
 
 		String ref = "ref";
-		TermGenerator<Value> generator = tgc.getObjectGenerator(new ObjectMapImpl(ref, null, null, TermType.IRI, null, null, null, null));
+		TermGenerator<Value> generator = tgc.getObjectGenerator(new CarmlObjectMap(ref, null, null, TermType.IRI, null, null, null, null));
 
 		String relativeIriPart = "/relativeIriPortion";
 		EvaluateExpression evaluator = Mockito.mock(EvaluateExpression.class);
@@ -67,7 +67,7 @@ public class TermGeneratorCreatorTest {
 		TermGeneratorCreator tgc = new TermGeneratorCreator(f, baseIri, null, TemplateParser.build(), null);
 
 		String ref = "ref";
-		TermGenerator<Value> generator = tgc.getObjectGenerator(new ObjectMapImpl(ref, null, null, TermType.IRI, null, null, null, null));
+		TermGenerator<Value> generator = tgc.getObjectGenerator(new CarmlObjectMap(ref, null, null, TermType.IRI, null, null, null, null));
 
 		String absoluteIri = "http://foo.bar/absoluteIri";
 		EvaluateExpression evaluator = Mockito.mock(EvaluateExpression.class);
@@ -88,7 +88,7 @@ public class TermGeneratorCreatorTest {
 		TermGeneratorCreator tgc = new TermGeneratorCreator(f, baseIri, null, TemplateParser.build(), null);
 
 		String ref = "ref";
-		TermGenerator<Value> generator = tgc.getObjectGenerator(new ObjectMapImpl(ref, null, null, TermType.IRI, null, null, null, null));
+		TermGenerator<Value> generator = tgc.getObjectGenerator(new CarmlObjectMap(ref, null, null, TermType.IRI, null, null, null, null));
 
 		String relativeIriPart = "/relativeIriPortion";
 		EvaluateExpression evaluator = Mockito.mock(EvaluateExpression.class);

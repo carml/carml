@@ -7,8 +7,8 @@ import java.util.Arrays;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.taxonic.carml.engine.template.TemplateImpl.ExpressionSegment;
-import com.taxonic.carml.engine.template.TemplateImpl.Text;
+import com.taxonic.carml.engine.template.CarmlTemplate.ExpressionSegment;
+import com.taxonic.carml.engine.template.CarmlTemplate.Text;
 
 public class TemplateParserTest {
 
@@ -95,9 +95,9 @@ public class TemplateParserTest {
 		);
 	}
 	
-	private void testTemplate(String templateStr, TemplateImpl.Segment... expectedSegments) {
+	private void testTemplate(String templateStr, CarmlTemplate.Segment... expectedSegments) {
 		Template template = parser.parse(templateStr);
-		Template expected = TemplateImpl.build(Arrays.asList(expectedSegments));
+		Template expected = CarmlTemplate.build(Arrays.asList(expectedSegments));
 		assertEquals(
 			expected,
 			template

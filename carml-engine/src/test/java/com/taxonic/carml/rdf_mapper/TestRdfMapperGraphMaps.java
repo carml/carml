@@ -4,19 +4,14 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.Set;
 
+import com.taxonic.carml.model.impl.*;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.model.TriplesMap;
-import com.taxonic.carml.model.impl.GraphMapImpl;
-import com.taxonic.carml.model.impl.LogicalSourceImpl;
-import com.taxonic.carml.model.impl.ObjectMapImpl;
-import com.taxonic.carml.model.impl.PredicateMapImpl;
-import com.taxonic.carml.model.impl.PredicateObjectMapImpl;
-import com.taxonic.carml.model.impl.SubjectMapImpl;
-import com.taxonic.carml.model.impl.TriplesMapImpl;
+import com.taxonic.carml.model.impl.CarmlGraphMap;
 import com.taxonic.carml.vocab.Rdf;
 
 public class TestRdfMapperGraphMaps extends RmlLoader {
@@ -41,34 +36,34 @@ public class TestRdfMapperGraphMaps extends RmlLoader {
 	@Test
 	public void testLoadMappingWithGraphMapsPredicateObject() {
 		Set<TriplesMap> expected = ImmutableSet.of(
-				TriplesMapImpl.newBuilder()
+				CarmlTriplesMap.newBuilder()
 					.logicalSource(
-						LogicalSourceImpl.newBuilder()
+						CarmlLogicalSource.newBuilder()
 							.source("simple2TestInput.json")
 							.iterator("$.Child")
 							.referenceFormulation(Rdf.Ql.JsonPath)
 							.build()
 					)
 					.subjectMap(
-						SubjectMapImpl.newBuilder()
+						CarmlSubjectMap.newBuilder()
 							.template(SecondExample.prefix + "Child/{first}/{last}")
 							.clazz(SecondExample.Child)
 							.build()
 					)
 					.predicateObjectMap(
-						PredicateObjectMapImpl.newBuilder()
+						CarmlPredicateObjectMap.newBuilder()
 						.predicateMap(
-							PredicateMapImpl.newBuilder()
+							CarmlPredicateMap.newBuilder()
 							.constant(SecondExample.hasBirthday)
 							.build()
 						)
 						.objectMap(
-							ObjectMapImpl.newBuilder()
+							CarmlObjectMap.newBuilder()
 							.reference("birthday")
 							.build()
 						)
 						.graphMap(
-							GraphMapImpl.newBuilder()
+							CarmlGraphMap.newBuilder()
 							.template("http://example.com/graphID/{BSN}")
 							.build()
 						)
@@ -83,20 +78,20 @@ public class TestRdfMapperGraphMaps extends RmlLoader {
 	@Test
 	public void testLoadMappingWithGraphMapsSubjectB() {
 		Set<TriplesMap> expected = ImmutableSet.of(
-				TriplesMapImpl.newBuilder()
+				CarmlTriplesMap.newBuilder()
 					.logicalSource(
-						LogicalSourceImpl.newBuilder()
+						CarmlLogicalSource.newBuilder()
 							.source("simple2TestInput.json")
 							.iterator("$.Child")
 							.referenceFormulation(Rdf.Ql.JsonPath)
 							.build()
 					)
 					.subjectMap(
-						SubjectMapImpl.newBuilder()
+						CarmlSubjectMap.newBuilder()
 							.template(SecondExample.prefix + "Child/{first}/{last}")
 							.clazz(SecondExample.Child)
 							.graphMap(
-									GraphMapImpl.newBuilder()
+									CarmlGraphMap.newBuilder()
 									.constant(SecondExample.mainGraph)
 									.build()
 							)
@@ -111,20 +106,20 @@ public class TestRdfMapperGraphMaps extends RmlLoader {
 	@Test
 	public void testLoadMappingWithGraphMapsSubjectA() {
 		Set<TriplesMap> expected = ImmutableSet.of(
-				TriplesMapImpl.newBuilder()
+				CarmlTriplesMap.newBuilder()
 					.logicalSource(
-						LogicalSourceImpl.newBuilder()
+						CarmlLogicalSource.newBuilder()
 							.source("simple2TestInput.json")
 							.iterator("$.Child")
 							.referenceFormulation(Rdf.Ql.JsonPath)
 							.build()
 					)
 					.subjectMap(
-						SubjectMapImpl.newBuilder()
+						CarmlSubjectMap.newBuilder()
 							.template(SecondExample.prefix + "Child/{first}/{last}")
 							.clazz(SecondExample.Child)
 							.graphMap(
-									GraphMapImpl.newBuilder()
+									CarmlGraphMap.newBuilder()
 									.template("http://example.com/graphID/{BSN}")
 									.build()
 							)

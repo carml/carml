@@ -6,11 +6,11 @@ import com.taxonic.carml.model.GraphMap;
 import com.taxonic.carml.model.TermType;
 import com.taxonic.carml.model.TriplesMap;
 
-public class GraphMapImpl extends TermMapImpl implements GraphMap{
+public class CarmlGraphMap extends CarmlTermMap implements GraphMap{
 
-	public GraphMapImpl() {}
+	public CarmlGraphMap() {}
 	
-	public GraphMapImpl(
+	public CarmlGraphMap(
 		String reference,
 		String inverseExpression,
 		String template,
@@ -23,7 +23,7 @@ public class GraphMapImpl extends TermMapImpl implements GraphMap{
 
 	@Override
 	public String toString() {
-		return "GraphMapImpl [getReference()=" + getReference() + ", getInverseExpression()="
+		return "CarmlGraphMap [getReference()=" + getReference() + ", getInverseExpression()="
 			+ getInverseExpression() + ", getTemplate()=" + getTemplate() + ", getTermType()=" + getTermType()
 			+ ", getConstant()=" + getConstant() + ", getFunctionValue()=" + getFunctionValue() + "]";
 	}
@@ -41,7 +41,7 @@ public class GraphMapImpl extends TermMapImpl implements GraphMap{
 	}
 	
 	public static class Builder
-		extends com.taxonic.carml.model.impl.TermMapImpl.Builder {
+		extends CarmlTermMap.Builder {
 		
 		public Builder reference(String reference) {
 			super.reference(reference);
@@ -68,8 +68,8 @@ public class GraphMapImpl extends TermMapImpl implements GraphMap{
 			return this;
 		}
 		
-		public GraphMapImpl build() {
-			return new GraphMapImpl(
+		public CarmlGraphMap build() {
+			return new CarmlGraphMap(
 				getReference(),
 				getInverseExpression(),
 				getTemplate(),
