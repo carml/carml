@@ -144,7 +144,7 @@ public class RdfObjectLoaderTest {
 	public void personLoader_givenPersonSelector_shouldLoadFourPeople() 
 			throws RDFParseException, UnsupportedRDFormatException, IOException {
 
-		Set<Person> people = RdfObjectLoader.load(selectPersons, Person.class, model);
+		Set<Person> people = RdfObjectLoader.newBuilder(selectPersons, Person.class).model(model).build().load();
 		assertThat("4 people should be loaded", people, hasSize(4));
 	}
 	
@@ -152,7 +152,10 @@ public class RdfObjectLoaderTest {
 	public void personLoader_givenPersonSelector_shouldLoadFourPeopleOneWithAddress() 
 			throws RDFParseException, UnsupportedRDFormatException, IOException {
 		
-		Set<Person> people = RdfObjectLoader.load(selectPersons, Person.class, model);
+		Set<Person> people = RdfObjectLoader.newBuilder(selectPersons, Person.class)
+				                            .model(model)
+				                            .build()
+				                            .load();
 		int peopleWithAddr = 
 			(int) people.stream()
 				.filter(p -> p.getAddress() != null)
@@ -165,7 +168,7 @@ public class RdfObjectLoaderTest {
 	public void addressLoader_givenAddressSelector_shouldLoadOneAddress() 
 			throws RDFParseException, UnsupportedRDFormatException, IOException {
 
-		Set<PostalAddress> addresses = RdfObjectLoader.load(selectAddresses, PostalAddress.class, model);
+		Set<PostalAddress> addresses = RdfObjectLoader.newBuilder(selectAddresses, PostalAddress.class).model(model).build().load();
 		assertThat("1 address should be loaded", addresses.size(), is(1));
 	}
 	
@@ -173,20 +176,18 @@ public class RdfObjectLoaderTest {
 	public void personLoader_givenAllResourcesSelector_shouldLoadEightPeople() 
 			throws RDFParseException, UnsupportedRDFormatException, IOException {
 
-		Set<Person> people = RdfObjectLoader.load(selectAllResources, Person.class, model);
+		Set<Person> people = RdfObjectLoader.newBuilder(selectAllResources, Person.class).model(model).build().load();
 		assertThat("", people, hasSize(8));
 	}
 	
 	@Test
 	public void repoLoader_givenContextAndPersonFilter_shouldNotLoadPersonStamentsInOtherContexts() {
 		Set<Person> people = 
-				RdfObjectLoader.load(
-					selectPersons, 
-					Person.class, 
-					repo,
-					VF.createIRI(CONTEXT_C)
-				);
-		
+				RdfObjectLoader.newBuilder(selectPersons, Person.class)
+						       .model(repo, VF.createIRI(CONTEXT_C))
+						       .build()
+						       .load();
+
 		assertThat("3 person resources should be created", people, hasSize(3));
 	}
 	
@@ -206,7 +207,7 @@ public class RdfObjectLoaderTest {
 				+ "}";
 		
 		Set<Person> people = 
-				RdfObjectLoader.load(selectAllResources, Person.class, repo, sparqlQuery);
+				RdfObjectLoader.newBuilder(selectAllResources, Person.class).model(repo, sparqlQuery).build().load();
 		
 		assertThat("1 person resource should be created", people, hasSize(1));
 		
@@ -225,7 +226,7 @@ public class RdfObjectLoaderTest {
 	public void addressLoader_givenAddressSelectorAndUpperCaseAdapter_shouldLoadAddressWithUppercaseLiterals() 
 			throws RDFParseException, UnsupportedRDFormatException, IOException {
 		
-		Set<PostalAddress> addresses = RdfObjectLoader.load(selectAddresses, PostalAddress.class, model, uppercaser);		
+		Set<PostalAddress> addresses = RdfObjectLoader.newBuilder(selectAddresses, PostalAddress.class).modelAdapter(uppercaser).model(model).build().load();
 		PostalAddress address = Iterables.getOnlyElement(addresses);
 		
 		assertThat("", address.getStreetAddress(), is("1700 KRAFT DRIVE, SUITE 2408"));

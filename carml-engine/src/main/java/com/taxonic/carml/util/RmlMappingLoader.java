@@ -50,16 +50,14 @@ public class RmlMappingLoader {
 		// TODO: PM do we really need IoUtils?
 		Model originalModel = IoUtils.parse(input, rdfFormat);
 		return
-			ImmutableSet.<TriplesMap>copyOf(
-				RdfObjectLoader.load(
-					selectTriplesMaps, 
-					CarmlTriplesMap.class,
-					originalModel, 
-					shorthandExpander,
-					this::addTermTypes,
-					m -> m.addDecidableType(Rdf.Carml.Stream, CarmlStream.class)
-				)
-			);
+				ImmutableSet.<TriplesMap>copyOf(
+						RdfObjectLoader.newBuilder(selectTriplesMaps, CarmlTriplesMap.class)
+								       .modelAdapter(shorthandExpander)
+                                       .model(originalModel)
+                                       .populateCache(this::addTermTypes)
+                                       .configureMapper(m -> m.addDecidableType(Rdf.Carml.Stream, CarmlStream.class))
+                                       .build()
+                                       .load());
 	}
 	
 	private void addTermTypes(MappingCache cache) {
