@@ -45,15 +45,15 @@ public class RdfObjectLoaderTest {
 	private static final String REPO_CONTEXTS = "Person-Split.trig";
 	private static final String EX = "http://example.org/";
 	private static final String CONTEXT_C = EX + "C" ;
-	
+
 	private Repository repo;
-	
+
 	private Model model;
-	
+
 	private static Function<Model, Set<Resource>> selectAllResources = 
 			model -> ImmutableSet.copyOf(model.subjects());
-		
-	
+
+
 	private static Function<Model, Set<Resource>> selectPersons = 
 			model ->
 				ImmutableSet.copyOf(
@@ -61,7 +61,7 @@ public class RdfObjectLoaderTest {
 					.filter(null, VF.createIRI(Person.SCHEMAORG_NAME), null)
 					.subjects()
 				);
-	
+
 	private static Function<Model, Set<Resource>> selectAddresses = 
 			model -> 
 				ImmutableSet.copyOf(
@@ -73,10 +73,10 @@ public class RdfObjectLoaderTest {
 	private static UnaryOperator<Model> uppercaser = 
 			model ->
 				model.stream()
-				.map(st -> 	{
+				.map(st -> {
 						if (st.getObject() instanceof Literal) {
 							st = upperCaseStatementLiteral(st);
-						}						
+						}
 						return st;
 				 	}
 				)
@@ -95,33 +95,33 @@ public class RdfObjectLoaderTest {
 				)
 			);
 	}
-	
+
 	@Before
 	public void loadData() {
 		
 		try (InputStream input = 
 				RdfObjectLoaderTest.class.getResourceAsStream("Person-and-Event.jsonld")) {
-			
+
 			model = Rio.parse(input, "", RDFFormat.JSONLD);
 		} catch(IOException e) {
 			throw new RuntimeException(e);
 		}
-		
 
-		
+
+
 		repo = new SailRepository(new MemoryStore());
 		repo.initialize();
 		
-		try (RepositoryConnection conn = repo.getConnection()) {			
+		try (RepositoryConnection conn = repo.getConnection()) {
 			
 			try (InputStream input = 
 					RdfObjectLoaderTest.class.getResourceAsStream(REPO_CONTEXTS)) {
-				
+
 				conn.add(input, "", RDFFormat.TRIG);
 			} catch(IOException e) {
 				throw new RuntimeException(e);
 			}
-			
+
 			try (RepositoryResult<Statement> result = conn.getStatements(null, null, null)) {
 				assertThat(
 					"The in-memory store may not be empty",  
@@ -131,7 +131,6 @@ public class RdfObjectLoaderTest {
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
-			
 		}
 	}
 	
@@ -139,7 +138,7 @@ public class RdfObjectLoaderTest {
 	public void shutdownRepo() {
 		repo.shutDown();
 	}
-		
+
 	@Test
 	public void personLoader_givenPersonSelector_shouldLoadFourPeople() 
 			throws RDFParseException, UnsupportedRDFormatException, IOException {
@@ -147,23 +146,23 @@ public class RdfObjectLoaderTest {
 		Set<Person> people = RdfObjectLoader.newBuilder(selectPersons, Person.class).model(model).build().load();
 		assertThat("4 people should be loaded", people, hasSize(4));
 	}
-	
+
 	@Test
 	public void personLoader_givenPersonSelector_shouldLoadFourPeopleOneWithAddress() 
 			throws RDFParseException, UnsupportedRDFormatException, IOException {
-		
+
 		Set<Person> people = RdfObjectLoader.newBuilder(selectPersons, Person.class)
-				                            .model(model)
-				                            .build()
-				                            .load();
+											.model(model)
+											.build()
+											.load();
 		int peopleWithAddr = 
 			(int) people.stream()
 				.filter(p -> p.getAddress() != null)
 				.count();
-		
+
 		assertThat("1 person with address should be loaded", peopleWithAddr, is(1));
 	}
-	
+
 	@Test
 	public void addressLoader_givenAddressSelector_shouldLoadOneAddress() 
 			throws RDFParseException, UnsupportedRDFormatException, IOException {
@@ -171,7 +170,7 @@ public class RdfObjectLoaderTest {
 		Set<PostalAddress> addresses = RdfObjectLoader.newBuilder(selectAddresses, PostalAddress.class).model(model).build().load();
 		assertThat("1 address should be loaded", addresses.size(), is(1));
 	}
-	
+
 	@Test
 	public void personLoader_givenAllResourcesSelector_shouldLoadEightPeople() 
 			throws RDFParseException, UnsupportedRDFormatException, IOException {
@@ -179,7 +178,7 @@ public class RdfObjectLoaderTest {
 		Set<Person> people = RdfObjectLoader.newBuilder(selectAllResources, Person.class).model(model).build().load();
 		assertThat("", people, hasSize(8));
 	}
-	
+
 	@Test
 	public void repoLoader_givenContextAndPersonFilter_shouldNotLoadPersonStamentsInOtherContexts() {
 		Set<Person> people = 
@@ -190,7 +189,7 @@ public class RdfObjectLoaderTest {
 
 		assertThat("3 person resources should be created", people, hasSize(3));
 	}
-	
+
 	@Test
 	public void repoLoader_givenQuery_shouldLoadStamentsCorrespondingToQuery() {
 		String sparqlQuery = ""
@@ -205,14 +204,14 @@ public class RdfObjectLoaderTest {
 				+ "    ?s <http://schema.org/gender> ?gender "
 				+ "  } "
 				+ "}";
-		
+
 		Set<Person> people = 
 				RdfObjectLoader.newBuilder(selectAllResources, Person.class).model(repo, sparqlQuery).build().load();
-		
+
 		assertThat("1 person resource should be created", people, hasSize(1));
-		
+
 		Person person = Iterables.getOnlyElement(people);
-		
+
 		assertThat("", person.getName(), is("Manu Sporny"));
 		assertThat("", person.getGender(), is("male"));
 		assertThat("", person.getJobTitle(), nullValue());
@@ -221,20 +220,20 @@ public class RdfObjectLoaderTest {
 		assertThat("", person.getColleagues(), empty());
 
 	}
-	
+
 	@Test
 	public void addressLoader_givenAddressSelectorAndUpperCaseAdapter_shouldLoadAddressWithUppercaseLiterals() 
 			throws RDFParseException, UnsupportedRDFormatException, IOException {
-		
+
 		Set<PostalAddress> addresses = RdfObjectLoader.newBuilder(selectAddresses, PostalAddress.class).modelAdapter(uppercaser).model(model).build().load();
 		PostalAddress address = Iterables.getOnlyElement(addresses);
-		
+
 		assertThat("", address.getStreetAddress(), is("1700 KRAFT DRIVE, SUITE 2408"));
 		assertThat("", address.getAddressLocality(), is("BLACKSBURG"));
 		assertThat("", address.getAddressRegion(), is("VA"));
 		assertThat("", address.getPostalCode(), is("24060"));
 	}
 
-	
+
 	//TODO: PM: add test for populateCache
 }

@@ -71,10 +71,10 @@ public class RdfObjectLoader <T> {
 	}
 
 	public static class BuilderModel<T> implements BuilderOptionModel,
-			                                       BuilderOptionModelAdaptorOrModel,
-			                                       BuilderOptionBuild,
-			                                       BuilderOptionPopulateCacheOrBuild,
-											       BuilderOptionConfigureMapper {
+												   BuilderOptionModelAdaptorOrModel,
+												   BuilderOptionBuild,
+												   BuilderOptionPopulateCacheOrBuild,
+												   BuilderOptionConfigureMapper {
 
 		private Function<Model, Set<Resource>> resourceSelector;
 		private Class<T> clazz;
@@ -117,13 +117,13 @@ public class RdfObjectLoader <T> {
 		}
 
 		@Override
-        public BuilderOptionConfigureMapper populateCache(Consumer<MappingCache> populateCache) {
+		public BuilderOptionConfigureMapper populateCache(Consumer<MappingCache> populateCache) {
 			this.populateCache = requireNonNull(populateCache, POPULATE_CACHE_MSG);
 			return this;
 		}
 
 		@Override
-        public BuilderOptionBuild configureMapper(Consumer<Mapper> configureMapper) {
+		public BuilderOptionBuild configureMapper(Consumer<Mapper> configureMapper) {
 			this.configureMapper  = configureMapper;
 			return this;
 		}
@@ -155,10 +155,10 @@ public class RdfObjectLoader <T> {
 	}
 
 	public interface BuilderOptionPopulateCacheOrBuild extends BuilderOptionBuild {
-        BuilderOptionConfigureMapper populateCache(Consumer<MappingCache> populateCache);
-    }
+		BuilderOptionConfigureMapper populateCache(Consumer<MappingCache> populateCache);
+	}
 
-    public interface BuilderOptionConfigureMapper {
+	 interface BuilderOptionConfigureMapper {
 		BuilderOptionBuild configureMapper(Consumer<Mapper> configureMapper);
 	}
 }
