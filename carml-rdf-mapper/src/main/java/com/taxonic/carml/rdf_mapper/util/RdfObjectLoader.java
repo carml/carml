@@ -15,7 +15,7 @@ import com.taxonic.carml.rdf_mapper.Mapper;
 import com.taxonic.carml.rdf_mapper.impl.CarmlMapper;
 import com.taxonic.carml.rdf_mapper.impl.MappingCache;
 
-public class RdfObjectLoader <T> {
+public class RdfObjectLoader<T> {
 
 	private Function<Model, Set<Resource>> resourceSelector;
 	private Class<T> clazz;
@@ -128,8 +128,8 @@ public class RdfObjectLoader <T> {
 			return this;
 		}
 
-		public RdfObjectLoader build() {
-			return new RdfObjectLoader(resourceSelector,
+		public RdfObjectLoader<T> build() {
+			return new RdfObjectLoader<>(resourceSelector,
 					clazz,
 					model,
 					modelAdapter,
@@ -158,7 +158,7 @@ public class RdfObjectLoader <T> {
 		BuilderOptionConfigureMapper populateCache(Consumer<MappingCache> populateCache);
 	}
 
-	 interface BuilderOptionConfigureMapper {
+	public interface BuilderOptionConfigureMapper {
 		BuilderOptionBuild configureMapper(Consumer<Mapper> configureMapper);
 	}
 }
