@@ -19,7 +19,7 @@ import com.taxonic.carml.model.SubjectMap;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.rdf_mapper.util.ImmutableCollectors;
 import com.taxonic.carml.vocab.Rdf;
-
+import com.taxonic.carml.vocab.Rdf.Fno;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
@@ -287,6 +287,8 @@ public class RmlMapper {
 	public Model map(Set<TriplesMap> mapping) {
 		Model model = new LinkedHashModel();
 		mapping.stream()
+			// TODO: Removal of function execution triples should probably be 
+			// arranged when executing functions
 			.filter(m -> !isTriplesMapOnlyUsedAsFunctionValue(m, mapping))
 			.forEach(m -> map(m, model));
 		this.sourceManager.clear();
@@ -300,10 +302,15 @@ public class RmlMapper {
 	}
 
 	private boolean isTriplesMapUsedAsFunctionValue(TriplesMap map, Set<TriplesMap> mapping) {
-
-		// TODO
-
-		return false;
+		return map.getPredicateObjectMaps().stream()
+		.flatMap(m -> m.getPredicateMaps().stream())
+		.anyMatch(p -> {
+			if (p.getConstant() == null) {
+				return false;
+			}
+			return p.getConstant().equals(Fno.executes);
+		}) &&
+		functions.size() > 0;
 	}
 
 	private boolean isTriplesMapUsedInRefObjectMap(TriplesMap map, Set<TriplesMap> mapping) {
