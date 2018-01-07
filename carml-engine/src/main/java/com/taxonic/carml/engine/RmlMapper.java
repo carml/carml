@@ -16,10 +16,10 @@ import com.taxonic.carml.model.PredicateMap;
 import com.taxonic.carml.model.PredicateObjectMap;
 import com.taxonic.carml.model.RefObjectMap;
 import com.taxonic.carml.model.SubjectMap;
+import com.taxonic.carml.model.TermMap;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.rdf_mapper.util.ImmutableCollectors;
 import com.taxonic.carml.vocab.Rdf;
-import com.taxonic.carml.vocab.Rdf.Fno;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
@@ -34,6 +34,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -286,48 +287,62 @@ public class RmlMapper {
 
 	public Model map(Set<TriplesMap> mapping) {
 		Model model = new LinkedHashModel();
+		
+		Set<TriplesMap> functionValueTriplesMaps = getTermMaps(mapping)
+				.filter(t -> t.getFunctionValue() != null)
+				.map(TermMap::getFunctionValue)
+				.collect(ImmutableCollectors.toImmutableSet());
+		
+		Set<TriplesMap> refObjectTriplesMaps = getAllTriplesMapsUsedInRefObjectMap(mapping);
+		
 		mapping.stream()
-			// TODO: Removal of function execution triples should probably be 
-			// arranged when executing functions
-			.filter(m -> !isTriplesMapOnlyUsedAsFunctionValue(m, mapping))
+			.filter(m -> !functionValueTriplesMaps.contains(m) ||
+				refObjectTriplesMaps.contains(m))
 			.forEach(m -> map(m, model));
 		this.sourceManager.clear();
 		return model;
 	}
-
-	private boolean isTriplesMapOnlyUsedAsFunctionValue(TriplesMap map, Set<TriplesMap> mapping) {
-		return
-			isTriplesMapUsedAsFunctionValue(map, mapping) &&
-			!isTriplesMapUsedInRefObjectMap(map, mapping);
+	
+	private Stream<TermMap> getTermMaps(Set<TriplesMap> mapping) {
+		return mapping.stream()
+				.flatMap(m ->
+					Stream.concat (
+						m.getPredicateObjectMaps()
+							.stream()
+							.flatMap(p ->
+								Stream.concat(
+									p.getGraphMaps().stream(),
+									Stream.concat(
+										p.getPredicateMaps().stream(),
+										p.getObjectMaps().stream()
+											.filter(ObjectMap.class::isInstance)
+											.map(ObjectMap.class::cast)
+									)
+								)
+							),
+						Stream.concat(
+							Stream.of(m.getSubjectMap()),
+							m.getSubjectMap() != null ?
+									m.getSubjectMap().getGraphMaps().stream() :
+									Stream.empty()
+						)
+					)
+				)
+				.filter(Objects::nonNull);
 	}
+	
+	private Set<TriplesMap> getAllTriplesMapsUsedInRefObjectMap(Set<TriplesMap> mapping) {
+		return mapping.stream()
+				// get all referencing object maps
+				.flatMap(m -> m.getPredicateObjectMaps().stream())
+				.flatMap(p -> p.getObjectMaps().stream())
+				.filter(o -> o instanceof RefObjectMap)
+				.map(o -> (RefObjectMap) o)
 
-	private boolean isTriplesMapUsedAsFunctionValue(TriplesMap map, Set<TriplesMap> mapping) {
-		return map.getPredicateObjectMaps().stream()
-		.flatMap(m -> m.getPredicateMaps().stream())
-		.anyMatch(p -> {
-			if (p.getConstant() == null) {
-				return false;
-			}
-			return p.getConstant().equals(Fno.executes);
-		}) &&
-		functions.size() > 0;
-	}
-
-	private boolean isTriplesMapUsedInRefObjectMap(TriplesMap map, Set<TriplesMap> mapping) {
-		return
-		mapping.stream()
-
-			// get all referencing object maps
-			.flatMap(m -> m.getPredicateObjectMaps().stream())
-			.flatMap(p -> p.getObjectMaps().stream())
-			.filter(o -> o instanceof RefObjectMap)
-			.map(o -> (RefObjectMap) o)
-
-			// check that no referencing object map
-			// has 'map' as its parent triples map
-			.map(o -> o.getParentTriplesMap())
-			.anyMatch(map::equals);
-
+				// check that no referencing object map
+				// has 'map' as its parent triples map
+				.map(RefObjectMap::getParentTriplesMap)
+				.collect(ImmutableCollectors.toImmutableSet());
 	}
 
 	private void map(TriplesMap triplesMap, Model model) {
