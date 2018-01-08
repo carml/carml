@@ -261,17 +261,12 @@ class TermGeneratorCreator {
 			ObjectMap objectMap = (ObjectMap) map;
 			if (
 				isReferenceTermMap(map) ||
-				isFunctionValueTermMap(map) ||
 				objectMap.getLanguage() != null ||
 				objectMap.getDatatype() != null
 			)
 				return TermType.LITERAL;
 		}
 		return TermType.IRI;
-	}
-
-	private boolean isFunctionValueTermMap(TermMap map) {
-		return map.getFunctionValue() != null;
 	}
 	
 	private boolean isReferenceTermMap(TermMap map) {
