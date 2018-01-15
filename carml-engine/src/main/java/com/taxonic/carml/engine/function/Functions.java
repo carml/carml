@@ -139,5 +139,9 @@ public class Functions {
 			}
 		};
 	}
+	
+	public int size() {
+		return functions.size();
+	}
 		
 }
