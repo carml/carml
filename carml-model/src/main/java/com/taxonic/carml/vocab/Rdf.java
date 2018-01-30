@@ -107,8 +107,13 @@ public class Rdf {
 		public static final IRI
 		
 			Stream = iri("Stream"),
-			streamName = iri("streamName");
+			streamName = iri("streamName"),
+		
+			MultiObjectMap = iri("MultiObjectMap"),
+			multiReference = iri("multiReference"),
+			multiTemplate = iri("multiTemplate"),
+			multiFunctionValue = iri("multiFunctionValue");
 		
 	}	
-		
+	
 }

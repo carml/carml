@@ -7,6 +7,11 @@ public class Carml {
 		prefix = "http://carml.taxonic.com/carml/",
 		
 		Stream = prefix + "Stream",
-		streamName = prefix + "streamName";
+		streamName = prefix + "streamName",
+	
+		MultiObjectMap = prefix + "MultiObjectMap",
+		multiReference = prefix + "multiReference",
+		multiTemplate = prefix + "multiTemplate",
+		multiFunctionValue = prefix + "multiFunctionValue";
 
 }
