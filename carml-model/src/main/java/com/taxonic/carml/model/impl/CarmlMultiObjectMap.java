@@ -93,36 +93,6 @@ public class CarmlMultiObjectMap extends CarmlMultiTermMap implements MultiObjec
 		
 		private IRI datatype;
 		private String language;
-
-		public Builder reference(String reference) {
-			super.reference(reference);
-			return this;
-		}
-		
-		public Builder inverseExpression(String inverseExpression) {
-			super.inverseExpression(inverseExpression);
-			return this;
-		}
-		
-		public Builder template(String template) {
-			super.template(template);
-			return this;
-		}
-		
-		public Builder termType(TermType termType) {
-			super.termType(termType);
-			return this;
-		}
-		
-		public Builder constant(Value constant) {
-			super.constant(constant);
-			return this;
-		}
-		
-		public Builder functionValue(TriplesMap functionValue) {
-			super.functionValue(functionValue);
-			return this;
-		}
 		
 		public Builder datatype(IRI datatype) {
 			this.datatype = datatype;

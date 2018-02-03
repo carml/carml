@@ -3,6 +3,7 @@ package com.taxonic.carml.model.impl;
 import com.taxonic.carml.model.TermType;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
+import com.taxonic.carml.rdf_mapper.annotations.RdfType;
 import com.taxonic.carml.vocab.Carml;
 import org.eclipse.rdf4j.model.Value;
 
@@ -24,19 +25,20 @@ public abstract class CarmlMultiTermMap extends CarmlTermMap {
 	@RdfProperty(Carml.multiReference)
 	@Override
 	public String getReference() {
-		return super.getReference();
+		return reference;
 	}
 	
 	@RdfProperty(Carml.multiTemplate)
 	@Override
 	public String getTemplate() {
-		return super.getTemplate();
+		return template;
 	}
 	
 	@RdfProperty(Carml.multiFunctionValue)
+	@RdfType(CarmlTriplesMap.class)
 	@Override
 	public TriplesMap getFunctionValue() {
-		return super.getFunctionValue();
+		return functionValue;
 	}
-	
+
 }

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mydata xmlns:xlink="http://www.w3.org/1999/xlink">
+  <document id="doc1">
+    <title>AAA</title>
+  </document>
+  <document id="doc2">
+    <title>BBB</title>
+  </document>
+  <person id="p1">
+    <name>Jantje</name>
+    <authorof type="simple" href="doc1"/>
+  </person>
+  <person id="p2">
+    <name>Pietje</name>
+    <authorof type="simple" href="doc1"/>
+    <authorof type="simple" href="doc2"/>
+  </person>
+</mydata>

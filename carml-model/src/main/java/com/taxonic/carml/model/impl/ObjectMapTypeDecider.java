@@ -14,10 +14,15 @@ public class ObjectMapTypeDecider implements TypeDecider {
 	@Override
 	public Type decide(Model model, Resource resource) {
 		if (model.contains(resource, Rr.parentTriplesMap, null)) {
-			return CarmlRefObjectMap.class;
+			if (model.contains(resource, Carml.multiJoinCondition, null)) {
+				return CarmlMultiRefObjectMap.class;
+			} else {
+				return CarmlRefObjectMap.class;
+			}
 		} else if (isMultiObjectMap(model, resource)) {
 			return CarmlMultiObjectMap.class;
 		}
+		
 		return CarmlObjectMap.class;
 	}
 	
@@ -27,6 +32,5 @@ public class ObjectMapTypeDecider implements TypeDecider {
 				model.contains(resource, Carml.multiTemplate, null) ||
 				model.contains(resource, Carml.multiFunctionValue, null);
 	}
-
+	
 }
-

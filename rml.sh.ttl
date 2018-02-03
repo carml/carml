@@ -114,6 +114,27 @@ rmlsh:TermMapShape
 				sh:maxCount 1 ;
 			]
 		]
+		[
+			sh:property [
+				sh:path carml:multiReference ;
+				sh:minCount 1 ;
+				sh:maxCount 1 ;
+			]
+		]
+		[
+			sh:property [
+				sh:path carml:multiTemplate ;
+				sh:minCount 1 ;
+				sh:maxCount 1 ;
+			]
+		]
+		[
+			sh:property [
+				sh:path carml:multiFunctionValue ;
+				sh:minCount 1 ;
+				sh:maxCount 1 ;
+			]
+		]
 	) ;
 .
 
@@ -220,7 +241,7 @@ rmlsh:RefObjectMapShape
 	sh:message "Referencing object map is ill-formed" ;
 
 	sh:targetClass rr:RefObjectMap ;
-	sh:targetSubjectsOf rr:parentTriplesMap, rr:joinCondition ;
+	sh:targetSubjectsOf rr:parentTriplesMap, rr:joinCondition, carml:multiJoinCondition ;
 	sh:targetObjectsOf rr:refObjectMap ;
 
 	sh:property

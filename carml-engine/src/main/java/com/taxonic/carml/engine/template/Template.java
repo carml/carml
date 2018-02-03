@@ -12,7 +12,7 @@ public interface Template {
 	
 	interface Builder {
 		
-		Builder bind(Expression expression, Function<Expression, Optional<String>> templateValue);
+		Builder bind(Expression expression, Function<Expression, Optional<Object>> templateValue);
 		
 		Optional<Object> create();
 		

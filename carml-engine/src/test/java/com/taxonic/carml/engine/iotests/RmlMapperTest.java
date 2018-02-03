@@ -113,6 +113,16 @@ public class RmlMapperTest extends MappingTest {
 	}
 
 	@Test
+	public void testListReturningFunction() {
+		testMapping(
+			"RmlMapper",
+			"RmlMapper/test18/listReturningFunctionMapping.rml.ttl",
+			"RmlMapper/test18/listReturningFunctionMapping.output.ttl",
+			m -> m.addFunctions(new RmlFunctions())
+		);
+	}
+
+	@Test
 	public void testSeparateMapsMapping() {
 		testMapping("RmlMapper",
 				"RmlMapper/test10/separateMapsMapping.rml.ttl",

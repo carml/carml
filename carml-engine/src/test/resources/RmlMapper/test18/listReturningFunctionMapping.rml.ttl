@@ -1,0 +1,38 @@
+@prefix rr: <http://www.w3.org/ns/r2rml#> .
+@prefix rml: <http://semweb.mmlab.be/ns/rml#> .
+@prefix ql: <http://semweb.mmlab.be/ns/ql#> .
+@prefix fno: <http://semweb.datasciencelab.be/ns/function#> .
+@prefix ex: <http://example.com/> .
+@prefix carml: <http://carml.taxonic.com/carml/> .
+@prefix : <http://example.com/mapping/> .
+
+@prefix fnml:   <http://semweb.mmlab.be/ns/fnml#> .
+
+
+:LogicalSource
+  rml:source "simpleTestInput.json" ;
+  rml:referenceFormulation ql:JSONPath ;
+  rml:iterator "$"
+.
+
+:TriplesMap
+  rml:logicalSource :LogicalSource ;
+  rr:subject ex:simpleSubject ;
+  rr:predicateObjectMap [
+    rr:predicate ex:repeatingProperty ;
+    rr:objectMap [
+      carml:multiFunctionValue [
+        rml:logicalSource :LogicalSource ;
+        rr:subjectMap [
+          rr:template "functionExec";
+          rr:termType rr:BlankNode ;
+          rr:class fno:Execution ;
+        ] ;
+        rr:predicateObjectMap [
+          rr:predicate fno:executes ;
+          rr:object ex:constantListFunction ;
+        ] ;
+      ] ;
+    ] ;
+  ] ;
+.

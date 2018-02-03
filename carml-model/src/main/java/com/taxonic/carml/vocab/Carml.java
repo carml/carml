@@ -1,6 +1,8 @@
 package com.taxonic.carml.vocab;
 
 public class Carml {
+	
+	private Carml() {}
 
 	public static final String
 	
@@ -12,6 +14,8 @@ public class Carml {
 		MultiObjectMap = prefix + "MultiObjectMap",
 		multiReference = prefix + "multiReference",
 		multiTemplate = prefix + "multiTemplate",
-		multiFunctionValue = prefix + "multiFunctionValue";
+		multiFunctionValue = prefix + "multiFunctionValue",
+		
+		multiJoinCondition = prefix + "multiJoinCondition";
 
 }

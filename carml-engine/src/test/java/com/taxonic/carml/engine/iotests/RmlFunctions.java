@@ -1,7 +1,9 @@
 package com.taxonic.carml.engine.iotests;
 
+import com.google.common.collect.ImmutableList;
 import com.taxonic.carml.engine.function.FnoFunction;
 import com.taxonic.carml.engine.function.FnoParam;
+import java.util.List;
 
 public class RmlFunctions {
 
@@ -25,7 +27,9 @@ public class RmlFunctions {
 			
 			toIntOutput = prefix + "toIntOutput",
 			
-			intParam = prefix + "intParam";
+			intParam = prefix + "intParam",
+			
+			constantListFunction = prefix + "constantListFunction";
 	}
 	
 	@FnoFunction(Ex.toBoolFunction)
@@ -59,6 +63,16 @@ public class RmlFunctions {
 		@FnoParam(Ex.intParam) int inputInt
 	) {
 		return toIntOutput + inputInt;
+	}
+	
+	@FnoFunction(Ex.constantListFunction)
+	public List<String> contantListFunction() {
+		return 
+				ImmutableList.of(
+					Ex.prefix + "abc",
+					Ex.prefix + "def",
+					Ex.prefix + "ghi"
+				);
 	}
 	
 	//TODO: PM: Add test for when parameter is not found

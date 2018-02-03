@@ -4,6 +4,7 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -44,9 +45,21 @@ public class GetTemplateValueTest {
 				transformValue, 
 				createNaturalRdfLexicalForm
 			);
-		Optional<Object>templateValue = getTemplateValue.apply(evaluateExpression);
-		assertThat(templateValue.isPresent(), is(true));
-		assertThat(templateValue.get().toString(), is("abctransformed"));
+		Optional<Object> templateValue = getTemplateValue.apply(evaluateExpression);
+		String result = unpackTemplateValue(templateValue);
+		assertThat(result, is("abctransformed"));
+	}
+	
+	private String unpackTemplateValue(Optional<Object> templateValue) {
+		return templateValue.map(v -> {
+			if (v instanceof List<?>) {
+				List<?> list = (List<?>)v;
+				assertThat(list.size(), is(1));
+				return (String)(list).get(0);
+			} else {
+				throw new RuntimeException();
+			}
+		}).orElseThrow(RuntimeException::new);
 	}
 	
 	@Test
@@ -64,12 +77,12 @@ public class GetTemplateValueTest {
 				createNaturalRdfLexicalForm
 			);
 		Optional<Object>templateValue = getTemplateValue.apply(evaluateExpression);
-		assertThat(templateValue.isPresent(), is(true));
-		assertThat(templateValue.get().toString(), is("abctransformedtransformed"));
+		String result = unpackTemplateValue(templateValue);
+		assertThat(result, is("abctransformedtransformed"));
 	}
 	
 	@Test
-	public void getTemplateValue_givenValidInputAndNotFindingValue_returnsNull() {
+	public void getTemplateValue_givenValidInputAndNotFindingValue_returnsNoValues() {
 		when(evaluateExpression.apply("xyz")).thenReturn(Optional.empty());
 		when(createNaturalRdfLexicalForm.apply("evaluated")).thenReturn("natural");
 		when(transformValue.apply("natural")).thenReturn("transformed");
@@ -83,7 +96,15 @@ public class GetTemplateValueTest {
 				createNaturalRdfLexicalForm
 			);
 		Optional<Object> templateValue = getTemplateValue.apply(evaluateExpression);
-		assertThat(templateValue.isPresent(), is(false));
+		List<?> result = templateValue.map(v -> {
+			if (v instanceof List<?>) {
+				List<?> list = (List<?>)v;
+				return list;
+			} else {
+				throw new RuntimeException();
+			}
+		}).orElseThrow(RuntimeException::new);
+		assertThat(result.size(), is(0));
 	}
 
 }

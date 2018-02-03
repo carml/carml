@@ -8,6 +8,8 @@ public class Rdf {
 	
 	private static final ValueFactory f = SimpleValueFactory.getInstance();
 	
+	private Rdf() {}
+	
 	public static class Rml {
 		
 		static IRI iri(String suffix) {
@@ -112,7 +114,9 @@ public class Rdf {
 			MultiObjectMap = iri("MultiObjectMap"),
 			multiReference = iri("multiReference"),
 			multiTemplate = iri("multiTemplate"),
-			multiFunctionValue = iri("multiFunctionValue");
+			multiFunctionValue = iri("multiFunctionValue"),
+		
+			multiJoinCondition = iri("multiJoinCondition");
 		
 	}	
 	

@@ -13,12 +13,12 @@ import com.taxonic.carml.vocab.Rr;
 
 abstract public class CarmlTermMap implements TermMap {
 
-	private String reference;
-	private String inverseExpression;
-	private String template;
-	private TermType termType;
-	private Value constant;
-	private TriplesMap functionValue;
+	String reference;
+	String inverseExpression;
+	String template;
+	TermType termType;
+	Value constant;
+	TriplesMap functionValue;
 
 	public CarmlTermMap() {}
 	
@@ -145,12 +145,12 @@ abstract public class CarmlTermMap implements TermMap {
 
 	public static class Builder {
 		
-		private String reference;
-		private String inverseExpression;
-		private String template;
-		private TermType termType;
-		private Value constant;
-		private TriplesMap functionValue;
+		String reference;
+		String inverseExpression;
+		String template;
+		TermType termType;
+		Value constant;
+		TriplesMap functionValue;
 		
 		Builder reference(String reference) {
 			this.reference = reference;
