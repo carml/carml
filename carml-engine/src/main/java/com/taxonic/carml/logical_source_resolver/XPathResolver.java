@@ -1,5 +1,7 @@
 package com.taxonic.carml.logical_source_resolver;
 
+import com.taxonic.carml.model.LogicalSource;
+import com.taxonic.carml.model.XmlSource;
 import java.io.StringReader;
 import java.util.Optional;
 import javax.xml.transform.stream.StreamSource;
@@ -32,17 +34,27 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
 		return autoNodeTextExtraction;
 	}
 	
+	private void setNamespaces(LogicalSource logicalSource) {
+		Object source = logicalSource.getSource();
+		if (source instanceof XmlSource) {
+			((XmlSource)source).getDeclaredNamespaces()
+			.forEach(n -> xpath.declareNamespace(n.getPrefix(), n.getName()));
+		}
+	}
+	
 	@Override
 	public SourceIterator<XdmItem> getSourceIterator() {
 		return this::getIterableXpathResult;
 	}
 	
-	private Iterable<XdmItem> getIterableXpathResult(String source, String iteratorExpression) {
+	private Iterable<XdmItem> getIterableXpathResult(String source, LogicalSource logicalSource) {
 		DocumentBuilder documentBuilder = xpathProcessor.newDocumentBuilder();
 		StringReader reader = new StringReader(source);
+		setNamespaces(logicalSource);
+		
 		try {
 			XdmNode item = documentBuilder.build(new StreamSource(reader));
-			XPathSelector selector = xpath.compile(iteratorExpression).load();
+			XPathSelector selector = xpath.compile(logicalSource.getIterator()).load();
 			selector.setContextItem(item);
 			return selector;
 		} catch (SaxonApiException e) {

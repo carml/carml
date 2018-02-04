@@ -473,8 +473,8 @@ public class RmlMapper {
 
 		return new TriplesMapperComponents<>(
 			logicalSourceResolvers.get(referenceFormulation),
-			sourceResolver.apply(logicalSource.getSource()),
-			logicalSource.getIterator()
+			logicalSource,
+			sourceResolver
 		);
 	}
 
