@@ -7,6 +7,13 @@ public class Carml {
 		prefix = "http://carml.taxonic.com/carml/",
 		
 		Stream = prefix + "Stream",
-		streamName = prefix + "streamName";
+		streamName = prefix + "streamName",
+	
+		url = prefix + "url",
+		XmlDocument = prefix + "XmlDocument",
+		declaresNamespace = prefix + "declaresNamespace",
+		Namespace = prefix + "Namespace",
+		namespacePrefix = prefix + "namespacePrefix",
+		namespaceName = prefix + "namespaceName";
 
 }

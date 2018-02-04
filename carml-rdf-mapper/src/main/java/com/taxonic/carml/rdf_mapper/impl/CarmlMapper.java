@@ -4,6 +4,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.Collection;
@@ -16,14 +17,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-
+import java.util.stream.Stream;
 import javax.inject.Inject;
 import javax.inject.Qualifier;
-
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Literal;
@@ -32,7 +33,8 @@ import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
-
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.taxonic.carml.rdf_mapper.Mapper;
 import com.taxonic.carml.rdf_mapper.PropertyHandler;
 import com.taxonic.carml.rdf_mapper.TypeDecider;
@@ -47,10 +49,83 @@ public class CarmlMapper implements Mapper, MappingCache {
 	// so no unbound type parameters. no interface, unless a list or so.
 	// TODO *could* be an interface, but then an implementation type should be registered.
 	@Override
-	public <T> T map(Model model, Resource resource, Type type) {
+	public <T> T map(Model model, Resource resource, Set<Type> types) {
 		
 		
-		// assuming class without type parameters for now
+		if (types.size() > 1) { 
+			if (!types.stream().allMatch(t -> ((Class<?>)t).isInterface())) {
+				throw new RuntimeException("In case of multiple types, mapper requires all types to be interfaces");
+			}
+		}
+		
+		if (types.stream().allMatch(t -> ((Class<?>)t).isInterface())) {
+			return doMultipleInterfaceMapping(model, resource, types);
+		} else {
+			return doSingleTypeConcreteClassMapping(model, resource, Iterables.getOnlyElement(types));
+		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	private <T> T doMultipleInterfaceMapping(Model model, Resource resource, Set<Type> types) {
+		List<Type> implementations = types.stream().map(this::getInterfaceImplementation).collect(Collectors.toList());
+		
+		Map<Type, Object> implementationsToDelegates = implementations.stream()
+				.collect(Collectors.toMap(t -> t, t-> doSingleTypeConcreteClassMapping(model, resource, t)));
+		
+		Map<Type, List<Method>> implementationMethods =
+				implementations.stream().collect(Collectors.toMap(
+						t -> t,
+						t -> gatherMethods((Class<?>) t).collect(Collectors.toList())));
+		
+		BiFunction<Type, Method, Boolean> implementationHasMethod = 
+				(t, m) -> implementationMethods.get(t).contains(m);
+		
+		
+		return (T) Proxy.newProxyInstance(CarmlMapper.class.getClassLoader(), types.stream().toArray(Class<?>[]::new), 
+				(proxy, method, args) -> {
+					
+					Optional<Object> delegate = implementations.stream()
+							.filter(t -> implementationHasMethod.apply(t, method))
+							.map(implementationsToDelegates::get) // TODO can this ever be null? this case is not checked below
+							.findFirst();
+
+					if (!delegate.isPresent())
+						throw new RuntimeException(String.format("no implementation present with specified method [%s]", method));
+					
+					return
+					delegate.map(d -> {
+ 						try {
+							return method.invoke(d, args);
+						} catch (IllegalAccessException | IllegalArgumentException
+								| InvocationTargetException e) {
+							throw new RuntimeException(
+									String.format(
+											"error trying to invoke method [%s] on delegate [%s]",
+												method, d), e);
+						}
+					})
+					// since we know 'delegate' is present, the case
+					// here means the invoked method returned null. so we
+					// return null.
+					.orElse(null);
+				});
+	}
+	
+	private Stream<Method> gatherMethods(Class<?> clazz) {
+		return Stream.concat(
+				Arrays.asList(clazz.getDeclaredMethods()).stream(),
+				Stream.concat(
+						Arrays.asList(clazz.getInterfaces()).stream().flatMap(this::gatherMethods),
+						Optional.ofNullable(clazz.getSuperclass())
+							.map(this::gatherMethods)
+							.orElse(Stream.empty())
+				)
+//				.filter(m -> Modifier.isPublic(m.getModifiers()))
+		);
+	}
+	
+	private <T> T doSingleTypeConcreteClassMapping(Model model, Resource resource, Type type) {
+		
 		Class<?> c = (Class<?>) type;
 		
 		if (c.isEnum()) {
@@ -86,8 +161,7 @@ public class CarmlMapper implements Mapper, MappingCache {
 		// TODO error if excess/unmapped triples?
 		
 		// TODO queue instead of recursion
-		
-		
+
 		@SuppressWarnings("unchecked")
 		T result = (T) instance;
 		return result;
@@ -167,14 +241,14 @@ public class CarmlMapper implements Mapper, MappingCache {
 		// if @RdfType(MyImpl.class) is present on property, use that
 		Class<?> typeFromRdfTypeAnnotation = getTypeFromRdfTypeAnnotation(method);
 		if (typeFromRdfTypeAnnotation != null)
-			return (m, r) -> typeFromRdfTypeAnnotation;
+			return (m, r) -> ImmutableSet.of(typeFromRdfTypeAnnotation);
 
 		// backup: use this property's type.
 		// if that's an interface, use registered implementation thereof, if any.
 		// (mapper.registerImplementation(Xyz.class, XyzImpl.class)
 		Class<?> implementationType = elementType; // TODO mapper.getRegisteredTypeAlias/Implementation(propertyType);
 		// TODO check for pre: no unbound parameter types; not an interface
-		TypeDecider propertyTypeDecider = (m, r) -> implementationType;
+		TypeDecider propertyTypeDecider = (m, r) -> ImmutableSet.of(implementationType);
 
 		// use rdf:type triple, if present.
 		//   => the rdf:type value would have to correspond to an @RdfType annotation on a registered class.
@@ -462,15 +536,15 @@ public class CarmlMapper implements Mapper, MappingCache {
 	
 	// mapping cache
 
-	private Map<Pair<Resource, Type>, Object> cachedMappings = new LinkedHashMap<>();
+	private Map<Pair<Resource, Set<Type>>, Object> cachedMappings = new LinkedHashMap<>();
 	
 	@Override
-	public Object getCachedMapping(Resource resource, Type targetType) {
+	public Object getCachedMapping(Resource resource, Set<Type> targetType) {
 		return cachedMappings.get(Pair.of(resource, targetType));
 	}
 	
 	@Override
-	public void addCachedMapping(Resource resource, Type targetType, Object value) {
+	public void addCachedMapping(Resource resource, Set<Type> targetType, Object value) {
 		cachedMappings.put(Pair.of(resource, targetType), value);
 	}
 
@@ -487,6 +561,22 @@ public class CarmlMapper implements Mapper, MappingCache {
 	@Override
 	public void addDecidableType(IRI rdfType, Type type) {
 		decidableTypes.put(rdfType, type);
+	}
+
+	private Map<Type, Type> boundInterfaceImpls = new LinkedHashMap<>();
+	
+	@Override
+	public void bindInterfaceImplementation(Type interfaze, Type implementation) {
+		boundInterfaceImpls.put(interfaze, implementation);
+	}
+
+	@Override
+	public Type getInterfaceImplementation(Type interfaze) {
+		if (!boundInterfaceImpls.containsKey(interfaze)) {
+			throw new RuntimeException(String.format("No implementation bound for [%s]", interfaze));
+		}
+		
+		return boundInterfaceImpls.get(interfaze);
 	}
 	
 }

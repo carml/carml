@@ -107,7 +107,13 @@ public class Rdf {
 		public static final IRI
 		
 			Stream = iri("Stream"),
-			streamName = iri("streamName");
+			streamName = iri("streamName"),
+			url = iri("url"),
+			XmlDocument = iri("XmlDocument"),
+			declaresNamespace = iri("declaresNamespace"),
+			Namespace = iri("Namespace"),
+			namespacePrefix = iri("namespacePrefix"),
+			namespaceName = iri("namespaceName");
 		
 	}	
 		
