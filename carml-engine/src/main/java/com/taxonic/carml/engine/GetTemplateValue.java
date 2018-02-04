@@ -1,5 +1,6 @@
 package com.taxonic.carml.engine;
 
+import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -7,6 +8,7 @@ import java.util.function.Function;
 
 import com.taxonic.carml.engine.template.Template;
 import com.taxonic.carml.engine.template.Template.Expression;
+import com.taxonic.carml.rdf_mapper.util.ImmutableCollectors;
 
 class GetTemplateValue implements Function<EvaluateExpression, Optional<Object>> {
 
@@ -52,10 +54,18 @@ class GetTemplateValue implements Function<EvaluateExpression, Optional<Object>>
 	 * @param raw
 	 * @return
 	 */
-	private String prepareValueForTemplate(Object raw) {
+	private Object prepareValueForTemplate(Object raw) {
 		Objects.requireNonNull(raw);
-		String value = createNaturalRdfLexicalForm.apply(raw);
-		return transformValue.apply(value);
+		
+		if (raw instanceof Collection<?>) {
+			return ((Collection<?>) raw).stream()
+			.map(createNaturalRdfLexicalForm::apply)
+			.map(transformValue::apply)
+			.collect(ImmutableCollectors.toImmutableList());
+		} else {
+			String value = createNaturalRdfLexicalForm.apply(raw);
+			return transformValue.apply(value);
+		}
 	}
 
 }

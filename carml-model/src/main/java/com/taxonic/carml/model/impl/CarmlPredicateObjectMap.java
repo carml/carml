@@ -37,6 +37,7 @@ public class CarmlPredicateObjectMap implements PredicateObjectMap {
 		return predicateMaps;
 	}
 
+	// TODO: make @RdfProperty repeatable so we can also use Carml.multiObjectMap here
 	@RdfProperty(Rr.objectMap)
 	@RdfTypeDecider(ObjectMapTypeDecider.class)
 	@Override

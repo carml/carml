@@ -11,7 +11,7 @@ import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
-
+import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.Mockito.when;
@@ -51,11 +51,11 @@ public class TermGeneratorCreatorTest {
 		String relativeIriPart = "/relativeIriPortion";
 		EvaluateExpression evaluator = Mockito.mock(EvaluateExpression.class);
 		when(evaluator.apply(ref)).thenReturn(Optional.of(relativeIriPart));
-		Optional<Value> result = generator.apply(evaluator);
+		List<Value> result = generator.apply(evaluator);
 
-		Assert.assertTrue(result.isPresent());
-		Assert.assertTrue(result.get() instanceof IRI);
-		Assert.assertEquals(result.get(), f.createIRI(baseIri + relativeIriPart));
+		Assert.assertTrue(!result.isEmpty());
+		Assert.assertTrue(result.get(0) instanceof IRI);
+		Assert.assertEquals(result.get(0), f.createIRI(baseIri + relativeIriPart));
 	}
 
 	@Test
@@ -72,11 +72,11 @@ public class TermGeneratorCreatorTest {
 		String absoluteIri = "http://foo.bar/absoluteIri";
 		EvaluateExpression evaluator = Mockito.mock(EvaluateExpression.class);
 		when(evaluator.apply(ref)).thenReturn(Optional.of(absoluteIri));
-		Optional<Value> result = generator.apply(evaluator);
+		List<Value> result = generator.apply(evaluator);
 
-		Assert.assertTrue(result.isPresent());
-		Assert.assertTrue(result.get() instanceof IRI);
-		Assert.assertEquals(result.get(), f.createIRI(absoluteIri));
+		Assert.assertTrue(!result.isEmpty());
+		Assert.assertTrue(result.get(0) instanceof IRI);
+		Assert.assertEquals(result.get(0), f.createIRI(absoluteIri));
 	}
 
 	@Test

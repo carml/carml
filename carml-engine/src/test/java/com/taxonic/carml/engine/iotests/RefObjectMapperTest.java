@@ -54,17 +54,17 @@ public class RefObjectMapperTest extends MappingTest {
 	}
 	
 	@Test
+	public void testJoinTriplesMappingWithMultiObjectMap() {
+		testMapping("RmlMapper",
+				"RmlMapper/test15/joinOnMultiObjectMap.rml.ttl",
+				"RmlMapper/test15/joinOnMultiObjectMap.output.ttl");
+	}
+	
+	@Test
 	public void testParentTriplesMapping() {
 		testMapping("RmlMapper",
 				"RmlMapper/test9/parentTriplesMapping.rml.ttl",
 				"RmlMapper/test9/parentTriplesMapping.output.ttl");
-	}
-	
-	@Test
-	public void testParentTriplesMappingWithList() {
-		testMapping("RmlMapper",
-				"RmlMapper/test9/parentTriplesMappingList.rml.ttl",
-				"RmlMapper/test9/parentTriplesMappingList.output.ttl");
 	}
 	
 	@Test
@@ -85,13 +85,6 @@ public class RefObjectMapperTest extends MappingTest {
 	public void testParentTriplesMappingWithBlankNodeParentTemplate() {
 		testMapping("RmlMapper",
 				"RmlMapper/test9/parentTriplesMappingBlankNodeParentA.rml.ttl",
-				"RmlMapper/test9/parentTriplesMappingBlankNodeParent.output.ttl");
-	}
-	
-	@Test
-	public void testParentTriplesMappingWithBlankNodeParentReference() {
-		testMapping("RmlMapper",
-				"RmlMapper/test9/parentTriplesMappingBlankNodeParentB.rml.ttl",
 				"RmlMapper/test9/parentTriplesMappingBlankNodeParent.output.ttl");
 	}
 

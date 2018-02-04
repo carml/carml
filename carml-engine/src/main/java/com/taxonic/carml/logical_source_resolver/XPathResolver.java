@@ -3,6 +3,8 @@ package com.taxonic.carml.logical_source_resolver;
 import com.taxonic.carml.model.LogicalSource;
 import com.taxonic.carml.model.XmlSource;
 import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import javax.xml.transform.stream.StreamSource;
 import net.sf.saxon.s9api.DocumentBuilder;
@@ -12,6 +14,7 @@ import net.sf.saxon.s9api.XPathCompiler;
 import net.sf.saxon.s9api.XPathSelector;
 import net.sf.saxon.s9api.XdmItem;
 import net.sf.saxon.s9api.XdmNode;
+import net.sf.saxon.s9api.XdmValue;
 
 public class XPathResolver implements LogicalSourceResolver<XdmItem> {
 	
@@ -68,14 +71,25 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
 			try {
 				XPathSelector selector = xpath.compile(expression).load();
 				selector.setContextItem(entry);
-				XdmItem value = selector.evaluateSingle();
+				XdmValue value = selector.evaluate();
 				
-				if (value == null) {
+				if (value.size() > 1) {
+					List<String> results = new ArrayList<>();
+					value.forEach(i -> {
+							String sValue = getItemStringValue(i, value);
+							if (sValue != null) {
+								results.add(sValue);
+							}
+						}
+					);
+					return Optional.of(results);
+				} else if (value.size() == 0) {
 					return Optional.empty();
 				}
+
+				XdmItem item = value.itemAt(0);
+				return Optional.ofNullable(getItemStringValue(item, value));
 				
-				String result = autoNodeTextExtraction ? value.getStringValue() : value.toString();
-				return Optional.of(result);
 				
 			} catch (SaxonApiException e) {
 				throw new RuntimeException(String.format(
@@ -83,5 +97,15 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
 						e);
 			}
 		};
+	}
+	
+	private String getItemStringValue(XdmItem item, XdmValue value) {
+		if (item.getStringValue().length() == 0) {
+			return null;
+		}
+		
+		
+		String result = autoNodeTextExtraction ? item.getStringValue() : value.toString();
+		return result;
 	}
 }

@@ -10,6 +10,8 @@ import com.taxonic.carml.model.BaseObjectMap;
 import com.taxonic.carml.model.GraphMap;
 import com.taxonic.carml.model.Join;
 import com.taxonic.carml.model.LogicalSource;
+import com.taxonic.carml.model.MultiObjectMap;
+import com.taxonic.carml.model.MultiRefObjectMap;
 import com.taxonic.carml.model.NameableStream;
 import com.taxonic.carml.model.ObjectMap;
 import com.taxonic.carml.model.PredicateMap;
@@ -286,6 +288,7 @@ public class RmlMapper {
 	}
 
 	public Model map(Set<TriplesMap> mapping) {
+		validateMapping(mapping);
 		Model model = new LinkedHashModel();
 		
 		Set<TriplesMap> functionValueTriplesMaps = getTermMaps(mapping)
@@ -301,6 +304,13 @@ public class RmlMapper {
 			.forEach(m -> map(m, model));
 		this.sourceManager.clear();
 		return model;
+	}
+	
+	private void validateMapping(Set<TriplesMap> mapping) {
+		Objects.requireNonNull(mapping);
+		if (mapping.isEmpty()) {
+			throw new RuntimeException("Empty mapping provided. Please make sure your mapping is syntactically correct.");
+		}
 	}
 	
 	private Stream<TermMap> getTermMaps(Set<TriplesMap> mapping) {
@@ -360,7 +370,17 @@ public class RmlMapper {
 		Set<BaseObjectMap> objectMaps
 	) {
 		return objectMaps.stream()
-			.filter(o -> o instanceof ObjectMap)
+			.filter(o -> o instanceof ObjectMap && !(o instanceof MultiObjectMap))
+			.map(o -> termGenerators.getObjectGenerator((ObjectMap) o));
+	}
+	
+
+
+	private Stream<TermGenerator<Value>> getMultiObjectMapGenerators(
+		Set<BaseObjectMap> objectMaps
+	) {
+		return objectMaps.stream()
+			.filter(o -> o instanceof MultiObjectMap)
 			.map(o -> termGenerators.getObjectGenerator((ObjectMap) o));
 	}
 
@@ -430,16 +450,30 @@ public class RmlMapper {
 
 		Set<RefObjectMapper> refObjectMappers =
 			objectMaps.stream()
-				.filter(o -> o instanceof RefObjectMap)
+				.filter(o -> o instanceof RefObjectMap && !(o instanceof MultiRefObjectMap))
 				.map(o -> (RefObjectMap) o)
 				.filter(o -> !o.getJoinConditions().isEmpty())
 				.map(this::createRefObjectMapper)
+				.collect(ImmutableCollectors.toImmutableSet());
+		
+		Set<RefObjectMapper> multiRefObjectMappers =
+				objectMaps.stream()
+					.filter(o -> o instanceof MultiRefObjectMap)
+					.map(o -> (RefObjectMap) o)
+					.filter(o -> !o.getJoinConditions().isEmpty())
+					.map(this::createRefObjectMapper)
+					.collect(ImmutableCollectors.toImmutableSet());
+		
+		Set<TermGenerator<? extends Value>> multiObjectGenerators = 
+				getMultiObjectMapGenerators(objectMaps)
 				.collect(ImmutableCollectors.toImmutableSet());
 
 		return new PredicateMapper(
 			termGenerators.getPredicateGenerator(predicateMap),
 			objectGenerators,
-			refObjectMappers
+			multiObjectGenerators,
+			refObjectMappers,
+			multiRefObjectMappers
 		);
 	}
 

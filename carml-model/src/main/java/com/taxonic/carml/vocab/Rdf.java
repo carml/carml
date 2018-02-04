@@ -8,6 +8,8 @@ public class Rdf {
 	
 	private static final ValueFactory f = SimpleValueFactory.getInstance();
 	
+	private Rdf() {}
+	
 	public static class Rml {
 		
 		static IRI iri(String suffix) {
@@ -108,13 +110,21 @@ public class Rdf {
 		
 			Stream = iri("Stream"),
 			streamName = iri("streamName"),
+
 			url = iri("url"),
 			XmlDocument = iri("XmlDocument"),
 			declaresNamespace = iri("declaresNamespace"),
 			Namespace = iri("Namespace"),
 			namespacePrefix = iri("namespacePrefix"),
-			namespaceName = iri("namespaceName");
+			namespaceName = iri("namespaceName"),
+		
+			MultiObjectMap = iri("MultiObjectMap"),
+			multiReference = iri("multiReference"),
+			multiTemplate = iri("multiTemplate"),
+			multiFunctionValue = iri("multiFunctionValue"),
+		
+			multiJoinCondition = iri("multiJoinCondition");
 		
 	}	
-		
+	
 }

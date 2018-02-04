@@ -6,7 +6,6 @@ import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
 import org.junit.Test;
 
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -14,6 +13,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.rdf_mapper.util.ImmutableCollectors;
 
@@ -70,7 +70,7 @@ public class PredicateObjectMapperTest {
 				.map(graphIri -> {
 					@SuppressWarnings("unchecked")
 					TermGenerator<IRI> generator = (TermGenerator<IRI>) mock(TermGenerator.class);
-					when(generator.apply(evaluator)).thenReturn(Optional.of(graphIri)).getMock();
+					when(generator.apply(evaluator)).thenReturn(ImmutableList.of(graphIri)).getMock();
 					return generator;
 				})
 				.collect(ImmutableCollectors.toImmutableSet());
@@ -104,7 +104,7 @@ public class PredicateObjectMapperTest {
 				.map(graphIri -> {
 					@SuppressWarnings("unchecked")
 					TermGenerator<IRI> generator = (TermGenerator<IRI>) mock(TermGenerator.class);
-					when(generator.apply(evaluator)).thenReturn(Optional.of(graphIri)).getMock();
+					when(generator.apply(evaluator)).thenReturn(ImmutableList.of(graphIri)).getMock();
 					return generator;
 				})
 				.collect(ImmutableCollectors.toImmutableSet());
