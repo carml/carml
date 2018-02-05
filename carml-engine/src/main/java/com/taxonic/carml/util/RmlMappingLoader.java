@@ -14,10 +14,12 @@ import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.rio.RDFFormat;
 import com.google.common.collect.ImmutableSet;
+import com.taxonic.carml.model.FileSource;
 import com.taxonic.carml.model.NameableStream;
 import com.taxonic.carml.model.TermType;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.model.XmlSource;
+import com.taxonic.carml.model.impl.CarmlFileSource;
 import com.taxonic.carml.model.impl.CarmlStream;
 import com.taxonic.carml.rdf_mapper.impl.MappingCache;
 import com.taxonic.carml.rdf_mapper.util.RdfObjectLoader;
@@ -63,8 +65,10 @@ public class RmlMappingLoader {
 					m -> {
 						m.addDecidableType(Rdf.Carml.Stream, NameableStream.class); 
 						m.addDecidableType(Rdf.Carml.XmlDocument, XmlSource.class);
+						m.addDecidableType(Rdf.Carml.FileSource, FileSource.class);
 						m.bindInterfaceImplementation(NameableStream.class, CarmlStream.class);
 						m.bindInterfaceImplementation(XmlSource.class, CarmlXmlSource.class);
+						m.bindInterfaceImplementation(FileSource.class, CarmlFileSource.class);
 					}
 				)
 			);

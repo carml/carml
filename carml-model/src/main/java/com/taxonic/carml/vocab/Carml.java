@@ -11,6 +11,7 @@ public class Carml {
 		Stream = prefix + "Stream",
 		streamName = prefix + "streamName",
 
+		FileSource = prefix + "FileSource",
 		url = prefix + "url",
 		XmlDocument = prefix + "XmlDocument",
 		declaresNamespace = prefix + "declaresNamespace",

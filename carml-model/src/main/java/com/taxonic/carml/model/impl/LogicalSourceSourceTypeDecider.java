@@ -24,7 +24,8 @@ public class LogicalSourceSourceTypeDecider implements TypeDecider {
 	Map<IRI, IRI> inferenceMap =
 		ImmutableMap.of(
 			Rdf.Carml.streamName, Rdf.Carml.Stream,
-			Rdf.Carml.declaresNamespace, Rdf.Carml.XmlDocument
+			Rdf.Carml.declaresNamespace, Rdf.Carml.XmlDocument,
+			Rdf.Carml.url, Rdf.Carml.FileSource
 		);
 
 	@Override

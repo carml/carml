@@ -111,6 +111,7 @@ public class Rdf {
 			Stream = iri("Stream"),
 			streamName = iri("streamName"),
 
+			FileSource = iri("FileSource"),
 			url = iri("url"),
 			XmlDocument = iri("XmlDocument"),
 			declaresNamespace = iri("declaresNamespace"),

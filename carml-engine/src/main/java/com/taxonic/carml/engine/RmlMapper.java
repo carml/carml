@@ -7,6 +7,7 @@ import com.taxonic.carml.logical_source_resolver.JsonPathResolver;
 import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
 import com.taxonic.carml.logical_source_resolver.XPathResolver;
 import com.taxonic.carml.model.BaseObjectMap;
+import com.taxonic.carml.model.FileSource;
 import com.taxonic.carml.model.GraphMap;
 import com.taxonic.carml.model.Join;
 import com.taxonic.carml.model.LogicalSource;
@@ -162,6 +163,16 @@ public class RmlMapper {
 		}
 	}
 
+	private static Optional<String> unpackFileSource(Object sourceObject) {
+		if (sourceObject instanceof String) { // Standard rml:source
+			return Optional.of((String) sourceObject);
+		} else if (sourceObject instanceof FileSource) { // Extended Carml source
+			return Optional.of(((FileSource)sourceObject).getUrl());
+		} else {
+			return Optional.empty();
+		}
+	}
+
 	private static class FileResolver implements SourceResolver {
 
 		private LogicalSourceManager sourceManager;
@@ -177,23 +188,23 @@ public class RmlMapper {
 
 		@Override
 		public Optional<String> apply(Object o) {
-			if (!(o instanceof String))
-				return Optional.empty();
-			String fileName = (String) o;
-			Path path = basePath.resolve(fileName);
-			String sourceName = path.toString();
 
-			// Cache source if not already done.
-			if (!sourceManager.hasSource(sourceName)) {
-				try {
-					sourceManager.addSource(sourceName, new String(Files.readAllBytes(path), StandardCharsets.UTF_8));
-				} catch (IOException e) {
-					throw new RuntimeException(
-							"could not create file source for path [" + path + "]");
+			return unpackFileSource(o).map(f -> {
+				Path path = basePath.resolve(f);
+				String sourceName = path.toString();
+
+				// Cache source if not already done.
+				if (!sourceManager.hasSource(sourceName)) {
+					try {
+						sourceManager.addSource(sourceName, new String(Files.readAllBytes(path), StandardCharsets.UTF_8));
+					} catch (IOException e) {
+						throw new RuntimeException(
+								"could not create file source for path [" + path + "]");
+					}
 				}
-			}
 
-			return Optional.of(sourceManager.getSource(sourceName));
+				return sourceManager.getSource(sourceName);
+			});
 		}
 
 	}
@@ -213,19 +224,20 @@ public class RmlMapper {
 
 		@Override
 		public Optional<String> apply(Object o) {
-			if (!(o instanceof String)) {
-				return Optional.empty();
-			}
-			String sourceName = basePath + "/" + (String) o;
 
-			// Cache source if not already done.
-			if (!sourceManager.hasSource(sourceName)) {
-				sourceManager.addSource(sourceName,
-						RmlMapper.class.getClassLoader()
-								.getResourceAsStream(sourceName));
-			}
+			return unpackFileSource(o).map(f -> {
+				String sourceName = basePath + "/" + f;
 
-			return Optional.of(sourceManager.getSource(sourceName));
+				// Cache source if not already done.
+				if (!sourceManager.hasSource(sourceName)) {
+					sourceManager.addSource(sourceName,
+							RmlMapper.class.getClassLoader()
+									.getResourceAsStream(sourceName));
+				}
+
+				return sourceManager.getSource(sourceName);
+			});
+
 		}
 
 	}
