@@ -202,8 +202,6 @@ class CarmlTemplate implements Template {
 					size = list.size();
 				} else {
 					if (list.size() != size) {
-						System.out.println(indexedExprValues);
-						System.out.println(list);
 						throw new RuntimeException(
 								String.format("Template expressions do not lead to an equal amount of values: %s",
 										indexedExprValues.keySet()));
@@ -219,6 +217,7 @@ class CarmlTemplate implements Template {
 			List<String> result = new ArrayList<>();
 			Map<Segment, List<String>> indexedExprValues = new HashMap<>();
 
+			// single out expression segments
 			List<ExpressionSegment> exprSegs = segments.stream()
 				.filter(s -> s instanceof ExpressionSegment)
 				.map(s -> (ExpressionSegment) s)
@@ -226,8 +225,8 @@ class CarmlTemplate implements Template {
 
 			if (exprSegs.size() > 0) {
 
+				// map segment to list of it's evaluation results
 				for (ExpressionSegment exprSeg: exprSegs) {
-
 					Optional<Object> evalResult = getExpressionSegmentValue(exprSeg);
 					indexedExprValues.put(
 							exprSeg,
@@ -235,32 +234,35 @@ class CarmlTemplate implements Template {
 								.map(this::getValuesExpressionEvaluation)
 								.orElse(ImmutableList.of())
 					);
-
 				}
 
-				if (indexedExprValues.size() > 0) {
-					if (!exprValueResultsHasOnlyFilledLists(indexedExprValues)) {
-						return Optional.empty();
-					}
+				// if there is an expression that doesn't result in a value,
+				// the template should yield no result, following the RML rules.
+				if (!exprValueResultsHasOnlyFilledLists(indexedExprValues)) {
+					return Optional.empty();
+				}
 
-					int indexedExprValSize = checkExprValueResultsOfEqualSizeAndReturn(indexedExprValues);
-					for (int i = 0; i < indexedExprValSize; i++) {
-						StringBuilder str = new StringBuilder();
-						for (Segment s : segments) {
-							if (s instanceof Text) {
-								str.append(s.getValue());
-							} else if (s instanceof ExpressionSegment) {
-								String exprValue = indexedExprValues.get(s).get(i);
-								if (exprValue == null) {
-									result.add(null);
-									continue;
-								}
-								str.append(exprValue);
+				// make sure that, if there are multiple segments, that they lead
+				// an equal amount of values. If this is not the case, we cannot
+				// know which values belong together over multiple segments.
+				int indexedExprValSize = checkExprValueResultsOfEqualSizeAndReturn(indexedExprValues);
+				for (int i = 0; i < indexedExprValSize; i++) {
+					StringBuilder str = new StringBuilder();
+					for (Segment s : segments) {
+						if (s instanceof Text) {
+							str.append(s.getValue());
+						} else if (s instanceof ExpressionSegment) {
+							String exprValue = indexedExprValues.get(s).get(i);
+							if (exprValue == null) {
+								result.add(null);
+								continue;
 							}
+							str.append(exprValue);
 						}
-						result.add(str.toString());
 					}
+					result.add(str.toString());
 				}
+			// if there are no expression segments, continue building value
 			} else {
 				StringBuilder str = new StringBuilder();
 				segments.forEach(s -> str.append(s.getValue()));
