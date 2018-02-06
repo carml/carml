@@ -12,8 +12,8 @@
 				carml:namespaceName "http://www.example.com/" ;
 			] ;
 		] ;
-		rml:referenceFormulation ql:JSONPath ;
-		rml:iterator "$" ;
+		rml:referenceFormulation ql:XPath ;
+		rml:iterator "*" ;
 	] ;
 	
 	rr:subject <http://www.example.com/subject> ;
