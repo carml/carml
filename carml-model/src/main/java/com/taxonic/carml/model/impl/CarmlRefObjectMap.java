@@ -12,8 +12,8 @@ import com.taxonic.carml.vocab.Rr;
 
 public class CarmlRefObjectMap implements RefObjectMap {
 	
-	private TriplesMap parentTriplesMap;
-	private Set<Join> joinConditions;
+	TriplesMap parentTriplesMap;
+	Set<Join> joinConditions;
 	
 	public CarmlRefObjectMap() {}
 	
@@ -87,8 +87,8 @@ public class CarmlRefObjectMap implements RefObjectMap {
 
 	public static class Builder{
 		
-		private TriplesMap parentTriplesMap;
-		private Set<Join> joinConditions = new LinkedHashSet<>();
+		TriplesMap parentTriplesMap;
+		Set<Join> joinConditions = new LinkedHashSet<>();
 		
 		Builder() {}
 		

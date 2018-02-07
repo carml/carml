@@ -4,6 +4,7 @@
 @prefix ex: <http://example.com/ns#>.
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+@prefix carml: <http://carml.taxonic.com/carml/> .
 
 <#MultiJoinConditionMappingB>
 rml:logicalSource [
@@ -20,17 +21,17 @@ rr:predicateObjectMap [
 	rr:predicate ex:hasAvailableMovie;
 	rr:objectMap [
 		rr:parentTriplesMap <#MovieMapping>;
-		rr:joinCondition [
+		carml:multiJoinCondition [
 			rr:child "favouriteGenre";
 			rr:parent "movieGenre"
 			];
-		rr:joinCondition [
+		carml:multiJoinCondition [
 			rr:child "ageGroup";
 			rr:parent "ageGroup"
 			]
 		]
  ];
- 
+
 rr:predicateObjectMap [
 	rr:predicate ex:hasAvailableCinema;
 	rr:objectMap [
@@ -48,11 +49,11 @@ rr:predicateObjectMap [
 		rml:referenceFormulation ql:JSONPath;
 		rml:iterator "$.movie"
 		];
-		
+
 		rr:subjectMap [
  			rr:template "http://movie.example.com/{title}";
 		];
-		
+
 		rr:predicateObjectMap [
 			rr:predicate ex:playsIn;
 			rr:objectMap [
@@ -63,14 +64,14 @@ rr:predicateObjectMap [
 			];
 		]
 	].
-	
+
 <#CinemaMapping>
 	rml:logicalSource [
 		rml:source "multiJoinConditionsTestInput.json";
 		rml:referenceFormulation ql:JSONPath;
 		rml:iterator "$.cinema"
 		];
-		
+
 		rr:subjectMap [
 			rr:template "http://cinema.example.com/{cinemaName}";
 		] .

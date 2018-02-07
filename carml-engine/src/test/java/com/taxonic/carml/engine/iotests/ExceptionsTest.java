@@ -93,5 +93,19 @@ public class ExceptionsTest extends MappingTest {
 		thrown.expectMessage(startsWith("encountered disallowed term type"));
 		testMapping("RmlMapper", "RmlMapper/exceptionTests/exceptionTermTypeMappingE.rml.ttl", null);
 	}
+	
+	@Test
+	public void mapper_givenObjectMapExpressionWithMultipleObjectResults_shouldThrowException() {
+		thrown.expect(RuntimeException.class);
+		thrown.expectMessage(startsWith("Expecting single value for object map"));
+		testMapping("RmlMapper", "RmlMapper/exceptionTests/predicateObjectMappingD.rml.ttl", null);
+	}
+	
+	@Test
+	public void mapper_givenObjectMapExpressionWithMultiJoinObjectResults_shouldThrowException() {
+		thrown.expect(RuntimeException.class);
+		thrown.expectMessage(startsWith("Expecting single value for referencing object map"));
+		testMapping("RmlMapper", "RmlMapper/exceptionTests/multiJoinOnRefObjectMap.rml.ttl", null);
+	}
 
 }

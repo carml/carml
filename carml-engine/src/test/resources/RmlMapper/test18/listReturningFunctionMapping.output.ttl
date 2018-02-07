@@ -1,0 +1,8 @@
+@prefix ex: <http://example.com/> .
+
+ex:simpleSubject
+  ex:repeatingProperty
+    ex:abc ,
+    ex:def ,
+    ex:ghi ;
+.

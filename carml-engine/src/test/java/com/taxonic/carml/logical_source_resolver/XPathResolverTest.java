@@ -57,7 +57,7 @@ public class XPathResolverTest {
 
 	@Test
 	public void expressionEvaluator_givenExpression_shoulReturnCorrectValue() {
-		String expression = "//author/lower-case(.)";
+		String expression = "./author/lower-case(.)";
 		ExpressionEvaluatorFactory<XdmItem> evaluatorFactory = 
 				xpathResolver.getExpressionEvaluatorFactory();
 		EvaluateExpression evaluateExpression = evaluatorFactory.apply(nodes.get(0));
@@ -66,7 +66,7 @@ public class XPathResolverTest {
 	
 	@Test
 	public void expressionEvaluatorWithoutAutoTextExtraction_givenExpression_shoulReturnCorrectValue() {
-		String expression = "//author";
+		String expression = "./author";
 		ExpressionEvaluatorFactory<XdmItem> evaluatorFactory = 
 				xpathResolver.getExpressionEvaluatorFactory();
 		EvaluateExpression evaluateExpression = evaluatorFactory.apply(nodes.get(0));

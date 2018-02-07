@@ -8,6 +8,8 @@ public class Rdf {
 	
 	private static final ValueFactory f = SimpleValueFactory.getInstance();
 	
+	private Rdf() {}
+	
 	public static class Rml {
 		
 		static IRI iri(String suffix) {
@@ -107,8 +109,15 @@ public class Rdf {
 		public static final IRI
 		
 			Stream = iri("Stream"),
-			streamName = iri("streamName");
+			streamName = iri("streamName"),
+		
+			MultiObjectMap = iri("MultiObjectMap"),
+			multiReference = iri("multiReference"),
+			multiTemplate = iri("multiTemplate"),
+			multiFunctionValue = iri("multiFunctionValue"),
+		
+			multiJoinCondition = iri("multiJoinCondition");
 		
 	}	
-		
+	
 }
