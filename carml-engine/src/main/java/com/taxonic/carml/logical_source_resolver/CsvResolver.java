@@ -1,5 +1,6 @@
 package com.taxonic.carml.logical_source_resolver;
 
+import com.taxonic.carml.model.LogicalSource;
 import com.univocity.parsers.common.record.Record;
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
@@ -13,7 +14,7 @@ public class CsvResolver implements LogicalSourceResolver<Record> {
 		return this::getItererableCsv;
 	}
 	
-	private Iterable<Record> getItererableCsv(String source, String iteratorExpression) {
+	private Iterable<Record> getItererableCsv(String source, LogicalSource logicalSource) {
 		CsvParserSettings settings = new CsvParserSettings();
 		settings.setHeaderExtractionEnabled(true);
 		settings.setLineSeparatorDetectionEnabled(true);

@@ -23,6 +23,7 @@ Table of Contents
 - [Input stream extension](#input-stream-extension)
 - [Function extension](#function-extension)
 - [MultiTermMap extension](#multitermmap-extension)
+- [XML namespace extension](#xml-namespace-extension)
 - [Supported data source types](#supported-data-source-types)
 - [Roadmap](#roadmap)
 
@@ -192,7 +193,7 @@ As RML is a superset of R2RML that was developed after R2RML, and R2RML only sup
 However, in structured file sources like XML and JSON, it is often the case that a collection of similar nodes is nested in another.
 
 For example:
-```
+```json
 {
   "name":"John Doe",
   "cars":[ "BMW", "Seat", "Porsche" ]
@@ -381,6 +382,63 @@ yields:
 you get the drift.
 
 **Note that currently CARML only supports MultiObjectMaps. Future versions may support this for graphs, subjects and predicates as well.**
+
+XML namespace extension
+-----------------------
+
+When working with XML documents, it is often necessary specify namespaces to identify a node's qualified name.
+Most XPath implementations allow you to register these namespaces, in order to be able to use them in executing XPath expressions.
+In order to convey these expressions to the CARML engine, CARML introduces the class `carml:XmlDocument` that can be used as a value of `rml:source`. An instance of  `carml:XmlDocument` can, if it is a file source, specify a location via the `carml:url` property, and specify namespace declarations via the `carml:declaresNamespace` property.
+
+For example, given the following XML document:
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<ex:bookstore xmlns:ex="http://www.example.com/books/1.0/">
+  <ex:book category="children">
+    <ex:title lang="en">Harry Potter</ex:title>
+    <ex:author>J K. Rowling</ex:author>
+    <ex:year>2005</ex:year>
+    <ex:price>29.99</ex:price>
+  </ex:book>
+</ex:bookstore>
+```
+
+one can now use the following mapping, declaring namespaces, to use them in XPath expressions:
+```
+@prefix rr: <http://www.w3.org/ns/r2rml#>.
+@prefix rml: <http://semweb.mmlab.be/ns/rml#>.
+@prefix ql: <http://semweb.mmlab.be/ns/ql#> .
+@prefix carml: <http://carml.taxonic.com/carml/> .
+@prefix ex: <http://www.example.com/> .
+
+<#SubjectMapping> a rr:TriplesMap ;
+  rml:logicalSource [
+    rml:source [
+      a carml:Stream ;
+      # or in case of a file source use:
+      # carml:url "path-to-souce" ;
+      carml:declaresNamespace [
+        carml:namespacePrefix "ex" ;
+        carml:namespaceName "http://www.example.com/books/1.0/" ;
+      ] ;
+    ] ;
+    rml:referenceFormulation ql:XPath ;
+    rml:iterator "/ex:bookstore/*" ;
+  ] ;
+
+  rr:subjectMap [
+    rr:template "http://www.example.com/{./ex:title}" ;
+    rr:class ex:Book ;
+    rr:termType rr:IRI ;
+  ] ;
+.
+
+```
+
+which yields:
+```
+<http://www.example.com/Harry%20Potter> a <http://www.example.com/Book> .
+```
 
 Supported Data Source Types
 ---------------------------

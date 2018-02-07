@@ -110,6 +110,14 @@ public class Rdf {
 		
 			Stream = iri("Stream"),
 			streamName = iri("streamName"),
+
+			FileSource = iri("FileSource"),
+			url = iri("url"),
+			XmlDocument = iri("XmlDocument"),
+			declaresNamespace = iri("declaresNamespace"),
+			Namespace = iri("Namespace"),
+			namespacePrefix = iri("namespacePrefix"),
+			namespaceName = iri("namespaceName"),
 		
 			MultiObjectMap = iri("MultiObjectMap"),
 			multiReference = iri("multiReference"),

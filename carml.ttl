@@ -16,15 +16,66 @@ carml:
 .
 
 carml:Stream a owl:Class ;
-  rdfs:label "Stream"@en ;
-  rdfs:isDefinedBy carml: ;
+	rdfs:label "Stream"@en ;
+	rdfs:isDefinedBy carml: ;
 	rdfs:comment "A stream is a sequence of data."@en ;
 .
 
 carml:streamName a owl:DatatypeProperty ;
-  rdfs:domain carml:Stream ;
-  rdfs:isDefinedBy carml: ;
+	rdfs:domain carml:Stream ;
+	rdfs:isDefinedBy carml: ;
 	rdfs:comment "A name to identify a stream."@en ;
+.
+
+carml:FileSource a owl:Class ;
+	rdfs:label "FileSource"@en ;
+	rdfs:isDefinedBy carml: ;
+	rdfs:comment "A file based source."@en ;
+.
+
+carml:url a owl:DatatypeProperty ;
+	rdfs:label "url"@en ;
+	rdfs:domain carml:FileSource ;
+	rdfs:range xsd:string ;
+	rdfs:isDefinedBy carml: ;
+	rdfs:comment "A string referencing the location of the FileSource"@en ;
+.
+
+carml:XmlDocument a owl:Class ;
+	rdfs:label "XmlDocument"@en ;
+	rdfs:subClassOf carml:FileSource ;
+	rdfs:isDefinedBy carml: ;
+	rdfs:comment "A FileSource that is an XML document"@en ;
+.
+
+carml:declaresNamespace a owl:ObjectProperty ;
+	rdfs:label "declaresNamespace"@en ;
+	rdfs:domain carml:XmlDocument ;
+	rdfs:range carml:Namespace ;
+	rdfs:isDefinedBy carml: ;
+	rdfs:comment "A namespace declaration that is used to support namespaces in XML document references."@en ;
+.
+
+carml:Namespace a owl:Class ;
+	rdfs:label "Namespace"@en ;
+	rdfs:isDefinedBy carml: ;
+	rdfs:comment "A document namespace."@en ;
+.
+
+carml:namespacePrefix a owl:DatatypeProperty ;
+	rdfs:label "namespacePrefix"@en ;
+	rdfs:domain carml:Namespace ;
+	rdfs:range xsd:string ;
+	rdfs:isDefinedBy carml: ;
+	rdfs:comment "The prefix value of a namespace."@en ;
+.
+
+carml:namespaceName a owl:DatatypeProperty ;
+	rdfs:label "namespaceName"@en ;
+	rdfs:domain carml:Namespace ;
+	rdfs:range xsd:string ;
+	rdfs:isDefinedBy carml: ;
+	rdfs:comment "The name value of a namespace."@en ;
 .
 
 carml:MultiTermMap a owl:Class ;
@@ -83,13 +134,14 @@ carml:MultiJoin a owl:Class ;
 	rdfs:comment "A join that supports joining multiple child values with a parent expression."@en ;
 .
 
-# Add carml:MultiObjectMap to range of rr:ObjectMap ;
+# Add carml:MultiObjectMap to range of rr:objectMap ;
 rr:objectMap
 	rdfs:range [
-	rdf:type owl:Class ;
-	owl:unionOf (
-		rr:ObjectMap
-		rr:RefObjectMap
-		carml:MultiObjectMap
-	)
-] .
+		rdf:type owl:Class ;
+		owl:unionOf (
+			rr:ObjectMap
+			rr:RefObjectMap
+			carml:MultiObjectMap
+		)
+	]
+.

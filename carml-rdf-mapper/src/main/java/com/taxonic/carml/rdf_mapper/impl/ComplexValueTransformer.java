@@ -4,6 +4,7 @@ import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 import org.eclipse.rdf4j.model.IRI;
@@ -83,7 +84,7 @@ public class ComplexValueTransformer implements ValueTransformer {
 		Resource resource = (Resource) value;
 		
 		// determine exact target type
-		Type targetType = typeDecider.decide(model, resource);
+		Set<Type> targetTypes = typeDecider.decide(model, resource);
 		
 		// TODO check for target type conditions?
 		// - must be a subtype of 'propertyType'
@@ -94,21 +95,21 @@ public class ComplexValueTransformer implements ValueTransformer {
 		// before mapping, first check the cache for an existing mapping
 		// NOTE: cache includes pre-mapped/registered enum instances
 		// such as <#Male> -> Gender.Male for property gender : Gender
-		targetValue = mappingCache.getCachedMapping(resource, targetType);
+		targetValue = mappingCache.getCachedMapping(resource, targetTypes);
 		
 		if (targetValue == null) {
 			
 			// no existing mapping - perform mapping
-			targetValue = mapper.map(model, resource, targetType);
+			targetValue = mapper.map(model, resource, targetTypes);
 			
 			// add mapped value to cache
-			mappingCache.addCachedMapping(resource, targetType, targetValue);
+			mappingCache.addCachedMapping(resource, targetTypes, targetValue);
 		}
 		
 		// TODO check cache for adapted value (key: typeAdapter + targetValue)
 		Object adaptedValue = typeAdapter.apply(targetValue);
 		// TODO maybe we should cache this as well, in a diff. cache. (key: typeAdapter + targetValue)
-		
-		return adaptedValue;		
+
+		return adaptedValue;
 	}
 }

@@ -10,7 +10,15 @@ public class Carml {
 		
 		Stream = prefix + "Stream",
 		streamName = prefix + "streamName",
-	
+
+		FileSource = prefix + "FileSource",
+		url = prefix + "url",
+		XmlDocument = prefix + "XmlDocument",
+		declaresNamespace = prefix + "declaresNamespace",
+		Namespace = prefix + "Namespace",
+		namespacePrefix = prefix + "namespacePrefix",
+		namespaceName = prefix + "namespaceName",
+
 		MultiObjectMap = prefix + "MultiObjectMap",
 		multiReference = prefix + "multiReference",
 		multiTemplate = prefix + "multiTemplate",

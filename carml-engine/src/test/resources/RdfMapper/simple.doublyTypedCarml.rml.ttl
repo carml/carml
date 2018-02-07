@@ -7,11 +7,14 @@
 	rml:logicalSource [
 		rml:source [
 			a carml:Stream ;
-			carml:streamName "foo" ;
+			carml:declaresNamespace [
+				carml:namespacePrefix "ex" ;
+				carml:namespaceName "http://www.example.com/" ;
+			] ;
 		] ;
-		rml:referenceFormulation ql:JSONPath ;
-		rml:iterator "$" ;
+		rml:referenceFormulation ql:XPath ;
+		rml:iterator "*" ;
 	] ;
 	
-	rr:subject <http://ex.com/subject> ;
+	rr:subject <http://www.example.com/subject> ;
 .
