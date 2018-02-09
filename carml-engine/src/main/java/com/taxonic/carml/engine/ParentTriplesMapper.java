@@ -43,6 +43,11 @@ class ParentTriplesMapper<T> {
 	}
 
 	Set<Resource> map(Set<Pair<String, Object>> joinValues) {
+		
+		if (joinValues.isEmpty()) {
+			return ImmutableSet.of();
+		}
+		
 		Set<Resource> results = new LinkedHashSet<>();
 		getIterator.get().forEach(e ->
 			map(e, joinValues)
