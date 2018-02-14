@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>com.taxonic.carml</groupId>
 		<artifactId>carml</artifactId>
-		<version>develop-SNAPSHOT</version>
+		<version>0.1.2</version>
 	</parent>
 
 	<artifactId>carml-model</artifactId>
@@ -24,7 +24,7 @@
 		<dependency>
 			<groupId>com.taxonic.carml</groupId>
 			<artifactId>carml-rdf-mapper</artifactId>
-			<version>develop-SNAPSHOT</version>
+			<version>0.1.2</version>
 		</dependency>
 
 	</dependencies>
