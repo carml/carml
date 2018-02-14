@@ -10,9 +10,9 @@ import java.util.function.UnaryOperator;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.repository.Repository;
-
+import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.rdf_mapper.Mapper;
-import com.taxonic.carml.rdf_mapper.impl.MapperImpl;
+import com.taxonic.carml.rdf_mapper.impl.CarmlMapper;
 import com.taxonic.carml.rdf_mapper.impl.MappingCache;
 
 public class RdfObjectLoader {
@@ -62,7 +62,7 @@ public class RdfObjectLoader {
 		requireNonNull(modelAdapter, MODEL_ADAPTER_MSG);
 		requireNonNull(populateCache, POPULATE_CACHE_MSG);
 		
-		MapperImpl mapper = new MapperImpl();
+		CarmlMapper mapper = new CarmlMapper();
 		populateCache.accept(mapper);
 		configureMapper.accept(mapper);
 		
@@ -70,7 +70,7 @@ public class RdfObjectLoader {
 		
 		return resources
 			.stream()
-			.<T> map(r -> mapper.map(modelAdapter.apply(model), r, clazz))
+			.<T> map(r -> mapper.map(modelAdapter.apply(model), r, ImmutableSet.of(clazz)))
 			.collect(ImmutableCollectors.toImmutableSet());
 	}
 	

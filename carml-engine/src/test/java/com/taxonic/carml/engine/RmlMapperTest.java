@@ -3,8 +3,8 @@ package com.taxonic.carml.engine;
 import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
 import com.taxonic.carml.model.NameableStream;
 import com.taxonic.carml.model.TriplesMap;
+import com.taxonic.carml.model.impl.CarmlLogicalSource;
 import com.taxonic.carml.model.impl.CarmlStream;
-import com.taxonic.carml.model.impl.LogicalSourceImpl;
 import com.taxonic.carml.util.RmlMappingLoader;
 import org.apache.commons.io.IOUtils;
 import org.eclipse.rdf4j.model.IRI;
@@ -204,7 +204,7 @@ public class RmlMapperTest {
 
 		TriplesMap logicalSourceMap = mock(TriplesMap.class);
 		when(logicalSourceMap.getLogicalSource())
-				.thenReturn(new LogicalSourceImpl(null, null, expectedIRI));
+				.thenReturn(new CarmlLogicalSource(null, null, expectedIRI));
 
 		TriplesMapperComponents<?> components = mapper.getTriplesMapperComponents(logicalSourceMap);
 
@@ -232,7 +232,7 @@ public class RmlMapperTest {
 
 		TriplesMap logicalSourceMap = mock(TriplesMap.class);
 		when(logicalSourceMap.getLogicalSource())
-				.thenReturn(new LogicalSourceImpl(null, null, unsupportedRefFormulation));
+				.thenReturn(new CarmlLogicalSource(null, null, unsupportedRefFormulation));
 
 
 		exception.expect(RuntimeException.class);

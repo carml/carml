@@ -10,14 +10,14 @@ import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.rdf_mapper.annotations.RdfType;
 import com.taxonic.carml.vocab.Rr;
 
-public class RefObjectMapImpl implements RefObjectMap {
+public class CarmlRefObjectMap implements RefObjectMap {
 	
-	private TriplesMap parentTriplesMap;
-	private Set<Join> joinConditions;
+	TriplesMap parentTriplesMap;
+	Set<Join> joinConditions;
 	
-	public RefObjectMapImpl() {}
+	public CarmlRefObjectMap() {}
 	
-	public RefObjectMapImpl(
+	public CarmlRefObjectMap(
 			TriplesMap parentTriplesMap,
 			Set<Join> joinConditions
 		) {
@@ -26,14 +26,14 @@ public class RefObjectMapImpl implements RefObjectMap {
 	}
 	
 	@RdfProperty(Rr.parentTriplesMap)
-	@RdfType(TriplesMapImpl.class)
+	@RdfType(CarmlTriplesMap.class)
 	@Override
 	public TriplesMap getParentTriplesMap() {
 		return parentTriplesMap;
 	}
 
 	@RdfProperty(Rr.joinCondition)
-	@RdfType(JoinImpl.class)
+	@RdfType(CarmlJoin.class)
 	@Override
 	public Set<Join> getJoinConditions() {
 		return joinConditions;
@@ -49,7 +49,7 @@ public class RefObjectMapImpl implements RefObjectMap {
 	
 	@Override
 	public String toString() {
-		return "RefObjectMapImpl [getParentTriplesMap()=" + getParentTriplesMap() 
+		return "CarmlRefObjectMap [getParentTriplesMap()=" + getParentTriplesMap()
 			+ ", getJoinConditions()=" + getJoinConditions() + "] ";
 	}
 	
@@ -69,7 +69,7 @@ public class RefObjectMapImpl implements RefObjectMap {
 		if (this == obj) return true;
 		if (obj == null) return false;
 		if (getClass() != obj.getClass()) return false;
-		RefObjectMapImpl other = (RefObjectMapImpl) obj;
+		CarmlRefObjectMap other = (CarmlRefObjectMap) obj;
 		if (joinConditions == null) {
 			if (other.joinConditions != null) return false;
 		}
@@ -87,8 +87,8 @@ public class RefObjectMapImpl implements RefObjectMap {
 
 	public static class Builder{
 		
-		private TriplesMap parentTriplesMap;
-		private Set<Join> joinConditions = new LinkedHashSet<>();
+		TriplesMap parentTriplesMap;
+		Set<Join> joinConditions = new LinkedHashSet<>();
 		
 		Builder() {}
 		
@@ -107,8 +107,8 @@ public class RefObjectMapImpl implements RefObjectMap {
 			return this;
 		}
 		
-		public RefObjectMapImpl build() {
-			return new RefObjectMapImpl(
+		public CarmlRefObjectMap build() {
+			return new CarmlRefObjectMap(
 					parentTriplesMap,
 					joinConditions
 			);

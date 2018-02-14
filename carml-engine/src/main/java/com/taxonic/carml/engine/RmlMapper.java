@@ -7,19 +7,22 @@ import com.taxonic.carml.logical_source_resolver.JsonPathResolver;
 import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
 import com.taxonic.carml.logical_source_resolver.XPathResolver;
 import com.taxonic.carml.model.BaseObjectMap;
+import com.taxonic.carml.model.FileSource;
 import com.taxonic.carml.model.GraphMap;
 import com.taxonic.carml.model.Join;
 import com.taxonic.carml.model.LogicalSource;
+import com.taxonic.carml.model.MultiObjectMap;
+import com.taxonic.carml.model.MultiRefObjectMap;
 import com.taxonic.carml.model.NameableStream;
 import com.taxonic.carml.model.ObjectMap;
 import com.taxonic.carml.model.PredicateMap;
 import com.taxonic.carml.model.PredicateObjectMap;
 import com.taxonic.carml.model.RefObjectMap;
 import com.taxonic.carml.model.SubjectMap;
+import com.taxonic.carml.model.TermMap;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.rdf_mapper.util.ImmutableCollectors;
 import com.taxonic.carml.vocab.Rdf;
-
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
@@ -34,6 +37,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -159,6 +163,16 @@ public class RmlMapper {
 		}
 	}
 
+	private static Optional<String> unpackFileSource(Object sourceObject) {
+		if (sourceObject instanceof String) { // Standard rml:source
+			return Optional.of((String) sourceObject);
+		} else if (sourceObject instanceof FileSource) { // Extended Carml source
+			return Optional.of(((FileSource)sourceObject).getUrl());
+		} else {
+			return Optional.empty();
+		}
+	}
+
 	private static class FileResolver implements SourceResolver {
 
 		private LogicalSourceManager sourceManager;
@@ -174,23 +188,23 @@ public class RmlMapper {
 
 		@Override
 		public Optional<String> apply(Object o) {
-			if (!(o instanceof String))
-				return Optional.empty();
-			String fileName = (String) o;
-			Path path = basePath.resolve(fileName);
-			String sourceName = path.toString();
 
-			// Cache source if not already done.
-			if (!sourceManager.hasSource(sourceName)) {
-				try {
-					sourceManager.addSource(sourceName, new String(Files.readAllBytes(path), StandardCharsets.UTF_8));
-				} catch (IOException e) {
-					throw new RuntimeException(
-							"could not create file source for path [" + path + "]");
+			return unpackFileSource(o).map(f -> {
+				Path path = basePath.resolve(f);
+				String sourceName = path.toString();
+
+				// Cache source if not already done.
+				if (!sourceManager.hasSource(sourceName)) {
+					try {
+						sourceManager.addSource(sourceName, new String(Files.readAllBytes(path), StandardCharsets.UTF_8));
+					} catch (IOException e) {
+						throw new RuntimeException(
+								"could not create file source for path [" + path + "]");
+					}
 				}
-			}
 
-			return Optional.of(sourceManager.getSource(sourceName));
+				return sourceManager.getSource(sourceName);
+			});
 		}
 
 	}
@@ -210,19 +224,20 @@ public class RmlMapper {
 
 		@Override
 		public Optional<String> apply(Object o) {
-			if (!(o instanceof String)) {
-				return Optional.empty();
-			}
-			String sourceName = basePath + "/" + (String) o;
 
-			// Cache source if not already done.
-			if (!sourceManager.hasSource(sourceName)) {
-				sourceManager.addSource(sourceName,
-						RmlMapper.class.getClassLoader()
-								.getResourceAsStream(sourceName));
-			}
+			return unpackFileSource(o).map(f -> {
+				String sourceName = basePath + "/" + f;
 
-			return Optional.of(sourceManager.getSource(sourceName));
+				// Cache source if not already done.
+				if (!sourceManager.hasSource(sourceName)) {
+					sourceManager.addSource(sourceName,
+							RmlMapper.class.getClassLoader()
+									.getResourceAsStream(sourceName));
+				}
+
+				return sourceManager.getSource(sourceName);
+			});
+
 		}
 
 	}
@@ -285,42 +300,71 @@ public class RmlMapper {
 	}
 
 	public Model map(Set<TriplesMap> mapping) {
+		validateMapping(mapping);
 		Model model = new LinkedHashModel();
+		
+		Set<TriplesMap> functionValueTriplesMaps = getTermMaps(mapping)
+				.filter(t -> t.getFunctionValue() != null)
+				.map(TermMap::getFunctionValue)
+				.collect(ImmutableCollectors.toImmutableSet());
+		
+		Set<TriplesMap> refObjectTriplesMaps = getAllTriplesMapsUsedInRefObjectMap(mapping);
+		
 		mapping.stream()
-			.filter(m -> !isTriplesMapOnlyUsedAsFunctionValue(m, mapping))
+			.filter(m -> !functionValueTriplesMaps.contains(m) ||
+				refObjectTriplesMaps.contains(m))
 			.forEach(m -> map(m, model));
 		this.sourceManager.clear();
 		return model;
 	}
-
-	private boolean isTriplesMapOnlyUsedAsFunctionValue(TriplesMap map, Set<TriplesMap> mapping) {
-		return
-			isTriplesMapUsedAsFunctionValue(map, mapping) &&
-			!isTriplesMapUsedInRefObjectMap(map, mapping);
+	
+	private void validateMapping(Set<TriplesMap> mapping) {
+		Objects.requireNonNull(mapping);
+		if (mapping.isEmpty()) {
+			throw new RuntimeException("Empty mapping provided. Please make sure your mapping is syntactically correct.");
+		}
 	}
-
-	private boolean isTriplesMapUsedAsFunctionValue(TriplesMap map, Set<TriplesMap> mapping) {
-
-		// TODO
-
-		return false;
+	
+	private Stream<TermMap> getTermMaps(Set<TriplesMap> mapping) {
+		return mapping.stream()
+				.flatMap(m ->
+					Stream.concat (
+						m.getPredicateObjectMaps()
+							.stream()
+							.flatMap(p ->
+								Stream.concat(
+									p.getGraphMaps().stream(),
+									Stream.concat(
+										p.getPredicateMaps().stream(),
+										p.getObjectMaps().stream()
+											.filter(ObjectMap.class::isInstance)
+											.map(ObjectMap.class::cast)
+									)
+								)
+							),
+						Stream.concat(
+							Stream.of(m.getSubjectMap()),
+							m.getSubjectMap() != null ?
+									m.getSubjectMap().getGraphMaps().stream() :
+									Stream.empty()
+						)
+					)
+				)
+				.filter(Objects::nonNull);
 	}
+	
+	private Set<TriplesMap> getAllTriplesMapsUsedInRefObjectMap(Set<TriplesMap> mapping) {
+		return mapping.stream()
+				// get all referencing object maps
+				.flatMap(m -> m.getPredicateObjectMaps().stream())
+				.flatMap(p -> p.getObjectMaps().stream())
+				.filter(o -> o instanceof RefObjectMap)
+				.map(o -> (RefObjectMap) o)
 
-	private boolean isTriplesMapUsedInRefObjectMap(TriplesMap map, Set<TriplesMap> mapping) {
-		return
-		mapping.stream()
-
-			// get all referencing object maps
-			.flatMap(m -> m.getPredicateObjectMaps().stream())
-			.flatMap(p -> p.getObjectMaps().stream())
-			.filter(o -> o instanceof RefObjectMap)
-			.map(o -> (RefObjectMap) o)
-
-			// check that no referencing object map
-			// has 'map' as its parent triples map
-			.map(o -> o.getParentTriplesMap())
-			.anyMatch(map::equals);
-
+				// check that no referencing object map
+				// has 'map' as its parent triples map
+				.map(RefObjectMap::getParentTriplesMap)
+				.collect(ImmutableCollectors.toImmutableSet());
 	}
 
 	private void map(TriplesMap triplesMap, Model model) {
@@ -338,7 +382,17 @@ public class RmlMapper {
 		Set<BaseObjectMap> objectMaps
 	) {
 		return objectMaps.stream()
-			.filter(o -> o instanceof ObjectMap)
+			.filter(o -> o instanceof ObjectMap && !(o instanceof MultiObjectMap))
+			.map(o -> termGenerators.getObjectGenerator((ObjectMap) o));
+	}
+	
+
+
+	private Stream<TermGenerator<Value>> getMultiObjectMapGenerators(
+		Set<BaseObjectMap> objectMaps
+	) {
+		return objectMaps.stream()
+			.filter(o -> o instanceof MultiObjectMap)
 			.map(o -> termGenerators.getObjectGenerator((ObjectMap) o));
 	}
 
@@ -408,16 +462,30 @@ public class RmlMapper {
 
 		Set<RefObjectMapper> refObjectMappers =
 			objectMaps.stream()
-				.filter(o -> o instanceof RefObjectMap)
+				.filter(o -> o instanceof RefObjectMap && !(o instanceof MultiRefObjectMap))
 				.map(o -> (RefObjectMap) o)
 				.filter(o -> !o.getJoinConditions().isEmpty())
 				.map(this::createRefObjectMapper)
+				.collect(ImmutableCollectors.toImmutableSet());
+		
+		Set<RefObjectMapper> multiRefObjectMappers =
+				objectMaps.stream()
+					.filter(o -> o instanceof MultiRefObjectMap)
+					.map(o -> (RefObjectMap) o)
+					.filter(o -> !o.getJoinConditions().isEmpty())
+					.map(this::createRefObjectMapper)
+					.collect(ImmutableCollectors.toImmutableSet());
+		
+		Set<TermGenerator<? extends Value>> multiObjectGenerators = 
+				getMultiObjectMapGenerators(objectMaps)
 				.collect(ImmutableCollectors.toImmutableSet());
 
 		return new PredicateMapper(
 			termGenerators.getPredicateGenerator(predicateMap),
 			objectGenerators,
-			refObjectMappers
+			multiObjectGenerators,
+			refObjectMappers,
+			multiRefObjectMappers
 		);
 	}
 
@@ -451,8 +519,8 @@ public class RmlMapper {
 
 		return new TriplesMapperComponents<>(
 			logicalSourceResolvers.get(referenceFormulation),
-			sourceResolver.apply(logicalSource.getSource()),
-			logicalSource.getIterator()
+			logicalSource,
+			sourceResolver
 		);
 	}
 

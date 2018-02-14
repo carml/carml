@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.Set;
 
+import com.taxonic.carml.model.impl.*;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.model.vocabulary.XMLSchema;
@@ -12,12 +13,7 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.model.TermType;
 import com.taxonic.carml.model.TriplesMap;
-import com.taxonic.carml.model.impl.LogicalSourceImpl;
-import com.taxonic.carml.model.impl.ObjectMapImpl;
-import com.taxonic.carml.model.impl.PredicateMapImpl;
-import com.taxonic.carml.model.impl.PredicateObjectMapImpl;
-import com.taxonic.carml.model.impl.SubjectMapImpl;
-import com.taxonic.carml.model.impl.TriplesMapImpl;
+import com.taxonic.carml.model.impl.CarmlLogicalSource;
 import com.taxonic.carml.vocab.Rdf;
 
 public class TestRdfMapperTermType extends RmlLoader {
@@ -42,29 +38,29 @@ public class TestRdfMapperTermType extends RmlLoader {
 	@Test
 	public void testLoadMappingWithTermTypeLiteral() {
 		Set<TriplesMap> expected = ImmutableSet.of(
-				TriplesMapImpl.newBuilder()
+				CarmlTriplesMap.newBuilder()
 					.logicalSource(
-						LogicalSourceImpl.newBuilder()
+						CarmlLogicalSource.newBuilder()
 							.source("simple2TestInput.json")
 							.iterator("$.Child")
 							.referenceFormulation(Rdf.Ql.JsonPath)
 							.build()
 					)
 					.subjectMap(
-						SubjectMapImpl.newBuilder()
+						CarmlSubjectMap.newBuilder()
 							.template(SecondExample.prefix + "Child/{first}/{last}")
 							.clazz(SecondExample.Child)
 							.build()
 					)
 					.predicateObjectMap(
-						PredicateObjectMapImpl.newBuilder()
+						CarmlPredicateObjectMap.newBuilder()
 						.predicateMap(
-								PredicateMapImpl.newBuilder()
+								CarmlPredicateMap.newBuilder()
 								.constant(SecondExample.hasBirthday)
 								.build()
 						)
 						.objectMap(
-								ObjectMapImpl.newBuilder()
+								CarmlObjectMap.newBuilder()
 								.reference("birthday")
 								.datatype(XMLSchema.DATE)
 								.termType(TermType.LITERAL)
@@ -80,31 +76,31 @@ public class TestRdfMapperTermType extends RmlLoader {
 	@Test
 	public void testLoadMappingWithTermTypeIRI() {
 		Set<TriplesMap> expected = ImmutableSet.of(
-				TriplesMapImpl.newBuilder()
+				CarmlTriplesMap.newBuilder()
 					.logicalSource(
-						LogicalSourceImpl.newBuilder()
+						CarmlLogicalSource.newBuilder()
 							.source("simple2TestInput.json")
 							.iterator("$.Child")
 							.referenceFormulation(Rdf.Ql.JsonPath)
 							.build()
 					)
 					.subjectMap(
-						SubjectMapImpl.newBuilder()
+						CarmlSubjectMap.newBuilder()
 							.template(SecondExample.prefix + "Child/{first}/{last}")
 							.clazz(SecondExample.Child)
 							.termType(TermType.IRI)
 							.build()
 					)
 					.predicateObjectMap(
-						PredicateObjectMapImpl.newBuilder()
+						CarmlPredicateObjectMap.newBuilder()
 						.predicateMap(
-								PredicateMapImpl.newBuilder()
+								CarmlPredicateMap.newBuilder()
 								.constant(SecondExample.hasBirthday)
 								.termType(TermType.IRI)
 								.build()
 						)
 						.objectMap(
-								ObjectMapImpl.newBuilder()
+								CarmlObjectMap.newBuilder()
 								.constant(SecondExample.Unknown)
 								.termType(TermType.IRI)
 								.build()
@@ -120,29 +116,29 @@ public class TestRdfMapperTermType extends RmlLoader {
 	@Test
 	public void testLoadMappingWithTermTypeBlankNodeB() {
 		Set<TriplesMap> expected = ImmutableSet.of(
-				TriplesMapImpl.newBuilder()
+				CarmlTriplesMap.newBuilder()
 					.logicalSource(
-						LogicalSourceImpl.newBuilder()
+						CarmlLogicalSource.newBuilder()
 							.source("simple2TestInput.json")
 							.iterator("$.Child")
 							.referenceFormulation(Rdf.Ql.JsonPath)
 							.build()
 					)
 					.subjectMap(
-						SubjectMapImpl.newBuilder()
+						CarmlSubjectMap.newBuilder()
 							.termType(TermType.BLANK_NODE)
 							.clazz(SecondExample.Child)
 							.build()
 					)
 					.predicateObjectMap(
-						PredicateObjectMapImpl.newBuilder()
+						CarmlPredicateObjectMap.newBuilder()
 						.predicateMap(
-								PredicateMapImpl.newBuilder()
+								CarmlPredicateMap.newBuilder()
 								.constant(SecondExample.hasBirthday)
 								.build()
 						)
 						.objectMap(
-								ObjectMapImpl.newBuilder()
+								CarmlObjectMap.newBuilder()
 								.reference("birthday")
 								.datatype(XMLSchema.DATE)
 								.build()
@@ -157,29 +153,29 @@ public class TestRdfMapperTermType extends RmlLoader {
 	@Test
 	public void testLoadMappingWithTermTypeBlankNodeA() {
 		Set<TriplesMap> expected = ImmutableSet.of(
-				TriplesMapImpl.newBuilder()
+				CarmlTriplesMap.newBuilder()
 					.logicalSource(
-						LogicalSourceImpl.newBuilder()
+						CarmlLogicalSource.newBuilder()
 							.source("simple2TestInput.json")
 							.iterator("$.Child")
 							.referenceFormulation(Rdf.Ql.JsonPath)
 							.build()
 					)
 					.subjectMap(
-						SubjectMapImpl.newBuilder()
+						CarmlSubjectMap.newBuilder()
 							.template(SecondExample.prefix + "Child/{first}/{last}")
 							.clazz(SecondExample.Child)
 							.build()
 					)
 					.predicateObjectMap(
-						PredicateObjectMapImpl.newBuilder()
+						CarmlPredicateObjectMap.newBuilder()
 						.predicateMap(
-								PredicateMapImpl.newBuilder()
+								CarmlPredicateMap.newBuilder()
 								.constant(SecondExample.hasBirthday)
 								.build()
 						)
 						.objectMap(
-								ObjectMapImpl.newBuilder()
+								CarmlObjectMap.newBuilder()
 								.termType(TermType.BLANK_NODE)
 								.build()
 						)

@@ -12,15 +12,15 @@ import com.taxonic.carml.rdf_mapper.annotations.RdfType;
 import com.taxonic.carml.rdf_mapper.annotations.RdfTypeDecider;
 import com.taxonic.carml.vocab.Rr;
 
-public class PredicateObjectMapImpl implements PredicateObjectMap {
+public class CarmlPredicateObjectMap implements PredicateObjectMap {
 
 	private Set<PredicateMap> predicateMaps;
 	private Set<BaseObjectMap> objectMaps;
 	private Set<GraphMap> graphMaps;
 
-	public PredicateObjectMapImpl() {}
+	public CarmlPredicateObjectMap() {}
 	
-	public PredicateObjectMapImpl(
+	public CarmlPredicateObjectMap(
 		Set<PredicateMap> predicateMaps,
 		Set<BaseObjectMap> objectMaps,
 		Set<GraphMap> graphMaps
@@ -31,12 +31,13 @@ public class PredicateObjectMapImpl implements PredicateObjectMap {
 	}
 
 	@RdfProperty(Rr.predicateMap)
-	@RdfType(PredicateMapImpl.class)
+	@RdfType(CarmlPredicateMap.class)
 	@Override
 	public Set<PredicateMap> getPredicateMaps() {
 		return predicateMaps;
 	}
 
+	// TODO: make @RdfProperty repeatable so we can also use Carml.multiObjectMap here
 	@RdfProperty(Rr.objectMap)
 	@RdfTypeDecider(ObjectMapTypeDecider.class)
 	@Override
@@ -45,7 +46,7 @@ public class PredicateObjectMapImpl implements PredicateObjectMap {
 	}
 	
 	@RdfProperty(Rr.graphMap)
-	@RdfType(GraphMapImpl.class)
+	@RdfType(CarmlGraphMap.class)
 	@Override
 	public Set<GraphMap> getGraphMaps() {
 		return graphMaps;
@@ -65,7 +66,7 @@ public class PredicateObjectMapImpl implements PredicateObjectMap {
 	
 	@Override
 	public String toString() {
-		return "PredicateObjectMapImpl [getPredicateMaps()=" + getPredicateMaps() + ", getObjectMaps()="
+		return "CarmlPredicateObjectMap [getPredicateMaps()=" + getPredicateMaps() + ", getObjectMaps()="
 			+ getObjectMaps() + ", getGraphMaps()=" + getGraphMaps() + "]";
 	}
 
@@ -84,7 +85,7 @@ public class PredicateObjectMapImpl implements PredicateObjectMap {
 		if (this == obj) return true;
 		if (obj == null) return false;
 		if (getClass() != obj.getClass()) return false;
-		PredicateObjectMapImpl other = (PredicateObjectMapImpl) obj;
+		CarmlPredicateObjectMap other = (CarmlPredicateObjectMap) obj;
 		if (objectMaps == null) {
 			if (other.objectMaps != null) return false;
 		}
@@ -120,8 +121,8 @@ public class PredicateObjectMapImpl implements PredicateObjectMap {
 			return this;
 		}
 		
-		public Builder graphMap(GraphMapImpl graphMapImpl) {
-			graphMaps.add(graphMapImpl);
+		public Builder graphMap(CarmlGraphMap carmlGraphMap) {
+			graphMaps.add(carmlGraphMap);
 			return this;
 		}
 		
@@ -130,8 +131,8 @@ public class PredicateObjectMapImpl implements PredicateObjectMap {
 			return this;
 		}
 		
-		public PredicateObjectMapImpl build() {
-			return new PredicateObjectMapImpl(
+		public CarmlPredicateObjectMap build() {
+			return new CarmlPredicateObjectMap(
 				predicateMaps,
 				objectMaps,
 				graphMaps

@@ -1,6 +1,7 @@
 package com.taxonic.carml.engine;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -18,6 +19,7 @@ import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.model.util.Models;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.engine.function.ExecuteFunction;
 import com.taxonic.carml.engine.template.Template;
@@ -29,6 +31,7 @@ import com.taxonic.carml.model.SubjectMap;
 import com.taxonic.carml.model.TermMap;
 import com.taxonic.carml.model.TermType;
 import com.taxonic.carml.model.TriplesMap;
+import com.taxonic.carml.rdf_mapper.util.ImmutableCollectors;
 import com.taxonic.carml.util.IriEncoder;
 import com.taxonic.carml.vocab.Rdf;
 
@@ -144,7 +147,8 @@ class TermGeneratorCreator {
 		if (allowedConstantTypes.stream().noneMatch(c -> c.isInstance(constant)))
 			throw new RuntimeException("encountered constant value of type " +
 				constant.getClass() + ", which is not allowed for this term map");
-		return Optional.of(e -> Optional.of(constant));
+		List<Value> constants = ImmutableList.of(constant);
+		return Optional.of(e -> constants);
 	}
 	
 	private Optional<TermGenerator<Value>> getTemplateGenerator(
@@ -214,7 +218,7 @@ class TermGeneratorCreator {
 		// when 'executionMap' is evaluated, the generated triples
 		// describe a fno:Execution instance, which we can then execute.
 		
-		// TODO check that executionMap has an idential logical source
+		// TODO check that executionMap has an identical logical source
 
 		Function<EvaluateExpression, Optional<Object>> getValue =
 			evaluateExpression -> functionEvaluation(evaluateExpression, executionMapper);
@@ -261,7 +265,6 @@ class TermGeneratorCreator {
 			ObjectMap objectMap = (ObjectMap) map;
 			if (
 				isReferenceTermMap(map) ||
-				isFunctionValueTermMap(map) ||
 				objectMap.getLanguage() != null ||
 				objectMap.getDatatype() != null
 			)
@@ -269,15 +272,26 @@ class TermGeneratorCreator {
 		}
 		return TermType.IRI;
 	}
-
-	private boolean isFunctionValueTermMap(TermMap map) {
-		return map.getFunctionValue() != null;
-	}
 	
 	private boolean isReferenceTermMap(TermMap map) {
 		return
 			map.getConstant() == null &&
 			map.getReference() != null;
+	}
+	
+	private List<Value> unpackEvaluatedExpression(Object result, Function<String, ? extends Value> generateTerm) {
+		if (result instanceof Collection<?>) {
+			return ((Collection<?>) result).stream()
+			.map(i -> generateTerm.apply(createNaturalRdfLexicalForm(i)))
+			.collect(ImmutableCollectors.toImmutableList());
+		} else {
+			Value v = generateTerm.apply(createNaturalRdfLexicalForm(result));
+			if (v == null) {
+				return ImmutableList.<Value>of();
+			} else {
+				return ImmutableList.of(v);
+			}
+		}
 	}
 
 	private TermGenerator<Value> getGenerator(
@@ -293,10 +307,9 @@ class TermGeneratorCreator {
 		> createGenerator = generateTerm ->
 			evaluateExpression -> {
 				Optional<Object> referenceValue = getValue.apply(evaluateExpression);
-				return referenceValue.map(r -> Optional.ofNullable(generateTerm.apply(createNaturalRdfLexicalForm(r))).orElse(null));
-//				if (referenceValue == null) return null;
-//				String lexicalForm = createNaturalRdfLexicalForm(referenceValue);
-//				return generateTerm.apply(lexicalForm);
+				return referenceValue.map( r -> 
+						unpackEvaluatedExpression(r, generateTerm))
+						.orElse(ImmutableList.of());
 			};
 
 		if (!allowedTermTypes.contains(termType))

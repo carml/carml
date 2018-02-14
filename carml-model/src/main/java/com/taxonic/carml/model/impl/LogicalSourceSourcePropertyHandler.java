@@ -16,7 +16,6 @@ import com.taxonic.carml.rdf_mapper.Mapper;
 import com.taxonic.carml.rdf_mapper.PropertyHandler;
 import com.taxonic.carml.rdf_mapper.impl.ComplexValueTransformer;
 import com.taxonic.carml.rdf_mapper.impl.MappingCache;
-import com.taxonic.carml.rdf_mapper.impl.TypeFromTripleTypeDecider;
 import com.taxonic.carml.rdf_mapper.qualifiers.PropertyPredicate;
 import com.taxonic.carml.rdf_mapper.qualifiers.PropertySetter;
 
@@ -44,7 +43,7 @@ public class LogicalSourceSourcePropertyHandler implements PropertyHandler {
 		// map 'object' to some complex type
 		// TODO quite nasty to create the transformer here
 		ComplexValueTransformer transformer = new ComplexValueTransformer(
-			new TypeFromTripleTypeDecider(mapper),
+			new LogicalSourceSourceTypeDecider(mapper),
 			mappingCache,
 			mapper,
 			o -> o

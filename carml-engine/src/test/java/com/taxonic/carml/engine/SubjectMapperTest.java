@@ -13,13 +13,13 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
-import java.util.Optional;
 import java.util.Set;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.rdf_mapper.util.ImmutableCollectors;
 
@@ -40,7 +40,7 @@ public class SubjectMapperTest {
 		IRI subjectIRI = f.createIRI("http://foo.bar/subjectIRI");
 
 		when(subjectGenerator.apply(evaluator))
-				.thenReturn(Optional.of(subjectIRI));
+				.thenReturn(ImmutableList.of(subjectIRI));
 
 		PredicateObjectMapper mockMapper1 = mock(PredicateObjectMapper.class);
 		PredicateObjectMapper mockMapper2 = mock(PredicateObjectMapper.class);
@@ -69,7 +69,7 @@ public class SubjectMapperTest {
 		IRI subjectIRI = f.createIRI("http://foo.bar/subjectIRI");
 
 		when(subjectGenerator.apply(evaluator))
-				.thenReturn(Optional.of(subjectIRI));
+				.thenReturn(ImmutableList.of(subjectIRI));
 
 		Set<IRI> expectedClasses = 
 			ImmutableSet.of(
@@ -95,7 +95,7 @@ public class SubjectMapperTest {
 		IRI subjectIRI = f.createIRI("http://foo.bar/subjectIRI");
 
 		when(subjectGenerator.apply(evaluator))
-				.thenReturn(Optional.of(subjectIRI));
+				.thenReturn(ImmutableList.of(subjectIRI));
 
 
 		Set<IRI> graphs = 
@@ -110,7 +110,7 @@ public class SubjectMapperTest {
 				.map(graphIri -> {
 					@SuppressWarnings("unchecked")
 					TermGenerator<IRI> generator = (TermGenerator<IRI>) mock(TermGenerator.class);
-					when(generator.apply(evaluator)).thenReturn(Optional.of(graphIri));
+					when(generator.apply(evaluator)).thenReturn(ImmutableList.of(graphIri));
 					return generator;
 				})
 				.collect(ImmutableCollectors.toImmutableSet());
@@ -154,14 +154,14 @@ public class SubjectMapperTest {
 				.map(graphIri -> {
 					@SuppressWarnings("unchecked")
 					TermGenerator<IRI> generator = (TermGenerator<IRI>) mock(TermGenerator.class);
-					when(generator.apply(evaluator)).thenReturn(Optional.of(graphIri));
+					when(generator.apply(evaluator)).thenReturn(ImmutableList.of(graphIri));
 					return generator;
 				})
 				.collect(ImmutableCollectors.toImmutableSet());
 
 
 		when(subjectGenerator.apply(evaluator))
-				.thenReturn(Optional.of(subjectIRI));
+				.thenReturn(ImmutableList.of(subjectIRI));
 
 		PredicateObjectMapper mockMapper1 = mock(PredicateObjectMapper.class);
 		PredicateObjectMapper mockMapper2 = mock(PredicateObjectMapper.class);

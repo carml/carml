@@ -27,41 +27,47 @@
 <#NormalizationMappingName> a rr:predicateObjectMap;
 	rr:predicate ex:hasName;
 	rr:objectMap <#removeNonLatinCharsFunctionMapName> .
-	
+
 <#NormalizationMappingLastName> a rr:predicateObjectMap;
 	rr:predicate ex:hasLastName;
 	rr:objectMap <#removeNonLatinCharsFunctionMapLastName> .
-	
-<#removeNonLatinCharsFunctionMapName> fnml:functionValue [
-	rml:logicalSource <#LogicalSource>;
-	rr:subjectMap [
-		rr:template "http://example.com/Student/{ID}/removeNonLatinCharsFunctionMapName";
-	];
-	rr:predicateObjectMap [
-		rr:predicate fno:executes;
-		rr:object ex:removeNonLatinCharsFunction;
-	];
-	rr:predicateObjectMap [
-		rr:predicate ex:startString;
-		rr:objectMap [
-			rml:reference "name";
-		]
-	]
-].
 
-<#removeNonLatinCharsFunctionMapLastName> fnml:functionValue [
-	rml:logicalSource <#LogicalSource>;
-	rr:subjectMap [
-		rr:template "http://example.com/Student/{ID}/removeNonLatinCharsFunctionMapLastName";
-	];
-	rr:predicateObjectMap [
-		rr:predicate fno:executes;
-		rr:object ex:removeNonLatinCharsFunction;
-	];
-	rr:predicateObjectMap [
-		rr:predicate ex:startString;
-		rr:objectMap [
-			rml:reference "lastName";
+<#removeNonLatinCharsFunctionMapName>
+	fnml:functionValue [
+		rml:logicalSource <#LogicalSource>;
+		rr:subjectMap [
+			rr:template "http://example.com/Student/{ID}/removeNonLatinCharsFunctionMapName";
+		];
+		rr:predicateObjectMap [
+			rr:predicate fno:executes;
+			rr:object ex:removeNonLatinCharsFunction;
+		];
+		rr:predicateObjectMap [
+			rr:predicate ex:startString;
+			rr:objectMap [
+				rml:reference "name";
+			]
 		]
-	]
-].
+	] ;
+	rr:datatype xsd:string ;
+.
+
+<#removeNonLatinCharsFunctionMapLastName>
+	fnml:functionValue [
+		rml:logicalSource <#LogicalSource>;
+		rr:subjectMap [
+			rr:template "http://example.com/Student/{ID}/removeNonLatinCharsFunctionMapLastName";
+		];
+		rr:predicateObjectMap [
+			rr:predicate fno:executes;
+			rr:object ex:removeNonLatinCharsFunction;
+		];
+		rr:predicateObjectMap [
+			rr:predicate ex:startString;
+			rr:objectMap [
+				rml:reference "lastName";
+			]
+		]
+	] ;
+	rr:datatype xsd:string ;
+.

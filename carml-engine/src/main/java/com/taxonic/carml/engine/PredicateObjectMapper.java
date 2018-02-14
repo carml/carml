@@ -1,6 +1,5 @@
 package com.taxonic.carml.engine;
 
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -28,8 +27,8 @@ class PredicateObjectMapper {
 					subjectGraphs.stream(),
 					graphGenerators.stream()
 							.map(g -> g.apply(evaluate))
-							.filter(Optional::isPresent)
-							.map(Optional::get)
+							.filter(l -> !l.isEmpty())
+							.map(l -> l.get(0))
 				)
 				.distinct()
 				.toArray(Resource[]::new);

@@ -22,6 +22,8 @@ Table of Contents
 - [Validating your RML mapping](#validating-your-rml-mapping)
 - [Input stream extension](#input-stream-extension)
 - [Function extension](#function-extension)
+- [MultiTermMap extension](#multitermmap-extension)
+- [XML namespace extension](#xml-namespace-extension)
 - [Supported data source types](#supported-data-source-types)
 - [Roadmap](#roadmap)
 
@@ -32,6 +34,8 @@ Releases
 21 Oct 2017 - CARML 0.1.0
 
 05 Dec 2017 - CARML 0.1.1
+
+12 Feb 2018 - CARML 0.1.2
 
 Introduction
 ------------
@@ -49,7 +53,7 @@ CARML is available from the Central Maven Repository.
 <dependency>
     <groupId>com.taxonic.carml</groupId>
     <artifactId>carml-engine</artifactId>
-    <version>0.1.1</version>
+    <version>0.1.2</version>
 </dependency>
 ```
 
@@ -185,6 +189,258 @@ It is recommended to describe and publish new functions in terms of FnO for inte
 
 Note that it is currently possible to specify and use function executions as parameters of other function executions in CARML, although this is not (yet?) expressible in FnO.
 
+MultiTermMap extension
+----------------------
+As RML is a superset of R2RML that was developed after R2RML, and R2RML only supports term maps that return a single RDF term, it is not possible to have a term map return multiple values according to the current [RML spec](http://rml.io/spec.html).
+However, in structured file sources like XML and JSON, it is often the case that a collection of similar nodes is nested in another.
+
+For example:
+```json
+{
+  "name":"John Doe",
+  "cars":[ "BMW", "Seat", "Porsche" ]
+}
+```
+The only way to get a `ex:John%20Doe ex:ownsCar X` triple per value in `cars[]` with RML would be something like the following mapping:
+```
+@prefix rr: <http://www.w3.org/ns/r2rml#>.
+@prefix rml: <http://semweb.mmlab.be/ns/rml#>.
+@prefix ql: <http://semweb.mmlab.be/ns/ql#> .
+@prefix carml: <http://carml.taxonic.com/carml/> .
+@prefix ex: <http://www.example.com/> .
+
+<#SubjectMapping> a rr:TriplesMap ;
+  rml:logicalSource [
+    rml:source [
+      a carml:Stream ;
+    ] ;
+    rml:referenceFormulation ql:JSONPath ;
+    rml:iterator "$" ;
+  ] ;
+
+  rr:subjectMap [
+    rr:template "http://www.example.com/{name}" ;
+  ] ;
+
+  rr:predicateObjectMap [
+    rr:predicate ex:ownsCar ;
+    rr:objectMap [
+      rml:reference "cars[0]" ;
+    ] ;
+  ] ;
+
+  rr:predicateObjectMap [
+    rr:predicate ex:ownsCar ;
+    rr:objectMap [
+      rml:reference "cars[1]" ;
+    ] ;
+  ] ;
+
+  rr:predicateObjectMap [
+    rr:predicate ex:ownsCar ;
+    rr:objectMap [
+      rml:reference "cars[2]" ;
+    ] ;
+  ] ;
+.
+```
+
+This is not very flexible.
+
+To solve this issue, CARML introduces the notion of a MultiTermMap and the following properties:
+
+* `carml:multiTemplate`
+* `carml:multiReference`
+* `carml:multiFunctionValue`
+* `carml:multiJoinCondition`
+
+This allows the earlier example to be mapped as follows:
+```
+@prefix rr: <http://www.w3.org/ns/r2rml#>.
+@prefix rml: <http://semweb.mmlab.be/ns/rml#>.
+@prefix ql: <http://semweb.mmlab.be/ns/ql#> .
+@prefix carml: <http://carml.taxonic.com/carml/> .
+@prefix ex: <http://www.example.com/> .
+
+<#SubjectMapping> a rr:TriplesMap ;
+  rml:logicalSource [
+    rml:source [
+      a carml:Stream ;
+    ] ;
+    rml:referenceFormulation ql:JSONPath ;
+    rml:iterator "$" ;
+  ] ;
+
+  rr:subjectMap [
+    rr:template "http://www.example.com/{name}" ;
+  ] ;
+
+  rr:predicateObjectMap [
+    rr:predicate ex:ownsCar ;
+    rr:objectMap [
+      carml:multiReference "cars" ;
+      rr:datatype xsd:string ;
+    ] ;
+  ] ;
+.
+```
+
+returning:
+```
+<http://www.example.com/John%20Doe>
+  <http://www.example.com/ownsCar>
+    "BMW" ,
+    "Seat" ,
+    "Porsche" .
+```
+
+Adding a multiTemplate to the mapping:
+```
+  rr:predicateObjectMap [
+    rr:predicate ex:ownsCar2 ;
+    rr:objectMap [
+      carml:multiTemplate "Car: {cars}" ;
+      rr:datatype xsd:string ;
+    ] ;
+  ] ;
+```
+
+one gets:
+```
+<http://www.example.com/John%20Doe>
+  <http://www.example.com/ownsCar>
+    "BMW" ,
+    "Seat" ,
+    "Porsche" ;
+  <http://www.example.com/ownsCar2>
+    "Car: BMW" ,
+    "Car: Seat" ,
+    "Car: Porsche" .
+```
+
+Or using a multiJoinCondition:
+```
+  rr:predicateObjectMap [
+    rr:predicate ex:ownsCar3 ;
+    rr:objectMap [
+      rr:parentTriplesMap <#CarMapping> ;
+      carml:multiJoinCondition [
+        rr:child "cars" ;
+        rr:parent "$" ;
+      ] ;
+    ] ;
+  ] ;
+.
+
+<#CarMapping> a rr:TriplesMap ;
+rml:logicalSource [
+  rml:source [
+    a carml:Stream ;
+  ] ;
+  rml:referenceFormulation ql:JSONPath ;
+  rml:iterator "$.cars" ;
+] ;
+
+rr:subjectMap [
+  rr:template "http://www.example.com/{$}" ;
+] ;
+
+rr:predicateObjectMap [
+  rr:predicate rdfs:label ;
+  rr:objectMap [
+    rml:reference "$" ;
+    rr:datatype xsd:string ;
+  ] ;
+] ;
+.
+```
+
+yields:
+```
+<http://www.example.com/John%20Doe>
+  <http://www.example.com/ownsCar>
+    "BMW" ,
+    "Seat" ,
+    "Porsche" ;
+  <http://www.example.com/ownsCar2>
+    "Car: BMW" ,
+    "Car: Seat" ,
+    "Car: Porsche" ;
+  <http://www.example.com/ownsCar3>
+    <http://www.example.com/BMW> ,
+    <http://www.example.com/Seat> ,
+    <http://www.example.com/Porsche> .
+
+<http://www.example.com/BMW>
+  <http://www.w3.org/2000/01/rdf-schema#label> "BMW" .
+
+<http://www.example.com/Seat>
+  <http://www.w3.org/2000/01/rdf-schema#label> "Seat" .
+
+<http://www.example.com/Porsche>
+  <http://www.w3.org/2000/01/rdf-schema#label> "Porsche" .
+```
+
+you get the drift.
+
+**Note that currently CARML only supports MultiObjectMaps. Future versions may support this for graphs, subjects and predicates as well.**
+
+XML namespace extension
+-----------------------
+
+When working with XML documents, it is often necessary specify namespaces to identify a node's qualified name.
+Most XPath implementations allow you to register these namespaces, in order to be able to use them in executing XPath expressions.
+In order to convey these expressions to the CARML engine, CARML introduces the class `carml:XmlDocument` that can be used as a value of `rml:source`. An instance of  `carml:XmlDocument` can, if it is a file source, specify a location via the `carml:url` property, and specify namespace declarations via the `carml:declaresNamespace` property.
+
+For example, given the following XML document:
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<ex:bookstore xmlns:ex="http://www.example.com/books/1.0/">
+  <ex:book category="children">
+    <ex:title lang="en">Harry Potter</ex:title>
+    <ex:author>J K. Rowling</ex:author>
+    <ex:year>2005</ex:year>
+    <ex:price>29.99</ex:price>
+  </ex:book>
+</ex:bookstore>
+```
+
+one can now use the following mapping, declaring namespaces, to use them in XPath expressions:
+```
+@prefix rr: <http://www.w3.org/ns/r2rml#>.
+@prefix rml: <http://semweb.mmlab.be/ns/rml#>.
+@prefix ql: <http://semweb.mmlab.be/ns/ql#> .
+@prefix carml: <http://carml.taxonic.com/carml/> .
+@prefix ex: <http://www.example.com/> .
+
+<#SubjectMapping> a rr:TriplesMap ;
+  rml:logicalSource [
+    rml:source [
+      a carml:Stream ;
+      # or in case of a file source use:
+      # carml:url "path-to-souce" ;
+      carml:declaresNamespace [
+        carml:namespacePrefix "ex" ;
+        carml:namespaceName "http://www.example.com/books/1.0/" ;
+      ] ;
+    ] ;
+    rml:referenceFormulation ql:XPath ;
+    rml:iterator "/ex:bookstore/*" ;
+  ] ;
+
+  rr:subjectMap [
+    rr:template "http://www.example.com/{./ex:title}" ;
+    rr:class ex:Book ;
+    rr:termType rr:IRI ;
+  ] ;
+.
+
+```
+
+which yields:
+```
+<http://www.example.com/Harry%20Potter> a <http://www.example.com/Book> .
+```
 
 Supported Data Source Types
 ---------------------------

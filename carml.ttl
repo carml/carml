@@ -1,22 +1,147 @@
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix carml: <http://carml.taxonic.com/carml/> .
+@prefix rr: <http://www.w3.org/ns/r2rml#> .
+@prefix rml: <http://semweb.mmlab.be/ns/rml#> .
 
 carml:
 	a owl:Ontology ;
 	rdfs:label "CARML RML extension vocabulary"@en ;
 	rdfs:comment "This vocabulary defines terms that extend the RML specification."@en ;
+	owl:imports
+		rr: ,
+		rml: ;
 .
 
-carml:Stream a rdfs:Class ;
-  rdfs:label "Stream"@en ;
-  rdfs:isDefinedBy carml: ;
+carml:Stream a owl:Class ;
+	rdfs:label "Stream"@en ;
+	rdfs:isDefinedBy carml: ;
 	rdfs:comment "A stream is a sequence of data."@en ;
 .
 
-carml:streamName a rdf:Property ;
-  rdfs:domain carml:Stream ;
-  rdfs:isDefinedBy carml: ;
+carml:streamName a owl:DatatypeProperty ;
+	rdfs:domain carml:Stream ;
+	rdfs:isDefinedBy carml: ;
 	rdfs:comment "A name to identify a stream."@en ;
+.
+
+carml:FileSource a owl:Class ;
+	rdfs:label "FileSource"@en ;
+	rdfs:isDefinedBy carml: ;
+	rdfs:comment "A file based source."@en ;
+.
+
+carml:url a owl:DatatypeProperty ;
+	rdfs:label "url"@en ;
+	rdfs:domain carml:FileSource ;
+	rdfs:range xsd:string ;
+	rdfs:isDefinedBy carml: ;
+	rdfs:comment "A string referencing the location of the FileSource"@en ;
+.
+
+carml:XmlDocument a owl:Class ;
+	rdfs:label "XmlDocument"@en ;
+	rdfs:subClassOf carml:FileSource ;
+	rdfs:isDefinedBy carml: ;
+	rdfs:comment "A FileSource that is an XML document"@en ;
+.
+
+carml:declaresNamespace a owl:ObjectProperty ;
+	rdfs:label "declaresNamespace"@en ;
+	rdfs:domain carml:XmlDocument ;
+	rdfs:range carml:Namespace ;
+	rdfs:isDefinedBy carml: ;
+	rdfs:comment "A namespace declaration that is used to support namespaces in XML document references."@en ;
+.
+
+carml:Namespace a owl:Class ;
+	rdfs:label "Namespace"@en ;
+	rdfs:isDefinedBy carml: ;
+	rdfs:comment "A document namespace."@en ;
+.
+
+carml:namespacePrefix a owl:DatatypeProperty ;
+	rdfs:label "namespacePrefix"@en ;
+	rdfs:domain carml:Namespace ;
+	rdfs:range xsd:string ;
+	rdfs:isDefinedBy carml: ;
+	rdfs:comment "The prefix value of a namespace."@en ;
+.
+
+carml:namespaceName a owl:DatatypeProperty ;
+	rdfs:label "namespaceName"@en ;
+	rdfs:domain carml:Namespace ;
+	rdfs:range xsd:string ;
+	rdfs:isDefinedBy carml: ;
+	rdfs:comment "The name value of a namespace."@en ;
+.
+
+carml:MultiTermMap a owl:Class ;
+	rdfs:label "MultiTermMap"@en ;
+	rdfs:isDefinedBy carml: ;
+	rdfs:comment "A function that generates a collection of RDF terms from a logical source"@en ;
+.
+
+carml:MultiObjectMap a owl:Class ;
+	rdfs:label "MultiObjectMap"@en ;
+	rdfs:subClassOf carml:MultiTermMap ;
+	rdfs:isDefinedBy carml: ;
+	rdfs:comment "An ObjectMap element to generate multiple object components of the (predicate, object) pair from a logical source"@en ;
+.
+
+carml:multiReference a owl:DatatypeProperty ;
+	rdfs:label "multiReference"@en ;
+	# NOTE: currently only supported on a carml:MultiObjectMap .
+	rdfs:domain carml:MultiTermMap ;
+	rdfs:range xsd:string ;
+	rdfs:isDefinedBy carml: ;
+	rdfs:comment "A valid expression that evaluates to a collection of values for a subject, predicate, object, or graph, from a logical source."@en ;
+.
+
+carml:multiTemplate a owl:DatatypeProperty ;
+	rdfs:label "multiTemplate"@en ;
+	# NOTE: currently only supported on a carml:MultiObjectMap .
+	rdfs:domain carml:MultiTermMap ;
+	rdfs:range xsd:string ;
+	rdfs:isDefinedBy carml: ;
+	rdfs:comment "A template (format string) to specify how to generate a collection of values for a subject, predicate, object, or graph, using one or more references from a logical source."@en ;
+.
+
+carml:multiFunctionValue a owl:ObjectProperty ;
+	rdfs:label "multiFunctionValue"@en ;
+	# NOTE: currently only supported on a carml:MultiObjectMap .
+	rdfs:domain carml:MultiTermMap ;
+	rdfs:range rr:TriplesMap ;
+	rdfs:isDefinedBy carml: ;
+	rdfs:comment "A triples map that represents a function execution which results in a collection of values for a subject, predicate, object, or graph, from a logical source."@en ;
+.
+
+carml:multiJoinCondition a owl:ObjectProperty ;
+	rdfs:label "multiJoinCondition"@en ;
+	# NOTE: currently only supported on a carml:MultiObjectMap .
+	rdfs:domain carml:MultiTermMap ;
+	rdfs:range carml:MultiJoin ;
+	rdfs:isDefinedBy carml: ;
+	rdfs:comment "Specifies the multi join condition for joining the multiple child values from the logical source with the parent value of the logical source of the parent triples map."@en ;
+.
+
+carml:MultiJoin a owl:Class ;
+	rdfs:label "MultiJoin"@en ;
+	rdfs:subClassOf rr:Join ;
+	rdfs:isDefinedBy carml: ;
+	rdfs:comment "A join that supports joining multiple child values with a parent expression."@en ;
+.
+
+# Add carml:MultiObjectMap to range of rr:objectMap ;
+rr:objectMap
+	rdfs:range [
+		rdf:type owl:Class ;
+		owl:unionOf (
+			rr:ObjectMap
+			rr:RefObjectMap
+			carml:MultiObjectMap
+		)
+	]
 .

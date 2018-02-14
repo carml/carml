@@ -12,15 +12,15 @@ import com.taxonic.carml.rdf_mapper.annotations.RdfType;
 import com.taxonic.carml.vocab.Rml;
 import com.taxonic.carml.vocab.Rr;
 
-public class TriplesMapImpl implements TriplesMap {
+public class CarmlTriplesMap implements TriplesMap {
 
 	private LogicalSource logicalSource;
 	private SubjectMap subjectMap;
 	private Set<PredicateObjectMap> predicateObjectMaps;
 	
-	public TriplesMapImpl() {}
+	public CarmlTriplesMap() {}
 	
-	public TriplesMapImpl(
+	public CarmlTriplesMap(
 		LogicalSource logicalSource,
 		SubjectMap subjectMap,
 		Set<PredicateObjectMap> predicateObjectMaps
@@ -31,21 +31,21 @@ public class TriplesMapImpl implements TriplesMap {
 	}
 
 	@RdfProperty(Rml.logicalSource)
-	@RdfType(LogicalSourceImpl.class)
+	@RdfType(CarmlLogicalSource.class)
 	@Override
 	public LogicalSource getLogicalSource() {
 		return logicalSource;
 	}
 
 	@RdfProperty(Rr.subjectMap)
-	@RdfType(SubjectMapImpl.class)
+	@RdfType(CarmlSubjectMap.class)
 	@Override
 	public SubjectMap getSubjectMap() {
 		return subjectMap;
 	}
 	
 	@RdfProperty(Rr.predicateObjectMap)
-	@RdfType(PredicateObjectMapImpl.class)
+	@RdfType(CarmlPredicateObjectMap.class)
 	@Override
 	public Set<PredicateObjectMap> getPredicateObjectMaps() {
 		return predicateObjectMaps;
@@ -65,7 +65,7 @@ public class TriplesMapImpl implements TriplesMap {
 
 	@Override
 	public String toString() {
-		return "TriplesMapImpl [getLogicalSource()=" + getLogicalSource() + ", getSubjectMap()=" + getSubjectMap()
+		return "CarmlTriplesMap [getLogicalSource()=" + getLogicalSource() + ", getSubjectMap()=" + getSubjectMap()
 			+ ", getPredicateObjectMaps()=" + getPredicateObjectMaps() + "]";
 	}
 
@@ -84,7 +84,7 @@ public class TriplesMapImpl implements TriplesMap {
 		if (this == obj) return true;
 		if (obj == null) return false;
 		if (getClass() != obj.getClass()) return false;
-		TriplesMapImpl other = (TriplesMapImpl) obj;
+		CarmlTriplesMap other = (CarmlTriplesMap) obj;
 		if (logicalSource == null) {
 			if (other.logicalSource != null) return false;
 		}
@@ -125,8 +125,8 @@ public class TriplesMapImpl implements TriplesMap {
 			return this;
 		}
 
-		public TriplesMapImpl build() {
-			return new TriplesMapImpl(
+		public CarmlTriplesMap build() {
+			return new CarmlTriplesMap(
 				logicalSource,
 				subjectMap,
 				predicateObjectMaps

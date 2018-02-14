@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.Set;
 
+import com.taxonic.carml.model.impl.*;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
@@ -12,11 +13,7 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.model.TriplesMap;
-import com.taxonic.carml.model.impl.LogicalSourceImpl;
-import com.taxonic.carml.model.impl.ObjectMapImpl;
-import com.taxonic.carml.model.impl.PredicateMapImpl;
-import com.taxonic.carml.model.impl.PredicateObjectMapImpl;
-import com.taxonic.carml.model.impl.TriplesMapImpl;
+import com.taxonic.carml.model.impl.CarmlLogicalSource;
 import com.taxonic.carml.util.RmlMappingLoader;
 import com.taxonic.carml.vocab.Rdf;
 
@@ -44,20 +41,20 @@ public class TestFunctionModelMapping {
 	public void test() {
 
 		TriplesMap functionMap =
-			TriplesMapImpl.newBuilder()
+			CarmlTriplesMap.newBuilder()
 				.logicalSource(
-					LogicalSourceImpl.newBuilder()
+					CarmlLogicalSource.newBuilder()
 						.build()
 				)
 				.predicateObjectMap(
-					PredicateObjectMapImpl.newBuilder()
+					CarmlPredicateObjectMap.newBuilder()
 						.predicateMap(
-							PredicateMapImpl.newBuilder()
+							CarmlPredicateMap.newBuilder()
 								.constant(Rdf.Fno.executes)
 								.build()
 						)
 						.objectMap(
-							ObjectMapImpl.newBuilder()
+							CarmlObjectMap.newBuilder()
 								.constant(Ex.toBoolFunction)
 								.build()
 						)
@@ -65,21 +62,21 @@ public class TestFunctionModelMapping {
 				)
 				.build();
 		
-		TriplesMapImpl main =
-			TriplesMapImpl.newBuilder()
+		CarmlTriplesMap main =
+			CarmlTriplesMap.newBuilder()
 				.logicalSource(
-					LogicalSourceImpl.newBuilder()
+					CarmlLogicalSource.newBuilder()
 						.build()
 				)
 				.predicateObjectMap(
-					PredicateObjectMapImpl.newBuilder()
+					CarmlPredicateObjectMap.newBuilder()
 						.predicateMap(
-							PredicateMapImpl.newBuilder()
+							CarmlPredicateMap.newBuilder()
 								.constant(Ex.isPresentBool)
 								.build()
 						)
 						.objectMap(
-							ObjectMapImpl.newBuilder()
+							CarmlObjectMap.newBuilder()
 								.functionValue(functionMap)
 								.build()
 						)

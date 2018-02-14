@@ -12,4 +12,6 @@
 		rml:referenceFormulation ql:JSONPath ;
 		rml:iterator "$" ;
 	] ;
+	
+	rr:subject <http://ex.com/subject> ;
 .

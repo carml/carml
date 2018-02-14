@@ -12,3 +12,5 @@
 .idea/
 *.iml
 *.iws
+
+bin/

@@ -26,13 +26,6 @@ public class PredObjectMapsTest extends MappingTest {
 	}
 	
 	@Test
-	public void testPredObjectMappingDOnePredAndMultiObjList() {
-		testMapping("RmlMapper",
-				"RmlMapper/test16/predicateObjectMappingD.rml.ttl",
-				"RmlMapper/test16/predicateObjectMappingD.output.ttl");
-	}
-	
-	@Test
 	public void testPredObjectMappingCOnePredAndMultiObj() {
 		testMapping("RmlMapper",
 				"RmlMapper/test16/predicateObjectMappingC.rml.ttl",

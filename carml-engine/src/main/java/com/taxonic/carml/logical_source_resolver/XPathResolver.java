@@ -1,6 +1,10 @@
 package com.taxonic.carml.logical_source_resolver;
 
+import com.taxonic.carml.model.LogicalSource;
+import com.taxonic.carml.model.XmlSource;
 import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import javax.xml.transform.stream.StreamSource;
 import net.sf.saxon.s9api.DocumentBuilder;
@@ -10,6 +14,7 @@ import net.sf.saxon.s9api.XPathCompiler;
 import net.sf.saxon.s9api.XPathSelector;
 import net.sf.saxon.s9api.XdmItem;
 import net.sf.saxon.s9api.XdmNode;
+import net.sf.saxon.s9api.XdmValue;
 
 public class XPathResolver implements LogicalSourceResolver<XdmItem> {
 	
@@ -32,17 +37,27 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
 		return autoNodeTextExtraction;
 	}
 	
+	private void setNamespaces(LogicalSource logicalSource) {
+		Object source = logicalSource.getSource();
+		if (source instanceof XmlSource) {
+			((XmlSource)source).getDeclaredNamespaces()
+			.forEach(n -> xpath.declareNamespace(n.getPrefix(), n.getName()));
+		}
+	}
+	
 	@Override
 	public SourceIterator<XdmItem> getSourceIterator() {
 		return this::getIterableXpathResult;
 	}
 	
-	private Iterable<XdmItem> getIterableXpathResult(String source, String iteratorExpression) {
+	private Iterable<XdmItem> getIterableXpathResult(String source, LogicalSource logicalSource) {
 		DocumentBuilder documentBuilder = xpathProcessor.newDocumentBuilder();
 		StringReader reader = new StringReader(source);
+		setNamespaces(logicalSource);
+		
 		try {
 			XdmNode item = documentBuilder.build(new StreamSource(reader));
-			XPathSelector selector = xpath.compile(iteratorExpression).load();
+			XPathSelector selector = xpath.compile(logicalSource.getIterator()).load();
 			selector.setContextItem(item);
 			return selector;
 		} catch (SaxonApiException e) {
@@ -56,14 +71,25 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
 			try {
 				XPathSelector selector = xpath.compile(expression).load();
 				selector.setContextItem(entry);
-				XdmItem value = selector.evaluateSingle();
+				XdmValue value = selector.evaluate();
 				
-				if (value == null) {
+				if (value.size() > 1) {
+					List<String> results = new ArrayList<>();
+					value.forEach(i -> {
+							String sValue = getItemStringValue(i, value);
+							if (sValue != null) {
+								results.add(sValue);
+							}
+						}
+					);
+					return Optional.of(results);
+				} else if (value.size() == 0) {
 					return Optional.empty();
 				}
+
+				XdmItem item = value.itemAt(0);
+				return Optional.ofNullable(getItemStringValue(item, value));
 				
-				String result = autoNodeTextExtraction ? value.getStringValue() : value.toString();
-				return Optional.of(result);
 				
 			} catch (SaxonApiException e) {
 				throw new RuntimeException(String.format(
@@ -71,5 +97,15 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
 						e);
 			}
 		};
+	}
+	
+	private String getItemStringValue(XdmItem item, XdmValue value) {
+		if (item.getStringValue().length() == 0) {
+			return null;
+		}
+		
+		
+		String result = autoNodeTextExtraction ? item.getStringValue() : value.toString();
+		return result;
 	}
 }

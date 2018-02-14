@@ -1,5 +1,8 @@
 package com.taxonic.carml.engine.template;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -11,10 +14,13 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.mutable.MutableInt;
 
-class TemplateImpl implements Template {
+import com.google.common.collect.ImmutableList;
+import com.taxonic.carml.rdf_mapper.util.ImmutableCollectors;
+
+class CarmlTemplate implements Template {
 
 	abstract static class Segment {
-		
+
 		private String value;
 
 		Segment(String value) {
@@ -25,13 +31,13 @@ class TemplateImpl implements Template {
 			return value;
 		}
 	}
-	
+
 	static class Text extends Segment {
 
 		Text(String value) {
 			super(value);
 		}
-		
+
 		@Override
 		public boolean equals(Object obj) {
 			if (this == obj) return true;
@@ -44,7 +50,7 @@ class TemplateImpl implements Template {
 			else if (!getValue().equals(other.getValue())) return false;
 			return true;
 		}
-		
+
 		@Override
 		public int hashCode() {
 			final int prime = 31;
@@ -58,7 +64,7 @@ class TemplateImpl implements Template {
 			return "Text [getValue()=" + getValue() + "]";
 		}
 	}
-	
+
 	static class ExpressionSegment extends Segment {
 
 		private int id;
@@ -81,7 +87,7 @@ class TemplateImpl implements Template {
 			else if (!getValue().equals(other.getValue())) return false;
 			return true;
 		}
-		
+
 		@Override
 		public int hashCode() {
 			final int prime = 31;
@@ -90,11 +96,11 @@ class TemplateImpl implements Template {
 			result = prime * result + ((getValue() == null) ? 0 : getValue().hashCode());
 			return result;
 		}
-		
+
 		@Override
 		public String toString() {
 			return "ExpressionSegment [getValue()=" + getValue() + "]";
-		}	
+		}
 	}
 
 	private static class ExpressionImpl implements Expression {
@@ -140,61 +146,133 @@ class TemplateImpl implements Template {
 			return "ExpressionImpl [id=" + id + ", value=" + value + "]";
 		}
 	}
-	
+
 	private class Builder implements Template.Builder {
 
-		private Map<Expression, Function<Expression, Optional<String>>> bindings = new LinkedHashMap<>();
-		
+		private Map<Expression, Function<Expression, Optional<Object>>> bindings = new LinkedHashMap<>();
+
 		@Override
-		public Template.Builder bind(Expression expression, Function<Expression, Optional<String>> templateValue) {
+		public Template.Builder bind(Expression expression, Function<Expression, Optional<Object>> templateValue) {
 			bindings.put(expression, templateValue);
 			return this;
 		}
-		
-		private Optional<String> getExpressionValue(Expression expression) {
+
+		private Optional<Object> getExpressionValue(Expression expression) {
 			if (!bindings.containsKey(expression))
 				throw new RuntimeException("no binding present for expression [" + expression + "]");
 			return bindings.get(expression).apply(expression);
 		}
-		
-		private Optional<String> getExpressionSegmentValue(ExpressionSegment segment) {
+
+		private Optional<Object> getExpressionSegmentValue(ExpressionSegment segment) {
 			Expression expression = expressionSegmentMap.get(segment);
 			if (expression == null)
 				throw new RuntimeException("no Expression instance present corresponding to segment " + segment); // (should never occur)
 			return getExpressionValue(expression);
 		}
-		
+
 		private void checkBindings() {
 			if (!new LinkedHashSet<>(bindings.keySet()).equals(expressions))
 				throw new RuntimeException("set of bindings [" + bindings.keySet() +
 					"] does NOT match set of expressions in template [" + expressions + "]");
 		}
-		
+
+		private List<String> getValuesExpressionEvaluation(Object evalResult) {
+			if (evalResult instanceof Collection<?>) {
+				return
+						((Collection<?>) evalResult).stream()
+							.map(v -> (String) v)
+							.collect(ImmutableCollectors.toImmutableList());
+			} else {
+				return ImmutableList.of((String)evalResult);
+			}
+		}
+
+		private boolean exprValueResultsHasOnlyFilledLists(Map<Segment, List<String>> indexedExprValues) {
+			for (List<String> list : indexedExprValues.values()) {
+				if (list.size() == 0)
+					return false;
+			}
+			return true;
+		}
+
+		private int checkExprValueResultsOfEqualSizeAndReturn(Map<Segment, List<String>> indexedExprValues) {
+			int size = -1;
+			for (List<String> list : indexedExprValues.values()) {
+				if (size == -1) {
+					size = list.size();
+				} else {
+					if (list.size() != size) {
+						throw new RuntimeException(
+								String.format("Template expressions do not lead to an equal amount of values: %s",
+										indexedExprValues.keySet()));
+					}
+				}
+			}
+			return size;
+		}
+
 		@Override
 		public Optional<Object> create() {
 			checkBindings();
-			StringBuilder str = new StringBuilder();
-			
-			for (Segment s : segments) {
-				if (s instanceof Text) {
-					str.append(s.getValue());
-				} else if (s instanceof ExpressionSegment) {
-					Optional<String> value = getExpressionSegmentValue((ExpressionSegment) s);
-					if (value.isPresent()) {
-						str.append(value.get());
-					} else {
-						// Return null when an expression value is null.
-						// see https://www.w3.org/TR/r2rml/#from-template
-						// and https://www.w3.org/TR/r2rml/#generated-rdf-term
-						// TODO: PM: is this the best place to check this? Could possibly be handled at builder.
-						return Optional.empty();
-					}
+			List<String> result = new ArrayList<>();
+			Map<Segment, List<String>> indexedExprValues = new HashMap<>();
+
+			// single out expression segments
+			List<ExpressionSegment> exprSegs = segments.stream()
+				.filter(s -> s instanceof ExpressionSegment)
+				.map(s -> (ExpressionSegment) s)
+				.collect(Collectors.toList());
+
+			if (exprSegs.size() > 0) {
+
+				// map segment to list of it's evaluation results
+				for (ExpressionSegment exprSeg: exprSegs) {
+					Optional<Object> evalResult = getExpressionSegmentValue(exprSeg);
+					indexedExprValues.put(
+							exprSeg,
+							evalResult
+								.map(this::getValuesExpressionEvaluation)
+								.orElse(ImmutableList.of())
+					);
 				}
-			}			
-			return Optional.of(str.toString());
+
+				// if there is an expression that doesn't result in a value,
+				// the template should yield no result, following the RML rules.
+				if (!exprValueResultsHasOnlyFilledLists(indexedExprValues)) {
+					return Optional.empty();
+				}
+
+				// make sure that, if there are multiple segments, that they lead
+				// an equal amount of values. If this is not the case, we cannot
+				// know which values belong together over multiple segments.
+				int indexedExprValSize = checkExprValueResultsOfEqualSizeAndReturn(indexedExprValues);
+				for (int i = 0; i < indexedExprValSize; i++) {
+					StringBuilder str = new StringBuilder();
+					for (Segment s : segments) {
+						if (s instanceof Text) {
+							str.append(s.getValue());
+						} else if (s instanceof ExpressionSegment) {
+							String exprValue = indexedExprValues.get(s).get(i);
+							if (exprValue == null) {
+								result.add(null);
+								continue;
+							}
+							str.append(exprValue);
+						}
+					}
+					result.add(str.toString());
+				}
+			// if there are no expression segments, continue building value
+			} else {
+				StringBuilder str = new StringBuilder();
+				segments.forEach(s -> str.append(s.getValue()));
+				result.add(str.toString());
+			}
+
+			return Optional.of(result);
 		}
 	}
-	
+
 	private static Map<ExpressionSegment, Expression> createExpressionSegmentMap(List<Segment> segments) {
 		MutableInt id = new MutableInt();
 		return segments.stream()
@@ -205,22 +283,22 @@ class TemplateImpl implements Template {
 				e -> new ExpressionImpl(id.getAndIncrement(), e.getValue())
 			));
 	}
-	
-	static TemplateImpl build(List<Segment> segments) {
+
+	static CarmlTemplate build(List<Segment> segments) {
 		Map<ExpressionSegment, Expression> expressionSegmentMap = createExpressionSegmentMap(segments);
 		Set<Expression> expressions = new LinkedHashSet<>(expressionSegmentMap.values());
-		return new TemplateImpl(
+		return new CarmlTemplate(
 			segments,
 			expressions,
 			expressionSegmentMap
 		);
 	}
-	
+
 	private List<Segment> segments;
 	private Set<Expression> expressions;
 	private Map<ExpressionSegment, Expression> expressionSegmentMap;
 
-	TemplateImpl(
+	CarmlTemplate(
 		List<Segment> segments,
 		Set<Expression> expressions,
 		Map<ExpressionSegment, Expression> expressionSegmentMap
@@ -229,7 +307,7 @@ class TemplateImpl implements Template {
 		this.expressions = expressions;
 		this.expressionSegmentMap = expressionSegmentMap;
 	}
-	
+
 	@Override
 	public Set<Expression> getExpressions() {
 		return expressions;
@@ -255,7 +333,7 @@ class TemplateImpl implements Template {
 		if (this == obj) return true;
 		if (obj == null) return false;
 		if (getClass() != obj.getClass()) return false;
-		TemplateImpl other = (TemplateImpl) obj;
+		CarmlTemplate other = (CarmlTemplate) obj;
 		if (expressionSegmentMap == null) {
 			if (other.expressionSegmentMap != null) return false;
 		}
@@ -273,7 +351,7 @@ class TemplateImpl implements Template {
 
 	@Override
 	public String toString() {
-		return "TemplateImpl [segments=" + segments + ", expressions=" + expressions + ", expressionSegmentMap="
+		return "CarmlTemplate [segments=" + segments + ", expressions=" + expressions + ", expressionSegmentMap="
 			+ expressionSegmentMap + "]";
 	}
 

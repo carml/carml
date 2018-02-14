@@ -1,0 +1,67 @@
+@prefix ex: <http://www.example.com/>.
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rr: <http://www.w3.org/ns/r2rml#> .
+@prefix rml: <http://semweb.mmlab.be/ns/rml#> .
+@prefix ql: <http://semweb.mmlab.be/ns/ql#> .
+@prefix : <http://www.example.com/mapping/> .
+
+:persons
+  rml:logicalSource [
+    rml:source "DocumentsAndAuthors.xml" ;
+    rml:referenceFormulation ql:XPath ;
+    rml:iterator "/mydata/person" ;
+  ];
+  rr:subjectMap [
+    rr:template "http://www.example.com/person/{@id}" ;
+    rr:class foaf:Person ;
+  ];
+  rr:predicateObjectMap [
+    rr:predicate dct:identifier ;
+    rr:objectMap [
+      rml:reference "@id" ;
+    ]
+  ];
+  rr:predicateObjectMap [
+    rr:predicate foaf:name;
+    rr:objectMap [
+      rml:reference "./name";
+    ]
+  ];
+  rr:predicateObjectMap [
+    rr:predicate foaf:publications;
+    rr:objectMap [
+      rr:parentTriplesMap :documents;
+      rr:joinCondition [
+        rr:parent "./@id";
+        rr:child "./authorof/@href" ;
+      ];
+    ];
+  ];
+.
+
+:documents
+  rml:logicalSource [
+    rml:source "DocumentsAndAuthors.xml" ;
+    rml:referenceFormulation ql:XPath ;
+    rml:iterator "/mydata/document" ;
+  ];
+  rr:subjectMap [
+    rr:template "http://www.example.com/doc/{@id}" ;
+    rr:class foaf:Document;
+  ];
+  rr:predicateObjectMap [
+    rr:predicate dct:identifier;
+    rr:objectMap [
+      rml:reference "@id";
+    ]
+  ];
+  rr:predicateObjectMap [
+    rr:predicate rdfs:label;
+    rr:objectMap [
+      rml:reference "./title";
+    ]
+  ];
+.

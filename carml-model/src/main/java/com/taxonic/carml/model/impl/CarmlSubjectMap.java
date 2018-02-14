@@ -1,59 +1,66 @@
 package com.taxonic.carml.model.impl;
 
+import java.util.LinkedHashSet;
+import java.util.Set;
+
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Value;
 
-import com.taxonic.carml.model.ObjectMap;
+import com.taxonic.carml.model.GraphMap;
+import com.taxonic.carml.model.SubjectMap;
 import com.taxonic.carml.model.TermType;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
+import com.taxonic.carml.rdf_mapper.annotations.RdfType;
 import com.taxonic.carml.vocab.Rr;
 
-public class ObjectMapImpl extends TermMapImpl implements ObjectMap {
+public class CarmlSubjectMap extends CarmlTermMap implements SubjectMap {
 
-	private IRI datatype;
-	private String language;
+	private Set<IRI> classes;
+	private Set<GraphMap> graphMaps;
+
+	public CarmlSubjectMap() {}
 	
-	public ObjectMapImpl() {}
-	
-	public ObjectMapImpl(
+	public CarmlSubjectMap(
 		String reference,
 		String inverseExpression,
 		String template,
 		TermType termType,
 		Value constant,
 		TriplesMap functionValue,
-		IRI datatype,
-		String language
+		Set<IRI> classes,
+		Set<GraphMap> graphMaps
 	) {
 		super(reference, inverseExpression, template, termType, constant, functionValue);
-		this.datatype = datatype;
-		this.language = language;
+		this.classes = classes;
+		this.graphMaps = graphMaps;
 	}
 
-	@RdfProperty(Rr.datatype)
+	
+	@RdfProperty(Rr.graphMap)
+	@RdfType(CarmlGraphMap.class)
 	@Override
-	public IRI getDatatype() {
-		return datatype;
+	public Set<GraphMap> getGraphMaps() {
+		return graphMaps;
 	}
-
-	@RdfProperty(Rr.language)
+	
+	public void setGraphMaps(Set<GraphMap> graphMaps) {
+		this.graphMaps = graphMaps;
+	}
+	
+	@RdfProperty(Rr.clazz)
 	@Override
-	public String getLanguage() {
-		return language;
+	public Set<IRI> getClasses() {
+		return classes;
 	}
 
-	public void setDatatype(IRI datatype) {
-		this.datatype = datatype;
-	}
-
-	public void setLanguage(String language) {
-		this.language = language;
+	public void setClasses(Set<IRI> classes) {
+		this.classes = classes;
 	}
 
 	@Override
 	public String toString() {
-		return "ObjectMapImpl [getDatatype()=" + getDatatype() + ", getLanguage()=" + getLanguage()
+		return "CarmlSubjectMap [getGraphMaps()=" + getGraphMaps() + ", getClasses()=" + getClasses()
 			+ ", getReference()=" + getReference() + ", getInverseExpression()=" + getInverseExpression()
 			+ ", getTemplate()=" + getTemplate() + ", getTermType()=" + getTermType() + ", getConstant()="
 			+ getConstant() + ", getFunctionValue()=" + getFunctionValue() + "]";
@@ -63,8 +70,8 @@ public class ObjectMapImpl extends TermMapImpl implements ObjectMap {
 	public int hashCode() {
 		final int prime = 31;
 		int result = super.hashCode();
-		result = prime * result + ((datatype == null) ? 0 : datatype.hashCode());
-		result = prime * result + ((language == null) ? 0 : language.hashCode());
+		result = prime * result + ((classes == null) ? 0 : classes.hashCode());
+		result = prime * result + ((graphMaps == null) ? 0 : graphMaps.hashCode());
 		return result;
 	}
 
@@ -73,15 +80,15 @@ public class ObjectMapImpl extends TermMapImpl implements ObjectMap {
 		if (this == obj) return true;
 		if (!super.equals(obj)) return false;
 		if (getClass() != obj.getClass()) return false;
-		ObjectMapImpl other = (ObjectMapImpl) obj;
-		if (datatype == null) {
-			if (other.datatype != null) return false;
+		CarmlSubjectMap other = (CarmlSubjectMap) obj;
+		if (classes == null) {
+			if (other.classes != null) return false;
 		}
-		else if (!datatype.equals(other.datatype)) return false;
-		if (language == null) {
-			if (other.language != null) return false;
+		else if (!classes.equals(other.classes)) return false;
+		if (graphMaps == null) {
+			if (other.graphMaps != null) return false;
 		}
-		else if (!language.equals(other.language)) return false;
+		else if (!graphMaps.equals(other.graphMaps)) return false;
 		return true;
 	}
 
@@ -90,10 +97,10 @@ public class ObjectMapImpl extends TermMapImpl implements ObjectMap {
 	}
 	
 	public static class Builder
-		extends com.taxonic.carml.model.impl.TermMapImpl.Builder {
+		extends CarmlTermMap.Builder {
 		
-		private IRI datatype;
-		private String language;
+		private Set<IRI> classes = new LinkedHashSet<>();
+		private Set<GraphMap> graphMaps = new LinkedHashSet<>();
 
 		public Builder reference(String reference) {
 			super.reference(reference);
@@ -125,27 +132,37 @@ public class ObjectMapImpl extends TermMapImpl implements ObjectMap {
 			return this;
 		}
 		
-		public Builder datatype(IRI datatype) {
-			this.datatype = datatype;
+		public Builder clazz(IRI clazz) {
+			classes.add(clazz);
 			return this;
 		}
 		
-		public Builder language(String language) {
-			this.language = language;
+		public Builder classes(Set<IRI> classes) {
+			this.classes = classes;
 			return this;
 		}
 		
-		public ObjectMapImpl build() {
-			return new ObjectMapImpl(
+		public Builder graphMap(CarmlGraphMap carmlGraphMap) {
+			graphMaps.add(carmlGraphMap);
+			return this;
+		}
+		
+		public Builder graphMaps(Set<GraphMap> graphMaps) {
+			this.graphMaps= graphMaps;
+			return this;
+		}
+		
+		public CarmlSubjectMap build() {
+			return new CarmlSubjectMap(
 				getReference(),
 				getInverseExpression(),
 				getTemplate(),
 				getTermType(),
 				getConstant(),
 				getFunctionValue(),
-				datatype,
-				language
+				classes,
+				graphMaps
 			);
 		}
-	}	
+	}
 }

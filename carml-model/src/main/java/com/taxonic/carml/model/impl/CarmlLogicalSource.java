@@ -6,15 +6,15 @@ import com.taxonic.carml.model.LogicalSource;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.vocab.Rml;
 
-public class LogicalSourceImpl implements LogicalSource {
+public class CarmlLogicalSource implements LogicalSource {
 
 	private Object source;
 	private String iterator;
 	private IRI referenceFormulation;
 
-	public LogicalSourceImpl() {}
+	public CarmlLogicalSource() {}
 	
-	public LogicalSourceImpl(
+	public CarmlLogicalSource(
 		Object source,
 		String iterator,
 		IRI referenceFormulation
@@ -59,7 +59,7 @@ public class LogicalSourceImpl implements LogicalSource {
 
 	@Override
 	public String toString() {
-		return "LogicalSourceImpl [getSource()=" + getSource() + ", getIterator()=" + getIterator()
+		return "CarmlLogicalSource [getSource()=" + getSource() + ", getIterator()=" + getIterator()
 			+ ", getReferenceFormulation()=" + getReferenceFormulation() + "]";
 	}
 
@@ -78,7 +78,7 @@ public class LogicalSourceImpl implements LogicalSource {
 		if (this == obj) return true;
 		if (obj == null) return false;
 		if (getClass() != obj.getClass()) return false;
-		LogicalSourceImpl other = (LogicalSourceImpl) obj;
+		CarmlLogicalSource other = (CarmlLogicalSource) obj;
 		if (iterator == null) {
 			if (other.iterator != null) return false;
 		}
@@ -119,8 +119,8 @@ public class LogicalSourceImpl implements LogicalSource {
 			return this;
 		}
 
-		public LogicalSourceImpl build() {
-			return new LogicalSourceImpl(
+		public CarmlLogicalSource build() {
+			return new CarmlLogicalSource(
 				source,
 				iterator,
 				referenceFormulation
