@@ -10,10 +10,10 @@ import java.util.stream.IntStream;
  * Percent-encodes any characters in a {@code String} that are
  * NOT one of the following:
  * - alphabetic, as per {@code Character::isAlphabetic}
- * - a digit, as per {@code Character::isDigit)
+ * - a digit, as per {@code Character::isDigit}
  * - a dash (-), dot (.), underscore (_) or tilde (~)
  * - part of any of the ranges of character codes specified when
- *   creating the {@code IriEncoder} through its constructor {@link #IriEncoder()}.
+ *   creating the {@code IriEncoder} through its constructor {@link #IriEncoder(List)}.
  *   When creating an {@code IriEncoder} through {@link #create}, these ranges
  *   correspond to the {@code ucschar} production rule from RFC-TODO.
  */
