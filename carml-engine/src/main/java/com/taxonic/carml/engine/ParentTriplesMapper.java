@@ -83,19 +83,18 @@ class ParentTriplesMapper<T> {
 								+ "This is not supported.", parentExpression));
 			} else {
 				// If one of the child values matches, the join is valid.
-				return children.contains(v);
+				return children.contains(String.valueOf(v));
 			}
 		}).orElse(false);
 	}
-	
+
 	private Set<String> extractChildren(Object children) {
 		if (children instanceof Collection<?>) {
 			return ((Collection<?>) children).stream()
 					.map(o -> (String) o)
 					.collect(ImmutableCollectors.toImmutableSet());
 		} else {
-			return ImmutableSet.of((String) children);
+			return ImmutableSet.of(String.valueOf(children));
 		}
 	}
 }
- 
