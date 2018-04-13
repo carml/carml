@@ -11,6 +11,8 @@ import com.taxonic.carml.vocab.Rr;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
+import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
+import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 
 public class CarmlPredicateObjectMap implements PredicateObjectMap {
 
@@ -66,8 +68,7 @@ public class CarmlPredicateObjectMap implements PredicateObjectMap {
 
 	@Override
 	public String toString() {
-		return "CarmlPredicateObjectMap [getPredicateMaps()=" + getPredicateMaps() + ", getObjectMaps()="
-			+ getObjectMaps() + ", getGraphMaps()=" + getGraphMaps() + "]";
+		return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
 	}
 
 	@Override

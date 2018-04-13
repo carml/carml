@@ -6,6 +6,8 @@ import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.vocab.Rr;
 import java.util.Objects;
+import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
+import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Value;
 
@@ -53,10 +55,7 @@ public class CarmlMultiObjectMap extends CarmlMultiTermMap implements MultiObjec
 
 	@Override
 	public String toString() {
-		return "CarmlMultiObjectMap [getDatatype()=" + getDatatype() + ", getLanguage()=" + getLanguage()
-			+ ", getReference()=" + getReference() + ", getInverseExpression()=" + getInverseExpression()
-			+ ", getTemplate()=" + getTemplate() + ", getTermType()=" + getTermType() + ", getConstant()="
-			+ getConstant() + ", getFunctionValue()=" + getFunctionValue() + "]";
+		return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
 	}
 
 	@Override

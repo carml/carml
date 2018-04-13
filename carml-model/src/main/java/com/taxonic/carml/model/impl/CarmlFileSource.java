@@ -4,6 +4,8 @@ import com.taxonic.carml.model.FileSource;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.vocab.Carml;
 import java.util.Objects;
+import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
+import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 
 public class CarmlFileSource implements FileSource {
 
@@ -23,7 +25,7 @@ public class CarmlFileSource implements FileSource {
 
 	@Override
 	public String toString() {
-		return "CarmlFileSource [url=" + url + "]";
+		return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
 	}
 
 	@Override

@@ -11,8 +11,10 @@ import com.taxonic.carml.vocab.Rr;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
+import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
+import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 
-public class CarmlTriplesMap implements TriplesMap {
+public class CarmlTriplesMap extends CarmlResource implements TriplesMap{
 
 	private LogicalSource logicalSource;
 	private SubjectMap subjectMap;
@@ -65,8 +67,7 @@ public class CarmlTriplesMap implements TriplesMap {
 
 	@Override
 	public String toString() {
-		return "CarmlTriplesMap [getLogicalSource()=" + getLogicalSource() + ", getSubjectMap()=" + getSubjectMap()
-			+ ", getPredicateObjectMaps()=" + getPredicateObjectMaps() + "]";
+		return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
 	}
 
 	@Override

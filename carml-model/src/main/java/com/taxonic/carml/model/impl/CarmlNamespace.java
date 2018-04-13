@@ -4,6 +4,8 @@ import com.taxonic.carml.model.Namespace;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.vocab.Carml;
 import java.util.Objects;
+import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
+import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 
 public class CarmlNamespace implements Namespace {
 
@@ -39,7 +41,7 @@ public class CarmlNamespace implements Namespace {
 
 	@Override
 	public String toString() {
-		return "CarmlNamespace [prefix=" + prefix + ", name=" + name + "]";
+		return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
 	}
 
 	@Override

@@ -4,6 +4,8 @@ import com.taxonic.carml.model.NameableStream;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.vocab.Carml;
 import java.util.Objects;
+import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
+import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 
 public class CarmlStream implements NameableStream {
 
@@ -41,7 +43,7 @@ public class CarmlStream implements NameableStream {
 
 	@Override
 	public String toString() {
-		return "CarmlStreamImpl [streamName=" + streamName + "]";
+		return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
 	}
 
 }

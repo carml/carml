@@ -4,6 +4,8 @@ import com.taxonic.carml.model.LogicalSource;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.vocab.Rml;
 import java.util.Objects;
+import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
+import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.eclipse.rdf4j.model.IRI;
 
 public class CarmlLogicalSource implements LogicalSource {
@@ -59,8 +61,7 @@ public class CarmlLogicalSource implements LogicalSource {
 
 	@Override
 	public String toString() {
-		return "CarmlLogicalSource [getSource()=" + getSource() + ", getIterator()=" + getIterator()
-			+ ", getReferenceFormulation()=" + getReferenceFormulation() + "]";
+		return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
 	}
 
 	@Override
