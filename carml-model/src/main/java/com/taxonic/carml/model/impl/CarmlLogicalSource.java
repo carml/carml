@@ -8,7 +8,7 @@ import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.eclipse.rdf4j.model.IRI;
 
-public class CarmlLogicalSource implements LogicalSource {
+public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
 
 	private Object source;
 	private String iterator;

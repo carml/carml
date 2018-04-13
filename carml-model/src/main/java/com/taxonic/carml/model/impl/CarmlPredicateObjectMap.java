@@ -14,7 +14,7 @@ import java.util.Set;
 import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 
-public class CarmlPredicateObjectMap implements PredicateObjectMap {
+public class CarmlPredicateObjectMap extends CarmlResource implements PredicateObjectMap {
 
 	private Set<PredicateMap> predicateMaps;
 	private Set<BaseObjectMap> objectMaps;

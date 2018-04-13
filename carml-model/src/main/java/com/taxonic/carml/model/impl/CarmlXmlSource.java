@@ -11,7 +11,7 @@ import java.util.Set;
 import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 
-public class CarmlXmlSource implements XmlSource {
+public class CarmlXmlSource extends CarmlResource implements XmlSource {
 
 	private Set<Namespace> declaredNamespaces;
 

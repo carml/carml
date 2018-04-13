@@ -13,6 +13,7 @@ import java.util.Objects;
 import java.util.Set;
 import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
 
 public class CarmlTriplesMap extends CarmlResource implements TriplesMap{
 
@@ -67,7 +68,10 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap{
 
 	@Override
 	public String toString() {
-		return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
+		ToStringStyle style = new MultilineRecursiveToStringStyle();
+		StringBuffer buffer = new StringBuffer();
+		buffer.append(String.format("%s %s:%n ", getClass().getSimpleName(), getResourceName()));
+		return new ReflectionToStringBuilder(this, style, buffer).toString();
 	}
 
 	@Override

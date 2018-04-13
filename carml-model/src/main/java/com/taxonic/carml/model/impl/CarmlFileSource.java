@@ -7,7 +7,7 @@ import java.util.Objects;
 import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 
-public class CarmlFileSource implements FileSource {
+public class CarmlFileSource extends CarmlResource implements FileSource {
 
 	private String url;
 

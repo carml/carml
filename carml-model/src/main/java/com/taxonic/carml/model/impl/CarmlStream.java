@@ -7,7 +7,7 @@ import java.util.Objects;
 import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 
-public class CarmlStream implements NameableStream {
+public class CarmlStream extends CarmlResource implements NameableStream {
 
 	private String streamName;
 

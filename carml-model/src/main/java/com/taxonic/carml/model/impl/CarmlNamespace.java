@@ -7,7 +7,7 @@ import java.util.Objects;
 import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 
-public class CarmlNamespace implements Namespace {
+public class CarmlNamespace extends CarmlResource implements Namespace {
 
 	private String prefix;
 	private String name;
