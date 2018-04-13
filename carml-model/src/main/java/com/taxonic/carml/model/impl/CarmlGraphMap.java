@@ -1,15 +1,14 @@
 package com.taxonic.carml.model.impl;
 
-import org.eclipse.rdf4j.model.Value;
-
 import com.taxonic.carml.model.GraphMap;
 import com.taxonic.carml.model.TermType;
 import com.taxonic.carml.model.TriplesMap;
+import org.eclipse.rdf4j.model.Value;
 
 public class CarmlGraphMap extends CarmlTermMap implements GraphMap{
 
 	public CarmlGraphMap() {}
-	
+
 	public CarmlGraphMap(
 		String reference,
 		String inverseExpression,
@@ -28,46 +27,43 @@ public class CarmlGraphMap extends CarmlTermMap implements GraphMap{
 			+ ", getConstant()=" + getConstant() + ", getFunctionValue()=" + getFunctionValue() + "]";
 	}
 
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) return true;
-		if (!super.equals(obj)) return false;
-		if (getClass() != obj.getClass()) return false;
-		return true;
-	}
-	
 	public static Builder newBuilder() {
 		return new Builder();
 	}
-	
+
 	public static class Builder
 		extends CarmlTermMap.Builder {
-		
+
+		@Override
 		public Builder reference(String reference) {
 			super.reference(reference);
 			return this;
 		}
-		
+
+		@Override
 		public Builder inverseExpression(String inverseExpression) {
 			super.inverseExpression(inverseExpression);
 			return this;
 		}
-		
+
+		@Override
 		public Builder template(String template) {
 			super.template(template);
 			return this;
 		}
-		
+
+		@Override
 		public Builder termType(TermType termType) {
 			super.termType(termType);
 			return this;
 		}
-		
+
+		@Override
 		public Builder constant(Value constant) {
 			super.constant(constant);
 			return this;
 		}
-		
+
 		public CarmlGraphMap build() {
 			return new CarmlGraphMap(
 				getReference(),

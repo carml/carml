@@ -1,0 +1,5 @@
+<http://example.com/one> a <http://example.com/Example> .
+
+<http://example.com/two> a <http://example.com/Example> ;
+	<http://example.com/linksTo> <http://example.com/one> .
+	
