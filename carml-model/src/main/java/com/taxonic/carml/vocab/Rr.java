@@ -22,7 +22,8 @@ public class Rr {
 		constant = prefix + "constant",
 		predicateObjectMap = prefix + "predicateObjectMap",
 		graphMap = prefix + "graphMap",
-		
+
+		TriplesMap 			 = prefix + "TriplesMap",
 		parentTriplesMap = prefix + "parentTriplesMap",
 		joinCondition    = prefix + "joinCondition",
 		child            = prefix + "child",
