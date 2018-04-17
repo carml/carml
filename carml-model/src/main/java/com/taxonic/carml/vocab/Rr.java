@@ -23,7 +23,7 @@ public class Rr {
 		predicateObjectMap = prefix + "predicateObjectMap",
 		graphMap = prefix + "graphMap",
 
-		TriplesMap 			 = prefix + "TriplesMap",
+		TriplesMap       = prefix + "TriplesMap",
 		parentTriplesMap = prefix + "parentTriplesMap",
 		joinCondition    = prefix + "joinCondition",
 		child            = prefix + "child",
