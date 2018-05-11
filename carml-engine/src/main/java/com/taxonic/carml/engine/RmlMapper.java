@@ -1,5 +1,7 @@
 package com.taxonic.carml.engine;
 
+import static java.util.Objects.requireNonNull;
+
 import com.taxonic.carml.engine.function.ExecuteFunction;
 import com.taxonic.carml.engine.function.Functions;
 import com.taxonic.carml.logical_source_resolver.CsvResolver;
@@ -23,12 +25,6 @@ import com.taxonic.carml.model.TermMap;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.rdf_mapper.util.ImmutableCollectors;
 import com.taxonic.carml.vocab.Rdf;
-import org.eclipse.rdf4j.model.IRI;
-import org.eclipse.rdf4j.model.Model;
-import org.eclipse.rdf4j.model.Resource;
-import org.eclipse.rdf4j.model.Value;
-import org.eclipse.rdf4j.model.impl.LinkedHashModel;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -42,8 +38,13 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Stream;
-
-import static java.util.Objects.requireNonNull;
+import org.eclipse.rdf4j.model.IRI;
+import org.eclipse.rdf4j.model.Model;
+import org.eclipse.rdf4j.model.Resource;
+import org.eclipse.rdf4j.model.Value;
+import org.eclipse.rdf4j.model.impl.LinkedHashModel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // TODO cache results of evaluated expressions when filling a single template, in case of repeated expressions
 
@@ -57,6 +58,8 @@ import static java.util.Objects.requireNonNull;
  */
 
 public class RmlMapper {
+
+	private static final Logger LOG = LoggerFactory.getLogger(RmlMapper.class);
 
 	static final String DEFAULT_STREAM_NAME = "DEFAULT";
 
@@ -182,6 +185,7 @@ public class RmlMapper {
 			this.basePath = basePath;
 		}
 
+		@Override
 		public void setSourceManager(LogicalSourceManager sourceManager) {
 			this.sourceManager = sourceManager;
 		}
@@ -218,6 +222,7 @@ public class RmlMapper {
 			this.basePath = basePath;
 		}
 
+		@Override
 		public void setSourceManager(LogicalSourceManager sourceManager) {
 			this.sourceManager = sourceManager;
 		}
@@ -246,6 +251,7 @@ public class RmlMapper {
 
 		private LogicalSourceManager sourceManager;
 
+		@Override
 		public void setSourceManager(LogicalSourceManager sourceManager) {
 			this.sourceManager = sourceManager;
 		}
@@ -253,8 +259,9 @@ public class RmlMapper {
 		@Override
 		public Optional<String> apply(Object o) {
 
-			if (!(o instanceof NameableStream))
+			if (!(o instanceof NameableStream)) {
 				return Optional.empty();
+			}
 
 			NameableStream stream = (NameableStream) o;
 			Optional<String> name = Optional.ofNullable(stream.getStreamName());
@@ -302,14 +309,14 @@ public class RmlMapper {
 	public Model map(Set<TriplesMap> mapping) {
 		validateMapping(mapping);
 		Model model = new LinkedHashModel();
-		
+
 		Set<TriplesMap> functionValueTriplesMaps = getTermMaps(mapping)
 				.filter(t -> t.getFunctionValue() != null)
 				.map(TermMap::getFunctionValue)
 				.collect(ImmutableCollectors.toImmutableSet());
-		
+
 		Set<TriplesMap> refObjectTriplesMaps = getAllTriplesMapsUsedInRefObjectMap(mapping);
-		
+
 		mapping.stream()
 			.filter(m -> !functionValueTriplesMaps.contains(m) ||
 				refObjectTriplesMaps.contains(m))
@@ -317,14 +324,14 @@ public class RmlMapper {
 		this.sourceManager.clear();
 		return model;
 	}
-	
+
 	private void validateMapping(Set<TriplesMap> mapping) {
 		Objects.requireNonNull(mapping);
 		if (mapping.isEmpty()) {
 			throw new RuntimeException("Empty mapping provided. Please make sure your mapping is syntactically correct.");
 		}
 	}
-	
+
 	private Stream<TermMap> getTermMaps(Set<TriplesMap> mapping) {
 		return mapping.stream()
 				.flatMap(m ->
@@ -352,7 +359,7 @@ public class RmlMapper {
 				)
 				.filter(Objects::nonNull);
 	}
-	
+
 	private Set<TriplesMap> getAllTriplesMapsUsedInRefObjectMap(Set<TriplesMap> mapping) {
 		return mapping.stream()
 				// get all referencing object maps
@@ -368,6 +375,8 @@ public class RmlMapper {
 	}
 
 	private void map(TriplesMap triplesMap, Model model) {
+		LOG.info("Mapping triples map: {}", triplesMap.getResourceName());
+		LOG.debug("{}", triplesMap);
 		TriplesMapper<?> triplesMapper = createTriplesMapper(triplesMap); // TODO cache mapper instances
 		triplesMapper.map(model);
 	}
@@ -383,27 +392,30 @@ public class RmlMapper {
 	) {
 		return objectMaps.stream()
 			.filter(o -> o instanceof ObjectMap && !(o instanceof MultiObjectMap))
+			.peek(o -> LOG.debug("Creating term generator for ObjectMap {}", o.getResourceName()))
 			.map(o -> termGenerators.getObjectGenerator((ObjectMap) o));
 	}
-	
-
 
 	private Stream<TermGenerator<Value>> getMultiObjectMapGenerators(
 		Set<BaseObjectMap> objectMaps
 	) {
 		return objectMaps.stream()
 			.filter(o -> o instanceof MultiObjectMap)
+			.peek(o -> LOG.debug("Creating term generator for MultiObjectMap {}", o.getResourceName()))
 			.map(o -> termGenerators.getObjectGenerator((ObjectMap) o));
 	}
 
 	private RefObjectMap checkLogicalSource(RefObjectMap o, LogicalSource logicalSource) {
+		LOG.debug("Checking if logicalSource for parent triples map {} is equal",
+				o.getParentTriplesMap().getResourceName());
 		LogicalSource parentLogicalSource = o.getParentTriplesMap().getLogicalSource();
-		if (!logicalSource.equals(parentLogicalSource))
+		if (!logicalSource.equals(parentLogicalSource)) {
 			throw new RuntimeException(
 				"Logical sources are not equal.\n" +
 				"Parent: " + parentLogicalSource + "\n" +
 				"Child: " + logicalSource
 			);
+		}
 		return o;
 	}
 
@@ -412,6 +424,7 @@ public class RmlMapper {
 	) {
 		return objectMaps.stream()
 			.filter(o -> o instanceof RefObjectMap)
+			.peek(o -> LOG.debug("Creating mapper for RefObjectMap {}", o.getResourceName()))
 			.map(o -> (RefObjectMap) o)
 			.filter(o -> o.getJoinConditions().isEmpty())
 			.map(o -> checkLogicalSource(o, logicalSource))
@@ -425,21 +438,22 @@ public class RmlMapper {
 	}
 
 	private Set<PredicateObjectMapper> createPredicateObjectMappers(TriplesMap triplesMap, Set<PredicateObjectMap> predicateObjectMaps) {
-		return predicateObjectMaps.stream().map(m -> {
+		return predicateObjectMaps.stream()
+				.peek(m -> LOG.debug("Creating mapper for PredicateObjectMap {}", m.getResourceName()))
+				.map(m -> {
+					Set<BaseObjectMap> objectMaps = m.getObjectMaps();
 
-			Set<BaseObjectMap> objectMaps = m.getObjectMaps();
+					Set<PredicateMapper> predicateMappers =
+						m.getPredicateMaps().stream()
+							.map(p -> createPredicateMapper(p, objectMaps, triplesMap))
+							.collect(ImmutableCollectors.toImmutableSet());
 
-			Set<PredicateMapper> predicateMappers =
-				m.getPredicateMaps().stream()
-					.map(p -> createPredicateMapper(p, objectMaps, triplesMap))
-					.collect(ImmutableCollectors.toImmutableSet());
-
-			return new PredicateObjectMapper(
-				createGraphGenerators(m.getGraphMaps()),
-				predicateMappers
-			);
-		})
-		.collect(ImmutableCollectors.toImmutableSet());
+					return new PredicateObjectMapper(
+						createGraphGenerators(m.getGraphMaps()),
+						predicateMappers
+					);
+				})
+				.collect(ImmutableCollectors.toImmutableSet());
 	}
 
 	PredicateMapper createPredicateMapper(
@@ -447,6 +461,7 @@ public class RmlMapper {
 		Set<BaseObjectMap> objectMaps,
 		TriplesMap triplesMap
 	) {
+		LOG.debug("Creating mapper for PredicateMap {}", predicateMap.getResourceName());
 		Set<TermGenerator<? extends Value>> objectGenerators =
 			Stream.concat(
 
@@ -467,7 +482,7 @@ public class RmlMapper {
 				.filter(o -> !o.getJoinConditions().isEmpty())
 				.map(this::createRefObjectMapper)
 				.collect(ImmutableCollectors.toImmutableSet());
-		
+
 		Set<RefObjectMapper> multiRefObjectMappers =
 				objectMaps.stream()
 					.filter(o -> o instanceof MultiRefObjectMap)
@@ -475,8 +490,8 @@ public class RmlMapper {
 					.filter(o -> !o.getJoinConditions().isEmpty())
 					.map(this::createRefObjectMapper)
 					.collect(ImmutableCollectors.toImmutableSet());
-		
-		Set<TermGenerator<? extends Value>> multiObjectGenerators = 
+
+		Set<TermGenerator<? extends Value>> multiObjectGenerators =
 				getMultiObjectMapGenerators(objectMaps)
 				.collect(ImmutableCollectors.toImmutableSet());
 
@@ -496,6 +511,8 @@ public class RmlMapper {
 					String.format("Subject map must be specified in triples map %s",
 							triplesMap));
 		}
+
+		LOG.debug("Creating mapper for SubjectMap {}", subjectMap.getResourceName());
 
 		return
 		new SubjectMapper(
@@ -518,6 +535,7 @@ public class RmlMapper {
 		}
 
 		return new TriplesMapperComponents<>(
+			triplesMap.getResourceName(),
 			logicalSourceResolvers.get(referenceFormulation),
 			logicalSource,
 			sourceResolver
@@ -525,7 +543,7 @@ public class RmlMapper {
 	}
 
 	private TriplesMapper<?> createTriplesMapper(TriplesMap triplesMap) {
-
+		LOG.debug("Creating mapper for TriplesMap {}", triplesMap.getResourceName());
 		TriplesMapperComponents<?> components = getTriplesMapperComponents(triplesMap);
 
 		return
@@ -536,7 +554,7 @@ public class RmlMapper {
 	}
 
 	private ParentTriplesMapper<?> createParentTriplesMapper(TriplesMap triplesMap) {
-
+		LOG.debug("Creating mapper for ParentTriplesMap {}", triplesMap.getResourceName());
 		TriplesMapperComponents<?> components = getTriplesMapperComponents(triplesMap);
 
 		return
@@ -548,6 +566,7 @@ public class RmlMapper {
 
 	private RefObjectMapper createRefObjectMapper(RefObjectMap refObjectMap) {
 		Set<Join> joinConditions = refObjectMap.getJoinConditions();
+		LOG.debug("Creating mapper for RefObjectMap {}", refObjectMap.getResourceName());
 		return new RefObjectMapper(
 			createParentTriplesMapper(refObjectMap.getParentTriplesMap()),
 			joinConditions

@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Literal;
 import org.eclipse.rdf4j.model.Model;
@@ -20,8 +19,12 @@ import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.model.util.Models;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Functions {
+
+	private static final Logger LOG = LoggerFactory.getLogger(Functions.class);
 
 	private static final ValueFactory VF = SimpleValueFactory.getInstance();
 	
@@ -52,6 +55,7 @@ public class Functions {
 				.map(this::createParameterExtractor)
 				.collect(Collectors.toList());
 		
+		LOG.debug("Creating executable FnO function {}", function);
 		return Optional.of(new ExecuteFunction() {
 			
 			@Override
@@ -64,6 +68,7 @@ public class Functions {
 				
 				try {
 					// TODO return value adapter?
+					LOG.trace("Executing function {} with arguments {}", method.getName(), arguments);
 					return method.invoke(obj, arguments.toArray());
 				}
 				catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {

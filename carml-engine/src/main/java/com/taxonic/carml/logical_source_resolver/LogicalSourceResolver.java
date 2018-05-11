@@ -5,6 +5,7 @@ import com.taxonic.carml.model.LogicalSource;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import org.slf4j.Logger;
 
 public interface LogicalSourceResolver<T> {
 	SourceIterator<T> getSourceIterator();
@@ -18,5 +19,9 @@ public interface LogicalSourceResolver<T> {
 	interface SourceIterator<T> extends BiFunction<String, LogicalSource, Iterable<T>> {}
 
 	interface ExpressionEvaluatorFactory<T> extends Function<T, EvaluateExpression> {}
+
+	default void logEvaluateExpression(String expression, Logger logger) {
+		logger.trace("Evaluating expression: {}", expression);
+	}
 
 }
