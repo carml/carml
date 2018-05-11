@@ -8,8 +8,10 @@ import com.taxonic.carml.vocab.Carml;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
+import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
+import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 
-public class CarmlXmlSource implements XmlSource {
+public class CarmlXmlSource extends CarmlResource implements XmlSource {
 
 	private Set<Namespace> declaredNamespaces;
 
@@ -34,7 +36,7 @@ public class CarmlXmlSource implements XmlSource {
 
 	@Override
 	public String toString() {
-		return "CarmlXmlSource [declaredNamespaces=" + declaredNamespaces + "]";
+		return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
 	}
 
 	@Override

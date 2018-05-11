@@ -11,7 +11,7 @@ import com.taxonic.carml.vocab.Rr;
 import java.util.Objects;
 import org.eclipse.rdf4j.model.Value;
 
-abstract public class CarmlTermMap implements TermMap {
+abstract public class CarmlTermMap extends CarmlResource implements TermMap {
 
 	String reference;
 	String inverseExpression;

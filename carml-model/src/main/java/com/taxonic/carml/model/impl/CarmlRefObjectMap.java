@@ -9,8 +9,10 @@ import com.taxonic.carml.vocab.Rr;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
+import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
+import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 
-public class CarmlRefObjectMap implements RefObjectMap {
+public class CarmlRefObjectMap extends CarmlResource implements RefObjectMap {
 
 	TriplesMap parentTriplesMap;
 	Set<Join> joinConditions;
@@ -49,8 +51,7 @@ public class CarmlRefObjectMap implements RefObjectMap {
 
 	@Override
 	public String toString() {
-		return "CarmlRefObjectMap [getParentTriplesMap()=" + getParentTriplesMap()
-			+ ", getJoinConditions()=" + getJoinConditions() + "] ";
+		return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
 	}
 
 

@@ -3,6 +3,8 @@ package com.taxonic.carml.model.impl;
 import com.taxonic.carml.model.PredicateMap;
 import com.taxonic.carml.model.TermType;
 import com.taxonic.carml.model.TriplesMap;
+import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
+import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.eclipse.rdf4j.model.Value;
 
 public class CarmlPredicateMap extends CarmlTermMap implements PredicateMap {
@@ -22,9 +24,7 @@ public class CarmlPredicateMap extends CarmlTermMap implements PredicateMap {
 
 	@Override
 	public String toString() {
-		return "CarmlPredicateMap [getReference()=" + getReference() + ", getInverseExpression()="
-			+ getInverseExpression() + ", getTemplate()=" + getTemplate() + ", getTermType()=" + getTermType()
-			+ ", getConstant()=" + getConstant() + ", getFunctionValue()=" + getFunctionValue() + "]";
+		return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
 	}
 
 	public static Builder newBuilder() {

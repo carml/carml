@@ -4,8 +4,10 @@ import com.taxonic.carml.model.Join;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.vocab.Rr;
 import java.util.Objects;
+import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
+import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 
-public class CarmlJoin implements Join{
+public class CarmlJoin extends CarmlResource implements Join{
 
 	private String child;
 	private String parent;
@@ -42,7 +44,7 @@ public class CarmlJoin implements Join{
 
 	@Override
 	public String toString() {
-		return "CarmlJoin [getChildReference()=" + getChildReference() + ", getParentReference()=" + getParentReference() + "]";
+		return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
 	}
 
 	@Override

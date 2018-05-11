@@ -1,5 +1,7 @@
 package com.taxonic.carml.engine.template;
 
+import com.google.common.collect.ImmutableList;
+import com.taxonic.carml.rdf_mapper.util.ImmutableCollectors;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -11,11 +13,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
 import org.apache.commons.lang3.mutable.MutableInt;
-
-import com.google.common.collect.ImmutableList;
-import com.taxonic.carml.rdf_mapper.util.ImmutableCollectors;
 
 class CarmlTemplate implements Template {
 
@@ -353,6 +351,18 @@ class CarmlTemplate implements Template {
 	public String toString() {
 		return "CarmlTemplate [segments=" + segments + ", expressions=" + expressions + ", expressionSegmentMap="
 			+ expressionSegmentMap + "]";
+	}
+
+	@Override
+	public String toTemplateString() {
+		return segments.stream()
+				.map(s -> {
+					if (s instanceof ExpressionSegment) {
+						return String.format("{%s}", s.getValue());
+					}
+					return s.getValue();
+				})
+				.collect(Collectors.joining());
 	}
 
 }

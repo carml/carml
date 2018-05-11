@@ -3,6 +3,8 @@ package com.taxonic.carml.model.impl;
 import com.taxonic.carml.model.GraphMap;
 import com.taxonic.carml.model.TermType;
 import com.taxonic.carml.model.TriplesMap;
+import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
+import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.eclipse.rdf4j.model.Value;
 
 public class CarmlGraphMap extends CarmlTermMap implements GraphMap{
@@ -22,9 +24,7 @@ public class CarmlGraphMap extends CarmlTermMap implements GraphMap{
 
 	@Override
 	public String toString() {
-		return "CarmlGraphMap [getReference()=" + getReference() + ", getInverseExpression()="
-			+ getInverseExpression() + ", getTemplate()=" + getTemplate() + ", getTermType()=" + getTermType()
-			+ ", getConstant()=" + getConstant() + ", getFunctionValue()=" + getFunctionValue() + "]";
+		return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
 	}
 
 	public static Builder newBuilder() {

@@ -10,6 +10,8 @@ import com.taxonic.carml.vocab.Rr;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
+import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
+import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Value;
 
@@ -59,10 +61,7 @@ public class CarmlSubjectMap extends CarmlTermMap implements SubjectMap {
 
 	@Override
 	public String toString() {
-		return "CarmlSubjectMap [getGraphMaps()=" + getGraphMaps() + ", getClasses()=" + getClasses()
-			+ ", getReference()=" + getReference() + ", getInverseExpression()=" + getInverseExpression()
-			+ ", getTemplate()=" + getTemplate() + ", getTermType()=" + getTermType() + ", getConstant()="
-			+ getConstant() + ", getFunctionValue()=" + getFunctionValue() + "]";
+		return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
 	}
 
 	@Override
