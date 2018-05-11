@@ -1,8 +1,5 @@
 package com.taxonic.carml.model.impl;
 
-import java.util.LinkedHashSet;
-import java.util.Set;
-
 import com.taxonic.carml.model.LogicalSource;
 import com.taxonic.carml.model.PredicateObjectMap;
 import com.taxonic.carml.model.SubjectMap;
@@ -11,15 +8,21 @@ import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.rdf_mapper.annotations.RdfType;
 import com.taxonic.carml.vocab.Rml;
 import com.taxonic.carml.vocab.Rr;
+import java.util.LinkedHashSet;
+import java.util.Objects;
+import java.util.Set;
+import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
+import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
 
-public class CarmlTriplesMap implements TriplesMap {
+public class CarmlTriplesMap extends CarmlResource implements TriplesMap{
 
 	private LogicalSource logicalSource;
 	private SubjectMap subjectMap;
 	private Set<PredicateObjectMap> predicateObjectMaps;
-	
+
 	public CarmlTriplesMap() {}
-	
+
 	public CarmlTriplesMap(
 		LogicalSource logicalSource,
 		SubjectMap subjectMap,
@@ -43,7 +46,7 @@ public class CarmlTriplesMap implements TriplesMap {
 	public SubjectMap getSubjectMap() {
 		return subjectMap;
 	}
-	
+
 	@RdfProperty(Rr.predicateObjectMap)
 	@RdfType(CarmlPredicateObjectMap.class)
 	@Override
@@ -65,61 +68,54 @@ public class CarmlTriplesMap implements TriplesMap {
 
 	@Override
 	public String toString() {
-		return "CarmlTriplesMap [getLogicalSource()=" + getLogicalSource() + ", getSubjectMap()=" + getSubjectMap()
-			+ ", getPredicateObjectMaps()=" + getPredicateObjectMaps() + "]";
+		ToStringStyle style = new MultilineRecursiveToStringStyle();
+		StringBuffer buffer = new StringBuffer();
+		buffer.append(String.format("%s %s:%n ", getClass().getSimpleName(), getResourceName()));
+		return new ReflectionToStringBuilder(this, style, buffer).toString();
 	}
 
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((logicalSource == null) ? 0 : logicalSource.hashCode());
-		result = prime * result + ((predicateObjectMaps == null) ? 0 : predicateObjectMaps.hashCode());
-		result = prime * result + ((subjectMap == null) ? 0 : subjectMap.hashCode());
-		return result;
+		return Objects.hash(logicalSource, subjectMap, predicateObjectMaps);
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj) return true;
-		if (obj == null) return false;
-		if (getClass() != obj.getClass()) return false;
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (getClass() != obj.getClass()) {
+			return false;
+		}
 		CarmlTriplesMap other = (CarmlTriplesMap) obj;
-		if (logicalSource == null) {
-			if (other.logicalSource != null) return false;
-		}
-		else if (!logicalSource.equals(other.logicalSource)) return false;
-		if (predicateObjectMaps == null) {
-			if (other.predicateObjectMaps != null) return false;
-		}
-		else if (!predicateObjectMaps.equals(other.predicateObjectMaps)) return false;
-		if (subjectMap == null) {
-			if (other.subjectMap != null) return false;
-		}
-		else if (!subjectMap.equals(other.subjectMap)) return false;
-		return true;
+		return Objects.equals(logicalSource, other.logicalSource) &&
+				Objects.equals(subjectMap, other.subjectMap) &&
+				Objects.equals(predicateObjectMaps, other.predicateObjectMaps);
 	}
 
 	public static Builder newBuilder() {
 		return new Builder();
 	}
-	
+
 	public static class Builder {
-		
+
 		private LogicalSource logicalSource;
 		private SubjectMap subjectMap;
 		private Set<PredicateObjectMap> predicateObjectMaps = new LinkedHashSet<>();
-		
+
 		public Builder logicalSource(LogicalSource logicalSource) {
 			this.logicalSource = logicalSource;
 			return this;
 		}
-		
+
 		public Builder subjectMap(SubjectMap subjectMap) {
 			this.subjectMap = subjectMap;
 			return this;
 		}
-		
+
 		public Builder predicateObjectMap(PredicateObjectMap predicateObjectMap) {
 			predicateObjectMaps.add(predicateObjectMap);
 			return this;
@@ -133,5 +129,5 @@ public class CarmlTriplesMap implements TriplesMap {
 			);
 		}
 	}
-	
+
 }

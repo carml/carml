@@ -1,16 +1,19 @@
 package com.taxonic.carml.engine;
 
+import com.taxonic.carml.engine.template.Template;
+import com.taxonic.carml.engine.template.Template.Expression;
+import com.taxonic.carml.rdf_mapper.util.ImmutableCollectors;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-
-import com.taxonic.carml.engine.template.Template;
-import com.taxonic.carml.engine.template.Template.Expression;
-import com.taxonic.carml.rdf_mapper.util.ImmutableCollectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class GetTemplateValue implements Function<EvaluateExpression, Optional<Object>> {
+
+	private static final Logger LOG = LoggerFactory.getLogger(GetTemplateValue.class);
 
 	private Template template;
 	private Set<Expression> expressions;
@@ -31,14 +34,17 @@ class GetTemplateValue implements Function<EvaluateExpression, Optional<Object>>
 
 	@Override
 	public Optional<Object> apply(EvaluateExpression evaluateExpression) {
+		if (LOG.isTraceEnabled()) {
+			LOG.trace("Processing template: {}", template.toTemplateString());
+		}
 		Template.Builder templateBuilder = template.newBuilder();
 		expressions.forEach(e -> bindTemplateExpression(e, evaluateExpression, templateBuilder));
 		return templateBuilder.create();
 	}
-	
+
 	private Template.Builder bindTemplateExpression(
-		Expression expression, 
-		EvaluateExpression evaluateExpression, 
+		Expression expression,
+		EvaluateExpression evaluateExpression,
 		Template.Builder templateBuilder
 	) {
 		return templateBuilder.bind(
@@ -48,7 +54,7 @@ class GetTemplateValue implements Function<EvaluateExpression, Optional<Object>>
 				.map(this::prepareValueForTemplate)
 		);
 	}
-	
+
 	/**
 	 * See https://www.w3.org/TR/r2rml/#from-template
 	 * @param raw
@@ -56,7 +62,7 @@ class GetTemplateValue implements Function<EvaluateExpression, Optional<Object>>
 	 */
 	private Object prepareValueForTemplate(Object raw) {
 		Objects.requireNonNull(raw);
-		
+
 		if (raw instanceof Collection<?>) {
 			return ((Collection<?>) raw).stream()
 			.map(createNaturalRdfLexicalForm::apply)

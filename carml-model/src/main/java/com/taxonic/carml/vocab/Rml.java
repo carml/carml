@@ -12,5 +12,5 @@ public class Rml {
 		reference = prefix + "reference",
 		iterator = prefix + "iterator",
 		logicalSource = prefix + "logicalSource";
-	
+
 }
