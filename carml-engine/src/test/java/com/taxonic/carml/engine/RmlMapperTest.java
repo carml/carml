@@ -1,11 +1,27 @@
 package com.taxonic.carml.engine;
 
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.startsWith;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import com.taxonic.carml.logical_source_resolver.CsvResolver;
+import com.taxonic.carml.logical_source_resolver.JsonPathResolver;
 import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
+import com.taxonic.carml.logical_source_resolver.XPathResolver;
 import com.taxonic.carml.model.NameableStream;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.model.impl.CarmlLogicalSource;
 import com.taxonic.carml.model.impl.CarmlStream;
 import com.taxonic.carml.util.RmlMappingLoader;
+import com.taxonic.carml.vocab.Rdf;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Collections;
+import java.util.Optional;
 import org.apache.commons.io.IOUtils;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.ValueFactory;
@@ -16,19 +32,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Collections;
-import java.util.Optional;
-
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.contains;
-import static org.mockito.ArgumentMatchers.startsWith;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class RmlMapperTest {
 
@@ -42,7 +45,11 @@ public class RmlMapperTest {
 	
 	@Before
 	public void prepareMapper() {
-		mapper = RmlMapper.newBuilder().build();
+		mapper = RmlMapper.newBuilder()
+				.setLogicalSourceResolver(Rdf.Ql.Csv, new CsvResolver())
+				.setLogicalSourceResolver(Rdf.Ql.JsonPath, new JsonPathResolver())
+				.setLogicalSourceResolver(Rdf.Ql.XPath, new XPathResolver())
+				.build();
 	}
 
 	@Test

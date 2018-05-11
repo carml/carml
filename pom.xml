@@ -61,6 +61,11 @@
 		<module>carml-engine</module>
 		<module>carml-model</module>
 		<module>carml-rdf-mapper</module>
+		<module>carml-commons</module>
+		<module>carml-logical-source-resolver</module>
+		<module>carml-logical-source-resolver-xpath</module>
+		<module>carml-logical-source-resolver-jsonpath</module>
+		<module>carml-logical-source-resolver-csv</module>
 	</modules>
 
 	<properties>

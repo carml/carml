@@ -4,10 +4,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.taxonic.carml.engine.function.ExecuteFunction;
 import com.taxonic.carml.engine.function.Functions;
-import com.taxonic.carml.logical_source_resolver.CsvResolver;
-import com.taxonic.carml.logical_source_resolver.JsonPathResolver;
 import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
-import com.taxonic.carml.logical_source_resolver.XPathResolver;
 import com.taxonic.carml.model.BaseObjectMap;
 import com.taxonic.carml.model.FileSource;
 import com.taxonic.carml.model.GraphMap;
@@ -24,7 +21,6 @@ import com.taxonic.carml.model.SubjectMap;
 import com.taxonic.carml.model.TermMap;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.rdf_mapper.util.ImmutableCollectors;
-import com.taxonic.carml.vocab.Rdf;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -109,13 +105,6 @@ public class RmlMapper {
 			return this;
 		}
 
-		public Builder addDefaultLogicalSourceResolvers() {
-			logicalSourceResolvers.put(Rdf.Ql.JsonPath, new JsonPathResolver());
-			logicalSourceResolvers.put(Rdf.Ql.XPath, new XPathResolver());
-			logicalSourceResolvers.put(Rdf.Ql.Csv, new CsvResolver());
-			return this;
-		}
-
 		public Builder setLogicalSourceResolver(IRI iri, LogicalSourceResolver<?> resolver) {
 			logicalSourceResolvers.put(iri, resolver);
 			return this;
@@ -136,7 +125,7 @@ public class RmlMapper {
 			CarmlStreamResolver carmlStreamResolver = new CarmlStreamResolver();
 
 			if (logicalSourceResolvers.isEmpty()) {
-				addDefaultLogicalSourceResolvers();
+				LOG.warn("No Logical Source Resolvers set.");
 			}
 
 			CompositeSourceResolver compositeResolver =
