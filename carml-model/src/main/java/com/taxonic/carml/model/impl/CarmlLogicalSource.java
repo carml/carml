@@ -1,10 +1,10 @@
 package com.taxonic.carml.model.impl;
 
-import org.eclipse.rdf4j.model.IRI;
-
 import com.taxonic.carml.model.LogicalSource;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.vocab.Rml;
+import java.util.Objects;
+import org.eclipse.rdf4j.model.IRI;
 
 public class CarmlLogicalSource implements LogicalSource {
 
@@ -13,7 +13,7 @@ public class CarmlLogicalSource implements LogicalSource {
 	private IRI referenceFormulation;
 
 	public CarmlLogicalSource() {}
-	
+
 	public CarmlLogicalSource(
 		Object source,
 		String iterator,
@@ -65,55 +65,46 @@ public class CarmlLogicalSource implements LogicalSource {
 
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((iterator == null) ? 0 : iterator.hashCode());
-		result = prime * result + ((referenceFormulation == null) ? 0 : referenceFormulation.hashCode());
-		result = prime * result + ((source == null) ? 0 : source.hashCode());
-		return result;
+		return Objects.hash(source, iterator, referenceFormulation);
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj) return true;
-		if (obj == null) return false;
-		if (getClass() != obj.getClass()) return false;
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (getClass() != obj.getClass()) {
+			return false;
+		}
 		CarmlLogicalSource other = (CarmlLogicalSource) obj;
-		if (iterator == null) {
-			if (other.iterator != null) return false;
-		}
-		else if (!iterator.equals(other.iterator)) return false;
-		if (referenceFormulation == null) {
-			if (other.referenceFormulation != null) return false;
-		}
-		else if (!referenceFormulation.equals(other.referenceFormulation)) return false;
-		if (source == null) {
-			if (other.source != null) return false;
-		}
-		else if (!source.equals(other.source)) return false;
-		return true;
+		return Objects.equals(source, other.source) &&
+				Objects.equals(iterator, other.iterator) &&
+				Objects.equals(referenceFormulation, other.referenceFormulation);
 	}
-	
+
 	public static Builder newBuilder() {
 		return new Builder();
 	}
-	
+
 	public static class Builder {
 
 		private Object source;
 		private String iterator;
 		private IRI referenceFormulation;
-		
+
 		public Builder source(Object source) {
 			this.source = source;
 			return this;
 		}
-		
+
 		public Builder iterator(String iterator) {
 			this.iterator = iterator;
 			return this;
 		}
-		
+
 		public Builder referenceFormulation(IRI referenceFormulation) {
 			this.referenceFormulation = referenceFormulation;
 			return this;

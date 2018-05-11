@@ -5,16 +5,17 @@ import com.taxonic.carml.model.TermType;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.vocab.Rr;
+import java.util.Objects;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Value;
 
 public class CarmlMultiObjectMap extends CarmlMultiTermMap implements MultiObjectMap {
-	
+
 	private IRI datatype;
 	private String language;
-	
+
 	public CarmlMultiObjectMap() {}
-	
+
 	CarmlMultiObjectMap(
 		String reference,
 		String inverseExpression,
@@ -60,50 +61,44 @@ public class CarmlMultiObjectMap extends CarmlMultiTermMap implements MultiObjec
 
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = super.hashCode();
-		result = prime * result + ((datatype == null) ? 0 : datatype.hashCode());
-		result = prime * result + ((language == null) ? 0 : language.hashCode());
-		return result;
+		return Objects.hash(datatype, language, super.hashCode());
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj) return true;
-		if (!super.equals(obj)) return false;
-		if (getClass() != obj.getClass()) return false;
+		if (this == obj) {
+			return true;
+		}
+		if (!super.equals(obj)) {
+			return false;
+		}
+		if (getClass() != obj.getClass()) {
+			return false;
+		}
 		CarmlMultiObjectMap other = (CarmlMultiObjectMap) obj;
-		if (datatype == null) {
-			if (other.datatype != null) return false;
-		}
-		else if (!datatype.equals(other.datatype)) return false;
-		if (language == null) {
-			if (other.language != null) return false;
-		}
-		else if (!language.equals(other.language)) return false;
-		return true;
+		return Objects.equals(datatype, other.datatype) && Objects.equals(language, other.language);
 	}
 
 	public static Builder newBuilder() {
 		return new Builder();
 	}
-	
+
 	public static class Builder
 		extends CarmlTermMap.Builder {
-		
+
 		private IRI datatype;
 		private String language;
-		
+
 		public Builder datatype(IRI datatype) {
 			this.datatype = datatype;
 			return this;
 		}
-		
+
 		public Builder language(String language) {
 			this.language = language;
 			return this;
 		}
-		
+
 		public CarmlMultiObjectMap build() {
 			return new CarmlMultiObjectMap(
 				getReference(),
