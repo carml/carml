@@ -448,8 +448,8 @@ Supported Data Source Types
 | Data source type | Reference query language                           | Implementation                                                      |
 | :--------------- | :------------------------------------------------- | :-------------------------------------------------------------      |
 | JSON             | [JsonPath](http://goessner.net/articles/JsonPath/) | [Jayway JsonPath 2.4.0](https://github.com/json-path/JsonPath)      |
-| XML              | [XPath](https://www.w3.org/TR/xpath-31/)           | [Saxon-HE 9.8.0-6](http://saxon.sourceforge.net/#F9.8HE)            |
-| CSV              | n/a                                                | [Univocity 2.5.9](https://github.com/uniVocity/univocity-parsers) |
+| XML              | [XPath](https://www.w3.org/TR/xpath-31/)           | [Saxon-HE 9.8.0-12](http://saxon.sourceforge.net/#F9.8HE)           |
+| CSV              | n/a                                                | [Univocity 2.6.3](https://github.com/uniVocity/univocity-parsers)   |
 
 Roadmap
 -------
