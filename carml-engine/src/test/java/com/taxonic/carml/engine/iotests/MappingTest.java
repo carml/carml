@@ -2,17 +2,19 @@ package com.taxonic.carml.engine.iotests;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.Set;
-import java.util.function.Consumer;
-
-import org.eclipse.rdf4j.model.Model;
-import org.eclipse.rdf4j.rio.RDFFormat;
-import org.eclipse.rdf4j.rio.Rio;
-
 import com.taxonic.carml.engine.RmlMapper;
+import com.taxonic.carml.logical_source_resolver.CsvResolver;
+import com.taxonic.carml.logical_source_resolver.JsonPathResolver;
+import com.taxonic.carml.logical_source_resolver.XPathResolver;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.util.IoUtils;
 import com.taxonic.carml.util.RmlMappingLoader;
+import com.taxonic.carml.vocab.Rdf;
+import java.util.Set;
+import java.util.function.Consumer;
+import org.eclipse.rdf4j.model.Model;
+import org.eclipse.rdf4j.rio.RDFFormat;
+import org.eclipse.rdf4j.rio.Rio;
 
 class MappingTest {
 
@@ -48,6 +50,9 @@ class MappingTest {
 	) {
 		Set<TriplesMap> mapping = loader.load(rmlPath, RDFFormat.TURTLE);
 		RmlMapper.Builder builder = RmlMapper.newBuilder()
+				.setLogicalSourceResolver(Rdf.Ql.Csv, new CsvResolver())
+				.setLogicalSourceResolver(Rdf.Ql.JsonPath, new JsonPathResolver())
+				.setLogicalSourceResolver(Rdf.Ql.XPath, new XPathResolver())
 				.classPathResolver(contextPath);
 		configureMapper.accept(builder);
 		RmlMapper mapper = builder.build();
