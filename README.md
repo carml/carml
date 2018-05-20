@@ -37,6 +37,8 @@ Releases
 
 12 Feb 2018 - CARML 0.1.2
 
+20 May 2018 - CARML 0.2.0
+
 Introduction
 ------------
 CARML is a java library that transforms structured sources to RDF based as declared in and [RML](http://rml.io) mapping, in accordance with the [RML spec](http://rml.io/spec.html). It is considered by many as the optimal choice for mapping structured sources to RDF.
@@ -53,22 +55,44 @@ CARML is available from the Central Maven Repository.
 <dependency>
     <groupId>com.taxonic.carml</groupId>
     <artifactId>carml-engine</artifactId>
-    <version>0.1.2</version>
+    <version>0.2.0</version>
 </dependency>
+
+<!-- Choose the resolvers to suit your need -->
+<dependency>
+  <groupId>com.taxonic.carml</groupId>
+  <artifactId>carml-logical-source-resolver-jsonpath</artifactId>
+  <version>0.2.0</version>
+</dependency>
+<dependency>
+  <groupId>com.taxonic.carml</groupId>
+  <artifactId>carml-logical-source-resolver-xpath</artifactId>
+  <version>0.2.0</version>
+</dependency>
+<dependency>
+  <groupId>com.taxonic.carml</groupId>
+  <artifactId>carml-logical-source-resolver-csv</artifactId>
+  <version>0.2.0</version>
+</dependency>
+
 ```
 
 CARML is built on [RDF4J](http://rdf4j.org/), and currently the Mapper directly outputs an [RDF4J Model](http://docs.rdf4j.org/javadoc/2.0/org/eclipse/rdf4j/model/package-summary.html).
 
 ```java
 Set<TriplesMap> mapping =
-	RmlMappingLoader
-		.build()
-		.load(Paths.get("path-to-mapping-file"), RDFFormat.TURTLE);
+  RmlMappingLoader
+    .build()
+    .load(Paths.get("path-to-mapping-file"), RDFFormat.TURTLE);
 
 RmlMapper mapper =
-	RmlMapper
-		.newBuilder()
-		.build();
+  RmlMapper
+    .newBuilder()
+    // Add the resolvers to suit your need
+    .setLogicalSourceResolver(Rdf.Ql.JsonPath, new JsonPathResolver())
+    .setLogicalSourceResolver(Rdf.Ql.XPath, new XPathResolver())
+    .setLogicalSourceResolver(Rdf.Ql.Csv, new CsvResolver())
+    .build();
 
 Model result = mapper.map(mapping);
 ```
@@ -98,7 +122,11 @@ So now, you can define streams in your mapping like so:
 ```
 In order to provide access to the input stream, it needs to be registered on the mapper.
 ```java
-RmlMapper mapper = RmlMapper.newBuilder().build();
+RmlMapper mapper = 
+  RmlMapper
+  .newBuilder()
+  .setLogicalSourceResolver(Rdf.Ql.JsonPath, new JsonPathResolver())
+  .build();
 mapper.bindInputStream("stream-A", inputStream);
 ```
 Note that it is possible to register several streams, allowing you to combine several streams to create your desired RDF output.
@@ -121,7 +149,7 @@ To be able to use this in RML mappings we use executions of instances of `fno:Fu
 ```
 @prefix rr: <http://www.w3.org/ns/r2rml#> .
 @prefix rml: <http://semweb.mmlab.be/ns/rml#> .
-@prefix fnml:   <http://semweb.mmlab.be/ns/fnml#> .
+@prefix fnml: <http://semweb.mmlab.be/ns/fnml#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix fno: <http://semweb.datasciencelab.be/ns/function#> .
 @prefix ex: <http://example.org/> .
@@ -129,7 +157,7 @@ To be able to use this in RML mappings we use executions of instances of `fno:Fu
 ex:sumValuePredicateObjectMap
   rr:predicate ex:total ;
   rr:objectMap [
-    a fnml:FunctionTermMap ;
+    a fnml:FunctionMap ;
     fnml:functionValue [
       rml:logicalSource ex:LogicalSource ;
       rr:subjectMap [
@@ -163,13 +191,13 @@ A function can be created in any `.java` class. The function should be annotated
 ```java
 public class RmlFunctions {
 
-	@FnoFunction("http://example.org/sumFunction")
-	public int sumFunction(
-		@FnoParam("http://example.org/intParameterA") int intA,
-		@FnoParam("http://example.org/intParameterB") int intB
-  	) {
-  		return intA + intB;
-  	}
+  @FnoFunction("http://example.org/sumFunction")
+  public int sumFunction(
+    @FnoParam("http://example.org/intParameterA") int intA,
+    @FnoParam("http://example.org/intParameterB") int intB
+    ) {
+      return intA + intB;
+    }
 
 }
 ```
@@ -178,10 +206,11 @@ The class or classes containing the annotated functions can then be registered o
 
 ```java
 RmlMapper mapper =
-	RmlMapper
-		.newBuilder()
-		.addFunctions(new YourRmlFunctions())
-		.build();
+  RmlMapper
+    .newBuilder()
+    .setLogicalSourceResolver(Rdf.Ql.JsonPath, new JsonPathResolver())
+    .addFunctions(new YourRmlFunctions())
+    .build();
 Model result = mapper.map(mapping);
 ```
 
