@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>com.taxonic.carml</groupId>
 		<artifactId>carml</artifactId>
-		<version>develop-SNAPSHOT</version>
+		<version>0.2.0</version>
 	</parent>
 
 	<artifactId>carml-logical-source-resolver-jsonpath</artifactId>
@@ -24,7 +24,7 @@
 		<dependency>
 			<groupId>com.taxonic.carml</groupId>
 			<artifactId>carml-logical-source-resolver</artifactId>
-			<version>develop-SNAPSHOT</version>
+			<version>0.2.0</version>
 		</dependency>
 
 	</dependencies>
