@@ -3,13 +3,16 @@ package com.taxonic.carml.model.impl;
 import com.taxonic.carml.model.NameableStream;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.vocab.Carml;
+import java.util.Objects;
+import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
+import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 
-public class CarmlStream implements NameableStream {
+public class CarmlStream extends CarmlResource implements NameableStream {
 
 	private String streamName;
-	
+
 	public CarmlStream() {}
-	
+
 	public CarmlStream(String streamName) {
 		this.streamName = streamName;
 	}
@@ -26,28 +29,21 @@ public class CarmlStream implements NameableStream {
 
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((streamName == null) ? 0 : streamName.hashCode());
-		return result;
+		return Objects.hash(streamName);
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj) return true;
-		if (obj == null) return false;
-		if (getClass() != obj.getClass()) return false;
-		CarmlStream other = (CarmlStream) obj;
-		if (streamName == null) {
-			if (other.streamName != null) return false;
+		if (obj instanceof NameableStream) {
+			NameableStream other = (NameableStream) obj;
+			return Objects.equals(streamName, other.getStreamName());
 		}
-		else if (!streamName.equals(other.streamName)) return false;
-		return true;
+		return false;
 	}
 
 	@Override
 	public String toString() {
-		return "CarmlStreamImpl [streamName=" + streamName + "]";
+		return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
 	}
 
 }

@@ -5,7 +5,7 @@
 
 	<groupId>com.taxonic.carml</groupId>
 	<artifactId>carml</artifactId>
-	<version>0.1.2</version>
+	<version>0.2.0</version>
 	<packaging>pom</packaging>
 
 	<name>carml</name>
@@ -54,22 +54,27 @@
 		<url>https://github.com/carml/carml</url>
 		<connection>scm:git:git@github.com:carml/carml.git</connection>
 		<developerConnection>scm:git:git@github.com:carml/carml.git</developerConnection>
-		<tag>v0.1.2</tag>
+		<tag>v0.2.0</tag>
 	</scm>
 
 	<modules>
 		<module>carml-engine</module>
 		<module>carml-model</module>
 		<module>carml-rdf-mapper</module>
+		<module>carml-commons</module>
+		<module>carml-logical-source-resolver</module>
+		<module>carml-logical-source-resolver-xpath</module>
+		<module>carml-logical-source-resolver-jsonpath</module>
+		<module>carml-logical-source-resolver-csv</module>
 	</modules>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.8</maven.compiler.target>
-		<rdf4j.version>2.2.2</rdf4j.version>
+		<rdf4j.version>2.3.2</rdf4j.version>
 		<log4j.version>2.8.2</log4j.version>
-		<mockito.version>2.11.0</mockito.version>
+		<mockito.version>2.18.3</mockito.version>
 	</properties>
 
 	<dependencies>
@@ -107,26 +112,14 @@
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-lang3</artifactId>
-			<version>3.6</version>
+			<version>3.7</version>
 		</dependency>
-
+		
 		<dependency>
-			<groupId>org.apache.logging.log4j</groupId>
-			<artifactId>log4j-api</artifactId>
-			<version>${log4j.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.apache.logging.log4j</groupId>
-			<artifactId>log4j-core</artifactId>
-			<version>${log4j.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.apache.logging.log4j</groupId>
-			<artifactId>log4j-slf4j-impl</artifactId>
-			<version>${log4j.version}</version>
-		</dependency>
+    		<groupId>org.slf4j</groupId>
+		    <artifactId>slf4j-api</artifactId>
+		    <version>1.8.0-beta2</version>
+		</dependency>		
 
 		<dependency>
 			<groupId>junit</groupId>
@@ -152,7 +145,7 @@
 		<dependency>
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
-			<version>23.0</version>
+			<version>25.0-jre</version>
 		</dependency>
 
 	</dependencies>

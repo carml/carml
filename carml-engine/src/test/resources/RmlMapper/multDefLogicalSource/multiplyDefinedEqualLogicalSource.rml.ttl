@@ -1,0 +1,45 @@
+@prefix rr: <http://www.w3.org/ns/r2rml#> .
+@prefix rml: <http://semweb.mmlab.be/ns/rml#> .
+@prefix ql: <http://semweb.mmlab.be/ns/ql#> .
+@prefix carml: <http://carml.taxonic.com/carml/> .
+@prefix : <http://example.com/> .
+
+:TriplesMapOne
+	rml:logicalSource [
+		rml:source [
+			a carml:Stream ;
+			carml:streamName "stream-A" ;
+		] ;
+		rml:referenceFormulation ql:JSONPath ;
+		rml:iterator "$" ;
+	] ;
+	
+	rr:subjectMap [
+		rr:constant :one ;
+		rr:class :Example ;
+	] ;
+.
+
+:TriplesMapTwo
+	rml:logicalSource [
+		rml:source [
+			a carml:Stream ;
+			carml:streamName "stream-A" ;
+		] ;
+		rml:referenceFormulation ql:JSONPath ;
+		rml:iterator "$" ;
+	] ;
+	
+	rr:subjectMap [
+		rr:constant :two ;
+		rr:class :Example ;
+	] ;
+	 
+	rr:predicateObjectMap [
+		rr:predicate :linksTo ;
+		rr:objectMap [
+			rr:parentTriplesMap :TriplesMapOne ;
+		] ;
+	] ;
+.
+
