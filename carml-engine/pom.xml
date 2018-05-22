@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>com.taxonic.carml</groupId>
 		<artifactId>carml</artifactId>
-		<version>0.2.0</version>
+		<version>develop-SNAPSHOT</version>
 	</parent>
 
 	<artifactId>carml-engine</artifactId>
@@ -18,33 +18,33 @@
 		<dependency>
 			<groupId>com.taxonic.carml</groupId>
 			<artifactId>carml-rdf-mapper</artifactId>
-			<version>0.2.0</version>
+			<version>develop-SNAPSHOT</version>
 		</dependency>
 		
 		<dependency>
 			<groupId>com.taxonic.carml</groupId>
 			<artifactId>carml-logical-source-resolver</artifactId>
-			<version>0.2.0</version>
+			<version>develop-SNAPSHOT</version>
 		</dependency>
 		
 		<dependency>
 			<groupId>com.taxonic.carml</groupId>
 			<artifactId>carml-logical-source-resolver-csv</artifactId>
-			<version>0.2.0</version>
+			<version>develop-SNAPSHOT</version>
 			<scope>test</scope>
 		</dependency>
 		
 		<dependency>
 			<groupId>com.taxonic.carml</groupId>
 			<artifactId>carml-logical-source-resolver-jsonpath</artifactId>
-			<version>0.2.0</version>
+			<version>develop-SNAPSHOT</version>
 			<scope>test</scope>
 		</dependency>
 		
 		<dependency>
 			<groupId>com.taxonic.carml</groupId>
 			<artifactId>carml-logical-source-resolver-xpath</artifactId>
-			<version>0.2.0</version>
+			<version>develop-SNAPSHOT</version>
 			<scope>test</scope>
 		</dependency>
 
