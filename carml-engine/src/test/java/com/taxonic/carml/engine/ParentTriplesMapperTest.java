@@ -5,6 +5,10 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -16,10 +20,6 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
 
 public class ParentTriplesMapperTest {
 	
@@ -36,10 +36,15 @@ public class ParentTriplesMapperTest {
 	public MockitoRule mockitoRule = MockitoJUnit.rule();
 	
 	Set<Pair<String, Object>> joinValues =
-		ImmutableSet.of(
-			Pair.of("country.name", "Belgium")
-		);
-	
+			ImmutableSet.of(
+				Pair.of("country.name", "Belgium")
+			);
+
+	Set<Pair<String, Object>> multiJoinValues =
+			ImmutableSet.of(
+				Pair.of("country.name", Arrays.asList("Belgium", null, "Netherlands"))
+			);
+
 	String entry = 
 			"{\r\n" + 
 			"\"food\": {\r\n" + 
@@ -47,7 +52,7 @@ public class ParentTriplesMapperTest {
 			"	\"countryOfOrigin\": \"Belgium\"\r\n" + 
 			"	}\r\n" + 
 			"}";
-	
+
 	EvaluateExpression evaluate = s -> Optional.of("Belgium");
 
 	@Test
@@ -60,7 +65,18 @@ public class ParentTriplesMapperTest {
 		assertThat(resources.size(), is(1));
 		assertThat(SKOS.CONCEPT, isIn(resources));
 	}
-	
+
+	@Test
+	public void parentTriplesMapper_givenMultiJoinWithNullValues_ShouldStillResolveJoin() {
+		when(getIterator.get()).thenReturn(ImmutableList.of(entry));
+		when(expressionEvaluatorFactory.apply(entry)).thenReturn(evaluate);
+		when(subjectGenerator.apply(evaluate)).thenReturn(ImmutableList.of(SKOS.CONCEPT));
+		ParentTriplesMapper<Object> mapper = new ParentTriplesMapper<>(subjectGenerator, getIterator, expressionEvaluatorFactory);
+		Set<Resource> resources = mapper.map(multiJoinValues);
+		assertThat(resources.size(), is(1));
+		assertThat(SKOS.CONCEPT, isIn(resources));
+	}
+
 	// TODO
 	public void parentTriplesMapper_notGivenJoinConditions() {
 		
