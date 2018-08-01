@@ -23,7 +23,7 @@ class MappingTest {
 	void testMapping(String contextPath, String rmlPath) {
 		testMapping(contextPath, rmlPath, null);
 	}
-	
+
 	void testMapping(
 		String contextPath,
 		String rmlPath,
@@ -31,7 +31,7 @@ class MappingTest {
 	) {
 		testMapping(contextPath, rmlPath, outputPath, m -> {}, m -> {});
 	}
-	
+
 	void testMapping(
 		String contextPath,
 		String rmlPath,
@@ -40,7 +40,7 @@ class MappingTest {
 	) {
 		testMapping(contextPath, rmlPath, outputPath, configureMapper, m -> {});
 	}
-	
+
 	void testMapping(
 		String contextPath,
 		String rmlPath,
@@ -48,7 +48,7 @@ class MappingTest {
 		Consumer<RmlMapper.Builder> configureMapper,
 		Consumer<RmlMapper> configureMapperInstance
 	) {
-		Set<TriplesMap> mapping = loader.load(rmlPath, RDFFormat.TURTLE);
+		Set<TriplesMap> mapping = loader.load(RDFFormat.TURTLE, rmlPath);
 		RmlMapper.Builder builder = RmlMapper.newBuilder()
 				.setLogicalSourceResolver(Rdf.Ql.Csv, new CsvResolver())
 				.setLogicalSourceResolver(Rdf.Ql.JsonPath, new JsonPathResolver())
@@ -58,25 +58,25 @@ class MappingTest {
 		RmlMapper mapper = builder.build();
 		configureMapperInstance.accept(mapper);
 		Model result = mapper.map(mapping);
-		
+
 		//TODO: PM: Add debug logging
 //		System.out.println("Generated from test: " + rmlPath);
 //		System.out.println("This is result: ");
 //		printModel(result);
-		
+
 		// exit for tests without expected output, such as exception tests
 		if (outputPath == null) return;
-		
+
 		Model expected = IoUtils.parse(outputPath, determineRdfFormat(outputPath));
 //		System.out.println("This is expected: ");
 //		printModel(expected);
 		assertEquals(expected, result);
 	}
-	
+
 	RDFFormat determineRdfFormat(String path) {
-		return 
+		return
 			Rio.getParserFormatForFileName(path)
-			.orElseThrow(() -> 
+			.orElseThrow(() ->
 				new RuntimeException("could not determine rdf format from file [" + path + "]"));
 	}
 
@@ -85,5 +85,5 @@ class MappingTest {
 //		Rio.write(model, writer, RDFFormat.TURTLE);
 //		System.out.println(writer.toString());
 //	}
-	
+
 }
