@@ -1,0 +1,4 @@
+@prefix ex: <http://example.com/> .
+
+ex:simpleSubject
+  ex:firstName "Amarise", "Kelsey" .
