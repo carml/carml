@@ -83,7 +83,7 @@ CARML is built on [RDF4J](http://rdf4j.org/), and currently the Mapper directly 
 Set<TriplesMap> mapping =
   RmlMappingLoader
     .build()
-    .load(Paths.get("path-to-mapping-file"), RDFFormat.TURTLE);
+    .load(RDFFormat.TURTLE, Paths.get("path-to-mapping-file"));
 
 RmlMapper mapper =
   RmlMapper

@@ -39,10 +39,10 @@ public class RmlMapperTest {
 	NameableStream stream;
 	final String input = "test input";
 	final String secondInput = "second test input";
-	
+
 	@Rule
 	public final ExpectedException exception = ExpectedException.none();
-	
+
 	@Before
 	public void prepareMapper() {
 		mapper = RmlMapper.newBuilder()
@@ -59,7 +59,7 @@ public class RmlMapperTest {
 		mapper.bindInputStream(inputStream);
 		assertThat(mapper.getSourceManager().getSource(RmlMapper.DEFAULT_STREAM_NAME), is(input));
 	}
-	
+
 	@Test
 	public void mapper_boundWithNamedInputStream_shouldReadCorrespondingInputStream() {
 		String streamName = "foo";
@@ -68,23 +68,23 @@ public class RmlMapperTest {
 		mapper.bindInputStream(streamName, inputStream);
 		assertThat(mapper.getSourceManager().getSource(streamName), is(input));
 	}
-	
+
 	@Test
 	public void mapper_boundWithUnnamedInputStream_shouldThrowErrorOnUnknownStream() {
 		String streamName = "foo";
 		stream = new CarmlStream(streamName);
 		InputStream inputStream = IOUtils.toInputStream(input);
 		mapper.bindInputStream(inputStream);
-		
+
 		exception.expect(RuntimeException.class);
 		exception.expectMessage(String.format("attempting to get source by "
 				+ "name [%s], but no such binding is present", streamName));
-		
+
 		RmlMappingLoader loader = RmlMappingLoader.build();
 		InputStream input = RmlMapperTest.class.getResourceAsStream("simple.namedcarml.rml.ttl");
-		mapper.map(loader.load(input, RDFFormat.TURTLE));
+		mapper.map(loader.load(RDFFormat.TURTLE, input));
 	}
-	
+
 	@Test
 	public void mapper_boundWithNamedInputStream_shouldThrowErrorOnUnknownStream() {
 		String streamName = "bar";
@@ -92,18 +92,18 @@ public class RmlMapperTest {
 		stream = new CarmlStream(unknownStreamName);
 		InputStream inputStream = IOUtils.toInputStream(input);
 		mapper.bindInputStream(streamName, inputStream);
-		
+
 		exception.expect(RuntimeException.class);
 		exception.expectMessage(String.format("attempting to get source by "
 				+ "name [%s], but no such binding is present", unknownStreamName));
-		
+
 		RmlMappingLoader loader = RmlMappingLoader.build();
 		InputStream input = RmlMapperTest.class.getResourceAsStream("simple.namedcarml.rml.ttl");
-		mapper.map(loader.load(input, RDFFormat.TURTLE));
-		
+		mapper.map(loader.load(RDFFormat.TURTLE, input));
+
 		assertThat(mapper.getSourceManager().getSource(streamName), is(input));
 	}
-	
+
 	@Test
 	public void mapper_boundWithMultipleNamedInputStreams_shouldReadCorrespondingStreams() {
 		String streamName = "foo";
@@ -117,7 +117,7 @@ public class RmlMapperTest {
 		assertThat(mapper.getSourceManager().getSource(streamName), is(input));
 		assertThat(mapper.getSourceManager().getSource(secondStreamName), is(secondInput));
 	}
-	
+
 	@Test
 	public void mapper_boundWithMultipleNamedAndOneUnnamedInputStreams_shouldReadCorrespondingStreams() {
 		String streamName = "foo";
@@ -134,7 +134,7 @@ public class RmlMapperTest {
 		assertThat(mapper.getSourceManager().getSource(secondStreamName), is(secondInput));
 		assertThat(mapper.getSourceManager().getSource(RmlMapper.DEFAULT_STREAM_NAME), is(unnamedInput));
 	}
-	
+
 	@Test
 	public void mapper_boundWithMultipleUnnamedInputStreams_shouldReadLastBoundStream() {
 		InputStream inputStream = IOUtils.toInputStream(input);
@@ -144,7 +144,7 @@ public class RmlMapperTest {
 		mapper.bindInputStream(secondInputStream);
 		assertThat(mapper.getSourceManager().getSource(RmlMapper.DEFAULT_STREAM_NAME), is(secondInput));
 	}
-	
+
 	@Test
 	public void mapper_boundWithMultipleNamedInputStreams_shouldReadLastBoundStream() {
 		String streamName = "foo";
@@ -156,16 +156,16 @@ public class RmlMapperTest {
 		mapper.bindInputStream(secondStreamName, secondInputStream);
 		assertThat(mapper.getSourceManager().getSource(secondStreamName), is(secondInput));
 	}
-	
+
 	@Test
 	public void mapper_notFindingBoundUnnamedInputStream_shouldThrowException() {
 		exception.expect(RuntimeException.class);
 		exception.expectMessage("attempting to get source, but no binding was present");
 		RmlMappingLoader loader = RmlMappingLoader.build();
 		InputStream input = RmlMapperTest.class.getResourceAsStream("simple.carml.rml.ttl");
-		mapper.map(loader.load(input, RDFFormat.TURTLE));
+		mapper.map(loader.load(RDFFormat.TURTLE, input));
 	}
-	
+
 	@Test
 	public void mapper_notFindingBoundNamedInputStreams_shouldThrowException() {
 		String streamName = "foo";
@@ -174,16 +174,16 @@ public class RmlMapperTest {
 				+ "name [%s], but no such binding is present", streamName));
 		RmlMappingLoader loader = RmlMappingLoader.build();
 		InputStream input = RmlMapperTest.class.getResourceAsStream("simple.namedcarml.rml.ttl");
-		mapper.map(loader.load(input, RDFFormat.TURTLE));
+		mapper.map(loader.load(RDFFormat.TURTLE, input));
 	}
-	
+
 	@Test
 	public void mapper_withNoBoundSource_shouldThrowException() throws IOException {
 		exception.expect(RuntimeException.class);
 		exception.expectMessage("attempting to get source, but no binding was present");
 		RmlMappingLoader loader = RmlMappingLoader.build();
 		InputStream input = RmlMapperTest.class.getResourceAsStream("simple.carml.rml.ttl");
-		mapper.map(loader.load(input, RDFFormat.TURTLE));
+		mapper.map(loader.load(RDFFormat.TURTLE, input));
 	}
 
 	@Test
