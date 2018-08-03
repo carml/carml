@@ -39,6 +39,8 @@ Releases
 
 20 May 2018 - CARML 0.2.0
 
+03 Aug 2018 - CARML 0.2.1
+
 Introduction
 ------------
 CARML is a java library that transforms structured sources to RDF based as declared in and [RML](http://rml.io) mapping, in accordance with the [RML spec](http://rml.io/spec.html). It is considered by many as the optimal choice for mapping structured sources to RDF.
@@ -83,7 +85,7 @@ CARML is built on [RDF4J](http://rdf4j.org/), and currently the Mapper directly 
 Set<TriplesMap> mapping =
   RmlMappingLoader
     .build()
-    .load(Paths.get("path-to-mapping-file"), RDFFormat.TURTLE);
+    .load(RDFFormat.TURTLE, Paths.get("path-to-mapping-file"));
 
 RmlMapper mapper =
   RmlMapper

@@ -7,6 +7,7 @@ import com.taxonic.carml.rdf_mapper.util.ImmutableCollectors;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -74,6 +75,7 @@ class ParentTriplesMapper<T> {
 	}
 
 	private boolean isValidJoin(T entry, Pair<String, Object> joinValue) {
+		LOG.trace("Determining validity of join {}", joinValue);
 		String parentExpression = joinValue.getLeft();
 		Set<String> children = extractChildren(joinValue.getRight());
 
@@ -94,8 +96,10 @@ class ParentTriplesMapper<T> {
 	}
 
 	private Set<String> extractChildren(Object children) {
+		LOG.trace("Extracting join's children {}", children);
 		if (children instanceof Collection<?>) {
 			return ((Collection<?>) children).stream()
+					.filter(Objects::nonNull)
 					.map(o -> (String) o)
 					.collect(ImmutableCollectors.toImmutableSet());
 		} else {

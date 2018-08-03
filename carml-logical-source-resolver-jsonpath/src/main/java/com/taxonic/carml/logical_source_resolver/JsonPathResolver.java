@@ -9,8 +9,11 @@ import java.util.Optional;
 
 public class JsonPathResolver implements LogicalSourceResolver<Object> {
 
-	private static final Configuration JSONPATH_CONF = Configuration.builder()
-			.options(Option.DEFAULT_PATH_LEAF_TO_NULL).build();
+	private static final Configuration JSONPATH_CONF =
+			Configuration.builder()
+			.options(Option.DEFAULT_PATH_LEAF_TO_NULL)
+			.options(Option.SUPPRESS_EXCEPTIONS)
+			.build();
 
 	public SourceIterator<Object> getSourceIterator() {
 		return (source, logicalSource) -> {
