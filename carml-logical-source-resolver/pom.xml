@@ -14,13 +14,17 @@
 	<name>carml-logical-source-resolver</name>
 
 	<dependencies>
-	
+
 		<dependency>
 			<groupId>com.taxonic.carml</groupId>
 			<artifactId>carml-commons</artifactId>
-			<version>develop-SNAPSHOT</version>
 		</dependency>
-		
+
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+		</dependency>
+
 	</dependencies>
 
 </project>
