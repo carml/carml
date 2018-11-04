@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Literal;
@@ -61,7 +62,7 @@ public class Functions {
 		return Optional.of(new ExecuteFunction() {
 
 			@Override
-			public Object execute(Model model, Resource subject) {
+			public Object execute(Model model, Resource subject, UnaryOperator<Object> returnValueAdapter) {
 
 				List<Object> arguments = parameterExtractors
 					.stream()
@@ -69,9 +70,9 @@ public class Functions {
 					.collect(Collectors.toList());
 
 				try {
-					// TODO return value adapter?
 					LOG.trace("Executing function {} with arguments {}", method.getName(), arguments);
-					return method.invoke(obj, arguments.toArray());
+					Object returnValue = method.invoke(obj, arguments.toArray());
+					return returnValueAdapter.apply(returnValue);
 				}
 				catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
 					throw new RuntimeException("error executing function", e);

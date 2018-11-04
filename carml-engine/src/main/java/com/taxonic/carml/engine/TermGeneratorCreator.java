@@ -13,7 +13,7 @@ import com.taxonic.carml.model.TermMap;
 import com.taxonic.carml.model.TermType;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.rdf_mapper.util.ImmutableCollectors;
-import com.taxonic.carml.util.IriEncoder;
+import com.taxonic.carml.util.IriSafeMaker;
 import com.taxonic.carml.vocab.Rdf;
 import java.util.Arrays;
 import java.util.Collection;
@@ -22,7 +22,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import org.eclipse.rdf4j.common.net.ParsedIRI;
 import org.eclipse.rdf4j.model.BNode;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Literal;
@@ -42,7 +44,7 @@ class TermGeneratorCreator {
 
 	private ValueFactory f;
 	private String baseIri;
-	private Function<String, String> encodeIri;
+	private Function<String, String> makeIriSafe;
 	private TemplateParser templateParser;
 	private RmlMapper mapper;
 
@@ -50,7 +52,7 @@ class TermGeneratorCreator {
 		return new TermGeneratorCreator(
 			SimpleValueFactory.getInstance(),
 			"http://none.com/",
-			IriEncoder.create(),
+			IriSafeMaker.create(),
 			TemplateParser.build(),
 			mapper
 		);
@@ -59,13 +61,13 @@ class TermGeneratorCreator {
 	TermGeneratorCreator(
 		ValueFactory valueFactory,
 		String baseIri,
-		Function<String, String> encodeIri,
+		Function<String, String> makeIriSafe,
 		TemplateParser templateParser,
 		RmlMapper mapper
 	) {
 		this.f = valueFactory;
 		this.baseIri = baseIri;
-		this.encodeIri = encodeIri;
+		this.makeIriSafe = makeIriSafe;
 		this.templateParser = templateParser;
 		this.mapper = mapper;
 	}
@@ -177,7 +179,7 @@ class TermGeneratorCreator {
 		// for IRI term types, make template values 'IRI-safe'.
 		// otherwise, do not transform template values.
 		Function<String, String> transformValue = termType == TermType.IRI
-			? encodeIri
+			? makeIriSafe
 			: v -> v;
 
 		Function<EvaluateExpression, Optional<Object>> getValue =
@@ -235,8 +237,15 @@ class TermGeneratorCreator {
 
 		// TODO check that executionMap has an identical logical source
 
+		TermType termType = determineTermType(map);
+
+		// for IRI term types, make values valid IRIs.
+		UnaryOperator<Object> returnValueAdapter = termType == TermType.IRI
+			? this::iriEncodeResult
+			: v -> v;
+
 		Function<EvaluateExpression, Optional<Object>> getValue =
-			evaluateExpression -> functionEvaluation(evaluateExpression, executionMapper);
+			evaluateExpression -> functionEvaluation(evaluateExpression, executionMapper, returnValueAdapter);
 
 		return Optional.of(getGenerator(
 			map,
@@ -246,21 +255,43 @@ class TermGeneratorCreator {
 		));
 	}
 
-	private Optional<Object> functionEvaluation(EvaluateExpression evaluateExpression, SubjectMapper executionMapper) {
+	private Optional<Object> functionEvaluation(EvaluateExpression evaluateExpression, SubjectMapper executionMapper, UnaryOperator<Object> returnValueAdapter) {
 		Model model = new LinkedHashModel();
 		Optional<Resource> execution = executionMapper.map(model, evaluateExpression);
 
-		return execution.map(e -> mapExecution(e, model));
+		return execution.map(e -> mapExecution(e, model, returnValueAdapter));
 	}
 
-	private Object mapExecution(Resource execution, Model model) {
+	private Object mapExecution(Resource execution, Model model, UnaryOperator<Object> returnValueAdapter) {
 		IRI functionIri = getFunctionIRI(execution, model);
 		ExecuteFunction function =
 				mapper.getFunction(functionIri)
 					.orElseThrow(() -> new RuntimeException(
 						"no function registered for function IRI [" + functionIri + "]"));
 
-		return function.execute(model, execution);
+		return function.execute(model, execution, returnValueAdapter);
+	}
+
+	private Object iriEncodeResult(Object result) {
+		if (result instanceof Collection<?>) {
+			return ((Collection<?>) result).stream()
+			.map(this::encodeAsIri)
+			.collect(ImmutableCollectors.toImmutableList());
+		} else {
+			return encodeAsIri(result);
+		}
+	}
+
+	private Object encodeAsIri(Object value) {
+		String iriValue;
+
+		if (value instanceof Value) {
+			iriValue = ((Value) value).stringValue();
+		} else {
+			iriValue = value.toString();
+		}
+
+		return ParsedIRI.create(iriValue).toString();
 	}
 
 	private IRI getFunctionIRI(Resource execution, Model model) {
