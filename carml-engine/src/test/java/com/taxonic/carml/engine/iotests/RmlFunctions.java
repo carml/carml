@@ -4,6 +4,8 @@ import com.google.common.collect.ImmutableList;
 import com.taxonic.carml.engine.function.FnoFunction;
 import com.taxonic.carml.engine.function.FnoParam;
 import java.util.List;
+import org.eclipse.rdf4j.model.IRI;
+import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 
 public class RmlFunctions {
 
@@ -35,7 +37,11 @@ public class RmlFunctions {
 
 			listParamFunction = prefix + "listParamFunction",
 
-			listParam = prefix + "listParam";
+			listParam = prefix + "listParam",
+
+			iriFunction = prefix + "iriFunction",
+
+			baseIriParam = prefix + "baseIriParam";
 	}
 
 	@FnoFunction(Ex.toBoolFunction)
@@ -89,6 +95,15 @@ public class RmlFunctions {
 			@FnoParam(Ex.listParam) List<String> listParam) {
 		return listParam;
 	}
+
+	@FnoFunction(Ex.iriFunction)
+	public IRI iriFunction(
+		@FnoParam(Ex.baseIriParam) String baseIri,
+		@FnoParam(Ex.stringParam) String namePart
+	) {
+		return SimpleValueFactory.getInstance().createIRI(baseIri + namePart);
+	}
+
 
 	//TODO: PM: Add test for when parameter is not found
 	//TODO: PM: Add test for when function returns null

@@ -132,6 +132,15 @@ public class RmlMapperTest extends MappingTest {
 		);
 	}
 
+	@Test
+	public void testIriFunctionMapping() {
+		testMapping(
+			"RmlMapper",
+			"RmlMapper/test18/iriFunctionMapping.rml.ttl",
+			"RmlMapper/test18/iriFunctionMapping.output.ttl",
+			m -> m.addFunctions(new RmlFunctions())
+		);
+	}
 
 	@Test
 	public void testSeparateMapsMapping() {
@@ -196,7 +205,7 @@ public class RmlMapperTest extends MappingTest {
 					"RmlMapper/test2/subjectMapping.rml.ttl",
 					"RmlMapper/test2/subjectMapping.output.ttl");
 	}
-	
+
 	@Test
 	public void testXmlResolver() {
 		testMapping("RmlMapper",

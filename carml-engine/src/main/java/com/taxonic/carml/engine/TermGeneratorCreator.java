@@ -22,6 +22,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import org.eclipse.rdf4j.common.net.ParsedIRI;
 import org.eclipse.rdf4j.model.BNode;
@@ -236,8 +237,15 @@ class TermGeneratorCreator {
 
 		// TODO check that executionMap has an identical logical source
 
+		TermType termType = determineTermType(map);
+
+		// for IRI term types, make values valid IRIs.
+		UnaryOperator<Object> returnValueAdapter = termType == TermType.IRI
+			? this::iriEncodeResult
+			: v -> v;
+
 		Function<EvaluateExpression, Optional<Object>> getValue =
-			evaluateExpression -> functionEvaluation(evaluateExpression, executionMapper);
+			evaluateExpression -> functionEvaluation(evaluateExpression, executionMapper, returnValueAdapter);
 
 		return Optional.of(getGenerator(
 			map,
@@ -247,21 +255,43 @@ class TermGeneratorCreator {
 		));
 	}
 
-	private Optional<Object> functionEvaluation(EvaluateExpression evaluateExpression, SubjectMapper executionMapper) {
+	private Optional<Object> functionEvaluation(EvaluateExpression evaluateExpression, SubjectMapper executionMapper, UnaryOperator<Object> returnValueAdapter) {
 		Model model = new LinkedHashModel();
 		Optional<Resource> execution = executionMapper.map(model, evaluateExpression);
 
-		return execution.map(e -> mapExecution(e, model));
+		return execution.map(e -> mapExecution(e, model, returnValueAdapter));
 	}
 
-	private Object mapExecution(Resource execution, Model model) {
+	private Object mapExecution(Resource execution, Model model, UnaryOperator<Object> returnValueAdapter) {
 		IRI functionIri = getFunctionIRI(execution, model);
 		ExecuteFunction function =
 				mapper.getFunction(functionIri)
 					.orElseThrow(() -> new RuntimeException(
 						"no function registered for function IRI [" + functionIri + "]"));
 
-		return function.execute(model, execution);
+		return function.execute(model, execution, returnValueAdapter);
+	}
+
+	private Object iriEncodeResult(Object result) {
+		if (result instanceof Collection<?>) {
+			return ((Collection<?>) result).stream()
+			.map(this::encodeAsIri)
+			.collect(ImmutableCollectors.toImmutableList());
+		} else {
+			return encodeAsIri(result);
+		}
+	}
+
+	private Object encodeAsIri(Object value) {
+		String iriValue;
+
+		if (value instanceof Value) {
+			iriValue = ((Value) value).stringValue();
+		} else {
+			iriValue = value.toString();
+		}
+
+		return ParsedIRI.create(iriValue).toString();
 	}
 
 	private IRI getFunctionIRI(Resource execution, Model model) {
