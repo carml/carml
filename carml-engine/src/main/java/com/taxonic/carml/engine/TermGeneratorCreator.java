@@ -13,7 +13,7 @@ import com.taxonic.carml.model.TermMap;
 import com.taxonic.carml.model.TermType;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.rdf_mapper.util.ImmutableCollectors;
-import com.taxonic.carml.util.IriEncoder;
+import com.taxonic.carml.util.IriSafeMaker;
 import com.taxonic.carml.vocab.Rdf;
 import java.util.Arrays;
 import java.util.Collection;
@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.eclipse.rdf4j.common.net.ParsedIRI;
 import org.eclipse.rdf4j.model.BNode;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Literal;
@@ -42,7 +43,7 @@ class TermGeneratorCreator {
 
 	private ValueFactory f;
 	private String baseIri;
-	private Function<String, String> encodeIri;
+	private Function<String, String> makeIriSafe;
 	private TemplateParser templateParser;
 	private RmlMapper mapper;
 
@@ -50,7 +51,7 @@ class TermGeneratorCreator {
 		return new TermGeneratorCreator(
 			SimpleValueFactory.getInstance(),
 			"http://none.com/",
-			IriEncoder.create(),
+			IriSafeMaker.create(),
 			TemplateParser.build(),
 			mapper
 		);
@@ -59,13 +60,13 @@ class TermGeneratorCreator {
 	TermGeneratorCreator(
 		ValueFactory valueFactory,
 		String baseIri,
-		Function<String, String> encodeIri,
+		Function<String, String> makeIriSafe,
 		TemplateParser templateParser,
 		RmlMapper mapper
 	) {
 		this.f = valueFactory;
 		this.baseIri = baseIri;
-		this.encodeIri = encodeIri;
+		this.makeIriSafe = makeIriSafe;
 		this.templateParser = templateParser;
 		this.mapper = mapper;
 	}
@@ -177,7 +178,7 @@ class TermGeneratorCreator {
 		// for IRI term types, make template values 'IRI-safe'.
 		// otherwise, do not transform template values.
 		Function<String, String> transformValue = termType == TermType.IRI
-			? encodeIri
+			? makeIriSafe
 			: v -> v;
 
 		Function<EvaluateExpression, Optional<Object>> getValue =
