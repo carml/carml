@@ -1,5 +1,7 @@
 package com.taxonic.carml.util;
 
+import java.text.Normalizer;
+import java.text.Normalizer.Form;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
@@ -20,8 +22,8 @@ import java.util.stream.IntStream;
  */
 public class IriSafeMaker implements Function<String, String> {
 
-	public static String makeSafe(String input) {
-		return create().apply(input);
+	public static String makeSafe(String input, Form normalizationForm) {
+		return create(normalizationForm).apply(input);
 	}
 
 	static class Range {
@@ -38,7 +40,7 @@ public class IriSafeMaker implements Function<String, String> {
 		}
 	}
 
-	public static IriSafeMaker create() {
+	public static IriSafeMaker create(Form normalizationForm) {
 
 		/* percent-encode any char not in the 'iunreserved' production rule:
 		   iunreserved    = ALPHA / DIGIT / "-" / "." / "_" / "~" / ucschar
@@ -67,19 +69,26 @@ public class IriSafeMaker implements Function<String, String> {
 			})
 			.collect(Collectors.toList());
 
-		return new IriSafeMaker(ranges);
+		return new IriSafeMaker(ranges, normalizationForm);
+	}
+
+	public static IriSafeMaker create() {
+		return create(Form.NFC);
 	}
 
 	private List<Range> ranges;
+	private Form normalizationForm;
 
-	public IriSafeMaker(List<Range> ranges) {
+	public IriSafeMaker(List<Range> ranges, Form normalizationForm) {
 		this.ranges = ranges;
+		this.normalizationForm = normalizationForm;
 	}
 
 	@Override
 	public String apply(String s) {
 		StringBuilder result = new StringBuilder();
 
+		s = Normalizer.normalize(s, normalizationForm);
 		s.codePoints().flatMap(c -> {
 
 			if (
