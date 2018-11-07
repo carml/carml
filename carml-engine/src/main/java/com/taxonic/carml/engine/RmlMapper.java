@@ -90,7 +90,7 @@ public class RmlMapper {
 		private Set<SourceResolver> sourceResolvers = new HashSet<>();
 		private Map<IRI, LogicalSourceResolver<?>> logicalSourceResolvers = new HashMap<>();
 
-		public Builder addFunctions(Object fn) {
+		public Builder addFunctions(Object... fn) {
 			functions.addFunctions(fn);
 			return this;
 		}
