@@ -15,6 +15,7 @@ import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.rdf_mapper.util.ImmutableCollectors;
 import com.taxonic.carml.util.IriSafeMaker;
 import com.taxonic.carml.vocab.Rdf;
+import java.text.Normalizer;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -52,7 +53,7 @@ class TermGeneratorCreator {
 		return new TermGeneratorCreator(
 			SimpleValueFactory.getInstance(),
 			"http://none.com/",
-			IriSafeMaker.create(),
+			IriSafeMaker.create(mapper.getNormalizationForm()),
 			TemplateParser.build(),
 			mapper
 		);
@@ -290,6 +291,9 @@ class TermGeneratorCreator {
 		} else {
 			iriValue = value.toString();
 		}
+
+		// perform unicode normalization
+		iriValue = Normalizer.normalize(iriValue, mapper.getNormalizationForm());
 
 		return ParsedIRI.create(iriValue).toString();
 	}

@@ -31,19 +31,21 @@ public class Functions {
 
 	private static final ValueFactory VF = SimpleValueFactory.getInstance();
 
-	private Map<IRI, ExecuteFunction> functions = new LinkedHashMap<>();
+	private Map<IRI, ExecuteFunction> fns = new LinkedHashMap<>();
 
 	public Optional<ExecuteFunction> getFunction(IRI iri) {
-		return Optional.ofNullable(functions.get(iri));
+		return Optional.ofNullable(fns.get(iri));
 	}
 
-	public void addFunctions(Object fn) {
-		Arrays.asList(fn.getClass().getMethods())
-			.stream()
-			.map(m -> createFunctionExecutor(fn, m))
-			.filter(Optional::isPresent)
-			.map(Optional::get)
-			.forEach(f -> functions.put(f.getIri(), f));
+	public void addFunctions(Object... functions) {
+		for (Object fn : functions) {
+			Arrays.asList(fn.getClass().getMethods())
+				.stream()
+				.map(m -> createFunctionExecutor(fn, m))
+				.filter(Optional::isPresent)
+				.map(Optional::get)
+				.forEach(f -> fns.put(f.getIri(), f));
+		}
 	}
 
 	private Optional<ExecuteFunction> createFunctionExecutor(Object obj, Method method) {
@@ -209,7 +211,7 @@ public class Functions {
 	}
 
 	public int size() {
-		return functions.size();
+		return fns.size();
 	}
 
 	private void expectSingleValue(List<Value> values) {

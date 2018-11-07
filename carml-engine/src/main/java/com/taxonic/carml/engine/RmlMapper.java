@@ -26,6 +26,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.text.Normalizer.Form;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -65,19 +66,24 @@ public class RmlMapper {
 
 	private Map<IRI, LogicalSourceResolver<?>> logicalSourceResolvers;
 
-	private TermGeneratorCreator termGenerators = TermGeneratorCreator.create(this); // TODO
+	Form normalizationForm;
+
+	private TermGeneratorCreator termGenerators;
 
 	private Functions functions;
 
-	public RmlMapper(
+	private RmlMapper(
 		Function<Object, String> sourceResolver,
 		Map<IRI, LogicalSourceResolver<?>> logicalSourceResolvers,
-		Functions functions
+		Functions functions,
+		Form normalizationForm
 	) {
 		this.sourceManager = new LogicalSourceManager();
 		this.sourceResolver = sourceResolver;
 		this.functions = functions;
 		this.logicalSourceResolvers = logicalSourceResolvers;
+		this.normalizationForm = normalizationForm;
+		this.termGenerators = TermGeneratorCreator.create(this);
 	}
 
 	public static Builder newBuilder() {
@@ -86,11 +92,12 @@ public class RmlMapper {
 
 	public static class Builder {
 
-		private Functions functions = new Functions(); // TODO
+		private Functions functions = new Functions();
 		private Set<SourceResolver> sourceResolvers = new HashSet<>();
 		private Map<IRI, LogicalSourceResolver<?>> logicalSourceResolvers = new HashMap<>();
+		private Form normalizationForm = Form.NFC;
 
-		public Builder addFunctions(Object fn) {
+		public Builder addFunctions(Object... fn) {
 			functions.addFunctions(fn);
 			return this;
 		}
@@ -120,6 +127,11 @@ public class RmlMapper {
 			return this;
 		}
 
+		public Builder iriUnicodeNormalization(Form normalizationForm) {
+			this.normalizationForm = normalizationForm;
+			return this;
+		}
+
 		public RmlMapper build() {
 
 			CarmlStreamResolver carmlStreamResolver = new CarmlStreamResolver();
@@ -142,10 +154,9 @@ public class RmlMapper {
 				new RmlMapper(
 					compositeResolver,
 					logicalSourceResolvers,
-					functions
+					functions,
+					normalizationForm
 				);
-
-
 
 			// Resolvers need a reference to the source manager, to manage
 			// the caching of sources.
@@ -153,6 +164,10 @@ public class RmlMapper {
 
 			return mapper;
 		}
+	}
+
+	public Form getNormalizationForm() {
+		return normalizationForm;
 	}
 
 	private static Optional<String> unpackFileSource(Object sourceObject) {
