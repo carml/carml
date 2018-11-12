@@ -305,12 +305,6 @@ public class CarmlMapper implements Mapper, MappingCache {
 		throw new RuntimeException("don't know how to create a transform to make collections of type [" + iterableType.getCanonicalName() + "] immutable");
 	}
 
-	private static interface DependencyResolver {
-
-		Object resolve(Type type, List<Annotation> qualifiers);
-
-	}
-
 	private Optional<PropertyHandler> getSpecifiedPropertyHandler(
 		RdfProperty annotation,
 		DependencyResolver resolver
@@ -475,62 +469,7 @@ public class CarmlMapper implements Mapper, MappingCache {
 		Optional<PropertyHandler> handler =
 			getSpecifiedPropertyHandler(
 				annotation,
-				new DependencyResolver() {
-
-					private Optional<Object> getQualifierValue(Class<? extends Annotation> qualifier) {
-						if (qualifier.equals(PropertyPredicate.class)) {
-							return Optional.of(predicate);
-						}
-						if (qualifier.equals(PropertySetter.class)) {
-							return Optional.of(set);
-						}
-
-						// TODO ..
-
-						return Optional.empty();
-					}
-
-					private Optional<Object> getValueByType(Type type) {
-						if (type.equals(Mapper.class)) {
-							return Optional.of(CarmlMapper.this);
-						} else if (type.equals(MappingCache.class)) {
-							return Optional.of(CarmlMapper.this);
-						}
-
-						// TODO ..
-
-						return Optional.empty();
-					}
-
-					@Override
-					public Object resolve(Type type, List<Annotation> qualifiers) {
-
-						// try simple mapping of a present qualifier to a value
-						Optional<Object> qualifierValue =
-							qualifiers.stream()
-								.map(Annotation::annotationType)
-								.map(t -> getQualifierValue(t))
-								.filter(Optional::isPresent)
-								.map(Optional::get)
-								.findFirst();
-						if (qualifierValue.isPresent()) {
-							return qualifierValue.get();
-						}
-
-						Optional<Object> valueByType = getValueByType(type);
-						if (valueByType.isPresent()) {
-							return valueByType.get();
-						}
-
-
-						// TODO ..
-
-
-						throw new RuntimeException(
-							"could not resolve dependency for type [" + type + "] and "
-								+ "qualifiers [" + qualifiers + "]");
-					}
-				}
+				new DefaultPropertyHandlerDependencyResolver(set, predicate, CarmlMapper.this, CarmlMapper.this)
 			);
 		if (handler.isPresent()) {
 			return handler;
