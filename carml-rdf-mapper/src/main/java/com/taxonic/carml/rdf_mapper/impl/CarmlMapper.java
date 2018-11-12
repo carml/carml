@@ -13,11 +13,7 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -27,7 +23,6 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import javax.inject.Inject;
@@ -50,8 +45,6 @@ import com.taxonic.carml.rdf_mapper.TypeDecider;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.rdf_mapper.annotations.RdfResourceName;
 import com.taxonic.carml.rdf_mapper.annotations.RdfType;
-import com.taxonic.carml.rdf_mapper.qualifiers.PropertyPredicate;
-import com.taxonic.carml.rdf_mapper.qualifiers.PropertySetter;
 
 public class CarmlMapper implements Mapper, MappingCache {
 
@@ -280,31 +273,6 @@ public class CarmlMapper implements Mapper, MappingCache {
 
 	}
 
-	private Supplier<Collection<Object>> createCollectionFactory(Class<?> iterableType) {
-		if (iterableType == null) {
-			return null;
-		}
-		// TODO Map<Class<?>, Supplier<Collection<Object>>>
-		if (iterableType.equals(Set.class)) {
-			return LinkedHashSet::new;
-		} else if (iterableType.equals(List.class)) {
-			return LinkedList::new;
-		}
-		throw new RuntimeException("don't know how to create a factory for collection type [" + iterableType.getCanonicalName() + "]");
-	}
-
-	private Function<Collection<Object>, Collection<Object>> createImmutableTransform(Class<?> iterableType) {
-		if (iterableType == null) {
-			return null;
-		}
-		if (iterableType.equals(Set.class)) {
-			return x -> Collections.unmodifiableSet((Set<Object>) x);
-		} else if (iterableType.equals(List.class)) {
-			return x -> Collections.unmodifiableList((List<Object>) x);
-		}
-		throw new RuntimeException("don't know how to create a transform to make collections of type [" + iterableType.getCanonicalName() + "] immutable");
-	}
-
 	private Optional<PropertyHandler> getSpecifiedPropertyHandler(
 		RdfProperty annotation,
 		DependencyResolver resolver
@@ -462,9 +430,20 @@ public class CarmlMapper implements Mapper, MappingCache {
 		IRI predicate = f.createIRI(annotation.value());
 
 		Class<?> iterableType = propertyType.getIterableType();
-		Supplier<Collection<Object>> createIterable = createCollectionFactory(iterableType);
-		Function<Collection<Object>, Collection<Object>> immutableTransform = createImmutableTransform(iterableType);
-
+		
+		PropertyValueMapper propertyValueMapper;
+		
+		// iterable property - set collection value
+		if (iterableType != null) {
+			propertyValueMapper = IterablePropertyValueMapper
+					.createForIterableType(valueTransformer, iterableType);
+		}
+		
+		// single value property
+		else {
+			propertyValueMapper = new SinglePropertyValueMapper(predicate, valueTransformer);			
+		}
+		
 		// get handler from @RdfProperty.handler, if any
 		Optional<PropertyHandler> handler =
 			getSpecifiedPropertyHandler(
@@ -491,34 +470,10 @@ public class CarmlMapper implements Mapper, MappingCache {
 					// TODO error if property has @RdfRequired?
 				}
 
-				// iterable property - set collection value
-				if (iterableType != null) {
-
-					List<Object> transformed = values.stream()
-						.map(v -> valueTransformer.transform(model, v))
-						.collect(toList());
-
-					Collection<Object> result = createIterable.get();
-					transformed.forEach(result::add);
-					Collection<Object> immutable = immutableTransform.apply(result);
-					set.accept(instance, immutable);
-
-				}
-
-				// single value property
-				else {
-
-					// multiple values present - error
-					if (values.size() > 1) {
-						throw new RuntimeException("multiple values for property [" + predicate + "], but "
-							+ "corresponding java property is NOT an Iterable property");
-					}
-
-					if (!values.isEmpty()) {
-						Object result = valueTransformer.transform(model, values.get(0));
-						set.accept(instance, result);
-					}
-				}
+				// map data from rdf model to a value for this property,
+				// such as a list of complex objects, or a simple string.
+				propertyValueMapper.map(model, instance, values)
+					.ifPresent(v -> set.accept(instance, v));
 
 				// TODO what about languages? @RdfLanguage("nl") to select only 1 language (or multiple?)
 				// then, if multiple such values exist in the graph, the property should be a List<String>.
