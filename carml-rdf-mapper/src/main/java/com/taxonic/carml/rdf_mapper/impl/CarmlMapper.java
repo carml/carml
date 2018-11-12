@@ -1,15 +1,11 @@
 package com.taxonic.carml.rdf_mapper.impl;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.taxonic.carml.rdf_mapper.Mapper;
-import com.taxonic.carml.rdf_mapper.PropertyHandler;
-import com.taxonic.carml.rdf_mapper.TypeDecider;
-import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
-import com.taxonic.carml.rdf_mapper.annotations.RdfResourceName;
-import com.taxonic.carml.rdf_mapper.annotations.RdfType;
-import com.taxonic.carml.rdf_mapper.qualifiers.PropertyPredicate;
-import com.taxonic.carml.rdf_mapper.qualifiers.PropertySetter;
+import static com.taxonic.carml.rdf_mapper.impl.PropertyUtils.createSetterName;
+import static com.taxonic.carml.rdf_mapper.impl.PropertyUtils.findSetter;
+import static com.taxonic.carml.rdf_mapper.impl.PropertyUtils.getPropertyName;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
+
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -32,10 +28,11 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
 import javax.inject.Inject;
 import javax.inject.Qualifier;
+
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Literal;
@@ -44,6 +41,17 @@ import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
+
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.taxonic.carml.rdf_mapper.Mapper;
+import com.taxonic.carml.rdf_mapper.PropertyHandler;
+import com.taxonic.carml.rdf_mapper.TypeDecider;
+import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
+import com.taxonic.carml.rdf_mapper.annotations.RdfResourceName;
+import com.taxonic.carml.rdf_mapper.annotations.RdfType;
+import com.taxonic.carml.rdf_mapper.qualifiers.PropertyPredicate;
+import com.taxonic.carml.rdf_mapper.qualifiers.PropertySetter;
 
 public class CarmlMapper implements Mapper, MappingCache {
 
@@ -69,15 +77,17 @@ public class CarmlMapper implements Mapper, MappingCache {
 
 	@SuppressWarnings("unchecked")
 	private <T> T doMultipleInterfaceMapping(Model model, Resource resource, Set<Type> types) {
-		List<Type> implementations = types.stream().map(this::getInterfaceImplementation).collect(Collectors.toList());
+		List<Type> implementations = types.stream().map(this::getInterfaceImplementation).collect(toList());
 
 		Map<Type, Object> implementationsToDelegates = implementations.stream()
-				.collect(Collectors.toMap(t -> t, t-> doSingleTypeConcreteClassMapping(model, resource, t)));
+				.collect(toMap(
+					t -> t,
+					t-> doSingleTypeConcreteClassMapping(model, resource, t)));
 
 		Map<Type, List<Method>> implementationMethods =
-				implementations.stream().collect(Collectors.toMap(
+				implementations.stream().collect(toMap(
 						t -> t,
-						t -> gatherMethods((Class<?>) t).collect(Collectors.toList())));
+						t -> gatherMethods((Class<?>) t).collect(toList())));
 
 		BiFunction<Type, Method, Boolean> implementationHasMethod =
 				(t, m) -> implementationMethods.get(t).contains(m);
@@ -144,13 +154,12 @@ public class CarmlMapper implements Mapper, MappingCache {
 				Stream.concat(
 						Arrays.asList(c.getMethods()).stream()
 						.map(m -> getRdfPropertyHandler(m, c))
-						.filter(Objects::nonNull)
 				,
 						Arrays.asList(c.getMethods()).stream()
 						.map(m -> getRdfResourceNameHandler(m, c))
-						.filter(Objects::nonNull)
 				)
-				.collect(Collectors.toList());
+				.filter(Optional::isPresent).map(Optional::get)
+				.collect(toList());
 
 		Object instance;
 		try {
@@ -328,7 +337,7 @@ public class CarmlMapper implements Mapper, MappingCache {
 				// find methods annotated with @Inject
 				.filter(m -> m.getAnnotation(Inject.class) != null)
 				.<Consumer<Object>>map(m -> createInvocableSetter(m, resolver))
-			.collect(Collectors.toList());
+			.collect(toList());
 
 		setterInjectors.forEach(i -> i.accept(handler));
 
@@ -340,7 +349,7 @@ public class CarmlMapper implements Mapper, MappingCache {
 		List<Annotation> qualifiers =
 			Arrays.asList(method.getAnnotations()).stream()
 				.filter(a -> a.annotationType().getAnnotation(Qualifier.class) != null)
-				.collect(Collectors.toList());
+				.collect(toList());
 
 		// determine property/setter type
 		List<Type> parameterTypes = Arrays.asList(method.getGenericParameterTypes());
@@ -373,62 +382,64 @@ public class CarmlMapper implements Mapper, MappingCache {
 		}
 	}
 
-	private PropertyHandler getRdfResourceNameHandler(Method method, Class<?> c) {
-		RdfResourceName annotation = method.getAnnotation(RdfResourceName.class);
-		if (annotation == null) {
-			return null;
-		}
+	private Optional<PropertyHandler> getRdfResourceNameHandler(Method method, Class<?> c) {
+		return
+		Optional.ofNullable(method.getAnnotation(RdfResourceName.class))
+		.map(a -> {
 
-		String name = method.getName();
-		String property = PropertyUtils.getPropertyName(name);
+			String name = method.getName();
+			String property = getPropertyName(name);
 
-		String setterName = PropertyUtils.createSetterName(property);
-		Method setter = findSetter(c, setterName);
+			String setterName = createSetterName(property);
+			Method setter = findSetter(c, setterName)
+				.orElseThrow(() -> createCouldNotFindSetterException(c, setterName));
 
-		BiConsumer<Object, Object> set = getSetterInvocation(method, c, setter, setterName);
+			BiConsumer<Object, Object> set = getSetterInvoker(setter, createSetterInvocationErrorFactory(c, setter));
 
-		return new PropertyHandler() {
-
-			@Override
-			public void handle(Model model, Resource resource, Object instance) {
+			return (Model model, Resource resource, Object instance) -> {
 				set.accept(instance, resource.stringValue());
-			}
-
-		};
-
+			};
+		});
+	}
+	
+	private RuntimeException createCouldNotFindSetterException(Class<?> c, String setterName) {
+		return new RuntimeException("in class " + c.getCanonicalName() + ", could not find setter [" + setterName + "] with 1 parameter");
 	}
 
-	private BiConsumer<Object, Object> getSetterInvocation(Method method, Class<?> c, Method setter, String setterName) {
-
+	private Function<Exception, RuntimeException> createSetterInvocationErrorFactory(Class<?> c, Method setter) {
+		return e -> new RuntimeException("could not invoke setter [" + c.getSimpleName() + "." + setter.getName() + "]", e);
+	}
+	
+	private BiConsumer<Object, Object> getSetterInvoker(Method setter, Function<Exception, RuntimeException> invocationErrorFactory) {
+		Objects.requireNonNull(setter);
+		
 		// TODO if no setter, set the field directly? (configurable option) ugh
-		if (setter == null) {
-			throw new RuntimeException("could not find setter [" + setterName + "] with 1 parameter");
-		}
+		
 		return (i, v) -> {
 			try {
-//				System.out.println("invoking [" + c.getSimpleName() + "." + setter.getName() + "]");
 				setter.invoke(i, v);
 			}
 			catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-				throw new RuntimeException("could not invoke setter [" + c.getSimpleName() + "." + setter.getName() + "]", e);
+				throw invocationErrorFactory.apply(e);
 			}
 		};
 	}
 
-	private PropertyHandler getRdfPropertyHandler(Method method, Class<?> c) {
+	private Optional<PropertyHandler> getRdfPropertyHandler(Method method, Class<?> c) {
 
 		RdfProperty annotation = method.getAnnotation(RdfProperty.class);
 		if (annotation == null) {
-			return null;
+			return Optional.empty();
 		}
 
 		String name = method.getName();
-		String property = PropertyUtils.getPropertyName(name);
+		String property = getPropertyName(name);
 
-		String setterName = PropertyUtils.createSetterName(property);
-		Method setter = findSetter(c, setterName);
+		String setterName = createSetterName(property);
+		Method setter = findSetter(c, setterName)
+				.orElseThrow(() -> createCouldNotFindSetterException(c, setterName));
 
-		BiConsumer<Object, Object> set = getSetterInvocation(method, c, setter, setterName);
+		BiConsumer<Object, Object> set = getSetterInvoker(setter, createSetterInvocationErrorFactory(c, setter));
 
 		PropertyType propertyType = determinePropertyType(setter);
 		Class<?> elementType = propertyType.getElementType();
@@ -522,10 +533,10 @@ public class CarmlMapper implements Mapper, MappingCache {
 				}
 			);
 		if (handler.isPresent()) {
-			return handler.get();
+			return handler;
 		}
 
-		return new PropertyHandler() {
+		return Optional.of(new PropertyHandler() {
 
 			@Override
 			public void handle(Model model, Resource resource, Object instance) {
@@ -534,7 +545,7 @@ public class CarmlMapper implements Mapper, MappingCache {
 					model.filter(resource, predicate, null)
 						.objects()
 						.stream()
-						.collect(Collectors.toList());
+						.collect(toList());
 
 				// no values
 				if (values.isEmpty()) {
@@ -546,7 +557,7 @@ public class CarmlMapper implements Mapper, MappingCache {
 
 					List<Object> transformed = values.stream()
 						.map(v -> valueTransformer.transform(model, v))
-						.collect(Collectors.toList());
+						.collect(toList());
 
 					Collection<Object> result = createIterable.get();
 					transformed.forEach(result::add);
@@ -574,24 +585,8 @@ public class CarmlMapper implements Mapper, MappingCache {
 				// then, if multiple such values exist in the graph, the property should be a List<String>.
 
 			}
-		};
+		});
 	}
-
-	private static Method findSetter(Class<?> c, String setterName) {
-		List<Method> setters =
-			Arrays.asList(c.getMethods()).stream()
-				.filter(m -> m.getName().equals(setterName))
-				.filter(m -> m.getParameterCount() == 1)
-				.collect(Collectors.toList());
-		if (setters.isEmpty()) {
-			return null;
-		}
-		if (setters.size() > 1) {
-			throw new RuntimeException("multiple setters with name [" + setterName + "] and 1 parameter were found");
-		}
-		return setters.get(0);
-	}
-
 
 
 	// mapping cache
