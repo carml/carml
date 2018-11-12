@@ -6,7 +6,6 @@ import static com.taxonic.carml.rdf_mapper.impl.PropertyUtils.getPropertyName;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
@@ -21,12 +20,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
-
-import javax.inject.Inject;
-import javax.inject.Qualifier;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.rdf4j.model.IRI;
@@ -273,76 +268,6 @@ public class CarmlMapper implements Mapper, MappingCache {
 
 	}
 
-	private Optional<PropertyHandler> getSpecifiedPropertyHandler(
-		RdfProperty annotation,
-		DependencyResolver resolver
-	) {
-
-		if (annotation.handler().equals(PropertyHandler.class)) {
-			return Optional.empty();
-		}
-
-		Class<? extends PropertyHandler> handlerCls = annotation.handler();
-		PropertyHandler handler;
-		try {
-			handler = handlerCls.newInstance();
-		}
-		catch (InstantiationException | IllegalAccessException e) {
-			throw new RuntimeException("could not instantiate specified "
-				+ "PropertyHandler class [" + handlerCls.getCanonicalName() + "]");
-		}
-
-		// do dependency injection through setter methods annotated with @Inject
-		List<Consumer<Object>> setterInjectors =
-			Arrays.asList(handlerCls.getMethods()).stream()
-
-				// find methods annotated with @Inject
-				.filter(m -> m.getAnnotation(Inject.class) != null)
-				.<Consumer<Object>>map(m -> createInvocableSetter(m, resolver))
-			.collect(toList());
-
-		setterInjectors.forEach(i -> i.accept(handler));
-
-		return Optional.of(handler);
-	}
-
-	private Consumer<Object> createInvocableSetter(Method method, DependencyResolver resolver) {
-		// gather qualifiers on setter
-		List<Annotation> qualifiers =
-			Arrays.asList(method.getAnnotations()).stream()
-				.filter(a -> a.annotationType().getAnnotation(Qualifier.class) != null)
-				.collect(toList());
-
-		// determine property/setter type
-		List<Type> parameterTypes = Arrays.asList(method.getGenericParameterTypes());
-		if (parameterTypes.isEmpty() || parameterTypes.size() > 1) {
-			throw new RuntimeException("method [" + method.getName() + "], annotated "
-				+ "with @Inject does NOT take exactly 1 parameter; it takes " + parameterTypes.size());
-		}
-		Type propertyType = parameterTypes.get(0);
-
-		return instance -> setterInvocation(method, resolver, instance, propertyType, qualifiers);
-	}
-
-	private Object setterInvocation(
-		Method method,
-		DependencyResolver resolver,
-		Object instance,
-		Type propertyType,
-		List<Annotation> qualifiers
-	) {
-		Object propertyValue = resolver.resolve(propertyType, qualifiers);
-		try {
-			return method.invoke(instance, propertyValue);
-		}
-		catch (
-			IllegalAccessException |
-			IllegalArgumentException |
-			InvocationTargetException e
-		) {
-			throw new RuntimeException("error invoking setter [" + method.getName() + "]", e);
-		}
-	}
 
 	private Optional<PropertyHandler> getRdfResourceNameHandler(Method method, Class<?> c) {
 		return
@@ -445,11 +370,11 @@ public class CarmlMapper implements Mapper, MappingCache {
 		}
 		
 		// get handler from @RdfProperty.handler, if any
+		// TODO cache these per type/property
+		DefaultPropertyHandlerDependencyResolver dependencyResolver =
+			new DefaultPropertyHandlerDependencyResolver(set, predicate, CarmlMapper.this, CarmlMapper.this);
 		Optional<PropertyHandler> handler =
-			getSpecifiedPropertyHandler(
-				annotation,
-				new DefaultPropertyHandlerDependencyResolver(set, predicate, CarmlMapper.this, CarmlMapper.this)
-			);
+			new SpecifiedPropertyHandlerFactory().createPropertyHandler(annotation, dependencyResolver);
 		if (handler.isPresent()) {
 			return handler;
 		}
