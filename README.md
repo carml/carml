@@ -41,6 +41,8 @@ Releases
 
 03 Aug 2018 - CARML 0.2.1
 
+13 Nov 2018 - CARML 0.2.2
+
 Introduction
 ------------
 CARML is a java library that transforms structured sources to RDF based as declared in and [RML](http://rml.io) mapping, in accordance with the [RML spec](http://rml.io/spec.html). It is considered by many as the optimal choice for mapping structured sources to RDF.
@@ -57,24 +59,24 @@ CARML is available from the Central Maven Repository.
 <dependency>
     <groupId>com.taxonic.carml</groupId>
     <artifactId>carml-engine</artifactId>
-    <version>0.2.0</version>
+    <version>0.2.2</version>
 </dependency>
 
 <!-- Choose the resolvers to suit your need -->
 <dependency>
   <groupId>com.taxonic.carml</groupId>
   <artifactId>carml-logical-source-resolver-jsonpath</artifactId>
-  <version>0.2.0</version>
+  <version>0.2.2</version>
 </dependency>
 <dependency>
   <groupId>com.taxonic.carml</groupId>
   <artifactId>carml-logical-source-resolver-xpath</artifactId>
-  <version>0.2.0</version>
+  <version>0.2.2</version>
 </dependency>
 <dependency>
   <groupId>com.taxonic.carml</groupId>
   <artifactId>carml-logical-source-resolver-csv</artifactId>
-  <version>0.2.0</version>
+  <version>0.2.2</version>
 </dependency>
 
 ```
@@ -94,6 +96,14 @@ RmlMapper mapper =
     .setLogicalSourceResolver(Rdf.Ql.JsonPath, new JsonPathResolver())
     .setLogicalSourceResolver(Rdf.Ql.XPath, new XPathResolver())
     .setLogicalSourceResolver(Rdf.Ql.Csv, new CsvResolver())
+    // optional:
+      // specify IRI unicode normalization form (default = NFC)
+      // see http://www.unicode.org/unicode/reports/tr15/tr15-23.html
+    .iriUnicodeNormalization(Form.NFKC)
+      // set file directory for sources in mapping
+    .fileResolver("/some/dir/")
+      // set classpath basepath for sources in mapping
+    .classPathResolver("/some/path")
     .build();
 
 Model result = mapper.map(mapping);
@@ -124,7 +134,7 @@ So now, you can define streams in your mapping like so:
 ```
 In order to provide access to the input stream, it needs to be registered on the mapper.
 ```java
-RmlMapper mapper = 
+RmlMapper mapper =
   RmlMapper
   .newBuilder()
   .setLogicalSourceResolver(Rdf.Ql.JsonPath, new JsonPathResolver())

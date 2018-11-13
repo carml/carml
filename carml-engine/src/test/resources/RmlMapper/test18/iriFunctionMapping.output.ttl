@@ -1,0 +1,8 @@
+@prefix ex: <http://example.com/> .
+
+ex:simpleSubject
+  ex:someRelation
+    ex:葉篤正 ,
+    <http://example.com/Saint%20Martin%20(French%20part)> ,
+    <http://example.com/1,2> ;
+.

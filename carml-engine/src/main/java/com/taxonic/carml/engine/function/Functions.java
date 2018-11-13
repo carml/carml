@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Literal;
@@ -30,19 +31,21 @@ public class Functions {
 
 	private static final ValueFactory VF = SimpleValueFactory.getInstance();
 
-	private Map<IRI, ExecuteFunction> functions = new LinkedHashMap<>();
+	private Map<IRI, ExecuteFunction> fns = new LinkedHashMap<>();
 
 	public Optional<ExecuteFunction> getFunction(IRI iri) {
-		return Optional.ofNullable(functions.get(iri));
+		return Optional.ofNullable(fns.get(iri));
 	}
 
-	public void addFunctions(Object fn) {
-		Arrays.asList(fn.getClass().getMethods())
-			.stream()
-			.map(m -> createFunctionExecutor(fn, m))
-			.filter(Optional::isPresent)
-			.map(Optional::get)
-			.forEach(f -> functions.put(f.getIri(), f));
+	public void addFunctions(Object... functions) {
+		for (Object fn : functions) {
+			Arrays.asList(fn.getClass().getMethods())
+				.stream()
+				.map(m -> createFunctionExecutor(fn, m))
+				.filter(Optional::isPresent)
+				.map(Optional::get)
+				.forEach(f -> fns.put(f.getIri(), f));
+		}
 	}
 
 	private Optional<ExecuteFunction> createFunctionExecutor(Object obj, Method method) {
@@ -61,7 +64,7 @@ public class Functions {
 		return Optional.of(new ExecuteFunction() {
 
 			@Override
-			public Object execute(Model model, Resource subject) {
+			public Object execute(Model model, Resource subject, UnaryOperator<Object> returnValueAdapter) {
 
 				List<Object> arguments = parameterExtractors
 					.stream()
@@ -69,9 +72,9 @@ public class Functions {
 					.collect(Collectors.toList());
 
 				try {
-					// TODO return value adapter?
 					LOG.trace("Executing function {} with arguments {}", method.getName(), arguments);
-					return method.invoke(obj, arguments.toArray());
+					Object returnValue = method.invoke(obj, arguments.toArray());
+					return returnValueAdapter.apply(returnValue);
 				}
 				catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
 					throw new RuntimeException("error executing function", e);
@@ -208,7 +211,7 @@ public class Functions {
 	}
 
 	public int size() {
-		return functions.size();
+		return fns.size();
 	}
 
 	private void expectSingleValue(List<Value> values) {
