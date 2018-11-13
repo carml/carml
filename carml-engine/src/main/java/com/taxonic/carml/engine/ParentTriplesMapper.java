@@ -100,7 +100,7 @@ class ParentTriplesMapper<T> {
 		if (children instanceof Collection<?>) {
 			return ((Collection<?>) children).stream()
 					.filter(Objects::nonNull)
-					.map(o -> (String) o)
+					.map(String::valueOf)
 					.collect(ImmutableCollectors.toImmutableSet());
 		} else {
 			return ImmutableSet.of(String.valueOf(children));
