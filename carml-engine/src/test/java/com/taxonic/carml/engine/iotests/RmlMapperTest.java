@@ -143,6 +143,16 @@ public class RmlMapperTest extends MappingTest {
 	}
 
 	@Test
+	public void testIriFunctionMappingWithNulls() {
+		testMapping(
+			"RmlMapper",
+			"RmlMapper/test18/iriFunctionMappingWithNulls.rml.ttl",
+			"RmlMapper/test18/iriFunctionMappingWithNulls.output.ttl",
+			m -> m.addFunctions(new RmlFunctions())
+		);
+	}
+
+	@Test
 	public void testSeparateMapsMapping() {
 		testMapping("RmlMapper",
 				"RmlMapper/test10/separateMapsMapping.rml.ttl",

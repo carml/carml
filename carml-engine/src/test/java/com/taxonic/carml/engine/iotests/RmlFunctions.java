@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableList;
 import com.taxonic.carml.engine.function.FnoFunction;
 import com.taxonic.carml.engine.function.FnoParam;
 import java.util.List;
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 
@@ -101,6 +102,9 @@ public class RmlFunctions {
 		@FnoParam(Ex.baseIriParam) String baseIri,
 		@FnoParam(Ex.stringParam) String namePart
 	) {
+		if (StringUtils.isEmpty(namePart)) {
+			return null;
+		}
 		return SimpleValueFactory.getInstance().createIRI(baseIri + namePart);
 	}
 
