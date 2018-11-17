@@ -74,6 +74,11 @@ public class Functions {
 				try {
 					LOG.trace("Executing function {} with arguments {}", method.getName(), arguments);
 					Object returnValue = method.invoke(obj, arguments.toArray());
+
+					if (returnValue == null) {
+						return null;
+					}
+
 					return returnValueAdapter.apply(returnValue);
 				}
 				catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
