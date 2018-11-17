@@ -43,6 +43,8 @@ Releases
 
 13 Nov 2018 - CARML 0.2.2
 
+17 Nov 2018 - CARML 0.2.3
+
 Introduction
 ------------
 CARML is a java library that transforms structured sources to RDF based as declared in and [RML](http://rml.io) mapping, in accordance with the [RML spec](http://rml.io/spec.html). It is considered by many as the optimal choice for mapping structured sources to RDF.
@@ -59,24 +61,24 @@ CARML is available from the Central Maven Repository.
 <dependency>
     <groupId>com.taxonic.carml</groupId>
     <artifactId>carml-engine</artifactId>
-    <version>0.2.2</version>
+    <version>0.2.3</version>
 </dependency>
 
 <!-- Choose the resolvers to suit your need -->
 <dependency>
   <groupId>com.taxonic.carml</groupId>
   <artifactId>carml-logical-source-resolver-jsonpath</artifactId>
-  <version>0.2.2</version>
+  <version>0.2.3</version>
 </dependency>
 <dependency>
   <groupId>com.taxonic.carml</groupId>
   <artifactId>carml-logical-source-resolver-xpath</artifactId>
-  <version>0.2.2</version>
+  <version>0.2.3</version>
 </dependency>
 <dependency>
   <groupId>com.taxonic.carml</groupId>
   <artifactId>carml-logical-source-resolver-csv</artifactId>
-  <version>0.2.2</version>
+  <version>0.2.3</version>
 </dependency>
 
 ```
