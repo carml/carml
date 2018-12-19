@@ -1,8 +1,6 @@
 package com.taxonic.carml.rdf_mapper.impl;
 
 import java.lang.reflect.Type;
-import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -14,6 +12,7 @@ import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.vocabulary.XMLSchema;
 
+import com.google.common.collect.ImmutableMap;
 import com.taxonic.carml.rdf_mapper.Mapper;
 import com.taxonic.carml.rdf_mapper.TypeDecider;
 
@@ -36,32 +35,17 @@ public class ComplexValueTransformer implements ValueTransformer {
 		this.typeAdapter = typeAdapter;
 	}
 	
-	private static final Map<IRI, Function<Literal, Object>> literalGetters;
-	
-	static {
-		
-		// TODO umm, somewhat convoluted
-		class CreateLiteralGetters {
-			Map<IRI, Function<Literal, Object>> getters = new LinkedHashMap<>();
-			
-			void add(IRI type, Function<Literal, Object> getter) {
-				getters.put(type, getter);
-			}
-			
-			Map<IRI, Function<Literal, Object>> run() {
-				add(XMLSchema.BOOLEAN, Literal::booleanValue);
-				add(XMLSchema.STRING, Literal::getLabel);
-				add(XMLSchema.DECIMAL, Literal::decimalValue);
-				add(XMLSchema.FLOAT, Literal::floatValue);
-				add(XMLSchema.INT, Literal::intValue);
-				add(XMLSchema.INTEGER, Literal::integerValue); // BigInteger
-				add(XMLSchema.DOUBLE, Literal::doubleValue);
-				// TODO more types, most notably xsd:date and variations
-				return Collections.unmodifiableMap(getters);
-			}
-		}
-		literalGetters = new CreateLiteralGetters().run();
-	}
+	private static final Map<IRI, Function<Literal, Object>> literalGetters =
+		ImmutableMap.<IRI, Function<Literal, Object>>builder()
+			.put(XMLSchema.BOOLEAN, Literal::booleanValue)
+			.put(XMLSchema.STRING, Literal::getLabel)
+			.put(XMLSchema.DECIMAL, Literal::decimalValue)
+			.put(XMLSchema.FLOAT, Literal::floatValue)
+			.put(XMLSchema.INT, Literal::intValue)
+			.put(XMLSchema.INTEGER, Literal::integerValue) // BigInteger
+			.put(XMLSchema.DOUBLE, Literal::doubleValue)
+			// TODO more types, most notably xsd:date and variations
+			.build();
 
 	private Object transform(Literal literal) {
 		IRI type = literal.getDatatype();

@@ -1,48 +1,42 @@
 package com.taxonic.carml.rdf_mapper.impl;
 
-import static java.util.stream.Collectors.toList;
+import static java.util.Objects.requireNonNull;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
-import java.util.function.UnaryOperator;
 
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Value;
 
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+
 class IterablePropertyValueMapper implements PropertyValueMapper {
 
 	private ValueTransformer valueTransformer;
-	private Supplier<Collection<Object>> createIterable;
-	private UnaryOperator<Collection<Object>> immutableTransform;
+	private Supplier<ImmutableCollection.Builder<Object>> createCollectionBuilder;
 
 	public IterablePropertyValueMapper(
 		ValueTransformer valueTransformer,
-		Supplier<Collection<Object>> createIterable,
-		UnaryOperator<Collection<Object>> immutableTransform
+		Supplier<ImmutableCollection.Builder<Object>> createCollectionBuilder
 	) {
 		this.valueTransformer = valueTransformer;
-		this.createIterable = createIterable;
-		this.immutableTransform = immutableTransform;
+		this.createCollectionBuilder = createCollectionBuilder;
 	}
 
 	@Override
 	public Optional<Object> map(Model model, Object instance, List<Value> values) {
 		
-		List<Object> transformed = values.stream()
+		ImmutableCollection.Builder<Object> builder = createCollectionBuilder.get();
+		
+		values.stream()
 				.map(v -> valueTransformer.transform(model, v))
-				.collect(toList());
+				.forEach(builder::add);
 
-		Collection<Object> result = createIterable.get();
-		transformed.forEach(result::add);
-		Collection<Object> immutable = immutableTransform.apply(result);
-		return Optional.of(immutable);
+		return Optional.of(builder.build());
 		
 	}
 
@@ -50,36 +44,30 @@ class IterablePropertyValueMapper implements PropertyValueMapper {
 		ValueTransformer valueTransformer,
 		Class<?> iterableType
 	) {
-		Objects.requireNonNull(iterableType);
+		requireNonNull(iterableType);
 		
-		Supplier<Collection<Object>> createIterable = createCollectionFactory(iterableType);
-		UnaryOperator<Collection<Object>> immutableTransform = createImmutableTransform(iterableType);
+		Supplier<ImmutableCollection.Builder<Object>> createCollectionBuilder = createCollectionBuilderFactory(iterableType);
 
 		return
 		new IterablePropertyValueMapper(
 			valueTransformer,
-			createIterable,
-			immutableTransform
+			createCollectionBuilder
 		);
 	}
 	
-	private static Supplier<Collection<Object>> createCollectionFactory(Class<?> iterableType) {
+	private static Supplier<ImmutableCollection.Builder<Object>> createCollectionBuilderFactory(Class<?> iterableType) {
+		
 		// TODO Map<Class<?>, Supplier<Collection<Object>>>
+		
 		if (iterableType.equals(Set.class)) {
-			return LinkedHashSet::new;
-		} else if (iterableType.equals(List.class)) {
-			return LinkedList::new;
+			return () -> ImmutableSet.builder();
 		}
+		
+		else if (iterableType.equals(List.class)) {
+			return () -> ImmutableList.builder();
+		}
+		
 		throw new RuntimeException("don't know how to create a factory for collection type [" + iterableType.getCanonicalName() + "]");
 	}
 
-	private static UnaryOperator<Collection<Object>> createImmutableTransform(Class<?> iterableType) {
-		if (iterableType.equals(Set.class)) {
-			return x -> Collections.unmodifiableSet((Set<Object>) x);
-		} else if (iterableType.equals(List.class)) {
-			return x -> Collections.unmodifiableList((List<Object>) x);
-		}
-		throw new RuntimeException("don't know how to create a transform to make collections of type [" + iterableType.getCanonicalName() + "] immutable");
-	}
-	
 }

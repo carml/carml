@@ -1,11 +1,13 @@
 package com.taxonic.carml.rdf_mapper.impl;
 
+import static java.util.Arrays.stream;
+import static java.util.stream.Collectors.toList;
+
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 class PropertyUtils {
 
@@ -21,10 +23,10 @@ class PropertyUtils {
 	 */
 	public static Optional<Method> findSetter(Class<?> c, String setterName) {
 		List<Method> setters =
-			Arrays.asList(c.getMethods()).stream()
+			stream(c.getMethods())
 				.filter(m -> m.getName().equals(setterName))
 				.filter(m -> m.getParameterCount() == 1)
-				.collect(Collectors.toList());
+				.collect(toList());
 		if (setters.isEmpty()) {
 			return Optional.empty();
 		}

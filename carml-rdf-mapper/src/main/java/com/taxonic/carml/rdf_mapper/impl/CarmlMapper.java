@@ -3,15 +3,17 @@ package com.taxonic.carml.rdf_mapper.impl;
 import static com.taxonic.carml.rdf_mapper.impl.PropertyUtils.createSetterName;
 import static com.taxonic.carml.rdf_mapper.impl.PropertyUtils.findSetter;
 import static com.taxonic.carml.rdf_mapper.impl.PropertyUtils.getPropertyName;
+import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
+import static java.util.stream.Stream.concat;
+import static java.util.stream.Stream.empty;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -113,13 +115,13 @@ public class CarmlMapper implements Mapper, MappingCache {
 	}
 
 	private Stream<Method> gatherMethods(Class<?> clazz) {
-		return Stream.concat(
-				Arrays.asList(clazz.getDeclaredMethods()).stream(),
-				Stream.concat(
-						Arrays.asList(clazz.getInterfaces()).stream().flatMap(this::gatherMethods),
+		return concat(
+				stream(clazz.getDeclaredMethods()),
+				concat(
+						stream(clazz.getInterfaces()).flatMap(this::gatherMethods),
 						Optional.ofNullable(clazz.getSuperclass())
 							.map(this::gatherMethods)
-							.orElse(Stream.empty())
+							.orElse(empty())
 				)
 //				.filter(m -> Modifier.isPublic(m.getModifiers()))
 		);
@@ -139,11 +141,11 @@ public class CarmlMapper implements Mapper, MappingCache {
 		// build meta-model
 		// TODO cache
 		List<PropertyHandler> propertyHandlers =
-				Stream.concat(
-						Arrays.asList(c.getMethods()).stream()
+				concat(
+						stream(c.getMethods())
 						.map(m -> getRdfPropertyHandler(m, c))
 				,
-						Arrays.asList(c.getMethods()).stream()
+						stream(c.getMethods())
 						.map(m -> getRdfResourceNameHandler(m, c))
 				)
 				.filter(Optional::isPresent).map(Optional::get)
@@ -151,9 +153,16 @@ public class CarmlMapper implements Mapper, MappingCache {
 
 		Object instance;
 		try {
-			instance = c.newInstance();
+			instance = c.getConstructor().newInstance();
 		}
-		catch (InstantiationException | IllegalAccessException e) {
+		catch (
+				InstantiationException |
+				IllegalAccessException |
+				IllegalArgumentException |
+				InvocationTargetException |
+				NoSuchMethodException |
+				SecurityException e
+		) {
 			throw new RuntimeException("failed to instantiate [" + c.getCanonicalName() + "]", e);
 		}
 
@@ -231,9 +240,16 @@ public class CarmlMapper implements Mapper, MappingCache {
 		if (annotation != null) {
 			Class<?> deciderClass = annotation.value();
 			try {
-				return (TypeDecider) deciderClass.newInstance();
+				return (TypeDecider) deciderClass.getConstructor().newInstance();
 			}
-			catch (InstantiationException | IllegalAccessException e) {
+			catch (
+					InstantiationException |
+					IllegalAccessException |
+					IllegalArgumentException |
+					InvocationTargetException |
+					NoSuchMethodException |
+					SecurityException e
+			) {
 				throw new RuntimeException("failed to instantiate rdf type decider class " + deciderClass.getCanonicalName(), e);
 			}
 		}
@@ -374,7 +390,8 @@ public class CarmlMapper implements Mapper, MappingCache {
 		DefaultPropertyHandlerDependencyResolver dependencyResolver =
 			new DefaultPropertyHandlerDependencyResolver(set, predicate, CarmlMapper.this, CarmlMapper.this);
 		Optional<PropertyHandler> handler =
-			new SpecifiedPropertyHandlerFactory().createPropertyHandler(annotation, dependencyResolver);
+			new SpecifiedPropertyHandlerFactory(new DependencySettersCache())
+				.createPropertyHandler(annotation, dependencyResolver);
 		if (handler.isPresent()) {
 			return handler;
 		}

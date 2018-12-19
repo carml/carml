@@ -1,13 +1,13 @@
 package com.taxonic.carml.rdf_mapper.impl;
 
 import static java.util.Arrays.asList;
+import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toList;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -29,6 +29,12 @@ import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
  */
 public class SpecifiedPropertyHandlerFactory {
 
+	private DependencySettersCache cache;
+
+	public SpecifiedPropertyHandlerFactory(DependencySettersCache cache) {
+		this.cache = cache;
+	}
+	
 	public Optional<PropertyHandler> createPropertyHandler(
 		RdfProperty annotation,
 		DependencyResolver resolver
@@ -49,36 +55,57 @@ public class SpecifiedPropertyHandlerFactory {
 	
 	private <T extends PropertyHandler> T createInstance(Class<T> handlerCls) {
 		try {
-			return handlerCls.newInstance();
+			return handlerCls.getConstructor().newInstance();
 		}
-		catch (InstantiationException | IllegalAccessException e) {
+		catch (
+				InstantiationException |
+				IllegalAccessException |
+				IllegalArgumentException |
+				InvocationTargetException |
+				NoSuchMethodException |
+				SecurityException e
+		) {
 			throw new RuntimeException("could not instantiate specified "
-				+ "PropertyHandler class [" + handlerCls.getCanonicalName() + "]");
+				+ "PropertyHandler class [" + handlerCls.getCanonicalName() + "]", e);
 		}
 	}
 	
-	private void injectDependencies(Class<?> cls, DependencyResolver resolver, Object instance) {
+	private List<Consumer<Object>> createAndCacheDependencySetters(Class<?> cls, DependencyResolver resolver) {
+		List<Consumer<Object>> dependencySetters = createDependencySetters(cls, resolver);
+		cache.put(cls, dependencySetters);
+		return dependencySetters;
+	}
+	
+	private List<Consumer<Object>> createDependencySetters(Class<?> cls, DependencyResolver resolver) {
 
-		// do dependency injection through setter methods annotated with @Inject
-		Arrays.asList(cls.getMethods()).stream()
+		return
+		stream(cls.getMethods())
 
-			// find methods annotated with @Inject
-			.filter(m -> m.getAnnotation(Inject.class) != null)
-			
-			// for each such setter, create a consumer that will take a
-			// handler instance, and will resolve and set the correct
-			// dependency.
-			.map(m ->
-				createDependencySetter(
-					m,
-					resolver,
-					getPropertyType(m),
-					getPropertyQualifiers(m)
-				)
-			)
-			
-			.forEach(i -> i.accept(instance));
+		// find methods annotated with @Inject
+		.filter(m -> m.getAnnotation(Inject.class) != null)
 		
+		// for each such setter, create a consumer that will take a
+		// handler instance, and will resolve and set the correct
+		// dependency.
+		.map(m ->
+			createDependencySetter(
+				m,
+				resolver,
+				getPropertyType(m),
+				getPropertyQualifiers(m)
+			)
+		)
+		
+		.collect(toList());
+		
+	}
+	
+	// do dependency injection through setter methods annotated with @Inject
+	private void injectDependencies(Class<?> cls, DependencyResolver resolver, Object instance) {
+		cache
+			.get(cls)
+			.orElse(createAndCacheDependencySetters(cls, resolver))
+			.forEach(i -> i.accept(instance));
 	}
 
 	private Type getPropertyType(Method method) {
