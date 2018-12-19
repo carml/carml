@@ -15,7 +15,7 @@ import java.util.stream.IntStream;
  * - a digit, as per {@code Character::isDigit}
  * - a dash (-), dot (.), underscore (_) or tilde (~)
  * - part of any of the ranges of character codes specified when
- *   creating the {@code IriSafeMaker} through its constructor {@link #IriSafeMaker(List)}.
+ *   creating the {@code IriSafeMaker} through its constructor {@link #IriSafeMaker(List, Form)}.
  *   When creating an {@code IriSafeMaker} through {@link #create}, these ranges
  *   correspond to the {@code ucschar} production rule from RFC-3987, as
  *   specified by <a href="https://www.w3.org/TR/r2rml/#from-template">https://www.w3.org/TR/r2rml/#from-template</a>.
