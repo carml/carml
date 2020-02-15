@@ -1,29 +1,28 @@
 package com.taxonic.carml.rmltestcases;
 
-import java.net.URL;
+import org.eclipse.rdf4j.model.IRI;
 
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.rmltestcases.model.Distribution;
 
 public class RtcDistribution extends RtcResource implements Distribution {
 
-	private URL downloadUrl;
+	private IRI downloadUrl;
 
 	@RdfProperty("http://www.w3.org/ns/dcat#downloadUrl")
 	@Override
-	public URL getDownloadUrl() {
-		// TODO Auto-generated method stub
-		return null;
+	public IRI getDownloadUrl() {
+		return downloadUrl;
 	}
 
-	public void setDownloadUrl(URL downloadUrl) {
+	public void setDownloadUrl(IRI downloadUrl) {
 		this.downloadUrl = downloadUrl;
 	}
 
 	@Override
 	public String getRelativeFileLocation() {
-		String urlString = downloadUrl.toString();
-		return urlString.substring(urlString.lastIndexOf("/rml-test-cases/master/"));
+		String urlString = downloadUrl.stringValue();
+		return urlString.substring(urlString.lastIndexOf("test-cases/"));
 	}
 
 }

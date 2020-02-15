@@ -1,10 +1,10 @@
 package com.taxonic.carml.rmltestcases.model;
 
-import java.net.URL;
+import org.eclipse.rdf4j.model.IRI;
 
 public interface Distribution extends Resource {
 
-	URL getDownloadUrl();
+	IRI getDownloadUrl();
 
 	String getRelativeFileLocation();
 
