@@ -1,5 +1,14 @@
 package com.taxonic.carml.model.impl;
 
+import java.util.LinkedHashSet;
+import java.util.Objects;
+import java.util.Set;
+
+import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
+import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
+import org.eclipse.rdf4j.model.IRI;
+import org.eclipse.rdf4j.model.Value;
+
 import com.taxonic.carml.model.GraphMap;
 import com.taxonic.carml.model.SubjectMap;
 import com.taxonic.carml.model.TermType;
@@ -7,13 +16,6 @@ import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.rdf_mapper.annotations.RdfType;
 import com.taxonic.carml.vocab.Rr;
-import java.util.LinkedHashSet;
-import java.util.Objects;
-import java.util.Set;
-import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
-import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
-import org.eclipse.rdf4j.model.IRI;
-import org.eclipse.rdf4j.model.Value;
 
 public class CarmlSubjectMap extends CarmlTermMap implements SubjectMap {
 

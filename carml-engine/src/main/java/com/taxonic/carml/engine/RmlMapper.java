@@ -45,8 +45,6 @@ import org.slf4j.LoggerFactory;
 
 // TODO cache results of evaluated expressions when filling a single template, in case of repeated expressions
 
-// TODO rr:defaultGraph
-
 // TODO template strings should be validated during the validation step?
 
 /* TODO re-use the ***Mapper instances for equal corresponding ***Map instances.

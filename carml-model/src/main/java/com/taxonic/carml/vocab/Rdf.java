@@ -57,6 +57,7 @@ public class Rdf {
 			graph        = iri("graph"       ),
 			graphMap     = iri("graphMap"    ),
 			constant     = iri("constant"    ),
+			defaultGraph = iri("defaultGraph"),
 
 			parentTriplesMap = iri("parentTriplesMap"),
 			joinCondition    = iri("joinCondition"   ),
