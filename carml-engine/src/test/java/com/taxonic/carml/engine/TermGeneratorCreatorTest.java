@@ -1,8 +1,9 @@
 package com.taxonic.carml.engine;
 
-import com.taxonic.carml.engine.template.TemplateParser;
-import com.taxonic.carml.model.TermType;
-import com.taxonic.carml.model.impl.CarmlObjectMap;
+import static org.mockito.Mockito.when;
+
+import java.util.List;
+import java.util.Optional;
 
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Value;
@@ -11,10 +12,10 @@ import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
-import java.util.List;
-import java.util.Optional;
 
-import static org.mockito.Mockito.when;
+import com.taxonic.carml.engine.template.TemplateParser;
+import com.taxonic.carml.model.TermType;
+import com.taxonic.carml.model.impl.CarmlObjectMap;
 
 public class TermGeneratorCreatorTest {
 
@@ -103,7 +104,7 @@ public class TermGeneratorCreatorTest {
 		}
 
 		Assert.assertNotNull(exception);
-		Assert.assertTrue(exception.getMessage().startsWith("data error: could not generate a valid iri"));
+		Assert.assertTrue(exception.getMessage().startsWith("Could not generate a valid iri"));
 	}
 
 }
