@@ -1,5 +1,30 @@
 package com.taxonic.carml.engine;
 
+import java.text.Normalizer;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
+
+import org.eclipse.rdf4j.common.net.ParsedIRI;
+import org.eclipse.rdf4j.model.BNode;
+import org.eclipse.rdf4j.model.IRI;
+import org.eclipse.rdf4j.model.Literal;
+import org.eclipse.rdf4j.model.Model;
+import org.eclipse.rdf4j.model.Resource;
+import org.eclipse.rdf4j.model.Value;
+import org.eclipse.rdf4j.model.ValueFactory;
+import org.eclipse.rdf4j.model.impl.LinkedHashModel;
+import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
+import org.eclipse.rdf4j.model.util.Models;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.engine.function.ExecuteFunction;
@@ -14,30 +39,8 @@ import com.taxonic.carml.model.TermType;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.rdf_mapper.util.ImmutableCollectors;
 import com.taxonic.carml.util.IriSafeMaker;
+import com.taxonic.carml.util.LangTagUtil;
 import com.taxonic.carml.vocab.Rdf;
-import java.text.Normalizer;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
-import org.eclipse.rdf4j.common.net.ParsedIRI;
-import org.eclipse.rdf4j.model.BNode;
-import org.eclipse.rdf4j.model.IRI;
-import org.eclipse.rdf4j.model.Literal;
-import org.eclipse.rdf4j.model.Model;
-import org.eclipse.rdf4j.model.Resource;
-import org.eclipse.rdf4j.model.Value;
-import org.eclipse.rdf4j.model.ValueFactory;
-import org.eclipse.rdf4j.model.impl.LinkedHashModel;
-import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
-import org.eclipse.rdf4j.model.util.Models;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 class TermGeneratorCreator {
 
@@ -383,10 +386,14 @@ class TermGeneratorCreator {
 				// term map is assumed to be an object map if it has term type literal
 				ObjectMap objectMap = (ObjectMap) map;
 
-				String language = objectMap.getLanguage();
-				if (language != null) {
-					return createGenerator.apply(lexicalForm ->
-						f.createLiteral(lexicalForm, language));
+				String languageTag = objectMap.getLanguage();
+
+				if (languageTag != null) {
+					if (!LangTagUtil.isWellFormed(languageTag)) {
+						throw new RuntimeException(
+								String.format("Invalid lang tag '%s' used in object map %n%s", languageTag, objectMap));
+					}
+					return createGenerator.apply(lexicalForm -> f.createLiteral(lexicalForm, languageTag));
 				}
 
 				IRI datatype = objectMap.getDatatype();
