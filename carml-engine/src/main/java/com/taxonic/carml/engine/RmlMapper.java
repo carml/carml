@@ -66,6 +66,8 @@ public class RmlMapper {
 
 	Form normalizationForm;
 
+	boolean iriUpperCasePercentEncoding;
+
 	private TermGeneratorCreator termGenerators;
 
 	private Functions functions;
@@ -74,13 +76,15 @@ public class RmlMapper {
 		Function<Object, String> sourceResolver,
 		Map<IRI, LogicalSourceResolver<?>> logicalSourceResolvers,
 		Functions functions,
-		Form normalizationForm
+		Form normalizationForm,
+		boolean iriUpperCasePercentEncoding
 	) {
 		this.sourceManager = new LogicalSourceManager();
 		this.sourceResolver = sourceResolver;
 		this.functions = functions;
 		this.logicalSourceResolvers = logicalSourceResolvers;
 		this.normalizationForm = normalizationForm;
+		this.iriUpperCasePercentEncoding = iriUpperCasePercentEncoding;
 		this.termGenerators = TermGeneratorCreator.create(this);
 	}
 
@@ -94,6 +98,7 @@ public class RmlMapper {
 		private Set<SourceResolver> sourceResolvers = new HashSet<>();
 		private Map<IRI, LogicalSourceResolver<?>> logicalSourceResolvers = new HashMap<>();
 		private Form normalizationForm = Form.NFC;
+		private boolean iriUpperCasePercentEncoding = true;
 
 		public Builder addFunctions(Object... fn) {
 			functions.addFunctions(fn);
@@ -130,6 +135,18 @@ public class RmlMapper {
 			return this;
 		}
 
+		/**
+		 * Builder option for backwards compatibility. RmlMapper used to percent encode
+		 * IRIs with lower case hex numbers. Now, the default is upper case hex numbers.
+		 * 
+		 * @param iriUpperCasePercentEncoding true for upper case, false for lower case
+		 * @return {@link Builder}
+		 */
+		public Builder iriUpperCasePercentEncoding(boolean iriUpperCasePercentEncoding) {
+			this.iriUpperCasePercentEncoding = iriUpperCasePercentEncoding;
+			return this;
+		}
+
 		public RmlMapper build() {
 
 			CarmlStreamResolver carmlStreamResolver = new CarmlStreamResolver();
@@ -153,7 +170,8 @@ public class RmlMapper {
 					compositeResolver,
 					logicalSourceResolvers,
 					functions,
-					normalizationForm
+					normalizationForm,
+					iriUpperCasePercentEncoding
 				);
 
 			// Resolvers need a reference to the source manager, to manage
@@ -166,6 +184,10 @@ public class RmlMapper {
 
 	public Form getNormalizationForm() {
 		return normalizationForm;
+	}
+
+	public boolean getIriUpperCasePercentEncoding() {
+		return iriUpperCasePercentEncoding;
 	}
 
 	private static Optional<String> unpackFileSource(Object sourceObject) {

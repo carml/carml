@@ -53,7 +53,7 @@ class TermGeneratorCreator {
 		return new TermGeneratorCreator(
 			SimpleValueFactory.getInstance(),
 			"http://none.com/",
-			IriSafeMaker.create(mapper.getNormalizationForm()),
+			IriSafeMaker.create(mapper.getNormalizationForm(), mapper.getIriUpperCasePercentEncoding()),
 			TemplateParser.build(),
 			mapper
 		);

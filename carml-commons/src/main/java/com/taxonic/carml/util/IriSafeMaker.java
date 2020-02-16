@@ -15,15 +15,15 @@ import java.util.stream.IntStream;
  * - a digit, as per {@code Character::isDigit}
  * - a dash (-), dot (.), underscore (_) or tilde (~)
  * - part of any of the ranges of character codes specified when
- *   creating the {@code IriSafeMaker} through its constructor {@link #IriSafeMaker(List, Form)}.
+ *   creating the {@code IriSafeMaker} through its constructor {@link #IriSafeMaker(List, Form, boolean)}.
  *   When creating an {@code IriSafeMaker} through {@link #create}, these ranges
  *   correspond to the {@code ucschar} production rule from RFC-3987, as
  *   specified by <a href="https://www.w3.org/TR/r2rml/#from-template">https://www.w3.org/TR/r2rml/#from-template</a>.
  */
 public class IriSafeMaker implements Function<String, String> {
 
-	public static String makeSafe(String input, Form normalizationForm) {
-		return create(normalizationForm).apply(input);
+	public static String makeSafe(String input, Form normalizationForm, boolean upperCaseHex) {
+		return create(normalizationForm, upperCaseHex).apply(input);
 	}
 
 	static class Range {
@@ -40,7 +40,7 @@ public class IriSafeMaker implements Function<String, String> {
 		}
 	}
 
-	public static IriSafeMaker create(Form normalizationForm) {
+	public static IriSafeMaker create(Form normalizationForm, boolean upperCaseHex) {
 
 		/* percent-encode any char not in the 'iunreserved' production rule:
 		   iunreserved    = ALPHA / DIGIT / "-" / "." / "_" / "~" / ucschar
@@ -69,19 +69,21 @@ public class IriSafeMaker implements Function<String, String> {
 			})
 			.collect(Collectors.toList());
 
-		return new IriSafeMaker(ranges, normalizationForm);
+		return new IriSafeMaker(ranges, normalizationForm, upperCaseHex);
 	}
 
 	public static IriSafeMaker create() {
-		return create(Form.NFC);
+		return create(Form.NFC, true);
 	}
 
 	private List<Range> ranges;
 	private Form normalizationForm;
+	private boolean upperCaseHex;
 
-	public IriSafeMaker(List<Range> ranges, Form normalizationForm) {
+	public IriSafeMaker(List<Range> ranges, Form normalizationForm, boolean upperCaseHex) {
 		this.ranges = ranges;
 		this.normalizationForm = normalizationForm;
+		this.upperCaseHex = upperCaseHex;
 	}
 
 	@Override
@@ -102,8 +104,12 @@ public class IriSafeMaker implements Function<String, String> {
 			)
 				return IntStream.of(c);
 
+			String hex = Integer.toHexString(c);
+
+			hex = upperCaseHex ? hex.toUpperCase() : hex;
+
 			// percent-encode
-			return ("%" + Integer.toHexString(c)).codePoints();
+			return ("%" + hex).codePoints();
 		})
 		.forEach(c -> result.append((char) c));
 		return result.toString();
