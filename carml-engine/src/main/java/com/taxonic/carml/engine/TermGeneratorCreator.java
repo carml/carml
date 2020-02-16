@@ -1,5 +1,6 @@
 package com.taxonic.carml.engine;
 
+import java.net.URISyntaxException;
 import java.text.Normalizer;
 import java.util.Arrays;
 import java.util.Collection;
@@ -55,7 +56,7 @@ class TermGeneratorCreator {
 	static TermGeneratorCreator create(RmlMapper mapper) {
 		return new TermGeneratorCreator(
 			SimpleValueFactory.getInstance(),
-			"http://none.com/",
+			"http://example.com/base/",
 			IriSafeMaker.create(mapper.getNormalizationForm(), mapper.getIriUpperCasePercentEncoding()),
 			TemplateParser.build(),
 			mapper
@@ -413,11 +414,17 @@ class TermGeneratorCreator {
 	}
 
 	private boolean isValidIri(String str) {
-		return str.contains(":");
+		if (!str.contains(":")) {
+			return false;
+		}
+		try {
+			return new ParsedIRI(str).getScheme() != null;
+		} catch (URISyntaxException uriException) {
+			return false;
+		}
 	}
 
 	private IRI generateIriTerm(String lexicalForm) {
-
 		if (isValidIri(lexicalForm)) {
 			return f.createIRI(lexicalForm);
 		}
@@ -427,7 +434,9 @@ class TermGeneratorCreator {
 			return f.createIRI(iri);
 		}
 
-		throw new RuntimeException("data error: could not generate a valid iri from term lexical form [" + lexicalForm + "] as-is, or prefixed with base iri [" + baseIri + "]");
+		throw new RuntimeException(String.format(
+				"Could not generate a valid iri from term lexical form [%s] as-is, or prefixed with base iri [%s]",
+				lexicalForm, baseIri));
 
 	}
 

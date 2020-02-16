@@ -107,9 +107,13 @@ public class TestRmlTestCases {
 		InputStream mappingStream = getDatasetInputStream(testCase.getRules());
 		Set<TriplesMap> mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingStream);
 
-		return mapper.map(mapping) //
+		Model model = mapper.map(mapping) //
 				.stream() //
 				.collect(Collectors.toCollection(TreeModel::new));
+
+		model.forEach(System.out::println);
+		return model;
+
 	}
 	private static InputStream getDatasetInputStream(Dataset dataset) {
 		String relativeLocation = dataset.getDistribution().getRelativeFileLocation();
