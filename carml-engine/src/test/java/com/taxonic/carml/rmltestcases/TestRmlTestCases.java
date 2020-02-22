@@ -52,6 +52,27 @@ public class TestRmlTestCases {
 
 	private static final List<String> SUPPORTED_SOURCE_TYPES = ImmutableList.of("CSV", "JSON", "XML");
 
+	// Under discussion in https://github.com/RMLio/rml-test-cases/issues
+	private static final List<String> SKIP_TESTS = new ImmutableList.Builder<String>() //
+			.add("RMLTC0002c-JSON") //
+			.add("RMLTC0002c-XML") //
+			.add("RMLTC0007h-CSV") //
+			.add("RMLTC0007h-JSON") //
+			.add("RMLTC0007h-XML") //
+			.add("RMLTC0010a-JSON") //
+			.add("RMLTC0010b-JSON") //
+			.add("RMLTC0010c-JSON") //
+			.add("RMLTC0015b-CSV") //
+			.add("RMLTC0015b-JSON") //
+			.add("RMLTC0015b-XML") //
+			.add("RMLTC0019b-CSV") //
+			.add("RMLTC0019b-JSON") //
+			.add("RMLTC0019b-XML") //
+			.add("RMLTC0020b-CSV") //
+			.add("RMLTC0020b-JSON") //
+			.add("RMLTC0020b-XML") //
+			.build();
+
 	private RmlMapper mapper;
 
 	@Parameter
@@ -60,8 +81,10 @@ public class TestRmlTestCases {
 	@Parameters(name = "{0}")
 	public static Set<TestCase> populateTestCases() {
 		InputStream metadata = TestRmlTestCases.class.getResourceAsStream("test-cases/metadata.nt");
-		return ImmutableSet.copyOf(RdfObjectLoader.load(selectTestCases, RmlTestCase.class,
-				IoUtils.parse(metadata, RDFFormat.NTRIPLES)));
+		return RdfObjectLoader.load(selectTestCases, RmlTestCase.class, IoUtils.parse(metadata, RDFFormat.NTRIPLES)) //
+				.stream() //
+				.filter(TestRmlTestCases::shouldBeTested) //
+				.collect(ImmutableCollectors.toImmutableSet());
 	}
 
 	private static Function<Model, Set<Resource>> selectTestCases = //
@@ -74,6 +97,10 @@ public class TestRmlTestCases {
 	private static boolean isSupported(Resource resource) {
 		return SUPPORTED_SOURCE_TYPES.stream()//
 				.anyMatch(s -> resource.stringValue().endsWith(s));
+	}
+
+	private static boolean shouldBeTested(TestCase testCase) {
+		return !SKIP_TESTS.contains(testCase.getIdentifier());
 	}
 
 	@Before
