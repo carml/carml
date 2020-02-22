@@ -98,14 +98,20 @@ RmlMapper mapper =
     .setLogicalSourceResolver(Rdf.Ql.JsonPath, new JsonPathResolver())
     .setLogicalSourceResolver(Rdf.Ql.XPath, new XPathResolver())
     .setLogicalSourceResolver(Rdf.Ql.Csv, new CsvResolver())
-    // optional:
+
+    //-- optional: --
       // specify IRI unicode normalization form (default = NFC)
       // see http://www.unicode.org/unicode/reports/tr15/tr15-23.html
     .iriUnicodeNormalization(Form.NFKC)
       // set file directory for sources in mapping
     .fileResolver("/some/dir/")
       // set classpath basepath for sources in mapping
-    .classPathResolver("/some/path")
+    .classPathResolver("some/path")
+      // specify casing of hex numbers in IRI percent encoding (default = true)
+      // added for backwards compatibility with IRI encoding up until v0.2.3
+    .iriUpperCasePercentEncoding(false)
+    //---------------
+
     .build();
 
 Model result = mapper.map(mapping);
