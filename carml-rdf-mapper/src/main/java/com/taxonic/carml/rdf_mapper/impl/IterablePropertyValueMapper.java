@@ -60,11 +60,11 @@ class IterablePropertyValueMapper implements PropertyValueMapper {
 		// TODO Map<Class<?>, Supplier<Collection<Object>>>
 		
 		if (iterableType.equals(Set.class)) {
-			return () -> ImmutableSet.builder();
+			return ImmutableSet::builder;
 		}
 		
 		else if (iterableType.equals(List.class)) {
-			return () -> ImmutableList.builder();
+			return ImmutableList::builder;
 		}
 		
 		throw new RuntimeException("don't know how to create a factory for collection type [" + iterableType.getCanonicalName() + "]");
