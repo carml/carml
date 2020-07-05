@@ -1,42 +1,11 @@
 package com.taxonic.carml.rdf_mapper.impl;
 
-import static com.taxonic.carml.rdf_mapper.impl.PropertyUtils.createSetterName;
-import static com.taxonic.carml.rdf_mapper.impl.PropertyUtils.findSetter;
-import static com.taxonic.carml.rdf_mapper.impl.PropertyUtils.getPropertyName;
+import static com.taxonic.carml.rdf_mapper.impl.PropertyUtils.*;
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.Stream.concat;
 import static java.util.stream.Stream.empty;
-
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Proxy;
-import java.lang.reflect.Type;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import org.apache.commons.lang3.tuple.Pair;
-import org.eclipse.rdf4j.model.IRI;
-import org.eclipse.rdf4j.model.Literal;
-import org.eclipse.rdf4j.model.Model;
-import org.eclipse.rdf4j.model.Resource;
-import org.eclipse.rdf4j.model.Value;
-import org.eclipse.rdf4j.model.ValueFactory;
-import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -46,6 +15,18 @@ import com.taxonic.carml.rdf_mapper.TypeDecider;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.rdf_mapper.annotations.RdfResourceName;
 import com.taxonic.carml.rdf_mapper.annotations.RdfType;
+import java.lang.reflect.*;
+import java.util.*;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.apache.commons.lang3.tuple.Pair;
+import org.eclipse.rdf4j.model.*;
+import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CarmlMapper implements Mapper, MappingCache {
 
@@ -146,10 +127,11 @@ public class CarmlMapper implements Mapper, MappingCache {
 
 		// build meta-model
 		// TODO cache
+
 		List<PropertyHandler> propertyHandlers =
 				concat(
 						stream(c.getMethods())
-						.flatMap(m -> getRdfPropertyHandlers(m, c))
+						.flatMap(m -> getRdfPropertyHandlers(m, c, model, resource))
 				,
 						stream(c.getMethods())
 						.map(m -> getRdfResourceNameHandler(m, c))
@@ -305,8 +287,16 @@ public class CarmlMapper implements Mapper, MappingCache {
 
 			BiConsumer<Object, Object> set = getSetterInvoker(setter, createSetterInvocationErrorFactory(c, setter));
 
-			return (Model model, Resource resource, Object instance) -> {
-				set.accept(instance, resource.stringValue());
+			return new PropertyHandler() {
+				@Override
+				public void handle(Model model, Resource resource, Object instance) {
+					set.accept(instance, resource.stringValue());
+				}
+
+				@Override
+				public boolean hasEffect(Model model, Resource resource) {
+					return true;
+				}
 			};
 		});
 	}
@@ -334,18 +324,21 @@ public class CarmlMapper implements Mapper, MappingCache {
 		};
 	}
 
-	private Stream<Optional<PropertyHandler>> getRdfPropertyHandlers(Method method, Class<?> c) {
+	private Stream<Optional<PropertyHandler>> getRdfPropertyHandlers(Method method, Class<?> c, Model model, Resource resource) {
+
+		MethodPropertyHandlerRegistry.Builder regBuilder = MethodPropertyHandlerRegistry.builder();
+
+		regBuilder.method(method);
 		RdfProperty[] annotations = method.getAnnotationsByType(RdfProperty.class);
-		return Arrays.asList(annotations) //
+
+		Arrays.asList(annotations) //
 				.stream() //
-				.map(a -> getRdfPropertyHandler(a, method, c));
+				.forEach(a -> collectRdfPropertyHandler(a, method, c, regBuilder));
+
+		return regBuilder.isBuildable() ? regBuilder.build().getEffectiveHandlers(model, resource) : Stream.empty();
 	}
 
-	private Optional<PropertyHandler> getRdfPropertyHandler(RdfProperty annotation, Method method, Class<?> c) {
-		if (annotation == null) {
-			return Optional.empty();
-		}
-
+	private void collectRdfPropertyHandler(RdfProperty annotation, Method method, Class<?> c, MethodPropertyHandlerRegistry.Builder regBuilder) {
 		String name = method.getName();
 		String property = getPropertyName(name);
 
@@ -382,11 +375,13 @@ public class CarmlMapper implements Mapper, MappingCache {
 		IRI predicate = f.createIRI(annotation.value());
 
 		Class<?> iterableType = propertyType.getIterableType();
-		
+
 		PropertyValueMapper propertyValueMapper;
-		
+
+		Boolean iterableProperty = iterableType != null;
+		regBuilder.isIterable(iterableProperty);
 		// iterable property - set collection value
-		if (iterableType != null) {
+		if (iterableProperty) {
 			propertyValueMapper = IterablePropertyValueMapper
 					.createForIterableType(valueTransformer, iterableType);
 		}
@@ -402,12 +397,13 @@ public class CarmlMapper implements Mapper, MappingCache {
 			new DefaultPropertyHandlerDependencyResolver(set, predicate, CarmlMapper.this, CarmlMapper.this);
 		Optional<PropertyHandler> handler =
 			new SpecifiedPropertyHandlerFactory(new DependencySettersCache())
-				.createPropertyHandler(annotation, dependencyResolver);
+						.createPropertyHandler(annotation, dependencyResolver);
 		if (handler.isPresent()) {
-			return handler;
+			regBuilder.addHandler(handler.get());
+			return;
 		}
 
-		return Optional.of(new PropertyHandler() {
+		regBuilder.addHandler(new PropertyHandler() {
 
 			@Override
 			public void handle(Model model, Resource resource, Object instance) {
@@ -436,6 +432,11 @@ public class CarmlMapper implements Mapper, MappingCache {
 				}
 				// no values
 				// TODO error if property has @RdfRequired?
+			}
+
+			@Override
+			public boolean hasEffect(Model model, Resource resource) {
+				return model.filter(resource, predicate, null).size() > 0;
 			}
 		});
 	}
