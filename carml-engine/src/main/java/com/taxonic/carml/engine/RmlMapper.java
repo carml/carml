@@ -413,7 +413,7 @@ public class RmlMapper {
 		Set<BaseObjectMap> objectMaps
 	) {
 		return objectMaps.stream()
-				.filter(o -> o instanceof ObjectMap)
+			.filter(o -> o instanceof ObjectMap)
 			.peek(o -> LOG.debug("Creating term generator for ObjectMap {}", o.getResourceName()))
 			.map(o -> termGenerators.getObjectGenerator((ObjectMap) o));
 	}
@@ -490,7 +490,7 @@ public class RmlMapper {
 
 		Set<RefObjectMapper> refObjectMappers =
 			objectMaps.stream()
-						.filter(o -> o instanceof RefObjectMap)
+				.filter(o -> o instanceof RefObjectMap)
 				.map(o -> (RefObjectMap) o)
 				.filter(o -> !o.getJoinConditions().isEmpty())
 				.map(this::createRefObjectMapper)
