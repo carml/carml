@@ -73,10 +73,10 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.8</maven.compiler.target>
-		<rdf4j.version>3.0.0</rdf4j.version>
+		<rdf4j.version>3.2.3</rdf4j.version>
 		<commons-lang3.version>3.9</commons-lang3.version>
 		<commons-io.version>2.6</commons-io.version>
-		<slf4j.version>1.7.28</slf4j.version>
+		<slf4j.version>1.7.30</slf4j.version>
 		<guava.version>28.1-jre</guava.version>
 		<mockito.version>3.0.0</mockito.version>
 		<junit.version>4.13</junit.version>

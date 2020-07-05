@@ -1,38 +1,11 @@
 package com.taxonic.carml.rdf_mapper.impl;
 
-import static com.taxonic.carml.rdf_mapper.impl.PropertyUtils.createSetterName;
-import static com.taxonic.carml.rdf_mapper.impl.PropertyUtils.findSetter;
-import static com.taxonic.carml.rdf_mapper.impl.PropertyUtils.getPropertyName;
+import static com.taxonic.carml.rdf_mapper.impl.PropertyUtils.*;
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.Stream.concat;
 import static java.util.stream.Stream.empty;
-
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Proxy;
-import java.lang.reflect.Type;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.stream.Stream;
-
-import org.apache.commons.lang3.tuple.Pair;
-import org.eclipse.rdf4j.model.IRI;
-import org.eclipse.rdf4j.model.Literal;
-import org.eclipse.rdf4j.model.Model;
-import org.eclipse.rdf4j.model.Resource;
-import org.eclipse.rdf4j.model.Value;
-import org.eclipse.rdf4j.model.ValueFactory;
-import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -42,8 +15,22 @@ import com.taxonic.carml.rdf_mapper.TypeDecider;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.rdf_mapper.annotations.RdfResourceName;
 import com.taxonic.carml.rdf_mapper.annotations.RdfType;
+import java.lang.reflect.*;
+import java.util.*;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.apache.commons.lang3.tuple.Pair;
+import org.eclipse.rdf4j.model.*;
+import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CarmlMapper implements Mapper, MappingCache {
+
+	private static final Logger LOG = LoggerFactory.getLogger(CarmlMapper.class);
 
 	// type is the exact type of instance we need; eg. NOT a supertype.
 	// so no unbound type parameters. no interface, unless a list or so.
@@ -140,10 +127,11 @@ public class CarmlMapper implements Mapper, MappingCache {
 
 		// build meta-model
 		// TODO cache
+
 		List<PropertyHandler> propertyHandlers =
 				concat(
 						stream(c.getMethods())
-						.map(m -> getRdfPropertyHandler(m, c))
+						.flatMap(m -> getRdfPropertyHandlers(m, c, model, resource))
 				,
 						stream(c.getMethods())
 						.map(m -> getRdfResourceNameHandler(m, c))
@@ -299,8 +287,16 @@ public class CarmlMapper implements Mapper, MappingCache {
 
 			BiConsumer<Object, Object> set = getSetterInvoker(setter, createSetterInvocationErrorFactory(c, setter));
 
-			return (Model model, Resource resource, Object instance) -> {
-				set.accept(instance, resource.stringValue());
+			return new PropertyHandler() {
+				@Override
+				public void handle(Model model, Resource resource, Object instance) {
+					set.accept(instance, resource.stringValue());
+				}
+
+				@Override
+				public boolean hasEffect(Model model, Resource resource) {
+					return true;
+				}
 			};
 		});
 	}
@@ -328,13 +324,21 @@ public class CarmlMapper implements Mapper, MappingCache {
 		};
 	}
 
-	private Optional<PropertyHandler> getRdfPropertyHandler(Method method, Class<?> c) {
+	private Stream<Optional<PropertyHandler>> getRdfPropertyHandlers(Method method, Class<?> c, Model model, Resource resource) {
 
-		RdfProperty annotation = method.getAnnotation(RdfProperty.class);
-		if (annotation == null) {
-			return Optional.empty();
-		}
+		MethodPropertyHandlerRegistry.Builder regBuilder = MethodPropertyHandlerRegistry.builder();
 
+		regBuilder.method(method);
+		RdfProperty[] annotations = method.getAnnotationsByType(RdfProperty.class);
+
+		Arrays.asList(annotations) //
+				.stream() //
+				.forEach(a -> collectRdfPropertyHandler(a, method, c, regBuilder));
+
+		return regBuilder.isBuildable() ? regBuilder.build().getEffectiveHandlers(model, resource) : Stream.empty();
+	}
+
+	private void collectRdfPropertyHandler(RdfProperty annotation, Method method, Class<?> c, MethodPropertyHandlerRegistry.Builder regBuilder) {
 		String name = method.getName();
 		String property = getPropertyName(name);
 
@@ -371,11 +375,13 @@ public class CarmlMapper implements Mapper, MappingCache {
 		IRI predicate = f.createIRI(annotation.value());
 
 		Class<?> iterableType = propertyType.getIterableType();
-		
+
 		PropertyValueMapper propertyValueMapper;
-		
+
+		Boolean iterableProperty = iterableType != null;
+		regBuilder.isIterable(iterableProperty);
 		// iterable property - set collection value
-		if (iterableType != null) {
+		if (iterableProperty) {
 			propertyValueMapper = IterablePropertyValueMapper
 					.createForIterableType(valueTransformer, iterableType);
 		}
@@ -391,37 +397,56 @@ public class CarmlMapper implements Mapper, MappingCache {
 			new DefaultPropertyHandlerDependencyResolver(set, predicate, CarmlMapper.this, CarmlMapper.this);
 		Optional<PropertyHandler> handler =
 			new SpecifiedPropertyHandlerFactory(new DependencySettersCache())
-				.createPropertyHandler(annotation, dependencyResolver);
+						.createPropertyHandler(annotation, dependencyResolver);
 		if (handler.isPresent()) {
-			return handler;
+			regBuilder.addHandler(handler.get());
+			return;
 		}
 
-		return Optional.of(new PropertyHandler() {
+		regBuilder.addHandler(new PropertyHandler() {
 
 			@Override
 			public void handle(Model model, Resource resource, Object instance) {
-
 				List<Value> values =
 					model.filter(resource, predicate, null)
 						.objects()
 						.stream()
 						.collect(toList());
 
-				// no values
-				if (values.isEmpty()) {
-					// TODO error if property has @RdfRequired?
+				if (!values.isEmpty() || propertyValueMapper instanceof IterablePropertyValueMapper) {
+
+					if (!values.isEmpty() && annotation.deprecated()) {
+						LOG.warn(
+								"Usage of deprecated predicate {} encountered. Support in next release is not guaranteed. Upgrade to {}.",
+								annotation.value(), getActiveAnnotations(annotation, method));
+					}
+
+					// map data from rdf model to a value for this property,
+					// such as a list of complex objects, or a simple string.
+					propertyValueMapper.map(model, instance, values).ifPresent(v -> set.accept(instance, v));
+
+					// TODO what about languages? @RdfLanguage("nl") to select only 1 language (or
+					// multiple?)
+					// then, if multiple such values exist in the graph, the property should be a
+					// List<String>.
 				}
+				// no values
+				// TODO error if property has @RdfRequired?
+			}
 
-				// map data from rdf model to a value for this property,
-				// such as a list of complex objects, or a simple string.
-				propertyValueMapper.map(model, instance, values)
-					.ifPresent(v -> set.accept(instance, v));
-
-				// TODO what about languages? @RdfLanguage("nl") to select only 1 language (or multiple?)
-				// then, if multiple such values exist in the graph, the property should be a List<String>.
-
+			@Override
+			public boolean hasEffect(Model model, Resource resource) {
+				return model.filter(resource, predicate, null).size() > 0;
 			}
 		});
+	}
+
+	private static String getActiveAnnotations(RdfProperty annotation, Method method) {
+		return Arrays.asList(method.getAnnotationsByType(RdfProperty.class)) //
+				.stream()//
+				.filter(a -> !a.equals(annotation) && !a.deprecated()) //
+				.map(RdfProperty::value) //
+				.collect(Collectors.joining(", or "));
 	}
 
 

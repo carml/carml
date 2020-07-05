@@ -5,6 +5,7 @@ import com.taxonic.carml.model.TermType;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.rdf_mapper.annotations.RdfType;
+import com.taxonic.carml.vocab.Carml;
 import com.taxonic.carml.vocab.Fnml;
 import com.taxonic.carml.vocab.Rml;
 import com.taxonic.carml.vocab.Rr;
@@ -39,6 +40,7 @@ abstract public class CarmlTermMap extends CarmlResource implements TermMap {
 	}
 
 	@RdfProperty(Rml.reference)
+	@RdfProperty(value = Carml.multiReference, deprecated = true)
 	@Override
 	public String getReference() {
 		return reference;
@@ -51,6 +53,7 @@ abstract public class CarmlTermMap extends CarmlResource implements TermMap {
 	}
 
 	@RdfProperty(Rr.template)
+	@RdfProperty(value = Carml.multiTemplate, deprecated = true)
 	@Override
 	public String getTemplate() {
 		return template;
@@ -70,6 +73,7 @@ abstract public class CarmlTermMap extends CarmlResource implements TermMap {
 	}
 
 	@RdfProperty(Fnml.functionValue)
+	@RdfProperty(value = Carml.multiFunctionValue, deprecated = true)
 	@RdfType(CarmlTriplesMap.class)
 	@Override
 	public TriplesMap getFunctionValue() {

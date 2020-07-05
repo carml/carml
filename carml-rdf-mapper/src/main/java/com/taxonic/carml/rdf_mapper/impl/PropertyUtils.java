@@ -7,9 +7,12 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 class PropertyUtils {
+
+	private PropertyUtils() {
+	}
 
 	/**
 	 * Finds the {@code Method} representing the setter specified by {@code setterName}.
@@ -51,7 +54,7 @@ class PropertyUtils {
 	private static String getGetterOrSetterPrefix(String name) {
 		return
 		Arrays.asList("set", "get", "is").stream()
-			.filter(p -> name.startsWith(p))
+				.filter(name::startsWith)
 			.filter(p -> startsWithUppercase(name.substring(p.length())))
 			.findFirst().orElse(null);
 	}
@@ -70,7 +73,7 @@ class PropertyUtils {
 		return transformFirst(str, String::toUpperCase);
 	}
 	
-	private static String transformFirst(String str, Function<String, String> f) {
+	private static String transformFirst(String str, UnaryOperator<String> f) {
 		if (str.isEmpty()) return str;
 		String first = str.substring(0, 1);
 		return f.apply(first) + str.substring(1);

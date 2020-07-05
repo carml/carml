@@ -79,12 +79,14 @@ carml:namespaceName a owl:DatatypeProperty ;
 .
 
 carml:MultiTermMap a owl:Class ;
+	owl:deprecated true ;
 	rdfs:label "MultiTermMap"@en ;
 	rdfs:isDefinedBy carml: ;
 	rdfs:comment "A function that generates a collection of RDF terms from a logical source"@en ;
 .
 
 carml:MultiObjectMap a owl:Class ;
+	owl:deprecated true ;
 	rdfs:label "MultiObjectMap"@en ;
 	rdfs:subClassOf carml:MultiTermMap ;
 	rdfs:isDefinedBy carml: ;
@@ -92,6 +94,7 @@ carml:MultiObjectMap a owl:Class ;
 .
 
 carml:multiReference a owl:DatatypeProperty ;
+	owl:deprecated true ;
 	rdfs:label "multiReference"@en ;
 	# NOTE: currently only supported on a carml:MultiObjectMap .
 	rdfs:domain carml:MultiTermMap ;
@@ -101,6 +104,7 @@ carml:multiReference a owl:DatatypeProperty ;
 .
 
 carml:multiTemplate a owl:DatatypeProperty ;
+	owl:deprecated true ;
 	rdfs:label "multiTemplate"@en ;
 	# NOTE: currently only supported on a carml:MultiObjectMap .
 	rdfs:domain carml:MultiTermMap ;
@@ -110,6 +114,7 @@ carml:multiTemplate a owl:DatatypeProperty ;
 .
 
 carml:multiFunctionValue a owl:ObjectProperty ;
+	owl:deprecated true ;
 	rdfs:label "multiFunctionValue"@en ;
 	# NOTE: currently only supported on a carml:MultiObjectMap .
 	rdfs:domain carml:MultiTermMap ;
@@ -119,6 +124,7 @@ carml:multiFunctionValue a owl:ObjectProperty ;
 .
 
 carml:multiJoinCondition a owl:ObjectProperty ;
+	owl:deprecated true ;
 	rdfs:label "multiJoinCondition"@en ;
 	# NOTE: currently only supported on a carml:MultiObjectMap .
 	rdfs:domain carml:MultiTermMap ;
@@ -128,6 +134,7 @@ carml:multiJoinCondition a owl:ObjectProperty ;
 .
 
 carml:MultiJoin a owl:Class ;
+	owl:deprecated true ;
 	rdfs:label "MultiJoin"@en ;
 	rdfs:subClassOf rr:Join ;
 	rdfs:isDefinedBy carml: ;

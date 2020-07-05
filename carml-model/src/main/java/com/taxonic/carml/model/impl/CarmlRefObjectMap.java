@@ -5,6 +5,7 @@ import com.taxonic.carml.model.RefObjectMap;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.rdf_mapper.annotations.RdfType;
+import com.taxonic.carml.vocab.Carml;
 import com.taxonic.carml.vocab.Rr;
 import java.util.LinkedHashSet;
 import java.util.Objects;
@@ -35,6 +36,7 @@ public class CarmlRefObjectMap extends CarmlResource implements RefObjectMap {
 	}
 
 	@RdfProperty(Rr.joinCondition)
+	@RdfProperty(value = Carml.multiJoinCondition, deprecated = true)
 	@RdfType(CarmlJoin.class)
 	@Override
 	public Set<Join> getJoinConditions() {
@@ -53,8 +55,6 @@ public class CarmlRefObjectMap extends CarmlResource implements RefObjectMap {
 	public String toString() {
 		return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
 	}
-
-
 
 	@Override
 	public int hashCode() {
