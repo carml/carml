@@ -36,6 +36,11 @@
 			<artifactId>carml-rdf-mapper</artifactId>
 		</dependency>
 
+		<dependency>
+			<groupId>org.eclipse.rdf4j</groupId>
+			<artifactId>rdf4j-rio-turtle</artifactId>
+		</dependency>
+
 	</dependencies>
 
 </project>
