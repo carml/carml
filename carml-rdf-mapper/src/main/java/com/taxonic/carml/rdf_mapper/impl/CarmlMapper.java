@@ -9,9 +9,11 @@ import static java.util.stream.Stream.empty;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.taxonic.carml.rdf_mapper.Combiner;
 import com.taxonic.carml.rdf_mapper.Mapper;
 import com.taxonic.carml.rdf_mapper.PropertyHandler;
 import com.taxonic.carml.rdf_mapper.TypeDecider;
+import com.taxonic.carml.rdf_mapper.annotations.MultiDelegateCall;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.rdf_mapper.annotations.RdfResourceName;
 import com.taxonic.carml.rdf_mapper.annotations.RdfType;
@@ -58,8 +60,8 @@ public class CarmlMapper implements Mapper, MappingCache {
 
 		Map<Type, Object> implementationsToDelegates = implementations.stream()
 				.collect(toMap(
-					t -> t,
-					t-> doSingleTypeConcreteClassMapping(model, resource, t)));
+						t -> t,
+						t-> doSingleTypeConcreteClassMapping(model, resource, t)));
 
 		Map<Type, List<Method>> implementationMethods =
 				implementations.stream().collect(toMap(
@@ -73,33 +75,80 @@ public class CarmlMapper implements Mapper, MappingCache {
 		return (T) Proxy.newProxyInstance(CarmlMapper.class.getClassLoader(), types.stream().toArray(Class<?>[]::new),
 				(proxy, method, args) -> {
 
-					Optional<Object> delegate = implementations.stream()
+					MultiDelegateCall multiDelegateCall = method.getAnnotation(MultiDelegateCall.class);
+
+					List<Object> delegates = implementations.stream()
 							.filter(t -> implementationHasMethod.apply(t, method))
 							.map(implementationsToDelegates::get) // TODO can this ever be null? this case is not checked below
-							.findFirst();
+							.collect(toList());
 
-					if (!delegate.isPresent()) {
+					if (delegates.isEmpty()) {
 						throw new RuntimeException(String.format("no implementation present with specified method [%s]", method));
 					}
 
-					return
-					delegate.map(d -> {
- 						try {
-							return method.invoke(d, args);
-						} catch (IllegalAccessException | IllegalArgumentException
-								| InvocationTargetException e) {
-							throw new RuntimeException(
-									String.format(
-											"error trying to invoke method [%s] on delegate [%s]",
-												method, d), e);
-						}
-					})
-					// since we know 'delegate' is present, the case
-					// here means the invoked method returned null. so we
-					// return null.
-					.orElse(null);
+					if (multiDelegateCall != null) {
+						return multiDelegateMethodInvocation(delegates, method, multiDelegateCall, args);
+					} else {
+						return delegates.stream()
+								.findFirst()
+								.map(d -> singleDelegateMethodInvocation(d, method, args))
+								// since we know 'delegate' is present, the case
+								// here means the invoked method returned null. so we
+								// return null.
+								.orElse(null);
+					}
 				});
 	}
+
+	private <T> Object multiDelegateMethodInvocation(List<Object> delegates, Method method, MultiDelegateCall multiDelegateCall, Object... args) {
+		Type returnType = method.getReturnType();
+		return getCombinerFromMultiDelegateCall(multiDelegateCall)
+				.map(combiner -> combiner.combine(delegates
+								.stream()
+								.map(d -> singleDelegateMethodInvocation(d, method, args))
+								.collect(toList()))
+				)
+				.orElseGet(() -> {
+					if (!returnType.equals(Void.TYPE)) {
+						throw new IllegalStateException(
+								String.format("No combiner specified for non-void multi delegate method %S", method));
+					}
+					return null;
+				});
+	}
+
+	private Optional<Combiner> getCombinerFromMultiDelegateCall(MultiDelegateCall multiDelegateCall) {
+		Class<?> combinerClass = multiDelegateCall.value();
+		if (combinerClass != null && combinerClass != MultiDelegateCall.DEFAULT.class) {
+			try {
+				return Optional.of((Combiner) combinerClass.getConstructor().newInstance());
+			} catch (
+					InstantiationException |
+							IllegalAccessException |
+							IllegalArgumentException |
+							InvocationTargetException |
+							NoSuchMethodException |
+							SecurityException e
+			) {
+				throw new RuntimeException("failed to instantiate multi delegate call combiner class " + combinerClass.getCanonicalName(), e);
+			}
+		}
+		return Optional.empty();
+	}
+
+	private Object singleDelegateMethodInvocation(Object delegate, Method method, Object... args) {
+		try {
+		  return method.invoke(delegate, args);
+		} catch (IllegalAccessException | IllegalArgumentException
+				| InvocationTargetException e) {
+			throw new RuntimeException(
+					String.format(
+							"error trying to invoke method [%s] on delegate [%s]",
+							method, delegate), e);
+		}
+	}
+
+
 
 	private Stream<Method> gatherMethods(Class<?> clazz) {
 		return concat(

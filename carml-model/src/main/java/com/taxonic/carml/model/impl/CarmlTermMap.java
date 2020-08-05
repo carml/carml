@@ -1,16 +1,17 @@
 package com.taxonic.carml.model.impl;
 
+import com.google.common.collect.ImmutableSet;
+import com.taxonic.carml.model.Resource;
 import com.taxonic.carml.model.TermMap;
 import com.taxonic.carml.model.TermType;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.rdf_mapper.annotations.RdfType;
-import com.taxonic.carml.vocab.Carml;
-import com.taxonic.carml.vocab.Fnml;
-import com.taxonic.carml.vocab.Rml;
-import com.taxonic.carml.vocab.Rr;
+import com.taxonic.carml.vocab.*;
 import java.util.Objects;
+import java.util.Set;
 import org.eclipse.rdf4j.model.Value;
+import org.eclipse.rdf4j.model.util.ModelBuilder;
 
 abstract public class CarmlTermMap extends CarmlResource implements TermMap {
 
@@ -127,6 +128,47 @@ abstract public class CarmlTermMap extends CarmlResource implements TermMap {
 				Objects.equals(termType, other.termType) &&
 				Objects.equals(constant, other.constant) &&
 				Objects.equals(functionValue, other.functionValue);
+	}
+
+	Set<Resource> getReferencedResourcesBase() {
+		return functionValue != null ? ImmutableSet.of(functionValue) : ImmutableSet.of();
+	}
+
+	void addTriplesBase(ModelBuilder builder) {
+		if (reference != null) {
+			builder.add(Rml.reference, reference);
+		}
+		if (inverseExpression != null) {
+			builder.add(Rr.inverseExpression, inverseExpression);
+		}
+		if (template != null) {
+			builder.add(Rr.template, template);
+		}
+		if (termType != null) {
+			addTermTypeTriple(builder);
+		}
+		if (constant != null) {
+			builder.add(Rr.constant, constant);
+		}
+		if (functionValue != null) {
+			builder.add(Fnml.functionValue, functionValue.getAsResource());
+		}
+	}
+
+	private void addTermTypeTriple(ModelBuilder builder) {
+		switch (termType) {
+			case IRI:
+				builder.add(Rr.termType, Rdf.Rr.IRI);
+				break;
+			case LITERAL:
+				builder.add(Rr.termType, Rdf.Rr.Literal);
+				break;
+			case BLANK_NODE:
+				builder.add(Rr.termType, Rdf.Rr.BlankNode);
+				break;
+			default:
+				throw new IllegalStateException(String.format("Illegal term type value '%s' encountered.", termType));
+		}
 	}
 
 	public static class Builder {
