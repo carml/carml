@@ -5,7 +5,6 @@ import static org.hamcrest.core.Is.is;
 
 import com.taxonic.carml.model.Resource;
 import com.taxonic.carml.model.TriplesMap;
-import com.taxonic.carml.util.ModelSerializer;
 import com.taxonic.carml.util.RmlMappingLoader;
 import java.io.InputStream;
 import java.util.Set;
@@ -34,8 +33,6 @@ public class TriplesMapRdfSerializeTest {
                 .map(Resource::asRdf)
                 .flatMap(Model::stream)
                 .collect(Collectors.toCollection(LinkedHashModel::new));
-
-        System.out.println(ModelSerializer.serializeAsRdf(model, RDFFormat.TURTLE, ModelSerializer::applyRmlNameSpaces));
 
         Set<TriplesMap> mappingReloaded = mappingLoader.load(model);
 
