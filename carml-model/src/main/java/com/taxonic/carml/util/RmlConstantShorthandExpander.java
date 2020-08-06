@@ -1,31 +1,17 @@
 package com.taxonic.carml.util;
 
-import static com.taxonic.carml.vocab.Rdf.Rr.constant;
-import static com.taxonic.carml.vocab.Rdf.Rr.graph;
-import static com.taxonic.carml.vocab.Rdf.Rr.graphMap;
-import static com.taxonic.carml.vocab.Rdf.Rr.object;
-import static com.taxonic.carml.vocab.Rdf.Rr.objectMap;
-import static com.taxonic.carml.vocab.Rdf.Rr.predicate;
-import static com.taxonic.carml.vocab.Rdf.Rr.predicateMap;
-import static com.taxonic.carml.vocab.Rdf.Rr.subject;
-import static com.taxonic.carml.vocab.Rdf.Rr.subjectMap;
+import static com.taxonic.carml.vocab.Rdf.Rr.*;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
-
-import org.eclipse.rdf4j.model.BNode;
 import org.eclipse.rdf4j.model.IRI;
-import org.eclipse.rdf4j.model.Model;
-import org.eclipse.rdf4j.model.Resource;
-import org.eclipse.rdf4j.model.Statement;
-import org.eclipse.rdf4j.model.ValueFactory;
+import org.eclipse.rdf4j.model.*;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
-
-import com.google.common.collect.ImmutableMap;
 
 /**
  * Replaces RML constant shortcut properties by their expanded/full form.

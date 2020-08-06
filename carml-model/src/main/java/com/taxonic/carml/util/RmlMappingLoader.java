@@ -1,11 +1,7 @@
 package com.taxonic.carml.util;
 
 import com.google.common.collect.ImmutableSet;
-import com.taxonic.carml.model.FileSource;
-import com.taxonic.carml.model.NameableStream;
-import com.taxonic.carml.model.TermType;
-import com.taxonic.carml.model.TriplesMap;
-import com.taxonic.carml.model.XmlSource;
+import com.taxonic.carml.model.*;
 import com.taxonic.carml.model.impl.CarmlFileSource;
 import com.taxonic.carml.model.impl.CarmlStream;
 import com.taxonic.carml.model.impl.CarmlTriplesMap;
@@ -28,6 +24,7 @@ import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 import org.eclipse.rdf4j.rio.RDFFormat;
+import org.eclipse.rdf4j.rio.Rio;
 
 public class RmlMappingLoader {
 
@@ -89,10 +86,19 @@ public class RmlMappingLoader {
 
 	public Set<TriplesMap> load(RDFFormat rdfFormat, InputStream... inputs) {
 		Model[] models = Arrays.stream(inputs) //
-				.map(i -> IoUtils.parse(i, rdfFormat)) //
+				.map(i -> parse(i, rdfFormat)) //
 				.toArray(Model[]::new);
 
 		return load(models);
+	}
+
+	private Model parse(InputStream inputStream, RDFFormat format) {
+		try (InputStream is = inputStream) {
+			return Rio.parse(is, "http://none.com/", format);
+		}
+		catch (IOException e) {
+			throw new RuntimeException("failed to parse input stream [" + inputStream + "] as [" + format + "]", e);
+		}
 	}
 
 	public Set<TriplesMap> load(Model... models) {

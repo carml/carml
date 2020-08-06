@@ -2,15 +2,15 @@ package com.taxonic.carml.vocab;
 
 public class Rml {
 
-	public static final String
-	
-		prefix = "http://semweb.mmlab.be/ns/rml#",
-		
-		BaseSource = prefix + "BaseSource",
-		referenceFormulation = prefix + "referenceFormulation",
-		source = prefix + "source",
-		reference = prefix + "reference",
-		iterator = prefix + "iterator",
-		logicalSource = prefix + "logicalSource";
+	public static final String PREFIX = "rml";
+	public static final String NAMESPACE = "http://semweb.mmlab.be/ns/rml#";
+
+	public static final String BaseSource = NAMESPACE + "BaseSource";
+	public static final String referenceFormulation = NAMESPACE + "referenceFormulation";
+	public static final String source = NAMESPACE + "source";
+	public static final String reference = NAMESPACE + "reference";
+	public static final String iterator = NAMESPACE + "iterator";
+	public static final String LogicalSource = NAMESPACE + "LogicalSource";
+	public static final String logicalSource = NAMESPACE + "logicalSource";
 
 }

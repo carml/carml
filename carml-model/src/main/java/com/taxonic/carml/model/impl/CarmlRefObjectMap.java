@@ -1,17 +1,22 @@
 package com.taxonic.carml.model.impl;
 
+import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.model.Join;
 import com.taxonic.carml.model.RefObjectMap;
+import com.taxonic.carml.model.Resource;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.rdf_mapper.annotations.RdfType;
 import com.taxonic.carml.vocab.Carml;
+import com.taxonic.carml.vocab.Rdf;
 import com.taxonic.carml.vocab.Rr;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
 import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
+import org.eclipse.rdf4j.model.util.ModelBuilder;
+import org.eclipse.rdf4j.model.vocabulary.RDF;
 
 public class CarmlRefObjectMap extends CarmlResource implements RefObjectMap {
 
@@ -75,6 +80,24 @@ public class CarmlRefObjectMap extends CarmlResource implements RefObjectMap {
 		CarmlRefObjectMap other = (CarmlRefObjectMap) obj;
 		return Objects.equals(parentTriplesMap, other.parentTriplesMap) &&
 				Objects.equals(joinConditions, other.joinConditions);
+	}
+
+	@Override
+	public Set<Resource> getReferencedResources() {
+		return ImmutableSet.<Resource>builder()
+				.add(parentTriplesMap)
+				.addAll(joinConditions)
+				.build();
+	}
+
+	@Override
+	public void addTriples(ModelBuilder modelBuilder) {
+		modelBuilder.subject(getAsResource())
+				.add(RDF.TYPE, Rdf.Rr.RefObjectMap);
+		if (parentTriplesMap != null) {
+			modelBuilder.add(Rr.parentTriplesMap, parentTriplesMap.getAsResource());
+		}
+		joinConditions.forEach(jc -> modelBuilder.add(Rr.joinCondition, jc.getAsResource()));
 	}
 
 	public static Builder newBuilder() {
