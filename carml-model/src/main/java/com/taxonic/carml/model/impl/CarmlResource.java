@@ -6,6 +6,8 @@ import com.taxonic.carml.rdf_mapper.annotations.RdfResourceName;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import com.taxonic.carml.util.RdfUtil;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
@@ -42,9 +44,10 @@ public abstract class CarmlResource implements Resource {
 	}
 
 	public org.eclipse.rdf4j.model.Resource getAsResource() {
-		if (id.startsWith("http://") || id.startsWith("https://")) {
+		if (RdfUtil.isValidIri(id)) {
 			return VF.createIRI(id);
 		}
+
 		return VF.createBNode(id);
 	}
 

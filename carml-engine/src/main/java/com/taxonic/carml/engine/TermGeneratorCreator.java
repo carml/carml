@@ -12,6 +12,7 @@ import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
+import com.taxonic.carml.util.RdfUtil;
 import org.eclipse.rdf4j.common.net.ParsedIRI;
 import org.eclipse.rdf4j.model.BNode;
 import org.eclipse.rdf4j.model.IRI;
@@ -413,24 +414,13 @@ class TermGeneratorCreator {
 		}
 	}
 
-	private boolean isValidIri(String str) {
-		if (!str.contains(":")) {
-			return false;
-		}
-		try {
-			return new ParsedIRI(str).getScheme() != null;
-		} catch (URISyntaxException uriException) {
-			return false;
-		}
-	}
-
 	private IRI generateIriTerm(String lexicalForm) {
-		if (isValidIri(lexicalForm)) {
+		if (RdfUtil.isValidIri(lexicalForm)) {
 			return f.createIRI(lexicalForm);
 		}
 
 		String iri = baseIri + lexicalForm;
-		if (isValidIri(iri)) {
+		if (RdfUtil.isValidIri(iri)) {
 			return f.createIRI(iri);
 		}
 
