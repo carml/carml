@@ -6,6 +6,8 @@ import java.net.URISyntaxException;
 
 public class RdfUtil {
 
+    private RdfUtil() {}
+
     public static boolean isValidIri(String str) {
         if (!str.contains(":")) {
             return false;
