@@ -170,7 +170,7 @@ To be able to use this in RML mappings we use executions of instances of `fno:Fu
 @prefix rml: <http://semweb.mmlab.be/ns/rml#> .
 @prefix fnml: <http://semweb.mmlab.be/ns/fnml#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-@prefix fno: <http://semweb.datasciencelab.be/ns/function#> .
+@prefix fno: <https://w3id.org/function/ontology#> .
 @prefix ex: <http://example.org/> .
 
 ex:sumValuePredicateObjectMap

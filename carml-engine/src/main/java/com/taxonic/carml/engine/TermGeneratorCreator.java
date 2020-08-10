@@ -304,11 +304,15 @@ class TermGeneratorCreator {
 	}
 
 	private IRI getFunctionIRI(Resource execution, Model model) {
-		return Models.objectIRI(
-				model.filter(execution, Rdf.Fno.executes, null)
-			)
-			.orElseThrow(() -> new RuntimeException(
-				"function execution does not have fno:executes value"));
+		return Models.objectIRI(model.filter(execution, Rdf.Fno.executes, null))
+			.orElseGet(() -> {
+				if (model.filter(execution, Rdf.Fno.old_executes, null).isEmpty()) {
+					LOG.warn("Usage of deprecated predicate <{}> encountered. Support in next release is not guaranteed. Upgrade to <{}>.",
+							Rdf.Fno.old_executes, Rdf.Fno.executes);
+				}
+				return Models.objectIRI(model.filter(execution, Rdf.Fno.old_executes, null))
+						.orElseThrow(() -> new RuntimeException("function execution does not have fno:executes value"));
+			});
 	}
 
 	private TermType determineTermType(TermMap map) {

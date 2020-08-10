@@ -80,6 +80,7 @@ public class Rdf {
 		}
 		public static final IRI Execution = iri("Execution");
 		public static final IRI executes = iri("executes");
+		public static final IRI old_executes = f.createIRI(com.taxonic.carml.vocab.Fno.OLD_executes);
 	}	
 	
 	public static class Carml {
