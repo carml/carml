@@ -4,7 +4,7 @@ import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.hamcrest.collection.IsEmptyCollection.empty;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNot.not;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -41,7 +41,7 @@ public class QueryUtilsTest {
 	public void setupRepo() {
 		
 		repo = new SailRepository(new MemoryStore());
-		repo.initialize();
+		repo.init();
 		
 		try (RepositoryConnection conn = repo.getConnection()) {			
 			

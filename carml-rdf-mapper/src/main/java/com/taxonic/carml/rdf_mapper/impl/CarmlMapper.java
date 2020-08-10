@@ -1,11 +1,42 @@
 package com.taxonic.carml.rdf_mapper.impl;
 
-import static com.taxonic.carml.rdf_mapper.impl.PropertyUtils.*;
+import static com.taxonic.carml.rdf_mapper.impl.PropertyUtils.createSetterName;
+import static com.taxonic.carml.rdf_mapper.impl.PropertyUtils.findSetter;
+import static com.taxonic.carml.rdf_mapper.impl.PropertyUtils.getPropertyName;
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.Stream.concat;
 import static java.util.stream.Stream.empty;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Proxy;
+import java.lang.reflect.Type;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.apache.commons.lang3.tuple.Pair;
+import org.eclipse.rdf4j.model.IRI;
+import org.eclipse.rdf4j.model.Literal;
+import org.eclipse.rdf4j.model.Model;
+import org.eclipse.rdf4j.model.Resource;
+import org.eclipse.rdf4j.model.Value;
+import org.eclipse.rdf4j.model.ValueFactory;
+import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -17,18 +48,6 @@ import com.taxonic.carml.rdf_mapper.annotations.MultiDelegateCall;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.rdf_mapper.annotations.RdfResourceName;
 import com.taxonic.carml.rdf_mapper.annotations.RdfType;
-import java.lang.reflect.*;
-import java.util.*;
-import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import org.apache.commons.lang3.tuple.Pair;
-import org.eclipse.rdf4j.model.*;
-import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class CarmlMapper implements Mapper, MappingCache {
 
@@ -100,7 +119,9 @@ public class CarmlMapper implements Mapper, MappingCache {
 				});
 	}
 
-	private <T> Object multiDelegateMethodInvocation(List<Object> delegates, Method method, MultiDelegateCall multiDelegateCall, Object... args) {
+	@SuppressWarnings("unchecked")
+	private Object multiDelegateMethodInvocation(List<Object> delegates, Method method,
+			MultiDelegateCall multiDelegateCall, Object... args) {
 		Type returnType = method.getReturnType();
 		return getCombinerFromMultiDelegateCall(multiDelegateCall)
 				.map(combiner -> combiner.combine(delegates

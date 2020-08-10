@@ -1,10 +1,11 @@
 package com.taxonic.carml.engine;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.core.StringContains.containsString;
+import static org.hamcrest.core.StringStartsWith.startsWith;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.contains;
-import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -30,9 +31,7 @@ import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.rio.RDFFormat;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class RmlMapperTest {
 
@@ -40,9 +39,6 @@ public class RmlMapperTest {
 	NameableStream stream;
 	final String input = "test input";
 	final String secondInput = "second test input";
-
-	@Rule
-	public final ExpectedException exception = ExpectedException.none();
 
 	@Before
 	public void prepareMapper() {
@@ -77,13 +73,12 @@ public class RmlMapperTest {
 		InputStream inputStream = IOUtils.toInputStream(input, Charset.defaultCharset());
 		mapper.bindInputStream(inputStream);
 
-		exception.expect(RuntimeException.class);
-		exception.expectMessage(String.format("attempting to get source by "
-				+ "name [%s], but no such binding is present", streamName));
-
 		RmlMappingLoader loader = RmlMappingLoader.build();
 		InputStream input = RmlMapperTest.class.getResourceAsStream("simple.namedcarml.rml.ttl");
-		mapper.map(loader.load(RDFFormat.TURTLE, input));
+
+		RuntimeException exception = assertThrows(RuntimeException.class, () -> mapper.map(loader.load(RDFFormat.TURTLE, input)));
+		assertThat(exception.getMessage(), is(String.format("attempting to get source by "
+				+ "name [%s], but no such binding is present", streamName)));
 	}
 
 	@Test
@@ -94,15 +89,12 @@ public class RmlMapperTest {
 		InputStream inputStream = IOUtils.toInputStream(input, Charset.defaultCharset());
 		mapper.bindInputStream(streamName, inputStream);
 
-		exception.expect(RuntimeException.class);
-		exception.expectMessage(String.format("attempting to get source by "
-				+ "name [%s], but no such binding is present", unknownStreamName));
-
 		RmlMappingLoader loader = RmlMappingLoader.build();
 		InputStream input = RmlMapperTest.class.getResourceAsStream("simple.namedcarml.rml.ttl");
-		mapper.map(loader.load(RDFFormat.TURTLE, input));
 
-		assertThat(mapper.getSourceManager().getSource(streamName), is(input));
+		RuntimeException exception = assertThrows(RuntimeException.class, () -> mapper.map(loader.load(RDFFormat.TURTLE, input)));
+		assertThat(exception.getMessage(), is(String.format("attempting to get source by "
+				+ "name [%s], but no such binding is present", unknownStreamName)));
 	}
 
 	@Test
@@ -160,31 +152,31 @@ public class RmlMapperTest {
 
 	@Test
 	public void mapper_notFindingBoundUnnamedInputStream_shouldThrowException() {
-		exception.expect(RuntimeException.class);
-		exception.expectMessage("attempting to get source, but no binding was present");
 		RmlMappingLoader loader = RmlMappingLoader.build();
 		InputStream input = RmlMapperTest.class.getResourceAsStream("simple.carml.rml.ttl");
-		mapper.map(loader.load(RDFFormat.TURTLE, input));
+
+		RuntimeException exception = assertThrows(RuntimeException.class, () -> mapper.map(loader.load(RDFFormat.TURTLE, input)));
+		assertThat(exception.getMessage(), is("attempting to get source, but no binding was present"));
 	}
 
 	@Test
 	public void mapper_notFindingBoundNamedInputStreams_shouldThrowException() {
 		String streamName = "foo";
-		exception.expect(RuntimeException.class);
-		exception.expectMessage(String.format("attempting to get source by "
-				+ "name [%s], but no such binding is present", streamName));
 		RmlMappingLoader loader = RmlMappingLoader.build();
 		InputStream input = RmlMapperTest.class.getResourceAsStream("simple.namedcarml.rml.ttl");
-		mapper.map(loader.load(RDFFormat.TURTLE, input));
+
+		RuntimeException exception = assertThrows(RuntimeException.class, () -> mapper.map(loader.load(RDFFormat.TURTLE, input)));
+		assertThat(exception.getMessage(), is(String.format("attempting to get source by "
+				+ "name [%s], but no such binding is present", streamName)));
 	}
 
 	@Test
 	public void mapper_withNoBoundSource_shouldThrowException() throws IOException {
-		exception.expect(RuntimeException.class);
-		exception.expectMessage("attempting to get source, but no binding was present");
 		RmlMappingLoader loader = RmlMappingLoader.build();
 		InputStream input = RmlMapperTest.class.getResourceAsStream("simple.carml.rml.ttl");
-		mapper.map(loader.load(RDFFormat.TURTLE, input));
+
+		RuntimeException exception = assertThrows(RuntimeException.class, () -> mapper.map(loader.load(RDFFormat.TURTLE, input)));
+		assertThat(exception.getMessage(), is("attempting to get source, but no binding was present"));
 	}
 
 	@Test
@@ -242,12 +234,11 @@ public class RmlMapperTest {
 		when(logicalSourceMap.getLogicalSource())
 				.thenReturn(new CarmlLogicalSource(null, null, unsupportedRefFormulation));
 
+		RuntimeException exception = assertThrows(RuntimeException.class, () -> mapper.getTriplesMapperComponents(logicalSourceMap));
+		assertThat(exception.getMessage(), startsWith("Unsupported reference formulation"));
+		assertThat(exception.getMessage(), containsString(unsupportedRefFormulation.toString()));
 
-		exception.expect(RuntimeException.class);
-		exception.expectMessage(startsWith("Unsupported reference formulation"));
-		exception.expectMessage(contains(unsupportedRefFormulation.toString()));
 
-		mapper.getTriplesMapperComponents(logicalSourceMap);
 	}
 
 	private static class LogicalSourceResolverContainer<T> implements LogicalSourceResolver<T> {
