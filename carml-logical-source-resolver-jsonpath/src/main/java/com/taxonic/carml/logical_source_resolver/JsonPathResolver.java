@@ -17,7 +17,13 @@ public class JsonPathResolver implements LogicalSourceResolver<Object> {
 
 	public SourceIterator<Object> getSourceIterator() {
 		return (source, logicalSource) -> {
-			Object data = JsonPath.using(JSONPATH_CONF).parse(source).read(logicalSource.getIterator());
+			Object data = JsonPath.using(JSONPATH_CONF)
+					.parse(source)
+					.read(logicalSource.getIterator());
+
+			if (data == null) {
+				return ImmutableSet.of();
+			}
 
 			boolean isIterable = Iterable.class.isAssignableFrom(data.getClass());
 			return isIterable
