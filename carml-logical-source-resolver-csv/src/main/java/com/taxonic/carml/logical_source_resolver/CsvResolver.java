@@ -24,6 +24,7 @@ public class CsvResolver implements LogicalSourceResolver<Record> {
 		settings.setLineSeparatorDetectionEnabled(true);
 		settings.setDelimiterDetectionEnabled(true);
 		settings.setReadInputOnSeparateThread(true);
+		settings.setMaxCharsPerColumn(-1);
 		CsvParser parser = new CsvParser(settings);
 
 		return parser.iterateRecords(new StringReader(source));
