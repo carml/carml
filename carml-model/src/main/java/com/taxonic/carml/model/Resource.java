@@ -14,7 +14,7 @@ public interface Resource {
 	Set<Resource> getReferencedResources();
 
 	default String getResourceName() {
-		return getLabel() != null ? "\"" + getLabel() + "\"" : "<" + getId() + ">";
+		return getLabel() != null ? "\"" + getLabel() + "\"" : getAsResource().toString();
 	}
 
 	org.eclipse.rdf4j.model.Resource getAsResource();

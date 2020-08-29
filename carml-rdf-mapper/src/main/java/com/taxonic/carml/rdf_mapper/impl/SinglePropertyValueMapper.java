@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
+import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Value;
 
 class SinglePropertyValueMapper implements PropertyValueMapper {
@@ -18,12 +19,12 @@ class SinglePropertyValueMapper implements PropertyValueMapper {
 	}
 
 	@Override
-	public Optional<Object> map(Model model, Object instance, List<Value> values) {
+	public Optional<Object> map(Model model, Resource resource, Object instance, List<Value> values) {
 		
 		// multiple values present - error
 		if (values.size() > 1) {
-			throw new RuntimeException("multiple values for property [" + predicate + "], but "
-				+ "corresponding java property is NOT an Iterable property");
+			throw new RuntimeException(String.format("multiple values for property <%s> on resource <%s>, but "
+				+ "corresponding java property is NOT an Iterable property", predicate, resource));
 		}
 
 		if (!values.isEmpty()) {

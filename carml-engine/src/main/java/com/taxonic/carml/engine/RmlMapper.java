@@ -418,18 +418,15 @@ public class RmlMapper {
 			.map(o -> termGenerators.getObjectGenerator((ObjectMap) o));
 	}
 
-	private RefObjectMap checkLogicalSource(RefObjectMap o, LogicalSource logicalSource) {
+	private RefObjectMap checkLogicalSource(RefObjectMap refObjectMap, LogicalSource logicalSource) {
 		LOG.debug("Checking if logicalSource for parent triples map {} is equal",
-				o.getParentTriplesMap().getResourceName());
-		LogicalSource parentLogicalSource = o.getParentTriplesMap().getLogicalSource();
+				refObjectMap.getParentTriplesMap().getResourceName());
+		LogicalSource parentLogicalSource = refObjectMap.getParentTriplesMap().getLogicalSource();
 		if (!logicalSource.equals(parentLogicalSource)) {
-			throw new RuntimeException(
-				"Logical sources are not equal.\n" +
-				"Parent: " + parentLogicalSource + "\n" +
-				"Child: " + logicalSource
-			);
+			throw new RuntimeException(String.format("Logical sources are not equal.%nParent: %s%nChild:%s%nIn RefObjectMap:%n%s",
+					parentLogicalSource, logicalSource, refObjectMap));
 		}
-		return o;
+		return refObjectMap;
 	}
 
 	private Stream<TermGenerator<? extends Value>> getJoinlessRefObjectMapGenerators(
@@ -522,15 +519,26 @@ public class RmlMapper {
 		);
 	}
 
-	// TODO: Use of generic wildcard type is quite smelly, but at this point we cannot know which type
-	// will be provided by the user.
 	TriplesMapperComponents<?> getTriplesMapperComponents(TriplesMap triplesMap) {
 
 		LogicalSource logicalSource = triplesMap.getLogicalSource();
 
+		if (logicalSource == null) {
+			throw new RuntimeException(String.format("No LogicalSource found for TriplesMap%n%s", triplesMap));
+		}
+
 		IRI referenceFormulation = logicalSource.getReferenceFormulation();
+
+		if (referenceFormulation == null) {
+			throw new RuntimeException(
+					String.format("No reference formulation found for LogicalSource%n%s%n%n of TriplesMap %s",
+							logicalSource, triplesMap.getResourceName()));
+		}
+
 		if (!logicalSourceResolvers.containsKey(referenceFormulation)) {
-			throw new RuntimeException(String.format("Unsupported reference formulation %s", referenceFormulation));
+			throw new RuntimeException(
+					String.format("Unsupported reference formulation %s in LogicalSource%n%s%n%n of TriplesMap %s",
+					referenceFormulation, logicalSource, triplesMap.getResourceName()));
 		}
 
 		return new TriplesMapperComponents<>(

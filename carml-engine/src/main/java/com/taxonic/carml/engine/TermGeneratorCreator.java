@@ -1,32 +1,5 @@
 package com.taxonic.carml.engine;
 
-import java.net.URISyntaxException;
-import java.text.Normalizer;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
-
-import com.taxonic.carml.util.RdfUtil;
-import org.eclipse.rdf4j.common.net.ParsedIRI;
-import org.eclipse.rdf4j.model.BNode;
-import org.eclipse.rdf4j.model.IRI;
-import org.eclipse.rdf4j.model.Literal;
-import org.eclipse.rdf4j.model.Model;
-import org.eclipse.rdf4j.model.Resource;
-import org.eclipse.rdf4j.model.Value;
-import org.eclipse.rdf4j.model.ValueFactory;
-import org.eclipse.rdf4j.model.impl.LinkedHashModel;
-import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
-import org.eclipse.rdf4j.model.util.Models;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.engine.function.ExecuteFunction;
@@ -42,7 +15,31 @@ import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.rdf_mapper.util.ImmutableCollectors;
 import com.taxonic.carml.util.IriSafeMaker;
 import com.taxonic.carml.util.LangTagUtil;
+import com.taxonic.carml.util.RdfUtil;
 import com.taxonic.carml.vocab.Rdf;
+import java.text.Normalizer;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
+import org.eclipse.rdf4j.common.net.ParsedIRI;
+import org.eclipse.rdf4j.model.BNode;
+import org.eclipse.rdf4j.model.IRI;
+import org.eclipse.rdf4j.model.Literal;
+import org.eclipse.rdf4j.model.Model;
+import org.eclipse.rdf4j.model.Resource;
+import org.eclipse.rdf4j.model.Value;
+import org.eclipse.rdf4j.model.ValueFactory;
+import org.eclipse.rdf4j.model.impl.LinkedHashModel;
+import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
+import org.eclipse.rdf4j.model.util.Models;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class TermGeneratorCreator {
 
@@ -376,7 +373,9 @@ class TermGeneratorCreator {
 			};
 
 		if (!allowedTermTypes.contains(termType)) {
-			throw new RuntimeException("encountered disallowed term type [" + termType + "]; allowed term types: " + allowedTermTypes);
+			throw new RuntimeException(
+					String.format("encountered disallowed term type [%s]%nin TermMap:%n%s%n%n allowed TermTypes: %s",
+					termType, map, allowedTermTypes));
 		}
 
 		switch (termType) {
@@ -413,7 +412,7 @@ class TermGeneratorCreator {
 					f.createLiteral(lexicalForm));
 
 			default:
-				throw new RuntimeException("unknown term type " + termType);
+				throw new RuntimeException(String.format("unknown term type [%s]%nin TermMap:%s", termType, map));
 
 		}
 	}
