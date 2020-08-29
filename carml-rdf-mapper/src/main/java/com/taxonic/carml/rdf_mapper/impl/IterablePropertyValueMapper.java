@@ -8,6 +8,7 @@ import java.util.Set;
 import java.util.function.Supplier;
 
 import org.eclipse.rdf4j.model.Model;
+import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Value;
 
 import com.google.common.collect.ImmutableCollection;
@@ -28,7 +29,7 @@ class IterablePropertyValueMapper implements PropertyValueMapper {
 	}
 
 	@Override
-	public Optional<Object> map(Model model, Object instance, List<Value> values) {
+	public Optional<Object> map(Model model, Resource resource, Object instance, List<Value> values) {
 		
 		ImmutableCollection.Builder<Object> builder = createCollectionBuilder.get();
 		

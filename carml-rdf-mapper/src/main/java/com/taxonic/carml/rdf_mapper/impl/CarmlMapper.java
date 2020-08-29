@@ -493,7 +493,7 @@ public class CarmlMapper implements Mapper, MappingCache {
 
 					// map data from rdf model to a value for this property,
 					// such as a list of complex objects, or a simple string.
-					propertyValueMapper.map(model, instance, values).ifPresent(v -> set.accept(instance, v));
+					propertyValueMapper.map(model, resource, instance, values).ifPresent(v -> set.accept(instance, v));
 
 					// TODO what about languages? @RdfLanguage("nl") to select only 1 language (or
 					// multiple?)
