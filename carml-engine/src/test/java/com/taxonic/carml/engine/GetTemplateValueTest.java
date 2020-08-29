@@ -84,8 +84,6 @@ public class GetTemplateValueTest {
 	@Test
 	public void getTemplateValue_givenValidInputAndNotFindingValue_returnsNoValues() {
 		when(evaluateExpression.apply("xyz")).thenReturn(Optional.empty());
-		when(createNaturalRdfLexicalForm.apply("evaluated")).thenReturn("natural");
-		when(transformValue.apply("natural")).thenReturn("transformed");
 
 		Template template = TemplateParser.build().parse("abc{xyz}");
 		GetTemplateValue getTemplateValue =
