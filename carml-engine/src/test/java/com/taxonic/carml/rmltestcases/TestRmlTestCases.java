@@ -44,13 +44,13 @@ import com.taxonic.carml.vocab.Rdf;
 @RunWith(Parameterized.class)
 public class TestRmlTestCases {
 
-	private static final String CLASS_LOCATION = "com/taxonic/carml/rmltestcases/test-cases";
+	static final String CLASS_LOCATION = "com/taxonic/carml/rmltestcases/test-cases";
 
 	private static final ValueFactory VF = SimpleValueFactory.getInstance();
 
-	private static final IRI EARL_TESTCASE = VF.createIRI("http://www.w3.org/ns/earl#TestCase");
+	static final IRI EARL_TESTCASE = VF.createIRI("http://www.w3.org/ns/earl#TestCase");
 
-	private static final List<String> SUPPORTED_SOURCE_TYPES = ImmutableList.of("CSV", "JSON", "XML");
+	static final List<String> SUPPORTED_SOURCE_TYPES = ImmutableList.of("CSV", "JSON", "XML");
 
 	// Under discussion in https://github.com/RMLio/rml-test-cases/issues
 	private static final List<String> SKIP_TESTS = new ImmutableList.Builder<String>() //
@@ -138,7 +138,8 @@ public class TestRmlTestCases {
 				.stream() //
 				.collect(Collectors.toCollection(TreeModel::new));
 	}
-	private static InputStream getDatasetInputStream(Dataset dataset) {
+
+	static InputStream getDatasetInputStream(Dataset dataset) {
 		String relativeLocation = dataset.getDistribution().getRelativeFileLocation();
 		return TestRmlTestCases.class.getResourceAsStream(relativeLocation);
 	}
