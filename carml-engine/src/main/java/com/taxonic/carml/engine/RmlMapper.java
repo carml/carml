@@ -19,6 +19,7 @@ import com.taxonic.carml.model.SubjectMap;
 import com.taxonic.carml.model.TermMap;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.rdf_mapper.util.ImmutableCollectors;
+import com.taxonic.carml.vocab.Rdf;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -336,6 +337,17 @@ public class RmlMapper {
 				.filter(t -> t.getFunctionValue() != null)
 				.map(TermMap::getFunctionValue)
 				.collect(ImmutableCollectors.toImmutableSet());
+
+		if(LOG.isWarnEnabled()) {
+			boolean deprecatedFno = functionValueTriplesMaps.stream()
+					.flatMap(triplesMap -> triplesMap.getPredicateObjectMaps().stream())
+					.flatMap(pom -> pom.getPredicateMaps().stream())
+					.anyMatch(predicateMap -> predicateMap.getConstant().equals(Rdf.Fno.old_executes));
+			if (deprecatedFno) {
+				LOG.warn("Usage of deprecated predicate <{}> encountered. Support in next release is not guaranteed. Upgrade to <{}>.",
+						Rdf.Fno.old_executes, Rdf.Fno.executes);
+			}
+		}
 
 		Set<TriplesMap> refObjectTriplesMaps = getAllTriplesMapsUsedInRefObjectMap(mapping);
 
