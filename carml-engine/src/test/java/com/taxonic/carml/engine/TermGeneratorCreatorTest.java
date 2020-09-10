@@ -1,5 +1,6 @@
 package com.taxonic.carml.engine;
 
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -25,17 +26,11 @@ public class TermGeneratorCreatorTest {
 
 		TermGeneratorCreator tgc = new TermGeneratorCreator(null, "foo", null, TemplateParser.build(), null);
 
-		RuntimeException exception = null;
-		try{
-			tgc.getObjectGenerator(new CarmlObjectMap("foo.bar", null, "foo{foo.bar}", TermType.LITERAL, null, null, null, null));
-
-			Assert.assertFalse("Should have thrown exception", true);
-		} catch(RuntimeException e) {
-			exception = e;
-		}
-
+		RuntimeException exception = assertThrows(RuntimeException.class, () ->
+				tgc.getObjectGenerator(new CarmlObjectMap("foo.bar", null, "foo{foo.bar}",
+						TermType.LITERAL, null, null, null, null)));
 		Assert.assertNotNull(exception);
-		Assert.assertTrue(exception.getMessage().startsWith("2 generators were created for map"));
+		Assert.assertTrue(exception.getMessage().startsWith("2 value generators were created for term map"));
 	}
 
 	@Test

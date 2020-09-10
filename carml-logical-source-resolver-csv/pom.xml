@@ -27,6 +27,16 @@
 		</dependency>
 
 		<dependency>
+			<groupId>com.taxonic.carml</groupId>
+			<artifactId>carml-model</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>com.taxonic.carml</groupId>
+			<artifactId>carml-commons</artifactId>
+		</dependency>
+
+		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<scope>test</scope>

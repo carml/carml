@@ -17,7 +17,9 @@ public class CarmlFileSource extends CarmlResource implements FileSource {
 
 	private String url;
 
-	public CarmlFileSource() {}
+	public CarmlFileSource() {
+		// Empty constructor for object mapper
+	}
 
 	@RdfProperty(Carml.url)
 	@Override

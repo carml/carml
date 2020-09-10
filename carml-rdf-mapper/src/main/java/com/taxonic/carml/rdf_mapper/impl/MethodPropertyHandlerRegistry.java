@@ -83,7 +83,7 @@ public class MethodPropertyHandlerRegistry {
         }
 
         // for iterable property
-        if(effectiveHandlers.size() > 0) {
+        if(!effectiveHandlers.isEmpty()) {
             // if at least one effective handler, return all
             return effectiveHandlers.stream().map(Optional::ofNullable);
         } else {

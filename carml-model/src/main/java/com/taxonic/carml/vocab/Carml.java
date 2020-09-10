@@ -1,5 +1,6 @@
 package com.taxonic.carml.vocab;
 
+@SuppressWarnings({"java:S115", "java:S1845"})
 public class Carml {
 	
 	private Carml() {}

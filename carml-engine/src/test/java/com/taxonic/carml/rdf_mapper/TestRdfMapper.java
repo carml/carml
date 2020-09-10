@@ -7,7 +7,7 @@ import java.util.Set;
 import com.taxonic.carml.model.impl.*;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
-import org.eclipse.rdf4j.model.vocabulary.XMLSchema;
+import org.eclipse.rdf4j.model.vocabulary.XSD;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -269,7 +269,7 @@ public class TestRdfMapper extends RmlLoader {
 						.objectMap(
 								CarmlObjectMap.newBuilder()
 								.reference("birthday")
-								.datatype(XMLSchema.DATE)
+								.datatype(XSD.DATE)
 								.termType(TermType.LITERAL)
 								.build()
 						)
@@ -347,7 +347,7 @@ public class TestRdfMapper extends RmlLoader {
 						.objectMap(
 								CarmlObjectMap.newBuilder()
 								.reference("birthday")
-								.datatype(XMLSchema.DATE)
+								.datatype(XSD.DATE)
 								.build()
 						)
 						.build()
@@ -660,7 +660,7 @@ public class TestRdfMapper extends RmlLoader {
 						.objectMap(
 							CarmlObjectMap.newBuilder()
 								.reference("when")
-								.datatype(XMLSchema.DATE)
+								.datatype(XSD.DATE)
 								.build()
 						)
 						.build()
@@ -703,7 +703,7 @@ public class TestRdfMapper extends RmlLoader {
 						.objectMap(
 							CarmlObjectMap.newBuilder()
 								.reference("accuracy")
-								.datatype(XMLSchema.FLOAT)
+								.datatype(XSD.FLOAT)
 								.build()
 						)
 						.build()

@@ -21,6 +21,11 @@
 		</dependency>
 
 		<dependency>
+			<groupId>com.taxonic.carml</groupId>
+			<artifactId>carml-model</artifactId>
+		</dependency>
+
+		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
 		</dependency>

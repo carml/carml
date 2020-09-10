@@ -139,11 +139,12 @@ class TermGeneratorCreator {
 			.collect(Collectors.toList());
 
 		if (generators.isEmpty()) {
-			throw new RuntimeException("could not create generator for map [" + map + "]");
+			throw new RuntimeException(String.format("No constant, reference, template or function value found for term map [%s]",
+					map.getResourceName()));
 		}
 		if (generators.size() > 1) {
-			throw new RuntimeException(generators.size() + " generators were created for map [" + map + "]; "
-				+ "should be only 1. this is due to a term map specifying f.e. both an rr:reference and rr:constant");
+			throw new RuntimeException(String.format("%s value generators were created for term map [%s], where only 1 is expected.",
+					generators.size(), map.getResourceName()));
 		}
 		return generators.get(0);
 	}
@@ -430,8 +431,6 @@ class TermGeneratorCreator {
 	private BNode generateBNodeTerm(String lexicalForm) {
 		// TODO consider hash of 'lexicalForm' instead
 		String id = createValidBNodeId(lexicalForm);
-		// TODO not sure if successively generated ids for the
-		// same lexical form should have a different id (suffix -1, -2, -3, etc.)
 		return f.createBNode(id);
 	}
 

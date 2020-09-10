@@ -13,7 +13,7 @@ import java.util.Set;
 import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
 
-abstract public class CarmlTermMap extends CarmlResource implements TermMap {
+public abstract class CarmlTermMap extends CarmlResource implements TermMap {
 
 	String reference;
 	String inverseExpression;
@@ -22,7 +22,9 @@ abstract public class CarmlTermMap extends CarmlResource implements TermMap {
 	Value constant;
 	TriplesMap functionValue;
 
-	public CarmlTermMap() {}
+	public CarmlTermMap() {
+		// Empty constructor for object mapper
+	}
 
 	public CarmlTermMap(
 		String reference,

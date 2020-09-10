@@ -13,7 +13,7 @@ public class ExceptionsTest extends MappingTest {
 	public void testGeneratorMappingException() {
 		RuntimeException exception = assertThrows(RuntimeException.class,
 				() -> testMapping("RmlMapper", "RmlMapper/exceptionTests/exceptionGeneratorMappping.rml.ttl", null));
-		assertThat(exception.getMessage(), startsWith("could not create generator for map"));
+		assertThat(exception.getMessage(), startsWith("Exception occurred for"));
 	}
 
 	@Test
@@ -32,7 +32,7 @@ public class ExceptionsTest extends MappingTest {
 	public void testConstantValueException() {
 		RuntimeException exception = assertThrows(RuntimeException.class,
 				() -> testMapping("RmlMapper", "RmlMapper/exceptionTests/exceptionConstantValueMapping.rml.ttl", null));
-		assertThat(exception.getMessage(), startsWith("encountered constant value of type"));
+		assertThat(exception.getMessage(), startsWith("Exception occurred for"));
 	}
 
 	@Test
@@ -46,7 +46,7 @@ public class ExceptionsTest extends MappingTest {
 	public void testTermTypeExceptionA() {
 		RuntimeException exception = assertThrows(RuntimeException.class,
 				() -> testMapping("RmlMapper", "RmlMapper/exceptionTests/exceptionTermTypeMappingA.rml.ttl", null));
-		assertThat(exception.getMessage(), startsWith("encountered disallowed term type"));
+		assertThat(exception.getMessage(), startsWith("Exception occurred for"));
 	}
 
 	@Test
@@ -67,14 +67,14 @@ public class ExceptionsTest extends MappingTest {
 	public void testTermTypeExceptionD() {
 		RuntimeException exception = assertThrows(RuntimeException.class,
 				() -> testMapping("RmlMapper", "RmlMapper/exceptionTests/exceptionTermTypeMappingD.rml.ttl", null));
-		assertThat(exception.getMessage(), startsWith("encountered disallowed term type"));
+		assertThat(exception.getMessage(), startsWith("Exception occurred for"));
 	}
 
 	@Test
 	public void testTermTypeExceptionE() {
 		RuntimeException exception = assertThrows(RuntimeException.class,
 				() -> testMapping("RmlMapper", "RmlMapper/exceptionTests/exceptionTermTypeMappingE.rml.ttl", null));
-		assertThat(exception.getMessage(), startsWith("encountered disallowed term type"));
+		assertThat(exception.getMessage(), startsWith("Exception occurred for"));
 	}
 
 }

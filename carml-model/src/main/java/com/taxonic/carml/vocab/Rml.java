@@ -1,6 +1,9 @@
 package com.taxonic.carml.vocab;
 
+@SuppressWarnings({"java:S115", "java:S1845"})
 public class Rml {
+
+	private Rml() {}
 
 	public static final String PREFIX = "rml";
 	public static final String NAMESPACE = "http://semweb.mmlab.be/ns/rml#";

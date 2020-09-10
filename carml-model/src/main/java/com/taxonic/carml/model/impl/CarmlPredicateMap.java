@@ -15,7 +15,9 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 
 public class CarmlPredicateMap extends CarmlTermMap implements PredicateMap {
 
-	public CarmlPredicateMap() {}
+	public CarmlPredicateMap() {
+		// Empty constructor for object mapper
+	}
 
 	public CarmlPredicateMap(
 		String reference,

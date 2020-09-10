@@ -27,6 +27,16 @@
 		</dependency>
 
 		<dependency>
+			<groupId>com.taxonic.carml</groupId>
+			<artifactId>carml-model</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>com.taxonic.carml</groupId>
+			<artifactId>carml-commons</artifactId>
+		</dependency>
+
+		<dependency>
 			<groupId>org.eclipse.rdf4j</groupId>
 			<artifactId>rdf4j-rio-turtle</artifactId>
 			<scope>test</scope>

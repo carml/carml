@@ -1,6 +1,9 @@
 package com.taxonic.carml.vocab;
 
+@SuppressWarnings("java:S115")
 public class Fnml {
+
+	private Fnml() {}
 
 	public static final String PREFIX = "fnml";
 

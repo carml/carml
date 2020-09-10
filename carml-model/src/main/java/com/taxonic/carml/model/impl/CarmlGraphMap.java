@@ -15,7 +15,9 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 
 public class CarmlGraphMap extends CarmlTermMap implements GraphMap{
 
-	public CarmlGraphMap() {}
+	public CarmlGraphMap() {
+		// Empty constructor for object mapper
+	}
 
 	public CarmlGraphMap(
 		String reference,
