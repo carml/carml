@@ -5,6 +5,7 @@ import java.util.stream.Stream;
 import org.eclipse.rdf4j.model.BNode;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
+import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 
 public class ModelUtil {
@@ -15,11 +16,10 @@ public class ModelUtil {
         return model.filter(resource, null, null)
                 .stream()
                 .flatMap(statement -> {
-                    if (statement.getObject() instanceof BNode) {
-                        return Stream.concat(Stream.of(statement), describeResource(model, (BNode) statement.getObject()).stream());
-                    } else {
-                        return Stream.of(statement);
-                    }
+                    Value object = statement.getObject();
+                    return object instanceof BNode ?
+                            Stream.concat(Stream.of(statement), describeResource(model, (BNode) object).stream()) :
+                            Stream.of(statement);
                 })
                 .collect(Collectors.toCollection(LinkedHashModel::new));
     }
@@ -28,11 +28,10 @@ public class ModelUtil {
         return model.filter(null, null, resource)
                 .stream()
                 .flatMap(statement -> {
-                    if (statement.getSubject() instanceof BNode) {
-                        return Stream.concat(Stream.of(statement), reverseDescribeResource(model, statement.getSubject()).stream());
-                    } else {
-                        return Stream.of(statement);
-                    }
+                    Resource subject = statement.getSubject();
+                    return subject instanceof BNode ?
+                            Stream.concat(Stream.of(statement), reverseDescribeResource(model, subject).stream()) :
+                            Stream.of(statement);
                 })
                 .collect(Collectors.toCollection(LinkedHashModel::new));
     }
