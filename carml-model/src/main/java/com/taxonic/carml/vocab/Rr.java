@@ -1,6 +1,9 @@
 package com.taxonic.carml.vocab;
 
+@SuppressWarnings({"java:S115", "java:S1845"})
 public class Rr {
+
+	private Rr() {}
 
 	public static final String PREFIX = "rr";
 	public static final String NAMESPACE = "http://www.w3.org/ns/r2rml#";

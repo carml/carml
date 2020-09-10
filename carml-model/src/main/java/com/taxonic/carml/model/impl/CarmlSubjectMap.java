@@ -25,7 +25,9 @@ public class CarmlSubjectMap extends CarmlTermMap implements SubjectMap {
 	private Set<IRI> classes;
 	private Set<GraphMap> graphMaps;
 
-	public CarmlSubjectMap() {}
+	public CarmlSubjectMap() {
+		// Empty constructor for object mapper
+	}
 
 	public CarmlSubjectMap(
 		String reference,

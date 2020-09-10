@@ -20,7 +20,9 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
 	private String iterator;
 	private IRI referenceFormulation;
 
-	public CarmlLogicalSource() {}
+	public CarmlLogicalSource() {
+		// Empty constructor for object mapper
+	}
 
 	public CarmlLogicalSource(
 		Object source,
@@ -94,7 +96,7 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
 
 	@Override
 	public Set<Resource> getReferencedResources() {
-		if (source instanceof Resource) {
+		if (source != null && source instanceof Resource) {
 			return ImmutableSet.of((Resource) source);
 		} else {
 			return ImmutableSet.of();

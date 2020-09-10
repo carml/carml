@@ -83,7 +83,7 @@ class DefaultPropertyHandlerDependencyResolver implements DependencyResolver {
 		Optional<Object> qualifierValue =
 			qualifiers.stream()
 				.map(Annotation::annotationType)
-				.map(t -> getQualifierValue(t))
+				.map(this::getQualifierValue)
 				.filter(Optional::isPresent)
 				.map(Optional::get)
 				.findFirst();
@@ -100,9 +100,8 @@ class DefaultPropertyHandlerDependencyResolver implements DependencyResolver {
 		// TODO ..
 
 
-		throw new RuntimeException(
-			"could not resolve dependency for type [" + type + "] and "
-				+ "qualifiers [" + qualifiers + "]");
+		throw new RuntimeException(String.format("could not resolve dependency for type [%s] and qualifiers [%s]",
+				type, qualifiers));
 	}
 
 }

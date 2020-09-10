@@ -187,7 +187,7 @@ class CarmlTemplate implements Template {
 
 		private boolean exprValueResultsHasOnlyFilledLists(Map<Segment, List<String>> indexedExprValues) {
 			for (List<String> list : indexedExprValues.values()) {
-				if (list.size() == 0)
+				if (list.isEmpty())
 					return false;
 			}
 			return true;
@@ -221,7 +221,7 @@ class CarmlTemplate implements Template {
 				.map(s -> (ExpressionSegment) s)
 				.collect(Collectors.toList());
 
-			if (exprSegs.size() > 0) {
+			if (!exprSegs.isEmpty()) {
 
 				// map segment to list of it's evaluation results
 				for (ExpressionSegment exprSeg: exprSegs) {

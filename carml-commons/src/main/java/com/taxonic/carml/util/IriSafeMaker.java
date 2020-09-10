@@ -28,7 +28,8 @@ public class IriSafeMaker implements Function<String, String> {
 
 	static class Range {
 
-		final int from, to;
+		final int from;
+		final int to;
 
 		Range(int from, int to) {
 			this.from = from;

@@ -4,22 +4,29 @@ import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 
+@SuppressWarnings({"java:S115", "java:S1845"})
 public class Rdf {
-	
+
 	private static final ValueFactory f = SimpleValueFactory.getInstance();
-	
+
 	private Rdf() {}
-	
+
 	public static class Rml {
+
+		private Rml() {}
+
 		private static IRI iri(String suffix) {
 			return f.createIRI(com.taxonic.carml.vocab.Rml.NAMESPACE + suffix);
 		}
-		
+
 		public static final IRI logicalSource = iri("logicalSource");
 		public static final IRI LogicalSource = iri("LogicalSource");
 	}
-	
+
 	public static class Ql {
+
+		private Ql() {}
+
 		private static final String NAMESPACE = "http://semweb.mmlab.be/ns/ql#";
 
 		private static IRI iri(String suffix) {
@@ -30,8 +37,11 @@ public class Rdf {
 		public static final IRI XPath = iri("XPath");
 		public static final IRI Csv = iri("CSV");
 	}
-	
+
 	public static class Rr {
+
+		private Rr() {}
+
 		private static IRI iri(String suffix) {
 			return f.createIRI(com.taxonic.carml.vocab.Rr.NAMESPACE + suffix);
 		}
@@ -67,23 +77,32 @@ public class Rdf {
 	}
 
 	public static class Fnml {
+
+		private Fnml() {}
+
 		private static IRI iri(String suffix) {
 			return f.createIRI(com.taxonic.carml.vocab.Fnml.NAMESPACE + suffix);
 		}
 
 		public static final IRI functionValue = iri("functionValue");
 	}
-	
+
 	public static class Fno {
+
+		private Fno() {}
+
 		private static IRI iri(String suffix) {
 			return f.createIRI(com.taxonic.carml.vocab.Fno.NAMESPACE + suffix);
 		}
 		public static final IRI Execution = iri("Execution");
 		public static final IRI executes = iri("executes");
 		public static final IRI old_executes = f.createIRI(com.taxonic.carml.vocab.Fno.OLD_executes);
-	}	
-	
+	}
+
 	public static class Carml {
+
+		private Carml() {}
+
 		private static IRI iri(String suffix) {
 			return f.createIRI(com.taxonic.carml.vocab.Carml.NAMESPACE + suffix);
 		}
@@ -104,6 +123,6 @@ public class Rdf {
 		public static final IRI multiTemplate = iri("multiTemplate");
 		public static final IRI multiFunctionValue = iri("multiFunctionValue");
 		public static final IRI multiJoinCondition = iri("multiJoinCondition");
-	}	
-	
+	}
+
 }

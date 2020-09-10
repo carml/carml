@@ -6,6 +6,7 @@
 @prefix fno: <https://w3id.org/function/ontology#> .
 @prefix carml: <http://carml.taxonic.com/carml/> .
 @prefix ex: <http://example.org/> .
+@prefix fn: <http://example.org/function/> .
 
 ex:TriplesMap a rr:TriplesMap ;
   rml:logicalSource [
@@ -100,3 +101,33 @@ ex:refObjectMap a rr:ObjectMap ;
       rr:parent "parent2" ;
     ] ;
 .
+
+ex:SimpleExecutionMapping
+  rr:template "functionExec";
+  rr:termType rr:BlankNode ;
+  rr:class fno:Execution ;
+.
+
+ex:FunctionTM a rr:TriplesMap ;
+  rr:subjectMap [
+    fnml:functionValue [
+      rr:subjectMap ex:SimpleExecutionMapping ;
+      rr:predicateObjectMap
+        [
+          rr:predicate fno:executes ;
+          rr:object fn:concat ;
+        ] ,
+        [
+          rr:predicate fn:valueParameter ;
+          rr:object "http://example.org/" ;
+        ] ,
+        [
+          rr:predicate fn:otherValueParameter ;
+          rr:objectMap [
+            rml:reference "Name" ;
+          ] ;
+        ] ;
+    ] ;
+  ] ;
+.
+

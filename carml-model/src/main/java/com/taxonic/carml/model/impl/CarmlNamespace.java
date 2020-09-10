@@ -18,7 +18,9 @@ public class CarmlNamespace extends CarmlResource implements Namespace {
 	private String prefix;
 	private String name;
 
-	public CarmlNamespace() {}
+	public CarmlNamespace() {
+		// Empty constructor for object mapper
+	}
 
 	public CarmlNamespace(String prefix, String name) {
 		this.prefix = prefix;

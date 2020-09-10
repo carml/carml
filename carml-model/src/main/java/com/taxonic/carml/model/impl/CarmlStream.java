@@ -17,7 +17,9 @@ public class CarmlStream extends CarmlResource implements NameableStream {
 
 	private String streamName;
 
-	public CarmlStream() {}
+	public CarmlStream() {
+		// Empty constructor for object mapper
+	}
 
 	public CarmlStream(String streamName) {
 		this.streamName = streamName;

@@ -1,42 +1,15 @@
 package com.taxonic.carml.rdf_mapper.impl;
 
+
 import static com.taxonic.carml.rdf_mapper.impl.PropertyUtils.createSetterName;
 import static com.taxonic.carml.rdf_mapper.impl.PropertyUtils.findSetter;
 import static com.taxonic.carml.rdf_mapper.impl.PropertyUtils.getPropertyName;
+import static com.taxonic.carml.util.ModelSerializer.formatResourceForLog;
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.Stream.concat;
 import static java.util.stream.Stream.empty;
-
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Proxy;
-import java.lang.reflect.Type;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import org.apache.commons.lang3.tuple.Pair;
-import org.eclipse.rdf4j.model.IRI;
-import org.eclipse.rdf4j.model.Literal;
-import org.eclipse.rdf4j.model.Model;
-import org.eclipse.rdf4j.model.Resource;
-import org.eclipse.rdf4j.model.Value;
-import org.eclipse.rdf4j.model.ValueFactory;
-import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -48,10 +21,48 @@ import com.taxonic.carml.rdf_mapper.annotations.MultiDelegateCall;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.rdf_mapper.annotations.RdfResourceName;
 import com.taxonic.carml.rdf_mapper.annotations.RdfType;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Proxy;
+import java.lang.reflect.Type;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.apache.commons.lang3.tuple.Pair;
+import org.eclipse.rdf4j.model.IRI;
+import org.eclipse.rdf4j.model.Literal;
+import org.eclipse.rdf4j.model.Model;
+import org.eclipse.rdf4j.model.Namespace;
+import org.eclipse.rdf4j.model.Resource;
+import org.eclipse.rdf4j.model.Value;
+import org.eclipse.rdf4j.model.ValueFactory;
+import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CarmlMapper implements Mapper, MappingCache {
 
 	private static final Logger LOG = LoggerFactory.getLogger(CarmlMapper.class);
+
+	private Set<Namespace> namespaces;
+
+	public CarmlMapper() {
+		this(new HashSet<>());
+	}
+	public CarmlMapper(Set<Namespace> namespaces) {
+		this.namespaces = namespaces;
+	}
 
 	// type is the exact type of instance we need; eg. NOT a supertype.
 	// so no unbound type parameters. no interface, unless a list or so.
@@ -62,7 +73,9 @@ public class CarmlMapper implements Mapper, MappingCache {
 
 		if (types.size() > 1) {
 			if (!types.stream().allMatch(t -> ((Class<?>)t).isInterface())) {
-				throw new RuntimeException("In case of multiple types, mapper requires all types to be interfaces");
+				throw new IllegalStateException(String.format(
+						"Error mapping %s. In case of multiple types, mapper requires all types to be interfaces",
+						formatResourceForLog(model, resource, namespaces, true)));
 			}
 		}
 
@@ -102,7 +115,9 @@ public class CarmlMapper implements Mapper, MappingCache {
 							.collect(toList());
 
 					if (delegates.isEmpty()) {
-						throw new RuntimeException(String.format("no implementation present with specified method [%s]", method));
+						throw new RuntimeException(String.format(
+								"Error processing %s%nCould not determine type. (No implementation present with specified method [%s])",
+										formatResourceForLog(model, resource, namespaces, true), method));
 					}
 
 					if (multiDelegateCall != null) {
@@ -131,8 +146,8 @@ public class CarmlMapper implements Mapper, MappingCache {
 				)
 				.orElseGet(() -> {
 					if (!returnType.equals(Void.TYPE)) {
-						throw new IllegalStateException(
-								String.format("No combiner specified for non-void multi delegate method %S", method));
+						throw new IllegalStateException(String.format(
+								"No combiner specified for non-void multi delegate method %S", method));
 					}
 					return null;
 				});
@@ -151,7 +166,8 @@ public class CarmlMapper implements Mapper, MappingCache {
 							NoSuchMethodException |
 							SecurityException e
 			) {
-				throw new RuntimeException("failed to instantiate multi delegate call combiner class " + combinerClass.getCanonicalName(), e);
+				throw new RuntimeException(String.format(
+						"failed to instantiate multi delegate call combiner class %s", combinerClass.getCanonicalName()), e);
 			}
 		}
 		return Optional.empty();
@@ -221,12 +237,15 @@ public class CarmlMapper implements Mapper, MappingCache {
 				NoSuchMethodException |
 				SecurityException e
 		) {
-			throw new RuntimeException("failed to instantiate [" + c.getCanonicalName() + "]", e);
+			throw new RuntimeException(String.format("Error processing %s%n  failed to instantiate [%s]"
+					, formatResourceForLog(model, resource, namespaces, true), c.getCanonicalName()), e);
 		}
 
 		propertyHandlers.forEach(h ->
 			h.handle(model, resource, instance)
 		);
+
+
 
 
 		// TODO error if mandatory properties are not present in triples?
@@ -372,11 +391,12 @@ public class CarmlMapper implements Mapper, MappingCache {
 	}
 	
 	private RuntimeException createCouldNotFindSetterException(Class<?> c, String setterName) {
-		return new RuntimeException("in class " + c.getCanonicalName() + ", could not find setter [" + setterName + "] with 1 parameter");
+		return new RuntimeException(String.format("in class %s, could not find setter [%s] with 1 parameter",
+				c.getCanonicalName(), setterName));
 	}
 
 	private Function<Exception, RuntimeException> createSetterInvocationErrorFactory(Class<?> c, Method setter) {
-		return e -> new RuntimeException("could not invoke setter [" + c.getSimpleName() + "." + setter.getName() + "]", e);
+		return e -> new RuntimeException(String.format("could not invoke setter [%s.%s]", c.getSimpleName(), setter.getName()), e);
 	}
 	
 	private BiConsumer<Object, Object> getSetterInvoker(Method setter, Function<Exception, RuntimeException> invocationErrorFactory) {
@@ -506,7 +526,7 @@ public class CarmlMapper implements Mapper, MappingCache {
 
 			@Override
 			public boolean hasEffect(Model model, Resource resource) {
-				return model.filter(resource, predicate, null).size() > 0;
+				return !model.filter(resource, predicate, null).isEmpty();
 			}
 		});
 	}
@@ -539,8 +559,7 @@ public class CarmlMapper implements Mapper, MappingCache {
 	@Override
 	public Type getDecidableType(IRI rdfType) {
 		if (!decidableTypes.containsKey(rdfType)) {
-			throw new RuntimeException("could not find a java type "
-				+ "corresponding to rdf type [" + rdfType + "]");
+			throw new RuntimeException(String.format("could not find a java type corresponding to rdf type [%s]", rdfType));
 		}
 		return decidableTypes.get(rdfType);
 	}

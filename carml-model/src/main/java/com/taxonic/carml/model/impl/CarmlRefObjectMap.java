@@ -23,7 +23,9 @@ public class CarmlRefObjectMap extends CarmlResource implements RefObjectMap {
 	TriplesMap parentTriplesMap;
 	Set<Join> joinConditions;
 
-	public CarmlRefObjectMap() {}
+	public CarmlRefObjectMap() {
+		// Empty constructor for object mapper
+	}
 
 	public CarmlRefObjectMap(
 			TriplesMap parentTriplesMap,
@@ -84,9 +86,11 @@ public class CarmlRefObjectMap extends CarmlResource implements RefObjectMap {
 
 	@Override
 	public Set<Resource> getReferencedResources() {
-		return ImmutableSet.<Resource>builder()
-				.add(parentTriplesMap)
-				.addAll(joinConditions)
+		ImmutableSet.Builder<Resource> builder = ImmutableSet.<Resource>builder();
+		if (parentTriplesMap != null) {
+			builder.add(parentTriplesMap);
+		}
+		return builder.addAll(joinConditions)
 				.build();
 	}
 

@@ -7,7 +7,7 @@ import java.util.Set;
 import com.taxonic.carml.model.impl.*;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
-import org.eclipse.rdf4j.model.vocabulary.XMLSchema;
+import org.eclipse.rdf4j.model.vocabulary.XSD;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
@@ -31,7 +31,6 @@ public class TestRdfMapperTermType extends RmlLoader {
 		static final IRI
 			Unknown = iri("Unknown"),
 			Child = iri("Child"),
-			language = iri("language"),
 			hasBirthday = iri("hasBirthday");
 	}
 	
@@ -62,7 +61,7 @@ public class TestRdfMapperTermType extends RmlLoader {
 						.objectMap(
 								CarmlObjectMap.newBuilder()
 								.reference("birthday")
-								.datatype(XMLSchema.DATE)
+								.datatype(XSD.DATE)
 								.termType(TermType.LITERAL)
 								.build()
 						)
@@ -140,7 +139,7 @@ public class TestRdfMapperTermType extends RmlLoader {
 						.objectMap(
 								CarmlObjectMap.newBuilder()
 								.reference("birthday")
-								.datatype(XMLSchema.DATE)
+								.datatype(XSD.DATE)
 								.build()
 						)
 						.build()

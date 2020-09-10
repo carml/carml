@@ -18,7 +18,9 @@ public class CarmlJoin extends CarmlResource implements Join{
 	private String child;
 	private String parent;
 
-	public CarmlJoin() {}
+	public CarmlJoin() {
+		// Empty constructor for object mapper
+	}
 
 	public CarmlJoin(
 			String child,

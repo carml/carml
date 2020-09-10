@@ -22,7 +22,9 @@ public class CarmlObjectMap extends CarmlTermMap implements ObjectMap {
 	private IRI datatype;
 	private String language;
 
-	public CarmlObjectMap() {}
+	public CarmlObjectMap() {
+		// Empty constructor for object mapper
+	}
 
 	public CarmlObjectMap(
 		String reference,

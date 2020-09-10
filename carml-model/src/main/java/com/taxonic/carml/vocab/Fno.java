@@ -1,6 +1,9 @@
 package com.taxonic.carml.vocab;
 
+@SuppressWarnings("java:S115")
 public class Fno {
+
+	private Fno() {}
 
 	public static final String PREFIX = "fno";
 	public static final String NAMESPACE = "https://w3id.org/function/ontology#";

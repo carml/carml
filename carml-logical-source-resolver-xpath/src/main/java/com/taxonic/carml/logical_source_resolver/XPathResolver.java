@@ -103,9 +103,7 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
 		if (item.getStringValue().length() == 0) {
 			return null;
 		}
-		
-		
-		String result = autoNodeTextExtraction ? item.getStringValue() : value.toString();
-		return result;
+
+		return autoNodeTextExtraction ? item.getStringValue() : value.toString();
 	}
 }

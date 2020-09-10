@@ -25,7 +25,9 @@ public class CarmlPredicateObjectMap extends CarmlResource implements PredicateO
 	private Set<BaseObjectMap> objectMaps;
 	private Set<GraphMap> graphMaps;
 
-	public CarmlPredicateObjectMap() {}
+	public CarmlPredicateObjectMap() {
+		// Empty constructor for object mapper
+	}
 
 	public CarmlPredicateObjectMap(
 		Set<PredicateMap> predicateMaps,

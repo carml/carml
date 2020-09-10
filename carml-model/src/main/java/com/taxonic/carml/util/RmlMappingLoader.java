@@ -120,7 +120,8 @@ public class RmlMappingLoader {
 							r.bindInterfaceImplementation(NameableStream.class, CarmlStream.class);
 							r.bindInterfaceImplementation(XmlSource.class, CarmlXmlSource.class);
 							r.bindInterfaceImplementation(FileSource.class, CarmlFileSource.class);
-						}));
+						},
+						RmlNamespaces.RML_NAMESPACES));
 	}
 
 	private void addTermTypes(MappingCache cache) {

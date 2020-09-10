@@ -64,7 +64,7 @@ public class LogicalSourceSourcePropertyHandler implements PropertyHandler {
 
 	@Override
 	public boolean hasEffect(Model model, Resource resource) {
-		return model.filter(resource, predicate, null).size() > 0;
+		return !model.filter(resource, predicate, null).isEmpty();
 	}
 
 	@Inject @PropertyPredicate

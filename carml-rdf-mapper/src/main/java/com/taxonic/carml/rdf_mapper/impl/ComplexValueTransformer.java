@@ -1,20 +1,18 @@
 package com.taxonic.carml.rdf_mapper.impl;
 
+import com.google.common.collect.ImmutableMap;
+import com.taxonic.carml.rdf_mapper.Mapper;
+import com.taxonic.carml.rdf_mapper.TypeDecider;
 import java.lang.reflect.Type;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
-
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Literal;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Value;
-import org.eclipse.rdf4j.model.vocabulary.XMLSchema;
-
-import com.google.common.collect.ImmutableMap;
-import com.taxonic.carml.rdf_mapper.Mapper;
-import com.taxonic.carml.rdf_mapper.TypeDecider;
+import org.eclipse.rdf4j.model.vocabulary.XSD;
 
 public class ComplexValueTransformer implements ValueTransformer {
 
@@ -37,13 +35,13 @@ public class ComplexValueTransformer implements ValueTransformer {
 	
 	private static final Map<IRI, Function<Literal, Object>> literalGetters =
 		ImmutableMap.<IRI, Function<Literal, Object>>builder()
-			.put(XMLSchema.BOOLEAN, Literal::booleanValue)
-			.put(XMLSchema.STRING, Literal::getLabel)
-			.put(XMLSchema.DECIMAL, Literal::decimalValue)
-			.put(XMLSchema.FLOAT, Literal::floatValue)
-			.put(XMLSchema.INT, Literal::intValue)
-			.put(XMLSchema.INTEGER, Literal::integerValue) // BigInteger
-			.put(XMLSchema.DOUBLE, Literal::doubleValue)
+			.put(XSD.BOOLEAN, Literal::booleanValue)
+			.put(XSD.STRING, Literal::getLabel)
+			.put(XSD.DECIMAL, Literal::decimalValue)
+			.put(XSD.FLOAT, Literal::floatValue)
+			.put(XSD.INT, Literal::intValue)
+			.put(XSD.INTEGER, Literal::integerValue) // BigInteger
+			.put(XSD.DOUBLE, Literal::doubleValue)
 			// TODO more types, most notably xsd:date and variations
 			.build();
 
@@ -51,7 +49,8 @@ public class ComplexValueTransformer implements ValueTransformer {
 		IRI type = literal.getDatatype();
 		Function<Literal, Object> getter = literalGetters.get(type);
 		if (getter == null)
-			throw new RuntimeException("no getter for Literal defined that can handle literal with datatype [" + type + "]");
+			throw new RuntimeException(String.format("no getter for Literal [%s] defined that can handle literal with datatype [%s]",
+					literal, type));
 		return getter.apply(literal);
 	}
 	

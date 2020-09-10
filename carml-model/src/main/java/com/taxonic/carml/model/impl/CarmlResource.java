@@ -44,6 +44,11 @@ public abstract class CarmlResource implements Resource {
 	}
 
 	public org.eclipse.rdf4j.model.Resource getAsResource() {
+
+		if (id == null) {
+			return VF.createBNode();
+		}
+
 		if (RdfUtil.isValidIri(id)) {
 			return VF.createIRI(id);
 		}
@@ -82,7 +87,5 @@ public abstract class CarmlResource implements Resource {
 
 		return model;
 	}
-
-
 
 }

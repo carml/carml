@@ -27,6 +27,7 @@ import java.util.Optional;
 import org.apache.commons.io.IOUtils;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.ValueFactory;
+import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.rio.RDFFormat;
 import org.junit.Assert;
@@ -231,6 +232,8 @@ public class RmlMapperTest {
 		IRI unsupportedRefFormulation = f.createIRI("http://this.iri/isNotSupported");
 
 		TriplesMap logicalSourceMap = mock(TriplesMap.class);
+		when(logicalSourceMap.asRdf())
+				.thenReturn(new LinkedHashModel());
 		when(logicalSourceMap.getLogicalSource())
 				.thenReturn(new CarmlLogicalSource(null, null, unsupportedRefFormulation));
 
