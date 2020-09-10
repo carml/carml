@@ -14,7 +14,6 @@ import com.taxonic.carml.model.TermType;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.rdf_mapper.util.ImmutableCollectors;
 import com.taxonic.carml.util.IriSafeMaker;
-import com.taxonic.carml.util.LangTagUtil;
 import com.taxonic.carml.util.RdfUtil;
 import com.taxonic.carml.vocab.Rdf;
 import java.text.Normalizer;
@@ -37,6 +36,7 @@ import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
+import org.eclipse.rdf4j.model.util.Literals;
 import org.eclipse.rdf4j.model.util.Models;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -389,7 +389,7 @@ class TermGeneratorCreator {
 				String languageTag = objectMap.getLanguage();
 
 				if (languageTag != null) {
-					if (!LangTagUtil.isWellFormed(languageTag)) {
+					if (!Literals.isValidLanguageTag(languageTag)) {
 						throw new RuntimeException(
 								String.format("Invalid lang tag '%s' used in object map %n%s", languageTag, objectMap));
 					}
