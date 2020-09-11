@@ -21,11 +21,11 @@ rr:predicateObjectMap [
 	rr:predicate ex:hasAvailableMovie;
 	rr:objectMap [
 		rr:parentTriplesMap <#MovieMapping>;
-		carml:multiJoinCondition [
+		rr:joinCondition [
 			rr:child "favouriteGenre";
 			rr:parent "movieGenre"
 			];
-		carml:multiJoinCondition [
+		rr:joinCondition [
 			rr:child "ageGroup";
 			rr:parent "ageGroup"
 			]

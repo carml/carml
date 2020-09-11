@@ -1,18 +1,26 @@
 package com.taxonic.carml.model.impl;
 
+import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.model.Namespace;
+import com.taxonic.carml.model.Resource;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.vocab.Carml;
+import com.taxonic.carml.vocab.Rdf;
 import java.util.Objects;
+import java.util.Set;
 import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
+import org.eclipse.rdf4j.model.util.ModelBuilder;
+import org.eclipse.rdf4j.model.vocabulary.RDF;
 
 public class CarmlNamespace extends CarmlResource implements Namespace {
 
 	private String prefix;
 	private String name;
 
-	public CarmlNamespace() {}
+	public CarmlNamespace() {
+		// Empty constructor for object mapper
+	}
 
 	public CarmlNamespace(String prefix, String name) {
 		this.prefix = prefix;
@@ -62,6 +70,23 @@ public class CarmlNamespace extends CarmlResource implements Namespace {
 		}
 		CarmlNamespace other = (CarmlNamespace) obj;
 		return Objects.equals(prefix, other.prefix) && Objects.equals(name, other.name);
+	}
+
+	@Override
+	public Set<Resource> getReferencedResources() {
+		return ImmutableSet.of();
+	}
+
+	@Override
+	public void addTriples(ModelBuilder modelBuilder) {
+		modelBuilder.subject(getAsResource())
+				.add(RDF.TYPE, Rdf.Carml.Namespace);
+		if (prefix != null) {
+			modelBuilder.add(Carml.namespacePrefix, prefix);
+		}
+		if (name != null) {
+			modelBuilder.add(Carml.namespaceName, name);
+		}
 	}
 
 	public static Builder newBuilder() {

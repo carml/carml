@@ -1,11 +1,11 @@
 package com.taxonic.carml.rdf_mapper.util;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.hamcrest.collection.IsEmptyCollection.empty;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.IsNull.nullValue;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,6 +23,7 @@ import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
+import org.eclipse.rdf4j.model.vocabulary.RDF;
 import org.eclipse.rdf4j.repository.Repository;
 import org.eclipse.rdf4j.repository.RepositoryConnection;
 import org.eclipse.rdf4j.repository.RepositoryResult;
@@ -58,7 +59,7 @@ public class RdfObjectLoaderTest {
 			model ->
 				ImmutableSet.copyOf(
 					model
-					.filter(null, VF.createIRI(Person.SCHEMAORG_NAME), null)
+					.filter(null, RDF.TYPE, VF.createIRI(Person.SCHEMAORG + "Person"))
 					.subjects()
 				);
 	
@@ -110,7 +111,7 @@ public class RdfObjectLoaderTest {
 
 		
 		repo = new SailRepository(new MemoryStore());
-		repo.initialize();
+		repo.init();
 		
 		try (RepositoryConnection conn = repo.getConnection()) {			
 			

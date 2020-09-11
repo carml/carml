@@ -1,0 +1,60 @@
+{
+    "@context": {
+        "type": "@type",
+        "id": "@id",
+        "@vocab": "http://schema.org/",
+        "schema": "http://schema.org/",
+        "name": {
+            "@id": "schema:name"
+        },
+        "knows": {
+            "@id": "schema:knows"
+        },
+        "relatedTo": {
+            "@id": "schema:relatedTo"
+        },
+        "colleagues": {
+            "@id": "schema:colleagues"
+        }
+    },
+    "@graph" : [
+        {
+            "@id": "http://example.org/people#manu",
+            "@type": "Person", 
+            "name": "Manu Sporny",
+            "knows":
+            [
+                {
+                    "@type": "Person",
+                    "name": "Michael Hausenblas"
+                },
+                {
+                    "@type": "Person",
+                    "name": "Richard Cyganiak"
+                },
+                {
+                    "@type": "Person",
+                    "name": "Stéphane Corlosquet"
+                }
+            ],
+            "relatedTo":
+            [
+                {
+                    "@type": "Person",
+                    "name": "James Sporny"
+                },
+                {
+                    "@type": "Person",
+                    "name": "Tim Berners Lee"
+                }
+            ],
+            "colleagues":
+            [
+                {
+                    "@type": "Person",
+                    "name": "Dave Longley"
+                }
+            ]
+        }
+    ]
+}

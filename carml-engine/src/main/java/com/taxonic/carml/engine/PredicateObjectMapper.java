@@ -7,6 +7,8 @@ import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 
+import com.taxonic.carml.vocab.Rdf.Rr;
+
 class PredicateObjectMapper {
 	
 	private Set<TermGenerator<IRI>> graphGenerators;
@@ -31,6 +33,7 @@ class PredicateObjectMapper {
 							.map(l -> l.get(0))
 				)
 				.distinct()
+				.filter(g -> !g.equals(Rr.defaultGraph))
 				.toArray(Resource[]::new);
 		
 		predicateMappers.forEach(p -> p.map(model, evaluate, subject, contexts));

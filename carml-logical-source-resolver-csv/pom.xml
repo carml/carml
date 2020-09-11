@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>com.taxonic.carml</groupId>
 		<artifactId>carml</artifactId>
-		<version>0.2.3</version>
+		<version>0.3.0</version>
 	</parent>
 
 	<artifactId>carml-logical-source-resolver-csv</artifactId>
@@ -18,12 +18,22 @@
 		<dependency>
 			<groupId>com.univocity</groupId>
 			<artifactId>univocity-parsers</artifactId>
-			<version>2.6.3</version>
+			<version>2.9.0</version>
 		</dependency>
 
 		<dependency>
 			<groupId>com.taxonic.carml</groupId>
 			<artifactId>carml-logical-source-resolver</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>com.taxonic.carml</groupId>
+			<artifactId>carml-model</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>com.taxonic.carml</groupId>
+			<artifactId>carml-commons</artifactId>
 		</dependency>
 
 		<dependency>
@@ -34,7 +44,7 @@
 
 		<dependency>
 			<groupId>org.hamcrest</groupId>
-			<artifactId>hamcrest-library</artifactId>
+			<artifactId>hamcrest</artifactId>
 			<scope>test</scope>
 		</dependency>
 

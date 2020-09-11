@@ -1,18 +1,23 @@
 package com.taxonic.carml.model.impl;
 
+import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.model.BaseObjectMap;
 import com.taxonic.carml.model.GraphMap;
 import com.taxonic.carml.model.PredicateMap;
 import com.taxonic.carml.model.PredicateObjectMap;
+import com.taxonic.carml.model.Resource;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.rdf_mapper.annotations.RdfType;
 import com.taxonic.carml.rdf_mapper.annotations.RdfTypeDecider;
+import com.taxonic.carml.vocab.Rdf;
 import com.taxonic.carml.vocab.Rr;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
 import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
+import org.eclipse.rdf4j.model.util.ModelBuilder;
+import org.eclipse.rdf4j.model.vocabulary.RDF;
 
 public class CarmlPredicateObjectMap extends CarmlResource implements PredicateObjectMap {
 
@@ -20,7 +25,9 @@ public class CarmlPredicateObjectMap extends CarmlResource implements PredicateO
 	private Set<BaseObjectMap> objectMaps;
 	private Set<GraphMap> graphMaps;
 
-	public CarmlPredicateObjectMap() {}
+	public CarmlPredicateObjectMap() {
+		// Empty constructor for object mapper
+	}
 
 	public CarmlPredicateObjectMap(
 		Set<PredicateMap> predicateMaps,
@@ -39,7 +46,6 @@ public class CarmlPredicateObjectMap extends CarmlResource implements PredicateO
 		return predicateMaps;
 	}
 
-	// TODO: make @RdfProperty repeatable so we can also use Carml.multiObjectMap here
 	@RdfProperty(Rr.objectMap)
 	@RdfTypeDecider(ObjectMapTypeDecider.class)
 	@Override
@@ -91,6 +97,25 @@ public class CarmlPredicateObjectMap extends CarmlResource implements PredicateO
 		return Objects.equals(predicateMaps, other.predicateMaps) &&
 				Objects.equals(objectMaps, other.objectMaps) &&
 				Objects.equals(graphMaps, other.graphMaps);
+	}
+
+	@Override
+	public Set<Resource> getReferencedResources() {
+		return ImmutableSet.<Resource>builder()
+				.addAll(predicateMaps)
+				.addAll(objectMaps)
+				.addAll(graphMaps)
+				.build();
+	}
+
+	@Override
+	public void addTriples(ModelBuilder modelBuilder) {
+		modelBuilder.subject(getAsResource())
+				.add(RDF.TYPE, Rdf.Rr.PredicateObjectMap);
+
+		predicateMaps.forEach(pm -> modelBuilder.add(Rr.predicateMap, pm.getAsResource()));
+		objectMaps.forEach(om -> modelBuilder.add(Rr.objectMap, om.getAsResource()));
+		graphMaps.forEach(gm -> modelBuilder.add(Rr.graphMap, gm.getAsResource()));
 	}
 
 	public static Builder newBuilder() {

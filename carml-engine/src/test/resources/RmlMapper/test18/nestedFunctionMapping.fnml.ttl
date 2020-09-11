@@ -1,4 +1,4 @@
-@prefix fno: <http://semweb.datasciencelab.be/ns/function#> .
+@prefix fno: <https://w3id.org/function/ontology#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .

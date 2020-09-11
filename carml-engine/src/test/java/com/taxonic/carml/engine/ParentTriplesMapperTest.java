@@ -1,8 +1,8 @@
 package com.taxonic.carml.engine;
 
-import static org.hamcrest.collection.IsIn.isIn;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.collection.IsIn.in;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -63,7 +63,7 @@ public class ParentTriplesMapperTest {
 		ParentTriplesMapper<Object> mapper = new ParentTriplesMapper<>(subjectGenerator, getIterator, expressionEvaluatorFactory);
 		Set<Resource> resources = mapper.map(joinValues);
 		assertThat(resources.size(), is(1));
-		assertThat(SKOS.CONCEPT, isIn(resources));
+		assertThat(SKOS.CONCEPT, is(in(resources)));
 	}
 
 	@Test
@@ -74,7 +74,7 @@ public class ParentTriplesMapperTest {
 		ParentTriplesMapper<Object> mapper = new ParentTriplesMapper<>(subjectGenerator, getIterator, expressionEvaluatorFactory);
 		Set<Resource> resources = mapper.map(multiJoinValues);
 		assertThat(resources.size(), is(1));
-		assertThat(SKOS.CONCEPT, isIn(resources));
+		assertThat(SKOS.CONCEPT, is(in(resources)));
 	}
 
 	// TODO

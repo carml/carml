@@ -1,7 +1,7 @@
 package com.taxonic.carml.logical_source_resolver;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -11,8 +11,11 @@ import com.taxonic.carml.model.LogicalSource;
 import com.taxonic.carml.model.impl.CarmlLogicalSource;
 import com.taxonic.carml.vocab.Rdf.Ql;
 import com.univocity.parsers.common.record.Record;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.function.Function;
+import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -68,5 +71,12 @@ public class CsvResolverTest {
 		EvaluateExpression evaluateExpression = evaluatorFactory.apply(records.get(0));
 		assertThat(evaluateExpression.apply(expression).get(), is("1997"));
 	}
-	
+
+	@Test
+	public void expressionEvaluator_shouldMapLargeColumns() throws IOException {
+		String csv = IOUtils.toString(CsvResolverTest.class.getResourceAsStream("large_column.csv"), StandardCharsets.UTF_8);
+		LogicalSource logicalSource = new CarmlLogicalSource(csv, null, Ql.Csv);
+		Iterable<Record> recordIterator = csvResolver.bindSource(logicalSource, sourceResolver).get();
+		assertThat(Iterables.size(recordIterator), is(1));
+	}
 }

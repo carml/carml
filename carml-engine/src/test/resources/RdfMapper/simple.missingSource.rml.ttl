@@ -1,0 +1,16 @@
+@prefix rr: <http://www.w3.org/ns/r2rml#>.
+@prefix rml: <http://semweb.mmlab.be/ns/rml#>.
+@prefix ql: <http://semweb.mmlab.be/ns/ql#> .
+@prefix carml: <http://carml.taxonic.com/carml/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix : <http://carml.net/test/> .
+
+<#SubjectMapping> a rr:TriplesMap ;
+	rml:logicalSource [
+		rml:source [] ;
+		rml:referenceFormulation ql:XPath ;
+		rml:iterator "*" ;
+	] ;
+	
+	rr:subject <http://www.example.com/subject> ;
+.

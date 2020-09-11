@@ -29,9 +29,11 @@ final class TriplesMapperComponents<T> {
 	}
 
 	Supplier<Iterable<T>> getIterator() {
-		LOG.trace("Retrieving iterable from source {}" + (
-				logicalSource.getIterator() != null ? " with iterator expression: {}" : ""),
-				logicalSource.getSource(), logicalSource.getIterator());
+		if (LOG.isTraceEnabled()) {
+			LOG.trace("Retrieving iterable from source {}" + (
+							logicalSource.getIterator() != null ? " with iterator expression: {}" : ""),
+					logicalSource.getSource(), logicalSource.getIterator());
+		}
 		return logicalSourceResolver.bindSource(logicalSource, sourceResolver);
 	}
 

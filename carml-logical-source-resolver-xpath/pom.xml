@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>com.taxonic.carml</groupId>
 		<artifactId>carml</artifactId>
-		<version>0.2.3</version>
+		<version>0.3.0</version>
 	</parent>
 
 	<artifactId>carml-logical-source-resolver-xpath</artifactId>
@@ -18,12 +18,22 @@
 		<dependency>
 			<groupId>net.sf.saxon</groupId>
 			<artifactId>Saxon-HE</artifactId>
-			<version>9.8.0-12</version>
+			<version>10.2</version>
 		</dependency>
 
 		<dependency>
 			<groupId>com.taxonic.carml</groupId>
 			<artifactId>carml-logical-source-resolver</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>com.taxonic.carml</groupId>
+			<artifactId>carml-model</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>com.taxonic.carml</groupId>
+			<artifactId>carml-commons</artifactId>
 		</dependency>
 
 		<dependency>
@@ -40,7 +50,7 @@
 
 		<dependency>
 			<groupId>org.hamcrest</groupId>
-			<artifactId>hamcrest-library</artifactId>
+			<artifactId>hamcrest</artifactId>
 			<scope>test</scope>
 		</dependency>
 

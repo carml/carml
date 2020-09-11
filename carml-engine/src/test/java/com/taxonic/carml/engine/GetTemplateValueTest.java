@@ -1,7 +1,7 @@
 package com.taxonic.carml.engine;
 
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -84,8 +84,6 @@ public class GetTemplateValueTest {
 	@Test
 	public void getTemplateValue_givenValidInputAndNotFindingValue_returnsNoValues() {
 		when(evaluateExpression.apply("xyz")).thenReturn(Optional.empty());
-		when(createNaturalRdfLexicalForm.apply("evaluated")).thenReturn("natural");
-		when(transformValue.apply("natural")).thenReturn("transformed");
 
 		Template template = TemplateParser.build().parse("abc{xyz}");
 		GetTemplateValue getTemplateValue =

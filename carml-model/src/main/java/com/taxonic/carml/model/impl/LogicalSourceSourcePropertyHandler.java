@@ -62,6 +62,11 @@ public class LogicalSourceSourcePropertyHandler implements PropertyHandler {
 		);
 	}
 
+	@Override
+	public boolean hasEffect(Model model, Resource resource) {
+		return !model.filter(resource, predicate, null).isEmpty();
+	}
+
 	@Inject @PropertyPredicate
 	public void setPredicate(IRI predicate) {
 		this.predicate = predicate;

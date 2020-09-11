@@ -1,22 +1,30 @@
 package com.taxonic.carml.model.impl;
 
+import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.model.ObjectMap;
+import com.taxonic.carml.model.Resource;
 import com.taxonic.carml.model.TermType;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
+import com.taxonic.carml.vocab.Rdf;
 import com.taxonic.carml.vocab.Rr;
 import java.util.Objects;
+import java.util.Set;
 import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Value;
+import org.eclipse.rdf4j.model.util.ModelBuilder;
+import org.eclipse.rdf4j.model.vocabulary.RDF;
 
 public class CarmlObjectMap extends CarmlTermMap implements ObjectMap {
 
 	private IRI datatype;
 	private String language;
 
-	public CarmlObjectMap() {}
+	public CarmlObjectMap() {
+		// Empty constructor for object mapper
+	}
 
 	public CarmlObjectMap(
 		String reference,
@@ -77,6 +85,28 @@ public class CarmlObjectMap extends CarmlTermMap implements ObjectMap {
 		CarmlObjectMap other = (CarmlObjectMap) obj;
 		return Objects.equals(datatype, other.datatype) &&
 				Objects.equals(language, other.language);
+	}
+
+	@Override
+	public Set<Resource> getReferencedResources() {
+		return ImmutableSet.<Resource>builder()
+				.addAll(getReferencedResourcesBase())
+				.build();
+	}
+
+	@Override
+	public void addTriples(ModelBuilder modelBuilder) {
+		modelBuilder.subject(getAsResource())
+				.add(RDF.TYPE, Rdf.Rr.ObjectMap);
+
+		addTriplesBase(modelBuilder);
+
+		if (datatype != null) {
+			modelBuilder.add(Rr.datatype, datatype);
+		}
+		if (language != null) {
+			modelBuilder.add(Rr.language, language);
+		}
 	}
 
 	public static Builder newBuilder() {

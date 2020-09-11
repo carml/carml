@@ -1,4 +1,4 @@
-package resources.functions;
+package RmlMapper;
 
 public class FNMLFunctions {
 

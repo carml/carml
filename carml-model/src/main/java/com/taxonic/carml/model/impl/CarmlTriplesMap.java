@@ -1,11 +1,14 @@
 package com.taxonic.carml.model.impl;
 
+import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.model.LogicalSource;
 import com.taxonic.carml.model.PredicateObjectMap;
+import com.taxonic.carml.model.Resource;
 import com.taxonic.carml.model.SubjectMap;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.rdf_mapper.annotations.RdfType;
+import com.taxonic.carml.vocab.Rdf;
 import com.taxonic.carml.vocab.Rml;
 import com.taxonic.carml.vocab.Rr;
 import java.util.LinkedHashSet;
@@ -14,6 +17,8 @@ import java.util.Set;
 import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
+import org.eclipse.rdf4j.model.util.ModelBuilder;
+import org.eclipse.rdf4j.model.vocabulary.RDF;
 
 public class CarmlTriplesMap extends CarmlResource implements TriplesMap{
 
@@ -21,7 +26,9 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap{
 	private SubjectMap subjectMap;
 	private Set<PredicateObjectMap> predicateObjectMaps;
 
-	public CarmlTriplesMap() {}
+	public CarmlTriplesMap() {
+		// Empty constructor for object mapper
+	}
 
 	public CarmlTriplesMap(
 		LogicalSource logicalSource,
@@ -94,6 +101,32 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap{
 		return Objects.equals(logicalSource, other.logicalSource) &&
 				Objects.equals(subjectMap, other.subjectMap) &&
 				Objects.equals(predicateObjectMaps, other.predicateObjectMaps);
+	}
+
+	@Override
+	public Set<Resource> getReferencedResources() {
+		ImmutableSet.Builder<Resource> builder = ImmutableSet.<Resource>builder();
+		if (logicalSource != null) {
+			builder.add(logicalSource);
+		}
+		if (subjectMap != null) {
+			builder.add(subjectMap);
+		}
+		return builder.addAll(predicateObjectMaps)
+				.build();
+	}
+
+	@Override
+	public void addTriples(ModelBuilder modelBuilder) {
+		modelBuilder.subject(getAsResource())
+				.add(RDF.TYPE, Rdf.Rr.TriplesMap);
+		if (logicalSource != null) {
+			modelBuilder.add(Rml.logicalSource, logicalSource.getAsResource());
+		}
+		if (subjectMap != null) {
+			modelBuilder.add(Rr.subjectMap, subjectMap.getAsResource());
+		}
+		predicateObjectMaps.forEach(pom -> modelBuilder.add(Rr.predicateObjectMap, pom.getAsResource()));
 	}
 
 	public static Builder newBuilder() {

@@ -7,5 +7,7 @@ import java.lang.annotation.RetentionPolicy;
 public @interface RdfType {
 
 	Class<?> value();
-	
+
+	boolean deprecated() default false;
+
 }

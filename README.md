@@ -1,3 +1,4 @@
+
 <p align="center">
 <img src="https://raw.githubusercontent.com/carml/carml.github.io/master/carml-logo.png" height="100" alt="carml">
 </p>
@@ -6,26 +7,26 @@ CARML
 =====================
 **A pretty sweet RML engine**
 
-(**Disclaimer:** The current state of CARML is early beta.
-The next release will offer improved code quality, more test coverage, more documentation and several features currently on the product backlog.)
+CARML was first developed by [Taxonic](http://www.taxonic.com) in cooperation with [Kadaster](https://www.kadaster.com/). And is now being maintained and developed further by [Skemu](https://skemu.com).
 
-CARML is being developed by [Taxonic](http://www.taxonic.com) in cooperation with [Kadaster](https://www.kadaster.com/).
 
 [![Build Status](https://api.travis-ci.org/carml/carml.svg?branch=master)](https://travis-ci.org/carml/carml)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.taxonic.carml/carml/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.taxonic.carml/carml)
 
 Table of Contents
 -----------------
-- [Releases](#releases)
-- [Introduction](#introduction)
-- [Getting started](#getting-started)
-- [Validating your RML mapping](#validating-your-rml-mapping)
-- [Input stream extension](#input-stream-extension)
-- [Function extension](#function-extension)
-- [MultiTermMap extension](#multitermmap-extension)
-- [XML namespace extension](#xml-namespace-extension)
-- [Supported data source types](#supported-data-source-types)
-- [Roadmap](#roadmap)
+- [CARML](#carml)
+  - [Table of Contents](#table-of-contents)
+  - [Releases](#releases)
+  - [Introduction](#introduction)
+  - [Getting started](#getting-started)
+  - [Validating your RML mapping](#validating-your-rml-mapping)
+  - [Input stream extension](#input-stream-extension)
+  - [Function extension](#function-extension)
+  - [XML namespace extension](#xml-namespace-extension)
+  - [Supported Data Source Types](#supported-data-source-types)
+  - [CARML in RML Test Cases](#carml-in-rml-test-cases)
+  - [Roadmap](#roadmap)
 
 Releases
 ----
@@ -45,9 +46,11 @@ Releases
 
 17 Nov 2018 - CARML 0.2.3
 
+11 Sep 2020 - CARML 0.3.0
+
 Introduction
 ------------
-CARML is a java library that transforms structured sources to RDF based as declared in and [RML](http://rml.io) mapping, in accordance with the [RML spec](http://rml.io/spec.html). It is considered by many as the optimal choice for mapping structured sources to RDF.
+CARML is a java library that transforms structured sources to RDF based as declared in and [RML](http://rml.io) mapping, in accordance with the [RML spec](http://rml.io/spec.html).
 
 The best place to start learning about RML is at the [source](http://rml.io), but basically
 RML is defined as a superset of [R2RML](https://www.w3.org/TR/r2rml/) which is a W3C recommendation that describes a language for expressing mappings from relational databases to RDF datasets. RML allows not only the expression of mappings for relational databases, but generalizes this to any structured source. All you need is a way to iterate over and query the source.
@@ -61,24 +64,24 @@ CARML is available from the Central Maven Repository.
 <dependency>
     <groupId>com.taxonic.carml</groupId>
     <artifactId>carml-engine</artifactId>
-    <version>0.2.3</version>
+    <version>0.3.0</version>
 </dependency>
 
 <!-- Choose the resolvers to suit your need -->
 <dependency>
   <groupId>com.taxonic.carml</groupId>
   <artifactId>carml-logical-source-resolver-jsonpath</artifactId>
-  <version>0.2.3</version>
+  <version>0.3.0</version>
 </dependency>
 <dependency>
   <groupId>com.taxonic.carml</groupId>
   <artifactId>carml-logical-source-resolver-xpath</artifactId>
-  <version>0.2.3</version>
+  <version>0.3.0</version>
 </dependency>
 <dependency>
   <groupId>com.taxonic.carml</groupId>
   <artifactId>carml-logical-source-resolver-csv</artifactId>
-  <version>0.2.3</version>
+  <version>0.3.0</version>
 </dependency>
 
 ```
@@ -98,14 +101,20 @@ RmlMapper mapper =
     .setLogicalSourceResolver(Rdf.Ql.JsonPath, new JsonPathResolver())
     .setLogicalSourceResolver(Rdf.Ql.XPath, new XPathResolver())
     .setLogicalSourceResolver(Rdf.Ql.Csv, new CsvResolver())
-    // optional:
+
+    //-- optional: --
       // specify IRI unicode normalization form (default = NFC)
       // see http://www.unicode.org/unicode/reports/tr15/tr15-23.html
     .iriUnicodeNormalization(Form.NFKC)
       // set file directory for sources in mapping
     .fileResolver("/some/dir/")
       // set classpath basepath for sources in mapping
-    .classPathResolver("/some/path")
+    .classPathResolver("some/path")
+      // specify casing of hex numbers in IRI percent encoding (default = true)
+      // added for backwards compatibility with IRI encoding up until v0.2.3
+    .iriUpperCasePercentEncoding(false)
+    //---------------
+
     .build();
 
 Model result = mapper.map(mapping);
@@ -165,7 +174,7 @@ To be able to use this in RML mappings we use executions of instances of `fno:Fu
 @prefix rml: <http://semweb.mmlab.be/ns/rml#> .
 @prefix fnml: <http://semweb.mmlab.be/ns/fnml#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-@prefix fno: <http://semweb.datasciencelab.be/ns/function#> .
+@prefix fno: <https://w3id.org/function/ontology#> .
 @prefix ex: <http://example.org/> .
 
 ex:sumValuePredicateObjectMap
@@ -232,202 +241,6 @@ It is recommended to describe and publish new functions in terms of FnO for inte
 
 Note that it is currently possible to specify and use function executions as parameters of other function executions in CARML, although this is not (yet?) expressible in FnO.
 
-MultiTermMap extension
-----------------------
-As RML is a superset of R2RML that was developed after R2RML, and R2RML only supports term maps that return a single RDF term, it is not possible to have a term map return multiple values according to the current [RML spec](http://rml.io/spec.html).
-However, in structured file sources like XML and JSON, it is often the case that a collection of similar nodes is nested in another.
-
-For example:
-```json
-{
-  "name":"John Doe",
-  "cars":[ "BMW", "Seat", "Porsche" ]
-}
-```
-The only way to get a `ex:John%20Doe ex:ownsCar X` triple per value in `cars[]` with RML would be something like the following mapping:
-```
-@prefix rr: <http://www.w3.org/ns/r2rml#>.
-@prefix rml: <http://semweb.mmlab.be/ns/rml#>.
-@prefix ql: <http://semweb.mmlab.be/ns/ql#> .
-@prefix carml: <http://carml.taxonic.com/carml/> .
-@prefix ex: <http://www.example.com/> .
-
-<#SubjectMapping> a rr:TriplesMap ;
-  rml:logicalSource [
-    rml:source [
-      a carml:Stream ;
-    ] ;
-    rml:referenceFormulation ql:JSONPath ;
-    rml:iterator "$" ;
-  ] ;
-
-  rr:subjectMap [
-    rr:template "http://www.example.com/{name}" ;
-  ] ;
-
-  rr:predicateObjectMap [
-    rr:predicate ex:ownsCar ;
-    rr:objectMap [
-      rml:reference "cars[0]" ;
-    ] ;
-  ] ;
-
-  rr:predicateObjectMap [
-    rr:predicate ex:ownsCar ;
-    rr:objectMap [
-      rml:reference "cars[1]" ;
-    ] ;
-  ] ;
-
-  rr:predicateObjectMap [
-    rr:predicate ex:ownsCar ;
-    rr:objectMap [
-      rml:reference "cars[2]" ;
-    ] ;
-  ] ;
-.
-```
-
-This is not very flexible.
-
-To solve this issue, CARML introduces the notion of a MultiTermMap and the following properties:
-
-* `carml:multiTemplate`
-* `carml:multiReference`
-* `carml:multiFunctionValue`
-* `carml:multiJoinCondition`
-
-This allows the earlier example to be mapped as follows:
-```
-@prefix rr: <http://www.w3.org/ns/r2rml#>.
-@prefix rml: <http://semweb.mmlab.be/ns/rml#>.
-@prefix ql: <http://semweb.mmlab.be/ns/ql#> .
-@prefix carml: <http://carml.taxonic.com/carml/> .
-@prefix ex: <http://www.example.com/> .
-
-<#SubjectMapping> a rr:TriplesMap ;
-  rml:logicalSource [
-    rml:source [
-      a carml:Stream ;
-    ] ;
-    rml:referenceFormulation ql:JSONPath ;
-    rml:iterator "$" ;
-  ] ;
-
-  rr:subjectMap [
-    rr:template "http://www.example.com/{name}" ;
-  ] ;
-
-  rr:predicateObjectMap [
-    rr:predicate ex:ownsCar ;
-    rr:objectMap [
-      carml:multiReference "cars" ;
-      rr:datatype xsd:string ;
-    ] ;
-  ] ;
-.
-```
-
-returning:
-```
-<http://www.example.com/John%20Doe>
-  <http://www.example.com/ownsCar>
-    "BMW" ,
-    "Seat" ,
-    "Porsche" .
-```
-
-Adding a multiTemplate to the mapping:
-```
-  rr:predicateObjectMap [
-    rr:predicate ex:ownsCar2 ;
-    rr:objectMap [
-      carml:multiTemplate "Car: {cars}" ;
-      rr:datatype xsd:string ;
-    ] ;
-  ] ;
-```
-
-one gets:
-```
-<http://www.example.com/John%20Doe>
-  <http://www.example.com/ownsCar>
-    "BMW" ,
-    "Seat" ,
-    "Porsche" ;
-  <http://www.example.com/ownsCar2>
-    "Car: BMW" ,
-    "Car: Seat" ,
-    "Car: Porsche" .
-```
-
-Or using a multiJoinCondition:
-```
-  rr:predicateObjectMap [
-    rr:predicate ex:ownsCar3 ;
-    rr:objectMap [
-      rr:parentTriplesMap <#CarMapping> ;
-      carml:multiJoinCondition [
-        rr:child "cars" ;
-        rr:parent "$" ;
-      ] ;
-    ] ;
-  ] ;
-.
-
-<#CarMapping> a rr:TriplesMap ;
-rml:logicalSource [
-  rml:source [
-    a carml:Stream ;
-  ] ;
-  rml:referenceFormulation ql:JSONPath ;
-  rml:iterator "$.cars" ;
-] ;
-
-rr:subjectMap [
-  rr:template "http://www.example.com/{$}" ;
-] ;
-
-rr:predicateObjectMap [
-  rr:predicate rdfs:label ;
-  rr:objectMap [
-    rml:reference "$" ;
-    rr:datatype xsd:string ;
-  ] ;
-] ;
-.
-```
-
-yields:
-```
-<http://www.example.com/John%20Doe>
-  <http://www.example.com/ownsCar>
-    "BMW" ,
-    "Seat" ,
-    "Porsche" ;
-  <http://www.example.com/ownsCar2>
-    "Car: BMW" ,
-    "Car: Seat" ,
-    "Car: Porsche" ;
-  <http://www.example.com/ownsCar3>
-    <http://www.example.com/BMW> ,
-    <http://www.example.com/Seat> ,
-    <http://www.example.com/Porsche> .
-
-<http://www.example.com/BMW>
-  <http://www.w3.org/2000/01/rdf-schema#label> "BMW" .
-
-<http://www.example.com/Seat>
-  <http://www.w3.org/2000/01/rdf-schema#label> "Seat" .
-
-<http://www.example.com/Porsche>
-  <http://www.w3.org/2000/01/rdf-schema#label> "Porsche" .
-```
-
-you get the drift.
-
-**Note that currently CARML only supports MultiObjectMaps. Future versions may support this for graphs, subjects and predicates as well.**
-
 XML namespace extension
 -----------------------
 
@@ -461,7 +274,7 @@ one can now use the following mapping, declaring namespaces, to use them in XPat
     rml:source [
       a carml:Stream ;
       # or in case of a file source use:
-      # carml:url "path-to-souce" ;
+      # carml:url "path-to-source" ;
       carml:declaresNamespace [
         carml:namespacePrefix "ex" ;
         carml:namespaceName "http://www.example.com/books/1.0/" ;
@@ -491,12 +304,18 @@ Supported Data Source Types
 | Data source type | Reference query language                           | Implementation                                                      |
 | :--------------- | :------------------------------------------------- | :-------------------------------------------------------------      |
 | JSON             | [JsonPath](http://goessner.net/articles/JsonPath/) | [Jayway JsonPath 2.4.0](https://github.com/json-path/JsonPath)      |
-| XML              | [XPath](https://www.w3.org/TR/xpath-31/)           | [Saxon-HE 9.8.0-12](http://saxon.sourceforge.net/#F9.8HE)           |
-| CSV              | n/a                                                | [Univocity 2.6.3](https://github.com/uniVocity/univocity-parsers)   |
+| XML              | [XPath](https://www.w3.org/TR/xpath-31/)           | [Saxon-HE 10.2](http://saxon.sourceforge.net/#F10HE)           |
+| CSV              | n/a                                                | [Univocity 2.9.0](https://github.com/uniVocity/univocity-parsers)   |
+
+
+CARML in RML Test Cases
+-----------------------
+See the [RML implementation Report](https://rml.io/implementation-report/) for how CARML does in the [RML test cases](https://rml.io/test-cases/).
+
+> Note: currently we've raised [issues](https://github.com/RMLio/rml-test-cases/issues?q=is%3Aissue+author%3Apmaria+) for for some of the test cases which we believe are incorrect, or have an adverse effect on mapping data.
 
 Roadmap
 -------
-* CARML Command line interface
 * Better support for large sources
 * Improved join / parent triples map performance
 * Support RDF store connections

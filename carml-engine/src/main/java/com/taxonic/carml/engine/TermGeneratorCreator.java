@@ -14,6 +14,7 @@ import com.taxonic.carml.model.TermType;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.rdf_mapper.util.ImmutableCollectors;
 import com.taxonic.carml.util.IriSafeMaker;
+import com.taxonic.carml.util.RdfUtil;
 import com.taxonic.carml.vocab.Rdf;
 import java.text.Normalizer;
 import java.util.Arrays;
@@ -35,6 +36,7 @@ import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
+import org.eclipse.rdf4j.model.util.Literals;
 import org.eclipse.rdf4j.model.util.Models;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,8 +54,8 @@ class TermGeneratorCreator {
 	static TermGeneratorCreator create(RmlMapper mapper) {
 		return new TermGeneratorCreator(
 			SimpleValueFactory.getInstance(),
-			"http://none.com/",
-			IriSafeMaker.create(mapper.getNormalizationForm()),
+			"http://example.com/base/",
+			IriSafeMaker.create(mapper.getNormalizationForm(), mapper.getIriUpperCasePercentEncoding()),
 			TemplateParser.build(),
 			mapper
 		);
@@ -137,11 +139,12 @@ class TermGeneratorCreator {
 			.collect(Collectors.toList());
 
 		if (generators.isEmpty()) {
-			throw new RuntimeException("could not create generator for map [" + map + "]");
+			throw new RuntimeException(String.format("No constant, reference, template or function value found for term map [%s]",
+					map.getResourceName()));
 		}
 		if (generators.size() > 1) {
-			throw new RuntimeException(generators.size() + " generators were created for map [" + map + "]; "
-				+ "should be only 1. this is due to a term map specifying f.e. both an rr:reference and rr:constant");
+			throw new RuntimeException(String.format("%s value generators were created for term map [%s], where only 1 is expected.",
+					generators.size(), map.getResourceName()));
 		}
 		return generators.get(0);
 	}
@@ -159,7 +162,9 @@ class TermGeneratorCreator {
 				constant.getClass() + ", which is not allowed for this term map");
 		}
 		List<Value> constants = ImmutableList.of(constant);
-		LOG.trace("Generated constant values: {}", constants);
+		if (LOG.isTraceEnabled()) {
+			LOG.trace("Generated constant values: {}", constants);
+		}
 		return Optional.of(e -> constants);
 	}
 
@@ -299,11 +304,9 @@ class TermGeneratorCreator {
 	}
 
 	private IRI getFunctionIRI(Resource execution, Model model) {
-		return Models.objectIRI(
-				model.filter(execution, Rdf.Fno.executes, null)
-			)
-			.orElseThrow(() -> new RuntimeException(
-				"function execution does not have fno:executes value"));
+		return Models.objectIRI(model.filter(execution, Rdf.Fno.executes, null))
+			.orElseGet(() -> Models.objectIRI(model.filter(execution, Rdf.Fno.old_executes, null))
+						.orElseThrow(() -> new RuntimeException("function execution does not have fno:executes value")));
 	}
 
 	private TermType determineTermType(TermMap map) {
@@ -360,14 +363,18 @@ class TermGeneratorCreator {
 		> createGenerator = generateTerm ->
 			evaluateExpression -> {
 				Optional<Object> referenceValue = getValue.apply(evaluateExpression);
-				LOG.trace("with result: {}", referenceValue.map(r -> r).orElse("null"));
+				if (LOG.isTraceEnabled()) {
+					LOG.trace("with result: {}", referenceValue.map(r -> r).orElse("null"));
+				}
 				return referenceValue.map( r ->
 						unpackEvaluatedExpression(r, generateTerm))
 						.orElse(ImmutableList.of());
 			};
 
 		if (!allowedTermTypes.contains(termType)) {
-			throw new RuntimeException("encountered disallowed term type [" + termType + "]; allowed term types: " + allowedTermTypes);
+			throw new RuntimeException(
+					String.format("encountered disallowed term type [%s]%nin TermMap:%n%s%n%n allowed TermTypes: %s",
+					termType, map, allowedTermTypes));
 		}
 
 		switch (termType) {
@@ -383,10 +390,14 @@ class TermGeneratorCreator {
 				// term map is assumed to be an object map if it has term type literal
 				ObjectMap objectMap = (ObjectMap) map;
 
-				String language = objectMap.getLanguage();
-				if (language != null) {
-					return createGenerator.apply(lexicalForm ->
-						f.createLiteral(lexicalForm, language));
+				String languageTag = objectMap.getLanguage();
+
+				if (languageTag != null) {
+					if (!Literals.isValidLanguageTag(languageTag)) {
+						throw new RuntimeException(
+								String.format("Invalid lang tag '%s' used in object map %n%s", languageTag, objectMap));
+					}
+					return createGenerator.apply(lexicalForm -> f.createLiteral(lexicalForm, languageTag));
 				}
 
 				IRI datatype = objectMap.getDatatype();
@@ -400,35 +411,30 @@ class TermGeneratorCreator {
 					f.createLiteral(lexicalForm));
 
 			default:
-				throw new RuntimeException("unknown term type " + termType);
+				throw new RuntimeException(String.format("unknown term type [%s]%nin TermMap:%s", termType, map));
 
 		}
 	}
 
-	private boolean isValidIri(String str) {
-		return str.contains(":");
-	}
-
 	private IRI generateIriTerm(String lexicalForm) {
-
-		if (isValidIri(lexicalForm)) {
+		if (RdfUtil.isValidIri(lexicalForm)) {
 			return f.createIRI(lexicalForm);
 		}
 
 		String iri = baseIri + lexicalForm;
-		if (isValidIri(iri)) {
+		if (RdfUtil.isValidIri(iri)) {
 			return f.createIRI(iri);
 		}
 
-		throw new RuntimeException("data error: could not generate a valid iri from term lexical form [" + lexicalForm + "] as-is, or prefixed with base iri [" + baseIri + "]");
+		throw new RuntimeException(String.format(
+				"Could not generate a valid iri from term lexical form [%s] as-is, or prefixed with base iri [%s]",
+				lexicalForm, baseIri));
 
 	}
 
 	private BNode generateBNodeTerm(String lexicalForm) {
 		// TODO consider hash of 'lexicalForm' instead
 		String id = createValidBNodeId(lexicalForm);
-		// TODO not sure if successively generated ids for the
-		// same lexical form should have a different id (suffix -1, -2, -3, etc.)
 		return f.createBNode(id);
 	}
 
