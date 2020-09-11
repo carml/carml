@@ -35,7 +35,7 @@
     rr:predicate foaf:publications;
     rr:objectMap [
       rr:parentTriplesMap :documents;
-      carml:multiJoinCondition [
+      rr:joinCondition [
         rr:parent "./@id";
         rr:child "./authorof/@href" ;
       ];
