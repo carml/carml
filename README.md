@@ -1,3 +1,4 @@
+
 <p align="center">
 <img src="https://raw.githubusercontent.com/carml/carml.github.io/master/carml-logo.png" height="100" alt="carml">
 </p>
@@ -6,25 +7,26 @@ CARML
 =====================
 **A pretty sweet RML engine**
 
-(**Disclaimer:** The current state of CARML is early beta.
-The next release will offer improved code quality, more test coverage, more documentation and several features currently on the product backlog.)
+CARML was first developed by [Taxonic](http://www.taxonic.com) in cooperation with [Kadaster](https://www.kadaster.com/). And is now being maintained and developed further by [Skemu](https://skemu.com).
 
-CARML is being developed by [Taxonic](http://www.taxonic.com) in cooperation with [Kadaster](https://www.kadaster.com/).
 
 [![Build Status](https://api.travis-ci.org/carml/carml.svg?branch=master)](https://travis-ci.org/carml/carml)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.taxonic.carml/carml/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.taxonic.carml/carml)
 
 Table of Contents
 -----------------
-- [Releases](#releases)
-- [Introduction](#introduction)
-- [Getting started](#getting-started)
-- [Validating your RML mapping](#validating-your-rml-mapping)
-- [Input stream extension](#input-stream-extension)
-- [Function extension](#function-extension)
-- [XML namespace extension](#xml-namespace-extension)
-- [Supported data source types](#supported-data-source-types)
-- [Roadmap](#roadmap)
+- [CARML](#carml)
+  - [Table of Contents](#table-of-contents)
+  - [Releases](#releases)
+  - [Introduction](#introduction)
+  - [Getting started](#getting-started)
+  - [Validating your RML mapping](#validating-your-rml-mapping)
+  - [Input stream extension](#input-stream-extension)
+  - [Function extension](#function-extension)
+  - [XML namespace extension](#xml-namespace-extension)
+  - [Supported Data Source Types](#supported-data-source-types)
+  - [CARML in RML Test Cases](#carml-in-rml-test-cases)
+  - [Roadmap](#roadmap)
 
 Releases
 ----
@@ -44,9 +46,11 @@ Releases
 
 17 Nov 2018 - CARML 0.2.3
 
+30 Aug 2020 - CARML 0.3.0
+
 Introduction
 ------------
-CARML is a java library that transforms structured sources to RDF based as declared in and [RML](http://rml.io) mapping, in accordance with the [RML spec](http://rml.io/spec.html). It is considered by many as the optimal choice for mapping structured sources to RDF.
+CARML is a java library that transforms structured sources to RDF based as declared in and [RML](http://rml.io) mapping, in accordance with the [RML spec](http://rml.io/spec.html).
 
 The best place to start learning about RML is at the [source](http://rml.io), but basically
 RML is defined as a superset of [R2RML](https://www.w3.org/TR/r2rml/) which is a W3C recommendation that describes a language for expressing mappings from relational databases to RDF datasets. RML allows not only the expression of mappings for relational databases, but generalizes this to any structured source. All you need is a way to iterate over and query the source.
@@ -60,24 +64,24 @@ CARML is available from the Central Maven Repository.
 <dependency>
     <groupId>com.taxonic.carml</groupId>
     <artifactId>carml-engine</artifactId>
-    <version>0.2.3</version>
+    <version>0.3.0</version>
 </dependency>
 
 <!-- Choose the resolvers to suit your need -->
 <dependency>
   <groupId>com.taxonic.carml</groupId>
   <artifactId>carml-logical-source-resolver-jsonpath</artifactId>
-  <version>0.2.3</version>
+  <version>0.3.0</version>
 </dependency>
 <dependency>
   <groupId>com.taxonic.carml</groupId>
   <artifactId>carml-logical-source-resolver-xpath</artifactId>
-  <version>0.2.3</version>
+  <version>0.3.0</version>
 </dependency>
 <dependency>
   <groupId>com.taxonic.carml</groupId>
   <artifactId>carml-logical-source-resolver-csv</artifactId>
-  <version>0.2.3</version>
+  <version>0.3.0</version>
 </dependency>
 
 ```
@@ -270,7 +274,7 @@ one can now use the following mapping, declaring namespaces, to use them in XPat
     rml:source [
       a carml:Stream ;
       # or in case of a file source use:
-      # carml:url "path-to-souce" ;
+      # carml:url "path-to-source" ;
       carml:declaresNamespace [
         carml:namespacePrefix "ex" ;
         carml:namespaceName "http://www.example.com/books/1.0/" ;
@@ -300,12 +304,18 @@ Supported Data Source Types
 | Data source type | Reference query language                           | Implementation                                                      |
 | :--------------- | :------------------------------------------------- | :-------------------------------------------------------------      |
 | JSON             | [JsonPath](http://goessner.net/articles/JsonPath/) | [Jayway JsonPath 2.4.0](https://github.com/json-path/JsonPath)      |
-| XML              | [XPath](https://www.w3.org/TR/xpath-31/)           | [Saxon-HE 9.8.0-12](http://saxon.sourceforge.net/#F9.8HE)           |
-| CSV              | n/a                                                | [Univocity 2.6.3](https://github.com/uniVocity/univocity-parsers)   |
+| XML              | [XPath](https://www.w3.org/TR/xpath-31/)           | [Saxon-HE 10.2](http://saxon.sourceforge.net/#F10HE)           |
+| CSV              | n/a                                                | [Univocity 2.9.0](https://github.com/uniVocity/univocity-parsers)   |
+
+
+CARML in RML Test Cases
+-----------------------
+See the [RML implementation Report](https://rml.io/implementation-report/) for how CARML does in the [RML test cases](https://rml.io/test-cases/).
+
+> Note: currently we've raised [issues](https://github.com/RMLio/rml-test-cases/issues?q=is%3Aissue+author%3Apmaria+) for for some of the test cases which we believe are incorrect, or have an adverse effect on mapping data.
 
 Roadmap
 -------
-* CARML Command line interface
 * Better support for large sources
 * Improved join / parent triples map performance
 * Support RDF store connections
