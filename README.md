@@ -46,7 +46,7 @@ Releases
 
 17 Nov 2018 - CARML 0.2.3
 
-30 Aug 2020 - CARML 0.3.0
+11 Sep 2020 - CARML 0.3.0
 
 Introduction
 ------------
