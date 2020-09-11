@@ -82,7 +82,10 @@ class ParentTriplesMapper<T> {
 		EvaluateExpression evaluate =
 				expressionEvaluatorFactory.apply(entry);
 		Optional<Object> parentValue = evaluate.apply(parentExpression);
-		LOG.trace("with result: {}", parentValue.map(v -> v).orElse("null"));
+		if (LOG.isTraceEnabled()) {
+			LOG.trace("with result: {}", parentValue.map(v -> v).orElse("null"));
+		}
+
 		return parentValue.map(v -> {
 			if (v instanceof Collection<?>) {
 				throw new RuntimeException(

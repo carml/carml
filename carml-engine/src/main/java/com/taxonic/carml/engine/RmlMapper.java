@@ -452,8 +452,10 @@ public class RmlMapper {
 	}
 
 	private RefObjectMap checkLogicalSource(RefObjectMap refObjectMap, LogicalSource logicalSource, TriplesMap triplesMap) {
-		LOG.debug("Checking if logicalSource for parent triples map {} is equal",
-				refObjectMap.getParentTriplesMap().getResourceName());
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("Checking if logicalSource for parent triples map {} is equal",
+					refObjectMap.getParentTriplesMap().getResourceName());
+		}
 		LogicalSource parentLogicalSource = refObjectMap.getParentTriplesMap().getLogicalSource();
 		if (!logicalSource.equals(parentLogicalSource)) {
 			throw new RuntimeException(String.format(
@@ -513,7 +515,9 @@ public class RmlMapper {
 		Set<BaseObjectMap> objectMaps,
 		TriplesMap triplesMap
 	) {
-		LOG.debug("Creating mapper for PredicateMap {}", log(triplesMap, predicateMap));
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("Creating mapper for PredicateMap {}", log(triplesMap, predicateMap));
+		}
 
 		Set<TermGenerator<? extends Value>> objectGenerators =
 			Stream.concat(
@@ -558,7 +562,9 @@ public class RmlMapper {
 							exception(triplesMap, triplesMap)));
 		}
 
-		LOG.debug("Creating mapper for SubjectMap {}", log(triplesMap, subjectMap));
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("Creating mapper for SubjectMap {}", log(triplesMap, subjectMap));
+		}
 
 		TermGenerator<Resource> subjectGenerator;
 		try {
@@ -605,7 +611,10 @@ public class RmlMapper {
 	}
 
 	private TriplesMapper<?> createTriplesMapper(TriplesMap triplesMap) {
-		LOG.debug("Creating mapper for TriplesMap {}", triplesMap.getResourceName());
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("Creating mapper for TriplesMap {}", triplesMap.getResourceName());
+		}
+
 		TriplesMapperComponents<?> components = getTriplesMapperComponents(triplesMap);
 
 		return
@@ -616,7 +625,10 @@ public class RmlMapper {
 	}
 
 	private ParentTriplesMapper<?> createParentTriplesMapper(TriplesMap triplesMap) {
-		LOG.debug("Creating mapper for ParentTriplesMap {}", triplesMap.getResourceName());
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("Creating mapper for ParentTriplesMap {}", triplesMap.getResourceName());
+		}
+
 		TriplesMapperComponents<?> components = getTriplesMapperComponents(triplesMap);
 
 		try {
@@ -629,7 +641,10 @@ public class RmlMapper {
 
 	private RefObjectMapper createRefObjectMapper(RefObjectMap refObjectMap) {
 		Set<Join> joinConditions = refObjectMap.getJoinConditions();
-		LOG.debug("Creating mapper for RefObjectMap {}", refObjectMap.getResourceName());
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("Creating mapper for RefObjectMap {}", refObjectMap.getResourceName());
+		}
+
 		return new RefObjectMapper(
 			createParentTriplesMapper(refObjectMap.getParentTriplesMap()),
 			joinConditions

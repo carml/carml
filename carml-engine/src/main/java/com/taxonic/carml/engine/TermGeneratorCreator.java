@@ -162,7 +162,9 @@ class TermGeneratorCreator {
 				constant.getClass() + ", which is not allowed for this term map");
 		}
 		List<Value> constants = ImmutableList.of(constant);
-		LOG.trace("Generated constant values: {}", constants);
+		if (LOG.isTraceEnabled()) {
+			LOG.trace("Generated constant values: {}", constants);
+		}
 		return Optional.of(e -> constants);
 	}
 
@@ -361,7 +363,9 @@ class TermGeneratorCreator {
 		> createGenerator = generateTerm ->
 			evaluateExpression -> {
 				Optional<Object> referenceValue = getValue.apply(evaluateExpression);
-				LOG.trace("with result: {}", referenceValue.map(r -> r).orElse("null"));
+				if (LOG.isTraceEnabled()) {
+					LOG.trace("with result: {}", referenceValue.map(r -> r).orElse("null"));
+				}
 				return referenceValue.map( r ->
 						unpackEvaluatedExpression(r, generateTerm))
 						.orElse(ImmutableList.of());

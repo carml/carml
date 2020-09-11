@@ -72,7 +72,10 @@ public class Functions {
 					.collect(Collectors.toList());
 
 				try {
-					LOG.trace("Executing function {} with arguments {}", method.getName(), arguments);
+					if (LOG.isTraceEnabled()) {
+						LOG.trace("Executing function {} with arguments {}", method.getName(), arguments);
+					}
+
 					Object returnValue = method.invoke(obj, arguments.toArray());
 
 					if (returnValue == null) {
