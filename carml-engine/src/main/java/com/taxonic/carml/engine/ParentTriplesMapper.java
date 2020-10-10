@@ -87,7 +87,7 @@ class ParentTriplesMapper<T> {
 		EvaluateExpression evaluate =
 				expressionEvaluatorFactory.apply(entry);
 		Optional<Object> parentValue = evaluate.apply(parentExpression);
-		if (LOG.isTraceEnabled()) { // TODO flogger?
+		if (LOG.isTraceEnabled()) {
 			LOG.trace("with result: {}", parentValue.orElse("null"));
 		}
 
