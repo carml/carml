@@ -1,0 +1,44 @@
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ex: <http://www.example.com/> .
+@prefix lit: <http://www.example.com/lit/> .
+@prefix book: <http://www.example.com/book/> .
+@prefix author: <http://www.example.com/author/> .
+
+book:29 a lit:Book ;
+	dct:identifier "29" ;
+	rdfs:label "Ultimate Pancakes" ;
+	lit:author author:John%20Johnson .
+
+book:45 a lit:Book ;
+	dct:identifier "45" ;
+	rdfs:label "Ultimate Ravioli" ;
+	lit:author author:John%20Johnson .
+
+book:60 a lit:Book ;
+	dct:identifier "60" ;
+	rdfs:label "Ultimate Broccoli: A Feast for the Ages" ;
+	lit:author author:John%20Johnson .
+
+book:2028 a lit:Book ;
+	dct:identifier "2028" ;
+	rdfs:label "Flying Airplanes" ;
+	lit:author author:Jack%20Jackson .
+
+book:2070 a lit:Book ;
+	dct:identifier "2070" ;
+	rdfs:label "Riding Bicycles" ;
+	lit:author author:Jack%20Jackson .
+
+book:2091 a lit:Book ;
+	dct:identifier "2091" ;
+	rdfs:label "Driving Cars: A World Beyond" ;
+	lit:author author:Jack%20Jackson .
+
+author:John%20Johnson a lit:Author ;
+  foaf:name "John Johnson" .
+
+author:Jack%20Jackson a lit:Author ;
+  foaf:name "Jack Jackson" .
