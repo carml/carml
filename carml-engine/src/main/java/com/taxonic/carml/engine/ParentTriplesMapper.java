@@ -66,7 +66,7 @@ class ParentTriplesMapper<T> {
 				expressionEvaluatorFactory.apply(entry);
 
 		boolean joinsValid = joinValues.stream()
-				.allMatch(j -> isValidJoin(entry, j));
+				.allMatch(j -> isValidJoin(evaluate, j));
 
 		if (joinsValid) {
 			LOG.trace("Valid join found for entry with join {}", joinValues);
@@ -76,7 +76,7 @@ class ParentTriplesMapper<T> {
 		return ImmutableList.of();
 	}
 
-	private boolean isValidJoin(T entry, Pair<String, Object> joinValue) {
+	private boolean isValidJoin(EvaluateExpression evaluate, Pair<String, Object> joinValue) {
 		LOG.trace("Determining validity of join {}", joinValue);
 		String parentExpression = joinValue.getLeft();
 
@@ -84,8 +84,6 @@ class ParentTriplesMapper<T> {
 		LOG.trace("Extracting join's children {}", childItems);
 		Set<String> children = extractValues(childItems);
 
-		EvaluateExpression evaluate =
-				expressionEvaluatorFactory.apply(entry);
 		Optional<Object> parentValue = evaluate.apply(parentExpression);
 		if (LOG.isTraceEnabled()) {
 			LOG.trace("with result: {}", parentValue.orElse("null"));
