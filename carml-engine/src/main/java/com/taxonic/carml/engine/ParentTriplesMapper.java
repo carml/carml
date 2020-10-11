@@ -91,13 +91,15 @@ class ParentTriplesMapper<T> {
 
 		return parentValue.map(v -> {
 			if (v instanceof Collection<?>) {
-				// we could use just the if-case, but we keep the else-case as a performance optimization
+				// if the intersection of parent and child values is non-empty, the join is valid
 				Set<String> parentValues = extractValues(v);
 				return !SetUtils.intersection(parentValues, children).isEmpty();
 			} else {
 				// If one of the child values matches, the join is valid.
 				return children.contains(String.valueOf(v));
 			}
+			// using only the above if-case would be logically equivalent here,
+			// but we keep the if/else as a performance optimization
 		}).orElse(false);
 	}
 
