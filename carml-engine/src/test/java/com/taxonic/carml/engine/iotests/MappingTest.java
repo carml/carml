@@ -86,4 +86,10 @@ class MappingTest {
 //		System.out.println(writer.toString());
 //	}
 
+//	private void setCommonNamespaces(Model model) {
+//		model.setNamespace("dct", "http://purl.org/dc/terms/");
+//		model.setNamespace("foaf", "http://xmlns.com/foaf/0.1/");
+//		model.setNamespace("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
+//		model.setNamespace("rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#");
+//	}
 }

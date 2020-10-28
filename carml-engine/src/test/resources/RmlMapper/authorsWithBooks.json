@@ -1,0 +1,27 @@
+{
+  "authors": [{
+    "name": "John Johnson",
+    "books": [{
+      "id": 29,
+      "title": "Ultimate Pancakes"
+    }, {
+      "id": 45,
+      "title": "Ultimate Ravioli"
+    }, {
+      "id": 60,
+      "title": "Ultimate Broccoli: A Feast for the Ages"
+    }]
+  }, {
+    "name": "Jack Jackson",
+    "books": [{
+      "id": 2028,
+      "title": "Flying Airplanes"
+    }, {
+      "id": 2070,
+      "title": "Riding Bicycles"
+    }, {
+      "id": 2091,
+      "title": "Driving Cars: A World Beyond"
+    }]
+  }]
+}

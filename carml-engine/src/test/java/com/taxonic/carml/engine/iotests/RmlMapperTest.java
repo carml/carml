@@ -153,6 +153,13 @@ public class RmlMapperTest extends MappingTest {
 	}
 
 	@Test
+	public void testJoinOnMultipleParentValues() {
+		testMapping("RmlMapper",
+			"RmlMapper/test19/joinOnMultipleParentValues.rml.ttl",
+			"RmlMapper/test19/joinOnMultipleParentValues.output.ttl");
+	}
+
+	@Test
 	public void testSeparateMapsMapping() {
 		testMapping("RmlMapper",
 				"RmlMapper/test10/separateMapsMapping.rml.ttl",

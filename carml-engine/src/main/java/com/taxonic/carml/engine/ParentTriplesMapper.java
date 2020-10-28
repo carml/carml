@@ -11,6 +11,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
+
+import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.rdf4j.model.Resource;
 import org.slf4j.Logger;
@@ -64,7 +66,7 @@ class ParentTriplesMapper<T> {
 				expressionEvaluatorFactory.apply(entry);
 
 		boolean joinsValid = joinValues.stream()
-				.allMatch(j -> isValidJoin(entry, j));
+				.allMatch(j -> isValidJoin(evaluate, j));
 
 		if (joinsValid) {
 			LOG.trace("Valid join found for entry with join {}", joinValues);
@@ -74,39 +76,41 @@ class ParentTriplesMapper<T> {
 		return ImmutableList.of();
 	}
 
-	private boolean isValidJoin(T entry, Pair<String, Object> joinValue) {
+	private boolean isValidJoin(EvaluateExpression evaluate, Pair<String, Object> joinValue) {
 		LOG.trace("Determining validity of join {}", joinValue);
 		String parentExpression = joinValue.getLeft();
-		Set<String> children = extractChildren(joinValue.getRight());
 
-		EvaluateExpression evaluate =
-				expressionEvaluatorFactory.apply(entry);
+		Object childItems = joinValue.getRight();
+		LOG.trace("Extracting join's children {}", childItems);
+		Set<String> children = extractValues(childItems);
+
 		Optional<Object> parentValue = evaluate.apply(parentExpression);
 		if (LOG.isTraceEnabled()) {
-			LOG.trace("with result: {}", parentValue.map(v -> v).orElse("null"));
+			LOG.trace("with result: {}", parentValue.orElse("null"));
 		}
 
 		return parentValue.map(v -> {
 			if (v instanceof Collection<?>) {
-				throw new RuntimeException(
-						String.format("Parent expression [%s] in join condition leads to multiple values. "
-								+ "This is not supported.", parentExpression));
+				// if the intersection of parent and child values is non-empty, the join is valid
+				Set<String> parentValues = extractValues(v);
+				return !SetUtils.intersection(parentValues, children).isEmpty();
 			} else {
 				// If one of the child values matches, the join is valid.
 				return children.contains(String.valueOf(v));
 			}
+			// using only the above if-case would be logically equivalent here,
+			// but we keep the if/else as a performance optimization
 		}).orElse(false);
 	}
 
-	private Set<String> extractChildren(Object children) {
-		LOG.trace("Extracting join's children {}", children);
-		if (children instanceof Collection<?>) {
-			return ((Collection<?>) children).stream()
+	private Set<String> extractValues(Object items) {
+		if (items instanceof Collection<?>) {
+			return ((Collection<?>) items).stream()
 					.filter(Objects::nonNull)
-					.map(String::valueOf)
+					.map(Object::toString)
 					.collect(ImmutableCollectors.toImmutableSet());
 		} else {
-			return ImmutableSet.of(String.valueOf(children));
+			return items == null ? ImmutableSet.of() : ImmutableSet.of(items.toString());
 		}
 	}
 }
