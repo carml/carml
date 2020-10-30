@@ -160,6 +160,13 @@ public class RmlMapperTest extends MappingTest {
 	}
 
 	@Test
+	public void testJoinPeopleOccupations() {
+		testMapping("RmlMapper",
+			"RmlMapper/test20/joinPeopleOccupations.rml.ttl",
+			"RmlMapper/test20/joinPeopleOccupations.output.ttl");
+	}
+
+	@Test
 	public void testSeparateMapsMapping() {
 		testMapping("RmlMapper",
 				"RmlMapper/test10/separateMapsMapping.rml.ttl",

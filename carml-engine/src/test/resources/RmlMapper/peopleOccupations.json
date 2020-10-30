@@ -1,0 +1,24 @@
+{
+  "people": [{
+    "name": "John",
+    "taxCode": "821",
+    "occupationCode": "TCH"
+  }, {
+    "name": "Maria",
+    "taxCode": "107",
+    "occupationCode": "DEV"
+  }, {
+    "name": "Morgan",
+    "taxCode": "107",
+    "occupationCode": "DEV"
+  }],
+  "occupations": [{
+    "code": "TCH",
+    "taxCode": "821",
+    "label": "Teacher"
+  }, {
+    "code": "DEV",
+    "taxCode": "107",
+    "label": "Software developer"
+  }]
+}
