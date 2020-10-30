@@ -1,17 +1,18 @@
 package com.taxonic.carml.engine;
 
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.rdf4j.model.Resource;
 
 import com.taxonic.carml.model.Join;
 
+import static java.util.Collections.emptyList;
+
 public class RefObjectMapper {
 	
-	private ParentTriplesMapper<?> parentTriplesMapper;
-	private Set<Join> joinConditions;
+	private final ParentTriplesMapper<?> parentTriplesMapper;
+	private final Set<Join> joinConditions;
 	
 	RefObjectMapper(
 		ParentTriplesMapper<?> parentTriplesMapper,
@@ -28,9 +29,9 @@ public class RefObjectMapper {
 	
 	private Set<Pair<String, Object>> createJoinValues(EvaluateExpression evaluate) {
 		Set<Pair<String, Object>> joinValues = new HashSet<>();
-		joinConditions.stream().forEach(j -> {
-			Optional<Object> childValue = evaluate.apply(j.getChildReference());
-			childValue.ifPresent(c -> joinValues.add(Pair.of(j.getParentReference(), c)));
+		joinConditions.forEach(j -> {
+			Object childValue = evaluate.apply(j.getChildReference()).orElse(emptyList());
+			joinValues.add(Pair.of(j.getParentReference(), childValue));
 		});
 		return joinValues;
 	}

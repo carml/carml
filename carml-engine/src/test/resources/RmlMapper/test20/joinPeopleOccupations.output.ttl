@@ -1,0 +1,19 @@
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix ppl: <http://www.example.com/ppl/> .
+@prefix person: <http://www.example.com/person/> .
+@prefix occupation: <http://www.example.com/occupation/> .
+
+person:John a ppl:Person .
+
+person:Maria a ppl:Person .
+
+person:Morgan a ppl:Person .
+
+occupation:TCH a ppl:Occupation;
+  rdfs:label "Teacher" .
+
+occupation:DEV a ppl:Occupation;
+  rdfs:label "Software developer" .
