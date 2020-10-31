@@ -6,7 +6,7 @@
 
 	<groupId>com.taxonic.carml</groupId>
 	<artifactId>carml</artifactId>
-	<version>develop-SNAPSHOT</version>
+	<version>0.3.1</version>
 	<packaging>pom</packaging>
 
 	<name>carml</name>
@@ -55,7 +55,7 @@
 		<url>https://github.com/carml/carml</url>
 		<connection>scm:git:git@github.com:carml/carml.git</connection>
 		<developerConnection>scm:git:git@github.com:carml/carml.git</developerConnection>
-		<tag>head</tag>
+		<tag>v0.3.1</tag>
 	</scm>
 
 	<modules>
