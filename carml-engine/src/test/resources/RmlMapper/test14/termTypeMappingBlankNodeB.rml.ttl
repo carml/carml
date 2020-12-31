@@ -8,7 +8,7 @@
 	rml:logicalSource [
 		rml:source "simple2TestInput.json";
 		rml:referenceFormulation ql:JSONPath;
-		rml:iterator "$.Child"
+		rml:iterator "$.Child[*]"
 	];
 
 

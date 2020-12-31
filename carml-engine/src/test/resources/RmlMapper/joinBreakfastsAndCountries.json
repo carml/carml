@@ -1,40 +1,39 @@
 {
-"food": [
-	{
-	"name": "Belgian Waffles",
-	"countryOfOrigin": "Belgium",
-	"landVanHerkomst": "België"
-	},
-	{		
-	"name": "French Toast",
-	"countryOfOrigin": "France",
-	"landVanHerkomst": "Frankrijk"
-	},
-	{
-	"name": "Dutch Pancakes",
-	"countryOfOrigin": "Netherlands",
-	"landVanHerkomst": "Nedeland"
-	}
-	],
-	
-"country": [{
-		"name": "Belgium",
-		"officialLanguage": "Dutch, French, German",
-		"totalPopulation": "11,250,585",
-		"demonym": "Belgian"
-	},
-	{
-		"name": "Netherlands",
-		"officialLanguage": "Dutch",
-		"totalPopulation": "Unknown",
-		"demonym": "Dutch"
-	},
-	{
-		"name": "France",
-		"officialLanguage": "French",
-		"totalPopulation": "Unknown",
-		"demonym": "French"
-	}
-	]
-
+  "food": [
+    {
+      "name": "Belgian Waffles",
+      "countryOfOrigin": "Belgium",
+      "landVanHerkomst": "België"
+    },
+    {
+      "name": "French Toast",
+      "countryOfOrigin": "France",
+      "landVanHerkomst": "Frankrijk"
+    },
+    {
+      "name": "Dutch Pancakes",
+      "countryOfOrigin": "Netherlands",
+      "landVanHerkomst": "Nedeland"
+    }
+  ],
+  "country": [
+    {
+      "name": "Belgium",
+      "officialLanguage": "Dutch, French, German",
+      "totalPopulation": "11,250,585",
+      "demonym": "Belgian"
+    },
+    {
+      "name": "Netherlands",
+      "officialLanguage": "Dutch",
+      "totalPopulation": "Unknown",
+      "demonym": "Dutch"
+    },
+    {
+      "name": "France",
+      "officialLanguage": "French",
+      "totalPopulation": "Unknown",
+      "demonym": "French"
+    }
+  ]
 }

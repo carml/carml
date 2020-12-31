@@ -4,16 +4,16 @@ import org.eclipse.rdf4j.model.Value;
 
 public interface TermMap extends Resource {
 
-	String getReference();
+  String getReference();
 
-	String getInverseExpression();
+  String getInverseExpression();
 
-	String getTemplate();
+  String getTemplate();
 
-	TermType getTermType();
+  TermType getTermType();
 
-	Value getConstant();
+  Value getConstant();
 
-	TriplesMap getFunctionValue();
+  TriplesMap getFunctionValue();
 
 }

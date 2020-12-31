@@ -4,10 +4,10 @@ import org.eclipse.rdf4j.model.IRI;
 
 public interface LogicalSource extends Resource {
 
-	Object getSource();
+  Object getSource();
 
-	String getIterator();
+  String getIterator();
 
-	IRI getReferenceFormulation();
+  IRI getReferenceFormulation();
 
 }

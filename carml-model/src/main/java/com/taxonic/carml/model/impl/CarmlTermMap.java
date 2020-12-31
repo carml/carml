@@ -15,225 +15,226 @@ import org.eclipse.rdf4j.model.util.ModelBuilder;
 
 public abstract class CarmlTermMap extends CarmlResource implements TermMap {
 
-	String reference;
-	String inverseExpression;
-	String template;
-	TermType termType;
-	Value constant;
-	TriplesMap functionValue;
+  String reference;
 
-	public CarmlTermMap() {
-		// Empty constructor for object mapper
-	}
+  String inverseExpression;
 
-	public CarmlTermMap(
-		String reference,
-		String inverseExpression,
-		String template,
-		TermType termType,
-		Value constant,
-		TriplesMap functionValue
-	) {
-		this.reference = reference;
-		this.inverseExpression = inverseExpression;
-		this.template = template;
-		this.termType = termType;
-		this.constant = constant;
-		this.functionValue = functionValue;
-	}
+  String template;
 
-	@RdfProperty(Rml.reference)
-	@RdfProperty(value = Carml.multiReference, deprecated = true)
-	@Override
-	public String getReference() {
-		return reference;
-	}
+  TermType termType;
 
-	@RdfProperty(Rr.inverseExpression)
-	@Override
-	public String getInverseExpression() {
-		return inverseExpression;
-	}
+  Value constant;
 
-	@RdfProperty(Rr.template)
-	@RdfProperty(value = Carml.multiTemplate, deprecated = true)
-	@Override
-	public String getTemplate() {
-		return template;
-	}
+  TriplesMap functionValue;
 
-	// TODO https://www.w3.org/TR/r2rml/#dfn-term-type
-	@RdfProperty(Rr.termType)
-	@Override
-	public TermType getTermType() {
-		return termType;
-	}
+  public CarmlTermMap() {
+    // Empty constructor for object mapper
+  }
 
-	@RdfProperty(Rr.constant)
-	@Override
-	public Value getConstant() {
-		return constant;
-	}
+  public CarmlTermMap(String reference, String inverseExpression, String template, TermType termType, Value constant,
+      TriplesMap functionValue) {
+    this.reference = reference;
+    this.inverseExpression = inverseExpression;
+    this.template = template;
+    this.termType = termType;
+    this.constant = constant;
+    this.functionValue = functionValue;
+  }
 
-	@RdfProperty(Fnml.functionValue)
-	@RdfProperty(value = Carml.multiFunctionValue, deprecated = true)
-	@RdfType(CarmlTriplesMap.class)
-	@Override
-	public TriplesMap getFunctionValue() {
-		return functionValue;
-	}
+  @RdfProperty(Rml.reference)
+  @RdfProperty(value = Carml.multiReference, deprecated = true)
+  @Override
+  public String getReference() {
+    return reference;
+  }
 
-	public void setReference(String reference) {
-		this.reference = reference;
-	}
+  @RdfProperty(Rr.inverseExpression)
+  @Override
+  public String getInverseExpression() {
+    return inverseExpression;
+  }
 
-	public void setInverseExpression(String inverseExpression) {
-		this.inverseExpression = inverseExpression;
-	}
+  @RdfProperty(Rr.template)
+  @RdfProperty(value = Carml.multiTemplate, deprecated = true)
+  @Override
+  public String getTemplate() {
+    return template;
+  }
 
-	public void setTemplate(String template) {
-		this.template = template;
-	}
+  // TODO https://www.w3.org/TR/r2rml/#dfn-term-type
+  @RdfProperty(Rr.termType)
+  @Override
+  public TermType getTermType() {
+    return termType;
+  }
 
-	public void setTermType(TermType termType) {
-		this.termType = termType;
-	}
+  @RdfProperty(Rr.constant)
+  @Override
+  public Value getConstant() {
+    return constant;
+  }
 
-	public void setConstant(Value constant) {
-		this.constant = constant;
-	}
+  @RdfProperty(Fnml.functionValue)
+  @RdfProperty(value = Carml.multiFunctionValue, deprecated = true)
+  @RdfType(CarmlTriplesMap.class)
+  @Override
+  public TriplesMap getFunctionValue() {
+    return functionValue;
+  }
 
-	public void setFunctionValue(TriplesMap functionValue) {
-		this.functionValue = functionValue;
-	}
+  public void setReference(String reference) {
+    this.reference = reference;
+  }
 
-	@Override
-	public int hashCode() {
-		return Objects.hash(reference, inverseExpression, template, termType, constant, functionValue);
-	}
+  public void setInverseExpression(String inverseExpression) {
+    this.inverseExpression = inverseExpression;
+  }
 
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (obj == null) {
-			return false;
-		}
-		if (getClass() != obj.getClass()) {
-			return false;
-		}
-		CarmlTermMap other = (CarmlTermMap) obj;
-		return Objects.equals(reference, other.reference) &&
-				Objects.equals(inverseExpression, other.inverseExpression) &&
-				Objects.equals(template, other.template) &&
-				Objects.equals(termType, other.termType) &&
-				Objects.equals(constant, other.constant) &&
-				Objects.equals(functionValue, other.functionValue);
-	}
+  public void setTemplate(String template) {
+    this.template = template;
+  }
 
-	Set<Resource> getReferencedResourcesBase() {
-		return functionValue != null ? ImmutableSet.of(functionValue) : ImmutableSet.of();
-	}
+  public void setTermType(TermType termType) {
+    this.termType = termType;
+  }
 
-	void addTriplesBase(ModelBuilder builder) {
-		if (reference != null) {
-			builder.add(Rml.reference, reference);
-		}
-		if (inverseExpression != null) {
-			builder.add(Rr.inverseExpression, inverseExpression);
-		}
-		if (template != null) {
-			builder.add(Rr.template, template);
-		}
-		if (termType != null) {
-			addTermTypeTriple(builder);
-		}
-		if (constant != null) {
-			builder.add(Rr.constant, constant);
-		}
-		if (functionValue != null) {
-			builder.add(Fnml.functionValue, functionValue.getAsResource());
-		}
-	}
+  public void setConstant(Value constant) {
+    this.constant = constant;
+  }
 
-	private void addTermTypeTriple(ModelBuilder builder) {
-		switch (termType) {
-			case IRI:
-				builder.add(Rr.termType, Rdf.Rr.IRI);
-				break;
-			case LITERAL:
-				builder.add(Rr.termType, Rdf.Rr.Literal);
-				break;
-			case BLANK_NODE:
-				builder.add(Rr.termType, Rdf.Rr.BlankNode);
-				break;
-			default:
-				throw new IllegalStateException(String.format("Illegal term type value '%s' encountered.", termType));
-		}
-	}
+  public void setFunctionValue(TriplesMap functionValue) {
+    this.functionValue = functionValue;
+  }
 
-	public static class Builder {
+  @Override
+  public int hashCode() {
+    return Objects.hash(reference, inverseExpression, template, termType, constant, functionValue);
+  }
 
-		String reference;
-		String inverseExpression;
-		String template;
-		TermType termType;
-		Value constant;
-		TriplesMap functionValue;
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null) {
+      return false;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    CarmlTermMap other = (CarmlTermMap) obj;
+    return Objects.equals(reference, other.reference) && Objects.equals(inverseExpression, other.inverseExpression)
+        && Objects.equals(template, other.template) && Objects.equals(termType, other.termType)
+        && Objects.equals(constant, other.constant) && Objects.equals(functionValue, other.functionValue);
+  }
 
-		Builder reference(String reference) {
-			this.reference = reference;
-			return this;
-		}
+  Set<Resource> getReferencedResourcesBase() {
+    return functionValue != null ? ImmutableSet.of(functionValue) : ImmutableSet.of();
+  }
 
-		Builder inverseExpression(String inverseExpression) {
-			this.inverseExpression = inverseExpression;
-			return this;
-		}
+  void addTriplesBase(ModelBuilder builder) {
+    if (reference != null) {
+      builder.add(Rml.reference, reference);
+    }
+    if (inverseExpression != null) {
+      builder.add(Rr.inverseExpression, inverseExpression);
+    }
+    if (template != null) {
+      builder.add(Rr.template, template);
+    }
+    if (termType != null) {
+      addTermTypeTriple(builder);
+    }
+    if (constant != null) {
+      builder.add(Rr.constant, constant);
+    }
+    if (functionValue != null) {
+      builder.add(Fnml.functionValue, functionValue.getAsResource());
+    }
+  }
 
-		Builder template(String template) {
-			this.template = template;
-			return this;
-		}
+  private void addTermTypeTriple(ModelBuilder builder) {
+    switch (termType) {
+      case IRI:
+        builder.add(Rr.termType, Rdf.Rr.IRI);
+        break;
+      case LITERAL:
+        builder.add(Rr.termType, Rdf.Rr.Literal);
+        break;
+      case BLANK_NODE:
+        builder.add(Rr.termType, Rdf.Rr.BlankNode);
+        break;
+      default:
+        throw new IllegalStateException(String.format("Illegal term type value '%s' encountered.", termType));
+    }
+  }
 
-		Builder termType(TermType termType) {
-			this.termType = termType;
-			return this;
-		}
+  public static class Builder {
 
-		Builder constant(Value constant) {
-			this.constant = constant;
-			return this;
-		}
+    String reference;
 
-		Builder functionValue(TriplesMap functionValue) {
-			this.functionValue = functionValue;
-			return this;
-		}
+    String inverseExpression;
 
-		String getReference() {
-			return reference;
-		}
+    String template;
 
-		String getInverseExpression() {
-			return inverseExpression;
-		}
+    TermType termType;
 
-		String getTemplate() {
-			return template;
-		}
+    Value constant;
 
-		TermType getTermType() {
-			return termType;
-		}
+    TriplesMap functionValue;
 
-		Value getConstant() {
-			return constant;
-		}
+    Builder reference(String reference) {
+      this.reference = reference;
+      return this;
+    }
 
-		TriplesMap getFunctionValue() {
-			return functionValue;
-		}
-	}
+    Builder inverseExpression(String inverseExpression) {
+      this.inverseExpression = inverseExpression;
+      return this;
+    }
+
+    Builder template(String template) {
+      this.template = template;
+      return this;
+    }
+
+    Builder termType(TermType termType) {
+      this.termType = termType;
+      return this;
+    }
+
+    Builder constant(Value constant) {
+      this.constant = constant;
+      return this;
+    }
+
+    Builder functionValue(TriplesMap functionValue) {
+      this.functionValue = functionValue;
+      return this;
+    }
+
+    String getReference() {
+      return reference;
+    }
+
+    String getInverseExpression() {
+      return inverseExpression;
+    }
+
+    String getTemplate() {
+      return template;
+    }
+
+    TermType getTermType() {
+      return termType;
+    }
+
+    Value getConstant() {
+      return constant;
+    }
+
+    TriplesMap getFunctionValue() {
+      return functionValue;
+    }
+  }
 }

@@ -1,19 +1,19 @@
 {
-"food": [
-	{
-	"name": "Belgian Waffles",
-	"countryOfOrigin": "Belgium",
-	"countryOfOrigin2": "Belgium"
-	},
-	{		
-	"name": "French Toast",
-	"countryOfOrigin": "France",
-	"countryOfOrigin2": "France"
-	},
-	{
-	"name": "Dutch Pancakes",
-	"countryOfOrigin": "Netherlands",
-	"countryOfOrigin2": "Netherlands"
-	}
-	]
+  "food": [
+    {
+      "name": "Belgian Waffles",
+      "countryOfOrigin": "Belgium",
+      "countryOfOrigin2": "Belgium"
+    },
+    {
+      "name": "French Toast",
+      "countryOfOrigin": "France",
+      "countryOfOrigin2": "France"
+    },
+    {
+      "name": "Dutch Pancakes",
+      "countryOfOrigin": "Netherlands",
+      "countryOfOrigin2": "Netherlands"
+    }
+  ]
 }

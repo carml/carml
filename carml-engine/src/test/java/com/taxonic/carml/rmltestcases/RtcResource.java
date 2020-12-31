@@ -6,27 +6,28 @@ import com.taxonic.carml.rmltestcases.model.Resource;
 
 public class RtcResource implements Resource {
 
-	String id;
-	String label;
+  String id;
 
-	@Override
-	@RdfResourceName
-	public String getId() {
-		return id;
-	}
+  String label;
 
-	public void setId(String id) {
-		this.id = id;
-	}
+  @Override
+  @RdfResourceName
+  public String getId() {
+    return id;
+  }
 
-	@Override
-	@RdfProperty("http://www.w3.org/2000/01/rdf-schema#label")
-	public String getLabel() {
-		return label;
-	}
+  public void setId(String id) {
+    this.id = id;
+  }
 
-	public void setLabel(String label) {
-		this.label = label;
-	}
+  @Override
+  @RdfProperty("http://www.w3.org/2000/01/rdf-schema#label")
+  public String getLabel() {
+    return label;
+  }
+
+  public void setLabel(String label) {
+    this.label = label;
+  }
 
 }

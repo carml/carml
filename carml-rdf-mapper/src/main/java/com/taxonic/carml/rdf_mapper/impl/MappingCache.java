@@ -6,8 +6,8 @@ import org.eclipse.rdf4j.model.Resource;
 
 public interface MappingCache {
 
-	Object getCachedMapping(Resource resource, Set<Type> targetType);
+  Object getCachedMapping(Resource resource, Set<Type> targetType);
 
-	void addCachedMapping(Resource resource, Set<Type> targetType, Object value);
+  void addCachedMapping(Resource resource, Set<Type> targetType, Object value);
 
 }

@@ -8,10 +8,10 @@ import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 
 public class AsRdfCombiner implements Combiner<Model> {
 
-    @Override
-    public Model combine(List<Model> delegateInvocationResults) {
-        return delegateInvocationResults.stream()
-                .flatMap(Model::stream)
-                .collect(Collectors.toCollection(LinkedHashModel::new));
-    }
+  @Override
+  public Model combine(List<Model> delegateInvocationResults) {
+    return delegateInvocationResults.stream()
+        .flatMap(Model::stream)
+        .collect(Collectors.toCollection(LinkedHashModel::new));
+  }
 }

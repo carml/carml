@@ -10,7 +10,7 @@
 rml:logicalSource [
 	rml:source "multiJoinConditionsTestInput.json" ;
 	rml:referenceFormulation ql:JSONPath ;
-	rml:iterator "$.person"
+	rml:iterator "$.person[*]"
 ];
 rr:subjectMap [
 	rr:template "http://person.example.com/{name}";
@@ -47,7 +47,7 @@ rr:predicateObjectMap [
  	rml:logicalSource [
  		rml:source "multiJoinConditionsTestInput.json";
 		rml:referenceFormulation ql:JSONPath;
-		rml:iterator "$.movie"
+		rml:iterator "$.movie[*]"
 		];
 
 		rr:subjectMap [
@@ -69,7 +69,7 @@ rr:predicateObjectMap [
 	rml:logicalSource [
 		rml:source "multiJoinConditionsTestInput.json";
 		rml:referenceFormulation ql:JSONPath;
-		rml:iterator "$.cinema"
+		rml:iterator "$.cinema[*]"
 		];
 
 		rr:subjectMap [

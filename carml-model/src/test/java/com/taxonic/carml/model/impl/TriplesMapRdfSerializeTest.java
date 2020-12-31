@@ -12,31 +12,36 @@ import java.util.stream.Collectors;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 import org.eclipse.rdf4j.rio.RDFFormat;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class TriplesMapRdfSerializeTest {
 
-    private RmlMappingLoader mappingLoader;
+  private RmlMappingLoader mappingLoader;
 
-    @Before
-    public void init() {
-        mappingLoader = RmlMappingLoader.build();
-    }
+  @BeforeEach
+  public void init() {
+    mappingLoader = RmlMappingLoader.build();
+  }
 
-    @Test
-    public void TriplesMapAsRdfRoundtripTest() {
-        InputStream mappingSource = TriplesMapRdfSerializeTest.class.getResourceAsStream("Mapping.rml.ttl");
-        Set<TriplesMap> mapping = mappingLoader.load(RDFFormat.TURTLE, mappingSource);
+  @Test
+  public void TriplesMapAsRdfRoundTripTest() {
+    InputStream mappingSource = TriplesMapRdfSerializeTest.class.getResourceAsStream("Mapping.rml.ttl");
+    Set<TriplesMap> mapping = mappingLoader.load(RDFFormat.TURTLE, mappingSource);
 
-        Model model = mapping.stream()
-                .map(Resource::asRdf)
-                .flatMap(Model::stream)
-                .collect(Collectors.toCollection(LinkedHashModel::new));
+    Model model = mapping.stream()
+        .map(Resource::asRdf)
+        .flatMap(Model::stream)
+        .collect(Collectors.toCollection(LinkedHashModel::new));
 
-        Set<TriplesMap> mappingReloaded = mappingLoader.load(model);
+    Set<TriplesMap> mappingReloaded = mappingLoader.load(model);
 
-        assertThat(mapping, is(mappingReloaded));
-    }
+    Model modelReloaded = mappingReloaded.stream()
+        .map(Resource::asRdf)
+        .flatMap(Model::stream)
+        .collect(Collectors.toCollection(LinkedHashModel::new));
+
+    assertThat(model, is(modelReloaded));
+  }
 
 }

@@ -1,54 +1,14 @@
 package com.taxonic.carml.engine;
 
-import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
-import java.util.function.Supplier;
-import org.eclipse.rdf4j.model.Model;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.taxonic.carml.model.TriplesMap;
+import reactor.core.publisher.Flux;
 
-class TriplesMapper<T> {
+public interface TriplesMapper<E, V> {
 
-	private static final Logger LOG = LoggerFactory.getLogger(TriplesMapper.class);
+  Flux<V> map(E item);
 
-	private String name;
-	private Supplier<Iterable<T>> getIterator;
-	private LogicalSourceResolver.ExpressionEvaluatorFactory<T> expressionEvaluatorFactory;
-	private SubjectMapper subjectMapper;
+  Flux<V> map(ExpressionEvaluation expressionEvaluation);
 
-	TriplesMapper(
-		TriplesMapperComponents<T> trMapperComponents,
-		SubjectMapper subjectMapper
-	) {
-		this(
-			trMapperComponents.getName(),
-			trMapperComponents.getIterator(),
-			trMapperComponents.getExpressionEvaluatorFactory(),
-			subjectMapper
-		);
-	}
+  TriplesMap getTriplesMap();
 
-	TriplesMapper(
-		String name,
-		Supplier<Iterable<T>> getIterator,
-		LogicalSourceResolver.ExpressionEvaluatorFactory<T> expressionEvaluatorFactory,
-		SubjectMapper subjectMapper
-	) {
-		this.name = name;
-		this.getIterator = getIterator;
-		this.expressionEvaluatorFactory = expressionEvaluatorFactory;
-		this.subjectMapper = subjectMapper;
-	}
-
-	void map(Model model) {
-		LOG.debug("Executing TriplesMap {} ...", name);
-		Iterable<T> iter = getIterator.get();
-		iter.forEach(e -> map(e, model));
-	}
-
-	private void map(T entry, Model model) {
-		LOG.trace("Mapping triples for entry {}", entry);
-		EvaluateExpression evaluate =
-			expressionEvaluatorFactory.apply(entry);
-		subjectMapper.map(model, evaluate);
-	}
 }

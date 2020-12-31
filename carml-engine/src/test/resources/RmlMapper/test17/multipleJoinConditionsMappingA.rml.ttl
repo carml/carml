@@ -6,53 +6,55 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
 
 <#MultiJoinConditionMappingA>
-rml:logicalSource [
-	rml:source "transportation.json" ;
-	rml:referenceFormulation ql:JSONPath ;
-	rml:iterator "$.lines"
-];
-rr:subjectMap [
-	rr:template "http://transport.example.com/{line}";
-	rr:class ex:line;
-];
-
-rr:predicateObjectMap [
-	rr:predicate ex:hasEndpoint;
-	rr:objectMap [
-		rr:parentTriplesMap <#StationMapping>;
-		rr:joinCondition [
-			rr:child "endPointStation";
-			rr:parent "name"
-			];
-		rr:joinCondition [
-			rr:child "endPointLocation";
-			rr:parent "location"
-			]
-		]
-];
-
-	rr:predicateObjectMap [
-	rr:predicate ex:hasEndPoint;
-	rr:objectMap [
-		rr:parentTriplesMap <#StationMapping>;
-		rr:joinCondition [
-			rr:child "endPointStation";
-			rr:parent "name"
-			];
-		rr:joinCondition [
-			rr:child "endPointLocation";
-			rr:parent "location"
-			]
-		]
-	].
+  rml:logicalSource [
+    rml:source "transportation.json" ;
+    rml:referenceFormulation ql:JSONPath ;
+    rml:iterator "$.lines[*]" ;
+  ] ;
+  rr:subjectMap [
+    rr:template "http://transport.example.com/{line}" ;
+    rr:class ex:line ;
+  ] ;
+  rr:predicateObjectMap 
+    [
+      rr:predicate ex:hasEndpoint ;
+      rr:objectMap [
+        rr:parentTriplesMap <#StationMapping> ;
+        rr:joinCondition 
+          [
+            rr:child "endPointStation";
+            rr:parent "name" ;
+          ] ,
+          [
+            rr:child "endPointLocation";
+            rr:parent "location" ;
+          ] ;
+        ] ;
+    ] ,
+    [
+      rr:predicate ex:hasEndPoint ;
+      rr:objectMap [
+        rr:parentTriplesMap <#StationMapping> ;
+        rr:joinCondition 
+          [
+            rr:child "endPointStation" ;
+            rr:parent "name" ;
+          ] ,
+          [
+            rr:child "endPointLocation";
+            rr:parent "location" ;
+          ] ;
+      ] ;
+    ] ;
+.
 
 <#StationMapping>
 	rml:logicalSource [
-		rml:source "transportation.json";
-		rml:referenceFormulation ql:JSONPath;
-		rml:iterator "$.station"
-		];
-		
-		rr:subjectMap [
-			rr:template "http://station.example.com/{name}";
-		] .
+    rml:source "transportation.json" ;
+    rml:referenceFormulation ql:JSONPath ;
+    rml:iterator "$.station[*]" ;
+  ] ;
+  rr:subjectMap [
+    rr:template "http://station.example.com/{name}" ;
+  ] ;
+.

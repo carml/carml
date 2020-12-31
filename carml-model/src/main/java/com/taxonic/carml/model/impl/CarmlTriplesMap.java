@@ -20,147 +20,143 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 
-public class CarmlTriplesMap extends CarmlResource implements TriplesMap{
+public class CarmlTriplesMap extends CarmlResource implements TriplesMap {
 
-	private LogicalSource logicalSource;
-	private SubjectMap subjectMap;
-	private Set<PredicateObjectMap> predicateObjectMaps;
+  private LogicalSource logicalSource;
 
-	public CarmlTriplesMap() {
-		// Empty constructor for object mapper
-	}
+  private SubjectMap subjectMap;
 
-	public CarmlTriplesMap(
-		LogicalSource logicalSource,
-		SubjectMap subjectMap,
-		Set<PredicateObjectMap> predicateObjectMaps
-	) {
-		this.logicalSource = logicalSource;
-		this.subjectMap = subjectMap;
-		this.predicateObjectMaps = predicateObjectMaps;
-	}
+  private Set<PredicateObjectMap> predicateObjectMaps;
 
-	@RdfProperty(Rml.logicalSource)
-	@RdfType(CarmlLogicalSource.class)
-	@Override
-	public LogicalSource getLogicalSource() {
-		return logicalSource;
-	}
+  public CarmlTriplesMap() {
+    // Empty constructor for object mapper
+  }
 
-	@RdfProperty(Rr.subjectMap)
-	@RdfType(CarmlSubjectMap.class)
-	@Override
-	public SubjectMap getSubjectMap() {
-		return subjectMap;
-	}
+  public CarmlTriplesMap(LogicalSource logicalSource, SubjectMap subjectMap,
+      Set<PredicateObjectMap> predicateObjectMaps) {
+    this.logicalSource = logicalSource;
+    this.subjectMap = subjectMap;
+    this.predicateObjectMaps = predicateObjectMaps;
+  }
 
-	@RdfProperty(Rr.predicateObjectMap)
-	@RdfType(CarmlPredicateObjectMap.class)
-	@Override
-	public Set<PredicateObjectMap> getPredicateObjectMaps() {
-		return predicateObjectMaps;
-	}
+  @RdfProperty(Rml.logicalSource)
+  @RdfType(CarmlLogicalSource.class)
+  @Override
+  public LogicalSource getLogicalSource() {
+    return logicalSource;
+  }
 
-	public void setLogicalSource(LogicalSource logicalSource) {
-		this.logicalSource = logicalSource;
-	}
+  @RdfProperty(Rr.subjectMap)
+  @RdfType(CarmlSubjectMap.class)
+  @Override
+  public SubjectMap getSubjectMap() {
+    return subjectMap;
+  }
 
-	public void setSubjectMap(SubjectMap subjectMap) {
-		this.subjectMap = subjectMap;
-	}
+  @RdfProperty(Rr.predicateObjectMap)
+  @RdfType(CarmlPredicateObjectMap.class)
+  @Override
+  public Set<PredicateObjectMap> getPredicateObjectMaps() {
+    return predicateObjectMaps;
+  }
 
-	public void setPredicateObjectMaps(Set<PredicateObjectMap> predicateObjectMaps) {
-		this.predicateObjectMaps = predicateObjectMaps;
-	}
+  public void setLogicalSource(LogicalSource logicalSource) {
+    this.logicalSource = logicalSource;
+  }
 
-	@Override
-	public String toString() {
-		ToStringStyle style = new MultilineRecursiveToStringStyle();
-		StringBuffer buffer = new StringBuffer();
-		buffer.append(String.format("%s %s:%n ", getClass().getSimpleName(), getResourceName()));
-		return new ReflectionToStringBuilder(this, style, buffer).toString();
-	}
+  public void setSubjectMap(SubjectMap subjectMap) {
+    this.subjectMap = subjectMap;
+  }
 
-	@Override
-	public int hashCode() {
-		return Objects.hash(logicalSource, subjectMap, predicateObjectMaps);
-	}
+  public void setPredicateObjectMaps(Set<PredicateObjectMap> predicateObjectMaps) {
+    this.predicateObjectMaps = predicateObjectMaps;
+  }
 
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (obj == null) {
-			return false;
-		}
-		if (getClass() != obj.getClass()) {
-			return false;
-		}
-		CarmlTriplesMap other = (CarmlTriplesMap) obj;
-		return Objects.equals(logicalSource, other.logicalSource) &&
-				Objects.equals(subjectMap, other.subjectMap) &&
-				Objects.equals(predicateObjectMaps, other.predicateObjectMaps);
-	}
+  @Override
+  public String toString() {
+    ToStringStyle style = new MultilineRecursiveToStringStyle();
+    StringBuffer buffer = new StringBuffer();
+    buffer.append(String.format("%s %s:%n ", getClass().getSimpleName(), getResourceName()));
+    return new ReflectionToStringBuilder(this, style, buffer).toString();
+  }
 
-	@Override
-	public Set<Resource> getReferencedResources() {
-		ImmutableSet.Builder<Resource> builder = ImmutableSet.<Resource>builder();
-		if (logicalSource != null) {
-			builder.add(logicalSource);
-		}
-		if (subjectMap != null) {
-			builder.add(subjectMap);
-		}
-		return builder.addAll(predicateObjectMaps)
-				.build();
-	}
+  @Override
+  public int hashCode() {
+    return Objects.hash(logicalSource, subjectMap, predicateObjectMaps);
+  }
 
-	@Override
-	public void addTriples(ModelBuilder modelBuilder) {
-		modelBuilder.subject(getAsResource())
-				.add(RDF.TYPE, Rdf.Rr.TriplesMap);
-		if (logicalSource != null) {
-			modelBuilder.add(Rml.logicalSource, logicalSource.getAsResource());
-		}
-		if (subjectMap != null) {
-			modelBuilder.add(Rr.subjectMap, subjectMap.getAsResource());
-		}
-		predicateObjectMaps.forEach(pom -> modelBuilder.add(Rr.predicateObjectMap, pom.getAsResource()));
-	}
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null) {
+      return false;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    CarmlTriplesMap other = (CarmlTriplesMap) obj;
+    return Objects.equals(logicalSource, other.logicalSource) && Objects.equals(subjectMap, other.subjectMap)
+        && Objects.equals(predicateObjectMaps, other.predicateObjectMaps);
+  }
 
-	public static Builder newBuilder() {
-		return new Builder();
-	}
+  @Override
+  public Set<Resource> getReferencedResources() {
+    ImmutableSet.Builder<Resource> builder = ImmutableSet.<Resource>builder();
+    if (logicalSource != null) {
+      builder.add(logicalSource);
+    }
+    if (subjectMap != null) {
+      builder.add(subjectMap);
+    }
+    return builder.addAll(predicateObjectMaps)
+        .build();
+  }
 
-	public static class Builder {
+  @Override
+  public void addTriples(ModelBuilder modelBuilder) {
+    modelBuilder.subject(getAsResource())
+        .add(RDF.TYPE, Rdf.Rr.TriplesMap);
+    if (logicalSource != null) {
+      modelBuilder.add(Rml.logicalSource, logicalSource.getAsResource());
+    }
+    if (subjectMap != null) {
+      modelBuilder.add(Rr.subjectMap, subjectMap.getAsResource());
+    }
+    predicateObjectMaps.forEach(pom -> modelBuilder.add(Rr.predicateObjectMap, pom.getAsResource()));
+  }
 
-		private LogicalSource logicalSource;
-		private SubjectMap subjectMap;
-		private Set<PredicateObjectMap> predicateObjectMaps = new LinkedHashSet<>();
+  public static Builder newBuilder() {
+    return new Builder();
+  }
 
-		public Builder logicalSource(LogicalSource logicalSource) {
-			this.logicalSource = logicalSource;
-			return this;
-		}
+  public static class Builder {
 
-		public Builder subjectMap(SubjectMap subjectMap) {
-			this.subjectMap = subjectMap;
-			return this;
-		}
+    private LogicalSource logicalSource;
 
-		public Builder predicateObjectMap(PredicateObjectMap predicateObjectMap) {
-			predicateObjectMaps.add(predicateObjectMap);
-			return this;
-		}
+    private SubjectMap subjectMap;
 
-		public CarmlTriplesMap build() {
-			return new CarmlTriplesMap(
-				logicalSource,
-				subjectMap,
-				predicateObjectMaps
-			);
-		}
-	}
+    private Set<PredicateObjectMap> predicateObjectMaps = new LinkedHashSet<>();
+
+    public Builder logicalSource(LogicalSource logicalSource) {
+      this.logicalSource = logicalSource;
+      return this;
+    }
+
+    public Builder subjectMap(SubjectMap subjectMap) {
+      this.subjectMap = subjectMap;
+      return this;
+    }
+
+    public Builder predicateObjectMap(PredicateObjectMap predicateObjectMap) {
+      predicateObjectMaps.add(predicateObjectMap);
+      return this;
+    }
+
+    public CarmlTriplesMap build() {
+      return new CarmlTriplesMap(logicalSource, subjectMap, predicateObjectMaps);
+    }
+  }
 
 }

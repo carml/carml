@@ -4,6 +4,6 @@ import java.util.Set;
 
 public interface XmlSource extends Resource {
 
-	Set<Namespace> getDeclaredNamespaces();
+  Set<Namespace> getDeclaredNamespaces();
 
 }

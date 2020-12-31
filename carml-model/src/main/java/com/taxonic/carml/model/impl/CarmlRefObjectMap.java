@@ -11,7 +11,6 @@ import com.taxonic.carml.vocab.Carml;
 import com.taxonic.carml.vocab.Rdf;
 import com.taxonic.carml.vocab.Rr;
 import java.util.LinkedHashSet;
-import java.util.Objects;
 import java.util.Set;
 import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
@@ -20,121 +19,117 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 
 public class CarmlRefObjectMap extends CarmlResource implements RefObjectMap {
 
-	TriplesMap parentTriplesMap;
-	Set<Join> joinConditions;
+  TriplesMap parentTriplesMap;
 
-	public CarmlRefObjectMap() {
-		// Empty constructor for object mapper
-	}
+  Set<Join> joinConditions;
 
-	public CarmlRefObjectMap(
-			TriplesMap parentTriplesMap,
-			Set<Join> joinConditions
-		) {
-			this.parentTriplesMap = parentTriplesMap;
-			this.joinConditions = joinConditions;
-	}
+  public CarmlRefObjectMap() {
+    // Empty constructor for object mapper
+  }
 
-	@RdfProperty(Rr.parentTriplesMap)
-	@RdfType(CarmlTriplesMap.class)
-	@Override
-	public TriplesMap getParentTriplesMap() {
-		return parentTriplesMap;
-	}
+  public CarmlRefObjectMap(TriplesMap parentTriplesMap, Set<Join> joinConditions) {
+    this.parentTriplesMap = parentTriplesMap;
+    this.joinConditions = joinConditions;
+  }
 
-	@RdfProperty(Rr.joinCondition)
-	@RdfProperty(value = Carml.multiJoinCondition, deprecated = true)
-	@RdfType(CarmlJoin.class)
-	@Override
-	public Set<Join> getJoinConditions() {
-		return joinConditions;
-	}
+  @RdfProperty(Rr.parentTriplesMap)
+  @RdfType(CarmlTriplesMap.class)
+  @Override
+  public TriplesMap getParentTriplesMap() {
+    return parentTriplesMap;
+  }
 
-	public void setParentTriplesMap(TriplesMap parentTriplesMap) {
-		this.parentTriplesMap = parentTriplesMap;
-	}
+  @RdfProperty(Rr.joinCondition)
+  @RdfProperty(value = Carml.multiJoinCondition, deprecated = true)
+  @RdfType(CarmlJoin.class)
+  @Override
+  public Set<Join> getJoinConditions() {
+    return joinConditions;
+  }
 
-	public void setJoinConditions(Set<Join> joinConditions) {
-		this.joinConditions = joinConditions;
-	}
+  public void setParentTriplesMap(TriplesMap parentTriplesMap) {
+    this.parentTriplesMap = parentTriplesMap;
+  }
 
-	@Override
-	public String toString() {
-		return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
-	}
+  public void setJoinConditions(Set<Join> joinConditions) {
+    this.joinConditions = joinConditions;
+  }
 
-	@Override
-	public int hashCode() {
-		return Objects.hash(parentTriplesMap, joinConditions);
-	}
+  @Override
+  public String toString() {
+    return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
+  }
 
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (obj == null) {
-			return false;
-		}
-		if (getClass() != obj.getClass()) {
-			return false;
-		}
-		CarmlRefObjectMap other = (CarmlRefObjectMap) obj;
-		return Objects.equals(parentTriplesMap, other.parentTriplesMap) &&
-				Objects.equals(joinConditions, other.joinConditions);
-	}
+  // @Override
+  // public int hashCode() {
+  // return Objects.hash(parentTriplesMap, joinConditions);
+  // }
+  //
+  // @Override
+  // public boolean equals(Object obj) {
+  // if (this == obj) {
+  // return true;
+  // }
+  // if (obj == null) {
+  // return false;
+  // }
+  // if (getClass() != obj.getClass()) {
+  // return false;
+  // }
+  // CarmlRefObjectMap other = (CarmlRefObjectMap) obj;
+  // return Objects.equals(parentTriplesMap, other.parentTriplesMap)
+  // && Objects.equals(joinConditions, other.joinConditions);
+  // }
 
-	@Override
-	public Set<Resource> getReferencedResources() {
-		ImmutableSet.Builder<Resource> builder = ImmutableSet.<Resource>builder();
-		if (parentTriplesMap != null) {
-			builder.add(parentTriplesMap);
-		}
-		return builder.addAll(joinConditions)
-				.build();
-	}
+  @Override
+  public Set<Resource> getReferencedResources() {
+    ImmutableSet.Builder<Resource> builder = ImmutableSet.<Resource>builder();
+    if (parentTriplesMap != null) {
+      builder.add(parentTriplesMap);
+    }
+    return builder.addAll(joinConditions)
+        .build();
+  }
 
-	@Override
-	public void addTriples(ModelBuilder modelBuilder) {
-		modelBuilder.subject(getAsResource())
-				.add(RDF.TYPE, Rdf.Rr.RefObjectMap);
-		if (parentTriplesMap != null) {
-			modelBuilder.add(Rr.parentTriplesMap, parentTriplesMap.getAsResource());
-		}
-		joinConditions.forEach(jc -> modelBuilder.add(Rr.joinCondition, jc.getAsResource()));
-	}
+  @Override
+  public void addTriples(ModelBuilder modelBuilder) {
+    modelBuilder.subject(getAsResource())
+        .add(RDF.TYPE, Rdf.Rr.RefObjectMap);
+    if (parentTriplesMap != null) {
+      modelBuilder.add(Rr.parentTriplesMap, parentTriplesMap.getAsResource());
+    }
+    joinConditions.forEach(jc -> modelBuilder.add(Rr.joinCondition, jc.getAsResource()));
+  }
 
-	public static Builder newBuilder() {
-		return new Builder();
-	}
+  public static Builder newBuilder() {
+    return new Builder();
+  }
 
-	public static class Builder{
+  public static class Builder {
 
-		TriplesMap parentTriplesMap;
-		Set<Join> joinConditions = new LinkedHashSet<>();
+    TriplesMap parentTriplesMap;
 
-		Builder() {}
+    Set<Join> joinConditions = new LinkedHashSet<>();
 
-		public Builder parentTriplesMap(TriplesMap parentTriplesMap) {
-			this.parentTriplesMap = parentTriplesMap;
-			return this;
-		}
+    Builder() {}
 
-		public Builder joinConditions(Set<Join> joinConditions) {
-			this.joinConditions = joinConditions;
-			return this;
-		}
+    public Builder parentTriplesMap(TriplesMap parentTriplesMap) {
+      this.parentTriplesMap = parentTriplesMap;
+      return this;
+    }
 
-		public Builder condition(Join condition) {
-			joinConditions.add(condition);
-			return this;
-		}
+    public Builder joinConditions(Set<Join> joinConditions) {
+      this.joinConditions = joinConditions;
+      return this;
+    }
 
-		public CarmlRefObjectMap build() {
-			return new CarmlRefObjectMap(
-					parentTriplesMap,
-					joinConditions
-			);
-		}
-	}
+    public Builder condition(Join condition) {
+      joinConditions.add(condition);
+      return this;
+    }
+
+    public CarmlRefObjectMap build() {
+      return new CarmlRefObjectMap(parentTriplesMap, joinConditions);
+    }
+  }
 }

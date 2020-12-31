@@ -6,10 +6,10 @@ import java.lang.annotation.RetentionPolicy;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface FnoParam {
 
-	String value();
+  String value();
 
-	// TODO boolean optional(); ?
-	
-	// TODO Class<? extends ValueAdapter> adapter(); ?
-	
+  // TODO boolean optional(); ?
+
+  // TODO Class<? extends ValueAdapter> adapter(); ?
+
 }

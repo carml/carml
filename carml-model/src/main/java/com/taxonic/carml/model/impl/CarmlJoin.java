@@ -13,111 +13,107 @@ import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 
-public class CarmlJoin extends CarmlResource implements Join{
+public class CarmlJoin extends CarmlResource implements Join {
 
-	private String child;
-	private String parent;
+  private String child;
 
-	public CarmlJoin() {
-		// Empty constructor for object mapper
-	}
+  private String parent;
 
-	public CarmlJoin(
-			String child,
-			String parent
-	) {
-		this.child = child;
-		this.parent = parent;
-	}
+  public CarmlJoin() {
+    // Empty constructor for object mapper
+  }
 
-	@RdfProperty(Rr.child)
-	@Override
-	public String getChildReference() {
-		return child;
-	}
+  public CarmlJoin(String child, String parent) {
+    this.child = child;
+    this.parent = parent;
+  }
 
-	public void setChildReference(String child) {
-		this.child = child;
-	}
+  @RdfProperty(Rr.child)
+  @Override
+  public String getChildReference() {
+    return child;
+  }
 
-	@RdfProperty(Rr.parent)
-	@Override
-	public String getParentReference() {
-		return parent;
-	}
+  public void setChildReference(String child) {
+    this.child = child;
+  }
 
-	public void setParentReference(String parent) {
-		this.parent = parent;
-	}
+  @RdfProperty(Rr.parent)
+  @Override
+  public String getParentReference() {
+    return parent;
+  }
 
-	@Override
-	public String toString() {
-		return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
-	}
+  public void setParentReference(String parent) {
+    this.parent = parent;
+  }
 
-	@Override
-	public int hashCode() {
-		return Objects.hash(child, parent);
-	}
+  @Override
+  public String toString() {
+    return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
+  }
 
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (obj == null) {
-			return false;
-		}
-		if (getClass() != obj.getClass()) {
-			return false;
-		}
-		CarmlJoin other = (CarmlJoin) obj;
-		return Objects.equals(child, other.child) && Objects.equals(parent, other.parent);
-	}
+  @Override
+  public int hashCode() {
+    return Objects.hash(child, parent);
+  }
 
-	@Override
-	public Set<Resource> getReferencedResources() {
-		return ImmutableSet.of();
-	}
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null) {
+      return false;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    CarmlJoin other = (CarmlJoin) obj;
+    return Objects.equals(child, other.child) && Objects.equals(parent, other.parent);
+  }
 
-	@Override
-	public void addTriples(ModelBuilder modelBuilder) {
-		modelBuilder.subject(getAsResource())
-				.add(RDF.TYPE, Rdf.Rr.Join);
-		if (child != null) {
-			modelBuilder.add(Rr.child, child);
-		}
-		if (parent != null) {
-			modelBuilder.add(Rr.parent, parent);
-		}
-	}
+  @Override
+  public Set<Resource> getReferencedResources() {
+    return ImmutableSet.of();
+  }
 
-	public static Builder newBuilder() {
-		return new Builder();
-	}
+  @Override
+  public void addTriples(ModelBuilder modelBuilder) {
+    modelBuilder.subject(getAsResource())
+        .add(RDF.TYPE, Rdf.Rr.Join);
+    if (child != null) {
+      modelBuilder.add(Rr.child, child);
+    }
+    if (parent != null) {
+      modelBuilder.add(Rr.parent, parent);
+    }
+  }
 
-	public static class Builder{
+  public static Builder newBuilder() {
+    return new Builder();
+  }
 
-		private String child;
-		private String parent;
+  public static class Builder {
 
-		Builder() {}
+    private String child;
 
-		public Builder child(String child) {
-			this.child = child;
-			return this;
-		}
+    private String parent;
 
-		public Builder parent(String parent) {
-			this.parent = parent;
-			return this;
-		}
+    Builder() {}
 
-		public CarmlJoin build() {
-			return new CarmlJoin(
-				child,
-				parent
-			);
-		}
-	}
+    public Builder child(String child) {
+      this.child = child;
+      return this;
+    }
+
+    public Builder parent(String parent) {
+      this.parent = parent;
+      return this;
+    }
+
+    public CarmlJoin build() {
+      return new CarmlJoin(child, parent);
+    }
+  }
 }

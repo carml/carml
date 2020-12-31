@@ -1,41 +1,58 @@
 package com.taxonic.carml.logical_source_resolver;
 
 import com.taxonic.carml.model.LogicalSource;
+import com.taxonic.carml.util.LogUtil;
 import com.univocity.parsers.common.record.Record;
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
-import java.io.StringReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
 
+@Slf4j
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class CsvResolver implements LogicalSourceResolver<Record> {
 
-	private static final Logger LOG = LoggerFactory.getLogger(CsvResolver.class);
+  public static CsvResolver getInstance() {
+    return new CsvResolver();
+  }
 
-	@Override
-	public SourceIterator<Record> getSourceIterator() {
-		return this::getItererableCsv;
-	}
+  @Override
+  public SourceFlux<Record> getSourceFlux() {
+    return this::getCsvRecordFlux;
+  }
 
-	private Iterable<Record> getItererableCsv(String source, LogicalSource logicalSource) {
-		CsvParserSettings settings = new CsvParserSettings();
-		settings.setHeaderExtractionEnabled(true);
-		settings.setLineSeparatorDetectionEnabled(true);
-		settings.setDelimiterDetectionEnabled(true);
-		settings.setReadInputOnSeparateThread(true);
-		settings.setMaxCharsPerColumn(-1);
-		CsvParser parser = new CsvParser(settings);
+  private Flux<Record> getCsvRecordFlux(Object source, LogicalSource logicalSource) {
+    if (!(source instanceof InputStream)) {
+      throw new LogicalSourceResolverException(
+          String.format("No valid input stream provided for logical source %s", LogUtil.exception(logicalSource)));
+    }
 
-		return parser.iterateRecords(new StringReader(source));
-	}
+    return getCsvRecordFlux((InputStream) source, logicalSource);
+  }
 
-	@Override
-	public ExpressionEvaluatorFactory<Record> getExpressionEvaluatorFactory() {
-		return entry -> expression -> {
-			logEvaluateExpression(expression, LOG);
-			return Optional.ofNullable(entry.getString(expression));
-		};
-	}
+  private Flux<Record> getCsvRecordFlux(InputStream inputStream, LogicalSource logicalSource) {
+    CsvParserSettings settings = new CsvParserSettings();
+    settings.setHeaderExtractionEnabled(true);
+    settings.setLineSeparatorDetectionEnabled(true);
+    settings.setDelimiterDetectionEnabled(true);
+    settings.setReadInputOnSeparateThread(true);
+    settings.setMaxCharsPerColumn(-1);
+    CsvParser parser = new CsvParser(settings);
+
+    return Flux.fromIterable(parser.iterateRecords(new InputStreamReader(inputStream)));
+  }
+
+  @Override
+  public LogicalSourceResolver.ExpressionEvaluationFactory<Record> getExpressionEvaluationFactory() {
+    return entry -> expression -> {
+      logEvaluateExpression(expression, LOG);
+      return Optional.ofNullable(entry.getString(expression));
+    };
+  }
 
 }

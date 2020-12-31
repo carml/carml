@@ -6,8 +6,8 @@ import java.lang.annotation.RetentionPolicy;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface FnoFunction {
 
-	String value();
+  String value();
 
-	// TODO Class<? extends ReturnValueAdapter> adapter(); ?
-	
+  // TODO Class<? extends ReturnValueAdapter> adapter(); ?
+
 }

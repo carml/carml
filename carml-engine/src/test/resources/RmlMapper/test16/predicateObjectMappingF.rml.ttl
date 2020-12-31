@@ -7,7 +7,7 @@
 	rml:logicalSource [
 		rml:source "predObjectMapTestInput.json";
 		rml:referenceFormulation ql:JSONPath;
-		rml:iterator "$.colors"
+		rml:iterator "$.colors[*]"
 	];
 	
 	rr:subjectMap [
@@ -29,7 +29,7 @@
 	rml:logicalSource [
 		rml:source "predObjectMapTestInput.json";
 		rml:referenceFormulation ql:JSONPath;
-		rml:iterator "$.colors";
+		rml:iterator "$.colors[*]";
 	];
 	
 	rr:subjectMap [
@@ -40,7 +40,7 @@
 	rml:logicalSource [
 		rml:source "predObjectMapTestInput.json";
 		rml:referenceFormulation ql:JSONPath;
-		rml:iterator "$.colors";
+		rml:iterator "$.colors[*]";
 	];
 	
 	rr:subjectMap [

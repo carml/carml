@@ -1,27 +1,25 @@
 package com.taxonic.carml.logical_source_resolver;
 
-import com.taxonic.carml.engine.EvaluateExpression;
+import com.taxonic.carml.engine.ExpressionEvaluation;
 import com.taxonic.carml.model.LogicalSource;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import org.slf4j.Logger;
+import reactor.core.publisher.Flux;
 
-public interface LogicalSourceResolver<T> {
-	SourceIterator<T> getSourceIterator();
-	ExpressionEvaluatorFactory<T> getExpressionEvaluatorFactory();
+public interface LogicalSourceResolver<E> {
 
-	default Supplier<Iterable<T>> bindSource(LogicalSource logicalSource, Function<Object, String> sourceResolver) {
-		return () -> getSourceIterator()
-				.apply(sourceResolver.apply(logicalSource.getSource()), logicalSource);
-	}
+  SourceFlux<E> getSourceFlux();
 
-	interface SourceIterator<T> extends BiFunction<String, LogicalSource, Iterable<T>> {}
+  LogicalSourceResolver.ExpressionEvaluationFactory<E> getExpressionEvaluationFactory();
 
-	interface ExpressionEvaluatorFactory<T> extends Function<T, EvaluateExpression> {}
+  interface SourceFlux<E> extends BiFunction<Object, LogicalSource, Flux<E>> {
+  }
 
-	default void logEvaluateExpression(String expression, Logger logger) {
-		logger.trace("Evaluating expression: {}", expression);
-	}
+  interface ExpressionEvaluationFactory<E> extends Function<E, ExpressionEvaluation> {
+  }
 
+  default void logEvaluateExpression(String expression, Logger logger) {
+    logger.trace("Evaluating expression: {}", expression);
+  }
 }

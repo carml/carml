@@ -4,10 +4,10 @@ import java.util.Set;
 
 public interface TriplesMap extends Resource {
 
-	LogicalSource getLogicalSource();
+  LogicalSource getLogicalSource();
 
-	SubjectMap getSubjectMap();
+  SubjectMap getSubjectMap();
 
-	Set<PredicateObjectMap> getPredicateObjectMaps();
+  Set<PredicateObjectMap> getPredicateObjectMaps();
 
 }

@@ -8,7 +8,7 @@
 	rml:logicalSource [
 		rml:source "separateMappingTestInput.json";
 		rml:referenceFormulation ql:JSONPath;
-		rml:iterator "$.colors"
+		rml:iterator "$.colors[*]"
 	];
 
 	rr:subjectMap [

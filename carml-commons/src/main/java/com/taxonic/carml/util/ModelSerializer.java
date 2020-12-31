@@ -20,75 +20,75 @@ import org.eclipse.rdf4j.rio.helpers.BasicWriterSettings;
 
 public class ModelSerializer {
 
-	private static final ValueFactory VF = SimpleValueFactory.getInstance();
+  private static final ValueFactory VF = SimpleValueFactory.getInstance();
 
-	private static final Pattern TTL_STYLE_PREFIX = Pattern.compile("(?:[ \\t]*@prefix .*>\\s*.\\s*)", Pattern.MULTILINE);
+  private static final Pattern TTL_STYLE_PREFIX = Pattern.compile("(?:[ \\t]*@prefix .*>\\s*.\\s*)", Pattern.MULTILINE);
 
-	private static final Pattern WHITESPACE = Pattern.compile("\\s+", Pattern.MULTILINE);
+  private static final Pattern WHITESPACE = Pattern.compile("\\s+", Pattern.MULTILINE);
 
-	private static final String NS = "http://ModelSerializer.carml.net/";
+  private static final String NS = "http://ModelSerializer.carml.net/";
 
-	private static final IRI CAUSED_EXCEPTION = VF.createIRI(String.format("%scausedException", NS));
+  private static final IRI CAUSED_EXCEPTION = VF.createIRI(String.format("%scausedException", NS));
 
-	private static final Literal EXCEPTION_INDICATOR = VF.createLiteral("<<<<<<<<<<<<<");
+  private static final Literal EXCEPTION_INDICATOR = VF.createLiteral("<<<<<<<<<<<<<");
 
-	public static final UnaryOperator<WriterConfig> SIMPLE_WRITER_CONFIG = wc -> {
-		wc.set(BasicWriterSettings.PRETTY_PRINT, Boolean.TRUE);
-		wc.set(BasicWriterSettings.INLINE_BLANK_NODES, Boolean.TRUE);
-		return wc;
-	};
+  public static final UnaryOperator<WriterConfig> SIMPLE_WRITER_CONFIG = wc -> {
+    wc.set(BasicWriterSettings.PRETTY_PRINT, Boolean.TRUE);
+    wc.set(BasicWriterSettings.INLINE_BLANK_NODES, Boolean.TRUE);
+    return wc;
+  };
 
-	private ModelSerializer() {}
+  private ModelSerializer() {}
 
-	public static String serializeAsRdf(Model model, RDFFormat rdfFormat, UnaryOperator<Model> namespaceApplier) {
-		return serializeAsRdf(model, rdfFormat, SIMPLE_WRITER_CONFIG, namespaceApplier);
-	}
+  public static String serializeAsRdf(Model model, RDFFormat rdfFormat, UnaryOperator<Model> namespaceApplier) {
+    return serializeAsRdf(model, rdfFormat, SIMPLE_WRITER_CONFIG, namespaceApplier);
+  }
 
-	public static String serializeAsRdf(Model model, RDFFormat rdfFormat,
-			UnaryOperator<WriterConfig> writerSettingsApplier,
-									   UnaryOperator<Model> namespaceApplier) {
-		namespaceApplier.apply(model);
-		return serializeAsRdf(model, rdfFormat, writerSettingsApplier.apply(new WriterConfig()));
-	}
+  public static String serializeAsRdf(Model model, RDFFormat rdfFormat,
+      UnaryOperator<WriterConfig> writerSettingsApplier, UnaryOperator<Model> namespaceApplier) {
+    namespaceApplier.apply(model);
+    return serializeAsRdf(model, rdfFormat, writerSettingsApplier.apply(new WriterConfig()));
+  }
 
-	public static String serializeAsRdf(Model model, RDFFormat rdfFormat) {
-		return serializeAsRdf(model, rdfFormat, new WriterConfig());
-	}
+  public static String serializeAsRdf(Model model, RDFFormat rdfFormat) {
+    return serializeAsRdf(model, rdfFormat, new WriterConfig());
+  }
 
-	public static String serializeAsRdf(Model model, RDFFormat rdfFormat, WriterConfig config) {
-		StringWriter sw = new StringWriter();
-		BufferedWriter writer = new BufferedWriter(sw);
-		Rio.write(model, writer, rdfFormat, config);
-		return sw.toString();
-	}
+  public static String serializeAsRdf(Model model, RDFFormat rdfFormat, WriterConfig config) {
+    StringWriter sw = new StringWriter();
+    BufferedWriter writer = new BufferedWriter(sw);
+    Rio.write(model, writer, rdfFormat, config);
+    return sw.toString();
+  }
 
-	public static String formatResourceForLog(Model contextModel, Resource resource, Set<Namespace> namespaces, boolean causedException) {
-		return formatResourceForLog(contextModel, resource, new LinkedHashModel(), namespaces, causedException);
-	}
+  public static String formatResourceForLog(Model contextModel, Resource resource, Set<Namespace> namespaces,
+      boolean causedException) {
+    return formatResourceForLog(contextModel, resource, new LinkedHashModel(), namespaces, causedException);
+  }
 
-	public static String formatResourceForLog(Model contextModel, Resource resource, Model resourceModel, Set<Namespace> namespaces, boolean causedException) {
-		if (resource instanceof IRI) {
-			return String.format("resource <%s>", resource.stringValue());
-		}
+  public static String formatResourceForLog(Model contextModel, Resource resource, Model resourceModel,
+      Set<Namespace> namespaces, boolean causedException) {
+    if (resource instanceof IRI) {
+      return String.format("resource <%s>", resource.stringValue());
+    }
 
-		Model reverseBNodeDescription = new LinkedHashModel();
-		if (causedException) {
-			reverseBNodeDescription.setNamespace("", NS);
-			reverseBNodeDescription.add(resource, CAUSED_EXCEPTION, EXCEPTION_INDICATOR);
-		}
-		reverseBNodeDescription.addAll(ModelUtil.symmetricDescribeResource(contextModel, resource));
-		reverseBNodeDescription.addAll(resourceModel);
+    Model reverseBNodeDescription = new LinkedHashModel();
+    if (causedException) {
+      reverseBNodeDescription.setNamespace("", NS);
+      reverseBNodeDescription.add(resource, CAUSED_EXCEPTION, EXCEPTION_INDICATOR);
+    }
+    reverseBNodeDescription.addAll(ModelUtil.symmetricDescribeResource(contextModel, resource));
+    reverseBNodeDescription.addAll(resourceModel);
 
-		String ttl =  ModelSerializer.serializeAsRdf(reverseBNodeDescription, RDFFormat.TURTLE,
-				mdl -> {
-					namespaces.forEach(mdl::setNamespace);
-					return contextModel;
-				});
-		return String.format("blank node resource %s in:%n```%n%s%n```", resource, stripTurtleStylePrefixes(ttl).trim());
-	}
+    String ttl = ModelSerializer.serializeAsRdf(reverseBNodeDescription, RDFFormat.TURTLE, mdl -> {
+      namespaces.forEach(mdl::setNamespace);
+      return contextModel;
+    });
+    return String.format("blank node resource %s in:%n```%n%s%n```", resource, stripTurtleStylePrefixes(ttl).trim());
+  }
 
-	public static String stripTurtleStylePrefixes(String ttlStyleSerialization) {
-		return TTL_STYLE_PREFIX.matcher(ttlStyleSerialization)
-				.replaceAll("");
-	}
+  public static String stripTurtleStylePrefixes(String ttlStyleSerialization) {
+    return TTL_STYLE_PREFIX.matcher(ttlStyleSerialization)
+        .replaceAll("");
+  }
 }

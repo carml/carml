@@ -15,57 +15,57 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 
 public class CarmlStream extends CarmlResource implements NameableStream {
 
-	private String streamName;
+  private String streamName;
 
-	public CarmlStream() {
-		// Empty constructor for object mapper
-	}
+  public CarmlStream() {
+    // Empty constructor for object mapper
+  }
 
-	public CarmlStream(String streamName) {
-		this.streamName = streamName;
-	}
+  public CarmlStream(String streamName) {
+    this.streamName = streamName;
+  }
 
-	@RdfProperty(Carml.streamName)
-	@Override
-	public String getStreamName() {
-		return streamName;
-	}
+  @RdfProperty(Carml.streamName)
+  @Override
+  public String getStreamName() {
+    return streamName;
+  }
 
-	public void setStreamName(String streamName) {
-		this.streamName = streamName;
-	}
+  public void setStreamName(String streamName) {
+    this.streamName = streamName;
+  }
 
-	@Override
-	public int hashCode() {
-		return Objects.hash(streamName);
-	}
+  @Override
+  public int hashCode() {
+    return Objects.hash(streamName);
+  }
 
-	@Override
-	public boolean equals(Object obj) {
-		if (obj instanceof NameableStream) {
-			NameableStream other = (NameableStream) obj;
-			return Objects.equals(streamName, other.getStreamName());
-		}
-		return false;
-	}
+  @Override
+  public boolean equals(Object obj) {
+    if (obj instanceof NameableStream) {
+      NameableStream other = (NameableStream) obj;
+      return Objects.equals(streamName, other.getStreamName());
+    }
+    return false;
+  }
 
-	@Override
-	public Set<Resource> getReferencedResources() {
-		return ImmutableSet.of();
-	}
+  @Override
+  public Set<Resource> getReferencedResources() {
+    return ImmutableSet.of();
+  }
 
-	@Override
-	public void addTriples(ModelBuilder modelBuilder) {
-		modelBuilder.subject(getAsResource())
-				.add(RDF.TYPE, Rdf.Carml.Stream);
+  @Override
+  public void addTriples(ModelBuilder modelBuilder) {
+    modelBuilder.subject(getAsResource())
+        .add(RDF.TYPE, Rdf.Carml.Stream);
 
-		if (streamName != null) {
-			modelBuilder.add(Carml.streamName, streamName);
-		}
-	}
+    if (streamName != null) {
+      modelBuilder.add(Carml.streamName, streamName);
+    }
+  }
 
-	@Override
-	public String toString() {
-		return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
-	}
+  @Override
+  public String toString() {
+    return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
+  }
 }

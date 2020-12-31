@@ -19,163 +19,147 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 
 public class CarmlObjectMap extends CarmlTermMap implements ObjectMap {
 
-	private IRI datatype;
-	private String language;
+  private IRI datatype;
 
-	public CarmlObjectMap() {
-		// Empty constructor for object mapper
-	}
+  private String language;
 
-	public CarmlObjectMap(
-		String reference,
-		String inverseExpression,
-		String template,
-		TermType termType,
-		Value constant,
-		TriplesMap functionValue,
-		IRI datatype,
-		String language
-	) {
-		super(reference, inverseExpression, template, termType, constant, functionValue);
-		this.datatype = datatype;
-		this.language = language;
-	}
+  public CarmlObjectMap() {
+    // Empty constructor for object mapper
+  }
 
-	@RdfProperty(Rr.datatype)
-	@Override
-	public IRI getDatatype() {
-		return datatype;
-	}
+  public CarmlObjectMap(String reference, String inverseExpression, String template, TermType termType, Value constant,
+      TriplesMap functionValue, IRI datatype, String language) {
+    super(reference, inverseExpression, template, termType, constant, functionValue);
+    this.datatype = datatype;
+    this.language = language;
+  }
 
-	@RdfProperty(Rr.language)
-	@Override
-	public String getLanguage() {
-		return language;
-	}
+  @RdfProperty(Rr.datatype)
+  @Override
+  public IRI getDatatype() {
+    return datatype;
+  }
 
-	public void setDatatype(IRI datatype) {
-		this.datatype = datatype;
-	}
+  @RdfProperty(Rr.language)
+  @Override
+  public String getLanguage() {
+    return language;
+  }
 
-	public void setLanguage(String language) {
-		this.language = language;
-	}
+  public void setDatatype(IRI datatype) {
+    this.datatype = datatype;
+  }
 
-	@Override
-	public String toString() {
-		return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
-	}
+  public void setLanguage(String language) {
+    this.language = language;
+  }
 
-	@Override
-	public int hashCode() {
-		return Objects.hash(datatype, language, super.hashCode());
-	}
+  @Override
+  public String toString() {
+    return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
+  }
 
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (!super.equals(obj)) {
-			return false;
-		}
-		if (getClass() != obj.getClass()) {
-			return false;
-		}
-		CarmlObjectMap other = (CarmlObjectMap) obj;
-		return Objects.equals(datatype, other.datatype) &&
-				Objects.equals(language, other.language);
-	}
+  @Override
+  public int hashCode() {
+    return Objects.hash(datatype, language, super.hashCode());
+  }
 
-	@Override
-	public Set<Resource> getReferencedResources() {
-		return ImmutableSet.<Resource>builder()
-				.addAll(getReferencedResourcesBase())
-				.build();
-	}
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (!super.equals(obj)) {
+      return false;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    CarmlObjectMap other = (CarmlObjectMap) obj;
+    return Objects.equals(datatype, other.datatype) && Objects.equals(language, other.language);
+  }
 
-	@Override
-	public void addTriples(ModelBuilder modelBuilder) {
-		modelBuilder.subject(getAsResource())
-				.add(RDF.TYPE, Rdf.Rr.ObjectMap);
+  @Override
+  public Set<Resource> getReferencedResources() {
+    return ImmutableSet.<Resource>builder()
+        .addAll(getReferencedResourcesBase())
+        .build();
+  }
 
-		addTriplesBase(modelBuilder);
+  @Override
+  public void addTriples(ModelBuilder modelBuilder) {
+    modelBuilder.subject(getAsResource())
+        .add(RDF.TYPE, Rdf.Rr.ObjectMap);
 
-		if (datatype != null) {
-			modelBuilder.add(Rr.datatype, datatype);
-		}
-		if (language != null) {
-			modelBuilder.add(Rr.language, language);
-		}
-	}
+    addTriplesBase(modelBuilder);
 
-	public static Builder newBuilder() {
-		return new Builder();
-	}
+    if (datatype != null) {
+      modelBuilder.add(Rr.datatype, datatype);
+    }
+    if (language != null) {
+      modelBuilder.add(Rr.language, language);
+    }
+  }
 
-	public static class Builder
-		extends CarmlTermMap.Builder {
+  public static Builder newBuilder() {
+    return new Builder();
+  }
 
-		private IRI datatype;
-		private String language;
+  public static class Builder extends CarmlTermMap.Builder {
 
-		@Override
-		public Builder reference(String reference) {
-			super.reference(reference);
-			return this;
-		}
+    private IRI datatype;
 
-		@Override
-		public Builder inverseExpression(String inverseExpression) {
-			super.inverseExpression(inverseExpression);
-			return this;
-		}
+    private String language;
 
-		@Override
-		public Builder template(String template) {
-			super.template(template);
-			return this;
-		}
+    @Override
+    public Builder reference(String reference) {
+      super.reference(reference);
+      return this;
+    }
 
-		@Override
-		public Builder termType(TermType termType) {
-			super.termType(termType);
-			return this;
-		}
+    @Override
+    public Builder inverseExpression(String inverseExpression) {
+      super.inverseExpression(inverseExpression);
+      return this;
+    }
 
-		@Override
-		public Builder constant(Value constant) {
-			super.constant(constant);
-			return this;
-		}
+    @Override
+    public Builder template(String template) {
+      super.template(template);
+      return this;
+    }
 
-		@Override
-		public Builder functionValue(TriplesMap functionValue) {
-			super.functionValue(functionValue);
-			return this;
-		}
+    @Override
+    public Builder termType(TermType termType) {
+      super.termType(termType);
+      return this;
+    }
 
-		public Builder datatype(IRI datatype) {
-			this.datatype = datatype;
-			return this;
-		}
+    @Override
+    public Builder constant(Value constant) {
+      super.constant(constant);
+      return this;
+    }
 
-		public Builder language(String language) {
-			this.language = language;
-			return this;
-		}
+    @Override
+    public Builder functionValue(TriplesMap functionValue) {
+      super.functionValue(functionValue);
+      return this;
+    }
 
-		public CarmlObjectMap build() {
-			return new CarmlObjectMap(
-				getReference(),
-				getInverseExpression(),
-				getTemplate(),
-				getTermType(),
-				getConstant(),
-				getFunctionValue(),
-				datatype,
-				language
-			);
-		}
-	}
+    public Builder datatype(IRI datatype) {
+      this.datatype = datatype;
+      return this;
+    }
+
+    public Builder language(String language) {
+      this.language = language;
+      return this;
+    }
+
+    public CarmlObjectMap build() {
+      return new CarmlObjectMap(getReference(), getInverseExpression(), getTemplate(), getTermType(), getConstant(),
+          getFunctionValue(), datatype, language);
+    }
+  }
 }

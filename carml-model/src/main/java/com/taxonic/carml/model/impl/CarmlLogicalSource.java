@@ -16,143 +16,135 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 
 public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
 
-	private Object source;
-	private String iterator;
-	private IRI referenceFormulation;
+  private Object source;
 
-	public CarmlLogicalSource() {
-		// Empty constructor for object mapper
-	}
+  private String iterator;
 
-	public CarmlLogicalSource(
-		Object source,
-		String iterator,
-		IRI referenceFormulation
-	) {
-		this.source = source;
-		this.iterator = iterator;
-		this.referenceFormulation = referenceFormulation;
-	}
+  private IRI referenceFormulation;
 
-	@RdfProperty(
-		value = Rml.source,
-		handler = LogicalSourceSourcePropertyHandler.class
-	)
-	@Override
-	public Object getSource() {
-		return source;
-	}
+  public CarmlLogicalSource() {
+    // Empty constructor for object mapper
+  }
 
-	@RdfProperty(Rml.iterator)
-	@Override
-	public String getIterator() {
-		return iterator;
-	}
+  public CarmlLogicalSource(Object source, String iterator, IRI referenceFormulation) {
+    this.source = source;
+    this.iterator = iterator;
+    this.referenceFormulation = referenceFormulation;
+  }
 
-	@RdfProperty(Rml.referenceFormulation)
-	@Override
-	public IRI getReferenceFormulation() {
-		return referenceFormulation;
-	}
+  @RdfProperty(value = Rml.source, handler = LogicalSourceSourcePropertyHandler.class)
+  @Override
+  public Object getSource() {
+    return source;
+  }
 
-	public void setSource(Object source) {
-		this.source = source;
-	}
+  @RdfProperty(Rml.iterator)
+  @Override
+  public String getIterator() {
+    return iterator;
+  }
 
-	public void setIterator(String iterator) {
-		this.iterator = iterator;
-	}
+  @RdfProperty(Rml.referenceFormulation)
+  @Override
+  public IRI getReferenceFormulation() {
+    return referenceFormulation;
+  }
 
-	public void setReferenceFormulation(IRI referenceFormulation) {
-		this.referenceFormulation = referenceFormulation;
-	}
+  public void setSource(Object source) {
+    this.source = source;
+  }
 
-	@Override
-	public String toString() {
-		return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
-	}
+  public void setIterator(String iterator) {
+    this.iterator = iterator;
+  }
 
-	@Override
-	public int hashCode() {
-		return Objects.hash(source, iterator, referenceFormulation);
-	}
+  public void setReferenceFormulation(IRI referenceFormulation) {
+    this.referenceFormulation = referenceFormulation;
+  }
 
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (obj == null) {
-			return false;
-		}
-		if (getClass() != obj.getClass()) {
-			return false;
-		}
-		CarmlLogicalSource other = (CarmlLogicalSource) obj;
-		return Objects.equals(source, other.source) &&
-				Objects.equals(iterator, other.iterator) &&
-				Objects.equals(referenceFormulation, other.referenceFormulation);
-	}
+  @Override
+  public String toString() {
+    return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
+  }
 
-	@Override
-	public Set<Resource> getReferencedResources() {
-		if (source != null && source instanceof Resource) {
-			return ImmutableSet.of((Resource) source);
-		} else {
-			return ImmutableSet.of();
-		}
-	}
+  @Override
+  public int hashCode() {
+    return Objects.hash(source, iterator, referenceFormulation);
+  }
 
-	@Override
-	public void addTriples(ModelBuilder modelBuilder) {
-		modelBuilder.subject(getAsResource())
-				.add(RDF.TYPE, Rdf.Rml.LogicalSource);
-		if (source != null) {
-			if (source instanceof Resource) {
-				modelBuilder.add(Rml.source, ((Resource) source).getAsResource());
-			} else {
-				modelBuilder.add(Rml.source, source);
-			}
-		}
-		if (iterator != null) {
-			modelBuilder.add(Rml.iterator, iterator);
-		}
-		if (referenceFormulation != null) {
-			modelBuilder.add(Rml.referenceFormulation, referenceFormulation);
-		}
-	}
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null) {
+      return false;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    CarmlLogicalSource other = (CarmlLogicalSource) obj;
+    return Objects.equals(source, other.source) && Objects.equals(iterator, other.iterator)
+        && Objects.equals(referenceFormulation, other.referenceFormulation);
+  }
 
-	public static Builder newBuilder() {
-		return new Builder();
-	}
+  @Override
+  public Set<Resource> getReferencedResources() {
+    if (source != null && source instanceof Resource) {
+      return ImmutableSet.of((Resource) source);
+    } else {
+      return ImmutableSet.of();
+    }
+  }
 
-	public static class Builder {
+  @Override
+  public void addTriples(ModelBuilder modelBuilder) {
+    modelBuilder.subject(getAsResource())
+        .add(RDF.TYPE, Rdf.Rml.LogicalSource);
+    if (source != null) {
+      if (source instanceof Resource) {
+        modelBuilder.add(Rml.source, ((Resource) source).getAsResource());
+      } else {
+        modelBuilder.add(Rml.source, source);
+      }
+    }
+    if (iterator != null) {
+      modelBuilder.add(Rml.iterator, iterator);
+    }
+    if (referenceFormulation != null) {
+      modelBuilder.add(Rml.referenceFormulation, referenceFormulation);
+    }
+  }
 
-		private Object source;
-		private String iterator;
-		private IRI referenceFormulation;
+  public static Builder newBuilder() {
+    return new Builder();
+  }
 
-		public Builder source(Object source) {
-			this.source = source;
-			return this;
-		}
+  public static class Builder {
 
-		public Builder iterator(String iterator) {
-			this.iterator = iterator;
-			return this;
-		}
+    private Object source;
 
-		public Builder referenceFormulation(IRI referenceFormulation) {
-			this.referenceFormulation = referenceFormulation;
-			return this;
-		}
+    private String iterator;
 
-		public CarmlLogicalSource build() {
-			return new CarmlLogicalSource(
-				source,
-				iterator,
-				referenceFormulation
-			);
-		}
-	}
+    private IRI referenceFormulation;
+
+    public Builder source(Object source) {
+      this.source = source;
+      return this;
+    }
+
+    public Builder iterator(String iterator) {
+      this.iterator = iterator;
+      return this;
+    }
+
+    public Builder referenceFormulation(IRI referenceFormulation) {
+      this.referenceFormulation = referenceFormulation;
+      return this;
+    }
+
+    public CarmlLogicalSource build() {
+      return new CarmlLogicalSource(source, iterator, referenceFormulation);
+    }
+  }
 }

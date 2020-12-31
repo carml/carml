@@ -7,21 +7,21 @@ import org.eclipse.rdf4j.model.util.ModelBuilder;
 
 public interface Resource {
 
-	String getId();
+  String getId();
 
-	String getLabel();
+  String getLabel();
 
-	Set<Resource> getReferencedResources();
+  Set<Resource> getReferencedResources();
 
-	default String getResourceName() {
-		return getLabel() != null ? "\"" + getLabel() + "\"" : getAsResource().toString();
-	}
+  default String getResourceName() {
+    return getLabel() != null ? "\"" + getLabel() + "\"" : getAsResource().toString();
+  }
 
-	org.eclipse.rdf4j.model.Resource getAsResource();
+  org.eclipse.rdf4j.model.Resource getAsResource();
 
-	@MultiDelegateCall
-	void addTriples(ModelBuilder modelBuilder);
+  @MultiDelegateCall
+  void addTriples(ModelBuilder modelBuilder);
 
-	@MultiDelegateCall(AsRdfCombiner.class)
-	Model asRdf();
+  @MultiDelegateCall(AsRdfCombiner.class)
+  Model asRdf();
 }

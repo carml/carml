@@ -12,7 +12,7 @@
 :LogicalSource
   rml:source "iriTestInput.json" ;
   rml:referenceFormulation ql:JSONPath ;
-  rml:iterator "$.values" ;
+  rml:iterator "$.values[*]" ;
 .
 
 :TriplesMap

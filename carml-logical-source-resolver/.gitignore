@@ -1,8 +1,0 @@
-# eclipse
-/.checkstyle
-/.classpath
-/.project
-/.settings/
-
-# maven
-/target/

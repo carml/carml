@@ -7,6 +7,6 @@ import org.eclipse.rdf4j.model.Resource;
 
 public interface TypeDecider {
 
-	Set<Type> decide(Model model, Resource resource);
-	
+  Set<Type> decide(Model model, Resource resource);
+
 }

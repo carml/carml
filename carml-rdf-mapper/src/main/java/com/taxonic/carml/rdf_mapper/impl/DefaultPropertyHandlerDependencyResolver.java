@@ -1,107 +1,100 @@
 package com.taxonic.carml.rdf_mapper.impl;
 
+import com.taxonic.carml.rdf_mapper.Mapper;
+import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
+import com.taxonic.carml.rdf_mapper.qualifiers.PropertyPredicate;
+import com.taxonic.carml.rdf_mapper.qualifiers.PropertySetter;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiConsumer;
-
 import javax.inject.Inject;
-
 import org.eclipse.rdf4j.model.IRI;
 
-import com.taxonic.carml.rdf_mapper.Mapper;
-import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
-import com.taxonic.carml.rdf_mapper.qualifiers.PropertyPredicate;
-import com.taxonic.carml.rdf_mapper.qualifiers.PropertySetter;
-
-/** Simple {@code DependencyResolver} that contains, and can resolve,
- * (optional) dependencies for custom property handlers, set through
- * {@link RdfProperty#handler()}.
- * 
- * Any such property handler is instantiated
- * through its (no-args) constructor, and can then have things injected
- * through setters annotated with {@link Inject}. Such injections are
- * attempted to be resolved by an instance of this class.
- * 
- * The current implementation simply contains several values that can be
- * injected by type or by using a qualifier. Things that can currently be
- * injected by type: {@link Mapper}, {@link MappingCache}. Things that can
- * be injected by pre-set qualifiers: a {@code BiConsumer&lt;Object, Object&gt;},
- * which takes the mapped instance and value to set for the property as arguments,
- * qualified by {@link PropertySetter}, the predicate of the property, of type
- * {@link IRI}, qualified by {@link PropertyPredicate}.
+/**
+ * Simple {@code DependencyResolver} that contains, and can resolve, (optional) dependencies for
+ * custom property handlers, set through {@link RdfProperty#handler()}.
+ *
+ * Any such property handler is instantiated through its (no-args) constructor, and can then have
+ * things injected through setters annotated with {@link Inject}. Such injections are attempted to
+ * be resolved by an instance of this class.
+ *
+ * The current implementation simply contains several values that can be injected by type or by
+ * using a qualifier. Things that can currently be injected by type: {@link Mapper},
+ * {@link MappingCache}. Things that can be injected by pre-set qualifiers: a
+ * {@code BiConsumer&lt;Object, Object&gt;}, which takes the mapped instance and value to set for
+ * the property as arguments, qualified by {@link PropertySetter}, the predicate of the property, of
+ * type {@link IRI}, qualified by {@link PropertyPredicate}.
  */
 class DefaultPropertyHandlerDependencyResolver implements DependencyResolver {
 
-	private BiConsumer<Object, Object> set;
-	private IRI predicate;
-	private Mapper mapper;
-	private MappingCache mappingCache;
-	
-	public DefaultPropertyHandlerDependencyResolver(
-		BiConsumer<Object, Object> set,
-		IRI predicate,
-		Mapper mapper,
-		MappingCache mappingCache
-	) {
-		this.set = set;
-		this.predicate = predicate;
-		this.mapper = mapper;
-		this.mappingCache = mappingCache;
-	}
+  private BiConsumer<Object, Object> set;
 
-	private Optional<Object> getQualifierValue(Class<? extends Annotation> qualifier) {
-		if (qualifier.equals(PropertyPredicate.class)) {
-			return Optional.of(predicate);
-		}
-		if (qualifier.equals(PropertySetter.class)) {
-			return Optional.of(set);
-		}
+  private IRI predicate;
 
-		// TODO ..
+  private Mapper mapper;
 
-		return Optional.empty();
-	}
+  private MappingCache mappingCache;
 
-	private Optional<Object> getValueByType(Type type) {
-		if (type.equals(Mapper.class)) {
-			return Optional.of(mapper);
-		} else if (type.equals(MappingCache.class)) {
-			return Optional.of(mappingCache);
-		}
+  public DefaultPropertyHandlerDependencyResolver(BiConsumer<Object, Object> set, IRI predicate, Mapper mapper,
+      MappingCache mappingCache) {
+    this.set = set;
+    this.predicate = predicate;
+    this.mapper = mapper;
+    this.mappingCache = mappingCache;
+  }
 
-		// TODO ..
+  private Optional<Object> getQualifierValue(Class<? extends Annotation> qualifier) {
+    if (qualifier.equals(PropertyPredicate.class)) {
+      return Optional.of(predicate);
+    }
+    if (qualifier.equals(PropertySetter.class)) {
+      return Optional.of(set);
+    }
 
-		return Optional.empty();
-	}
+    // TODO ..
 
-	@Override
-	public Object resolve(Type type, List<Annotation> qualifiers) {
+    return Optional.empty();
+  }
 
-		// try simple mapping of a present qualifier to a value
-		Optional<Object> qualifierValue =
-			qualifiers.stream()
-				.map(Annotation::annotationType)
-				.map(this::getQualifierValue)
-				.filter(Optional::isPresent)
-				.map(Optional::get)
-				.findFirst();
-		if (qualifierValue.isPresent()) {
-			return qualifierValue.get();
-		}
+  private Optional<Object> getValueByType(Type type) {
+    if (type.equals(Mapper.class)) {
+      return Optional.of(mapper);
+    } else if (type.equals(MappingCache.class)) {
+      return Optional.of(mappingCache);
+    }
 
-		Optional<Object> valueByType = getValueByType(type);
-		if (valueByType.isPresent()) {
-			return valueByType.get();
-		}
+    // TODO ..
+
+    return Optional.empty();
+  }
+
+  @Override
+  public Object resolve(Type type, List<Annotation> qualifiers) {
+
+    // try simple mapping of a present qualifier to a value
+    Optional<Object> qualifierValue = qualifiers.stream()
+        .map(Annotation::annotationType)
+        .map(this::getQualifierValue)
+        .filter(Optional::isPresent)
+        .map(Optional::get)
+        .findFirst();
+    if (qualifierValue.isPresent()) {
+      return qualifierValue.get();
+    }
+
+    Optional<Object> valueByType = getValueByType(type);
+    if (valueByType.isPresent()) {
+      return valueByType.get();
+    }
 
 
-		// TODO ..
+    // TODO ..
 
 
-		throw new RuntimeException(String.format("could not resolve dependency for type [%s] and qualifiers [%s]",
-				type, qualifiers));
-	}
+    throw new RuntimeException(
+        String.format("could not resolve dependency for type [%s] and qualifiers [%s]", type, qualifiers));
+  }
 
 }

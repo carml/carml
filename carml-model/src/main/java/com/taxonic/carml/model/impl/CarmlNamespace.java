@@ -15,104 +15,106 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 
 public class CarmlNamespace extends CarmlResource implements Namespace {
 
-	private String prefix;
-	private String name;
+  private String prefix;
 
-	public CarmlNamespace() {
-		// Empty constructor for object mapper
-	}
+  private String name;
 
-	public CarmlNamespace(String prefix, String name) {
-		this.prefix = prefix;
-		this.name = name;
-	}
+  public CarmlNamespace() {
+    // Empty constructor for object mapper
+  }
 
-	@RdfProperty(Carml.namespacePrefix)
-	@Override
-	public String getPrefix() {
-		return prefix;
-	}
+  public CarmlNamespace(String prefix, String name) {
+    this.prefix = prefix;
+    this.name = name;
+  }
 
-	@RdfProperty(Carml.namespaceName)
-	@Override
-	public String getName() {
-		return name;
-	}
+  @RdfProperty(Carml.namespacePrefix)
+  @Override
+  public String getPrefix() {
+    return prefix;
+  }
 
-	public void setPrefix(String prefix) {
-		this.prefix = prefix;
-	}
+  @RdfProperty(Carml.namespaceName)
+  @Override
+  public String getName() {
+    return name;
+  }
 
-	public void setName(String name) {
-		this.name = name;
-	}
+  public void setPrefix(String prefix) {
+    this.prefix = prefix;
+  }
 
-	@Override
-	public String toString() {
-		return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
-	}
+  public void setName(String name) {
+    this.name = name;
+  }
 
-	@Override
-	public int hashCode() {
-		return Objects.hash(prefix, name);
-	}
+  @Override
+  public String toString() {
+    return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
+  }
 
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (obj == null) {
-			return false;
-		}
-		if (getClass() != obj.getClass()) {
-			return false;
-		}
-		CarmlNamespace other = (CarmlNamespace) obj;
-		return Objects.equals(prefix, other.prefix) && Objects.equals(name, other.name);
-	}
+  @Override
+  public int hashCode() {
+    return Objects.hash(prefix, name);
+  }
 
-	@Override
-	public Set<Resource> getReferencedResources() {
-		return ImmutableSet.of();
-	}
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null) {
+      return false;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    CarmlNamespace other = (CarmlNamespace) obj;
+    return Objects.equals(prefix, other.prefix) && Objects.equals(name, other.name);
+  }
 
-	@Override
-	public void addTriples(ModelBuilder modelBuilder) {
-		modelBuilder.subject(getAsResource())
-				.add(RDF.TYPE, Rdf.Carml.Namespace);
-		if (prefix != null) {
-			modelBuilder.add(Carml.namespacePrefix, prefix);
-		}
-		if (name != null) {
-			modelBuilder.add(Carml.namespaceName, name);
-		}
-	}
+  @Override
+  public Set<Resource> getReferencedResources() {
+    return ImmutableSet.of();
+  }
 
-	public static Builder newBuilder() {
-		return new Builder();
-	}
+  @Override
+  public void addTriples(ModelBuilder modelBuilder) {
+    modelBuilder.subject(getAsResource())
+        .add(RDF.TYPE, Rdf.Carml.Namespace);
+    if (prefix != null) {
+      modelBuilder.add(Carml.namespacePrefix, prefix);
+    }
+    if (name != null) {
+      modelBuilder.add(Carml.namespaceName, name);
+    }
+  }
 
-	public static class Builder{
+  public static Builder newBuilder() {
+    return new Builder();
+  }
 
-		private String prefix;
-		private String name;
+  public static class Builder {
 
-		Builder() {}
+    private String prefix;
 
-		public Builder prefix(String prefix) {
-			this.prefix = prefix;
-			return this;
-		}
+    private String name;
 
-		public Builder name(String name) {
-			this.name = name;
-			return this;
-		}
+    Builder() {}
 
-		public CarmlNamespace build() {
-			return new CarmlNamespace(prefix, name);
-		}
-	}
+    public Builder prefix(String prefix) {
+      this.prefix = prefix;
+      return this;
+    }
+
+    public Builder name(String name) {
+      this.name = name;
+      return this;
+    }
+
+    public CarmlNamespace build() {
+      return new CarmlNamespace(prefix, name);
+    }
+  }
 
 }

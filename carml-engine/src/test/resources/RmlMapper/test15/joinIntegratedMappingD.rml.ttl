@@ -9,7 +9,7 @@
 rml:logicalSource [
 	rml:source "joinMultipleBreakfasts.json" ;
 	rml:referenceFormulation ql:JSONPath ;
-	rml:iterator "$.food"
+	rml:iterator "$.food[*]"
 ];
 rr:subjectMap [
 	rr:template "http://food.example.com/{name}";
@@ -30,7 +30,7 @@ rr:predicateObjectMap [
 	rml:logicalSource [
 		rml:source "joinMultipleCountries.json";
 		rml:referenceFormulation ql:JSONPath;
-		rml:iterator "$.country"
+		rml:iterator "$.country[*]"
 		];
 		
 		rr:subjectMap [

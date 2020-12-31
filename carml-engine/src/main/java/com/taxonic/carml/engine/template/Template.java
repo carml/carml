@@ -6,24 +6,24 @@ import java.util.function.Function;
 
 public interface Template {
 
-	Set<Expression> getExpressions();
+  Set<Expression> getExpressions();
 
-	Builder newBuilder();
+  Builder newBuilder();
 
-	interface Builder {
+  interface Builder {
 
-		Builder bind(Expression expression, Function<Expression, Optional<Object>> templateValue);
+    Builder bind(Expression expression, Function<Expression, Optional<Object>> templateValue);
 
-		Optional<Object> create();
+    Optional<Object> create();
 
-	}
+  }
 
-	interface Expression {
+  interface Expression {
 
-		String getValue();
+    String getValue();
 
-	}
+  }
 
-	String toTemplateString();
+  String toTemplateString();
 
 }

@@ -5,5 +5,5 @@ import java.lang.annotation.RetentionPolicy;
 
 @Retention(RetentionPolicy.RUNTIME)
 public @interface RdfProperties {
-	RdfProperty[] value();
+  RdfProperty[] value();
 }

@@ -1,0 +1,31 @@
+@prefix rr: <http://www.w3.org/ns/r2rml#>.
+@prefix rml: <http://semweb.mmlab.be/ns/rml#>.
+@prefix ql: <http://semweb.mmlab.be/ns/ql#>.
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
+@prefix org: <http://www.w3.org/ns/org#> .
+@prefix bi: <http://data.pdok.nl/def/bi#> .
+@prefix schema: <http://schema.org/>.
+@prefix carml: <http://carml.taxonic.com/carml/> .
+
+@prefix : <http://data.pdok.nl/mappings/bi#> .
+
+:LogicalSource a rml:LogicalSource ;
+  rml:source [ a carml:Stream ] ;
+  rml:referenceFormulation ql:CSV ;
+.
+
+:CarMapping a rr:TriplesMap ;
+  rml:logicalSource :LogicalSource ;
+  rr:subjectMap [
+    rr:template "http://data.pdok.nl/bi/id/{organisatieTypeString}/{organisatieType}{organisatieCode}" ;
+  ] ;
+  rr:predicateObjectMap [
+    rr:predicate
+      bi:oin ,
+      org:identifier ;
+    rr:objectMap [
+      rml:reference "OIN"
+    ];
+  ] ;
+.
+

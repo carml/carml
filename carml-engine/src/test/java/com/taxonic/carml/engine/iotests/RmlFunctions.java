@@ -10,106 +10,88 @@ import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 
 public class RmlFunctions {
 
-	private static class Ex {
+  private static class Ex {
 
-		final static String
+    final static String
 
-			prefix = "http://example.com/",
+    prefix = "http://example.com/",
 
-			toBoolFunction = prefix + "toBoolFunction",
+        toBoolFunction = prefix + "toBoolFunction",
 
-			startString = prefix + "startString",
+        startString = prefix + "startString",
 
-			stringParam = prefix + "stringParam",
+        stringParam = prefix + "stringParam",
 
-			removeNonLatinCharsFunction = prefix + "removeNonLatinCharsFunction",
+        removeNonLatinCharsFunction = prefix + "removeNonLatinCharsFunction",
 
-			toLowercase = prefix + "toLowercase",
+        toLowercase = prefix + "toLowercase",
 
-			sumFunction = prefix + "sumFunction",
+        sumFunction = prefix + "sumFunction",
 
-			toIntFunction = prefix + "toIntFunction",
+        toIntFunction = prefix + "toIntFunction",
 
-			toIntOutput = prefix + "toIntOutput",
+        toIntOutput = prefix + "toIntOutput",
 
-			intParam = prefix + "intParam",
+        intParam = prefix + "intParam",
 
-			constantListFunction = prefix + "constantListFunction",
+        constantListFunction = prefix + "constantListFunction",
 
-			listParamFunction = prefix + "listParamFunction",
+        listParamFunction = prefix + "listParamFunction",
 
-			listParam = prefix + "listParam",
+        listParam = prefix + "listParam",
 
-			iriFunction = prefix + "iriFunction",
+        iriFunction = prefix + "iriFunction",
 
-			baseIriParam = prefix + "baseIriParam";
-	}
+        baseIriParam = prefix + "baseIriParam";
+  }
 
-	@FnoFunction(Ex.toBoolFunction)
-	public boolean toBoolFunction(
-		@FnoParam(Ex.startString) String startString
-	) {
-		return startString.toLowerCase().equals("yes");
-	}
+  @FnoFunction(Ex.toBoolFunction)
+  public boolean toBoolFunction(@FnoParam(Ex.startString) String startString) {
+    return startString.toLowerCase()
+        .equals("yes");
+  }
 
-	@FnoFunction(Ex.removeNonLatinCharsFunction)
-	public String removeNonLatinCharsFunction(
-		@FnoParam(Ex.startString) String inputString
-	) {
-		return inputString.replaceAll("[^A-Za-z0-9]", "");
-	}
+  @FnoFunction(Ex.removeNonLatinCharsFunction)
+  public String removeNonLatinCharsFunction(@FnoParam(Ex.startString) String inputString) {
+    return inputString.replaceAll("[^A-Za-z0-9]", "");
+  }
 
-	@FnoFunction(Ex.toLowercase)
-	public String toLowercase(
-		@FnoParam(Ex.startString) String inputString
-	) {
-		return inputString.toLowerCase();
-	}
+  @FnoFunction(Ex.toLowercase)
+  public String toLowercase(@FnoParam(Ex.startString) String inputString) {
+    return inputString.toLowerCase();
+  }
 
-	@FnoFunction(Ex.toIntFunction)
-	public int toIntFunction(
-		@FnoParam(Ex.stringParam) String inputString
-	) {
-		return Integer.parseInt(inputString);
-	}
+  @FnoFunction(Ex.toIntFunction)
+  public int toIntFunction(@FnoParam(Ex.stringParam) String inputString) {
+    return Integer.parseInt(inputString);
+  }
 
-	@FnoFunction(Ex.sumFunction)
-	public int sumFunction(
-		@FnoParam(Ex.toIntOutput) int toIntOutput,
-		@FnoParam(Ex.intParam) int inputInt
-	) {
-		return toIntOutput + inputInt;
-	}
+  @FnoFunction(Ex.sumFunction)
+  public int sumFunction(@FnoParam(Ex.toIntOutput) int toIntOutput, @FnoParam(Ex.intParam) int inputInt) {
+    return toIntOutput + inputInt;
+  }
 
-	@FnoFunction(Ex.constantListFunction)
-	public List<String> constantListFunction() {
-		return
-				ImmutableList.of(
-					Ex.prefix + "abc",
-					Ex.prefix + "def",
-					Ex.prefix + "ghi"
-				);
-	}
+  @FnoFunction(Ex.constantListFunction)
+  public List<String> constantListFunction() {
+    return ImmutableList.of(Ex.prefix + "abc", Ex.prefix + "def", Ex.prefix + "ghi");
+  }
 
-	@FnoFunction(Ex.listParamFunction)
-	public List<String> listParamFunction(
-			@FnoParam(Ex.listParam) List<String> listParam) {
-		return listParam;
-	}
+  @FnoFunction(Ex.listParamFunction)
+  public List<String> listParamFunction(@FnoParam(Ex.listParam) List<String> listParam) {
+    return listParam;
+  }
 
-	@FnoFunction(Ex.iriFunction)
-	public IRI iriFunction(
-		@FnoParam(Ex.baseIriParam) String baseIri,
-		@FnoParam(Ex.stringParam) String namePart
-	) {
-		if (StringUtils.isEmpty(namePart)) {
-			return null;
-		}
-		return SimpleValueFactory.getInstance().createIRI(baseIri + namePart);
-	}
+  @FnoFunction(Ex.iriFunction)
+  public IRI iriFunction(@FnoParam(Ex.baseIriParam) String baseIri, @FnoParam(Ex.stringParam) String namePart) {
+    if (StringUtils.isEmpty(namePart)) {
+      return null;
+    }
+    return SimpleValueFactory.getInstance()
+        .createIRI(baseIri + namePart);
+  }
 
 
-	//TODO: PM: Add test for when parameter is not found
-	//TODO: PM: Add test for when function returns null
+  // TODO: PM: Add test for when parameter is not found
+  // TODO: PM: Add test for when function returns null
 
 }

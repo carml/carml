@@ -3,11 +3,10 @@ package com.taxonic.carml.model.impl;
 import com.taxonic.carml.model.Resource;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.rdf_mapper.annotations.RdfResourceName;
+import com.taxonic.carml.util.RdfUtil;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import com.taxonic.carml.util.RdfUtil;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
@@ -17,75 +16,78 @@ import org.eclipse.rdf4j.model.vocabulary.RDFS;
 
 public abstract class CarmlResource implements Resource {
 
-	private static final ValueFactory VF = SimpleValueFactory.getInstance();
+  private static final ValueFactory VF = SimpleValueFactory.getInstance();
 
-	String id;
-	String label;
-	private Map<Resource, Model> modelCache = new HashMap<>();
+  String id;
 
-	@Override
-	@RdfResourceName
-	public String getId() {
-		return id;
-	}
+  String label;
 
-	public void setId(String id) {
-		this.id = id;
-	}
+  private Map<Resource, Model> modelCache = new HashMap<>();
 
-	@Override
-	@RdfProperty("http://www.w3.org/2000/01/rdf-schema#label")
-	public String getLabel() {
-		return label;
-	}
+  @Override
+  @RdfResourceName
+  public String getId() {
+    return id;
+  }
 
-	public void setLabel(String label) {
-		this.label = label;
-	}
+  public void setId(String id) {
+    this.id = id;
+  }
 
-	public org.eclipse.rdf4j.model.Resource getAsResource() {
+  @Override
+  @RdfProperty("http://www.w3.org/2000/01/rdf-schema#label")
+  public String getLabel() {
+    return label;
+  }
 
-		if (id == null) {
-			return VF.createBNode();
-		}
+  public void setLabel(String label) {
+    this.label = label;
+  }
 
-		if (RdfUtil.isValidIri(id)) {
-			return VF.createIRI(id);
-		}
+  public org.eclipse.rdf4j.model.Resource getAsResource() {
 
-		return VF.createBNode(id);
-	}
+    if (id == null) {
+      return VF.createBNode();
+    }
 
-	private void cacheModel(Model model) {
-		modelCache = new HashMap<>();
-		modelCache.put(this, model);
-	}
+    if (RdfUtil.isValidIri(id)) {
+      return VF.createIRI(id);
+    }
 
-	public Model asRdf() {
+    return VF.createBNode(id);
+  }
 
-		if (modelCache.containsKey(this)) {
-			Model cachedModel = modelCache.get(this);
-			if (!cachedModel.isEmpty()) {
-				return cachedModel;
-			}
-		}
+  private void cacheModel(Model model) {
+    modelCache = new HashMap<>();
+    modelCache.put(this, model);
+  }
 
-		ModelBuilder builder = new ModelBuilder();
-		addTriples(builder);
-		if (label != null) {
-			builder.add(RDFS.LABEL, label);
-		}
-		Model model = builder.build();
+  public Model asRdf() {
 
-		Model nestedModel = getReferencedResources().stream()
-				.flatMap(resource -> resource.asRdf().stream())
-				.collect(Collectors.toCollection(LinkedHashModel::new));
+    if (modelCache.containsKey(this)) {
+      Model cachedModel = modelCache.get(this);
+      if (!cachedModel.isEmpty()) {
+        return cachedModel;
+      }
+    }
 
-		model.addAll(nestedModel);
+    ModelBuilder builder = new ModelBuilder();
+    addTriples(builder);
+    if (label != null) {
+      builder.add(RDFS.LABEL, label);
+    }
+    Model model = builder.build();
 
-		cacheModel(model);
+    Model nestedModel = getReferencedResources().stream()
+        .flatMap(resource -> resource.asRdf()
+            .stream())
+        .collect(Collectors.toCollection(LinkedHashModel::new));
 
-		return model;
-	}
+    model.addAll(nestedModel);
+
+    cacheModel(model);
+
+    return model;
+  }
 
 }

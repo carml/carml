@@ -1,30 +1,30 @@
 <http://person.example.com/Alice> a <http://example.com/ns#MovieWatcher> ;
-	<http://example.com/ns#hasAvailableMovie> _:0 , _:1 ;
+	<http://example.com/ns#hasAvailableMovie> _:bnode-httpmovieexamplecomTheExorcist , _:bnode-httpmovieexamplecomTheBabadook ;
 	<http://example.com/ns#hasAvailableCinema> <http://cinema.example.com/De%20Munt> .
 
 <http://person.example.com/Bob> a <http://example.com/ns#MovieWatcher> ;
-	<http://example.com/ns#hasAvailableMovie> _:2 ;
+	<http://example.com/ns#hasAvailableMovie> _:bnode-httpmovieexamplecomLoveMeIfYouDare ;
 	<http://example.com/ns#hasAvailableCinema> <http://cinema.example.com/De%20Munt> .
 
 <http://person.example.com/Charlie> a <http://example.com/ns#MovieWatcher> ;
-	<http://example.com/ns#hasAvailableMovie> _:3 , _:4 ;
+	<http://example.com/ns#hasAvailableMovie> _:bnode-httpmovieexamplecomInsideOut , _:bnode-httpmovieexamplecomUp ;
 	<http://example.com/ns#hasAvailableCinema> <http://cinema.example.com/De%20Kuip> .
 
 <http://person.example.com/Dave> a <http://example.com/ns#MovieWatcher> ;
 	<http://example.com/ns#hasAvailableCinema> <http://cinema.example.com/De%20Kuip> .
 
 <http://person.example.com/Eve> a <http://example.com/ns#MovieWatcher> ;
-	<http://example.com/ns#hasAvailableMovie> _:3 , _:4 ;
+	<http://example.com/ns#hasAvailableMovie> _:bnode-httpmovieexamplecomInsideOut , _:bnode-httpmovieexamplecomUp ;
 	<http://example.com/ns#hasAvailableCinema> <http://cinema.example.com/De%20Munt> .
 
-_:3 <http://example.com/ns#playsIn> <http://cinema.example.com/De%20Munt> .
+_:bnode-httpmovieexamplecomInsideOut <http://example.com/ns#playsIn> <http://cinema.example.com/De%20Munt> .
 
-_:4 <http://example.com/ns#playsIn> <http://cinema.example.com/De%20Kuip> .
+_:bnode-httpmovieexamplecomUp <http://example.com/ns#playsIn> <http://cinema.example.com/De%20Kuip> .
 
-_:0 <http://example.com/ns#playsIn> <http://cinema.example.com/De%20Munt> .
+_:bnode-httpmovieexamplecomTheExorcist <http://example.com/ns#playsIn> <http://cinema.example.com/De%20Munt> .
 
-_:1 <http://example.com/ns#playsIn> <http://cinema.example.com/De%20Kuip> .
+_:bnode-httpmovieexamplecomTheBabadook <http://example.com/ns#playsIn> <http://cinema.example.com/De%20Kuip> .
 
-_:2 <http://example.com/ns#playsIn> <http://cinema.example.com/De%20Kuip> .
+_:bnode-httpmovieexamplecomLoveMeIfYouDare <http://example.com/ns#playsIn> <http://cinema.example.com/De%20Kuip> .
 
-_:5 <http://example.com/ns#playsIn> <http://cinema.example.com/De%20Kuip> .
+_:bnode-httpmovieexamplecomDeadSpace <http://example.com/ns#playsIn> <http://cinema.example.com/De%20Kuip> .

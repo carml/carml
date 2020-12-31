@@ -1,12 +1,13 @@
 
 # eclipse
-/.classpath
-/.project
-/.settings/
+**/.classpath
+**/.project
+**/.settings
+**/.checkstyle
 .factorypath
 
 # maven
-/target/
+**/target
 
 # Intellij
 .idea/

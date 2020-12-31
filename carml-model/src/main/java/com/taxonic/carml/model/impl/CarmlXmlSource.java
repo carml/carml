@@ -18,57 +18,57 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 
 public class CarmlXmlSource extends CarmlResource implements XmlSource {
 
-	private Set<Namespace> declaredNamespaces;
+  private Set<Namespace> declaredNamespaces;
 
-	public CarmlXmlSource() {
-		this.declaredNamespaces = new LinkedHashSet<>();
-	}
+  public CarmlXmlSource() {
+    this.declaredNamespaces = new LinkedHashSet<>();
+  }
 
-	public CarmlXmlSource(Set<Namespace> declaredNamespaces) {
-		this.declaredNamespaces = declaredNamespaces;
-	}
+  public CarmlXmlSource(Set<Namespace> declaredNamespaces) {
+    this.declaredNamespaces = declaredNamespaces;
+  }
 
-	@RdfProperty(Carml.declaresNamespace)
-	@RdfType(CarmlNamespace.class)
-	@Override
-	public Set<Namespace> getDeclaredNamespaces() {
-		return declaredNamespaces;
-	}
+  @RdfProperty(Carml.declaresNamespace)
+  @RdfType(CarmlNamespace.class)
+  @Override
+  public Set<Namespace> getDeclaredNamespaces() {
+    return declaredNamespaces;
+  }
 
-	public void setDeclaredNamespaces(Set<Namespace> declaredNamespaces) {
-		this.declaredNamespaces = declaredNamespaces;
-	}
+  public void setDeclaredNamespaces(Set<Namespace> declaredNamespaces) {
+    this.declaredNamespaces = declaredNamespaces;
+  }
 
-	@Override
-	public String toString() {
-		return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
-	}
+  @Override
+  public String toString() {
+    return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
+  }
 
-	@Override
-	public int hashCode() {
-		return Objects.hash(declaredNamespaces);
-	}
+  @Override
+  public int hashCode() {
+    return Objects.hash(declaredNamespaces);
+  }
 
-	@Override
-	public boolean equals(Object obj) {
-		if (obj instanceof XmlSource) {
-			XmlSource other = (XmlSource) obj;
-			return Objects.equals(declaredNamespaces, other.getDeclaredNamespaces());
-		}
-		return false;
-	}
+  @Override
+  public boolean equals(Object obj) {
+    if (obj instanceof XmlSource) {
+      XmlSource other = (XmlSource) obj;
+      return Objects.equals(declaredNamespaces, other.getDeclaredNamespaces());
+    }
+    return false;
+  }
 
-	@Override
-	public Set<Resource> getReferencedResources() {
-		return ImmutableSet.copyOf(declaredNamespaces);
-	}
+  @Override
+  public Set<Resource> getReferencedResources() {
+    return ImmutableSet.copyOf(declaredNamespaces);
+  }
 
-	@Override
-	public void addTriples(ModelBuilder modelBuilder) {
-		modelBuilder.subject(getAsResource())
-				.add(RDF.TYPE, Rdf.Carml.XmlDocument);
+  @Override
+  public void addTriples(ModelBuilder modelBuilder) {
+    modelBuilder.subject(getAsResource())
+        .add(RDF.TYPE, Rdf.Carml.XmlDocument);
 
-		declaredNamespaces.forEach(ns -> modelBuilder.add(Carml.declaresNamespace, ns.getAsResource()));
-	}
+    declaredNamespaces.forEach(ns -> modelBuilder.add(Carml.declaresNamespace, ns.getAsResource()));
+  }
 
 }
