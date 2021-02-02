@@ -38,4 +38,14 @@ public class CsvResolver implements LogicalSourceResolver<Record> {
 		};
 	}
 
+	@Override
+	public GetIterableFromContext<Record> createGetIterableFromContext(String iterator) {
+		throw new UnsupportedOperationException("not implemented - in order to use nested mappings with csv, this method must be implemented");
+	}
+
+	@Override
+	public CreateContextEvaluate getCreateContextEvaluate() {
+		throw new UnsupportedOperationException("not implemented - in order to use nested mappings with csv, this method must be implemented");
+	}
+
 }

@@ -1,6 +1,8 @@
 package com.taxonic.carml.engine;
 
 import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
+
+import java.util.Set;
 import java.util.function.Supplier;
 import org.eclipse.rdf4j.model.Model;
 import org.slf4j.Logger;
@@ -14,16 +16,19 @@ class TriplesMapper<T> {
 	private Supplier<Iterable<T>> getIterator;
 	private LogicalSourceResolver.ExpressionEvaluatorFactory<T> expressionEvaluatorFactory;
 	private SubjectMapper subjectMapper;
+	private Set<NestedMapper<T>> nestedMappers;
 
 	TriplesMapper(
 		TriplesMapperComponents<T> trMapperComponents,
-		SubjectMapper subjectMapper
+		SubjectMapper subjectMapper,
+		Set<NestedMapper<T>> nestedMappers
 	) {
 		this(
 			trMapperComponents.getName(),
 			trMapperComponents.getIterator(),
 			trMapperComponents.getExpressionEvaluatorFactory(),
-			subjectMapper
+			subjectMapper,
+			nestedMappers
 		);
 	}
 
@@ -31,12 +36,14 @@ class TriplesMapper<T> {
 		String name,
 		Supplier<Iterable<T>> getIterator,
 		LogicalSourceResolver.ExpressionEvaluatorFactory<T> expressionEvaluatorFactory,
-		SubjectMapper subjectMapper
+		SubjectMapper subjectMapper,
+		Set<NestedMapper<T>> nestedMappers
 	) {
 		this.name = name;
 		this.getIterator = getIterator;
 		this.expressionEvaluatorFactory = expressionEvaluatorFactory;
 		this.subjectMapper = subjectMapper;
+		this.nestedMappers = nestedMappers;
 	}
 
 	void map(Model model) {
@@ -49,6 +56,7 @@ class TriplesMapper<T> {
 		LOG.trace("Mapping triples for entry {}", entry);
 		EvaluateExpression evaluate =
 			expressionEvaluatorFactory.apply(entry);
-		subjectMapper.map(model, evaluate);
+		subjectMapper.map(model, evaluate); // TODO probably pass resulting resource to any nested mappers
+		nestedMappers.forEach(n -> n.map(model, evaluate));
 	}
 }

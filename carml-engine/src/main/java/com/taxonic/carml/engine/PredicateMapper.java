@@ -17,15 +17,18 @@ class PredicateMapper {
 	private TermGenerator<IRI> generator;
 	private Set<TermGenerator<? extends Value>> objectGenerators;
 	private Set<RefObjectMapper> refObjectMappers;
-	
+	private Set<NestedMapper<?>> nestedMappers;
+
 	PredicateMapper(
 		TermGenerator<IRI> generator,
 		Set<TermGenerator<? extends Value>> objectGenerators,
-		Set<RefObjectMapper> refObjectMappers
+		Set<RefObjectMapper> refObjectMappers,
+		Set<NestedMapper<?>> nestedMappers
 	) {
 		this.generator = generator;
 		this.objectGenerators = objectGenerators;
 		this.refObjectMappers = refObjectMappers;
+		this.nestedMappers = nestedMappers;
 	}
 
 	void map(Model model, EvaluateExpression evaluate, Resource subject, Resource... contexts) {
@@ -49,6 +52,10 @@ class PredicateMapper {
 		
 		refObjectMappers.stream()
 			.flatMap(r -> r.map(evaluate).stream())
+			.forEach(addObjectTriple);
+
+		nestedMappers.stream()
+			.flatMap(n -> n.map(model, evaluate).stream())
 			.forEach(addObjectTriple);
 	}
 }

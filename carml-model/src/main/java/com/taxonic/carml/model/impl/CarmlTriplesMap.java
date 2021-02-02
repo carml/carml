@@ -2,12 +2,14 @@ package com.taxonic.carml.model.impl;
 
 import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.model.LogicalSource;
+import com.taxonic.carml.model.NestedMapping;
 import com.taxonic.carml.model.PredicateObjectMap;
 import com.taxonic.carml.model.Resource;
 import com.taxonic.carml.model.SubjectMap;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.rdf_mapper.annotations.RdfType;
+import com.taxonic.carml.vocab.CarmlExp;
 import com.taxonic.carml.vocab.Rdf;
 import com.taxonic.carml.vocab.Rml;
 import com.taxonic.carml.vocab.Rr;
@@ -25,6 +27,7 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap{
 	private LogicalSource logicalSource;
 	private SubjectMap subjectMap;
 	private Set<PredicateObjectMap> predicateObjectMaps;
+	private Set<NestedMapping> nestedMappings;
 
 	public CarmlTriplesMap() {
 		// Empty constructor for object mapper
@@ -33,11 +36,13 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap{
 	public CarmlTriplesMap(
 		LogicalSource logicalSource,
 		SubjectMap subjectMap,
-		Set<PredicateObjectMap> predicateObjectMaps
+		Set<PredicateObjectMap> predicateObjectMaps,
+		Set<NestedMapping> nestedMappings
 	) {
 		this.logicalSource = logicalSource;
 		this.subjectMap = subjectMap;
 		this.predicateObjectMaps = predicateObjectMaps;
+		this.nestedMappings = nestedMappings;
 	}
 
 	@RdfProperty(Rml.logicalSource)
@@ -61,6 +66,13 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap{
 		return predicateObjectMaps;
 	}
 
+	@RdfProperty(CarmlExp.nestedMapping)
+	@RdfType(CarmlNestedMapping.class)
+	@Override
+	public Set<NestedMapping> getNestedMappings() {
+		return nestedMappings;
+	}
+
 	public void setLogicalSource(LogicalSource logicalSource) {
 		this.logicalSource = logicalSource;
 	}
@@ -73,6 +85,10 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap{
 		this.predicateObjectMaps = predicateObjectMaps;
 	}
 
+	public void setNestedMappings(Set<NestedMapping> nestedMappings) {
+		this.nestedMappings = nestedMappings;
+	}
+
 	@Override
 	public String toString() {
 		ToStringStyle style = new MultilineRecursiveToStringStyle();
@@ -83,7 +99,7 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap{
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(logicalSource, subjectMap, predicateObjectMaps);
+		return Objects.hash(logicalSource, subjectMap, predicateObjectMaps, nestedMappings);
 	}
 
 	@Override
@@ -100,7 +116,8 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap{
 		CarmlTriplesMap other = (CarmlTriplesMap) obj;
 		return Objects.equals(logicalSource, other.logicalSource) &&
 				Objects.equals(subjectMap, other.subjectMap) &&
-				Objects.equals(predicateObjectMaps, other.predicateObjectMaps);
+				Objects.equals(predicateObjectMaps, other.predicateObjectMaps) &&
+				Objects.equals(nestedMappings, other.nestedMappings);
 	}
 
 	@Override
@@ -112,8 +129,10 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap{
 		if (subjectMap != null) {
 			builder.add(subjectMap);
 		}
-		return builder.addAll(predicateObjectMaps)
-				.build();
+		return builder
+			.addAll(predicateObjectMaps)
+			.addAll(nestedMappings)
+			.build();
 	}
 
 	@Override
@@ -127,6 +146,7 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap{
 			modelBuilder.add(Rr.subjectMap, subjectMap.getAsResource());
 		}
 		predicateObjectMaps.forEach(pom -> modelBuilder.add(Rr.predicateObjectMap, pom.getAsResource()));
+		nestedMappings.forEach(n -> modelBuilder.add(CarmlExp.nestedMapping, n.getAsResource()));
 	}
 
 	public static Builder newBuilder() {
@@ -138,6 +158,7 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap{
 		private LogicalSource logicalSource;
 		private SubjectMap subjectMap;
 		private Set<PredicateObjectMap> predicateObjectMaps = new LinkedHashSet<>();
+		private Set<NestedMapping> nestedMappings = new LinkedHashSet<>();
 
 		public Builder logicalSource(LogicalSource logicalSource) {
 			this.logicalSource = logicalSource;
@@ -154,11 +175,17 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap{
 			return this;
 		}
 
+		public Builder nestedMapping(NestedMapping nestedMapping) {
+			nestedMappings.add(nestedMapping);
+			return this;
+		}
+
 		public CarmlTriplesMap build() {
 			return new CarmlTriplesMap(
 				logicalSource,
 				subjectMap,
-				predicateObjectMaps
+				predicateObjectMaps,
+				nestedMappings
 			);
 		}
 	}

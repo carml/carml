@@ -167,6 +167,34 @@ public class RmlMapperTest extends MappingTest {
 	}
 
 	@Test
+	public void testOrdersNested() {
+		testMapping("RmlMapper",
+			"RmlMapper/test21/ordersNested.rml.ttl",
+			"RmlMapper/test21/ordersNested.output.ttl");
+	}
+
+	@Test
+	public void testOrdersNestedDefaultIterationAndEntryContext() {
+		testMapping("RmlMapper",
+			"RmlMapper/test22/ordersNested.rml.ttl",
+			"RmlMapper/test22/ordersNested.output.ttl");
+	}
+
+	@Test
+	public void testOrdersNestedSpecifiedIterationAndEntryContext() {
+		testMapping("RmlMapper",
+			"RmlMapper/test23/ordersNested.rml.ttl",
+			"RmlMapper/test23/ordersNested.output.ttl");
+	}
+
+	@Test
+	public void testOrdersObjectMapNested() {
+		testMapping("RmlMapper",
+			"RmlMapper/test24/ordersNested.rml.ttl",
+			"RmlMapper/test24/ordersNested.output.ttl");
+	}
+
+	@Test
 	public void testSeparateMapsMapping() {
 		testMapping("RmlMapper",
 				"RmlMapper/test10/separateMapsMapping.rml.ttl",

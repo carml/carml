@@ -98,7 +98,17 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
 			}
 		};
 	}
-	
+
+	@Override
+	public GetIterableFromContext<XdmItem> createGetIterableFromContext(String iterator) {
+		throw new UnsupportedOperationException("not implemented - in order to use nested mappings with xml/xpath, this method must be implemented");
+	}
+
+	@Override
+	public CreateContextEvaluate getCreateContextEvaluate() {
+		throw new UnsupportedOperationException("not implemented - in order to use nested mappings with xml/xpath, this method must be implemented");
+	}
+
 	private String getItemStringValue(XdmItem item, XdmValue value) {
 		if (item.getStringValue().length() == 0) {
 			return null;

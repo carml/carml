@@ -1,0 +1,35 @@
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix ox: <http://www.example.com/orders-vocab/> .
+@prefix orders: <http://www.example.com/orders/> .
+@prefix items: <http://www.example.com/item/> .
+
+
+orders:19 a ox:Order;
+  dct:date "2020-01-08" .
+
+items:A032 a ox:Item; rdfs:label "Book";
+  ox:orderId "19" .
+
+items:A037 a ox:Item; rdfs:label "Pencil";
+  ox:orderId "19" .
+
+
+orders:7 a ox:Order;
+  dct:date "2020-01-03" .
+
+items:B028 a ox:Item; rdfs:label "Shoes";
+  ox:orderId "7" .
+
+items:B021 a ox:Item; rdfs:label "Tie";
+  ox:orderId "7" .
+
+items:B022 a ox:Item; rdfs:label "Coat";
+  ox:orderId "7" .
+
+
+orders:63 a ox:Order; dct:date "2020-01-25" .
+
+items:C091 a ox:Item; rdfs:label "Stamps";
+  ox:orderId "63" .

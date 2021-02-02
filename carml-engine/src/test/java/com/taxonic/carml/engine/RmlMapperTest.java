@@ -263,5 +263,15 @@ public class RmlMapperTest {
 		public ExpressionEvaluatorFactory<T> getExpressionEvaluatorFactory() {
 			return evaluatorFactory;
 		}
+
+		@Override
+		public GetIterableFromContext<T> createGetIterableFromContext(String iterator) {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public CreateContextEvaluate getCreateContextEvaluate() {
+			throw new UnsupportedOperationException();
+		}
 	}
 }

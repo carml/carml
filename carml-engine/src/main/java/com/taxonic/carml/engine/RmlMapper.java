@@ -1,16 +1,17 @@
 package com.taxonic.carml.engine;
 
-import static java.util.Objects.requireNonNull;
-
+import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.engine.function.ExecuteFunction;
 import com.taxonic.carml.engine.function.Functions;
 import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
+import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver.CreateContextEvaluate;
 import com.taxonic.carml.model.BaseObjectMap;
 import com.taxonic.carml.model.FileSource;
 import com.taxonic.carml.model.GraphMap;
 import com.taxonic.carml.model.Join;
 import com.taxonic.carml.model.LogicalSource;
 import com.taxonic.carml.model.NameableStream;
+import com.taxonic.carml.model.NestedMapping;
 import com.taxonic.carml.model.ObjectMap;
 import com.taxonic.carml.model.PredicateMap;
 import com.taxonic.carml.model.PredicateObjectMap;
@@ -22,6 +23,14 @@ import com.taxonic.carml.rdf_mapper.util.ImmutableCollectors;
 import com.taxonic.carml.util.ModelSerializer;
 import com.taxonic.carml.util.RmlNamespaces;
 import com.taxonic.carml.vocab.Rdf;
+import org.eclipse.rdf4j.model.IRI;
+import org.eclipse.rdf4j.model.Model;
+import org.eclipse.rdf4j.model.Resource;
+import org.eclipse.rdf4j.model.Value;
+import org.eclipse.rdf4j.model.impl.LinkedHashModel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -35,14 +44,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.eclipse.rdf4j.model.IRI;
-import org.eclipse.rdf4j.model.Model;
-import org.eclipse.rdf4j.model.Resource;
-import org.eclipse.rdf4j.model.Value;
-import org.eclipse.rdf4j.model.impl.LinkedHashModel;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static java.util.Objects.requireNonNull;
 
 // TODO cache results of evaluated expressions when filling a single template, in case of repeated expressions
 
@@ -53,25 +58,28 @@ import org.slf4j.LoggerFactory;
  * re-use the same PredicateMapper instance
  */
 
+// TODO break this class up into smaller parts
+
+@SuppressWarnings({ "squid:S112", "squid:S3864" })
 public class RmlMapper {
 
 	private static final Logger LOG = LoggerFactory.getLogger(RmlMapper.class);
 
 	static final String DEFAULT_STREAM_NAME = "DEFAULT";
 
-	private LogicalSourceManager sourceManager;
+	private final LogicalSourceManager sourceManager;
 
-	private Function<Object, String> sourceResolver;
+	private final Function<Object, String> sourceResolver;
 
-	private Map<IRI, LogicalSourceResolver<?>> logicalSourceResolvers;
+	private final Map<IRI, LogicalSourceResolver<?>> logicalSourceResolvers;
 
 	Form normalizationForm;
 
 	boolean iriUpperCasePercentEncoding;
 
-	private TermGeneratorCreator termGenerators;
+	private final TermGeneratorCreator termGenerators;
 
-	private Functions functions;
+	private final Functions functions;
 
 	private RmlMapper(
 		Function<Object, String> sourceResolver,
@@ -95,9 +103,9 @@ public class RmlMapper {
 
 	public static class Builder {
 
-		private Functions functions = new Functions();
-		private Set<SourceResolver> sourceResolvers = new HashSet<>();
-		private Map<IRI, LogicalSourceResolver<?>> logicalSourceResolvers = new HashMap<>();
+		private final Functions functions = new Functions();
+		private final Set<SourceResolver> sourceResolvers = new HashSet<>();
+		private final Map<IRI, LogicalSourceResolver<?>> logicalSourceResolvers = new HashMap<>();
 		private Form normalizationForm = Form.NFC;
 		private boolean iriUpperCasePercentEncoding = true;
 
@@ -204,7 +212,7 @@ public class RmlMapper {
 	private static class FileResolver implements SourceResolver {
 
 		private LogicalSourceManager sourceManager;
-		private Path basePath;
+		private final Path basePath;
 
 		FileResolver(Path basePath) {
 			this.basePath = basePath;
@@ -240,7 +248,7 @@ public class RmlMapper {
 	private static class ClassPathResolver implements SourceResolver {
 
 		private LogicalSourceManager sourceManager;
-		private String basePath;
+		private final String basePath;
 
 		ClassPathResolver(String basePath) {
 			this.basePath = basePath;
@@ -299,7 +307,7 @@ public class RmlMapper {
 
 	private static class CompositeSourceResolver implements Function<Object, String> {
 
-		private Set<SourceResolver> resolvers;
+		private final Set<SourceResolver> resolvers;
 
 		CompositeSourceResolver(Set<SourceResolver> resolvers) {
 			this.resolvers = resolvers;
@@ -368,6 +376,7 @@ public class RmlMapper {
 	}
 
 	private Stream<TermMap> getTermMaps(Set<TriplesMap> mapping) {
+		// TODO add nested maps here as well
 		return mapping.stream()
 				.flatMap(m ->
 					Stream.concat (
@@ -396,6 +405,7 @@ public class RmlMapper {
 	}
 
 	private Set<TriplesMap> getAllTriplesMapsUsedInRefObjectMap(Set<TriplesMap> mapping) {
+		// TODO do i have to add something here re nested mappings?
 		return mapping.stream()
 				// get all referencing object maps
 				.flatMap(m -> m.getPredicateObjectMaps().stream())
@@ -540,6 +550,12 @@ public class RmlMapper {
 				.map(this::createRefObjectMapper)
 				.collect(ImmutableCollectors.toImmutableSet());
 
+		Set<NestedMapper<?>> nestedMappers = objectMaps.stream()
+			.filter(o -> o instanceof NestedMapping)
+			.map(o -> (NestedMapping) o)
+			.map(this::createNestedMapper)
+			.collect(ImmutableCollectors.toImmutableSet());
+
 		TermGenerator<IRI> predicateGenerator;
 		try{
 			predicateGenerator = termGenerators.getPredicateGenerator(predicateMap);
@@ -550,7 +566,8 @@ public class RmlMapper {
 		return new PredicateMapper(
 			predicateGenerator,
 			objectGenerators,
-			refObjectMappers
+			refObjectMappers,
+			nestedMappers
 		);
 	}
 
@@ -581,7 +598,7 @@ public class RmlMapper {
 		);
 	}
 
-	TriplesMapperComponents<?> getTriplesMapperComponents(TriplesMap triplesMap) {
+	<T> TriplesMapperComponents<T> getTriplesMapperComponents(TriplesMap triplesMap) {
 
 		LogicalSource logicalSource = triplesMap.getLogicalSource();
 
@@ -593,35 +610,63 @@ public class RmlMapper {
 
 		if (referenceFormulation == null) {
 			throw new RuntimeException(
-					String.format("No reference formulation found for LogicalSource %s", exception(triplesMap, logicalSource)));
+				String.format("No reference formulation found for LogicalSource %s", exception(triplesMap, logicalSource)));
 		}
 
 		if (!logicalSourceResolvers.containsKey(referenceFormulation)) {
 			throw new RuntimeException(
-					String.format("Unsupported reference formulation %s in LogicalSource %s", referenceFormulation,
-							exception(triplesMap, logicalSource)));
+				String.format("Unsupported reference formulation %s in LogicalSource %s", referenceFormulation,
+					exception(triplesMap, logicalSource)));
 		}
 
-		return new TriplesMapperComponents<>(
+		return new TriplesMapperComponents<T>(
 			triplesMap.getResourceName(),
-			logicalSourceResolvers.get(referenceFormulation),
+			(LogicalSourceResolver<T>) logicalSourceResolvers.get(referenceFormulation),
 			logicalSource,
-			sourceResolver
+			sourceResolver,
+			null
 		);
 	}
 
-	private TriplesMapper<?> createTriplesMapper(TriplesMap triplesMap) {
+	private <T> TriplesMapper<T> createTriplesMapper(TriplesMap triplesMap) {
 		if (LOG.isDebugEnabled()) {
 			LOG.debug("Creating mapper for TriplesMap {}", triplesMap.getResourceName());
 		}
 
-		TriplesMapperComponents<?> components = getTriplesMapperComponents(triplesMap);
-
 		return
 		new TriplesMapper<>(
-			components,
-			createSubjectMapper(triplesMap)
+			getTriplesMapperComponents(triplesMap),
+			createSubjectMapper(triplesMap),
+			createNestedMappers(triplesMap)
 		);
+	}
+
+	private <T> Set<NestedMapper<T>> createNestedMappers(TriplesMap triplesMap) {
+		return triplesMap.getNestedMappings().stream()
+			.map(this::<T>createNestedMapper).collect(Collectors.toSet());
+	}
+
+	private <T> NestedMapper<T> createNestedMapper(NestedMapping nestedMapping) {
+
+		TriplesMap triplesMap = nestedMapping.getTriplesMap();
+
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("Creating (context) mapper for TriplesMap {}", triplesMap.getResourceName());
+		}
+
+		TriplesMapperComponents<T> components = getTriplesMapperComponents(triplesMap);
+
+		ContextTriplesMapper<T> triplesMapper = new ContextTriplesMapper<>(
+			components.getName(),
+			components.createGetIterableFromContext(triplesMap.getLogicalSource().getIterator()),
+			components.getExpressionEvaluatorFactory(),
+			createSubjectMapper(triplesMap),
+			createNestedMappers(triplesMap)
+		);
+
+		CreateContextEvaluate createContextEvaluate = components.getLogicalSourceResolver().getCreateContextEvaluate();
+
+		return new NestedMapper<>(triplesMapper, nestedMapping.getContextEntries(), createContextEvaluate);
 	}
 
 	private ParentTriplesMapper<?> createParentTriplesMapper(TriplesMap triplesMap) {
@@ -671,4 +716,5 @@ public class RmlMapper {
 
 		sourceManager.addSource(name, inputStream);
 	}
+
 }

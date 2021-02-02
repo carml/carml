@@ -2,6 +2,7 @@ package com.taxonic.carml.util;
 
 import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.model.*;
+import com.taxonic.carml.model.impl.CarmlContextEntry;
 import com.taxonic.carml.model.impl.CarmlFileSource;
 import com.taxonic.carml.model.impl.CarmlStream;
 import com.taxonic.carml.model.impl.CarmlTriplesMap;
@@ -16,12 +17,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
+import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 import org.eclipse.rdf4j.rio.RDFFormat;
 import org.eclipse.rdf4j.rio.Rio;
@@ -146,11 +149,23 @@ public class RmlMappingLoader {
 		);
 	}
 
+	private static boolean hasContextLogicalSource(Model model, Resource triplesMap) {
+		Optional<Value> logicalSource = model
+			.filter(triplesMap, Rdf.Rml.logicalSource, null).objects().stream().findFirst();
+		return logicalSource.map(l -> !model
+			.filter((Resource) l, Rdf.Rml.source, Rdf.CarmlExp.context)
+			.isEmpty()
+		)
+		.orElse(false);
+	}
+
 	private static Function<Model, Set<Resource>> selectTriplesMaps =
 		model ->
 			ImmutableSet.copyOf(
 				model
 				.filter(null, Rdf.Rml.logicalSource, null)
 				.subjects()
+				.stream().filter(r -> !hasContextLogicalSource(model, r))
+				.collect(Collectors.toSet())
 			);
 }

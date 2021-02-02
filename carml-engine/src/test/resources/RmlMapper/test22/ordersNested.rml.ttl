@@ -1,0 +1,60 @@
+@prefix ex: <http://www.example.com/>.
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rr: <http://www.w3.org/ns/r2rml#> .
+@prefix rml: <http://semweb.mmlab.be/ns/rml#> .
+@prefix ql: <http://semweb.mmlab.be/ns/ql#> .
+@prefix carml: <http://carml.taxonic.com/carml/> .
+@prefix carml-exp: <http://carml.taxonic.com/carml/experimental/> .
+@prefix : <http://www.example.com/mapping/> .
+@prefix ox: <http://www.example.com/orders-vocab/> .
+
+:orders
+  rml:logicalSource [
+    rml:source "test22/ordersNested.json";
+    rml:referenceFormulation ql:JSONPath;
+    rml:iterator "$.orders[*]"
+  ];
+  rr:subjectMap [
+    rr:template "http://www.example.com/orders/{id}";
+    rr:class ox:Order
+  ];
+  rr:predicateObjectMap [
+    rr:predicate dct:date;
+    rr:objectMap [
+      rml:reference "date"
+    ]
+  ];
+  carml-exp:nestedMapping [
+    carml-exp:triplesMap :items
+    # no 'iteration context' specified, so iteration context = the current order object
+  ]
+.
+
+:items
+  rml:logicalSource [
+    rml:source carml-exp:context;
+    rml:referenceFormulation ql:JSONPath;
+    rml:iterator "$.items[*]"
+  ];
+  rr:subjectMap [
+    rr:template "http://www.example.com/item/{code}";
+    rr:class ox:Item
+  ];
+  rr:predicateObjectMap [
+    rr:predicate rdfs:label;
+    rr:objectMap [
+      rml:reference "label";
+    ]
+  ];
+
+  # no 'entry context' specified, so entry context = iteration context
+  rr:predicateObjectMap [
+    rr:predicate ox:orderId;
+    rr:objectMap [
+      rml:reference "id";
+    ]
+  ]
+.
