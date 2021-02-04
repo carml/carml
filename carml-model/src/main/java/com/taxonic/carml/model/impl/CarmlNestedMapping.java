@@ -33,7 +33,7 @@ public class CarmlNestedMapping extends CarmlResource implements NestedMapping {
         this.contextEntries = contextEntries;
     }
 
-    @RdfProperty(CarmlExp.triplesMap)
+    @RdfProperty(CarmlExp.subTriplesMap)
     @RdfType(CarmlTriplesMap.class)
     @Override
     public TriplesMap getTriplesMap() {
@@ -70,7 +70,7 @@ public class CarmlNestedMapping extends CarmlResource implements NestedMapping {
     public void addTriples(ModelBuilder modelBuilder) {
         modelBuilder.subject(getAsResource());
         if (triplesMap != null) {
-            modelBuilder.add(Rdf.CarmlExp.triplesMap, triplesMap.getAsResource());
+            modelBuilder.add(Rdf.CarmlExp.subTriplesMap, triplesMap.getAsResource());
         }
         ObjectUtils.defaultIfNull(contextEntries, Collections.<ContextEntry>emptySet())
             .forEach(e -> modelBuilder.add(Rdf.CarmlExp.context, e.getAsResource()));

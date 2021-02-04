@@ -30,7 +30,8 @@
   rr:predicateObjectMap [
     rr:predicate ox:hasItem;
     rr:objectMap [
-      carml-exp:triplesMap :items
+      # nested object map
+      carml-exp:subTriplesMap :items
     ]
   ]
 .

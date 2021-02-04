@@ -17,7 +17,7 @@ public class ObjectMapTypeDecider implements TypeDecider {
 		if (model.contains(resource, Rr.parentTriplesMap, null)) {
 			return ImmutableSet.of(CarmlRefObjectMap.class);
 		}
-		if (model.contains(resource, Rdf.CarmlExp.triplesMap, null)) {
+		if (model.contains(resource, Rdf.CarmlExp.subTriplesMap, null)) {
 			return ImmutableSet.of(CarmlNestedMapping.class);
 		}
 		return ImmutableSet.of(CarmlObjectMap.class);

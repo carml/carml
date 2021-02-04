@@ -28,7 +28,7 @@
     ]
   ];
   carml-exp:nestedMapping [
-    carml-exp:triplesMap :items;
+    carml-exp:subTriplesMap :items;
 
     # specify 'iteration context'
     carml-exp:context [

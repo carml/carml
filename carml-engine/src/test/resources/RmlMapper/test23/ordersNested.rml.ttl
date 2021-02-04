@@ -28,7 +28,7 @@
     ]
   ];
   carml-exp:nestedMapping [
-    carml-exp:triplesMap :items;
+    carml-exp:subTriplesMap :items;
     carml-exp:context [
       carml-exp:key "orderId";
       carml-exp:valueReference "id"

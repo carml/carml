@@ -28,7 +28,7 @@
     ]
   ];
   carml-exp:nestedMapping [
-    carml-exp:triplesMap :items
+    carml-exp:subTriplesMap :items
     # no 'iteration context' specified, so iteration context = the current order object
   ]
 .

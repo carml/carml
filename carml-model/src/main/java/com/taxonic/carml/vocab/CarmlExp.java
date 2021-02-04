@@ -10,7 +10,7 @@ public class CarmlExp {
 
 	public static final String context = NAMESPACE + "context";
 	public static final String nestedMapping = NAMESPACE + "nestedMapping";
-	public static final String triplesMap = NAMESPACE + "triplesMap";
+	public static final String subTriplesMap = NAMESPACE + "subTriplesMap";
 	public static final String key = NAMESPACE + "key";
 	public static final String valueReference = NAMESPACE + "valueReference";
 
