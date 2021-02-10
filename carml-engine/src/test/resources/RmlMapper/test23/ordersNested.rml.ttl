@@ -30,15 +30,15 @@
   carml-exp:nestedMapping [
     carml-exp:subTriplesMap :items;
     carml-exp:context [
-      carml-exp:key "orderId";
+      carml-exp:as "orderId";
       rml:reference "id"
     ], [
-      carml-exp:key "orderItems";
+      carml-exp:as "orderItems";
       rml:reference "items"
     ]
     # TODO?
     #[
-    #  carml-exp:key "order";
+    #  carml-exp:as "order";
     #  carml-exp:value carml-exp:subject
     #]
   ]
@@ -53,7 +53,7 @@
 
   # TODO example of custom 'entry context', effectively renaming orderId to orderNumber
   #carml-exp:context [
-  #  carml-exp:key "orderNumber";
+  #  carml-exp:as "orderNumber";
   #  rml:reference "orderId"
   #];
 

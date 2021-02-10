@@ -32,10 +32,10 @@
 
     # specify 'iteration context'
     carml-exp:context [
-      carml-exp:key "orderId";
+      carml-exp:as "orderId";
       rml:reference "id"
     ], [
-      carml-exp:key "orderItems";
+      carml-exp:as "orderItems";
       rml:reference "items"
     ]
   ]

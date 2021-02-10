@@ -14,7 +14,7 @@ import java.util.Set;
 
 public class CarmlContextEntry extends CarmlResource implements ContextEntry {
 
-    private String key;
+    private String as;
     private String reference;
 
     public CarmlContextEntry() {
@@ -22,21 +22,21 @@ public class CarmlContextEntry extends CarmlResource implements ContextEntry {
     }
 
     public CarmlContextEntry(
-        String key,
+        String as,
         String reference
     ) {
-        this.key = key;
+        this.as = as;
         this.reference = reference;
     }
 
-    @RdfProperty(CarmlExp.key)
+    @RdfProperty(CarmlExp.as)
     @Override
-    public String getKey() {
-        return key;
+    public String getAs() {
+        return as;
     }
 
-    public void setKey(String key) {
-        this.key = key;
+    public void setAs(String as) {
+        this.as = as;
     }
 
     @RdfProperty(Rml.reference)
@@ -57,13 +57,13 @@ public class CarmlContextEntry extends CarmlResource implements ContextEntry {
     @Override
     public void addTriples(ModelBuilder modelBuilder) {
         modelBuilder.subject(getAsResource())
-            .add(Rdf.CarmlExp.key, key)
+            .add(Rdf.CarmlExp.as, as)
             .add(Rdf.Rml.reference, reference);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(key, reference);
+        return Objects.hash(as, reference);
     }
 
     @Override
@@ -78,7 +78,7 @@ public class CarmlContextEntry extends CarmlResource implements ContextEntry {
             return false;
         }
         CarmlContextEntry other = (CarmlContextEntry) obj;
-        return Objects.equals(key, other.key) &&
+        return Objects.equals(as, other.as) &&
             Objects.equals(reference, other.reference);
     }
 
