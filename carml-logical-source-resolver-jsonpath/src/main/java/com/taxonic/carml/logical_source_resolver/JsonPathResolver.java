@@ -69,7 +69,7 @@ public class JsonPathResolver implements LogicalSourceResolver<Object> {
 
 	private Map<String, Object> createContext(Set<ContextEntry> entries, EvaluateExpression evaluate) {
 		return entries.stream()
-			.map(e -> Pair.of(e.getKey(), evaluate.apply(e.getValueReference())))
+			.map(e -> Pair.of(e.getKey(), evaluate.apply(e.getReference())))
 			.filter(e -> e.getRight().isPresent())
 			.collect(Collectors.toMap(
 				Pair::getLeft,

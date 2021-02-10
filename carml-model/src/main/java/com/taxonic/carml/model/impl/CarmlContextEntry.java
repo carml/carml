@@ -5,6 +5,7 @@ import com.taxonic.carml.model.Resource;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.vocab.CarmlExp;
 import com.taxonic.carml.vocab.Rdf;
+import com.taxonic.carml.vocab.Rml;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
 
 import java.util.Collections;
@@ -14,7 +15,7 @@ import java.util.Set;
 public class CarmlContextEntry extends CarmlResource implements ContextEntry {
 
     private String key;
-    private String valueReference;
+    private String reference;
 
     public CarmlContextEntry() {
         // Empty constructor for object mapper
@@ -22,10 +23,10 @@ public class CarmlContextEntry extends CarmlResource implements ContextEntry {
 
     public CarmlContextEntry(
         String key,
-        String valueReference
+        String reference
     ) {
         this.key = key;
-        this.valueReference = valueReference;
+        this.reference = reference;
     }
 
     @RdfProperty(CarmlExp.key)
@@ -38,14 +39,14 @@ public class CarmlContextEntry extends CarmlResource implements ContextEntry {
         this.key = key;
     }
 
-    @RdfProperty(CarmlExp.valueReference)
+    @RdfProperty(Rml.reference)
     @Override
-    public String getValueReference() {
-        return valueReference;
+    public String getReference() {
+        return reference;
     }
 
-    public void setValueReference(String valueReference) {
-        this.valueReference = valueReference;
+    public void setReference(String reference) {
+        this.reference = reference;
     }
 
     @Override
@@ -57,12 +58,12 @@ public class CarmlContextEntry extends CarmlResource implements ContextEntry {
     public void addTriples(ModelBuilder modelBuilder) {
         modelBuilder.subject(getAsResource())
             .add(Rdf.CarmlExp.key, key)
-            .add(Rdf.CarmlExp.valueReference, valueReference);
+            .add(Rdf.Rml.reference, reference);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(key, valueReference);
+        return Objects.hash(key, reference);
     }
 
     @Override
@@ -78,7 +79,7 @@ public class CarmlContextEntry extends CarmlResource implements ContextEntry {
         }
         CarmlContextEntry other = (CarmlContextEntry) obj;
         return Objects.equals(key, other.key) &&
-            Objects.equals(valueReference, other.valueReference);
+            Objects.equals(reference, other.reference);
     }
 
     // TODO toString, builder

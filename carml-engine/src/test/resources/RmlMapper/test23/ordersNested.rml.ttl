@@ -31,10 +31,10 @@
     carml-exp:subTriplesMap :items;
     carml-exp:context [
       carml-exp:key "orderId";
-      carml-exp:valueReference "id"
+      rml:reference "id"
     ], [
       carml-exp:key "orderItems";
-      carml-exp:valueReference "items"
+      rml:reference "items"
     ]
     # TODO?
     #[
@@ -54,7 +54,7 @@
   # TODO example of custom 'entry context', effectively renaming orderId to orderNumber
   #carml-exp:context [
   #  carml-exp:key "orderNumber";
-  #  carml-exp:valueReference "orderId"
+  #  rml:reference "orderId"
   #];
 
   rr:subjectMap [

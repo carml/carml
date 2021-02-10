@@ -20,6 +20,7 @@ public class Rdf {
 		}
 
 		public static final IRI source = iri("source");
+		public static final IRI reference = iri("reference");
 		public static final IRI logicalSource = iri("logicalSource");
 		public static final IRI LogicalSource = iri("LogicalSource");
 	}
@@ -112,7 +113,6 @@ public class Rdf {
 		public static final IRI nestedMapping = iri("nestedMapping");
 		public static final IRI subTriplesMap = iri("subTriplesMap");
 		public static final IRI key = iri("key");
-		public static final IRI valueReference = iri("valueReference");
 
 	}
 

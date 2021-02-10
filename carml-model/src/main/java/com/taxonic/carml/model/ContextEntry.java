@@ -4,6 +4,6 @@ public interface ContextEntry extends Resource {
 
     String getKey();
 
-    String getValueReference();
+    String getReference();
 
 }
