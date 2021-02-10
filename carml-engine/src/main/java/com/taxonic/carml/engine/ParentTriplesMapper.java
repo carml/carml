@@ -22,10 +22,10 @@ class ParentTriplesMapper<T> {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ParentTriplesMapper.class);
 
-	private TermGenerator<Resource> subjectGenerator;
+	private final TermGenerator<Resource> subjectGenerator;
 
-	private Supplier<Iterable<T>> getIterator;
-	private LogicalSourceResolver.ExpressionEvaluatorFactory<T> expressionEvaluatorFactory;
+	private final Supplier<Iterable<T>> getIterator;
+	private final LogicalSourceResolver.ExpressionEvaluatorFactory<T> expressionEvaluatorFactory;
 
 	ParentTriplesMapper(
 		TermGenerator<Resource> subjectGenerator,
