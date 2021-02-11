@@ -1,7 +1,6 @@
 package com.taxonic.carml.engine;
 
-import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver.ExpressionEvaluatorFactory;
-import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver.GetIterableFromContext;
+import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver.GetStreamFromContext;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.slf4j.Logger;
@@ -11,34 +10,32 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 
 class ContextTriplesMapper<T> {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ContextTriplesMapper.class);
 
 	private final String name;
-	private final GetIterableFromContext<T> getIterableFromContext;
-	private final ExpressionEvaluatorFactory<T> expressionEvaluatorFactory;
+	private final GetStreamFromContext<T> getStreamFromContext;
 	private final SubjectMapper subjectMapper;
 	private final Set<NestedMapper<T>> nestedMappers;
 
 	ContextTriplesMapper(
 		String name,
-		GetIterableFromContext<T> getIterableFromContext,
-		ExpressionEvaluatorFactory<T> expressionEvaluatorFactory,
+		GetStreamFromContext<T> getStreamFromContext,
 		SubjectMapper subjectMapper,
 		Set<NestedMapper<T>> nestedMappers
 	) {
 		this.name = name;
-		this.getIterableFromContext = getIterableFromContext;
-		this.expressionEvaluatorFactory = expressionEvaluatorFactory;
+		this.getStreamFromContext = getStreamFromContext;
 		this.subjectMapper = subjectMapper;
 		this.nestedMappers = nestedMappers;
 	}
 
 	Set<Resource> map(Model model, EvaluateExpression evaluateInContext) {
 		LOG.debug("Executing context TriplesMap {} ...", name);
-		Iterable<T> iter = getIterableFromContext.apply(evaluateInContext);
+		Stream<Item<T>> entries = getStreamFromContext.apply(evaluateInContext);
 		// TODO if specified, the 'per entry' context must still be constructed here,
 		//      by doing evaluations with 'evaluateInContext'. this allows for selecting and renaming context vars,
 		//      or doing a deeper selection.
@@ -47,13 +44,13 @@ class ContextTriplesMapper<T> {
 		//      2. an 'entry context'
 		//      in the default case (no config), the entry context is simply set to the iteration context.
 		Set<Resource> results = new LinkedHashSet<>();
-		iter.forEach(e -> map(e, model, evaluateInContext).ifPresent(results::add));
+		entries.forEach(e -> map(e, model, evaluateInContext).ifPresent(results::add));
 		return Collections.unmodifiableSet(results);
 	}
 
-	private Optional<Resource> map(T entry, Model model, EvaluateExpression evaluateInContext) {
-		LOG.trace("Mapping triples for entry {}", entry);
-		EvaluateExpression evaluateInEntry = expressionEvaluatorFactory.apply(entry);
+	private Optional<Resource> map(Item<T> entry, Model model, EvaluateExpression evaluateInContext) {
+		LOG.trace("Mapping triples for entry {}", entry.getItem());
+		EvaluateExpression evaluateInEntry = entry.getEvaluate();
 		EvaluateExpression evaluate = e -> {
 			Optional<Object> result = evaluateInEntry.apply(e);
 			if (result.isPresent()) {
@@ -61,7 +58,7 @@ class ContextTriplesMapper<T> {
 			}
 			return evaluateInContext.apply(e);
 		};
-		Optional<Resource> subject = subjectMapper.map(model, evaluate);// TODO probably pass resulting resource to any nested mappers
+		Optional<Resource> subject = subjectMapper.map(model, evaluate);
 		nestedMappers.forEach(n -> n.map(model, evaluate));
 		return subject;
 	}

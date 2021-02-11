@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsIn.in;
@@ -30,11 +31,8 @@ public class ParentTriplesMapperTest {
 	private TermGenerator<Resource> subjectGenerator;
 	
 	@Mock
-	private Supplier<Iterable<Object>> getIterator;
+	private Supplier<Stream<Item<Object>>> getStream;
 	
-	@Mock
-	private LogicalSourceResolver.ExpressionEvaluatorFactory<Object> expressionEvaluatorFactory;
-
 	@Mock
 	EvaluateExpression evaluate;
 
@@ -67,9 +65,8 @@ public class ParentTriplesMapperTest {
 
 	@Before
 	public void setup() {
-		mapper = new ParentTriplesMapper<>(subjectGenerator, getIterator, expressionEvaluatorFactory);
-		when(getIterator.get()).thenReturn(ImmutableList.of(entry));
-		when(expressionEvaluatorFactory.apply(entry)).thenReturn(evaluate);
+		mapper = new ParentTriplesMapper<>(subjectGenerator, getStream);
+		when(getStream.get()).thenReturn(Stream.of(new Item<>(entry, evaluate)));
 		when(subjectGenerator.apply(evaluate)).thenReturn(ImmutableList.of(belgianWaffles));
 	}
 

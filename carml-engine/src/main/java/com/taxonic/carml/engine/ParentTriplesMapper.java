@@ -11,6 +11,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -24,28 +25,14 @@ class ParentTriplesMapper<T> {
 
 	private final TermGenerator<Resource> subjectGenerator;
 
-	private final Supplier<Iterable<T>> getIterator;
-	private final LogicalSourceResolver.ExpressionEvaluatorFactory<T> expressionEvaluatorFactory;
+	private final Supplier<Stream<Item<T>>> getStream;
 
 	ParentTriplesMapper(
 		TermGenerator<Resource> subjectGenerator,
-		TriplesMapperComponents<T> trMapperComponents
-	) {
-		this(
-			subjectGenerator,
-			trMapperComponents.getIterator(),
-			trMapperComponents.getExpressionEvaluatorFactory()
-		);
-	}
-
-	ParentTriplesMapper(
-		TermGenerator<Resource> subjectGenerator,
-		Supplier<Iterable<T>> getIterator,
-		LogicalSourceResolver.ExpressionEvaluatorFactory<T> expressionEvaluatorFactory
+		Supplier<Stream<Item<T>>> getStream
 	) {
 		this.subjectGenerator = subjectGenerator;
-		this.getIterator = getIterator;
-		this.expressionEvaluatorFactory = expressionEvaluatorFactory;
+		this.getStream = getStream;
 	}
 
 	Set<Resource> map(Set<Pair<String, Object>> joinValues) {
@@ -55,15 +42,14 @@ class ParentTriplesMapper<T> {
 		}
 
 		Set<Resource> results = new LinkedHashSet<>();
-		getIterator.get().forEach(e ->
+		getStream.get().forEach(e ->
 			map(e, joinValues)
 				.forEach(results::add));
 		return results;
 	}
 
-	private List<Resource> map(T entry, Set<Pair<String, Object>> joinValues) {
-		EvaluateExpression evaluate =
-				expressionEvaluatorFactory.apply(entry);
+	private List<Resource> map(Item<T> entry, Set<Pair<String, Object>> joinValues) {
+		EvaluateExpression evaluate = entry.getEvaluate();
 
 		boolean joinsValid = joinValues.stream()
 				.allMatch(j -> isValidJoin(evaluate, j));

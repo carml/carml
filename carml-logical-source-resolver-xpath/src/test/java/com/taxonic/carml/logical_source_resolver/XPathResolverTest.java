@@ -7,6 +7,7 @@ import static org.hamcrest.text.IsEqualCompressingWhiteSpace.equalToCompressingW
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.taxonic.carml.engine.EvaluateExpression;
+import com.taxonic.carml.engine.Item;
 import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver.ExpressionEvaluatorFactory;
 import com.taxonic.carml.model.LogicalSource;
 import com.taxonic.carml.model.TriplesMap;
@@ -16,6 +17,10 @@ import com.taxonic.carml.vocab.Rdf.Ql;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import net.sf.saxon.s9api.XdmItem;
 import org.eclipse.rdf4j.rio.RDFFormat;
 import org.junit.Before;
@@ -69,14 +74,14 @@ public class XPathResolverTest {
 	private static final Function<Object, String> sourceResolver = s -> s.toString();
 
 	private XPathResolver xpathResolver;
-	private Iterable<XdmItem> nodeIterator;
+	private Supplier<Stream<Item<XdmItem>>> getNodeStream;
 	private List<XdmItem> nodes;
 
 	@Before
 	public void init() {
 		xpathResolver = new XPathResolver();
-		nodeIterator = xpathResolver.bindSource(LSOURCE, sourceResolver).get();
-		nodes = Lists.newArrayList(nodeIterator);
+		getNodeStream = xpathResolver.bindSource(LSOURCE, sourceResolver);
+		nodes = getNodeStream.get().map(Item::getItem).collect(Collectors.toList());
 	}
 
 	@Test
@@ -106,10 +111,10 @@ public class XPathResolverTest {
 		boolean autoExtractNodeText = false;
 		xpathResolver = new XPathResolver(autoExtractNodeText);
 
-		nodeIterator = xpathResolver.bindSource(LSOURCE, sourceResolver).get();
+		getNodeStream = xpathResolver.bindSource(LSOURCE, sourceResolver);
 		evaluatorFactory = xpathResolver.getExpressionEvaluatorFactory();
 
-		nodes = Lists.newArrayList(nodeIterator);
+		nodes = getNodeStream.get().map(Item::getItem).collect(Collectors.toList());
 		evaluateExpression = evaluatorFactory.apply(nodes.get(0));
 		assertThat(evaluateExpression.apply(expression).get(), is("<author>Giada De Laurentiis</author>"));
 	}
@@ -127,8 +132,8 @@ public class XPathResolverTest {
 		LogicalSource lSource = tMap.getLogicalSource();
 
 		xpathResolver = new XPathResolver();
-		nodeIterator = xpathResolver.bindSource(lSource, nsSourceResolver).get();
-		nodes = Lists.newArrayList(nodeIterator);
+		getNodeStream = xpathResolver.bindSource(lSource, nsSourceResolver);
+		nodes = getNodeStream.get().map(Item::getItem).collect(Collectors.toList());
 
 		String expression = "./ex:author/lower-case(.)";
 		ExpressionEvaluatorFactory<XdmItem> evaluatorFactory =

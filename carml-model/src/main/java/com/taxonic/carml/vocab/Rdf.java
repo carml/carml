@@ -103,7 +103,7 @@ public class Rdf {
 
 	public static class CarmlExp {
 
-		private CarmlExp() {}
+        private CarmlExp() {}
 
 		private static IRI iri(String suffix) {
 			return f.createIRI(com.taxonic.carml.vocab.CarmlExp.NAMESPACE + suffix);
@@ -113,6 +113,9 @@ public class Rdf {
 		public static final IRI nestedMapping = iri("nestedMapping");
 		public static final IRI subTriplesMap = iri("subTriplesMap");
 		public static final IRI as = iri("as");
+		public static final IRI mergeSuper = iri("mergeSuper");
+		public static final IRI including = iri("including");
+		public static final IRI fromLogicalSource = iri("fromLogicalSource");
 
 	}
 

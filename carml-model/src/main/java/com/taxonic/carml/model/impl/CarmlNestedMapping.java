@@ -57,7 +57,7 @@ public class CarmlNestedMapping extends CarmlResource implements NestedMapping {
 
     @Override
     public Set<Resource> getReferencedResources() {
-        ImmutableSet.Builder<Resource> builder = ImmutableSet.<Resource>builder();
+        ImmutableSet.Builder<Resource> builder = ImmutableSet.builder();
         if (triplesMap != null) {
             builder.add(triplesMap);
         }

@@ -1,11 +1,14 @@
 package com.taxonic.carml.logical_source_resolver;
 
+import com.taxonic.carml.engine.Item;
 import com.taxonic.carml.model.LogicalSource;
 import com.taxonic.carml.model.XmlSource;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 import javax.xml.transform.stream.StreamSource;
 import net.sf.saxon.s9api.DocumentBuilder;
 import net.sf.saxon.s9api.Processor;
@@ -46,11 +49,11 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
 	}
 	
 	@Override
-	public SourceIterator<XdmItem> getSourceIterator() {
-		return this::getIterableXpathResult;
+	public SourceStream<XdmItem> getSourceStream() {
+		return this::getXpathResultAsStream;
 	}
 	
-	private Iterable<XdmItem> getIterableXpathResult(String source, LogicalSource logicalSource) {
+	private Stream<Item<XdmItem>> getXpathResultAsStream(String source, LogicalSource logicalSource) {
 		DocumentBuilder documentBuilder = xpathProcessor.newDocumentBuilder();
 		StringReader reader = new StringReader(source);
 		setNamespaces(logicalSource);
@@ -59,14 +62,15 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
 			XdmNode item = documentBuilder.build(new StreamSource(reader));
 			XPathSelector selector = xpath.compile(logicalSource.getIterator()).load();
 			selector.setContextItem(item);
-			return selector;
+			ExpressionEvaluatorFactory<XdmItem> evaluatorFactory = getExpressionEvaluatorFactory();
+			return StreamSupport.stream(selector.spliterator(), false)
+				.map(o -> new Item<>(o, evaluatorFactory.apply(o)));
 		} catch (SaxonApiException e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	@Override
-	public ExpressionEvaluatorFactory<XdmItem> getExpressionEvaluatorFactory() {
+	ExpressionEvaluatorFactory<XdmItem> getExpressionEvaluatorFactory() {
 		return entry -> expression -> {
 			try {
 				XPathSelector selector = xpath.compile(expression).load();
@@ -100,7 +104,7 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
 	}
 
 	@Override
-	public GetIterableFromContext<XdmItem> createGetIterableFromContext(String iterator) {
+	public GetStreamFromContext<XdmItem> createGetStreamFromContext(String iterator) {
 		throw new UnsupportedOperationException("not implemented - in order to use nested mappings with xml/xpath, this method must be implemented");
 	}
 

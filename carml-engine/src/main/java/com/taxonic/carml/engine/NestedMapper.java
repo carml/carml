@@ -11,11 +11,12 @@ import java.util.Set;
 
 public class NestedMapper<T> {
 
+    @SuppressWarnings("unused")
     private static final Logger LOG = LoggerFactory.getLogger(NestedMapper.class);
 
     private final ContextTriplesMapper<T> triplesMapper;
     private final Set<ContextEntry> contextEntries;
-    private CreateContextEvaluate createContextEvaluate;
+    private final CreateContextEvaluate createContextEvaluate;
 
     public NestedMapper(
         ContextTriplesMapper<T> triplesMapper,

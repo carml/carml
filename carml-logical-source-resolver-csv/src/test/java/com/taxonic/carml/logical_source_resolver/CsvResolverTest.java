@@ -6,6 +6,7 @@ import static org.hamcrest.core.Is.is;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.taxonic.carml.engine.EvaluateExpression;
+import com.taxonic.carml.engine.Item;
 import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver.ExpressionEvaluatorFactory;
 import com.taxonic.carml.model.LogicalSource;
 import com.taxonic.carml.model.impl.CarmlLogicalSource;
@@ -15,6 +16,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -48,14 +52,14 @@ public class CsvResolverTest {
 	
 	@Test
 	public void sourceIterator_givenCsv_shoulReturnAllRecords() {	
-		Iterable<Record> recordIterator = csvResolver.bindSource(LSOURCE, sourceResolver).get();
-		assertThat(Iterables.size(recordIterator), is(2));
+		Stream<Item<Record>> recordStream = csvResolver.bindSource(LSOURCE, sourceResolver).get();
+		assertThat(recordStream.count(), is(2L));
 	}
 	
 	@Test
 	public void sourceIterator_givenRandomDelimitedCsv_shoulReturnAllCorrectRecords() {
-		Iterable<Record> recordIterator = csvResolver.bindSource(LSOURCE_DELIM, sourceResolver).get();
-		List<Record> records = Lists.newArrayList(recordIterator);
+		Stream<Item<Record>> recordStream = csvResolver.bindSource(LSOURCE_DELIM, sourceResolver).get();
+		List<Record> records = recordStream.map(Item::getItem).collect(Collectors.toList());
 		assertThat(records.size(), is(2));
 		assertThat(records.get(0).getValues().length, is(5));
 	}
@@ -63,11 +67,11 @@ public class CsvResolverTest {
 	@Test
 	public void expressionEvaluator_givenExpression_shoulReturnCorrectValue() {
 		String expression = "Year";
-		Iterable<Record> recordIterator = csvResolver.bindSource(LSOURCE, sourceResolver).get();
+		Stream<Item<Record>> recordStream = csvResolver.bindSource(LSOURCE, sourceResolver).get();
 		ExpressionEvaluatorFactory<Record> evaluatorFactory = 
 				csvResolver.getExpressionEvaluatorFactory();
 		
-		List<Record> records = Lists.newArrayList(recordIterator);
+		List<Record> records = recordStream.map(Item::getItem).collect(Collectors.toList());
 		EvaluateExpression evaluateExpression = evaluatorFactory.apply(records.get(0));
 		assertThat(evaluateExpression.apply(expression).get(), is("1997"));
 	}
@@ -76,7 +80,7 @@ public class CsvResolverTest {
 	public void expressionEvaluator_shouldMapLargeColumns() throws IOException {
 		String csv = IOUtils.toString(CsvResolverTest.class.getResourceAsStream("large_column.csv"), StandardCharsets.UTF_8);
 		LogicalSource logicalSource = new CarmlLogicalSource(csv, null, Ql.Csv);
-		Iterable<Record> recordIterator = csvResolver.bindSource(logicalSource, sourceResolver).get();
-		assertThat(Iterables.size(recordIterator), is(1));
+		Stream<Item<Record>> recordStream = csvResolver.bindSource(logicalSource, sourceResolver).get();
+		assertThat(recordStream.count(), is(1L));
 	}
 }
