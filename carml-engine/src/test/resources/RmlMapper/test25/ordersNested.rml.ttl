@@ -12,7 +12,7 @@
 @prefix ox: <http://www.example.com/orders-vocab/> .
 
 :ordersLogicalSource
-  rml:source "test25/ordersNested.json";
+  rml:source "ordersNested.json";
   rml:referenceFormulation ql:JSONPath;
   rml:iterator "$.orders[*]"
 .

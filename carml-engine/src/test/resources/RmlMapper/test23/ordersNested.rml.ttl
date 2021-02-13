@@ -13,7 +13,7 @@
 
 :orders
   rml:logicalSource [
-    rml:source "test23/ordersNested.json";
+    rml:source "ordersNested.json";
     rml:referenceFormulation ql:JSONPath;
     rml:iterator "$.orders[*]"
   ];

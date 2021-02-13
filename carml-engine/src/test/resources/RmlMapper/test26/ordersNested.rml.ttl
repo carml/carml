@@ -11,41 +11,20 @@
 @prefix : <http://www.example.com/mapping/> .
 @prefix ox: <http://www.example.com/orders-vocab/> .
 
-:orders
-  rml:logicalSource [
-    rml:source "ordersNested.json";
-    rml:referenceFormulation ql:JSONPath;
-    rml:iterator "$.orders[*]"
-  ];
-  rr:subjectMap [
-    rr:template "http://www.example.com/orders/{id}";
-    rr:class ox:Order
-  ];
-  rr:predicateObjectMap [
-    rr:predicate dct:date;
-    rr:objectMap [
-      rml:reference "date"
-    ]
-  ];
-  carml-exp:nestedMapping [
-    carml-exp:subTriplesMap :items;
-
-    # specify 'iteration context'
-    carml-exp:context [
-      carml-exp:as "orderId";
-      rml:reference "id"
-    ], [
-      carml-exp:as "orderItems";
-      rml:reference "items"
-    ]
-  ]
+:ordersLogicalSource
+  rml:source "ordersNested.json";
+  rml:referenceFormulation ql:JSONPath;
+  rml:iterator "$.orders[*]"
 .
 
 :items
   rml:logicalSource [
-    rml:source carml-exp:context;
     rml:referenceFormulation ql:JSONPath;
-    rml:iterator "$.orderItems[*]"
+    rml:iterator "$.items[*]";
+    carml-exp:mergeSuper [
+      carml-exp:fromLogicalSource :ordersLogicalSource
+      # no carml-exp:including => include the order as-is
+    ]
   ];
   rr:subjectMap [
     rr:template "http://www.example.com/item/{code}";
@@ -57,12 +36,10 @@
       rml:reference "label";
     ]
   ];
-
-  # no 'entry context' specified, so entry context = iteration context
   rr:predicateObjectMap [
     rr:predicate ox:orderId;
     rr:objectMap [
-      rml:reference "orderId";
+      rml:reference "id"
     ]
   ]
 .
