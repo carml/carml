@@ -1,16 +1,18 @@
 package com.taxonic.carml.engine;
 
-import com.taxonic.carml.engine.function.ExecuteFunction;
 import com.taxonic.carml.engine.function.Functions;
+import com.taxonic.carml.engine.source_resolver.CarmlStreamResolver;
+import com.taxonic.carml.engine.source_resolver.ClassPathResolver;
+import com.taxonic.carml.engine.source_resolver.CompositeSourceResolver;
+import com.taxonic.carml.engine.source_resolver.FileResolver;
+import com.taxonic.carml.engine.source_resolver.SourceResolver;
 import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
 import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver.CreateContextEvaluate;
 import com.taxonic.carml.model.BaseObjectMap;
 import com.taxonic.carml.model.ContextSource;
-import com.taxonic.carml.model.FileSource;
 import com.taxonic.carml.model.GraphMap;
 import com.taxonic.carml.model.Join;
 import com.taxonic.carml.model.LogicalSource;
-import com.taxonic.carml.model.NameableStream;
 import com.taxonic.carml.model.NestedMapping;
 import com.taxonic.carml.model.ObjectMap;
 import com.taxonic.carml.model.PredicateMap;
@@ -31,20 +33,15 @@ import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.Normalizer.Form;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -67,31 +64,20 @@ public class RmlMapper {
 
 	private static final Logger LOG = LoggerFactory.getLogger(RmlMapper.class);
 
-	static final String DEFAULT_STREAM_NAME = "DEFAULT";
+	public static final String DEFAULT_STREAM_NAME = "DEFAULT";
 
 	private final LogicalSourceManager sourceManager;
 
-	Form normalizationForm;
-
-	boolean iriUpperCasePercentEncoding;
+	private final LogicalSourceAspect logicalSourceAspect;
 
 	private final TermGeneratorCreator termGenerators;
 
-	private final Functions functions;
-
-	private final LogicalSourceAspect logicalSourceAspect;
-
 	private RmlMapper(
-		Functions functions,
-		Form normalizationForm,
-		boolean iriUpperCasePercentEncoding,
-		LogicalSourceAspect logicalSourceAspect
+		LogicalSourceAspect logicalSourceAspect,
+		TermGeneratorCreator termGenerators
 	) {
-		this.functions = functions;
-		this.normalizationForm = normalizationForm;
-		this.iriUpperCasePercentEncoding = iriUpperCasePercentEncoding;
 		this.logicalSourceAspect = logicalSourceAspect;
-		this.termGenerators = TermGeneratorCreator.create(this);
+		this.termGenerators = termGenerators; // TODO rename
 		this.sourceManager = new LogicalSourceManager();
 	}
 
@@ -172,13 +158,14 @@ public class RmlMapper {
 						.collect(ImmutableCollectors.toImmutableSet())
 					);
 
+			TermGeneratorCreator termGeneratorCreator = TermGeneratorCreator
+				.create(normalizationForm, functions, iriUpperCasePercentEncoding);
 			RmlMapper mapper =
 				new RmlMapper(
-					functions,
-					normalizationForm,
-					iriUpperCasePercentEncoding,
-					new LogicalSourceAspect(compositeResolver, logicalSourceResolvers)
+					new LogicalSourceAspect(compositeResolver, logicalSourceResolvers),
+					termGeneratorCreator
 				);
+			termGeneratorCreator.setCreateSubjectMapper(mapper::createSubjectMapper);
 
 			// Resolvers need a reference to the source manager, to manage
 			// the caching of sources.
@@ -188,151 +175,8 @@ public class RmlMapper {
 		}
 	}
 
-	public Form getNormalizationForm() {
-		return normalizationForm;
-	}
-
-	public boolean getIriUpperCasePercentEncoding() {
-		return iriUpperCasePercentEncoding;
-	}
-
-	private static Optional<String> unpackFileSource(Object sourceObject) {
-		if (sourceObject instanceof String) { // Standard rml:source
-			return Optional.of((String) sourceObject);
-		} else if (sourceObject instanceof FileSource) { // Extended Carml source
-			return Optional.of(((FileSource)sourceObject).getUrl());
-		} else {
-			return Optional.empty();
-		}
-	}
-
-	private static class FileResolver implements SourceResolver {
-
-		private LogicalSourceManager sourceManager;
-		private final Path basePath;
-
-		FileResolver(Path basePath) {
-			this.basePath = basePath;
-		}
-
-		@Override
-		public void setSourceManager(LogicalSourceManager sourceManager) {
-			this.sourceManager = sourceManager;
-		}
-
-		@Override
-		public Optional<String> apply(Object o) {
-
-			return unpackFileSource(o).map(f -> {
-				Path path = basePath.resolve(f);
-				String sourceName = path.toString();
-
-				// Cache source if not already done.
-				if (!sourceManager.hasSource(sourceName)) {
-					try {
-						sourceManager.addSource(sourceName, new String(Files.readAllBytes(path), StandardCharsets.UTF_8));
-					} catch (IOException e) {
-						throw new RuntimeException(String.format("could not create file source for path [%s]", path));
-					}
-				}
-
-				return sourceManager.getSource(sourceName);
-			});
-		}
-
-	}
-
-	private static class ClassPathResolver implements SourceResolver {
-
-		private LogicalSourceManager sourceManager;
-		private final String basePath;
-
-		ClassPathResolver(String basePath) {
-			this.basePath = basePath;
-		}
-
-		@Override
-		public void setSourceManager(LogicalSourceManager sourceManager) {
-			this.sourceManager = sourceManager;
-		}
-
-		@Override
-		public Optional<String> apply(Object o) {
-
-			return unpackFileSource(o).map(f -> {
-				String sourceName = basePath + "/" + f;
-
-				// Cache source if not already done.
-				if (!sourceManager.hasSource(sourceName)) {
-					sourceManager.addSource(sourceName,
-							RmlMapper.class.getClassLoader()
-									.getResourceAsStream(sourceName));
-				}
-
-				return sourceManager.getSource(sourceName);
-			});
-
-		}
-
-	}
-
-	private static class CarmlStreamResolver implements SourceResolver {
-
-		private LogicalSourceManager sourceManager;
-
-		@Override
-		public void setSourceManager(LogicalSourceManager sourceManager) {
-			this.sourceManager = sourceManager;
-		}
-
-		@Override
-		public Optional<String> apply(Object o) {
-
-			if (!(o instanceof NameableStream)) {
-				return Optional.empty();
-			}
-
-			NameableStream stream = (NameableStream) o;
-			Optional<String> name = Optional.ofNullable(stream.getStreamName());
-			String resolved =
-				name.isPresent() ?
-					sourceManager.getSource(name.get()) :
-					sourceManager.getSource(DEFAULT_STREAM_NAME);
-			return Optional.of(resolved);
-		}
-	}
-
-	private static class CompositeSourceResolver implements Function<Object, String> {
-
-		private final Set<SourceResolver> resolvers;
-
-		CompositeSourceResolver(Set<SourceResolver> resolvers) {
-			this.resolvers = resolvers;
-		}
-
-		@Override
-		public String apply(Object source) {
-			return
-			resolvers.stream()
-				.map(r -> r.apply(source))
-				.filter(Optional::isPresent)
-				.map(Optional::get)
-				.findFirst()
-				.orElseThrow(() ->
-					new RuntimeException(String.format("could not resolve source [%s]", source)));
-		}
-
-		void setSourceManager(LogicalSourceManager sourceManager) {
-			resolvers.forEach(r -> r.setSourceManager(sourceManager));
-		}
-	}
-
 	public LogicalSourceManager getSourceManager() {
-		return this.sourceManager;
-	}
-
-	public Optional<ExecuteFunction> getFunction(IRI iri) {
-		return functions.getFunction(iri);
+		return sourceManager;
 	}
 
 	public Model map(Set<TriplesMap> mapping) {
@@ -340,11 +184,11 @@ public class RmlMapper {
 		Model model = new LinkedHashModel();
 
 		Set<TriplesMap> functionValueTriplesMaps = getTermMaps(mapping)
-				.filter(t -> t.getFunctionValue() != null)
 				.map(TermMap::getFunctionValue)
+				.filter(Objects::nonNull)
 				.collect(ImmutableCollectors.toImmutableSet());
 
-		if(LOG.isWarnEnabled()) {
+		if (LOG.isWarnEnabled()) {
 			boolean deprecatedFno = functionValueTriplesMaps.stream()
 					.flatMap(triplesMap -> triplesMap.getPredicateObjectMaps().stream())
 					.flatMap(pom -> pom.getPredicateMaps().stream())
@@ -361,7 +205,7 @@ public class RmlMapper {
 			.filter(m -> !functionValueTriplesMaps.contains(m) ||
 				refObjectTriplesMaps.contains(m))
 			.forEach(m -> map(m, model));
-		this.sourceManager.clear();
+		sourceManager.clear();
 		return model;
 	}
 

@@ -22,9 +22,9 @@ public class TermGeneratorCreatorTest {
 
 
 	@Test
-	public void getGenerator_withReferenceAndTemplate_throwsRuntimeException() throws Exception {
+	public void getGenerator_withReferenceAndTemplate_throwsRuntimeException() {
 
-		TermGeneratorCreator tgc = new TermGeneratorCreator(null, "foo", null, TemplateParser.build(), null);
+		TermGeneratorCreator tgc = new TermGeneratorCreator(null, "foo", null, TemplateParser.build(), null, null);
 
 		RuntimeException exception = assertThrows(RuntimeException.class, () ->
 				tgc.getObjectGenerator(new CarmlObjectMap("foo.bar", null, "foo{foo.bar}",
@@ -34,12 +34,12 @@ public class TermGeneratorCreatorTest {
 	}
 
 	@Test
-	public void IriTermGenerator_withRelativeIRI_usesBaseIRI() throws Exception {
+	public void IriTermGenerator_withRelativeIRI_usesBaseIRI() {
 
 		ValueFactory f = SimpleValueFactory.getInstance();
 
 		String baseIri = "http://base.iri";
-		TermGeneratorCreator tgc = new TermGeneratorCreator(f, baseIri, null, TemplateParser.build(), null);
+		TermGeneratorCreator tgc = new TermGeneratorCreator(f, baseIri, null, TemplateParser.build(), null, null);
 
 		String ref = "ref";
 		TermGenerator<Value> generator = tgc.getObjectGenerator(new CarmlObjectMap(ref, null, null, TermType.IRI, null, null, null, null));
@@ -49,18 +49,18 @@ public class TermGeneratorCreatorTest {
 		when(evaluator.apply(ref)).thenReturn(Optional.of(relativeIriPart));
 		List<Value> result = generator.apply(evaluator);
 
-		Assert.assertTrue(!result.isEmpty());
+		Assert.assertFalse(result.isEmpty());
 		Assert.assertTrue(result.get(0) instanceof IRI);
 		Assert.assertEquals(result.get(0), f.createIRI(baseIri + relativeIriPart));
 	}
 
 	@Test
-	public void IriTermGenerator_withAbsoluteIRI_usesBaseIRI() throws Exception {
+	public void IriTermGenerator_withAbsoluteIRI_usesBaseIRI() {
 
 		ValueFactory f = SimpleValueFactory.getInstance();
 
 		String baseIri = "http://base.iri";
-		TermGeneratorCreator tgc = new TermGeneratorCreator(f, baseIri, null, TemplateParser.build(), null);
+		TermGeneratorCreator tgc = new TermGeneratorCreator(f, baseIri, null, TemplateParser.build(), null, null);
 
 		String ref = "ref";
 		TermGenerator<Value> generator = tgc.getObjectGenerator(new CarmlObjectMap(ref, null, null, TermType.IRI, null, null, null, null));
@@ -70,18 +70,18 @@ public class TermGeneratorCreatorTest {
 		when(evaluator.apply(ref)).thenReturn(Optional.of(absoluteIri));
 		List<Value> result = generator.apply(evaluator);
 
-		Assert.assertTrue(!result.isEmpty());
+		Assert.assertFalse(result.isEmpty());
 		Assert.assertTrue(result.get(0) instanceof IRI);
 		Assert.assertEquals(result.get(0), f.createIRI(absoluteIri));
 	}
 
 	@Test
-	public void IriTermGenerator_withFaultyIRI_throwsException() throws Exception {
+	public void IriTermGenerator_withFaultyIRI_throwsException() {
 
 		ValueFactory f = SimpleValueFactory.getInstance();
 
 		String baseIri = "?";
-		TermGeneratorCreator tgc = new TermGeneratorCreator(f, baseIri, null, TemplateParser.build(), null);
+		TermGeneratorCreator tgc = new TermGeneratorCreator(f, baseIri, null, TemplateParser.build(), null, null);
 
 		String ref = "ref";
 		TermGenerator<Value> generator = tgc.getObjectGenerator(new CarmlObjectMap(ref, null, null, TermType.IRI, null, null, null, null));
@@ -93,7 +93,7 @@ public class TermGeneratorCreatorTest {
 		RuntimeException exception = null;
 		try {
 			generator.apply(evaluator);
-			Assert.assertTrue("This code should be unreachable", false);
+			Assert.fail("This code should be unreachable");
 		} catch (RuntimeException e) {
 			exception = e;
 		}

@@ -65,8 +65,8 @@ class GetTemplateValue implements Function<EvaluateExpression, Optional<Object>>
 
 		if (raw instanceof Collection<?>) {
 			return ((Collection<?>) raw).stream()
-			.map(createNaturalRdfLexicalForm::apply)
-			.map(transformValue::apply)
+			.map(createNaturalRdfLexicalForm)
+			.map(transformValue)
 			.collect(ImmutableCollectors.toImmutableList());
 		} else {
 			String value = createNaturalRdfLexicalForm.apply(raw);
