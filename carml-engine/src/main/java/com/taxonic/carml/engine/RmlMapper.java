@@ -8,6 +8,7 @@ import com.taxonic.carml.engine.source_resolver.FileResolver;
 import com.taxonic.carml.engine.source_resolver.SourceResolver;
 import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
 import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver.CreateContextEvaluate;
+import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver.CreateSimpleTypedRepresentation;
 import com.taxonic.carml.model.BaseObjectMap;
 import com.taxonic.carml.model.ContextSource;
 import com.taxonic.carml.model.GraphMap;
@@ -43,6 +44,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -281,21 +283,23 @@ public class RmlMapper {
 		triplesMapper.accept(model);
 	}
 
-	private Set<TermGenerator<IRI>> createGraphGenerators(Set<GraphMap> graphMaps) {
+	private Set<TermGenerator<IRI>> createGraphGenerators(Set<GraphMap> graphMaps, UnaryOperator<Object> createSimpleTypedRepresentation) {
 		return graphMaps.stream()
-			.map(termGenerators::getGraphGenerator)
+			.map(g -> termGenerators.getGraphGenerator(g, createSimpleTypedRepresentation))
 			.collect(ImmutableCollectors.toImmutableSet());
 	}
 
 	private Stream<TermGenerator<Value>> getObjectMapGenerators(
-		Set<BaseObjectMap> objectMaps, TriplesMap triplesMap
+		Set<BaseObjectMap> objectMaps,
+		TriplesMap triplesMap,
+		UnaryOperator<Object> createSimpleTypedRepresentation
 	) {
 		return objectMaps.stream()
 			.filter(o -> o instanceof ObjectMap)
 			.peek(o -> LOG.debug("Creating term generator for ObjectMap {}", o.getResourceName()))
 			.map(o -> {
 				try {
-					return termGenerators.getObjectGenerator((ObjectMap) o);
+					return termGenerators.getObjectGenerator((ObjectMap) o, createSimpleTypedRepresentation);
 				} catch (RuntimeException ex) {
 					throw new RuntimeException(String.format("Exception occurred for %s", exception(triplesMap, o)), ex);
 				}
@@ -356,17 +360,26 @@ public class RmlMapper {
 			.map(refObjMap -> createRefObjectJoinlessMapper(refObjMap, triplesMap));
 	}
 
-	private TermGenerator<Resource> createRefObjectJoinlessMapper(RefObjectMap refObjectMap, TriplesMap triplesMap) {
+	private TermGenerator<Resource> createRefObjectJoinlessMapper(
+		RefObjectMap refObjectMap,
+		TriplesMap triplesMap
+	) {
 		try {
+			TriplesMap parentTriplesMap = refObjectMap.getParentTriplesMap();
 			return termGenerators.getSubjectGenerator(
-					refObjectMap.getParentTriplesMap().getSubjectMap()
+					parentTriplesMap.getSubjectMap(),
+					getCreateSimpleTypedRepresentation(parentTriplesMap)
 			);
 		} catch (RuntimeException ex) {
 			throw new RuntimeException(String.format("Exception occurred for %s", exception(triplesMap, refObjectMap)), ex);
 		}
 	}
 
-	private Set<PredicateObjectMapper> createPredicateObjectMappers(TriplesMap triplesMap, Set<PredicateObjectMap> predicateObjectMaps) {
+	private Set<PredicateObjectMapper> createPredicateObjectMappers(
+		TriplesMap triplesMap,
+		Set<PredicateObjectMap> predicateObjectMaps,
+		CreateSimpleTypedRepresentation createSimpleTypedRepresentation
+	) {
 		return predicateObjectMaps.stream()
 				.peek(m -> LOG.debug("Creating mapper for PredicateObjectMap {}", m.getResourceName()))
 				.map(m -> {
@@ -374,11 +387,11 @@ public class RmlMapper {
 
 					Set<PredicateMapper> predicateMappers =
 						m.getPredicateMaps().stream()
-							.map(p -> createPredicateMapper(p, objectMaps, triplesMap))
+							.map(p -> createPredicateMapper(p, objectMaps, triplesMap, createSimpleTypedRepresentation))
 							.collect(ImmutableCollectors.toImmutableSet());
 
 					return new PredicateObjectMapper(
-						createGraphGenerators(m.getGraphMaps()),
+						createGraphGenerators(m.getGraphMaps(), createSimpleTypedRepresentation),
 						predicateMappers
 					);
 				})
@@ -388,7 +401,8 @@ public class RmlMapper {
 	PredicateMapper createPredicateMapper(
 		PredicateMap predicateMap,
 		Set<BaseObjectMap> objectMaps,
-		TriplesMap triplesMap
+		TriplesMap triplesMap,
+		CreateSimpleTypedRepresentation createSimpleTypedRepresentation
 	) {
 		if (LOG.isDebugEnabled()) {
 			LOG.debug("Creating mapper for PredicateMap {}", log(triplesMap, predicateMap));
@@ -398,7 +412,7 @@ public class RmlMapper {
 			Stream.concat(
 
 				// object maps -> object generators
-				getObjectMapGenerators(objectMaps, triplesMap),
+				getObjectMapGenerators(objectMaps, triplesMap, createSimpleTypedRepresentation),
 
 				// ref object maps without joins -> object generators.
 				// ref object maps without joins MUST have an identical logical source.
@@ -412,7 +426,7 @@ public class RmlMapper {
 				.filter(o -> o instanceof RefObjectMap)
 				.map(o -> (RefObjectMap) o)
 				.filter(o -> !o.getJoinConditions().isEmpty())
-				.map(this::createRefObjectMapper)
+				.map(r -> createRefObjectMapper(r, createSimpleTypedRepresentation))
 				.collect(ImmutableCollectors.toImmutableSet());
 
 		Set<NestedMapper<?>> nestedMappers = objectMaps.stream()
@@ -424,7 +438,7 @@ public class RmlMapper {
 
 		TermGenerator<IRI> predicateGenerator;
 		try{
-			predicateGenerator = termGenerators.getPredicateGenerator(predicateMap);
+			predicateGenerator = termGenerators.getPredicateGenerator(predicateMap, createSimpleTypedRepresentation);
 		} catch(RuntimeException ex) {
 			throw new RuntimeException(String.format("Exception occurred for %s", exception(triplesMap, predicateMap)), ex);
 		}
@@ -449,18 +463,20 @@ public class RmlMapper {
 			LOG.debug("Creating mapper for SubjectMap {}", log(triplesMap, subjectMap));
 		}
 
+		CreateSimpleTypedRepresentation createSimpleTypedRepresentation = getCreateSimpleTypedRepresentation(triplesMap);
+
 		TermGenerator<Resource> subjectGenerator;
 		try {
-			subjectGenerator = termGenerators.getSubjectGenerator(subjectMap);
+			subjectGenerator = termGenerators.getSubjectGenerator(subjectMap, createSimpleTypedRepresentation);
 		} catch(RuntimeException ex) {
 			throw new RuntimeException(String.format("Exception occurred for %s", exception(triplesMap, subjectMap)), ex);
 		}
 
 		return new SubjectMapper(
 			subjectGenerator,
-			createGraphGenerators(subjectMap.getGraphMaps()),
+			createGraphGenerators(subjectMap.getGraphMaps(), createSimpleTypedRepresentation),
 			subjectMap.getClasses(),
-			createPredicateObjectMappers(triplesMap, triplesMap.getPredicateObjectMaps())
+			createPredicateObjectMappers(triplesMap, triplesMap.getPredicateObjectMaps(), createSimpleTypedRepresentation)
 		);
 	}
 
@@ -510,22 +526,34 @@ public class RmlMapper {
 		return new NestedMapper<>(triplesMapper, nestedMapping.getContextEntries(), createContextEvaluate);
 	}
 
-	private ParentTriplesMapper<?> createParentTriplesMapper(TriplesMap triplesMap) {
+	private ParentTriplesMapper<?> createParentTriplesMapper(
+		TriplesMap triplesMap
+	) {
 		if (LOG.isDebugEnabled()) {
 			LOG.debug("Creating mapper for ParentTriplesMap {}", triplesMap.getResourceName());
 		}
 
 		try {
+			CreateSimpleTypedRepresentation createSimpleTypedRepresentation = getCreateSimpleTypedRepresentation(triplesMap);
 			return new ParentTriplesMapper<>(
-				termGenerators.getSubjectGenerator(triplesMap.getSubjectMap()),
-				createGetStream(triplesMap));
+				termGenerators.getSubjectGenerator(triplesMap.getSubjectMap(), createSimpleTypedRepresentation),
+				createGetStream(triplesMap),
+				createSimpleTypedRepresentation
+			);
 		}
 		catch(RuntimeException ex) {
 			throw new RuntimeException(String.format("Exception occurred for %s", exception(triplesMap, triplesMap.getSubjectMap())), ex);
 		}
 	}
 
-	private RefObjectMapper createRefObjectMapper(RefObjectMap refObjectMap) {
+	private CreateSimpleTypedRepresentation getCreateSimpleTypedRepresentation(TriplesMap triplesMap) {
+		return logicalSourceAspect.getLogicalSourceResolver(triplesMap).getCreateSimpleTypedRepresentation();
+	}
+
+	private RefObjectMapper createRefObjectMapper(
+		RefObjectMap refObjectMap,
+		CreateSimpleTypedRepresentation createSimpleTypedRepresentation
+	) {
 		Set<Join> joinConditions = refObjectMap.getJoinConditions();
 		if (LOG.isDebugEnabled()) {
 			LOG.debug("Creating mapper for RefObjectMap {}", refObjectMap.getResourceName());
@@ -533,7 +561,8 @@ public class RmlMapper {
 
 		return new RefObjectMapper(
 			createParentTriplesMapper(refObjectMap.getParentTriplesMap()),
-			joinConditions
+			joinConditions,
+			createSimpleTypedRepresentation
 		);
 	}
 

@@ -56,4 +56,9 @@ public class CsvResolver implements LogicalSourceResolver<Record> {
 		throw new UnsupportedOperationException("not implemented - in order to use nested mappings with csv, this method must be implemented");
 	}
 
+	@Override
+	public CreateSimpleTypedRepresentation getCreateSimpleTypedRepresentation() {
+		return v -> v; // TODO?
+	}
+
 }

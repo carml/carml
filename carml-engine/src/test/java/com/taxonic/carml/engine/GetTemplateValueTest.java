@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -28,12 +29,16 @@ public class GetTemplateValueTest {
 	@Mock
 	EvaluateExpression evaluateExpression;
 
+	@Mock
+	UnaryOperator<Object> createSimpleTypedRepresentation;
+
 	@Rule
 	public MockitoRule mockitoRule = MockitoJUnit.rule();
 
 	@Test
 	public void getTemplateValue_givenValidInputAndFindingValue_performsAsExpected() {
-		when(evaluateExpression.apply("xyz")).thenReturn(Optional.of("evaluated"));
+		when(createSimpleTypedRepresentation.apply("evaluatedRaw")).thenReturn("evaluated");
+		when(evaluateExpression.apply("xyz")).thenReturn(Optional.of("evaluatedRaw"));
 		when(createNaturalRdfLexicalForm.apply("evaluated")).thenReturn("natural");
 		when(transformValue.apply("natural")).thenReturn("transformed");
 
@@ -43,7 +48,8 @@ public class GetTemplateValueTest {
 				template,
 				template.getExpressions(),
 				transformValue,
-				createNaturalRdfLexicalForm
+				createNaturalRdfLexicalForm,
+				createSimpleTypedRepresentation
 			);
 		Optional<Object> templateValue = getTemplateValue.apply(evaluateExpression);
 		String result = unpackTemplateValue(templateValue);
@@ -74,7 +80,8 @@ public class GetTemplateValueTest {
 				template,
 				template.getExpressions(),
 				transformValue,
-				createNaturalRdfLexicalForm
+				createNaturalRdfLexicalForm,
+				v -> v
 			);
 		Optional<Object>templateValue = getTemplateValue.apply(evaluateExpression);
 		String result = unpackTemplateValue(templateValue);
@@ -91,7 +98,8 @@ public class GetTemplateValueTest {
 				template,
 				template.getExpressions(),
 				transformValue,
-				createNaturalRdfLexicalForm
+				createNaturalRdfLexicalForm,
+				v -> v
 			);
 		Optional<Object> templateValue = getTemplateValue.apply(evaluateExpression);
 		assertThat(templateValue, is(Optional.empty()));

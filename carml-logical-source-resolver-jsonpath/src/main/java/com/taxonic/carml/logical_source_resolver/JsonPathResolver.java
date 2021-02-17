@@ -3,18 +3,15 @@ package com.taxonic.carml.logical_source_resolver;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.Option;
-import com.taxonic.carml.engine.EvaluateExpression;
 import com.taxonic.carml.engine.Item;
-import com.taxonic.carml.model.ContextEntry;
 import com.taxonic.carml.model.LogicalSource;
-import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+
+import static com.taxonic.carml.logical_source_resolver.util.ContextUtils.createContextMap;
 
 public class JsonPathResolver implements LogicalSourceResolver<Object> {
 
@@ -67,18 +64,13 @@ public class JsonPathResolver implements LogicalSourceResolver<Object> {
 	public CreateContextEvaluate getCreateContextEvaluate() {
 		ExpressionEvaluatorFactory<Object> f = getExpressionEvaluatorFactory();
 		return (entries, evaluate) -> {
-			Map<String, Object> c = createContext(entries, evaluate);
+			Map<String, Object> c = createContextMap(entries, evaluate);
 			return f.apply(c);
 		};
 	}
 
-	private Map<String, Object> createContext(Set<ContextEntry> entries, EvaluateExpression evaluate) {
-		return entries.stream()
-			.map(e -> Pair.of(e.getAs(), evaluate.apply(e.getReference())))
-			.filter(e -> e.getRight().isPresent())
-			.collect(Collectors.toMap(
-				Pair::getLeft,
-				e -> e.getRight().get()
-			));
+	@Override
+	public CreateSimpleTypedRepresentation getCreateSimpleTypedRepresentation() {
+		return v -> v;
 	}
 }

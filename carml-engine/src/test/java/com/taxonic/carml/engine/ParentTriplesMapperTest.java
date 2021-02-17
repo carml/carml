@@ -2,7 +2,6 @@ package com.taxonic.carml.engine;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Resource;
@@ -65,7 +64,7 @@ public class ParentTriplesMapperTest {
 
 	@Before
 	public void setup() {
-		mapper = new ParentTriplesMapper<>(subjectGenerator, getStream);
+		mapper = new ParentTriplesMapper<>(subjectGenerator, getStream, v -> v);
 		when(getStream.get()).thenReturn(Stream.of(new Item<>(entry, evaluate)));
 		when(subjectGenerator.apply(evaluate)).thenReturn(ImmutableList.of(belgianWaffles));
 	}

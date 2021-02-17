@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import net.sf.saxon.s9api.XdmItem;
+import net.sf.saxon.s9api.XdmValue;
 import org.eclipse.rdf4j.rio.RDFFormat;
 import org.junit.Before;
 import org.junit.Test;
@@ -93,19 +94,23 @@ public class XPathResolverTest {
 	@Test
 	public void expressionEvaluator_givenExpression_shoulReturnCorrectValue() {
 		String expression = "./author/lower-case(.)";
-		ExpressionEvaluatorFactory<XdmItem> evaluatorFactory =
+		ExpressionEvaluatorFactory<XdmValue> evaluatorFactory =
 				xpathResolver.getExpressionEvaluatorFactory();
 		EvaluateExpression evaluateExpression = evaluatorFactory.apply(nodes.get(0));
-		assertThat(evaluateExpression.apply(expression).get(), is("giada de laurentiis"));
+		Object value = evaluateExpression.apply(expression)
+			.map(xpathResolver.getCreateSimpleTypedRepresentation()).get();
+		assertThat(value, is("giada de laurentiis"));
 	}
 
 	@Test
 	public void expressionEvaluatorWithoutAutoTextExtraction_givenExpression_shoulReturnCorrectValue() {
 		String expression = "./author";
-		ExpressionEvaluatorFactory<XdmItem> evaluatorFactory =
+		ExpressionEvaluatorFactory<XdmValue> evaluatorFactory =
 				xpathResolver.getExpressionEvaluatorFactory();
 		EvaluateExpression evaluateExpression = evaluatorFactory.apply(nodes.get(0));
-		assertThat(evaluateExpression.apply(expression).get(), is("Giada De Laurentiis"));
+		Object value = evaluateExpression.apply(expression)
+			.map(xpathResolver.getCreateSimpleTypedRepresentation()).get();
+		assertThat(value, is("Giada De Laurentiis"));
 
 		// redefine XPath resolver to not auto-extract text
 		boolean autoExtractNodeText = false;
@@ -116,7 +121,9 @@ public class XPathResolverTest {
 
 		nodes = getNodeStream.get().map(Item::getItem).collect(Collectors.toList());
 		evaluateExpression = evaluatorFactory.apply(nodes.get(0));
-		assertThat(evaluateExpression.apply(expression).get(), is("<author>Giada De Laurentiis</author>"));
+		value = evaluateExpression.apply(expression)
+			.map(xpathResolver.getCreateSimpleTypedRepresentation()).get();
+		assertThat(value, is("<author>Giada De Laurentiis</author>"));
 	}
 
 	@Test
@@ -136,9 +143,11 @@ public class XPathResolverTest {
 		nodes = getNodeStream.get().map(Item::getItem).collect(Collectors.toList());
 
 		String expression = "./ex:author/lower-case(.)";
-		ExpressionEvaluatorFactory<XdmItem> evaluatorFactory =
+		ExpressionEvaluatorFactory<XdmValue> evaluatorFactory =
 				xpathResolver.getExpressionEvaluatorFactory();
 		EvaluateExpression evaluateExpression = evaluatorFactory.apply(nodes.get(0));
-		assertThat(evaluateExpression.apply(expression).get(), is("j k. rowling"));
+		Object value = evaluateExpression.apply(expression)
+			.map(xpathResolver.getCreateSimpleTypedRepresentation()).get();
+		assertThat(value, is("j k. rowling"));
 	}
 }

@@ -3,6 +3,7 @@ package com.taxonic.carml.engine;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
+import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver.CreateSimpleTypedRepresentation;
 import com.taxonic.carml.rdf_mapper.util.ImmutableCollectors;
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -24,15 +25,17 @@ class ParentTriplesMapper<T> {
 	private static final Logger LOG = LoggerFactory.getLogger(ParentTriplesMapper.class);
 
 	private final TermGenerator<Resource> subjectGenerator;
-
 	private final Supplier<Stream<Item<T>>> getStream;
+	private final CreateSimpleTypedRepresentation createSimpleTypedRepresentation;
 
 	ParentTriplesMapper(
 		TermGenerator<Resource> subjectGenerator,
-		Supplier<Stream<Item<T>>> getStream
+		Supplier<Stream<Item<T>>> getStream,
+		CreateSimpleTypedRepresentation createSimpleTypedRepresentation
 	) {
 		this.subjectGenerator = subjectGenerator;
 		this.getStream = getStream;
+		this.createSimpleTypedRepresentation = createSimpleTypedRepresentation;
 	}
 
 	Set<Resource> map(Set<Pair<String, Object>> joinValues) {
@@ -75,7 +78,7 @@ class ParentTriplesMapper<T> {
 			LOG.trace("with result: {}", parentValue.orElse("null"));
 		}
 
-		return parentValue.map(v -> {
+		return parentValue.map(createSimpleTypedRepresentation).map(v -> {
 			if (v instanceof Collection<?>) {
 				// if the intersection of parent and child values is non-empty, the join is valid
 				Set<String> parentValues = extractValues(v);

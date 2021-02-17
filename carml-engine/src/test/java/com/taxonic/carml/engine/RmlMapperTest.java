@@ -265,5 +265,10 @@ public class RmlMapperTest {
 		public CreateContextEvaluate getCreateContextEvaluate() {
 			throw new UnsupportedOperationException();
 		}
+
+		@Override
+		public CreateSimpleTypedRepresentation getCreateSimpleTypedRepresentation() {
+			return v -> v;
+		}
 	}
 }

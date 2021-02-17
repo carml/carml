@@ -216,6 +216,20 @@ public class RmlMapperTest extends MappingTest {
 	}
 
 	@Test
+	public void testXmlOrdersMergeSuperIncluding() {
+		testMapping("RmlMapper",
+			"RmlMapper/test28/ordersNested.rml.ttl",
+			"RmlMapper/test28/ordersNested.output.ttl");
+	}
+
+	@Test
+	public void testXmlOrdersMergeSuperStandalone() {
+		testMapping("RmlMapper",
+			"RmlMapper/test29/ordersNested.rml.ttl",
+			"RmlMapper/test29/ordersNested.output.ttl");
+	}
+
+	@Test
 	public void testSeparateMapsMapping() {
 		testMapping("RmlMapper",
 				"RmlMapper/test10/separateMapsMapping.rml.ttl",

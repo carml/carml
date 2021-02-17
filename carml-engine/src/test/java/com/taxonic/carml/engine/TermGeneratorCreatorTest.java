@@ -28,7 +28,7 @@ public class TermGeneratorCreatorTest {
 
 		RuntimeException exception = assertThrows(RuntimeException.class, () ->
 				tgc.getObjectGenerator(new CarmlObjectMap("foo.bar", null, "foo{foo.bar}",
-						TermType.LITERAL, null, null, null, null)));
+						TermType.LITERAL, null, null, null, null), null));
 		Assert.assertNotNull(exception);
 		Assert.assertTrue(exception.getMessage().startsWith("2 value generators were created for term map"));
 	}
@@ -42,7 +42,7 @@ public class TermGeneratorCreatorTest {
 		TermGeneratorCreator tgc = new TermGeneratorCreator(f, baseIri, null, TemplateParser.build(), null, null);
 
 		String ref = "ref";
-		TermGenerator<Value> generator = tgc.getObjectGenerator(new CarmlObjectMap(ref, null, null, TermType.IRI, null, null, null, null));
+		TermGenerator<Value> generator = tgc.getObjectGenerator(new CarmlObjectMap(ref, null, null, TermType.IRI, null, null, null, null), v -> v);
 
 		String relativeIriPart = "/relativeIriPortion";
 		EvaluateExpression evaluator = Mockito.mock(EvaluateExpression.class);
@@ -63,7 +63,7 @@ public class TermGeneratorCreatorTest {
 		TermGeneratorCreator tgc = new TermGeneratorCreator(f, baseIri, null, TemplateParser.build(), null, null);
 
 		String ref = "ref";
-		TermGenerator<Value> generator = tgc.getObjectGenerator(new CarmlObjectMap(ref, null, null, TermType.IRI, null, null, null, null));
+		TermGenerator<Value> generator = tgc.getObjectGenerator(new CarmlObjectMap(ref, null, null, TermType.IRI, null, null, null, null), v -> v);
 
 		String absoluteIri = "http://foo.bar/absoluteIri";
 		EvaluateExpression evaluator = Mockito.mock(EvaluateExpression.class);
@@ -84,7 +84,7 @@ public class TermGeneratorCreatorTest {
 		TermGeneratorCreator tgc = new TermGeneratorCreator(f, baseIri, null, TemplateParser.build(), null, null);
 
 		String ref = "ref";
-		TermGenerator<Value> generator = tgc.getObjectGenerator(new CarmlObjectMap(ref, null, null, TermType.IRI, null, null, null, null));
+		TermGenerator<Value> generator = tgc.getObjectGenerator(new CarmlObjectMap(ref, null, null, TermType.IRI, null, null, null, null), v -> v);
 
 		String relativeIriPart = "/relativeIriPortion";
 		EvaluateExpression evaluator = Mockito.mock(EvaluateExpression.class);

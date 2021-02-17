@@ -87,45 +87,50 @@ class TermGeneratorCreator {
 	}
 
 	@SuppressWarnings("unchecked")
-	TermGenerator<Value> getObjectGenerator(ObjectMap map) {
+	TermGenerator<Value> getObjectGenerator(ObjectMap map, UnaryOperator<Object> createSimpleTypedRepresentation) {
 		return (TermGenerator<Value>) getGenerator(
 			map,
 			ImmutableSet.of(TermType.IRI, TermType.BLANK_NODE, TermType.LITERAL),
-			ImmutableSet.of(IRI.class, Literal.class)
+			ImmutableSet.of(IRI.class, Literal.class),
+			createSimpleTypedRepresentation
 		);
 	}
 
 	@SuppressWarnings("unchecked")
-	TermGenerator<IRI> getGraphGenerator(GraphMap map) {
+	TermGenerator<IRI> getGraphGenerator(GraphMap map, UnaryOperator<Object> createSimpleTypedRepresentation) {
 		return (TermGenerator<IRI>) getGenerator(
 			map,
 			ImmutableSet.of(TermType.IRI),
-			ImmutableSet.of(IRI.class)
+			ImmutableSet.of(IRI.class),
+			createSimpleTypedRepresentation
 		);
 	}
 
 	@SuppressWarnings("unchecked")
-	TermGenerator<IRI> getPredicateGenerator(PredicateMap map) {
+	TermGenerator<IRI> getPredicateGenerator(PredicateMap map, UnaryOperator<Object> createSimpleTypedRepresentation) {
 		return (TermGenerator<IRI>) getGenerator(
 			map,
 			ImmutableSet.of(TermType.IRI),
-			ImmutableSet.of(IRI.class)
+			ImmutableSet.of(IRI.class),
+			createSimpleTypedRepresentation
 		);
 	}
 
 	@SuppressWarnings("unchecked")
-	TermGenerator<Resource> getSubjectGenerator(SubjectMap map) {
+	TermGenerator<Resource> getSubjectGenerator(SubjectMap map, UnaryOperator<Object> createSimpleTypedRepresentation) {
 		return (TermGenerator<Resource>) getGenerator(
 			map,
 			ImmutableSet.of(TermType.BLANK_NODE, TermType.IRI),
-			ImmutableSet.of(IRI.class)
+			ImmutableSet.of(IRI.class),
+			createSimpleTypedRepresentation
 		);
 	}
 
 	private TermGenerator<?> getGenerator(
 		TermMap map,
 		Set<TermType> allowedTermTypes,
-		Set<Class<? extends Value>> allowedConstantTypes
+		Set<Class<? extends Value>> allowedConstantTypes,
+		UnaryOperator<Object> createSimpleTypedRepresentation
 	) {
 		List<TermGenerator<Value>> generators =
 			Stream.<Supplier<Optional<TermGenerator<Value>>>>of(
@@ -134,10 +139,10 @@ class TermGeneratorCreator {
 				() -> getConstantGenerator(map, allowedConstantTypes),
 
 				// reference
-				() -> getReferenceGenerator(map, allowedTermTypes),
+				() -> getReferenceGenerator(map, allowedTermTypes, createSimpleTypedRepresentation),
 
 				// template
-				() -> getTemplateGenerator(map, allowedTermTypes),
+				() -> getTemplateGenerator(map, allowedTermTypes, createSimpleTypedRepresentation),
 
 				// functionValue
 				() -> getFunctionValueGenerator(map, allowedTermTypes)
@@ -180,7 +185,8 @@ class TermGeneratorCreator {
 
 	private Optional<TermGenerator<Value>> getTemplateGenerator(
 		TermMap map,
-		Set<TermType> allowedTermTypes
+		Set<TermType> allowedTermTypes,
+		UnaryOperator<Object> createSimpleTypedRepresentation
 	) {
 
 		String templateStr = map.getTemplate();
@@ -203,7 +209,8 @@ class TermGeneratorCreator {
 				template,
 				template.getExpressions(),
 				transformValue,
-				this::createNaturalRdfLexicalForm
+				this::createNaturalRdfLexicalForm,
+				createSimpleTypedRepresentation
 			);
 
 		return Optional.of(getGenerator(
@@ -216,7 +223,8 @@ class TermGeneratorCreator {
 
 	private Optional<TermGenerator<Value>> getReferenceGenerator(
 		TermMap map,
-		Set<TermType> allowedTermTypes
+		Set<TermType> allowedTermTypes,
+		UnaryOperator<Object> createSimpleTypedRepresentation
 	) {
 
 		String reference = map.getReference();
@@ -229,7 +237,7 @@ class TermGeneratorCreator {
 
 		return Optional.of(getGenerator(
 			map,
-			getValue,
+			getValue.andThen(v -> v.map(createSimpleTypedRepresentation)),
 			allowedTermTypes,
 			determineTermType(map)
 		));
