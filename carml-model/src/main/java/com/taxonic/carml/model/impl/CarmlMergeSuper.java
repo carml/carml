@@ -11,6 +11,8 @@ import com.taxonic.carml.vocab.CarmlExp;
 import com.taxonic.carml.vocab.Rdf;
 import com.taxonic.carml.vocab.Rml;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
+import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
 
 import java.util.Collections;
@@ -98,6 +100,8 @@ public class CarmlMergeSuper extends CarmlResource implements MergeSuper {
             Objects.equals(including, other.including);
     }
 
-    // TODO toString, builder
-
+    @Override
+    public String toString() {
+        return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
+    }
 }

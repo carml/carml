@@ -58,7 +58,7 @@ public class CsvResolver implements LogicalSourceResolver<Record> {
 
 	@Override
 	public CreateSimpleTypedRepresentation getCreateSimpleTypedRepresentation() {
-		return v -> v; // TODO?
+		return v -> v;
 	}
 
 }

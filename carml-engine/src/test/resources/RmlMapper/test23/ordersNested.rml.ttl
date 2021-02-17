@@ -51,12 +51,6 @@
     rml:iterator "$.orderItems[*]"
   ];
 
-  # TODO example of custom 'entry context', effectively renaming orderId to orderNumber
-  #carml-exp:context [
-  #  carml-exp:as "orderNumber";
-  #  rml:reference "orderId"
-  #];
-
   rr:subjectMap [
     rr:template "http://www.example.com/item/{code}";
     rr:class ox:Item
@@ -70,7 +64,7 @@
   rr:predicateObjectMap [
     rr:predicate ox:orderId;
     rr:objectMap [
-      rml:reference "orderId"; # TODO orderNumber
+      rml:reference "orderId";
     ]
   ]
 .

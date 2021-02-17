@@ -10,6 +10,8 @@ import com.taxonic.carml.rdf_mapper.annotations.RdfType;
 import com.taxonic.carml.vocab.CarmlExp;
 import com.taxonic.carml.vocab.Rdf;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
+import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
 
 import java.util.Collections;
@@ -97,6 +99,8 @@ public class CarmlNestedMapping extends CarmlResource implements NestedMapping {
             Objects.equals(contextEntries, other.contextEntries);
     }
 
-    // TODO toString, builder
-
+    @Override
+    public String toString() {
+        return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
+    }
 }
