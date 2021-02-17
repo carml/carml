@@ -36,13 +36,6 @@ class ContextTriplesMapper<T> {
 	Set<Resource> map(Model model, EvaluateExpression evaluateInContext) {
 		LOG.debug("Executing context TriplesMap {} ...", name);
 		Stream<Item<T>> entries = getStreamFromContext.apply(evaluateInContext);
-		// TODO if specified, the 'per entry' context must still be constructed here,
-		//      by doing evaluations with 'evaluateInContext'. this allows for selecting and renaming context vars,
-		//      or doing a deeper selection.
-		//      so we have...
-		//      1. an 'iteration context'
-		//      2. an 'entry context'
-		//      in the default case (no config), the entry context is simply set to the iteration context.
 		Set<Resource> results = new LinkedHashSet<>();
 		entries.forEach(e -> map(e, model, evaluateInContext).ifPresent(results::add));
 		return Collections.unmodifiableSet(results);
