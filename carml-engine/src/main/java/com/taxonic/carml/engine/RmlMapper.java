@@ -10,10 +10,12 @@ import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
 import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver.CreateContextEvaluate;
 import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver.CreateSimpleTypedRepresentation;
 import com.taxonic.carml.model.BaseObjectMap;
+import com.taxonic.carml.model.ContextEntry;
 import com.taxonic.carml.model.ContextSource;
 import com.taxonic.carml.model.GraphMap;
 import com.taxonic.carml.model.Join;
 import com.taxonic.carml.model.LogicalSource;
+import com.taxonic.carml.model.MergeSuper;
 import com.taxonic.carml.model.NestedMapping;
 import com.taxonic.carml.model.ObjectMap;
 import com.taxonic.carml.model.PredicateMap;
@@ -37,10 +39,12 @@ import org.slf4j.LoggerFactory;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.text.Normalizer.Form;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -513,17 +517,29 @@ public class RmlMapper {
 		}
 
 		LogicalSourceResolver<T> logicalSourceResolver = logicalSourceAspect.getLogicalSourceResolver(triplesMap);
+		LogicalSource logicalSource = triplesMap.getLogicalSource();
 
 		ContextTriplesMapper<T> triplesMapper = new ContextTriplesMapper<>(
 			triplesMap.getResourceName(),
-			logicalSourceResolver.createGetStreamFromContext(triplesMap.getLogicalSource().getIterator()),
+			logicalSourceResolver.createGetStreamFromContext(logicalSource.getIterator()),
 			createSubjectMapper(triplesMap),
 			createNestedMappers(triplesMap)
 		);
 
 		CreateContextEvaluate createContextEvaluate = logicalSourceResolver.getCreateContextEvaluate();
 
-		return new NestedMapper<>(triplesMapper, nestedMapping.getContextEntries(), createContextEvaluate);
+		return new NestedMapper<>(triplesMapper,
+			getContextEntriesFromNestedDeclarationOrSuperLogicalSource(nestedMapping, logicalSource), createContextEvaluate);
+	}
+
+	private Set<ContextEntry> getContextEntriesFromNestedDeclarationOrSuperLogicalSource(NestedMapping nestedMapping, LogicalSource logicalSource) {
+		Set<ContextEntry> contextEntries = nestedMapping.getContextEntries();
+		if (!contextEntries.isEmpty()) {
+			return contextEntries;
+		}
+		return Optional.ofNullable(logicalSource.getMergeSuper())
+			.map(MergeSuper::getIncluding)
+			.orElse(Collections.emptySet());
 	}
 
 	private ParentTriplesMapper<?> createParentTriplesMapper(
