@@ -50,6 +50,8 @@ Releases
 
 31 Oct 2020 - CARML 0.3.1
 
+22 Feb 2021 - CARML 0.3.2-exp (experimental)
+
 Introduction
 ------------
 CARML is a java library that transforms structured sources to RDF based as declared in and [RML](http://rml.io) mapping, in accordance with the [RML spec](http://rml.io/spec.html).
