@@ -7,10 +7,14 @@ import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.Iterables;
 import com.jayway.jsonpath.InvalidPathException;
+import com.taxonic.carml.engine.Item;
 import com.taxonic.carml.model.LogicalSource;
 import com.taxonic.carml.model.impl.CarmlLogicalSource;
 import com.taxonic.carml.vocab.Rdf;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.junit.Before;
 import org.junit.Test;
 
@@ -36,7 +40,7 @@ public class JsonPathResolverTest {
 
     private JsonPathResolver jsonPathResolver;
 
-    private Function<Object, String> sourceResolver = s -> s.toString();
+    private final Function<Object, String> sourceResolver = s -> s.toString();
 
     @Before
     public void init() {
@@ -47,17 +51,17 @@ public class JsonPathResolverTest {
     public void sourceIterator_givenJsonPath_shouldReturnMatchingObjects() {
         LogicalSource foodSource =
                 new CarmlLogicalSource(SOURCE, "food[*]", Rdf.Ql.JsonPath);
-        Iterable<Object> objectIterable = jsonPathResolver.bindSource(foodSource, sourceResolver).get();
+        Stream<Item<Object>> objectStream = jsonPathResolver.bindSource(foodSource, sourceResolver).get();
 
-        assertThat(Iterables.size(objectIterable), is(3));
+        assertThat(objectStream.count(), is(3L));
     }
 
     @Test
     public void sourceIterator_givenUnresolvableJsonPath_shouldReturnEmptyIterable() {
         LogicalSource unresolvable = new CarmlLogicalSource(SOURCE, "foo", Rdf.Ql.JsonPath);
-        Iterable<Object> objectIterable = jsonPathResolver.bindSource(unresolvable, sourceResolver).get();
+        Stream<Item<Object>> objectStream = jsonPathResolver.bindSource(unresolvable, sourceResolver).get();
 
-        assertThat(Iterables.size(objectIterable), is(0));
+        assertThat(objectStream.count(), is(0L));
     }
 
     @Test

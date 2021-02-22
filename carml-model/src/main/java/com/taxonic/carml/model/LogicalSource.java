@@ -10,4 +10,6 @@ public interface LogicalSource extends Resource {
 
 	IRI getReferenceFormulation();
 
+	MergeSuper getMergeSuper();
+
 }

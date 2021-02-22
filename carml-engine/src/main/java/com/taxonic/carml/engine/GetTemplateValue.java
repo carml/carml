@@ -8,6 +8,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,21 +17,24 @@ class GetTemplateValue implements Function<EvaluateExpression, Optional<Object>>
 
 	private static final Logger LOG = LoggerFactory.getLogger(GetTemplateValue.class);
 
-	private Template template;
-	private Set<Expression> expressions;
-	private Function<String, String> transformValue;
-	private Function<Object, String> createNaturalRdfLexicalForm;
+	private final Template template;
+	private final Set<Expression> expressions;
+	private final Function<String, String> transformValue;
+	private final Function<Object, String> createNaturalRdfLexicalForm;
+	private final UnaryOperator<Object> createSimpleTypedRepresentation;
 
 	GetTemplateValue(
 		Template template,
 		Set<Expression> expressions,
 		Function<String, String> transformValue,
-		Function<Object, String> createNaturalRdfLexicalForm
+		Function<Object, String> createNaturalRdfLexicalForm,
+		UnaryOperator<Object> createSimpleTypedRepresentation
 	) {
 		this.template = template;
 		this.expressions = expressions;
 		this.transformValue = transformValue;
 		this.createNaturalRdfLexicalForm = createNaturalRdfLexicalForm;
+		this.createSimpleTypedRepresentation = createSimpleTypedRepresentation;
 	}
 
 	@Override
@@ -42,12 +47,12 @@ class GetTemplateValue implements Function<EvaluateExpression, Optional<Object>>
 		return templateBuilder.create();
 	}
 
-	private Template.Builder bindTemplateExpression(
+	private void bindTemplateExpression(
 		Expression expression,
 		EvaluateExpression evaluateExpression,
 		Template.Builder templateBuilder
 	) {
-		return templateBuilder.bind(
+		templateBuilder.bind(
 			expression,
 			e -> evaluateExpression
 				.apply(e.getValue())
@@ -63,13 +68,15 @@ class GetTemplateValue implements Function<EvaluateExpression, Optional<Object>>
 	private Object prepareValueForTemplate(Object raw) {
 		Objects.requireNonNull(raw);
 
-		if (raw instanceof Collection<?>) {
-			return ((Collection<?>) raw).stream()
-			.map(createNaturalRdfLexicalForm::apply)
-			.map(transformValue::apply)
+		Object simpleRepresentation = createSimpleTypedRepresentation.apply(raw);
+
+		if (simpleRepresentation instanceof Collection<?>) {
+			return ((Collection<?>) simpleRepresentation).stream()
+			.map(createNaturalRdfLexicalForm)
+			.map(transformValue)
 			.collect(ImmutableCollectors.toImmutableList());
 		} else {
-			String value = createNaturalRdfLexicalForm.apply(raw);
+			String value = createNaturalRdfLexicalForm.apply(simpleRepresentation);
 			return transformValue.apply(value);
 		}
 	}

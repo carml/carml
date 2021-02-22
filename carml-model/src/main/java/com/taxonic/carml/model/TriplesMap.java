@@ -10,4 +10,6 @@ public interface TriplesMap extends Resource {
 
 	Set<PredicateObjectMap> getPredicateObjectMaps();
 
+	Set<NestedMapping> getNestedMappings();
+
 }

@@ -6,6 +6,8 @@ import java.util.function.BiConsumer;
 
 import javax.inject.Inject;
 
+import com.taxonic.carml.model.ContextSource;
+import com.taxonic.carml.vocab.Rdf;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Literal;
 import org.eclipse.rdf4j.model.Model;
@@ -27,7 +29,10 @@ public class LogicalSourceSourcePropertyHandler implements PropertyHandler {
 	private MappingCache mappingCache;
 
 	private Optional<Object> determineValue(Model model, Resource resource) {
-		
+
+		if (!model.filter(resource, predicate, Rdf.CarmlExp.context).isEmpty())
+			return Optional.of(new ContextSource() {});
+
 		Set<Value> objects = model.filter(resource, predicate, null).objects();
 		if (objects.size() > 1)
 			throw new RuntimeException("more than 1 object for the predicate [" + predicate + "] for a logical source");
@@ -51,7 +56,7 @@ public class LogicalSourceSourcePropertyHandler implements PropertyHandler {
 		Object value = transformer.transform(model, object);
 		return Optional.of(value);
 	}
-	
+
 	@Override
 	public void handle(Model model, Resource resource, Object instance) {
 		

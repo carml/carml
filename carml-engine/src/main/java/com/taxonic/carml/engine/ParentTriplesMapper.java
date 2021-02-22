@@ -3,6 +3,7 @@ package com.taxonic.carml.engine;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
+import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver.CreateSimpleTypedRepresentation;
 import com.taxonic.carml.rdf_mapper.util.ImmutableCollectors;
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -11,6 +12,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -22,30 +24,18 @@ class ParentTriplesMapper<T> {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ParentTriplesMapper.class);
 
-	private TermGenerator<Resource> subjectGenerator;
-
-	private Supplier<Iterable<T>> getIterator;
-	private LogicalSourceResolver.ExpressionEvaluatorFactory<T> expressionEvaluatorFactory;
-
-	ParentTriplesMapper(
-		TermGenerator<Resource> subjectGenerator,
-		TriplesMapperComponents<T> trMapperComponents
-	) {
-		this(
-			subjectGenerator,
-			trMapperComponents.getIterator(),
-			trMapperComponents.getExpressionEvaluatorFactory()
-		);
-	}
+	private final TermGenerator<Resource> subjectGenerator;
+	private final Supplier<Stream<Item<T>>> getStream;
+	private final CreateSimpleTypedRepresentation createSimpleTypedRepresentation;
 
 	ParentTriplesMapper(
 		TermGenerator<Resource> subjectGenerator,
-		Supplier<Iterable<T>> getIterator,
-		LogicalSourceResolver.ExpressionEvaluatorFactory<T> expressionEvaluatorFactory
+		Supplier<Stream<Item<T>>> getStream,
+		CreateSimpleTypedRepresentation createSimpleTypedRepresentation
 	) {
 		this.subjectGenerator = subjectGenerator;
-		this.getIterator = getIterator;
-		this.expressionEvaluatorFactory = expressionEvaluatorFactory;
+		this.getStream = getStream;
+		this.createSimpleTypedRepresentation = createSimpleTypedRepresentation;
 	}
 
 	Set<Resource> map(Set<Pair<String, Object>> joinValues) {
@@ -55,15 +45,14 @@ class ParentTriplesMapper<T> {
 		}
 
 		Set<Resource> results = new LinkedHashSet<>();
-		getIterator.get().forEach(e ->
+		getStream.get().forEach(e ->
 			map(e, joinValues)
 				.forEach(results::add));
 		return results;
 	}
 
-	private List<Resource> map(T entry, Set<Pair<String, Object>> joinValues) {
-		EvaluateExpression evaluate =
-				expressionEvaluatorFactory.apply(entry);
+	private List<Resource> map(Item<T> entry, Set<Pair<String, Object>> joinValues) {
+		EvaluateExpression evaluate = entry.getEvaluate();
 
 		boolean joinsValid = joinValues.stream()
 				.allMatch(j -> isValidJoin(evaluate, j));
@@ -89,7 +78,7 @@ class ParentTriplesMapper<T> {
 			LOG.trace("with result: {}", parentValue.orElse("null"));
 		}
 
-		return parentValue.map(v -> {
+		return parentValue.map(createSimpleTypedRepresentation).map(v -> {
 			if (v instanceof Collection<?>) {
 				// if the intersection of parent and child values is non-empty, the join is valid
 				Set<String> parentValues = extractValues(v);

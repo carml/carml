@@ -1,24 +1,33 @@
 package com.taxonic.carml.model.impl;
 
 import com.google.common.collect.ImmutableSet;
+import com.taxonic.carml.model.ContextEntry;
 import com.taxonic.carml.model.LogicalSource;
+import com.taxonic.carml.model.MergeSuper;
 import com.taxonic.carml.model.Resource;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
+import com.taxonic.carml.rdf_mapper.annotations.RdfType;
+import com.taxonic.carml.vocab.CarmlExp;
 import com.taxonic.carml.vocab.Rdf;
 import com.taxonic.carml.vocab.Rml;
-import java.util.Objects;
-import java.util.Set;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+
 public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
 
 	private Object source;
 	private String iterator;
 	private IRI referenceFormulation;
+	private MergeSuper mergeSuper;
 
 	public CarmlLogicalSource() {
 		// Empty constructor for object mapper
@@ -29,9 +38,19 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
 		String iterator,
 		IRI referenceFormulation
 	) {
+		this(source, iterator, referenceFormulation, null);
+	}
+
+	public CarmlLogicalSource(
+		Object source,
+		String iterator,
+		IRI referenceFormulation,
+		MergeSuper mergeSuper
+	) {
 		this.source = source;
 		this.iterator = iterator;
 		this.referenceFormulation = referenceFormulation;
+		this.mergeSuper = mergeSuper;
 	}
 
 	@RdfProperty(
@@ -55,6 +74,13 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
 		return referenceFormulation;
 	}
 
+	@RdfProperty(CarmlExp.mergeSuper)
+	@RdfType(CarmlMergeSuper.class)
+	@Override
+	public MergeSuper getMergeSuper() {
+		return mergeSuper;
+	}
+
 	public void setSource(Object source) {
 		this.source = source;
 	}
@@ -67,6 +93,10 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
 		this.referenceFormulation = referenceFormulation;
 	}
 
+	public void setMergeSuper(MergeSuper mergeSuper) {
+		this.mergeSuper = mergeSuper;
+	}
+
 	@Override
 	public String toString() {
 		return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
@@ -74,7 +104,7 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(source, iterator, referenceFormulation);
+		return Objects.hash(source, iterator, referenceFormulation, mergeSuper);
 	}
 
 	@Override
@@ -91,16 +121,20 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
 		CarmlLogicalSource other = (CarmlLogicalSource) obj;
 		return Objects.equals(source, other.source) &&
 				Objects.equals(iterator, other.iterator) &&
-				Objects.equals(referenceFormulation, other.referenceFormulation);
+				Objects.equals(referenceFormulation, other.referenceFormulation) &&
+				Objects.equals(mergeSuper, other.mergeSuper);
 	}
 
 	@Override
 	public Set<Resource> getReferencedResources() {
-		if (source != null && source instanceof Resource) {
-			return ImmutableSet.of((Resource) source);
-		} else {
-			return ImmutableSet.of();
+		ImmutableSet.Builder<Resource> builder = ImmutableSet.builder();
+		if (source instanceof Resource) {
+			builder.add((Resource) source);
 		}
+		if (mergeSuper != null) {
+			builder.add(mergeSuper);
+		}
+		return builder.build();
 	}
 
 	@Override
@@ -120,6 +154,9 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
 		if (referenceFormulation != null) {
 			modelBuilder.add(Rml.referenceFormulation, referenceFormulation);
 		}
+		if (mergeSuper != null) {
+			modelBuilder.add(Rdf.CarmlExp.mergeSuper, mergeSuper.getAsResource());
+		}
 	}
 
 	public static Builder newBuilder() {
@@ -131,6 +168,7 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
 		private Object source;
 		private String iterator;
 		private IRI referenceFormulation;
+		private MergeSuper mergeSuper;
 
 		public Builder source(Object source) {
 			this.source = source;
@@ -147,11 +185,17 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
 			return this;
 		}
 
+		public Builder mergeSuper(MergeSuper mergeSuper) {
+			this.mergeSuper = mergeSuper;
+			return this;
+		}
+
 		public CarmlLogicalSource build() {
 			return new CarmlLogicalSource(
 				source,
 				iterator,
-				referenceFormulation
+				referenceFormulation,
+				mergeSuper
 			);
 		}
 	}

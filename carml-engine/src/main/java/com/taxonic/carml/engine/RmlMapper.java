@@ -1,16 +1,22 @@
 package com.taxonic.carml.engine;
 
-import static java.util.Objects.requireNonNull;
-
-import com.taxonic.carml.engine.function.ExecuteFunction;
 import com.taxonic.carml.engine.function.Functions;
+import com.taxonic.carml.engine.source_resolver.CarmlStreamResolver;
+import com.taxonic.carml.engine.source_resolver.ClassPathResolver;
+import com.taxonic.carml.engine.source_resolver.CompositeSourceResolver;
+import com.taxonic.carml.engine.source_resolver.FileResolver;
+import com.taxonic.carml.engine.source_resolver.SourceResolver;
 import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
+import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver.CreateContextEvaluate;
+import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver.CreateSimpleTypedRepresentation;
 import com.taxonic.carml.model.BaseObjectMap;
-import com.taxonic.carml.model.FileSource;
+import com.taxonic.carml.model.ContextEntry;
+import com.taxonic.carml.model.ContextSource;
 import com.taxonic.carml.model.GraphMap;
 import com.taxonic.carml.model.Join;
 import com.taxonic.carml.model.LogicalSource;
-import com.taxonic.carml.model.NameableStream;
+import com.taxonic.carml.model.MergeSuper;
+import com.taxonic.carml.model.NestedMapping;
 import com.taxonic.carml.model.ObjectMap;
 import com.taxonic.carml.model.PredicateMap;
 import com.taxonic.carml.model.PredicateObjectMap;
@@ -22,20 +28,6 @@ import com.taxonic.carml.rdf_mapper.util.ImmutableCollectors;
 import com.taxonic.carml.util.ModelSerializer;
 import com.taxonic.carml.util.RmlNamespaces;
 import com.taxonic.carml.vocab.Rdf;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.text.Normalizer.Form;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Stream;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
@@ -43,6 +35,24 @@ import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.InputStream;
+import java.nio.file.Path;
+import java.text.Normalizer.Form;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static java.util.Objects.requireNonNull;
 
 // TODO cache results of evaluated expressions when filling a single template, in case of repeated expressions
 
@@ -53,40 +63,28 @@ import org.slf4j.LoggerFactory;
  * re-use the same PredicateMapper instance
  */
 
+// TODO break this class up into smaller parts
+
+@SuppressWarnings({ "squid:S112", "squid:S3864" })
 public class RmlMapper {
 
 	private static final Logger LOG = LoggerFactory.getLogger(RmlMapper.class);
 
-	static final String DEFAULT_STREAM_NAME = "DEFAULT";
+	public static final String DEFAULT_STREAM_NAME = "DEFAULT";
 
-	private LogicalSourceManager sourceManager;
+	private final LogicalSourceManager sourceManager;
 
-	private Function<Object, String> sourceResolver;
+	private final LogicalSourceAspect logicalSourceAspect;
 
-	private Map<IRI, LogicalSourceResolver<?>> logicalSourceResolvers;
-
-	Form normalizationForm;
-
-	boolean iriUpperCasePercentEncoding;
-
-	private TermGeneratorCreator termGenerators;
-
-	private Functions functions;
+	private final TermGeneratorCreator termGenerators;
 
 	private RmlMapper(
-		Function<Object, String> sourceResolver,
-		Map<IRI, LogicalSourceResolver<?>> logicalSourceResolvers,
-		Functions functions,
-		Form normalizationForm,
-		boolean iriUpperCasePercentEncoding
+		LogicalSourceAspect logicalSourceAspect,
+		TermGeneratorCreator termGenerators
 	) {
+		this.logicalSourceAspect = logicalSourceAspect;
+		this.termGenerators = termGenerators; // TODO rename
 		this.sourceManager = new LogicalSourceManager();
-		this.sourceResolver = sourceResolver;
-		this.functions = functions;
-		this.logicalSourceResolvers = logicalSourceResolvers;
-		this.normalizationForm = normalizationForm;
-		this.iriUpperCasePercentEncoding = iriUpperCasePercentEncoding;
-		this.termGenerators = TermGeneratorCreator.create(this);
 	}
 
 	public static Builder newBuilder() {
@@ -95,9 +93,9 @@ public class RmlMapper {
 
 	public static class Builder {
 
-		private Functions functions = new Functions();
-		private Set<SourceResolver> sourceResolvers = new HashSet<>();
-		private Map<IRI, LogicalSourceResolver<?>> logicalSourceResolvers = new HashMap<>();
+		private final Functions functions = new Functions();
+		private final Set<SourceResolver> sourceResolvers = new HashSet<>();
+		private final Map<IRI, LogicalSourceResolver<?>> logicalSourceResolvers = new HashMap<>();
 		private Form normalizationForm = Form.NFC;
 		private boolean iriUpperCasePercentEncoding = true;
 
@@ -166,14 +164,14 @@ public class RmlMapper {
 						.collect(ImmutableCollectors.toImmutableSet())
 					);
 
+			TermGeneratorCreator termGeneratorCreator = TermGeneratorCreator
+				.create(normalizationForm, functions, iriUpperCasePercentEncoding);
 			RmlMapper mapper =
 				new RmlMapper(
-					compositeResolver,
-					logicalSourceResolvers,
-					functions,
-					normalizationForm,
-					iriUpperCasePercentEncoding
+					new LogicalSourceAspect(compositeResolver, logicalSourceResolvers),
+					termGeneratorCreator
 				);
+			termGeneratorCreator.setCreateSubjectMapper(mapper::createSubjectMapper);
 
 			// Resolvers need a reference to the source manager, to manage
 			// the caching of sources.
@@ -183,151 +181,8 @@ public class RmlMapper {
 		}
 	}
 
-	public Form getNormalizationForm() {
-		return normalizationForm;
-	}
-
-	public boolean getIriUpperCasePercentEncoding() {
-		return iriUpperCasePercentEncoding;
-	}
-
-	private static Optional<String> unpackFileSource(Object sourceObject) {
-		if (sourceObject instanceof String) { // Standard rml:source
-			return Optional.of((String) sourceObject);
-		} else if (sourceObject instanceof FileSource) { // Extended Carml source
-			return Optional.of(((FileSource)sourceObject).getUrl());
-		} else {
-			return Optional.empty();
-		}
-	}
-
-	private static class FileResolver implements SourceResolver {
-
-		private LogicalSourceManager sourceManager;
-		private Path basePath;
-
-		FileResolver(Path basePath) {
-			this.basePath = basePath;
-		}
-
-		@Override
-		public void setSourceManager(LogicalSourceManager sourceManager) {
-			this.sourceManager = sourceManager;
-		}
-
-		@Override
-		public Optional<String> apply(Object o) {
-
-			return unpackFileSource(o).map(f -> {
-				Path path = basePath.resolve(f);
-				String sourceName = path.toString();
-
-				// Cache source if not already done.
-				if (!sourceManager.hasSource(sourceName)) {
-					try {
-						sourceManager.addSource(sourceName, new String(Files.readAllBytes(path), StandardCharsets.UTF_8));
-					} catch (IOException e) {
-						throw new RuntimeException(String.format("could not create file source for path [%s]", path));
-					}
-				}
-
-				return sourceManager.getSource(sourceName);
-			});
-		}
-
-	}
-
-	private static class ClassPathResolver implements SourceResolver {
-
-		private LogicalSourceManager sourceManager;
-		private String basePath;
-
-		ClassPathResolver(String basePath) {
-			this.basePath = basePath;
-		}
-
-		@Override
-		public void setSourceManager(LogicalSourceManager sourceManager) {
-			this.sourceManager = sourceManager;
-		}
-
-		@Override
-		public Optional<String> apply(Object o) {
-
-			return unpackFileSource(o).map(f -> {
-				String sourceName = basePath + "/" + f;
-
-				// Cache source if not already done.
-				if (!sourceManager.hasSource(sourceName)) {
-					sourceManager.addSource(sourceName,
-							RmlMapper.class.getClassLoader()
-									.getResourceAsStream(sourceName));
-				}
-
-				return sourceManager.getSource(sourceName);
-			});
-
-		}
-
-	}
-
-	private static class CarmlStreamResolver implements SourceResolver {
-
-		private LogicalSourceManager sourceManager;
-
-		@Override
-		public void setSourceManager(LogicalSourceManager sourceManager) {
-			this.sourceManager = sourceManager;
-		}
-
-		@Override
-		public Optional<String> apply(Object o) {
-
-			if (!(o instanceof NameableStream)) {
-				return Optional.empty();
-			}
-
-			NameableStream stream = (NameableStream) o;
-			Optional<String> name = Optional.ofNullable(stream.getStreamName());
-			String resolved =
-				name.isPresent() ?
-					sourceManager.getSource(name.get()) :
-					sourceManager.getSource(DEFAULT_STREAM_NAME);
-			return Optional.of(resolved);
-		}
-	}
-
-	private static class CompositeSourceResolver implements Function<Object, String> {
-
-		private Set<SourceResolver> resolvers;
-
-		CompositeSourceResolver(Set<SourceResolver> resolvers) {
-			this.resolvers = resolvers;
-		}
-
-		@Override
-		public String apply(Object source) {
-			return
-			resolvers.stream()
-				.map(r -> r.apply(source))
-				.filter(Optional::isPresent)
-				.map(Optional::get)
-				.findFirst()
-				.orElseThrow(() ->
-					new RuntimeException(String.format("could not resolve source [%s]", source)));
-		}
-
-		void setSourceManager(LogicalSourceManager sourceManager) {
-			resolvers.forEach(r -> r.setSourceManager(sourceManager));
-		}
-	}
-
 	public LogicalSourceManager getSourceManager() {
-		return this.sourceManager;
-	}
-
-	public Optional<ExecuteFunction> getFunction(IRI iri) {
-		return functions.getFunction(iri);
+		return sourceManager;
 	}
 
 	public Model map(Set<TriplesMap> mapping) {
@@ -335,11 +190,11 @@ public class RmlMapper {
 		Model model = new LinkedHashModel();
 
 		Set<TriplesMap> functionValueTriplesMaps = getTermMaps(mapping)
-				.filter(t -> t.getFunctionValue() != null)
 				.map(TermMap::getFunctionValue)
+				.filter(Objects::nonNull)
 				.collect(ImmutableCollectors.toImmutableSet());
 
-		if(LOG.isWarnEnabled()) {
+		if (LOG.isWarnEnabled()) {
 			boolean deprecatedFno = functionValueTriplesMaps.stream()
 					.flatMap(triplesMap -> triplesMap.getPredicateObjectMaps().stream())
 					.flatMap(pom -> pom.getPredicateMaps().stream())
@@ -356,7 +211,7 @@ public class RmlMapper {
 			.filter(m -> !functionValueTriplesMaps.contains(m) ||
 				refObjectTriplesMaps.contains(m))
 			.forEach(m -> map(m, model));
-		this.sourceManager.clear();
+		sourceManager.clear();
 		return model;
 	}
 
@@ -368,6 +223,7 @@ public class RmlMapper {
 	}
 
 	private Stream<TermMap> getTermMaps(Set<TriplesMap> mapping) {
+		// TODO add nested maps here as well
 		return mapping.stream()
 				.flatMap(m ->
 					Stream.concat (
@@ -396,6 +252,7 @@ public class RmlMapper {
 	}
 
 	private Set<TriplesMap> getAllTriplesMapsUsedInRefObjectMap(Set<TriplesMap> mapping) {
+		// TODO do i have to add something here re nested mappings?
 		return mapping.stream()
 				// get all referencing object maps
 				.flatMap(m -> m.getPredicateObjectMaps().stream())
@@ -426,29 +283,55 @@ public class RmlMapper {
 		if (LOG.isTraceEnabled()) {
 			LOG.trace("{}", log(triplesMap, triplesMap));
 		}
-		TriplesMapper<?> triplesMapper = createTriplesMapper(triplesMap); // TODO cache mapper instances
-		triplesMapper.map(model);
+		Consumer<Model> triplesMapper = createTriplesMapper(triplesMap); // TODO cache mapper instances
+		triplesMapper.accept(model);
 	}
 
-	private Set<TermGenerator<IRI>> createGraphGenerators(Set<GraphMap> graphMaps) {
+	private Set<TermGenerator<IRI>> createGraphGenerators(Set<GraphMap> graphMaps, UnaryOperator<Object> createSimpleTypedRepresentation) {
 		return graphMaps.stream()
-			.map(termGenerators::getGraphGenerator)
+			.map(g -> termGenerators.getGraphGenerator(g, createSimpleTypedRepresentation))
 			.collect(ImmutableCollectors.toImmutableSet());
 	}
 
 	private Stream<TermGenerator<Value>> getObjectMapGenerators(
-		Set<BaseObjectMap> objectMaps, TriplesMap triplesMap
+		Set<BaseObjectMap> objectMaps,
+		TriplesMap triplesMap,
+		UnaryOperator<Object> createSimpleTypedRepresentation
 	) {
 		return objectMaps.stream()
 			.filter(o -> o instanceof ObjectMap)
 			.peek(o -> LOG.debug("Creating term generator for ObjectMap {}", o.getResourceName()))
 			.map(o -> {
 				try {
-					return termGenerators.getObjectGenerator((ObjectMap) o);
+					return termGenerators.getObjectGenerator((ObjectMap) o, createSimpleTypedRepresentation);
 				} catch (RuntimeException ex) {
 					throw new RuntimeException(String.format("Exception occurred for %s", exception(triplesMap, o)), ex);
 				}
 			});
+	}
+
+	private NestedMapping checkSuperLogicalSource(NestedMapping nestedMapping, TriplesMap triplesMap) {
+
+		TriplesMap nestedTriplesMap = nestedMapping.getTriplesMap();
+		LogicalSource nestedLogicalSource = nestedTriplesMap.getLogicalSource();
+
+		if (nestedLogicalSource.getSource() instanceof ContextSource) {
+			return nestedMapping;
+		}
+
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("Checking if super logicalSource for nested triples map {} is equal",
+				nestedTriplesMap.getResourceName());
+		}
+		LogicalSource superLogicalSource = nestedLogicalSource.getMergeSuper() == null
+			? null : nestedLogicalSource.getMergeSuper().getLogicalSource();
+		if (!triplesMap.getLogicalSource().equals(superLogicalSource)) {
+			throw new RuntimeException(String.format(
+					"Logical sources are not equal.%n%nNested super logical source: %s%n%nContaining triples map logical source: %s%n%nNot equal in NestedMapping %s",
+					log(nestedTriplesMap, nestedLogicalSource), log(triplesMap, triplesMap.getLogicalSource()),
+					exception(triplesMap, nestedMapping)));
+		}
+		return nestedMapping;
 	}
 
 	private RefObjectMap checkLogicalSource(RefObjectMap refObjectMap, LogicalSource logicalSource, TriplesMap triplesMap) {
@@ -481,17 +364,26 @@ public class RmlMapper {
 			.map(refObjMap -> createRefObjectJoinlessMapper(refObjMap, triplesMap));
 	}
 
-	private TermGenerator<Resource> createRefObjectJoinlessMapper(RefObjectMap refObjectMap, TriplesMap triplesMap) {
+	private TermGenerator<Resource> createRefObjectJoinlessMapper(
+		RefObjectMap refObjectMap,
+		TriplesMap triplesMap
+	) {
 		try {
+			TriplesMap parentTriplesMap = refObjectMap.getParentTriplesMap();
 			return termGenerators.getSubjectGenerator(
-					refObjectMap.getParentTriplesMap().getSubjectMap()
+					parentTriplesMap.getSubjectMap(),
+					getCreateSimpleTypedRepresentation(parentTriplesMap)
 			);
 		} catch (RuntimeException ex) {
 			throw new RuntimeException(String.format("Exception occurred for %s", exception(triplesMap, refObjectMap)), ex);
 		}
 	}
 
-	private Set<PredicateObjectMapper> createPredicateObjectMappers(TriplesMap triplesMap, Set<PredicateObjectMap> predicateObjectMaps) {
+	private Set<PredicateObjectMapper> createPredicateObjectMappers(
+		TriplesMap triplesMap,
+		Set<PredicateObjectMap> predicateObjectMaps,
+		CreateSimpleTypedRepresentation createSimpleTypedRepresentation
+	) {
 		return predicateObjectMaps.stream()
 				.peek(m -> LOG.debug("Creating mapper for PredicateObjectMap {}", m.getResourceName()))
 				.map(m -> {
@@ -499,11 +391,11 @@ public class RmlMapper {
 
 					Set<PredicateMapper> predicateMappers =
 						m.getPredicateMaps().stream()
-							.map(p -> createPredicateMapper(p, objectMaps, triplesMap))
+							.map(p -> createPredicateMapper(p, objectMaps, triplesMap, createSimpleTypedRepresentation))
 							.collect(ImmutableCollectors.toImmutableSet());
 
 					return new PredicateObjectMapper(
-						createGraphGenerators(m.getGraphMaps()),
+						createGraphGenerators(m.getGraphMaps(), createSimpleTypedRepresentation),
 						predicateMappers
 					);
 				})
@@ -513,7 +405,8 @@ public class RmlMapper {
 	PredicateMapper createPredicateMapper(
 		PredicateMap predicateMap,
 		Set<BaseObjectMap> objectMaps,
-		TriplesMap triplesMap
+		TriplesMap triplesMap,
+		CreateSimpleTypedRepresentation createSimpleTypedRepresentation
 	) {
 		if (LOG.isDebugEnabled()) {
 			LOG.debug("Creating mapper for PredicateMap {}", log(triplesMap, predicateMap));
@@ -523,7 +416,7 @@ public class RmlMapper {
 			Stream.concat(
 
 				// object maps -> object generators
-				getObjectMapGenerators(objectMaps, triplesMap),
+				getObjectMapGenerators(objectMaps, triplesMap, createSimpleTypedRepresentation),
 
 				// ref object maps without joins -> object generators.
 				// ref object maps without joins MUST have an identical logical source.
@@ -537,12 +430,19 @@ public class RmlMapper {
 				.filter(o -> o instanceof RefObjectMap)
 				.map(o -> (RefObjectMap) o)
 				.filter(o -> !o.getJoinConditions().isEmpty())
-				.map(this::createRefObjectMapper)
+				.map(r -> createRefObjectMapper(r, createSimpleTypedRepresentation))
 				.collect(ImmutableCollectors.toImmutableSet());
+
+		Set<NestedMapper<?>> nestedMappers = objectMaps.stream()
+			.filter(o -> o instanceof NestedMapping)
+			.map(o -> (NestedMapping) o)
+			.map(n -> checkSuperLogicalSource(n, triplesMap))
+			.map(this::createNestedMapper)
+			.collect(ImmutableCollectors.toImmutableSet());
 
 		TermGenerator<IRI> predicateGenerator;
 		try{
-			predicateGenerator = termGenerators.getPredicateGenerator(predicateMap);
+			predicateGenerator = termGenerators.getPredicateGenerator(predicateMap, createSimpleTypedRepresentation);
 		} catch(RuntimeException ex) {
 			throw new RuntimeException(String.format("Exception occurred for %s", exception(triplesMap, predicateMap)), ex);
 		}
@@ -550,7 +450,8 @@ public class RmlMapper {
 		return new PredicateMapper(
 			predicateGenerator,
 			objectGenerators,
-			refObjectMappers
+			refObjectMappers,
+			nestedMappers
 		);
 	}
 
@@ -566,80 +467,109 @@ public class RmlMapper {
 			LOG.debug("Creating mapper for SubjectMap {}", log(triplesMap, subjectMap));
 		}
 
+		CreateSimpleTypedRepresentation createSimpleTypedRepresentation = getCreateSimpleTypedRepresentation(triplesMap);
+
 		TermGenerator<Resource> subjectGenerator;
 		try {
-			subjectGenerator = termGenerators.getSubjectGenerator(subjectMap);
+			subjectGenerator = termGenerators.getSubjectGenerator(subjectMap, createSimpleTypedRepresentation);
 		} catch(RuntimeException ex) {
 			throw new RuntimeException(String.format("Exception occurred for %s", exception(triplesMap, subjectMap)), ex);
 		}
 
 		return new SubjectMapper(
 			subjectGenerator,
-			createGraphGenerators(subjectMap.getGraphMaps()),
+			createGraphGenerators(subjectMap.getGraphMaps(), createSimpleTypedRepresentation),
 			subjectMap.getClasses(),
-			createPredicateObjectMappers(triplesMap, triplesMap.getPredicateObjectMaps())
+			createPredicateObjectMappers(triplesMap, triplesMap.getPredicateObjectMaps(), createSimpleTypedRepresentation)
 		);
 	}
 
-	TriplesMapperComponents<?> getTriplesMapperComponents(TriplesMap triplesMap) {
-
-		LogicalSource logicalSource = triplesMap.getLogicalSource();
-
-		if (logicalSource == null) {
-			throw new RuntimeException(String.format("No LogicalSource found for TriplesMap%n%s", exception(triplesMap, triplesMap)));
-		}
-
-		IRI referenceFormulation = logicalSource.getReferenceFormulation();
-
-		if (referenceFormulation == null) {
-			throw new RuntimeException(
-					String.format("No reference formulation found for LogicalSource %s", exception(triplesMap, logicalSource)));
-		}
-
-		if (!logicalSourceResolvers.containsKey(referenceFormulation)) {
-			throw new RuntimeException(
-					String.format("Unsupported reference formulation %s in LogicalSource %s", referenceFormulation,
-							exception(triplesMap, logicalSource)));
-		}
-
-		return new TriplesMapperComponents<>(
-			triplesMap.getResourceName(),
-			logicalSourceResolvers.get(referenceFormulation),
-			logicalSource,
-			sourceResolver
-		);
-	}
-
-	private TriplesMapper<?> createTriplesMapper(TriplesMap triplesMap) {
+	private Consumer<Model> createTriplesMapper(TriplesMap triplesMap) {
 		if (LOG.isDebugEnabled()) {
 			LOG.debug("Creating mapper for TriplesMap {}", triplesMap.getResourceName());
 		}
 
-		TriplesMapperComponents<?> components = getTriplesMapperComponents(triplesMap);
-
-		return
-		new TriplesMapper<>(
-			components,
-			createSubjectMapper(triplesMap)
+		TriplesMapper<Object> triplesMapper = new TriplesMapper<>(
+			triplesMap.getResourceName(),
+			createGetStream(triplesMap),
+			createSubjectMapper(triplesMap),
+			createNestedMappers(triplesMap)
 		);
+
+		return triplesMapper::map;
 	}
 
-	private ParentTriplesMapper<?> createParentTriplesMapper(TriplesMap triplesMap) {
+	Supplier<Stream<Item<Object>>> createGetStream(TriplesMap triplesMap) {
+		return logicalSourceAspect.createGetStream(triplesMap);
+	}
+
+	private <T> Set<NestedMapper<T>> createNestedMappers(TriplesMap triplesMap) {
+		return triplesMap.getNestedMappings().stream()
+			.map(this::<T>createNestedMapper).collect(Collectors.toSet());
+	}
+
+	private <T> NestedMapper<T> createNestedMapper(NestedMapping nestedMapping) {
+
+		TriplesMap triplesMap = nestedMapping.getTriplesMap();
+
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("Creating (context) mapper for TriplesMap {}", triplesMap.getResourceName());
+		}
+
+		LogicalSourceResolver<T> logicalSourceResolver = logicalSourceAspect.getLogicalSourceResolver(triplesMap);
+		LogicalSource logicalSource = triplesMap.getLogicalSource();
+
+		ContextTriplesMapper<T> triplesMapper = new ContextTriplesMapper<>(
+			triplesMap.getResourceName(),
+			logicalSourceResolver.createGetStreamFromContext(logicalSource.getIterator()),
+			createSubjectMapper(triplesMap),
+			createNestedMappers(triplesMap)
+		);
+
+		CreateContextEvaluate createContextEvaluate = logicalSourceResolver.getCreateContextEvaluate();
+
+		return new NestedMapper<>(triplesMapper,
+			getContextEntriesFromNestedDeclarationOrSuperLogicalSource(nestedMapping, logicalSource), createContextEvaluate);
+	}
+
+	private Set<ContextEntry> getContextEntriesFromNestedDeclarationOrSuperLogicalSource(NestedMapping nestedMapping, LogicalSource logicalSource) {
+		Set<ContextEntry> contextEntries = nestedMapping.getContextEntries();
+		if (!contextEntries.isEmpty()) {
+			return contextEntries;
+		}
+		return Optional.ofNullable(logicalSource.getMergeSuper())
+			.map(MergeSuper::getIncluding)
+			.orElse(Collections.emptySet());
+	}
+
+	private ParentTriplesMapper<?> createParentTriplesMapper(
+		TriplesMap triplesMap
+	) {
 		if (LOG.isDebugEnabled()) {
 			LOG.debug("Creating mapper for ParentTriplesMap {}", triplesMap.getResourceName());
 		}
 
-		TriplesMapperComponents<?> components = getTriplesMapperComponents(triplesMap);
-
 		try {
-			return new ParentTriplesMapper<>(termGenerators.getSubjectGenerator(triplesMap.getSubjectMap()), components);
+			CreateSimpleTypedRepresentation createSimpleTypedRepresentation = getCreateSimpleTypedRepresentation(triplesMap);
+			return new ParentTriplesMapper<>(
+				termGenerators.getSubjectGenerator(triplesMap.getSubjectMap(), createSimpleTypedRepresentation),
+				createGetStream(triplesMap),
+				createSimpleTypedRepresentation
+			);
 		}
 		catch(RuntimeException ex) {
 			throw new RuntimeException(String.format("Exception occurred for %s", exception(triplesMap, triplesMap.getSubjectMap())), ex);
 		}
 	}
 
-	private RefObjectMapper createRefObjectMapper(RefObjectMap refObjectMap) {
+	private CreateSimpleTypedRepresentation getCreateSimpleTypedRepresentation(TriplesMap triplesMap) {
+		return logicalSourceAspect.getLogicalSourceResolver(triplesMap).getCreateSimpleTypedRepresentation();
+	}
+
+	private RefObjectMapper createRefObjectMapper(
+		RefObjectMap refObjectMap,
+		CreateSimpleTypedRepresentation createSimpleTypedRepresentation
+	) {
 		Set<Join> joinConditions = refObjectMap.getJoinConditions();
 		if (LOG.isDebugEnabled()) {
 			LOG.debug("Creating mapper for RefObjectMap {}", refObjectMap.getResourceName());
@@ -647,7 +577,8 @@ public class RmlMapper {
 
 		return new RefObjectMapper(
 			createParentTriplesMapper(refObjectMap.getParentTriplesMap()),
-			joinConditions
+			joinConditions,
+			createSimpleTypedRepresentation
 		);
 	}
 
@@ -671,4 +602,5 @@ public class RmlMapper {
 
 		sourceManager.addSource(name, inputStream);
 	}
+
 }

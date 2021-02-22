@@ -167,6 +167,76 @@ public class RmlMapperTest extends MappingTest {
 	}
 
 	@Test
+	public void testOrdersNested() {
+		testMapping("RmlMapper",
+			"RmlMapper/test21/ordersNested.rml.ttl",
+			"RmlMapper/test21/ordersNested.output.ttl");
+	}
+
+	@Test
+	public void testOrdersNestedDefaultIterationAndEntryContext() {
+		testMapping("RmlMapper",
+			"RmlMapper/test22/ordersNested.rml.ttl",
+			"RmlMapper/test22/ordersNested.output.ttl");
+	}
+
+	@Test
+	public void testOrdersNestedSpecifiedIterationAndEntryContext() {
+		testMapping("RmlMapper",
+			"RmlMapper/test23/ordersNested.rml.ttl",
+			"RmlMapper/test23/ordersNested.output.ttl");
+	}
+
+	@Test
+	public void testOrdersObjectMapNested() {
+		testMapping("RmlMapper",
+			"RmlMapper/test24/ordersNested.rml.ttl",
+			"RmlMapper/test24/ordersNested.output.ttl");
+	}
+
+	@Test
+	public void testOrdersObjectMapNestedMergeSuper() {
+		testMapping("RmlMapper",
+			"RmlMapper/test25/ordersNested.rml.ttl",
+			"RmlMapper/test25/ordersNested.output.ttl");
+	}
+
+	@Test
+	public void testOrdersMergeSuperStandalone() {
+		testMapping("RmlMapper",
+			"RmlMapper/test26/ordersNested.rml.ttl",
+			"RmlMapper/test26/ordersNested.output.ttl");
+	}
+
+	@Test
+	public void testOrdersMergeSuperIncluding() {
+		testMapping("RmlMapper",
+			"RmlMapper/test27/ordersNested.rml.ttl",
+			"RmlMapper/test27/ordersNested.output.ttl");
+	}
+
+	@Test
+	public void testXmlOrdersMergeSuperIncluding() {
+		testMapping("RmlMapper",
+			"RmlMapper/test28/ordersNested.rml.ttl",
+			"RmlMapper/test28/ordersNested.output.ttl");
+	}
+
+	@Test
+	public void testXmlOrdersMergeSuperStandalone() {
+		testMapping("RmlMapper",
+			"RmlMapper/test29/ordersNested.rml.ttl",
+			"RmlMapper/test29/ordersNested.output.ttl");
+	}
+
+	@Test
+	public void testXmlOrdersMergeSuper() {
+		testMapping("RmlMapper",
+			"RmlMapper/test30/ordersNested.rml.ttl",
+			"RmlMapper/test30/ordersNested.output.ttl");
+	}
+
+	@Test
 	public void testSeparateMapsMapping() {
 		testMapping("RmlMapper",
 				"RmlMapper/test10/separateMapsMapping.rml.ttl",

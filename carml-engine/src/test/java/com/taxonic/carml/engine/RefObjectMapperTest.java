@@ -42,7 +42,7 @@ public class RefObjectMapperTest {
         Set<Join> joinConditions = ImmutableSet.of(
             new CarmlJoin("childRef", "parentRef"),
             new CarmlJoin("nonExistingChildRef", "parentRef2"));
-        refObjectMapper = new RefObjectMapper(parentTriplesMapper, joinConditions);
+        refObjectMapper = new RefObjectMapper(parentTriplesMapper, joinConditions, v -> v);
     }
 
     @Test

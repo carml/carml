@@ -19,6 +19,8 @@ public class Rdf {
 			return f.createIRI(com.taxonic.carml.vocab.Rml.NAMESPACE + suffix);
 		}
 
+		public static final IRI source = iri("source");
+		public static final IRI reference = iri("reference");
 		public static final IRI logicalSource = iri("logicalSource");
 		public static final IRI LogicalSource = iri("LogicalSource");
 	}
@@ -97,6 +99,24 @@ public class Rdf {
 		public static final IRI Execution = iri("Execution");
 		public static final IRI executes = iri("executes");
 		public static final IRI old_executes = f.createIRI(com.taxonic.carml.vocab.Fno.OLD_executes);
+	}
+
+	public static class CarmlExp {
+
+        private CarmlExp() {}
+
+		private static IRI iri(String suffix) {
+			return f.createIRI(com.taxonic.carml.vocab.CarmlExp.NAMESPACE + suffix);
+		}
+
+		public static final IRI context = iri("context");
+		public static final IRI nestedMapping = iri("nestedMapping");
+		public static final IRI subTriplesMap = iri("subTriplesMap");
+		public static final IRI as = iri("as");
+		public static final IRI mergeSuper = iri("mergeSuper");
+		public static final IRI including = iri("including");
+		public static final IRI fromLogicalSource = iri("fromLogicalSource");
+
 	}
 
 	public static class Carml {

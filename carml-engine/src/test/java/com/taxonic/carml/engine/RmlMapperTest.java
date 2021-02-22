@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.taxonic.carml.engine.source_resolver.SourceResolver;
 import com.taxonic.carml.logical_source_resolver.CsvResolver;
 import com.taxonic.carml.logical_source_resolver.JsonPathResolver;
 import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
@@ -22,8 +23,10 @@ import com.taxonic.carml.vocab.Rdf;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
-import java.util.Collections;
 import java.util.Optional;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
+
 import org.apache.commons.io.IOUtils;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.ValueFactory;
@@ -184,14 +187,13 @@ public class RmlMapperTest {
 	public void mapper_builtWithLogicalSourceResolvers_shouldUseTheCorrectResolver() throws IOException {
 		ValueFactory f = SimpleValueFactory.getInstance();
 		IRI expectedIRI = f.createIRI("http://this.iri/isUsed");
-		Iterable<String> expectedSourceData = Collections.singletonList("expected");
-		LogicalSourceResolver.SourceIterator<String> expectedSourceIterator = (a, b) -> expectedSourceData;
-		LogicalSourceResolver.ExpressionEvaluatorFactory<String> expectedFactory = a -> null;
+		Stream<Item<String>> expectedSourceData = Stream.of(new Item<>("expected", null));
+		LogicalSourceResolver.SourceStream<String> expectedSourceStream = (a, b) -> expectedSourceData;
 		LogicalSourceResolver<String> expectedResolver = new LogicalSourceResolverContainer<>(
-				expectedSourceIterator, expectedFactory);
+			expectedSourceStream);
 
 		IRI unusedIRI = f.createIRI("http://this.iri/isNotUsed");
-		LogicalSourceResolver<String> unusedResolver = new LogicalSourceResolverContainer<>(null, null);
+		LogicalSourceResolver<String> unusedResolver = new LogicalSourceResolverContainer<>(null);
 
 		SourceResolver sourceResolver = mock(SourceResolver.class);
 		String input = "foo";
@@ -207,10 +209,8 @@ public class RmlMapperTest {
 		when(logicalSourceMap.getLogicalSource())
 				.thenReturn(new CarmlLogicalSource(null, null, expectedIRI));
 
-		TriplesMapperComponents<?> components = mapper.getTriplesMapperComponents(logicalSourceMap);
-
-		Assert.assertSame(expectedFactory, components.getExpressionEvaluatorFactory());
-		Assert.assertSame(expectedSourceData, components.getIterator().get());
+		Supplier<Stream<Item<Object>>> getStream = mapper.createGetStream(logicalSourceMap);
+		Assert.assertSame(expectedSourceData, getStream.get());
 
 	}
 
@@ -218,7 +218,7 @@ public class RmlMapperTest {
 	public void mapper_usedWithUnknownReferenceFormulation_shouldThrowException() throws IOException {
 		ValueFactory f = SimpleValueFactory.getInstance();
 		IRI unusedIRI = f.createIRI("http://this.iri/isNotUsed");
-		LogicalSourceResolver<?> unusedResolver = new LogicalSourceResolverContainer<>(null, null);
+		LogicalSourceResolver<?> unusedResolver = new LogicalSourceResolverContainer<>(null);
 
 		SourceResolver sourceResolver = mock(SourceResolver.class);
 		String input = "foo";
@@ -237,31 +237,38 @@ public class RmlMapperTest {
 		when(logicalSourceMap.getLogicalSource())
 				.thenReturn(new CarmlLogicalSource(null, null, unsupportedRefFormulation));
 
-		RuntimeException exception = assertThrows(RuntimeException.class, () -> mapper.getTriplesMapperComponents(logicalSourceMap));
+		RuntimeException exception = assertThrows(RuntimeException.class, () -> mapper.createGetStream(logicalSourceMap));
 		assertThat(exception.getMessage(), startsWith("Unsupported reference formulation"));
 		assertThat(exception.getMessage(), containsString(unsupportedRefFormulation.toString()));
-
 
 	}
 
 	private static class LogicalSourceResolverContainer<T> implements LogicalSourceResolver<T> {
 
-		SourceIterator<T> sourceIterator;
-		ExpressionEvaluatorFactory<T> evaluatorFactory;
+		SourceStream<T> sourceStream;
 
-		public LogicalSourceResolverContainer(SourceIterator<T> sourceIterator, ExpressionEvaluatorFactory<T> evaluatorFactory) {
-			this.sourceIterator = sourceIterator;
-			this.evaluatorFactory = evaluatorFactory;
+		public LogicalSourceResolverContainer(SourceStream<T> sourceStream) {
+			this.sourceStream = sourceStream;
 		}
 
 		@Override
-		public SourceIterator<T> getSourceIterator() {
-			return sourceIterator;
+		public SourceStream<T> getSourceStream() {
+			return sourceStream;
 		}
 
 		@Override
-		public ExpressionEvaluatorFactory<T> getExpressionEvaluatorFactory() {
-			return evaluatorFactory;
+		public GetStreamFromContext<T> createGetStreamFromContext(String iterator) {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public CreateContextEvaluate getCreateContextEvaluate() {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public CreateSimpleTypedRepresentation getCreateSimpleTypedRepresentation() {
+			return v -> v;
 		}
 	}
 }

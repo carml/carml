@@ -3,6 +3,7 @@ package com.taxonic.carml.engine;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.engine.function.ExecuteFunction;
+import com.taxonic.carml.engine.function.Functions;
 import com.taxonic.carml.engine.template.Template;
 import com.taxonic.carml.engine.template.TemplateParser;
 import com.taxonic.carml.model.GraphMap;
@@ -17,7 +18,6 @@ import com.taxonic.carml.util.IriSafeMaker;
 import com.taxonic.carml.util.RdfUtil;
 import com.taxonic.carml.vocab.Rdf;
 import java.text.Normalizer;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -26,6 +26,8 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.eclipse.rdf4j.common.net.ParsedIRI;
 import org.eclipse.rdf4j.model.BNode;
 import org.eclipse.rdf4j.model.IRI;
@@ -45,19 +47,22 @@ class TermGeneratorCreator {
 
 	private static final Logger LOG = LoggerFactory.getLogger(TermGeneratorCreator.class);
 
-	private ValueFactory f;
-	private String baseIri;
-	private Function<String, String> makeIriSafe;
-	private TemplateParser templateParser;
-	private RmlMapper mapper;
+	private final ValueFactory f;
+	private final String baseIri;
+	private final Function<String, String> makeIriSafe;
+	private final TemplateParser templateParser;
+	private final Normalizer.Form normalizationForm;
+	private final Functions functions;
+	private Function<TriplesMap, SubjectMapper> createSubjectMapper;
 
-	static TermGeneratorCreator create(RmlMapper mapper) {
+	static TermGeneratorCreator create(Normalizer.Form normalizationForm, Functions functions, boolean iriUpperCasePercentEncoding) {
 		return new TermGeneratorCreator(
 			SimpleValueFactory.getInstance(),
 			"http://example.com/base/",
-			IriSafeMaker.create(mapper.getNormalizationForm(), mapper.getIriUpperCasePercentEncoding()),
+			IriSafeMaker.create(normalizationForm, iriUpperCasePercentEncoding),
 			TemplateParser.build(),
-			mapper
+			normalizationForm,
+			functions
 		);
 	}
 
@@ -66,73 +71,83 @@ class TermGeneratorCreator {
 		String baseIri,
 		Function<String, String> makeIriSafe,
 		TemplateParser templateParser,
-		RmlMapper mapper
+		Normalizer.Form normalizationForm,
+		Functions functions
 	) {
 		this.f = valueFactory;
 		this.baseIri = baseIri;
 		this.makeIriSafe = makeIriSafe;
 		this.templateParser = templateParser;
-		this.mapper = mapper;
+		this.normalizationForm = normalizationForm;
+		this.functions = functions;
+	}
+
+	public void setCreateSubjectMapper(Function<TriplesMap, SubjectMapper> createSubjectMapper) {
+		this.createSubjectMapper = createSubjectMapper;
 	}
 
 	@SuppressWarnings("unchecked")
-	TermGenerator<Value> getObjectGenerator(ObjectMap map) {
+	TermGenerator<Value> getObjectGenerator(ObjectMap map, UnaryOperator<Object> createSimpleTypedRepresentation) {
 		return (TermGenerator<Value>) getGenerator(
 			map,
 			ImmutableSet.of(TermType.IRI, TermType.BLANK_NODE, TermType.LITERAL),
-			ImmutableSet.of(IRI.class, Literal.class)
+			ImmutableSet.of(IRI.class, Literal.class),
+			createSimpleTypedRepresentation
 		);
 	}
 
 	@SuppressWarnings("unchecked")
-	TermGenerator<IRI> getGraphGenerator(GraphMap map) {
+	TermGenerator<IRI> getGraphGenerator(GraphMap map, UnaryOperator<Object> createSimpleTypedRepresentation) {
 		return (TermGenerator<IRI>) getGenerator(
 			map,
 			ImmutableSet.of(TermType.IRI),
-			ImmutableSet.of(IRI.class)
+			ImmutableSet.of(IRI.class),
+			createSimpleTypedRepresentation
 		);
 	}
 
 	@SuppressWarnings("unchecked")
-	TermGenerator<IRI> getPredicateGenerator(PredicateMap map) {
+	TermGenerator<IRI> getPredicateGenerator(PredicateMap map, UnaryOperator<Object> createSimpleTypedRepresentation) {
 		return (TermGenerator<IRI>) getGenerator(
 			map,
 			ImmutableSet.of(TermType.IRI),
-			ImmutableSet.of(IRI.class)
+			ImmutableSet.of(IRI.class),
+			createSimpleTypedRepresentation
 		);
 	}
 
 	@SuppressWarnings("unchecked")
-	TermGenerator<Resource> getSubjectGenerator(SubjectMap map) {
+	TermGenerator<Resource> getSubjectGenerator(SubjectMap map, UnaryOperator<Object> createSimpleTypedRepresentation) {
 		return (TermGenerator<Resource>) getGenerator(
 			map,
 			ImmutableSet.of(TermType.BLANK_NODE, TermType.IRI),
-			ImmutableSet.of(IRI.class)
+			ImmutableSet.of(IRI.class),
+			createSimpleTypedRepresentation
 		);
 	}
 
 	private TermGenerator<?> getGenerator(
 		TermMap map,
 		Set<TermType> allowedTermTypes,
-		Set<Class<? extends Value>> allowedConstantTypes
+		Set<Class<? extends Value>> allowedConstantTypes,
+		UnaryOperator<Object> createSimpleTypedRepresentation
 	) {
 		List<TermGenerator<Value>> generators =
-			Arrays.<Supplier<Optional<TermGenerator<Value>>>>asList(
+			Stream.<Supplier<Optional<TermGenerator<Value>>>>of(
 
 				// constant
 				() -> getConstantGenerator(map, allowedConstantTypes),
 
 				// reference
-				() -> getReferenceGenerator(map, allowedTermTypes),
+				() -> getReferenceGenerator(map, allowedTermTypes, createSimpleTypedRepresentation),
 
 				// template
-				() -> getTemplateGenerator(map, allowedTermTypes),
+				() -> getTemplateGenerator(map, allowedTermTypes, createSimpleTypedRepresentation),
 
 				// functionValue
 				() -> getFunctionValueGenerator(map, allowedTermTypes)
 
 			)
-			.stream()
 			.map(Supplier::get)
 			.filter(Optional::isPresent)
 			.map(Optional::get)
@@ -170,7 +185,8 @@ class TermGeneratorCreator {
 
 	private Optional<TermGenerator<Value>> getTemplateGenerator(
 		TermMap map,
-		Set<TermType> allowedTermTypes
+		Set<TermType> allowedTermTypes,
+		UnaryOperator<Object> createSimpleTypedRepresentation
 	) {
 
 		String templateStr = map.getTemplate();
@@ -193,7 +209,8 @@ class TermGeneratorCreator {
 				template,
 				template.getExpressions(),
 				transformValue,
-				this::createNaturalRdfLexicalForm
+				this::createNaturalRdfLexicalForm,
+				createSimpleTypedRepresentation
 			);
 
 		return Optional.of(getGenerator(
@@ -206,7 +223,8 @@ class TermGeneratorCreator {
 
 	private Optional<TermGenerator<Value>> getReferenceGenerator(
 		TermMap map,
-		Set<TermType> allowedTermTypes
+		Set<TermType> allowedTermTypes,
+		UnaryOperator<Object> createSimpleTypedRepresentation
 	) {
 
 		String reference = map.getReference();
@@ -219,7 +237,7 @@ class TermGeneratorCreator {
 
 		return Optional.of(getGenerator(
 			map,
-			getValue,
+			getValue.andThen(v -> v.map(createSimpleTypedRepresentation)),
 			allowedTermTypes,
 			determineTermType(map)
 		));
@@ -230,13 +248,12 @@ class TermGeneratorCreator {
 		 Set<TermType> allowedTermTypes
 	) {
 
-		// TODO: make nicer use of optional
 		TriplesMap executionMap = map.getFunctionValue();
 		if (executionMap == null) {
 			return Optional.empty();
 		}
 
-		SubjectMapper executionMapper = mapper.createSubjectMapper(executionMap);
+		SubjectMapper executionMapper = createSubjectMapper.apply(executionMap);
 
 		// when 'executionMap' is evaluated, the generated triples
 		// describe a fno:Execution instance, which we can then execute.
@@ -271,7 +288,7 @@ class TermGeneratorCreator {
 	private Object mapExecution(Resource execution, Model model, UnaryOperator<Object> returnValueAdapter) {
 		IRI functionIri = getFunctionIRI(execution, model);
 		ExecuteFunction function =
-				mapper.getFunction(functionIri)
+				functions.getFunction(functionIri)
 					.orElseThrow(() -> new RuntimeException(
 						"no function registered for function IRI [" + functionIri + "]"));
 
@@ -298,7 +315,7 @@ class TermGeneratorCreator {
 		}
 
 		// perform unicode normalization
-		iriValue = Normalizer.normalize(iriValue, mapper.getNormalizationForm());
+		iriValue = Normalizer.normalize(iriValue, normalizationForm);
 
 		return ParsedIRI.create(iriValue).toString();
 	}
@@ -339,11 +356,12 @@ class TermGeneratorCreator {
 		if (result instanceof Collection<?>) {
 			return ((Collection<?>) result).stream()
 			.map(i -> generateTerm.apply(createNaturalRdfLexicalForm(i)))
+			// TODO should filter out null values here to be consistent with the 'else' case below
 			.collect(ImmutableCollectors.toImmutableList());
 		} else {
 			Value v = generateTerm.apply(createNaturalRdfLexicalForm(result));
 			if (v == null) {
-				return ImmutableList.<Value>of();
+				return ImmutableList.of();
 			} else {
 				return ImmutableList.of(v);
 			}
@@ -364,9 +382,9 @@ class TermGeneratorCreator {
 			evaluateExpression -> {
 				Optional<Object> referenceValue = getValue.apply(evaluateExpression);
 				if (LOG.isTraceEnabled()) {
-					LOG.trace("with result: {}", referenceValue.map(r -> r).orElse("null"));
+					LOG.trace("with result: {}", referenceValue.orElse("null"));
 				}
-				return referenceValue.map( r ->
+				return referenceValue.map(r ->
 						unpackEvaluatedExpression(r, generateTerm))
 						.orElse(ImmutableList.of());
 			};
@@ -433,7 +451,6 @@ class TermGeneratorCreator {
 	}
 
 	private BNode generateBNodeTerm(String lexicalForm) {
-		// TODO consider hash of 'lexicalForm' instead
 		String id = createValidBNodeId(lexicalForm);
 		return f.createBNode(id);
 	}
