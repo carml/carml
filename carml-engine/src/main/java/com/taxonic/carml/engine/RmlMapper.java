@@ -139,7 +139,7 @@ public class RmlMapper {
 		/**
 		 * Builder option for backwards compatibility. RmlMapper used to percent encode
 		 * IRIs with lower case hex numbers. Now, the default is upper case hex numbers.
-		 * 
+		 *
 		 * @param iriUpperCasePercentEncoding true for upper case, false for lower case
 		 * @return {@link Builder}
 		 */
@@ -330,9 +330,13 @@ public class RmlMapper {
 		return functions.getFunction(iri);
 	}
 
-	public Model map(Set<TriplesMap> mapping) {
+    public Model map(Set<TriplesMap> mapping) {
+        Model model = new LinkedHashModel();
+        return map(mapping, model);
+    }
+
+	public Model map(Set<TriplesMap> mapping, Model model) {
 		validateMapping(mapping);
-		Model model = new LinkedHashModel();
 
 		Set<TriplesMap> functionValueTriplesMaps = getTermMaps(mapping)
 				.filter(t -> t.getFunctionValue() != null)
