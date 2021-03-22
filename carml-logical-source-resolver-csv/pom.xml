@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>com.taxonic.carml</groupId>
 		<artifactId>carml</artifactId>
-		<version>0.3.1</version>
+		<version>0.3.2</version>
 	</parent>
 
 	<artifactId>carml-logical-source-resolver-csv</artifactId>

@@ -68,8 +68,16 @@ public class CarmlMapper implements Mapper, MappingCache {
 	// so no unbound type parameters. no interface, unless a list or so.
 	// TODO *could* be an interface, but then an implementation type should be registered.
 	@Override
+	@SuppressWarnings("unchecked")
 	public <T> T map(Model model, Resource resource, Set<Type> types) {
 
+		// before mapping, first check the cache for an existing mapping
+		// NOTE: cache includes pre-mapped/registered enum instances
+		// such as <#Male> -> Gender.Male for property gender : Gender
+		Object cached = getCachedMapping(resource, types);
+		if (cached != null) {
+			return (T) cached;
+		}
 
 		if (types.size() > 1) {
 			if (!types.stream().allMatch(t -> ((Class<?>)t).isInterface())) {
@@ -104,7 +112,7 @@ public class CarmlMapper implements Mapper, MappingCache {
 				(t, m) -> implementationMethods.get(t).contains(m);
 
 
-		return (T) Proxy.newProxyInstance(CarmlMapper.class.getClassLoader(), types.stream().toArray(Class<?>[]::new),
+		T result = (T) Proxy.newProxyInstance(CarmlMapper.class.getClassLoader(), types.stream().toArray(Class<?>[]::new),
 				(proxy, method, args) -> {
 
 					MultiDelegateCall multiDelegateCall = method.getAnnotation(MultiDelegateCall.class);
@@ -132,6 +140,9 @@ public class CarmlMapper implements Mapper, MappingCache {
 								.orElse(null);
 					}
 				});
+		addCachedMapping(resource, types, result);
+
+		return result;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -240,6 +251,8 @@ public class CarmlMapper implements Mapper, MappingCache {
 			throw new RuntimeException(String.format("Error processing %s%n  failed to instantiate [%s]"
 					, formatResourceForLog(model, resource, namespaces, true), c.getCanonicalName()), e);
 		}
+
+		addCachedMapping(resource, ImmutableSet.of(type), instance);
 
 		propertyHandlers.forEach(h ->
 			h.handle(model, resource, instance)
