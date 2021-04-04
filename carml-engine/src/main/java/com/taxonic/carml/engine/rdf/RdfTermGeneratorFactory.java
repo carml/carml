@@ -133,6 +133,65 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
     return generators.get(0);
   }
 
+  private TermGenerator<Value> getGenerator(TermMap termMap, Function<ExpressionEvaluation, Optional<Object>> getValue,
+      Set<TermType> allowedTermTypes, TermType termType) {
+
+    Function<Function<String, ? extends Value>, TermGenerator<Value>> createGenerator =
+        generateTerm -> evaluateExpression -> {
+          Optional<Object> referenceValue = getValue.apply(evaluateExpression);
+          if (LOG.isTraceEnabled()) {
+            LOG.trace("with result: {}", referenceValue.orElse("null"));
+          }
+
+          return referenceValue.map(value -> unpackEvaluatedExpression(value, generateTerm))
+              .orElse(ImmutableList.of());
+        };
+
+    if (!allowedTermTypes.contains(termType)) {
+      throw new TermGeneratorFactoryException(
+          String.format("encountered disallowed term type [%s]%nin TermMap:%n%s%n%n allowed TermTypes: %s", termType,
+              termMap, allowedTermTypes));
+    }
+
+    switch (termType) {
+
+      case IRI:
+        return createGenerator.apply(this::generateIriTerm);
+
+      case BLANK_NODE:
+        return createGenerator.apply(this::generateBNodeTerm);
+
+      case LITERAL:
+
+        // term map is assumed to be an object map if it has term type literal
+        ObjectMap objectMap = (ObjectMap) termMap;
+
+        String languageTag = objectMap.getLanguage();
+
+        if (languageTag != null) {
+          if (!Literals.isValidLanguageTag(languageTag)) {
+            throw new TermGeneratorFactoryException(
+                String.format("Invalid lang tag '%s' used in object map %n%s", languageTag, objectMap));
+          }
+          return createGenerator.apply(lexicalForm -> valueFactory.createLiteral(lexicalForm, languageTag));
+        }
+
+        IRI datatype = objectMap.getDatatype();
+        if (datatype != null) {
+          return createGenerator.apply(lexicalForm -> valueFactory.createLiteral(lexicalForm, datatype));
+        }
+
+        // f.createLiteral(label, datatype) // TODO infer datatype, see
+        // https://www.w3.org/TR/r2rml/#generated-rdf-term - f.e. xsd:integer for Integer instances
+        return createGenerator.apply(valueFactory::createLiteral);
+
+      default:
+        throw new TermGeneratorFactoryException(
+            String.format("unknown term type [%s]%nin TermMap:%s", termType, termMap));
+
+    }
+  }
+
   public Optional<TermGenerator<? extends Value>> getConstantGenerator(TermMap map,
       Set<Class<? extends Value>> allowedConstantTypes) {
     Value constant = map.getConstant();
@@ -198,7 +257,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
 
     // TODO check that executionMap has an identical logical source?
 
-    // TODO: RefObjectMappers?? pass to TermgeneratorFactory?
+    // TODO: RefObjectMappers?? pass to TermGeneratorFactory?
     RdfTriplesMapper<?> executionTriplesMapper = RdfTriplesMapper.of(executionMap, Set.of(), Set.of(),
         a -> b -> Optional.empty(), RdfMappingContext.builder()
             .valueFactorySupplier(() -> valueFactory)
@@ -238,7 +297,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
     Optional<Resource> optionalExecution = Models.subject(executionStatements);
 
     return optionalExecution.map(execution -> {
-      IRI functionIri = getFunctionIRI(execution, executionStatements);
+      IRI functionIri = getFunctionIri(execution, executionStatements);
       ExecuteFunction function = mapperOptions.getFunctions()
           .getFunction(functionIri)
           .orElseThrow(
@@ -274,7 +333,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
         .toString();
   }
 
-  private IRI getFunctionIRI(Resource execution, Model model) {
+  private IRI getFunctionIri(Resource execution, Model model) {
     return Models.objectIRI(model.filter(execution, Rdf.Fno.executes, null))
         .orElseGet(() -> Models.objectIRI(model.filter(execution, Rdf.Fno.old_executes, null))
             .orElseThrow(
@@ -311,65 +370,6 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
     Value value = generateTerm.apply(createNaturalRdfLexicalForm(result));
 
     return value == null ? ImmutableList.of() : ImmutableList.of(value);
-  }
-
-  private TermGenerator<Value> getGenerator(TermMap termMap, Function<ExpressionEvaluation, Optional<Object>> getValue,
-      Set<TermType> allowedTermTypes, TermType termType) {
-
-    Function<Function<String, ? extends Value>, TermGenerator<Value>> createGenerator =
-        generateTerm -> evaluateExpression -> {
-          Optional<Object> referenceValue = getValue.apply(evaluateExpression);
-          if (LOG.isTraceEnabled()) {
-            LOG.trace("with result: {}", referenceValue.orElse("null"));
-          }
-
-          return referenceValue.map(value -> unpackEvaluatedExpression(value, generateTerm))
-              .orElse(ImmutableList.of());
-        };
-
-    if (!allowedTermTypes.contains(termType)) {
-      throw new TermGeneratorFactoryException(
-          String.format("encountered disallowed term type [%s]%nin TermMap:%n%s%n%n allowed TermTypes: %s", termType,
-              termMap, allowedTermTypes));
-    }
-
-    switch (termType) {
-
-      case IRI:
-        return createGenerator.apply(this::generateIriTerm);
-
-      case BLANK_NODE:
-        return createGenerator.apply(this::generateBNodeTerm);
-
-      case LITERAL:
-
-        // term map is assumed to be an object map if it has term type literal
-        ObjectMap objectMap = (ObjectMap) termMap;
-
-        String languageTag = objectMap.getLanguage();
-
-        if (languageTag != null) {
-          if (!Literals.isValidLanguageTag(languageTag)) {
-            throw new TermGeneratorFactoryException(
-                String.format("Invalid lang tag '%s' used in object map %n%s", languageTag, objectMap));
-          }
-          return createGenerator.apply(lexicalForm -> valueFactory.createLiteral(lexicalForm, languageTag));
-        }
-
-        IRI datatype = objectMap.getDatatype();
-        if (datatype != null) {
-          return createGenerator.apply(lexicalForm -> valueFactory.createLiteral(lexicalForm, datatype));
-        }
-
-        // f.createLiteral(label, datatype) // TODO infer datatype, see
-        // https://www.w3.org/TR/r2rml/#generated-rdf-term - f.e. xsd:integer for Integer instances
-        return createGenerator.apply(valueFactory::createLiteral);
-
-      default:
-        throw new TermGeneratorFactoryException(
-            String.format("unknown term type [%s]%nin TermMap:%s", termType, termMap));
-
-    }
   }
 
   private IRI generateIriTerm(String lexicalForm) {

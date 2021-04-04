@@ -104,11 +104,6 @@ public class RdfRefObjectMapper {
   }
 
   public Mono<Void> signalCompletion(RdfTriplesMapper<?> triplesMapper) {
-
-    // TODO fixme completion robustness.
-    // System.out.println(String.format("%s %s %s", triplesMapper, triplesMapper.getTriplesMap()
-    // .getResourceName(), this));
-
     TriplesMap providedTriplesMap = triplesMapper.getTriplesMap();
     boolean isParentTriplesMapper = providedTriplesMap.equals(refObjectMap.getParentTriplesMap());
 
@@ -123,9 +118,12 @@ public class RdfRefObjectMapper {
       this.parentTriplesMapper = triplesMapper;
     }
 
-    // if (triplesMapperStatus.containsKey(triplesMapper)) {
-    // throw new RuntimeException("What the fuck?");
-    // }
+    if (triplesMapperStatus.containsKey(triplesMapper)) {
+      throw new IllegalStateException(
+          String.format("TriplesMapper %s for triplesMap %s signaled completion multiple times.", triplesMapper,
+              triplesMapper.getTriplesMap()
+                  .getResourceName()));
+    }
 
     triplesMapperStatus.put(triplesMapper, true);
 
@@ -147,9 +145,9 @@ public class RdfRefObjectMapper {
         // .runOn(Schedulers.parallel())
         .flatMap(this::resolveJoin)
         // .sequential()
-        .doFinally(signalType -> parentTriplesMapper.signalCompletion(this, signalType)
+        .doFinally(signalType -> parentTriplesMapper.notifyCompletion(this, signalType)
             .subscribeOn(Schedulers.boundedElastic())
-            .subscribe()) // TODO test
+            .subscribe())
         .publish();
 
     return joinedStatementFlux;
@@ -195,9 +193,7 @@ public class RdfRefObjectMapper {
       return parentResults.get(0);
     }
 
-    Set<Resource> parentResources = Sets.intersectAll(parentResults.toArray(Set[]::new));
-
-    return parentResources;
+    return Sets.intersectAll(parentResults.toArray(Set[]::new));
   }
 
   private Set<Resource> checkChildSideJoinCondition(ChildSideJoinCondition childSideJoinCondition,

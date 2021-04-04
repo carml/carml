@@ -15,100 +15,118 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Statement;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@RequiredArgsConstructor(staticName = "of")
 @Getter
 public class RdfLogicalSourcePipeline<I> implements LogicalSourcePipeline<I, Statement> {
+
+  @NonNull
   private final LogicalSource logicalSource;
 
+  @NonNull
   private final LogicalSourceResolver<I> logicalSourceResolver;
 
+  @NonNull
   private final RdfMappingContext rdfMappingContext;
 
   private final Set<RdfTriplesMapper<I>> triplesMappers;
 
-  // TODO: Builder?
   public static <I> RdfLogicalSourcePipeline<I> of(@NonNull LogicalSource logicalSource, List<TriplesMap> triplesMaps,
-      Map<TriplesMap, Set<RdfRefObjectMapper>> tmToRoMappers, Map<RdfRefObjectMapper, TriplesMap> roMapperToParentTm,
-      LogicalSourceResolver<I> logicalSourceResolver, RdfMappingContext rdfMappingContext,
+      Map<TriplesMap, Set<RdfRefObjectMapper>> tmToRoMappers,
+      Map<RdfRefObjectMapper, TriplesMap> incomingRoMapperToParentTm, LogicalSourceResolver<I> logicalSourceResolver,
+      RdfMappingContext rdfMappingContext,
       ParentSideJoinConditionStoreProvider<Resource> parentSideJoinConditionStoreProvider) {
 
     Set<RdfTriplesMapper<I>> triplesMappers = triplesMaps.stream()
-        .map(triplesMap -> {
-          Set<RdfRefObjectMapper> roMappers = tmToRoMappers.get(triplesMap);
-          Set<RdfRefObjectMapper> incomingRoMappers = roMapperToParentTm.entrySet()
-              .stream()
-              .filter(entry -> entry.getValue()
-                  .equals(triplesMap))
-              .map(Map.Entry::getKey)
-              .collect(ImmutableSet.toImmutableSet());
-
-          return RdfTriplesMapper.of(triplesMap, roMappers, incomingRoMappers,
-              logicalSourceResolver.getExpressionEvaluationFactory(), rdfMappingContext,
-              parentSideJoinConditionStoreProvider);
-        })
+        .map(triplesMap -> constructTriplesMapper(triplesMap, tmToRoMappers, incomingRoMapperToParentTm,
+            logicalSourceResolver, rdfMappingContext, parentSideJoinConditionStoreProvider))
         .collect(ImmutableSet.toImmutableSet());
 
-    return of(logicalSource, triplesMappers, logicalSourceResolver, rdfMappingContext);
+    return of(logicalSource, logicalSourceResolver, rdfMappingContext, triplesMappers);
   }
 
-  public static <I> RdfLogicalSourcePipeline<I> of(LogicalSource logicalSource, Set<RdfTriplesMapper<I>> triplesMappers,
-      LogicalSourceResolver<I> logicalSourceResolver, RdfMappingContext rdfMappingContext) {
-    return new RdfLogicalSourcePipeline<>(logicalSource, logicalSourceResolver, rdfMappingContext, triplesMappers);
+  private static <I> RdfTriplesMapper<I> constructTriplesMapper(TriplesMap triplesMap,
+      Map<TriplesMap, Set<RdfRefObjectMapper>> tmToRoMappers,
+      Map<RdfRefObjectMapper, TriplesMap> incomingRoMapperToParentTm, LogicalSourceResolver<I> logicalSourceResolver,
+      RdfMappingContext rdfMappingContext,
+      ParentSideJoinConditionStoreProvider<Resource> parentSideJoinConditionStoreProvider) {
+    Set<RdfRefObjectMapper> roMappers = tmToRoMappers.get(triplesMap);
+    Set<RdfRefObjectMapper> incomingRoMappers = incomingRoMapperToParentTm.entrySet()
+        .stream()
+        .filter(entry -> entry.getValue()
+            .equals(triplesMap))
+        .map(Map.Entry::getKey)
+        .collect(ImmutableSet.toImmutableSet());
+
+    return RdfTriplesMapper.of(triplesMap, roMappers, incomingRoMappers,
+        logicalSourceResolver.getExpressionEvaluationFactory(), rdfMappingContext,
+        parentSideJoinConditionStoreProvider);
   }
 
   public Map<TriplesMap, Flux<Statement>> run() {
-    return run(null);
+    return run(Set.of());
+  }
+
+  public Map<TriplesMap, Flux<Statement>> run(Set<TriplesMap> triplesMapFilter) {
+    return run(null, triplesMapFilter);
   }
 
   public Map<TriplesMap, Flux<Statement>> run(InputStream source) {
-    // TODO: why does execution sometimes hang when ParallelFlux used?
-    // ParallelFlux<I> itemFlux = logicalSourceResolver.getSourceFlux()
+    return run(source, Set.of());
+  }
+
+  public Map<TriplesMap, Flux<Statement>> run(InputStream source, Set<TriplesMap> triplesMapFilter) {
+    boolean filterEmpty = triplesMapFilter == null || triplesMapFilter.isEmpty();
+    int nrOfTriplesMappers = filterEmpty ? triplesMappers.size() : triplesMapFilter.size();
+
     Flux<I> itemFlux = logicalSourceResolver.getSourceFlux()
         .apply(source, logicalSource)
         .subscribeOn(Schedulers.boundedElastic())
         .publish()
-        .autoConnect(triplesMappers.size());
-    // .parallel()
-    // .runOn(Schedulers.parallel());
+        .autoConnect(nrOfTriplesMappers);
 
     Map<TriplesMap, Flux<Statement>> mappingResults = new HashMap<>();
 
-    for (RdfTriplesMapper<I> triplesMapper : triplesMappers) {
-      Flux<Statement> joinlessTriplesFlux = itemFlux.flatMap(triplesMapper::map)
-          .doOnComplete(() -> triplesMapper.streamConnectedRefObjectMappers()
-              .forEach(rdfRefObjectMapper -> rdfRefObjectMapper.signalCompletion(triplesMapper)));
-      // .sequential()
-
-      // Signal done to connected RefObjectMappers
-      // Flux<Void> tmCompletion = Flux.fromStream(triplesMapper.streamConnectedRefObjectMappers())
-      // .map(rdfRefObjectMapper -> rdfRefObjectMapper.signalCompletion(triplesMapper))
-      // .flatMap(voidMono -> voidMono);
-      // joinlessTriplesFlux.thenEmpty(tmCompletion)
-      // .subscribeOn(Schedulers.boundedElastic())
-      // .subscribe();
-
-      Flux<Statement> joinedTriplesFlux = Flux.merge(triplesMapper.streamRefObjectMappers()
-          .map(RdfRefObjectMapper::resolveJoins)
-          .collect(ImmutableList.toImmutableList()));
-
-      Flux<Statement> mappedTriplesFlux = Flux.merge(joinlessTriplesFlux, joinedTriplesFlux)
-          .onErrorResume(error -> Flux.error(new TriplesMapperException(
-              String.format("Something went wrong for TriplesMap %s", exception(triplesMapper.getTriplesMap())),
-              error)));
-
-      mappingResults.put(triplesMapper.getTriplesMap(), mappedTriplesFlux);
-    }
+    triplesMappers.stream()
+        .filter(triplesMapper -> filterEmpty || triplesMapFilter.contains(triplesMapper.getTriplesMap()))
+        .forEach(triplesMapper -> processTriplesMapper(itemFlux, triplesMapper, mappingResults));
 
     return mappingResults;
+  }
+
+  private void processTriplesMapper(Flux<I> itemFlux, RdfTriplesMapper<I> triplesMapper,
+      Map<TriplesMap, Flux<Statement>> mappingResults) {
+    Flux<Statement> joinlessTriplesFlux = itemFlux.flatMap(triplesMapper::map)
+        .publish()
+        .autoConnect(3); // defer publishing until join completion subscribers ready
+
+    // Prepare completion signals for connected RefObjectMappers
+    Flux<Void> tmCompletion = Flux.fromStream(triplesMapper.streamConnectedRefObjectMappers())
+        .map(rdfRefObjectMapper -> rdfRefObjectMapper.signalCompletion(triplesMapper))
+        .flatMap(voidMono -> voidMono);
+
+    // Emit completion signals when joinlessTriplesFlux completes
+    joinlessTriplesFlux.thenEmpty(tmCompletion)
+        .subscribeOn(Schedulers.boundedElastic())
+        .subscribe();
+
+    // resolve joins
+    Flux<Statement> joinedTriplesFlux = Flux.merge(triplesMapper.streamRefObjectMappers()
+        .map(RdfRefObjectMapper::resolveJoins)
+        .collect(ImmutableList.toImmutableList()));
+
+    Flux<Statement> mappedTriplesFlux = Flux.merge(joinlessTriplesFlux, joinedTriplesFlux)
+        .onErrorResume(error -> Flux.error(new TriplesMapperException(
+            String.format("Something went wrong for TriplesMap %s", exception(triplesMapper.getTriplesMap())), error)));
+
+    mappingResults.put(triplesMapper.getTriplesMap(), mappedTriplesFlux);
   }
 
 }

@@ -1,6 +1,7 @@
 package com.taxonic.carml.engine.rdf;
 
 import static com.taxonic.carml.util.LogUtil.exception;
+import static com.taxonic.carml.util.LogUtil.log;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -44,10 +45,12 @@ public class RdfTriplesMapper<I> implements TriplesMapper<I, Statement> {
   static UnaryOperator<Resource> defaultGraphModifier = graph -> graph.equals(Rdf.Rr.defaultGraph) ? null : graph;
 
   static Consumer<Statement> logAddStatements = statement -> {
-    if (LOG.isTraceEnabled()) {
-      LOG.trace("Adding statement {} {} {} {} to result set", statement.getSubject(), statement.getPredicate(),
-          statement.getObject(), statement.getContext());
-    }
+    // TODO enable when intellij lombok bug is fixed.
+    // if (LOG.isTraceEnabled()) {
+    // LOG.trace("Adding statement {} {} {} {} to result set", statement.getSubject(),
+    // statement.getPredicate(),
+    // statement.getObject(), statement.getContext());
+    // }
   };
 
   @NonNull
@@ -117,12 +120,7 @@ public class RdfTriplesMapper<I> implements TriplesMapper<I, Statement> {
   }
 
   Stream<RdfRefObjectMapper> streamConnectedRefObjectMappers() {
-    List<RdfRefObjectMapper> pomRoms = streamRefObjectMappers().collect(Collectors.toList());
-
-    List<RdfRefObjectMapper> roms = Stream.concat(streamRefObjectMappers(), incomingRefObjectMappers.stream())
-        .collect(Collectors.toList());
-    return roms.stream();
-    // return Stream.concat(streamRefObjectMappers(), incomingRefObjectMappers.stream());
+    return Stream.concat(streamRefObjectMappers(), incomingRefObjectMappers.stream());
   }
 
   @Override
@@ -182,9 +180,9 @@ public class RdfTriplesMapper<I> implements TriplesMapper<I, Statement> {
 
     return Mono.fromRunnable(() -> {
       ParentSideJoinKey parentSideJoinKey = ParentSideJoinKey.of(parentReference, parentValue);
-      Set<Resource> parentSubjects = new HashSet<>();
-      parentSubjects.addAll(subjects);
+      Set<Resource> parentSubjects = new HashSet<>(subjects);
       if (parentSideJoinConditions.containsKey(parentSideJoinKey)) {
+        // merge incoming subjects with already cached subjects for key
         parentSubjects.addAll(parentSideJoinConditions.get(parentSideJoinKey));
       }
       parentSideJoinConditions.put(ParentSideJoinKey.of(parentReference, parentValue), parentSubjects);
@@ -193,12 +191,20 @@ public class RdfTriplesMapper<I> implements TriplesMapper<I, Statement> {
         .thenReturn(Mono.empty());
   }
 
-  public Mono<Void> signalCompletion(RdfRefObjectMapper refObjectMapper, SignalType signalType) {
+  public Mono<Void> notifyCompletion(RdfRefObjectMapper refObjectMapper, SignalType signalType) {
+    if (!signalType.equals(SignalType.ON_COMPLETE)) {
+      throw new TriplesMapperException(String.format(
+          "Provided refObjectMap(per) for %n%s%n notifying completion with unsupported signal `%s` TriplesMap(per) %n%s",
+          exception(refObjectMapper.getRefObjectMap()), signalType, log(triplesMap)));
+    }
+
     if (!incomingRefObjectMapperStatus.containsKey(refObjectMapper)) {
       throw new TriplesMapperException(
-          String.format("Provided refObjectMap(per) is not known to be connected to" + " TriplesMap(per).%n%s",
-              exception(refObjectMapper.getRefObjectMap())));
+          String.format("Provided refObjectMap(per) for%n%s%n is not known to be connected to TriplesMap(per)%n%s",
+              exception(refObjectMapper.getRefObjectMap()), log(triplesMap)));
     }
+
+    incomingRefObjectMapperStatus.put(refObjectMapper, true);
 
     boolean incomingRefObjectMappersDone = incomingRefObjectMapperStatus.values()
         .stream()

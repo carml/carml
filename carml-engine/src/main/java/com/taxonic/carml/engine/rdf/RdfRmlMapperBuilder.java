@@ -158,7 +158,7 @@ public class RdfRmlMapperBuilder {
         .build();
 
     Map<TriplesMap, Set<RdfRefObjectMapper>> tmToRoMappers = new HashMap<>();
-    Map<RdfRefObjectMapper, TriplesMap> roMapperToParentTm = new HashMap<>();
+    Map<RdfRefObjectMapper, TriplesMap> incomingRoMapperToParentTm = new HashMap<>();
 
     for (TriplesMap triplesMap : mappableTriplesMaps) {
       Set<RdfRefObjectMapper> roMappers = new HashSet<>();
@@ -174,7 +174,7 @@ public class RdfRmlMapperBuilder {
             RdfRefObjectMapper roMapper =
                 RdfRefObjectMapper.of(rom, triplesMap, rdfMappingContext, childSideJoinCacheProvider);
             roMappers.add(roMapper);
-            roMapperToParentTm.put(roMapper, rom.getParentTriplesMap());
+            incomingRoMapperToParentTm.put(roMapper, rom.getParentTriplesMap());
           });
       tmToRoMappers.put(triplesMap, roMappers);
     }
@@ -185,7 +185,7 @@ public class RdfRmlMapperBuilder {
     Set<RdfLogicalSourcePipeline<?>> logicalSourcePipelines = groupedTriplesMaps.entrySet()
         .stream()
         .map(triplesMapGroup -> buildRdfLogicalSourcePipeline(triplesMapGroup.getKey(), triplesMapGroup.getValue(),
-            tmToRoMappers, roMapperToParentTm, rdfMappingContext))
+            tmToRoMappers, incomingRoMapperToParentTm, rdfMappingContext))
         .collect(Collectors.toSet());
 
     Map<TriplesMap, LogicalSourcePipeline<?, Statement>> logicalSourcePipelinePool = new HashMap<>();
@@ -203,7 +203,7 @@ public class RdfRmlMapperBuilder {
 
   private RdfLogicalSourcePipeline<?> buildRdfLogicalSourcePipeline(LogicalSource logicalSource,
       List<TriplesMap> triplesMaps, Map<TriplesMap, Set<RdfRefObjectMapper>> tmToRoMappers,
-      Map<RdfRefObjectMapper, TriplesMap> roMapperToParentTm, RdfMappingContext rdfMappingContext) {
+      Map<RdfRefObjectMapper, TriplesMap> incomingRoMapperToParentTm, RdfMappingContext rdfMappingContext) {
 
     Supplier<LogicalSourceResolver<?>> logicalSourceResolverSupplier =
         logicalSourceResolverSuppliers.get(logicalSource.getReferenceFormulation());
@@ -214,7 +214,7 @@ public class RdfRmlMapperBuilder {
               logicalSource.getReferenceFormulation()));
     }
 
-    return RdfLogicalSourcePipeline.of(logicalSource, triplesMaps, tmToRoMappers, roMapperToParentTm,
+    return RdfLogicalSourcePipeline.of(logicalSource, triplesMaps, tmToRoMappers, incomingRoMapperToParentTm,
         logicalSourceResolverSupplier.get(), rdfMappingContext, parentSideJoinConditionStoreProvider);
   }
 

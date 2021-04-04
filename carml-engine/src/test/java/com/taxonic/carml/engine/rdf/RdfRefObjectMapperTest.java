@@ -296,7 +296,7 @@ class RdfRefObjectMapperTest {
 
     when(parentRdfTriplesMapper.getParentSideJoinConditions()).thenReturn(new ConcurrentHashMap<>());
 
-    when(parentRdfTriplesMapper.signalCompletion(rdfRefObjectMapper, SignalType.ON_COMPLETE)).thenReturn(completion);
+    when(parentRdfTriplesMapper.notifyCompletion(rdfRefObjectMapper, SignalType.ON_COMPLETE)).thenReturn(completion);
 
     Flux<Statement> joinedStatementFlux = rdfRefObjectMapper.resolveJoins();
 
@@ -396,7 +396,7 @@ class RdfRefObjectMapperTest {
 
     when(parentRdfTriplesMapper.getParentSideJoinConditions()).thenReturn(parentSideJoinConditions);
 
-    when(parentRdfTriplesMapper.signalCompletion(rdfRefObjectMapper, SignalType.ON_COMPLETE)).thenReturn(completion);
+    when(parentRdfTriplesMapper.notifyCompletion(rdfRefObjectMapper, SignalType.ON_COMPLETE)).thenReturn(completion);
 
     Flux<Statement> joinedStatementFlux = rdfRefObjectMapper.resolveJoins();
 

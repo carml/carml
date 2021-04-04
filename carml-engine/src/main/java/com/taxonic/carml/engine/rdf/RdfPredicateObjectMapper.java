@@ -117,6 +117,7 @@ public class RdfPredicateObjectMapper {
       LOG.debug("Checking if logicalSource for parent triples map {} is equal", refObjectMap.getParentTriplesMap()
           .getResourceName());
     }
+
     LogicalSource parentLogicalSource = refObjectMap.getParentTriplesMap()
         .getLogicalSource();
 
@@ -134,6 +135,7 @@ public class RdfPredicateObjectMapper {
           log(refObjectMap.getParentTriplesMap(), parentLogicalSource), log(triplesMap, logicalSource),
           exception(triplesMap, refObjectMap)));
     }
+
     return refObjectMap;
   }
 

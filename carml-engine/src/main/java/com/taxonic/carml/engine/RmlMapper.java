@@ -46,6 +46,10 @@ public class RmlMapper<T> {
     return map(ImmutableMap.of(DEFAULT_STREAM_NAME, inputStream));
   }
 
+  public Flux<T> map(Object object) {
+    return null;
+  }
+
   public Flux<T> map(@NonNull InputStream inputStream, Set<TriplesMap> triplesMapFilter) {
     return map(ImmutableMap.of(DEFAULT_STREAM_NAME, inputStream), triplesMapFilter);
   }
@@ -72,6 +76,11 @@ public class RmlMapper<T> {
 
   public Map<TriplesMap, Flux<T>> mapPerTriplesMap(@NonNull InputStream inputStream, Set<TriplesMap> triplesMapFilter) {
     return mapPerTriplesMap(ImmutableMap.of(DEFAULT_STREAM_NAME, inputStream), triplesMapFilter);
+  }
+
+  public Map<TriplesMap, Flux<T>> mapFluxPerTriplesMap(Map<String, Flux<?>> namedFluxes) {
+    // TODO
+    return Map.of();
   }
 
   public Map<TriplesMap, Flux<T>> mapPerTriplesMap(Map<String, InputStream> namedInputStreams) {
@@ -106,14 +115,14 @@ public class RmlMapper<T> {
 
         pipelineGroup.forEach(pipeline -> {
           try {
-            pipelineResults.add(pipeline.run(ReactorUtil.inputStreamFrom(dataSource)));
+            pipelineResults.add(pipeline.run(ReactorUtil.inputStreamFrom(dataSource), triplesMapFilter));
           } catch (IOException ioException) {
             throw new RmlMapperException(
                 String.format("Could not create input stream for logical source pipeline with logical source %s",
                     LogUtil.exception(pipeline.getLogicalSource())));
           }
         });
-      }, () -> pipelineGroup.forEach(pipeline -> pipelineResults.add(pipeline.run())));
+      }, () -> pipelineGroup.forEach(pipeline -> pipelineResults.add(pipeline.run(triplesMapFilter))));
 
       overallResults.add(pipelineResults);
     }
