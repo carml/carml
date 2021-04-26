@@ -34,7 +34,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Statement;
@@ -165,10 +164,8 @@ class RdfTriplesMapperTest {
 
     // Then
     assertThat(rdfTriplesMapper, is(not(nullValue())));
-    assertThat(rdfTriplesMapper.streamRefObjectMappers()
-        .collect(Collectors.toList()), is(empty()));
-    assertThat(rdfTriplesMapper.streamConnectedRefObjectMappers()
-        .collect(Collectors.toList()), is(empty()));
+    assertThat(rdfTriplesMapper.getRefObjectMappers(), is(empty()));
+    assertThat(rdfTriplesMapper.getConnectedRefObjectMappers(), is(empty()));
   }
 
   @Test
@@ -350,21 +347,21 @@ class RdfTriplesMapperTest {
         incomingRefObjectMappers, expressionEvaluatorFactory, rdfMappingContext, parentSideJoinConditionStoreProvider);
 
     // When
-    Flux<Statement> statements1 = rdfTriplesMapper.map("foo");
-    Flux<Statement> statements2 = rdfTriplesMapper.map("foo");
-    Flux<Statement> statements3 = rdfTriplesMapper.map("foo");
+    rdfTriplesMapper.map("foo");
 
     // Then
-    StepVerifier.create(statements1)
-        .verifyComplete();
     assertThat(parentSideJoinConditions, hasEntry(ParentSideJoinKey.of("bar1", "baz"), Set.of(subject1)));
 
-    StepVerifier.create(statements2)
-        .verifyComplete();
+    // When
+    rdfTriplesMapper.map("foo");
+
+    // Then
     assertThat(parentSideJoinConditions, hasEntry(ParentSideJoinKey.of("bar1", "baz"), Set.of(subject1, subject2)));
 
-    StepVerifier.create(statements3)
-        .verifyComplete();
+    // When
+    rdfTriplesMapper.map("foo");
+
+    // Then
     assertThat(parentSideJoinConditions,
         hasEntry(ParentSideJoinKey.of("bar1", "baz"), Set.of(subject1, subject2, subject3)));
   }
@@ -475,7 +472,7 @@ class RdfTriplesMapperTest {
         () -> rdfTriplesMapper.notifyCompletion(rdfRefObjectMapper1, SignalType.ON_SUBSCRIBE));
 
     // Then
-    assertThat(exception.getMessage(), startsWith("Provided refObjectMap(per) for"));
+    assertThat(exception.getMessage(), startsWith("Provided refObjectMapper for"));
   }
 
 }

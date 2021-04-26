@@ -11,8 +11,8 @@ public interface LogicalSourcePipeline<I, V> {
 
   LogicalSource getLogicalSource();
 
-  Map<TriplesMap, Flux<V>> run(Set<TriplesMap> triplesMapFilter);
+  Map<TriplesMapper<I, V>, Flux<V>> run(Set<TriplesMap> triplesMapFilter);
 
-  Map<TriplesMap, Flux<V>> run(InputStream inputStream, Set<TriplesMap> triplesMapFilter);
+  Map<TriplesMapper<I, V>, Flux<V>> run(InputStream inputStream, Set<TriplesMap> triplesMapFilter);
 
 }

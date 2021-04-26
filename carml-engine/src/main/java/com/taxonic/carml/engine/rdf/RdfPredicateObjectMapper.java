@@ -3,7 +3,6 @@ package com.taxonic.carml.engine.rdf;
 import static com.taxonic.carml.util.LogUtil.exception;
 import static com.taxonic.carml.util.LogUtil.log;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.engine.ExpressionEvaluation;
 import com.taxonic.carml.engine.TermGenerator;
@@ -147,7 +146,7 @@ public class RdfPredicateObjectMapper {
     return objectMaps.stream()
         .filter(objectMap -> objectMap instanceof RefObjectMap)
         .peek(objectMap -> LOG.debug("Creating mapper for RefObjectMap {}", objectMap.getResourceName()))
-        .map(objectMap -> (RefObjectMap) objectMap)
+        .map(RefObjectMap.class::cast)
         .filter(refObjMap -> refObjMap.getJoinConditions()
             .isEmpty())
         // ref object maps without joins MUST have an identical logical source.
@@ -194,11 +193,10 @@ public class RdfPredicateObjectMapper {
           objects, graphs, RdfTriplesMapper.defaultGraphModifier, valueFactory, RdfTriplesMapper.logAddStatements));
     }
 
-    Flux<Statement> refObjectMapperPromises = Flux.merge(rdfRefObjectMappers.stream()
-        .map(rdfRefObjectMapper -> rdfRefObjectMapper.map(subjects, predicates, graphs, expressionEvaluation))
-        .collect(ImmutableList.toImmutableList()));
+    rdfRefObjectMappers
+        .forEach(rdfRefObjectMapper -> rdfRefObjectMapper.map(subjects, predicates, graphs, expressionEvaluation));
 
-    return Flux.merge(cartesianProductStatements, refObjectMapperPromises);
+    return cartesianProductStatements;
   }
 
 }

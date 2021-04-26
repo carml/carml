@@ -3,18 +3,19 @@ package com.taxonic.carml.engine.rdf;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.engine.ExpressionEvaluation;
+import com.taxonic.carml.engine.RefObjectMapper;
+import com.taxonic.carml.engine.TriplesMapper;
 import com.taxonic.carml.engine.reactivedev.join.ChildSideJoin;
 import com.taxonic.carml.engine.reactivedev.join.ChildSideJoinCondition;
 import com.taxonic.carml.engine.reactivedev.join.ChildSideJoinStoreProvider;
 import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinKey;
 import com.taxonic.carml.model.RefObjectMap;
 import com.taxonic.carml.model.TriplesMap;
-import com.taxonic.carml.util.LogUtil;
 import com.taxonic.carml.util.ModelUtil;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Phaser;
 import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -25,15 +26,16 @@ import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.ValueFactory;
+import org.jetbrains.annotations.NotNull;
 import reactor.core.publisher.ConnectableFlux;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 @Slf4j
-public class RdfRefObjectMapper {
+public class RdfRefObjectMapper implements RefObjectMapper<Statement> {
 
-  @Getter(AccessLevel.PACKAGE)
+  @Getter(AccessLevel.PUBLIC)
   @NonNull
   private final RefObjectMap refObjectMap;
 
@@ -42,14 +44,8 @@ public class RdfRefObjectMapper {
 
   private final Set<ChildSideJoin<Resource, IRI>> childSideJoins;
 
-  private final Map<RdfTriplesMapper<?>, Boolean> triplesMapperStatus;
-
   @NonNull
   private final ValueFactory valueFactory;
-
-  private RdfTriplesMapper<?> parentTriplesMapper;
-
-  private ConnectableFlux<Statement> joinedStatementFlux;
 
   public static RdfRefObjectMapper of(@NonNull RefObjectMap refObjectMap, @NonNull TriplesMap triplesMap,
       @NonNull RdfMappingContext rdfMappingContext,
@@ -63,21 +59,20 @@ public class RdfRefObjectMapper {
             .get());
   }
 
-  private RdfRefObjectMapper(RefObjectMap refObjectMap, TriplesMap triplesMap,
-      Set<ChildSideJoin<Resource, IRI>> childSideJoins, ValueFactory valueFactory) {
+  private RdfRefObjectMapper(@NotNull RefObjectMap refObjectMap, @NotNull TriplesMap triplesMap,
+      Set<ChildSideJoin<Resource, IRI>> childSideJoins, @NotNull ValueFactory valueFactory) {
     this.refObjectMap = refObjectMap;
     this.triplesMap = triplesMap;
     this.childSideJoins = childSideJoins;
-    this.triplesMapperStatus = new HashMap<>();
     this.valueFactory = valueFactory;
   }
 
-  public Mono<Statement> map(Set<Resource> subjects, Set<IRI> predicates, Set<Resource> graphs,
+  public void map(Set<Resource> subjects, Set<IRI> predicates, Set<Resource> graphs,
       ExpressionEvaluation expressionEvaluation) {
-    return prepareChildSideJoins(subjects, predicates, graphs, expressionEvaluation).flatMap(v -> v);
+    prepareChildSideJoins(subjects, predicates, graphs, expressionEvaluation);
   }
 
-  private Mono<Mono<Statement>> prepareChildSideJoins(Set<Resource> subjects, Set<IRI> predicates, Set<Resource> graphs,
+  private void prepareChildSideJoins(Set<Resource> subjects, Set<IRI> predicates, Set<Resource> graphs,
       ExpressionEvaluation expressionEvaluation) {
     Set<ChildSideJoinCondition> childSideJoinConditions = refObjectMap.getJoinConditions()
         .stream()
@@ -98,71 +93,47 @@ public class RdfRefObjectMapper {
         .childSideJoinConditions(childSideJoinConditions)
         .build();
 
-    return Mono.fromCallable(() -> childSideJoins.add(childSideJoin))
-        .subscribeOn(Schedulers.boundedElastic())
-        .thenReturn(Mono.empty()); // We're only interested in completion of this mono.
+    childSideJoins.add(childSideJoin);
   }
 
-  public Mono<Void> signalCompletion(RdfTriplesMapper<?> triplesMapper) {
-    TriplesMap providedTriplesMap = triplesMapper.getTriplesMap();
-    boolean isParentTriplesMapper = providedTriplesMap.equals(refObjectMap.getParentTriplesMap());
+  @Override
+  public Flux<Statement> resolveJoins(Flux<Statement> mainFlux, TriplesMapper<?, Statement> parentTriplesMapper,
+      Flux<Statement> parentFlux) {
 
-    if (!providedTriplesMap.equals(triplesMap) && !isParentTriplesMapper) {
-      throw new IllegalStateException(String.format(
-          "RefObjectMapper only supports triples mappers on the triples map that references it, and the parent "
-              + "triples map it references. The provided triplesMap is not supported: %s",
-          LogUtil.exception(providedTriplesMap)));
-    }
-
-    if (isParentTriplesMapper) {
-      this.parentTriplesMapper = triplesMapper;
-    }
-
-    if (triplesMapperStatus.containsKey(triplesMapper)) {
-      throw new IllegalStateException(
-          String.format("TriplesMapper %s for triplesMap %s signaled completion multiple times.", triplesMapper,
-              triplesMapper.getTriplesMap()
-                  .getResourceName()));
-    }
-
-    triplesMapperStatus.put(triplesMapper, true);
-
-    boolean ready = triplesMapperStatus.size() == 2 && triplesMapperStatus.values()
-        .stream()
-        .allMatch(Boolean::valueOf);
-
-    if (ready) {
-      joinedStatementFlux.connect();
-    }
-
-    return Mono.empty();
-  }
-
-  public ConnectableFlux<Statement> resolveJoins() {
-    joinedStatementFlux = Flux.using(() -> childSideJoins, Flux::fromIterable, Set::clear)
+    ConnectableFlux<Statement> joinedStatementFlux2 = Flux.using(() -> childSideJoins, Flux::fromIterable, Set::clear)
         .subscribeOn(Schedulers.boundedElastic())
-        // .parallel()
-        // .runOn(Schedulers.parallel())
-        .flatMap(this::resolveJoin)
-        // .sequential()
+        .flatMap(childSideJoin -> resolveJoin(parentTriplesMapper, childSideJoin))
         .doFinally(signalType -> parentTriplesMapper.notifyCompletion(this, signalType)
             .subscribeOn(Schedulers.boundedElastic())
             .subscribe())
         .publish();
 
-    return joinedStatementFlux;
-    // if both complete,
-    // iterate over ChildSideJoins in ChildSideJoinCache
-    // for each childSideJoin
-    // check all childSideJoinConditions:
-    // get corresponding parentSideJoinCondition using parentTriplesMapID and parentExpression
-    // check if all childSideJoinConditions have a match in parentSideJoinCondition:
-    // for all childSideJoinConditions
-    // if one of the childValues matches with one of the parentValues then the condition matches
+    Flux<Statement> barrier = setTriplesMapperCompletionBarrier(joinedStatementFlux2, mainFlux, parentFlux);
+
+    return Flux.merge(joinedStatementFlux2, barrier);
   }
 
-  private Flux<Statement> resolveJoin(ChildSideJoin<Resource, IRI> childSideJoin) {
-    Map<ParentSideJoinKey, Set<Resource>> parentJoinConditions = parentTriplesMapper.getParentSideJoinConditions();
+  private Flux<Statement> setTriplesMapperCompletionBarrier(ConnectableFlux<Statement> joinedStatementFlux,
+      Flux<Statement> mainFlux, Flux<Statement> parentFlux) {
+    return Mono.fromRunnable(() -> {
+      Phaser phaser = new Phaser(1);
+      mainFlux.doOnSubscribe(subscription -> phaser.register())
+          .doFinally(signalType -> phaser.arriveAndDeregister())
+          .subscribe();
+      parentFlux.doOnSubscribe(subscription -> phaser.register())
+          .doFinally(signalType -> phaser.arriveAndDeregister())
+          .subscribe();
+
+      phaser.arriveAndAwaitAdvance();
+      joinedStatementFlux.connect();
+    })
+        .subscribeOn(Schedulers.boundedElastic())
+        .thenMany(Flux.empty());
+  }
+
+  private Flux<Statement> resolveJoin(TriplesMapper<?, Statement> parentTriplesMapper2,
+      ChildSideJoin<Resource, IRI> childSideJoin) {
+    Map<ParentSideJoinKey, Set<Resource>> parentJoinConditions = parentTriplesMapper2.getParentSideJoinConditions();
 
     Set<Resource> objects = checkJoinAndGetObjects(childSideJoin, parentJoinConditions);
 
@@ -213,5 +184,4 @@ public class RdfRefObjectMapper {
     return parentJoinConditions.containsKey(parentSideKey) ? parentJoinConditions.get(parentSideKey)
         : ImmutableSet.of();
   }
-
 }

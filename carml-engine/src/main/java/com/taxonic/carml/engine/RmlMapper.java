@@ -1,14 +1,17 @@
 package com.taxonic.carml.engine;
 
+import static com.taxonic.carml.util.LogUtil.exception;
+
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.model.LogicalSource;
 import com.taxonic.carml.model.NameableStream;
 import com.taxonic.carml.model.TriplesMap;
-import com.taxonic.carml.util.LogUtil;
 import com.taxonic.carml.util.ReactorUtil;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +37,8 @@ public class RmlMapper<T> {
 
   private final Map<TriplesMap, LogicalSourcePipeline<?, T>> logicalSourcePipelinePool;
 
+  private final Map<? extends RefObjectMapper<T>, TriplesMap> refObjectMapperToParentTriplesMap;
+
   public Flux<T> map() {
     return map(Map.of());
   }
@@ -47,6 +52,7 @@ public class RmlMapper<T> {
   }
 
   public Flux<T> map(Object object) {
+    // TODO
     return null;
   }
 
@@ -60,6 +66,11 @@ public class RmlMapper<T> {
 
   public Flux<T> map(Map<String, InputStream> namedInputStreams, Set<TriplesMap> triplesMapFilter) {
     return Flux.merge(mapPerTriplesMap(namedInputStreams, triplesMapFilter).values());
+  }
+
+  public Map<TriplesMap, Flux<T>> mapFluxPerTriplesMap(Map<String, Flux<?>> namedFluxes) {
+    // TODO
+    return Map.of();
   }
 
   public Map<TriplesMap, Flux<T>> mapPerTriplesMap() {
@@ -78,11 +89,6 @@ public class RmlMapper<T> {
     return mapPerTriplesMap(ImmutableMap.of(DEFAULT_STREAM_NAME, inputStream), triplesMapFilter);
   }
 
-  public Map<TriplesMap, Flux<T>> mapFluxPerTriplesMap(Map<String, Flux<?>> namedFluxes) {
-    // TODO
-    return Map.of();
-  }
-
   public Map<TriplesMap, Flux<T>> mapPerTriplesMap(Map<String, InputStream> namedInputStreams) {
     return mapPerTriplesMap(namedInputStreams, Set.of());
   }
@@ -95,7 +101,7 @@ public class RmlMapper<T> {
         .collect(Collectors.groupingBy(logicalSourcePipeline -> logicalSourcePipeline.getLogicalSource()
             .getSource()));
 
-    Set<Set<Map<TriplesMap, Flux<T>>>> overallResults = new HashSet<>();
+    Set<Set<Map<? extends TriplesMapper<?, T>, Flux<T>>>> intermediaryResults = new HashSet<>();
 
     for (Map.Entry<Object, List<LogicalSourcePipeline<?, T>>> groupedPipelineEntry : groupedLogicalSourcePipelines
         .entrySet()) {
@@ -106,7 +112,7 @@ public class RmlMapper<T> {
 
       Optional<Flux<DataBuffer>> resolvedSource = resolveSource(source, inCaseOfException, namedInputStreams);
 
-      Set<Map<TriplesMap, Flux<T>>> pipelineResults = new HashSet<>();
+      Set<Map<? extends TriplesMapper<?, T>, Flux<T>>> intermediaryPipelineResults = new HashSet<>();
 
       resolvedSource.ifPresentOrElse(dataBufferFlux -> {
         // Defer publishing until all pipelines are connected
@@ -115,23 +121,72 @@ public class RmlMapper<T> {
 
         pipelineGroup.forEach(pipeline -> {
           try {
-            pipelineResults.add(pipeline.run(ReactorUtil.inputStreamFrom(dataSource), triplesMapFilter));
+            intermediaryPipelineResults
+                .add(pipeline.run(ReactorUtil.inputStreamFrom(dataSource), triplesMapFilter));
           } catch (IOException ioException) {
             throw new RmlMapperException(
                 String.format("Could not create input stream for logical source pipeline with logical source %s",
-                    LogUtil.exception(pipeline.getLogicalSource())));
+                    exception(pipeline.getLogicalSource())));
           }
         });
-      }, () -> pipelineGroup.forEach(pipeline -> pipelineResults.add(pipeline.run(triplesMapFilter))));
+      }, () -> pipelineGroup
+          .forEach(pipeline -> intermediaryPipelineResults.add(pipeline.run(triplesMapFilter))));
 
-      overallResults.add(pipelineResults);
+      intermediaryResults.add(intermediaryPipelineResults);
     }
 
-    return overallResults.stream()
+    Map<TriplesMapper<?, T>, Flux<T>> intermediaryFluxes = intermediaryResults.stream()
         .flatMap(Set::stream)
         .flatMap(map -> map.entrySet()
             .stream())
         .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
+
+    Map<RefObjectMapper<T>, TriplesMapper<?, T>> roToParentTmMap =
+        mapRefObjectMapperToParentTriplesMapper(intermediaryFluxes.keySet());
+
+    Map<TriplesMapper<?, T>, Flux<T>> triplesMapperJoins = resolveJoins(roToParentTmMap, intermediaryFluxes);
+
+    return intermediaryFluxes.entrySet()
+        .stream()
+        .collect(ImmutableMap.toImmutableMap(entry -> entry.getKey()
+            .getTriplesMap(), entry -> Flux.merge(entry.getValue(), triplesMapperJoins.get(entry.getKey()))));
+  }
+
+  private Map<TriplesMapper<?, T>, Flux<T>> resolveJoins(Map<RefObjectMapper<T>, TriplesMapper<?, T>> roToParentTmMap,
+      Map<TriplesMapper<?, T>, Flux<T>> intermediaryFluxes) {
+    return intermediaryFluxes.entrySet()
+        .stream()
+        .collect(ImmutableMap.toImmutableMap(Map.Entry::getKey,
+            entry -> resolveTriplesMapperJoins(entry.getKey(), entry.getValue(), roToParentTmMap, intermediaryFluxes)));
+  }
+
+  private Flux<T> resolveTriplesMapperJoins(TriplesMapper<?, T> triplesMapper, Flux<T> tmFlux,
+      Map<RefObjectMapper<T>, TriplesMapper<?, T>> roToParentTmMap,
+      Map<TriplesMapper<?, T>, Flux<T>> intermediaryFluxes) {
+
+    return Flux.merge(triplesMapper.getRefObjectMappers()
+        .stream()
+        .map(refObjectMapper -> refObjectMapper.resolveJoins(tmFlux, roToParentTmMap.get(refObjectMapper),
+            intermediaryFluxes.get(roToParentTmMap.get(refObjectMapper))))
+        .collect(ImmutableList.toImmutableList()));
+  }
+
+  private Map<RefObjectMapper<T>, TriplesMapper<?, T>> mapRefObjectMapperToParentTriplesMapper(
+      Set<TriplesMapper<?, T>> triplesMappers) {
+    Map<RefObjectMapper<T>, TriplesMapper<?, T>> roToParentTm = new HashMap<>();
+    refObjectMapperToParentTriplesMap.entrySet()
+        .forEach(refObjectMapperTriplesMapEntry -> {
+          RefObjectMapper<T> refObjectMapper = refObjectMapperTriplesMapEntry.getKey();
+          TriplesMap parentTriplesMap = refObjectMapperTriplesMapEntry.getValue();
+
+          triplesMappers.stream()
+              .filter(triplesMapper -> triplesMapper.getTriplesMap()
+                  .equals(parentTriplesMap))
+              .findFirst()
+              .ifPresent(triplesMapper -> roToParentTm.put(refObjectMapper, triplesMapper));
+        });
+
+    return roToParentTm;
   }
 
   private Set<LogicalSourcePipeline<?, T>> filterLogicalSourcePipeline(Set<TriplesMap> triplesMapFilter) {
@@ -154,7 +209,7 @@ public class RmlMapper<T> {
 
       if (!namedInputStreams.containsKey(name)) {
         throw new RmlMapperException(String.format("Could not resolve input stream with name %s for logical source %s",
-            stream.getStreamName(), LogUtil.exception(inCaseOfException)));
+            stream.getStreamName(), exception(inCaseOfException)));
       }
 
       return Optional.of(ReactorUtil.fluxInputStream(namedInputStreams.get(name)));

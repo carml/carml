@@ -47,11 +47,10 @@ class RmlMapperTest {
     Set<TriplesMap> mapping = RmlMappingLoader.build()
         .load(RDFFormat.TURTLE, RmlMapperTest.class.getResourceAsStream("cars.rml.ttl"));
 
-    RmlMapper<Statement> mapper = new RdfRmlMapperBuilder()
-        // .classPathResolver("/engine/reactivedev")
-        .setLogicalSourceResolver(Rdf.Ql.Csv, CsvResolver::getInstance)
-        .triplesMaps(mapping)
-        .build();
+    RmlMapper<Statement> mapper =
+        new RdfRmlMapperBuilder().setLogicalSourceResolver(Rdf.Ql.Csv, CsvResolver::getInstance)
+            .triplesMaps(mapping)
+            .build();
 
     Model model = ModelResult.from(mapper.map(RmlMapperTest.class.getResourceAsStream("cars.csv")));
     System.out.println(ModelSerializer.serializeAsRdf(model, RDFFormat.TURTLE));
@@ -63,11 +62,10 @@ class RmlMapperTest {
     Set<TriplesMap> mapping = RmlMappingLoader.build()
         .load(RDFFormat.TURTLE, RmlMapperTest.class.getResourceAsStream("cars.join.rml.ttl"));
 
-    RmlMapper<Statement> mapper = new RdfRmlMapperBuilder()
-        // .classPathResolver("/engine/reactivedev")
-        .setLogicalSourceResolver(Rdf.Ql.Csv, CsvResolver::getInstance)
-        .triplesMaps(mapping)
-        .build();
+    RmlMapper<Statement> mapper =
+        new RdfRmlMapperBuilder().setLogicalSourceResolver(Rdf.Ql.Csv, CsvResolver::getInstance)
+            .triplesMaps(mapping)
+            .build();
 
     Model model = ModelResult.from(mapper.map(RmlMapperTest.class.getResourceAsStream("cars.csv")));
     System.out.println(ModelSerializer.serializeAsRdf(model, RDFFormat.TURTLE));
@@ -79,11 +77,10 @@ class RmlMapperTest {
     Set<TriplesMap> mapping = RmlMappingLoader.build()
         .load(RDFFormat.TURTLE, RmlMapperTest.class.getResourceAsStream("openbare-lichamen.rml.ttl"));
 
-    RmlMapper<Statement> mapper = new RdfRmlMapperBuilder()
-        // .classPathResolver("/engine/reactivedev")
-        .setLogicalSourceResolver(Rdf.Ql.Csv, CsvResolver::getInstance)
-        .triplesMaps(mapping)
-        .build();
+    RmlMapper<Statement> mapper =
+        new RdfRmlMapperBuilder().setLogicalSourceResolver(Rdf.Ql.Csv, CsvResolver::getInstance)
+            .triplesMaps(mapping)
+            .build();
 
     Model model = ModelResult.from(mapper.map(RmlMapperTest.class.getResourceAsStream("openbare-lichamen.csv")));
 

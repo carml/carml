@@ -44,7 +44,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 @ExtendWith(MockitoExtension.class)
@@ -398,7 +397,6 @@ class RdfPredicateObjectMapperTest {
 
     rdfRefObjectMappers = Set.of(rdfRefObjectMapper1);
     when(rdfRefObjectMapper1.getRefObjectMap()).thenReturn(refObjectMap1);
-    when(rdfRefObjectMapper1.map(any(), any(), any(), any())).thenReturn(Mono.empty());
 
     RdfMappingContext rdfMappingContext = RdfMappingContext.builder()
         .valueFactorySupplier(() -> VALUE_FACTORY)

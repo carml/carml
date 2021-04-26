@@ -3,9 +3,9 @@ package com.taxonic.carml.engine.rdf;
 import static com.taxonic.carml.util.LogUtil.exception;
 import static com.taxonic.carml.util.LogUtil.log;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.engine.ExpressionEvaluation;
+import com.taxonic.carml.engine.RefObjectMapper;
 import com.taxonic.carml.engine.TermGenerator;
 import com.taxonic.carml.engine.TriplesMapper;
 import com.taxonic.carml.engine.TriplesMapperException;
@@ -17,7 +17,6 @@ import com.taxonic.carml.model.Join;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.vocab.Rdf;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
@@ -45,12 +44,12 @@ public class RdfTriplesMapper<I> implements TriplesMapper<I, Statement> {
   static UnaryOperator<Resource> defaultGraphModifier = graph -> graph.equals(Rdf.Rr.defaultGraph) ? null : graph;
 
   static Consumer<Statement> logAddStatements = statement -> {
-    // TODO enable when intellij lombok bug is fixed.
-    // if (LOG.isTraceEnabled()) {
-    // LOG.trace("Adding statement {} {} {} {} to result set", statement.getSubject(),
-    // statement.getPredicate(),
-    // statement.getObject(), statement.getContext());
-    // }
+    // TODO enable when intellij lombok bug is fixed (version 2021.1.1).
+//     if (LOG.isTraceEnabled()) {
+//     LOG.trace("Adding statement {} {} {} {} to result set", statement.getSubject(),
+//     statement.getPredicate(),
+//     statement.getObject(), statement.getContext());
+//     }
   };
 
   @NonNull
@@ -72,9 +71,10 @@ public class RdfTriplesMapper<I> implements TriplesMapper<I, Statement> {
   private final RdfMappingContext rdfMappingContext;
 
   @NonNull
+  @Getter(AccessLevel.PUBLIC)
   private final ConcurrentMap<ParentSideJoinKey, Set<Resource>> parentSideJoinConditions;
 
-  private final Map<RdfRefObjectMapper, Boolean> incomingRefObjectMapperStatus;
+  private final Map<RefObjectMapper<Statement>, Boolean> incomingRefObjectMapperStatus;
 
   public static <I> RdfTriplesMapper<I> of(@NonNull TriplesMap triplesMap, Set<RdfRefObjectMapper> refObjectMappers,
       Set<RdfRefObjectMapper> incomingRefObjectMappers,
@@ -89,7 +89,7 @@ public class RdfTriplesMapper<I> implements TriplesMapper<I, Statement> {
     Set<RdfPredicateObjectMapper> predicateObjectMappers =
         createPredicateObjectMappers(triplesMap, rdfMappingContext, refObjectMappers);
 
-    Map<RdfRefObjectMapper, Boolean> connectedRefObjectMapperStatus = incomingRefObjectMappers.stream()
+    Map<RefObjectMapper<Statement>, Boolean> connectedRefObjectMapperStatus = incomingRefObjectMappers.stream()
         .collect(Collectors.toMap(rom -> rom, rom -> false));
 
     return new RdfTriplesMapper<>(triplesMap, RdfSubjectMapper.of(triplesMap, rdfMappingContext),
@@ -97,7 +97,7 @@ public class RdfTriplesMapper<I> implements TriplesMapper<I, Statement> {
         parentSideJoinConditionStoreProvider.create(triplesMap.getId()), connectedRefObjectMapperStatus);
   }
 
-  public static Set<TermGenerator<Resource>> createGraphGenerators(Set<GraphMap> graphMaps,
+  static Set<TermGenerator<Resource>> createGraphGenerators(Set<GraphMap> graphMaps,
       RdfTermGeneratorFactory termGeneratorFactory) {
     return graphMaps.stream()
         .map(termGeneratorFactory::getGraphGenerator)
@@ -113,14 +113,17 @@ public class RdfTriplesMapper<I> implements TriplesMapper<I, Statement> {
         .collect(ImmutableSet.toImmutableSet());
   }
 
-  Stream<RdfRefObjectMapper> streamRefObjectMappers() {
+  @Override
+  public Set<RdfRefObjectMapper> getRefObjectMappers() {
     return predicateObjectMappers.stream()
         .flatMap(pom -> pom.getRdfRefObjectMappers()
-            .stream());
+            .stream())
+        .collect(ImmutableSet.toImmutableSet());
   }
 
-  Stream<RdfRefObjectMapper> streamConnectedRefObjectMappers() {
-    return Stream.concat(streamRefObjectMappers(), incomingRefObjectMappers.stream());
+  Set<RdfRefObjectMapper> getConnectedRefObjectMappers() {
+    return Stream.concat(getRefObjectMappers().stream(), incomingRefObjectMappers.stream())
+        .collect(ImmutableSet.toImmutableSet());
   }
 
   @Override
@@ -141,60 +144,46 @@ public class RdfTriplesMapper<I> implements TriplesMapper<I, Statement> {
     }
 
     Set<Resource> subjectGraphs = subjectMapperResult.getGraphs();
-
     Flux<Statement> subjectStatements = subjectMapperResult.getTypeStatements();
-
     Flux<Statement> pomStatements = Flux.fromIterable(predicateObjectMappers)
         .flatMap(predicateObjectMapper -> predicateObjectMapper.map(expressionEvaluation, subjects, subjectGraphs));
 
-    Flux<Statement> joinConditions = cacheParentSideJoinConditions(expressionEvaluation, subjects);
+    cacheParentSideJoinConditions(expressionEvaluation, subjects);
 
-    return Flux.merge(subjectStatements, pomStatements, joinConditions);
+    return Flux.merge(subjectStatements, pomStatements);
   }
 
-  private Flux<Statement> cacheParentSideJoinConditions(ExpressionEvaluation expressionEvaluation,
-      Set<Resource> subjects) {
-    List<Mono<Statement>> promises = incomingRefObjectMappers.stream()
-        .flatMap(incomingRefObjectMapper -> incomingRefObjectMapper.getRefObjectMap()
-            .getJoinConditions()
-            .stream()
-            .flatMap(join -> processJoinCondition(join, expressionEvaluation, subjects)))
-        .collect(ImmutableList.toImmutableList());
-
-    return Flux.merge(promises);
+  private void cacheParentSideJoinConditions(ExpressionEvaluation expressionEvaluation, Set<Resource> subjects) {
+    incomingRefObjectMappers.forEach(incomingRefObjectMapper -> incomingRefObjectMapper.getRefObjectMap()
+        .getJoinConditions()
+        .forEach(join -> processJoinCondition(join, expressionEvaluation, subjects)));
   }
 
-  private Stream<Mono<Statement>> processJoinCondition(Join join, ExpressionEvaluation expressionEvaluation,
-      Set<Resource> subjects) {
+  private void processJoinCondition(Join join, ExpressionEvaluation expressionEvaluation, Set<Resource> subjects) {
     String parentReference = join.getParentReference();
-    return expressionEvaluation.apply(parentReference)
-        .map(referenceResult -> ExpressionEvaluation.extractValues(referenceResult)
-            .stream()
-            .map(
-                parentValue -> processJoinConditionParentValue(subjects, parentReference, parentValue).flatMap(v -> v)))
-        .orElse(Stream.empty());
+
+    expressionEvaluation.apply(parentReference)
+        .ifPresent(referenceResult -> ExpressionEvaluation.extractValues(referenceResult)
+            .forEach(parentValue -> processJoinConditionParentValue(subjects, parentReference, parentValue)));
   }
 
-  private Mono<Mono<Statement>> processJoinConditionParentValue(Set<Resource> subjects, String parentReference,
-      String parentValue) {
+  private void processJoinConditionParentValue(Set<Resource> subjects, String parentReference, String parentValue) {
+    ParentSideJoinKey parentSideJoinKey = ParentSideJoinKey.of(parentReference, parentValue);
+    Set<Resource> parentSubjects = new HashSet<>(subjects);
 
-    return Mono.fromRunnable(() -> {
-      ParentSideJoinKey parentSideJoinKey = ParentSideJoinKey.of(parentReference, parentValue);
-      Set<Resource> parentSubjects = new HashSet<>(subjects);
-      if (parentSideJoinConditions.containsKey(parentSideJoinKey)) {
-        // merge incoming subjects with already cached subjects for key
-        parentSubjects.addAll(parentSideJoinConditions.get(parentSideJoinKey));
-      }
-      parentSideJoinConditions.put(ParentSideJoinKey.of(parentReference, parentValue), parentSubjects);
-    })
-        .subscribeOn(Schedulers.boundedElastic())
-        .thenReturn(Mono.empty());
+    if (parentSideJoinConditions.containsKey(parentSideJoinKey)) {
+      // merge incoming subjects with already cached subjects for key
+      parentSubjects.addAll(parentSideJoinConditions.get(parentSideJoinKey));
+    }
+
+    parentSideJoinConditions.put(ParentSideJoinKey.of(parentReference, parentValue), parentSubjects);
   }
 
-  public Mono<Void> notifyCompletion(RdfRefObjectMapper refObjectMapper, SignalType signalType) {
+  @Override
+  public Mono<Void> notifyCompletion(RefObjectMapper<Statement> refObjectMapper, SignalType signalType) {
     if (!signalType.equals(SignalType.ON_COMPLETE)) {
       throw new TriplesMapperException(String.format(
-          "Provided refObjectMap(per) for %n%s%n notifying completion with unsupported signal `%s` TriplesMap(per) %n%s",
+          "Provided refObjectMapper for %n%s%n notifying completion with unsupported signal `%s` TriplesMapper %n%s",
           exception(refObjectMapper.getRefObjectMap()), signalType, log(triplesMap)));
     }
 

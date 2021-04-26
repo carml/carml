@@ -7,10 +7,8 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -25,6 +23,7 @@ import com.taxonic.carml.model.Join;
 import com.taxonic.carml.model.RefObjectMap;
 import com.taxonic.carml.model.TriplesMap;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -38,13 +37,14 @@ import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
-import org.eclipse.rdf4j.model.util.ModelBuilder;
+import org.eclipse.rdf4j.model.vocabulary.RDF;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -63,9 +63,6 @@ class RdfRefObjectMapperTest {
   private RefObjectMap refObjectMap;
 
   @Mock
-  private TriplesMap parentTriplesMap;
-
-  @Mock
   private Join join1;
 
   @Mock
@@ -82,9 +79,6 @@ class RdfRefObjectMapperTest {
 
   @Mock
   private Set<ChildSideJoin<Resource, IRI>> childSideJoinCache;
-
-  @Mock
-  private RdfTriplesMapper<?> rdfTriplesMapper;
 
   @Mock
   private RdfTriplesMapper<?> parentRdfTriplesMapper;
@@ -141,7 +135,8 @@ class RdfRefObjectMapperTest {
     when(expressionEvaluation.apply(any())).thenReturn(Optional.of(List.of("baz")));
 
     // When
-    Mono<Statement> refObjectMapperPromise = rdfRefObjectMapper.map(subjects, predicates, graphs, expressionEvaluation);
+    Mono<Statement> refObjectMapperPromise = Mono.empty();
+    rdfRefObjectMapper.map(subjects, predicates, graphs, expressionEvaluation);
 
     // Then
     StepVerifier.create(refObjectMapperPromise)
@@ -194,7 +189,8 @@ class RdfRefObjectMapperTest {
         .thenReturn(Optional.of(List.of("Carol")));
 
     // When
-    Mono<Statement> refObjectMapperPromise = rdfRefObjectMapper.map(subjects, predicates, graphs, expressionEvaluation);
+    Mono<Statement> refObjectMapperPromise = Mono.empty();
+    rdfRefObjectMapper.map(subjects, predicates, graphs, expressionEvaluation);
 
     // Then
     StepVerifier.create(refObjectMapperPromise)
@@ -214,7 +210,7 @@ class RdfRefObjectMapperTest {
   }
 
   @Test
-  void givenOnlyTriplesMapperDone_whenSignalCompletion_thenDeferPublishing() {
+  void givenOnlyOneTriplesMapperDone_whenArrives_thenDeferPublishing() {
     // Given
     Set<Resource> subjects = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/subject1"));
     Set<IRI> predicates = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/predicate1"));
@@ -240,11 +236,11 @@ class RdfRefObjectMapperTest {
     RdfRefObjectMapper rdfRefObjectMapper =
         RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingContext, childSideJoinStoreProvider);
 
-    when(refObjectMap.getParentTriplesMap()).thenReturn(parentTriplesMap);
+    Flux<Statement> joinlessFlux = generateStatementsFor("main", 3);
+    Flux<Statement> parentJoinlessFlux = generateStatementsFor("parent", 3).delayElements(Duration.ofSeconds(10));
 
-    when(rdfTriplesMapper.getTriplesMap()).thenReturn(triplesMap);
-
-    Flux<Statement> joinedStatementFlux = rdfRefObjectMapper.resolveJoins();
+    Flux<Statement> joinedStatementFlux =
+        rdfRefObjectMapper.resolveJoins(joinlessFlux, parentRdfTriplesMapper, parentJoinlessFlux);
 
     // With deferred expectation
     StepVerifier deferred = StepVerifier.create(joinedStatementFlux)
@@ -252,7 +248,8 @@ class RdfRefObjectMapperTest {
         .verifyLater();
 
     // When
-    rdfRefObjectMapper.signalCompletion(rdfTriplesMapper);
+    StepVerifier.create(joinlessFlux)
+        .expectComplete();
 
     // Then
     Duration afterFourSeconds = Duration.ofSeconds(4);
@@ -261,7 +258,7 @@ class RdfRefObjectMapperTest {
   }
 
   @Test
-  void givenTriplesMapperAndParentTriplesMapperDone_whenSignalCompletion_thenStartPublishing() {
+  void givenTriplesMapperAndParentTriplesMapperDone_whenArrive_thenStartPublishing() {
     // Given
     Set<Resource> subjects = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/subject1"));
     Set<IRI> predicates = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/predicate1"));
@@ -288,64 +285,33 @@ class RdfRefObjectMapperTest {
     RdfRefObjectMapper rdfRefObjectMapper =
         RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingContext, childSideJoinStoreProvider);
 
-    when(refObjectMap.getParentTriplesMap()).thenReturn(parentTriplesMap);
-
-    when(rdfTriplesMapper.getTriplesMap()).thenReturn(triplesMap);
-
-    when(parentRdfTriplesMapper.getTriplesMap()).thenReturn(parentTriplesMap);
-
     when(parentRdfTriplesMapper.getParentSideJoinConditions()).thenReturn(new ConcurrentHashMap<>());
 
     when(parentRdfTriplesMapper.notifyCompletion(rdfRefObjectMapper, SignalType.ON_COMPLETE)).thenReturn(completion);
 
-    Flux<Statement> joinedStatementFlux = rdfRefObjectMapper.resolveJoins();
+    Flux<Statement> joinlessFlux = generateStatementsFor("main", 3);
+    Flux<Statement> parentJoinlessFlux = generateStatementsFor("parent", 3);
+
+    Flux<Statement> joinedStatementFlux =
+        rdfRefObjectMapper.resolveJoins(joinlessFlux, parentRdfTriplesMapper, parentJoinlessFlux);
 
     // With deferred expectation
     StepVerifier deferred = StepVerifier.create(joinedStatementFlux)
         .expectComplete()
         .verifyLater();
 
-    rdfRefObjectMapper.signalCompletion(rdfTriplesMapper);
-
     // When
-    rdfRefObjectMapper.signalCompletion(parentRdfTriplesMapper);
+    StepVerifier.create(joinlessFlux)
+        .expectComplete();
+
+    StepVerifier.create(parentJoinlessFlux)
+        .expectComplete();
 
     // Then
     deferred.verify(Duration.ofSeconds(1));
 
-    // TODO: hack
     StepVerifier.create(completion)
         .expectSubscription();
-  }
-
-  @Test
-  void givenUnconnectedTriplesMapper_whenSignalCompletion_thenThrowException() {
-    // Given
-    RdfMappingContext rdfMappingContext = RdfMappingContext.builder()
-        .valueFactorySupplier(() -> VALUE_FACTORY)
-        .termGeneratorFactory(rdfTermGeneratorFactory)
-        .childSideJoinStoreProvider(childSideJoinStoreProvider)
-        .build();
-
-    RdfRefObjectMapper rdfRefObjectMapper =
-        RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingContext, childSideJoinStoreProvider);
-
-    when(refObjectMap.getParentTriplesMap()).thenReturn(parentTriplesMap);
-
-    RdfTriplesMapper<?> unconnectedRdfTriplesMapper = mock(RdfTriplesMapper.class);
-    TriplesMap unconnectedTriplesMap = mock(TriplesMap.class);
-    when(unconnectedRdfTriplesMapper.getTriplesMap()).thenReturn(unconnectedTriplesMap);
-
-    when(unconnectedTriplesMap.asRdf()).thenReturn(new ModelBuilder().build());
-    when(unconnectedTriplesMap.getAsResource()).thenReturn(VALUE_FACTORY.createBNode("unconnectedTriplesMap"));
-
-    // When
-    IllegalStateException exception = assertThrows(IllegalStateException.class,
-        () -> rdfRefObjectMapper.signalCompletion(unconnectedRdfTriplesMapper));
-
-    // Then
-    assertThat(exception.getMessage(), startsWith("RefObjectMapper only supports triples mappers on the triples map "
-        + "that references it, and the parent triples map it references. The provided triplesMap is not supported"));
   }
 
   @Test
@@ -379,12 +345,6 @@ class RdfRefObjectMapperTest {
     RdfRefObjectMapper rdfRefObjectMapper =
         RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingContext, childSideJoinStoreProvider);
 
-    when(refObjectMap.getParentTriplesMap()).thenReturn(parentTriplesMap);
-
-    when(rdfTriplesMapper.getTriplesMap()).thenReturn(triplesMap);
-
-    when(parentRdfTriplesMapper.getTriplesMap()).thenReturn(parentTriplesMap);
-
     IRI parentSubject1 = VALUE_FACTORY.createIRI("http://foo.bar/parentSubject1");
     IRI parentSubject2 = VALUE_FACTORY.createIRI("http://foo.bar/parentSubject2");
     Set<Resource> parentSubjects = Set.of(parentSubject1, parentSubject2);
@@ -396,9 +356,13 @@ class RdfRefObjectMapperTest {
 
     when(parentRdfTriplesMapper.getParentSideJoinConditions()).thenReturn(parentSideJoinConditions);
 
-    when(parentRdfTriplesMapper.notifyCompletion(rdfRefObjectMapper, SignalType.ON_COMPLETE)).thenReturn(completion);
+    Mockito.lenient().when(parentRdfTriplesMapper.notifyCompletion(any(), any())).thenReturn(Mono.when());
 
-    Flux<Statement> joinedStatementFlux = rdfRefObjectMapper.resolveJoins();
+    Flux<Statement> joinlessFlux = generateStatementsFor("main", 2);
+    Flux<Statement> parentJoinlessFlux = generateStatementsFor("parent", 2);
+
+    Flux<Statement> joinedStatementFlux =
+        rdfRefObjectMapper.resolveJoins(joinlessFlux, parentRdfTriplesMapper, parentJoinlessFlux);
 
     // With deferred expectation
     Predicate<Statement> expectedStatement = statement -> Set
@@ -411,17 +375,28 @@ class RdfRefObjectMapperTest {
         .expectComplete()
         .verifyLater();
 
-    rdfRefObjectMapper.signalCompletion(rdfTriplesMapper);
-
     // When
-    rdfRefObjectMapper.signalCompletion(parentRdfTriplesMapper);
+    StepVerifier.create(joinlessFlux)
+        .expectComplete();
+
+    StepVerifier.create(parentJoinlessFlux)
+        .expectComplete();
 
     // Then
     deferred.verify(Duration.ofSeconds(1));
-
-    // TODO: hack
-    StepVerifier.create(completion)
-        .expectSubscription();
   }
 
+  private static Flux<Statement> generateStatementsFor(String id, int amount) {
+    List<Statement> statements = new ArrayList<>();
+    for (int i = 0; i < amount; i++) {
+      statements.add(generateStatementFor(id, i));
+    }
+
+    return Flux.fromIterable(statements);
+  }
+
+  private static Statement generateStatementFor(String id, int number) {
+    return VALUE_FACTORY.createStatement(VALUE_FACTORY.createBNode(String.format("sub-%s-%s", id, number)), RDF.TYPE,
+        VALUE_FACTORY.createBNode(String.format("obj-%s-%s", id, number)));
+  }
 }
