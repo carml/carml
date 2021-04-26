@@ -45,11 +45,11 @@ public class RdfTriplesMapper<I> implements TriplesMapper<I, Statement> {
 
   static Consumer<Statement> logAddStatements = statement -> {
     // TODO enable when intellij lombok bug is fixed (version 2021.1.1).
-//     if (LOG.isTraceEnabled()) {
-//     LOG.trace("Adding statement {} {} {} {} to result set", statement.getSubject(),
-//     statement.getPredicate(),
-//     statement.getObject(), statement.getContext());
-//     }
+    // if (LOG.isTraceEnabled()) {
+    // LOG.trace("Adding statement {} {} {} {} to result set", statement.getSubject(),
+    // statement.getPredicate(),
+    // statement.getObject(), statement.getContext());
+    // }
   };
 
   @NonNull

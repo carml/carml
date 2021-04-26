@@ -1,9 +1,8 @@
 package com.taxonic.carml.rmltestcases;
 
 import com.google.common.collect.ImmutableSet;
-import com.taxonic.carml.engine.RmlMapper;
 import com.taxonic.carml.engine.rdf.ModelResult;
-import com.taxonic.carml.engine.rdf.RdfRmlMapperBuilder;
+import com.taxonic.carml.engine.rdf.RdfRmlMapper;
 import com.taxonic.carml.logical_source_resolver.CsvResolver;
 import com.taxonic.carml.logical_source_resolver.JsonPathResolver;
 import com.taxonic.carml.logical_source_resolver.XPathResolver;
@@ -24,7 +23,6 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
-import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.impl.TreeModel;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 import org.eclipse.rdf4j.rio.RDFFormat;
@@ -59,8 +57,6 @@ public class RmlImplementationReport {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-
-
   }
 
   static Function<Model, Set<Resource>> selectTestCases =
@@ -81,11 +77,11 @@ public class RmlImplementationReport {
   }
 
   public static TestCaseResult runTestCase(TestCase testCase) {
-    RdfRmlMapperBuilder mapperBuilder =
-        new RdfRmlMapperBuilder().setLogicalSourceResolver(Rdf.Ql.JsonPath, JsonPathResolver::getInstance)
-            .setLogicalSourceResolver(Rdf.Ql.XPath, XPathResolver::getInstance)
-            .setLogicalSourceResolver(Rdf.Ql.Csv, CsvResolver::getInstance)
-            .classPathResolver(String.format("%s/%s", TestRmlTestCases.CLASS_LOCATION, testCase.getIdentifier()));
+    RdfRmlMapper.Builder mapperBuilder = RdfRmlMapper.builder()
+        .setLogicalSourceResolver(Rdf.Ql.JsonPath, JsonPathResolver::getInstance)
+        .setLogicalSourceResolver(Rdf.Ql.XPath, XPathResolver::getInstance)
+        .setLogicalSourceResolver(Rdf.Ql.Csv, CsvResolver::getInstance)
+        .classPathResolver(String.format("%s/%s", TestRmlTestCases.CLASS_LOCATION, testCase.getIdentifier()));
 
     Output expectedOutput = testCase.getOutput();
     boolean passed = false;
@@ -124,12 +120,12 @@ public class RmlImplementationReport {
         .build();
   }
 
-  private static Model executeMapping(TestCase testCase, RdfRmlMapperBuilder mapperBuilder) {
+  private static Model executeMapping(TestCase testCase, RdfRmlMapper.Builder mapperBuilder) {
     InputStream mappingStream = TestRmlTestCases.getDatasetInputStream(testCase.getRules());
     Set<TriplesMap> mapping = RmlMappingLoader.build()
         .load(RDFFormat.TURTLE, mappingStream);
 
-    RmlMapper<Statement> mapper = mapperBuilder.triplesMaps(mapping)
+    RdfRmlMapper mapper = mapperBuilder.triplesMaps(mapping)
         .classPathResolver(String.format("%s/%s", TestRmlTestCases.CLASS_LOCATION, testCase.getIdentifier()))
         .build();
 

@@ -77,8 +77,7 @@ public class RdfLogicalSourcePipeline<I> implements LogicalSourcePipeline<I, Sta
     return run(source, Set.of());
   }
 
-  public Map<TriplesMapper<I, Statement>, Flux<Statement>> run(InputStream source,
-      Set<TriplesMap> triplesMapFilter) {
+  public Map<TriplesMapper<I, Statement>, Flux<Statement>> run(InputStream source, Set<TriplesMap> triplesMapFilter) {
     boolean filterEmpty = triplesMapFilter == null || triplesMapFilter.isEmpty();
     int nrOfTriplesMappers = filterEmpty ? triplesMappers.size() : triplesMapFilter.size();
 

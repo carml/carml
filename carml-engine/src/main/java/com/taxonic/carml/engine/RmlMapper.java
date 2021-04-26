@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -29,15 +30,16 @@ import reactor.core.publisher.Flux;
 
 @Slf4j
 @AllArgsConstructor
-public class RmlMapper<T> {
+@NoArgsConstructor
+public abstract class RmlMapper<T> {
 
   private static final String DEFAULT_STREAM_NAME = "DEFAULT";
 
-  private final Function<Object, Optional<Flux<DataBuffer>>> sourceResolver;
+  private Function<Object, Optional<Flux<DataBuffer>>> sourceResolver;
 
-  private final Map<TriplesMap, LogicalSourcePipeline<?, T>> logicalSourcePipelinePool;
+  private Map<TriplesMap, LogicalSourcePipeline<?, T>> logicalSourcePipelinePool;
 
-  private final Map<? extends RefObjectMapper<T>, TriplesMap> refObjectMapperToParentTriplesMap;
+  private Map<? extends RefObjectMapper<T>, TriplesMap> refObjectMapperToParentTriplesMap;
 
   public Flux<T> map() {
     return map(Map.of());
@@ -121,16 +123,14 @@ public class RmlMapper<T> {
 
         pipelineGroup.forEach(pipeline -> {
           try {
-            intermediaryPipelineResults
-                .add(pipeline.run(ReactorUtil.inputStreamFrom(dataSource), triplesMapFilter));
+            intermediaryPipelineResults.add(pipeline.run(ReactorUtil.inputStreamFrom(dataSource), triplesMapFilter));
           } catch (IOException ioException) {
             throw new RmlMapperException(
                 String.format("Could not create input stream for logical source pipeline with logical source %s",
                     exception(pipeline.getLogicalSource())));
           }
         });
-      }, () -> pipelineGroup
-          .forEach(pipeline -> intermediaryPipelineResults.add(pipeline.run(triplesMapFilter))));
+      }, () -> pipelineGroup.forEach(pipeline -> intermediaryPipelineResults.add(pipeline.run(triplesMapFilter))));
 
       intermediaryResults.add(intermediaryPipelineResults);
     }
@@ -174,17 +174,11 @@ public class RmlMapper<T> {
   private Map<RefObjectMapper<T>, TriplesMapper<?, T>> mapRefObjectMapperToParentTriplesMapper(
       Set<TriplesMapper<?, T>> triplesMappers) {
     Map<RefObjectMapper<T>, TriplesMapper<?, T>> roToParentTm = new HashMap<>();
-    refObjectMapperToParentTriplesMap.entrySet()
-        .forEach(refObjectMapperTriplesMapEntry -> {
-          RefObjectMapper<T> refObjectMapper = refObjectMapperTriplesMapEntry.getKey();
-          TriplesMap parentTriplesMap = refObjectMapperTriplesMapEntry.getValue();
-
-          triplesMappers.stream()
-              .filter(triplesMapper -> triplesMapper.getTriplesMap()
-                  .equals(parentTriplesMap))
-              .findFirst()
-              .ifPresent(triplesMapper -> roToParentTm.put(refObjectMapper, triplesMapper));
-        });
+    refObjectMapperToParentTriplesMap.forEach((refObjectMapper, parentTriplesMap) -> triplesMappers.stream()
+        .filter(triplesMapper -> triplesMapper.getTriplesMap()
+            .equals(parentTriplesMap))
+        .findFirst()
+        .ifPresent(triplesMapper -> roToParentTm.put(refObjectMapper, triplesMapper)));
 
     return roToParentTm;
   }

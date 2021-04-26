@@ -356,7 +356,9 @@ class RdfRefObjectMapperTest {
 
     when(parentRdfTriplesMapper.getParentSideJoinConditions()).thenReturn(parentSideJoinConditions);
 
-    Mockito.lenient().when(parentRdfTriplesMapper.notifyCompletion(any(), any())).thenReturn(Mono.when());
+    Mockito.lenient()
+        .when(parentRdfTriplesMapper.notifyCompletion(any(), any()))
+        .thenReturn(Mono.when());
 
     Flux<Statement> joinlessFlux = generateStatementsFor("main", 2);
     Flux<Statement> parentJoinlessFlux = generateStatementsFor("parent", 2);
