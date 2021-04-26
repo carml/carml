@@ -19,7 +19,7 @@ import com.taxonic.carml.model.TermMap;
 import com.taxonic.carml.model.TermType;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.util.IriSafeMaker;
-import com.taxonic.carml.util.RdfUtil;
+import com.taxonic.carml.util.RdfValues;
 import com.taxonic.carml.vocab.Rdf;
 import java.text.Normalizer;
 import java.util.Collection;
@@ -207,6 +207,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
     if (LOG.isTraceEnabled()) {
       LOG.trace("Generated constant values: {}", constants);
     }
+
     return Optional.of(e -> constants);
   }
 
@@ -353,6 +354,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
         return TermType.LITERAL;
       }
     }
+
     return TermType.IRI;
   }
 
@@ -373,19 +375,18 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
   }
 
   private IRI generateIriTerm(String lexicalForm) {
-    if (RdfUtil.isValidIri(lexicalForm)) {
+    if (RdfValues.isValidIri(lexicalForm)) {
       return valueFactory.createIRI(lexicalForm);
     }
 
     String iri = baseIri + lexicalForm;
-    if (RdfUtil.isValidIri(iri)) {
+    if (RdfValues.isValidIri(iri)) {
       return valueFactory.createIRI(iri);
     }
 
     throw new TermGeneratorFactoryException(String.format(
         "Could not generate a valid iri from term lexical form [%s] as-is, or prefixed with base iri [%s]", lexicalForm,
         baseIri));
-
   }
 
   private BNode generateBNodeTerm(String lexicalForm) {
@@ -401,6 +402,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
       id.append("-")
           .append(suffix);
     }
+
     return id.toString();
   }
 

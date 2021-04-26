@@ -1,6 +1,6 @@
 package com.taxonic.carml.engine.sourceresolver;
 
-import com.taxonic.carml.util.ReactorUtil;
+import com.taxonic.carml.util.ReactiveInputStreams;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -24,7 +24,7 @@ public class FileResolver implements SourceResolver {
     return unpackFileSource(source).map(relativePath -> {
       Path path = basePath.resolve(relativePath);
       try {
-        return ReactorUtil.fluxInputStream(Files.newInputStream(path));
+        return ReactiveInputStreams.fluxInputStream(Files.newInputStream(path));
       } catch (IOException e) {
         throw new SourceResolverException(String.format("Could not resolve file path %s", path));
       }

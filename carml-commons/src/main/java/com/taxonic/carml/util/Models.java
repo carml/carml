@@ -1,6 +1,8 @@
 package com.taxonic.carml.util;
 
 import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -16,12 +18,46 @@ import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
+import org.eclipse.rdf4j.rio.ParserConfig;
+import org.eclipse.rdf4j.rio.RDFFormat;
+import org.eclipse.rdf4j.rio.Rio;
+import org.eclipse.rdf4j.rio.helpers.BasicParserSettings;
+import org.eclipse.rdf4j.rio.helpers.ParseErrorLogger;
 
-public class ModelUtil {
+public final class Models {
 
   private static final ValueFactory VALUE_FACTORY = SimpleValueFactory.getInstance();
 
-  private ModelUtil() {}
+  private Models() {}
+
+  public static Model parseTrig(String resource) {
+    return parse(resource, RDFFormat.TRIG);
+  }
+
+  public static Model parse(String resource) {
+    return parse(resource, RDFFormat.TURTLE);
+  }
+
+  public static Model parse(String resource, RDFFormat format) {
+    try (InputStream input = Models.class.getClassLoader()
+        .getResourceAsStream(resource)) {
+      return parse(input, format);
+    } catch (IOException ioException) {
+      throw new ModelsException(String.format("failed to parse resource [%s] as [%s]", resource, format), ioException);
+    }
+  }
+
+  public static Model parse(InputStream inputStream, RDFFormat format) {
+    try (InputStream is = inputStream) {
+      ParserConfig settings = new ParserConfig();
+      settings.set(BasicParserSettings.PRESERVE_BNODE_IDS, true);
+      return Rio.parse(is, "http://none.com/", format, settings, SimpleValueFactory.getInstance(),
+          new ParseErrorLogger());
+    } catch (IOException ioException) {
+      throw new ModelsException(String.format("failed to parse input stream [%s] as [%s]", inputStream, format),
+          ioException);
+    }
+  }
 
   public static Model describeResource(Model model, Resource resource) {
     return model.filter(resource, null, null)
@@ -75,7 +111,7 @@ public class ModelUtil {
       Set<? extends Value> objects, Set<Resource> graphs, UnaryOperator<Resource> graphModifier,
       ValueFactory valueFactory, Consumer<Statement>... statementConsumers) {
     if (subjects.isEmpty() || predicates.isEmpty() || objects.isEmpty()) {
-      throw new ModelUtilException(
+      throw new ModelsException(
           "Could not create cartesian product statements because at least one of subjects, predicates or objects was"
               + " empty");
     }
@@ -103,7 +139,7 @@ public class ModelUtil {
     if (subjectValue instanceof Resource) {
       subject = (Resource) subjectValue;
     } else {
-      throw new ModelUtilException(String.format("Expected subjectValue `%s` to be instance of Resource, but was %s",
+      throw new ModelsException(String.format("Expected subjectValue `%s` to be instance of Resource, but was %s",
           subjectValue, subjectValue.getClass()));
     }
 
@@ -111,7 +147,7 @@ public class ModelUtil {
     if (predicateValue instanceof Resource) {
       predicate = (IRI) predicateValue;
     } else {
-      throw new ModelUtilException(String.format("Expected predicateValue `%s` to be instance of IRI, but was %s",
+      throw new ModelsException(String.format("Expected predicateValue `%s` to be instance of IRI, but was %s",
           predicateValue, predicateValue.getClass()));
     }
 
@@ -120,7 +156,7 @@ public class ModelUtil {
       if (contextValue instanceof Resource) {
         context = contextModifier.apply((Resource) contextValue);
       } else {
-        throw new ModelUtilException(String.format("Expected contextValue `%s` to be instance of Resource, but was %s",
+        throw new ModelsException(String.format("Expected contextValue `%s` to be instance of Resource, but was %s",
             contextValue, contextValue.getClass()));
       }
     } else {

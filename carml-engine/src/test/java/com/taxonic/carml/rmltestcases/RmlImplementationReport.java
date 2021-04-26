@@ -10,7 +10,7 @@ import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.rdf_mapper.util.RdfObjectLoader;
 import com.taxonic.carml.rmltestcases.model.Output;
 import com.taxonic.carml.rmltestcases.model.TestCase;
-import com.taxonic.carml.util.IoUtils;
+import com.taxonic.carml.util.Models;
 import com.taxonic.carml.util.RmlMappingLoader;
 import com.taxonic.carml.vocab.Rdf;
 import java.io.FileWriter;
@@ -66,7 +66,7 @@ public class RmlImplementationReport {
 
   public static Set<TestCase> populateTestCases() {
     InputStream metadata = RmlImplementationReport.class.getResourceAsStream("test-cases/metadata.nt");
-    return RdfObjectLoader.load(selectTestCases, RmlTestCase.class, IoUtils.parse(metadata, RDFFormat.NTRIPLES)) //
+    return RdfObjectLoader.load(selectTestCases, RmlTestCase.class, Models.parse(metadata, RDFFormat.NTRIPLES)) //
         .stream() //
         .collect(ImmutableSet.toImmutableSet());
   }
@@ -105,7 +105,7 @@ public class RmlImplementationReport {
         Model result = executeMapping(testCase, mapperBuilder);
         InputStream expectedOutputStream = TestRmlTestCases.getDatasetInputStream(expectedOutput);
 
-        Model expected = IoUtils.parse(expectedOutputStream, RDFFormat.NQUADS)
+        Model expected = Models.parse(expectedOutputStream, RDFFormat.NQUADS)
             .stream() //
             .collect(Collectors.toCollection(TreeModel::new));
 

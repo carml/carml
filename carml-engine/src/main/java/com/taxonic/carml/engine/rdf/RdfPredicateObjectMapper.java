@@ -13,7 +13,7 @@ import com.taxonic.carml.model.ObjectMap;
 import com.taxonic.carml.model.PredicateObjectMap;
 import com.taxonic.carml.model.RefObjectMap;
 import com.taxonic.carml.model.TriplesMap;
-import com.taxonic.carml.util.ModelUtil;
+import com.taxonic.carml.util.Models;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -189,7 +189,7 @@ public class RdfPredicateObjectMapper {
     Flux<Statement> cartesianProductStatements = Flux.empty();
 
     if (!objects.isEmpty()) {
-      cartesianProductStatements = Flux.fromStream(ModelUtil.streamCartesianProductStatements(subjects, predicates,
+      cartesianProductStatements = Flux.fromStream(Models.streamCartesianProductStatements(subjects, predicates,
           objects, graphs, RdfTriplesMapper.defaultGraphModifier, valueFactory, RdfTriplesMapper.logAddStatements));
     }
 

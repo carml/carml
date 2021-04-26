@@ -14,7 +14,9 @@ import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 
 @Slf4j
-public class ReactorUtil {
+public final class ReactiveInputStreams {
+
+  private ReactiveInputStreams(){}
 
   public static Flux<DataBuffer> fluxInputStream(@NonNull InputStream inputStream) {
     DataBufferFactory dataBufferFactory = new DefaultDataBufferFactory();
@@ -33,8 +35,8 @@ public class ReactorUtil {
           } catch (IOException ignored) {
           }
         })
+        // TODO : what to do on error?
         .doOnError(error -> LOG.error("Something went wrong"))
-        // .onErrorResume(error -> Flux.error(RuntimeException::new))
         .subscribe(DataBufferUtils.releaseConsumer(), error -> LOG.error("ERROR: {}", error));
     return isPipe;
   }

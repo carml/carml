@@ -8,7 +8,7 @@ import com.taxonic.carml.logical_source_resolver.CsvResolver;
 import com.taxonic.carml.logical_source_resolver.JsonPathResolver;
 import com.taxonic.carml.logical_source_resolver.XPathResolver;
 import com.taxonic.carml.model.TriplesMap;
-import com.taxonic.carml.util.IoUtils;
+import com.taxonic.carml.util.Models;
 import com.taxonic.carml.util.RdfCollectors;
 import com.taxonic.carml.util.RmlMappingLoader;
 import com.taxonic.carml.util.RmlNamespaces;
@@ -72,7 +72,7 @@ class MappingTest {
     if (outputPath == null)
       return;
 
-    Model expected = IoUtils.parse(outputPath, determineRdfFormat(outputPath))
+    Model expected = Models.parse(outputPath, determineRdfFormat(outputPath))
         .stream()
         .collect(RdfCollectors.toRdf4JTreeModel());
 

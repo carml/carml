@@ -11,7 +11,7 @@ import com.taxonic.carml.engine.reactivedev.join.ChildSideJoinStoreProvider;
 import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinKey;
 import com.taxonic.carml.model.RefObjectMap;
 import com.taxonic.carml.model.TriplesMap;
-import com.taxonic.carml.util.ModelUtil;
+import com.taxonic.carml.util.Models;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -142,7 +142,7 @@ public class RdfRefObjectMapper implements RefObjectMapper<Statement> {
       Set<IRI> predicates = childSideJoin.getPredicates();
       Set<Resource> graphs = childSideJoin.getGraphs();
 
-      return Flux.fromStream(ModelUtil.streamCartesianProductStatements(subjects, predicates, objects, graphs,
+      return Flux.fromStream(Models.streamCartesianProductStatements(subjects, predicates, objects, graphs,
           RdfTriplesMapper.defaultGraphModifier, valueFactory, RdfTriplesMapper.logAddStatements));
     }
 

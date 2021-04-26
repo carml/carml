@@ -8,7 +8,7 @@ import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.model.LogicalSource;
 import com.taxonic.carml.model.NameableStream;
 import com.taxonic.carml.model.TriplesMap;
-import com.taxonic.carml.util.ReactorUtil;
+import com.taxonic.carml.util.ReactiveInputStreams;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
@@ -123,7 +123,7 @@ public abstract class RmlMapper<T> {
 
         pipelineGroup.forEach(pipeline -> {
           try {
-            intermediaryPipelineResults.add(pipeline.run(ReactorUtil.inputStreamFrom(dataSource), triplesMapFilter));
+            intermediaryPipelineResults.add(pipeline.run(ReactiveInputStreams.inputStreamFrom(dataSource), triplesMapFilter));
           } catch (IOException ioException) {
             throw new RmlMapperException(
                 String.format("Could not create input stream for logical source pipeline with logical source %s",
@@ -206,7 +206,7 @@ public abstract class RmlMapper<T> {
             stream.getStreamName(), exception(inCaseOfException)));
       }
 
-      return Optional.of(ReactorUtil.fluxInputStream(namedInputStreams.get(name)));
+      return Optional.of(ReactiveInputStreams.fluxInputStream(namedInputStreams.get(name)));
     }
 
     return sourceResolver.apply(source);

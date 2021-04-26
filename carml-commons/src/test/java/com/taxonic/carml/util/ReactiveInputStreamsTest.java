@@ -18,10 +18,10 @@ import reactor.core.publisher.ConnectableFlux;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 
-public class ReactorUtilTest {
+class ReactiveInputStreamsTest {
 
   @Test
-  public void blockHoundWorks() {
+  void blockHoundWorks() {
     try {
       FutureTask<?> task = new FutureTask<>(() -> {
         Thread.sleep(0);
@@ -38,15 +38,15 @@ public class ReactorUtilTest {
   }
 
   @Test
-  public void inputStreamFromColdFluxTest() throws IOException, InterruptedException {
+  void inputStreamFromColdFluxTest() throws IOException, InterruptedException {
     // Arrange
     String inputString = "foo bar alice bob";
     InputStream inputStream = IOUtils.toInputStream(inputString, StandardCharsets.UTF_8);
-    Flux<DataBuffer> dataBufferFlux = ReactorUtil.fluxInputStream(inputStream);
+    Flux<DataBuffer> dataBufferFlux = ReactiveInputStreams.fluxInputStream(inputStream);
     String out;
 
     // Act
-    InputStream input = ReactorUtil.inputStreamFrom(dataBufferFlux);
+    InputStream input = ReactiveInputStreams.inputStreamFrom(dataBufferFlux);
     out = IOUtils.toString(input, StandardCharsets.UTF_8);
 
     // Assert
@@ -54,20 +54,20 @@ public class ReactorUtilTest {
   }
 
   @Test
-  public void inputStreamFromHotFluxTest() throws IOException {
+  void inputStreamFromHotFluxTest() throws IOException {
     // Arrange
     String inputString = "foo bar alice bob";
     InputStream inputStream = IOUtils.toInputStream(inputString, StandardCharsets.UTF_8);
-    ConnectableFlux<DataBuffer> dataBufferFlux = ReactorUtil.fluxInputStream(inputStream)
+    ConnectableFlux<DataBuffer> dataBufferFlux = ReactiveInputStreams.fluxInputStream(inputStream)
         .publish();
     String out1;
     String out2;
     String out3;
 
     // Act
-    InputStream input1 = ReactorUtil.inputStreamFrom(dataBufferFlux);
-    InputStream input2 = ReactorUtil.inputStreamFrom(dataBufferFlux);
-    InputStream input3 = ReactorUtil.inputStreamFrom(dataBufferFlux);
+    InputStream input1 = ReactiveInputStreams.inputStreamFrom(dataBufferFlux);
+    InputStream input2 = ReactiveInputStreams.inputStreamFrom(dataBufferFlux);
+    InputStream input3 = ReactiveInputStreams.inputStreamFrom(dataBufferFlux);
 
     dataBufferFlux.connect();
 

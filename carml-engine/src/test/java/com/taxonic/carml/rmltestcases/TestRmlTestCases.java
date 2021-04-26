@@ -3,12 +3,10 @@ package com.taxonic.carml.rmltestcases;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.taxonic.carml.engine.RmlMapper;
 import com.taxonic.carml.engine.rdf.ModelResult;
-import com.taxonic.carml.engine.rdf.RdfRmlMapperBuilder;
+import com.taxonic.carml.engine.rdf.RdfRmlMapper;
 import com.taxonic.carml.logical_source_resolver.CsvResolver;
 import com.taxonic.carml.logical_source_resolver.JsonPathResolver;
 import com.taxonic.carml.logical_source_resolver.XPathResolver;
@@ -17,7 +15,7 @@ import com.taxonic.carml.rdf_mapper.util.RdfObjectLoader;
 import com.taxonic.carml.rmltestcases.model.Dataset;
 import com.taxonic.carml.rmltestcases.model.Output;
 import com.taxonic.carml.rmltestcases.model.TestCase;
-import com.taxonic.carml.util.IoUtils;
+import com.taxonic.carml.util.Models;
 import com.taxonic.carml.util.RmlMappingLoader;
 import com.taxonic.carml.vocab.Rdf;
 import java.io.InputStream;
@@ -28,7 +26,6 @@ import java.util.stream.Collectors;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
-import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.model.impl.TreeModel;
@@ -68,11 +65,11 @@ public class TestRmlTestCases {
       .add("RMLTC0020b-XML")
       .build();
 
-  private RdfRmlMapperBuilder mapperBuilder;
+  private RdfRmlMapper.Builder mapperBuilder;
 
   public static Set<TestCase> populateTestCases() {
     InputStream metadata = TestRmlTestCases.class.getResourceAsStream("test-cases/metadata.nt");
-    return RdfObjectLoader.load(selectTestCases, RmlTestCase.class, IoUtils.parse(metadata, RDFFormat.NTRIPLES))
+    return RdfObjectLoader.load(selectTestCases, RmlTestCase.class, Models.parse(metadata, RDFFormat.NTRIPLES))
         .stream()
         .filter(TestRmlTestCases::shouldBeTested)
         .collect(ImmutableSet.toImmutableSet());
@@ -97,14 +94,15 @@ public class TestRmlTestCases {
 
   @BeforeEach
   public void prepare() {
-    mapperBuilder = new RdfRmlMapperBuilder().setLogicalSourceResolver(Rdf.Ql.JsonPath, JsonPathResolver::getInstance)
+    mapperBuilder = RdfRmlMapper.builder()
+        .setLogicalSourceResolver(Rdf.Ql.JsonPath, JsonPathResolver::getInstance)
         .setLogicalSourceResolver(Rdf.Ql.XPath, XPathResolver::getInstance)
         .setLogicalSourceResolver(Rdf.Ql.Csv, CsvResolver::getInstance);
   }
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("populateTestCases")
-  public void runTestCase(TestCase testCase) {
+  void runTestCase(TestCase testCase) {
     Output expectedOutput = testCase.getOutput();
     if (expectedOutput.isError()) {
       assertThrows(RuntimeException.class, () -> executeMapping(testCase));
@@ -112,7 +110,7 @@ public class TestRmlTestCases {
       Model result = executeMapping(testCase);
       InputStream expectedOutputStream = getDatasetInputStream(expectedOutput);
 
-      Model expected = IoUtils.parse(expectedOutputStream, RDFFormat.NQUADS)
+      Model expected = Models.parse(expectedOutputStream, RDFFormat.NQUADS)
           .stream()
           .collect(Collectors.toCollection(TreeModel::new));
 
@@ -125,7 +123,7 @@ public class TestRmlTestCases {
     Set<TriplesMap> mapping = RmlMappingLoader.build()
         .load(RDFFormat.TURTLE, mappingStream);
 
-    RmlMapper<Statement> mapper = mapperBuilder.triplesMaps(mapping)
+    RdfRmlMapper mapper = mapperBuilder.triplesMaps(mapping)
         .classPathResolver(String.format("%s/%s", CLASS_LOCATION, testCase.getIdentifier()))
         .build();
 

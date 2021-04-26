@@ -18,13 +18,11 @@ import org.eclipse.rdf4j.rio.Rio;
 import org.eclipse.rdf4j.rio.WriterConfig;
 import org.eclipse.rdf4j.rio.helpers.BasicWriterSettings;
 
-public class ModelSerializer {
+public final class ModelSerializer {
 
   private static final ValueFactory VF = SimpleValueFactory.getInstance();
 
-  private static final Pattern TTL_STYLE_PREFIX = Pattern.compile("(?:[ \\t]*@prefix .*>\\s*.\\s*)", Pattern.MULTILINE);
-
-  private static final Pattern WHITESPACE = Pattern.compile("\\s+", Pattern.MULTILINE);
+  private static final Pattern TTL_STYLE_PREFIX = Pattern.compile("[ \\t]*@prefix .*>\\s*.\\s*", Pattern.MULTILINE);
 
   private static final String NS = "http://ModelSerializer.carml.net/";
 
@@ -77,7 +75,7 @@ public class ModelSerializer {
       reverseBNodeDescription.setNamespace("", NS);
       reverseBNodeDescription.add(resource, CAUSED_EXCEPTION, EXCEPTION_INDICATOR);
     }
-    reverseBNodeDescription.addAll(ModelUtil.symmetricDescribeResource(contextModel, resource));
+    reverseBNodeDescription.addAll(Models.symmetricDescribeResource(contextModel, resource));
     reverseBNodeDescription.addAll(resourceModel);
 
     String ttl = ModelSerializer.serializeAsRdf(reverseBNodeDescription, RDFFormat.TURTLE, mdl -> {

@@ -1,6 +1,6 @@
 package com.taxonic.carml.engine.sourceresolver;
 
-import com.taxonic.carml.util.ReactorUtil;
+import com.taxonic.carml.util.ReactiveInputStreams;
 import java.io.InputStream;
 import java.util.Optional;
 import lombok.AccessLevel;
@@ -29,7 +29,7 @@ public class ClassPathResolver implements SourceResolver {
         throw new SourceResolverException(String.format("Could not resolve source %s", sourceName));
       }
 
-      return ReactorUtil.fluxInputStream(inputStream);
+      return ReactiveInputStreams.fluxInputStream(inputStream);
     });
   }
 }

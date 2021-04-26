@@ -3,9 +3,9 @@ package com.taxonic.carml.util;
 import java.net.URISyntaxException;
 import org.eclipse.rdf4j.common.net.ParsedIRI;
 
-public class RdfUtil {
+public final class RdfValues {
 
-  private RdfUtil() {}
+  private RdfValues() {}
 
   public static boolean isValidIri(String str) {
     if (!str.contains(":")) {

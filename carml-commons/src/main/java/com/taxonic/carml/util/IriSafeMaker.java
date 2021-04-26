@@ -20,8 +20,8 @@ import java.util.stream.IntStream;
  */
 public class IriSafeMaker implements UnaryOperator<String> {
 
-  public static String makeSafe(String input, Form normalizationForm, boolean upperCaseHex) {
-    return create(normalizationForm, upperCaseHex).apply(input);
+  public static String makeSafe(String iriString, Form normalizationForm, boolean upperCaseHex) {
+    return create(normalizationForm, upperCaseHex).apply(iriString);
   }
 
   static class Range {
@@ -54,8 +54,7 @@ public class IriSafeMaker implements UnaryOperator<String> {
         + "/ %x40000-4FFFD / %x50000-5FFFD / %x60000-6FFFD " + "/ %x70000-7FFFD / %x80000-8FFFD / %x90000-9FFFD "
         + "/ %xA0000-AFFFD / %xB0000-BFFFD / %xC0000-CFFFD " + "/ %xD0000-DFFFD / %xE1000-EFFFD";
 
-    List<Range> ranges = Arrays.asList(rangesStr.split("/"))
-        .stream()
+    List<Range> ranges = Arrays.stream(rangesStr.split("/"))
         .map(p -> {
           String[] range = p.trim()
               .substring(2)
@@ -71,11 +70,11 @@ public class IriSafeMaker implements UnaryOperator<String> {
     return create(Form.NFC, true);
   }
 
-  private List<Range> ranges;
+  private final List<Range> ranges;
 
-  private Form normalizationForm;
+  private final Form normalizationForm;
 
-  private boolean upperCaseHex;
+  private final boolean upperCaseHex;
 
   public IriSafeMaker(List<Range> ranges, Form normalizationForm, boolean upperCaseHex) {
     this.ranges = ranges;
@@ -84,28 +83,29 @@ public class IriSafeMaker implements UnaryOperator<String> {
   }
 
   @Override
-  public String apply(String s) {
+  public String apply(String iriString) {
     StringBuilder result = new StringBuilder();
 
-    s = Normalizer.normalize(s, normalizationForm);
-    s.codePoints()
-        .flatMap(c -> {
-
-          if (Character.isAlphabetic(c) || Character.isDigit(c) || c == '-' || c == '.' || c == '_' || c == '~'
-              || ranges.stream()
-                  .anyMatch(r -> r.includes(c))) {
-            return IntStream.of(c);
-          }
-
-          String hex = Integer.toHexString(c);
-
-          hex = upperCaseHex ? hex.toUpperCase() : hex;
-
-          // percent-encode
-          return ("%" + hex).codePoints();
-        })
+    iriString = Normalizer.normalize(iriString, normalizationForm);
+    iriString.codePoints()
+        .flatMap(this::percentEncode)
         .forEach(c -> result.append((char) c));
     return result.toString();
+  }
+
+  private IntStream percentEncode(int codePoint) {
+    if (Character.isAlphabetic(codePoint) || Character.isDigit(codePoint) || codePoint == '-' || codePoint == '.'
+        || codePoint == '_' || codePoint == '~' || ranges.stream()
+            .anyMatch(r -> r.includes(codePoint))) {
+      return IntStream.of(codePoint);
+    }
+
+    String hex = Integer.toHexString(codePoint);
+
+    hex = upperCaseHex ? hex.toUpperCase() : hex;
+
+    // percent-encode
+    return ("%" + hex).codePoints();
   }
 
 }

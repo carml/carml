@@ -9,7 +9,7 @@ import com.taxonic.carml.engine.TermGenerator;
 import com.taxonic.carml.engine.TriplesMapperException;
 import com.taxonic.carml.model.SubjectMap;
 import com.taxonic.carml.model.TriplesMap;
-import com.taxonic.carml.util.ModelUtil;
+import com.taxonic.carml.util.Models;
 import java.util.Set;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
@@ -93,7 +93,7 @@ public class RdfSubjectMapper {
   private Flux<Statement> mapTypeStatements(Set<Resource> subjects, Set<Resource> graphs) {
     LOG.debug("Generating triples for subjects: {}", subjects);
 
-    Stream<Statement> typeStatementStream = ModelUtil.streamCartesianProductStatements(subjects, Set.of(RDF.TYPE),
+    Stream<Statement> typeStatementStream = Models.streamCartesianProductStatements(subjects, Set.of(RDF.TYPE),
         classes, graphs, RdfTriplesMapper.defaultGraphModifier, valueFactory, RdfTriplesMapper.logAddStatements);
 
     return Flux.fromStream(typeStatementStream);

@@ -2,7 +2,7 @@ package com.taxonic.carml.logical_source_resolver;
 
 import com.taxonic.carml.model.LogicalSource;
 import com.taxonic.carml.model.impl.CarmlLogicalSource;
-import com.taxonic.carml.util.ReactorUtil;
+import com.taxonic.carml.util.ReactiveInputStreams;
 import com.taxonic.carml.vocab.Rdf.Ql;
 import com.univocity.parsers.common.record.Record;
 import java.io.IOException;
@@ -33,8 +33,8 @@ public class CsvResolverTest {
 
   private Function<Object, InputStream> sourceResolver = s -> {
     try {
-      return ReactorUtil
-          .inputStreamFrom(ReactorUtil.fluxInputStream(IOUtils.toInputStream((String) s, StandardCharsets.UTF_8)));
+      return ReactiveInputStreams
+          .inputStreamFrom(ReactiveInputStreams.fluxInputStream(IOUtils.toInputStream((String) s, StandardCharsets.UTF_8)));
     } catch (IOException ioException) {
       throw new RuntimeException(ioException);
     }
