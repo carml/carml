@@ -1,6 +1,7 @@
 package com.taxonic.carml.engine.function;
 
 import com.google.common.collect.ImmutableList;
+import com.taxonic.carml.engine.RmlMapperException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -31,7 +32,7 @@ public class Functions {
 
   private static final ValueFactory VF = SimpleValueFactory.getInstance();
 
-  private Map<IRI, ExecuteFunction> fns = new LinkedHashMap<>();
+  private final Map<IRI, ExecuteFunction> fns = new LinkedHashMap<>();
 
   public Optional<ExecuteFunction> getFunction(IRI iri) {
     return Optional.ofNullable(fns.get(iri));
@@ -39,25 +40,24 @@ public class Functions {
 
   public void addFunctions(Object... functions) {
     for (Object fn : functions) {
-      Arrays.asList(fn.getClass()
+      Arrays.stream(fn.getClass()
           .getMethods())
-          .stream()
-          .map(m -> createFunctionExecutor(fn, m))
+          .map(method -> createFunctionExecutor(fn, method))
           .filter(Optional::isPresent)
           .map(Optional::get)
-          .forEach(f -> fns.put(f.getIri(), f));
+          .forEach(function -> fns.put(function.getIri(), function));
     }
   }
 
   private Optional<ExecuteFunction> createFunctionExecutor(Object obj, Method method) {
 
     FnoFunction function = method.getAnnotation(FnoFunction.class);
-    if (function == null)
+    if (function == null) {
       return Optional.empty();
-    IRI iri = VF.createIRI(function.value());
+    }
+    var iri = VF.createIRI(function.value());
 
-    List<ExtractParameter> parameterExtractors = Arrays.asList(method.getParameters())
-        .stream()
+    List<ExtractParameter> parameterExtractors = Arrays.stream(method.getParameters())
         .map(this::createParameterExtractor)
         .collect(Collectors.toList());
 
@@ -68,7 +68,7 @@ public class Functions {
       public Object execute(Model model, Resource subject, UnaryOperator<Object> returnValueAdapter) {
 
         List<Object> arguments = parameterExtractors.stream()
-            .map(e -> e.extract(model, subject))
+            .map(extractor -> extractor.extract(model, subject))
             .collect(Collectors.toList());
 
         try {
@@ -83,8 +83,8 @@ public class Functions {
           }
 
           return returnValueAdapter.apply(returnValue);
-        } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-          throw new RuntimeException("error executing function", e);
+        } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException exception) {
+          throw new RmlMapperException("error executing function", exception);
         }
       }
 
@@ -98,121 +98,67 @@ public class Functions {
   private ExtractParameter createParameterExtractor(Parameter parameter) {
 
     FnoParam param = parameter.getAnnotation(FnoParam.class);
-    if (param == null)
-      throw new RuntimeException("no @" + FnoParam.class.getName() + " annotation present on parameter");
-    IRI iri = VF.createIRI(param.value());
+    if (param == null) {
+      throw new RmlMapperException(String.format("no @%s annotation present on parameter", FnoParam.class.getName()));
+    }
+    var iri = VF.createIRI(param.value());
 
     Type type = parameter.getType();
 
     Function<List<Value>, Object> adapter;
 
     if (type.equals(Integer.TYPE) || type.equals(Integer.class)) {
-      adapter = l -> {
-        if (l == null || l.isEmpty()) {
-          // Return null for empty function parameter
-          return null;
-        }
-
-        expectSingleValue(l);
-        return literalToInt(l.get(0));
-      };
-    }
-
-    else if (type.equals(String.class)) {
-      adapter = l -> {
-        if (l == null || l.isEmpty()) {
-          // Return null for empty function parameter
-          return null;
-        }
-
-        expectSingleValue(l);
-        return literalToString(l.get(0));
-      };
-    }
-
-    else if (type.equals(Double.TYPE) || type.equals(Double.class)) {
-      adapter = l -> {
-        if (l == null || l.isEmpty()) {
-          // Return null for empty function parameter
-          return null;
-        }
-
-        expectSingleValue(l);
-        return literalToDouble(l.get(0));
-      };
-    }
-
-    else if (type.equals(Float.TYPE) || type.equals(Float.class)) {
-      adapter = l -> {
-        if (l == null || l.isEmpty()) {
-          // Return null for empty function parameter
-          return null;
-        }
-
-        expectSingleValue(l);
-        return literalToFloat(l.get(0));
-      };
-    }
-
-    else if (type.equals(Long.TYPE) || type.equals(Long.class)) {
-      adapter = l -> {
-        if (l == null || l.isEmpty()) {
-          // Return null for empty function parameter
-          return null;
-        }
-
-        expectSingleValue(l);
-        return literalToLong(l.get(0));
-      };
-    }
-
-    else if (type.equals(Boolean.TYPE) || type.equals(Boolean.class)) {
-      adapter = l -> {
-        if (l == null || l.isEmpty()) {
-          // Return null for empty function parameter
-          return null;
-        }
-
-        expectSingleValue(l);
-        return literalToBoolean(l.get(0));
-      };
-    }
-
-    else if (Collection.class.isAssignableFrom(parameter.getType())) {
+      adapter = values -> singleValueExtraction(values, this::literalToInt);
+    } else if (type.equals(String.class)) {
+      adapter = values -> singleValueExtraction(values, this::literalToString);
+    } else if (type.equals(Double.TYPE) || type.equals(Double.class)) {
+      adapter = values -> singleValueExtraction(values, this::literalToDouble);
+    } else if (type.equals(Float.TYPE) || type.equals(Float.class)) {
+      adapter = values -> singleValueExtraction(values, this::literalToFloat);
+    } else if (type.equals(Long.TYPE) || type.equals(Long.class)) {
+      adapter = values -> singleValueExtraction(values, this::literalToLong);
+    } else if (type.equals(Boolean.TYPE) || type.equals(Boolean.class)) {
+      adapter = values -> singleValueExtraction(values, this::literalToBoolean);
+    } else if (Collection.class.isAssignableFrom(parameter.getType())) {
       // TODO: Currently only collections with string parameter type supported.
-      adapter = l -> {
-        if (l == null || l.isEmpty()) {
-          // Return null for empty function parameter
-          return null;
-        }
-        if (!(l instanceof Collection)) {
-          throw new IllegalArgumentException(
-              "value [" + l + "] was not a collection, which is expected " + "for a parameter of type Collection<?>");
-        }
-
-        return l.stream()
-            .map(Value::stringValue)
-            .collect(ImmutableList.toImmutableList());
-      };
+      adapter = this::collectionValueExtraction;
+    } else {
+      throw new RmlMapperException(String.format("parameter type [%s] not (yet) supported", type));
     }
 
-    else
-      throw new RuntimeException("parameter type [" + type + "] not (yet) supported");
+    return (model, subject) -> {
+      var paramValues = model.filter(subject, iri, null);
 
-    return new ExtractParameter() {
+      List<Value> values = paramValues.stream()
+          .map(Statement::getObject)
+          .collect(ImmutableList.toImmutableList());
 
-      @Override
-      public Object extract(Model model, Resource subject) {
-        Model paramValues = model.filter(subject, iri, null);
-
-        List<Value> values = paramValues.stream()
-            .map(Statement::getObject)
-            .collect(ImmutableList.toImmutableList());
-
-        return adapter.apply(values);
-      }
+      return adapter.apply(values);
     };
   }
+
+  private Object singleValueExtraction(List<Value> values, Function<Value, Object> literalProcessor) {
+    if (values == null || values.isEmpty()) {
+      // Return null for empty function parameter
+      return null;
+    }
+
+    expectSingleValue(values);
+    return literalProcessor.apply(values.get(0));
+  }
+
+  private Object collectionValueExtraction(List<Value> values) {
+
+    if (values == null || values.isEmpty()) {
+      // Return null for empty function parameter
+      return null;
+    }
+
+    return values.stream()
+        .map(Value::stringValue)
+        .collect(ImmutableList.toImmutableList());
+  }
+
 
   public int size() {
     return fns.size();
@@ -220,64 +166,65 @@ public class Functions {
 
   private void expectSingleValue(List<Value> values) {
     if (values.size() > 1) {
-      throw new IllegalArgumentException("value [" + values + "] has more than one value, which is not expected.");
+      throw new IllegalArgumentException(
+          String.format("value [%s] has more than one value, which is not expected.", values));
     }
   }
 
-  private String literalToString(Value v) {
-    if (!(v instanceof Literal)) {
+  private String literalToString(Value value) {
+    if (!(value instanceof Literal)) {
       throw new IllegalArgumentException(
-          "value [" + v + "] was not a literal, which is expected " + "for a parameter of type String.");
+          String.format("value [%s] was not a literal, which is expected for a parameter of type String.", value));
     }
-    Literal literal = (Literal) v;
+    var literal = (Literal) value;
     return literal.stringValue();
   }
 
-  private int literalToInt(Value v) {
-    if (!(v instanceof Literal)) {
-      throw new IllegalArgumentException(
-          "value [" + v + "] was not a literal, which is expected " + "for a parameter of type int or Integer.");
+  private int literalToInt(Value value) {
+    if (!(value instanceof Literal)) {
+      throw new IllegalArgumentException(String
+          .format("value [%s] was not a literal, which is expected for a parameter of type int or Integer.", value));
     }
-    Literal literal = (Literal) v;
+    var literal = (Literal) value;
     return literal.intValue();
   }
 
-  private double literalToDouble(Value v) {
-    if (!(v instanceof Literal)) {
-      throw new IllegalArgumentException(
-          "value [" + v + "] was not a literal, which is expected " + "for a parameter of type double or Double.");
+  private double literalToDouble(Value value) {
+    if (!(value instanceof Literal)) {
+      throw new IllegalArgumentException(String
+          .format("value [%s] was not a literal, which is expected for a parameter of type double or Double.", value));
     }
-    Literal literal = (Literal) v;
+    var literal = (Literal) value;
 
     return literal.doubleValue();
   }
 
-  private float literalToFloat(Value v) {
-    if (!(v instanceof Literal)) {
-      throw new IllegalArgumentException(
-          "value [" + v + "] was not a literal, which is expected " + "for a parameter of type float or Float.");
+  private float literalToFloat(Value value) {
+    if (!(value instanceof Literal)) {
+      throw new IllegalArgumentException(String
+          .format("value [%s] was not a literal, which is expected for a parameter of type float or Float.", value));
     }
-    Literal literal = (Literal) v;
+    var literal = (Literal) value;
 
     return literal.floatValue();
   }
 
-  private long literalToLong(Value v) {
-    if (!(v instanceof Literal)) {
-      throw new IllegalArgumentException(
-          "value [" + v + "] was not a literal, which is expected " + "for a parameter of type long or Long.");
+  private long literalToLong(Value value) {
+    if (!(value instanceof Literal)) {
+      throw new IllegalArgumentException(String
+          .format("value [%s] was not a literal, which is expected for a parameter of type long or Long.", value));
     }
-    Literal literal = (Literal) v;
+    var literal = (Literal) value;
 
     return literal.longValue();
   }
 
-  private boolean literalToBoolean(Value v) {
-    if (!(v instanceof Literal)) {
-      throw new IllegalArgumentException(
-          "value [" + v + "] was not a literal, which is expected " + "for a parameter of type boolean or Boolean.");
+  private boolean literalToBoolean(Value value) {
+    if (!(value instanceof Literal)) {
+      throw new IllegalArgumentException(String.format(
+          "value [%s] was not a literal, which is expected for a parameter of type boolean or Boolean.", value));
     }
-    Literal literal = (Literal) v;
+    var literal = (Literal) value;
 
     return literal.booleanValue();
   }

@@ -1,0 +1,10 @@
+@prefix ex: <http://example.com/> .
+
+ex:Third
+  ex:fourth ex:Fourth ;
+.
+
+ex:Fourth
+  rdfs:label "fourth" ;
+  ex:fifth ex:Fifth ;
+.

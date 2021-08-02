@@ -1,0 +1,25 @@
+@prefix ex: <http://example.com/> .
+
+ex:root
+  rdfs:label "root" ;
+  ex:first [
+    rdfs:label "first" ;
+    ex:second [
+      rdfs:label "second" ;
+      ex:third [
+        rdfs:label "third" ;
+        ex:fourth ex:Fourth ;
+      ] ;
+    ] ;
+  ] ;
+.
+
+ex:Fourth
+  rdfs:label "fourth" ;
+  ex:fifth [
+    rdfs:label "fifth" ;
+    ex:sixth [
+      rdfs:label "sixth" ;
+    ] ;
+  ] ;
+.

@@ -1,0 +1,5 @@
+@prefix ex: <http://example.com/> .
+
+ex:Third
+  ex:fourth ex:Fourth ;
+.

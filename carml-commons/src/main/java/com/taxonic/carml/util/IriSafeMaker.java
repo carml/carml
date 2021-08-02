@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import lombok.NonNull;
 
 /**
  * Creates IRI-safe values, by percent-encoding any characters in a {@code String} that are NOT one
@@ -19,10 +20,6 @@ import java.util.stream.IntStream;
  * "https://www.w3.org/TR/r2rml/#from-template">https://www.w3.org/TR/r2rml/#from-template</a>.
  */
 public class IriSafeMaker implements UnaryOperator<String> {
-
-  public static String makeSafe(String iriString, Form normalizationForm, boolean upperCaseHex) {
-    return create(normalizationForm, upperCaseHex).apply(iriString);
-  }
 
   static class Range {
 
@@ -40,7 +37,11 @@ public class IriSafeMaker implements UnaryOperator<String> {
     }
   }
 
-  public static IriSafeMaker create(Form normalizationForm, boolean upperCaseHex) {
+  public static IriSafeMaker create() {
+    return create(Form.NFC, true);
+  }
+
+  public static IriSafeMaker create(@NonNull Form normalizationForm, boolean upperCaseHex) {
 
     /*
      * percent-encode any char not in the 'iunreserved' production rule: iunreserved = ALPHA / DIGIT /
@@ -66,17 +67,13 @@ public class IriSafeMaker implements UnaryOperator<String> {
     return new IriSafeMaker(ranges, normalizationForm, upperCaseHex);
   }
 
-  public static IriSafeMaker create() {
-    return create(Form.NFC, true);
-  }
-
   private final List<Range> ranges;
 
   private final Form normalizationForm;
 
   private final boolean upperCaseHex;
 
-  public IriSafeMaker(List<Range> ranges, Form normalizationForm, boolean upperCaseHex) {
+  private IriSafeMaker(List<Range> ranges, Form normalizationForm, boolean upperCaseHex) {
     this.ranges = ranges;
     this.normalizationForm = normalizationForm;
     this.upperCaseHex = upperCaseHex;
@@ -84,7 +81,7 @@ public class IriSafeMaker implements UnaryOperator<String> {
 
   @Override
   public String apply(String iriString) {
-    StringBuilder result = new StringBuilder();
+    var result = new StringBuilder();
 
     iriString = Normalizer.normalize(iriString, normalizationForm);
     iriString.codePoints()
@@ -100,7 +97,7 @@ public class IriSafeMaker implements UnaryOperator<String> {
       return IntStream.of(codePoint);
     }
 
-    String hex = Integer.toHexString(codePoint);
+    var hex = Integer.toHexString(codePoint);
 
     hex = upperCaseHex ? hex.toUpperCase() : hex;
 

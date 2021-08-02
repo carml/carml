@@ -5,6 +5,7 @@ import java.io.StringWriter;
 import java.util.Set;
 import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
+import lombok.NonNull;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Literal;
 import org.eclipse.rdf4j.model.Model;
@@ -38,34 +39,36 @@ public final class ModelSerializer {
 
   private ModelSerializer() {}
 
-  public static String serializeAsRdf(Model model, RDFFormat rdfFormat, UnaryOperator<Model> namespaceApplier) {
+  public static String serializeAsRdf(@NonNull Model model, @NonNull RDFFormat rdfFormat,
+      @NonNull UnaryOperator<Model> namespaceApplier) {
     return serializeAsRdf(model, rdfFormat, SIMPLE_WRITER_CONFIG, namespaceApplier);
   }
 
-  public static String serializeAsRdf(Model model, RDFFormat rdfFormat,
-      UnaryOperator<WriterConfig> writerSettingsApplier, UnaryOperator<Model> namespaceApplier) {
+  public static String serializeAsRdf(@NonNull Model model, @NonNull RDFFormat rdfFormat,
+      @NonNull UnaryOperator<WriterConfig> writerSettingsApplier, @NonNull UnaryOperator<Model> namespaceApplier) {
     namespaceApplier.apply(model);
     return serializeAsRdf(model, rdfFormat, writerSettingsApplier.apply(new WriterConfig()));
   }
 
-  public static String serializeAsRdf(Model model, RDFFormat rdfFormat) {
+  public static String serializeAsRdf(@NonNull Model model, @NonNull RDFFormat rdfFormat) {
     return serializeAsRdf(model, rdfFormat, new WriterConfig());
   }
 
-  public static String serializeAsRdf(Model model, RDFFormat rdfFormat, WriterConfig config) {
-    StringWriter sw = new StringWriter();
-    BufferedWriter writer = new BufferedWriter(sw);
+  public static String serializeAsRdf(@NonNull Model model, @NonNull RDFFormat rdfFormat,
+      @NonNull WriterConfig config) {
+    var sw = new StringWriter();
+    var writer = new BufferedWriter(sw);
     Rio.write(model, writer, rdfFormat, config);
     return sw.toString();
   }
 
-  public static String formatResourceForLog(Model contextModel, Resource resource, Set<Namespace> namespaces,
-      boolean causedException) {
+  public static String formatResourceForLog(@NonNull Model contextModel, @NonNull Resource resource,
+      Set<Namespace> namespaces, boolean causedException) {
     return formatResourceForLog(contextModel, resource, new LinkedHashModel(), namespaces, causedException);
   }
 
-  public static String formatResourceForLog(Model contextModel, Resource resource, Model resourceModel,
-      Set<Namespace> namespaces, boolean causedException) {
+  public static String formatResourceForLog(@NonNull Model contextModel, @NonNull Resource resource,
+      @NonNull Model resourceModel, Set<Namespace> namespaces, boolean causedException) {
     if (resource instanceof IRI) {
       return String.format("resource <%s>", resource.stringValue());
     }
@@ -85,7 +88,7 @@ public final class ModelSerializer {
     return String.format("blank node resource %s in:%n```%n%s%n```", resource, stripTurtleStylePrefixes(ttl).trim());
   }
 
-  public static String stripTurtleStylePrefixes(String ttlStyleSerialization) {
+  public static String stripTurtleStylePrefixes(@NonNull String ttlStyleSerialization) {
     return TTL_STYLE_PREFIX.matcher(ttlStyleSerialization)
         .replaceAll("");
   }

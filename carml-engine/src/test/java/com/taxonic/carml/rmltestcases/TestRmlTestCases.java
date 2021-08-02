@@ -3,9 +3,9 @@ package com.taxonic.carml.rmltestcases;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.taxonic.carml.engine.rdf.ModelResult;
 import com.taxonic.carml.engine.rdf.RdfRmlMapper;
 import com.taxonic.carml.logical_source_resolver.CsvResolver;
 import com.taxonic.carml.logical_source_resolver.JsonPathResolver;
@@ -16,6 +16,7 @@ import com.taxonic.carml.rmltestcases.model.Dataset;
 import com.taxonic.carml.rmltestcases.model.Output;
 import com.taxonic.carml.rmltestcases.model.TestCase;
 import com.taxonic.carml.util.Models;
+import com.taxonic.carml.util.RdfCollectors;
 import com.taxonic.carml.util.RmlMappingLoader;
 import com.taxonic.carml.vocab.Rdf;
 import java.io.InputStream;
@@ -75,7 +76,7 @@ public class TestRmlTestCases {
         .collect(ImmutableSet.toImmutableSet());
   }
 
-  private static Function<Model, Set<Resource>> selectTestCases =
+  private static final Function<Model, Set<Resource>> selectTestCases =
       model -> ImmutableSet.copyOf(model.filter(null, RDF.TYPE, EARL_TESTCASE)
           .subjects()
           .stream()
@@ -127,9 +128,9 @@ public class TestRmlTestCases {
         .classPathResolver(String.format("%s/%s", CLASS_LOCATION, testCase.getIdentifier()))
         .build();
 
-    return ModelResult.from(mapper.map())
-        .stream()
-        .collect(Collectors.toCollection(TreeModel::new));
+    return mapper.map()
+        .collect(RdfCollectors.toRdf4JTreeModel())
+        .block();
   }
 
   static InputStream getDatasetInputStream(Dataset dataset) {

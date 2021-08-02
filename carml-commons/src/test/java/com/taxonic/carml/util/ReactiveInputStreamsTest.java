@@ -39,23 +39,23 @@ class ReactiveInputStreamsTest {
 
   @Test
   void inputStreamFromColdFluxTest() throws IOException, InterruptedException {
-    // Arrange
+    // Given
     String inputString = "foo bar alice bob";
     InputStream inputStream = IOUtils.toInputStream(inputString, StandardCharsets.UTF_8);
     Flux<DataBuffer> dataBufferFlux = ReactiveInputStreams.fluxInputStream(inputStream);
     String out;
 
-    // Act
+    // When
     InputStream input = ReactiveInputStreams.inputStreamFrom(dataBufferFlux);
     out = IOUtils.toString(input, StandardCharsets.UTF_8);
 
-    // Assert
+    // Then
     assertThat(out, is(inputString));
   }
 
   @Test
   void inputStreamFromHotFluxTest() throws IOException {
-    // Arrange
+    // Given
     String inputString = "foo bar alice bob";
     InputStream inputStream = IOUtils.toInputStream(inputString, StandardCharsets.UTF_8);
     ConnectableFlux<DataBuffer> dataBufferFlux = ReactiveInputStreams.fluxInputStream(inputStream)
@@ -64,7 +64,7 @@ class ReactiveInputStreamsTest {
     String out2;
     String out3;
 
-    // Act
+    // When
     InputStream input1 = ReactiveInputStreams.inputStreamFrom(dataBufferFlux);
     InputStream input2 = ReactiveInputStreams.inputStreamFrom(dataBufferFlux);
     InputStream input3 = ReactiveInputStreams.inputStreamFrom(dataBufferFlux);
@@ -75,7 +75,7 @@ class ReactiveInputStreamsTest {
     out2 = IOUtils.toString(input2, StandardCharsets.UTF_8);
     out3 = IOUtils.toString(input3, StandardCharsets.UTF_8);
 
-    // Assert
+    // Then
     assertThat(out1, is(inputString));
     assertThat(out2, is(inputString));
     assertThat(out3, is(inputString));

@@ -3,7 +3,7 @@ package com.taxonic.carml.model.impl;
 import com.taxonic.carml.model.Resource;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.rdf_mapper.annotations.RdfResourceName;
-import com.taxonic.carml.util.RdfUtil;
+import com.taxonic.carml.util.RdfValues;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -50,7 +50,7 @@ public abstract class CarmlResource implements Resource {
       return VF.createBNode();
     }
 
-    if (RdfUtil.isValidIri(id)) {
+    if (RdfValues.isValidIri(id)) {
       return VF.createIRI(id);
     }
 

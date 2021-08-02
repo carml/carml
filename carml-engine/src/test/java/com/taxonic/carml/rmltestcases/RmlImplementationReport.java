@@ -1,7 +1,6 @@
 package com.taxonic.carml.rmltestcases;
 
 import com.google.common.collect.ImmutableSet;
-import com.taxonic.carml.engine.rdf.ModelResult;
 import com.taxonic.carml.engine.rdf.RdfRmlMapper;
 import com.taxonic.carml.logical_source_resolver.CsvResolver;
 import com.taxonic.carml.logical_source_resolver.JsonPathResolver;
@@ -11,6 +10,7 @@ import com.taxonic.carml.rdf_mapper.util.RdfObjectLoader;
 import com.taxonic.carml.rmltestcases.model.Output;
 import com.taxonic.carml.rmltestcases.model.TestCase;
 import com.taxonic.carml.util.Models;
+import com.taxonic.carml.util.RdfCollectors;
 import com.taxonic.carml.util.RmlMappingLoader;
 import com.taxonic.carml.vocab.Rdf;
 import java.io.FileWriter;
@@ -18,12 +18,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
-import org.eclipse.rdf4j.model.impl.TreeModel;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 import org.eclipse.rdf4j.rio.RDFFormat;
 
@@ -107,7 +105,7 @@ public class RmlImplementationReport {
 
         Model expected = Models.parse(expectedOutputStream, RDFFormat.NQUADS)
             .stream() //
-            .collect(Collectors.toCollection(TreeModel::new));
+            .collect(RdfCollectors.toRdf4JTreeModel());
 
         passed = result.equals(expected);
       } catch (Exception exception) {
@@ -129,9 +127,9 @@ public class RmlImplementationReport {
         .classPathResolver(String.format("%s/%s", TestRmlTestCases.CLASS_LOCATION, testCase.getIdentifier()))
         .build();
 
-    return ModelResult.from(mapper.map())
-        .stream()
-        .collect(Collectors.toCollection(TreeModel::new));
+    return mapper.map()
+        .collect(RdfCollectors.toRdf4JTreeModel())
+        .block();
   }
 
   enum TestResult {

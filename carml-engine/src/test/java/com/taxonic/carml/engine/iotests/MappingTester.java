@@ -16,6 +16,7 @@ import com.taxonic.carml.vocab.Rdf;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import org.eclipse.rdf4j.model.Model;
@@ -27,13 +28,9 @@ import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 
-class MappingTest {
+class MappingTester {
 
   private final RmlMappingLoader loader = RmlMappingLoader.build();
-
-  void testMapping(String contextPath, String rmlPath) {
-    testMapping(contextPath, rmlPath, null);
-  }
 
   void testMapping(String contextPath, String rmlPath, String outputPath) {
     testMapping(contextPath, rmlPath, outputPath, m -> {
@@ -47,7 +44,8 @@ class MappingTest {
 
   void testMapping(String contextPath, String rmlPath, String outputPath,
       Consumer<RdfRmlMapper.Builder> configureMapper, Map<String, InputStream> namedInputStreams) {
-    Set<TriplesMap> mapping = loader.load(RDFFormat.TURTLE, rmlPath);
+    Set<TriplesMap> mapping = loader.load(RDFFormat.TURTLE, MappingTester.class.getResourceAsStream(rmlPath));
+
     RdfRmlMapper.Builder builder = RdfRmlMapper.builder()
         .setLogicalSourceResolver(Rdf.Ql.Csv, CsvResolver::getInstance)
         .setLogicalSourceResolver(Rdf.Ql.JsonPath, JsonPathResolver::getInstance)
@@ -69,10 +67,13 @@ class MappingTest {
     }
 
     // exit for tests without expected output, such as exception tests
-    if (outputPath == null)
+    if (outputPath == null) {
       return;
+    }
 
-    Model expected = Models.parse(outputPath, determineRdfFormat(outputPath))
+    InputStream expectedModel = MappingTester.class.getResourceAsStream(outputPath);
+
+    Model expected = Models.parse(Objects.requireNonNull(expectedModel), determineRdfFormat(outputPath))
         .stream()
         .collect(RdfCollectors.toRdf4JTreeModel());
 
@@ -84,7 +85,7 @@ class MappingTest {
         .orElseThrow(() -> new RuntimeException(String.format("could not determine rdf format from file [%s]", path)));
   }
 
-  public static Matcher<Model> equalTo(final Model expected) {
+  static Matcher<Model> equalTo(final Model expected) {
     return new TypeSafeMatcher<>() {
 
       @Override
@@ -117,8 +118,8 @@ class MappingTest {
         StringWriter stringWriter = new StringWriter();
         Rio.write(model, stringWriter, RDFFormat.TRIG);
         return stringWriter.toString()
-            .replace("\r\n", "\n")
-            .replace("\r", "\n");
+            .replace("\r\n", System.lineSeparator())
+            .replace("\r", System.lineSeparator());
       }
 
     };

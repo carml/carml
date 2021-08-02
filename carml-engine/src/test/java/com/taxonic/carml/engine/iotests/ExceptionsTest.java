@@ -7,19 +7,19 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.taxonic.carml.model.TermType;
 import org.junit.jupiter.api.Test;
 
-public class ExceptionsTest extends MappingTest {
+public class ExceptionsTest extends MappingTester {
 
   @Test
   public void testGeneratorMappingException() {
     RuntimeException exception = assertThrows(RuntimeException.class,
-        () -> testMapping("RmlMapper", "RmlMapper/exceptionTests/exceptionGeneratorMappping.rml.ttl", null));
+        () -> testMapping("RmlMapper", "/RmlMapper/exceptionTests/exceptionGeneratorMappping.rml.ttl", null));
     assertThat(exception.getMessage(), startsWith("Exception occurred while creating object generator for"));
   }
 
   @Test
   public void testUnknownTermTypeException() {
     RuntimeException exception = assertThrows(RuntimeException.class,
-        () -> testMapping("RmlMapper", "RmlMapper/exceptionTests/exceptionUnknownTermTypeMapping.rml.ttl", null));
+        () -> testMapping("RmlMapper", "/RmlMapper/exceptionTests/exceptionUnknownTermTypeMapping.rml.ttl", null));
     assertThat(exception.getMessage(),
         startsWith(String.format("cannot create an instance of enum type [%s]", TermType.class.getCanonicalName())));
   }
@@ -27,49 +27,49 @@ public class ExceptionsTest extends MappingTest {
   @Test
   public void testConstantValueException() {
     RuntimeException exception = assertThrows(RuntimeException.class,
-        () -> testMapping("RmlMapper", "RmlMapper/exceptionTests/exceptionConstantValueMapping.rml.ttl", null));
+        () -> testMapping("RmlMapper", "/RmlMapper/exceptionTests/exceptionConstantValueMapping.rml.ttl", null));
     assertThat(exception.getMessage(), startsWith("Exception occurred while creating predicate generator for"));
   }
 
   @Test
   public void testEqualLogicalSourceException() {
     RuntimeException exception = assertThrows(RuntimeException.class,
-        () -> testMapping("RmlMapper", "RmlMapper/exceptionTests/exceptionEqualLogicalSourceMapping.rml.ttl", null));
+        () -> testMapping("RmlMapper", "/RmlMapper/exceptionTests/exceptionEqualLogicalSourceMapping.rml.ttl", null));
     assertThat(exception.getMessage(), startsWith("Logical sources are not equal."));
   }
 
   @Test
   public void testTermTypeExceptionA() {
     RuntimeException exception = assertThrows(RuntimeException.class,
-        () -> testMapping("RmlMapper", "RmlMapper/exceptionTests/exceptionTermTypeMappingA.rml.ttl", null));
+        () -> testMapping("RmlMapper", "/RmlMapper/exceptionTests/exceptionTermTypeMappingA.rml.ttl", null));
     assertThat(exception.getMessage(), startsWith("Exception occurred while creating subject generator for"));
   }
 
   @Test
   public void testTermTypeExceptionB() {
     RuntimeException exception = assertThrows(RuntimeException.class,
-        () -> testMapping("RmlMapper", "RmlMapper/exceptionTests/exceptionTermTypeMappingB.rml.ttl", null));
+        () -> testMapping("RmlMapper", "/RmlMapper/exceptionTests/exceptionTermTypeMappingB.rml.ttl", null));
     assertThat(exception.getMessage(), startsWith("encountered disallowed term type"));
   }
 
   @Test
   public void testTermTypeExceptionC() {
     RuntimeException exception = assertThrows(RuntimeException.class,
-        () -> testMapping("RmlMapper", "RmlMapper/exceptionTests/exceptionTermTypeMappingC.rml.ttl", null));
+        () -> testMapping("RmlMapper", "/RmlMapper/exceptionTests/exceptionTermTypeMappingC.rml.ttl", null));
     assertThat(exception.getMessage(), startsWith("encountered disallowed term type"));
   }
 
   @Test
   public void testTermTypeExceptionD() {
     RuntimeException exception = assertThrows(RuntimeException.class,
-        () -> testMapping("RmlMapper", "RmlMapper/exceptionTests/exceptionTermTypeMappingD.rml.ttl", null));
+        () -> testMapping("RmlMapper", "/RmlMapper/exceptionTests/exceptionTermTypeMappingD.rml.ttl", null));
     assertThat(exception.getMessage(), startsWith("Exception occurred while creating predicate generator for"));
   }
 
   @Test
   public void testTermTypeExceptionE() {
     RuntimeException exception = assertThrows(RuntimeException.class,
-        () -> testMapping("RmlMapper", "RmlMapper/exceptionTests/exceptionTermTypeMappingE.rml.ttl", null));
+        () -> testMapping("RmlMapper", "/RmlMapper/exceptionTests/exceptionTermTypeMappingE.rml.ttl", null));
     assertThat(exception.getMessage(), startsWith("Exception occurred while creating predicate generator for"));
   }
 

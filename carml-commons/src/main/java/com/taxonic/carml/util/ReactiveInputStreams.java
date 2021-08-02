@@ -16,28 +16,34 @@ import reactor.core.scheduler.Schedulers;
 @Slf4j
 public final class ReactiveInputStreams {
 
-  private ReactiveInputStreams(){}
+  private static final int DATA_BUFFER_SIZE = 4096;
+
+  private ReactiveInputStreams() {}
 
   public static Flux<DataBuffer> fluxInputStream(@NonNull InputStream inputStream) {
     DataBufferFactory dataBufferFactory = new DefaultDataBufferFactory();
-    return DataBufferUtils.readInputStream(() -> inputStream, dataBufferFactory, 4096);
+    return DataBufferUtils.readInputStream(() -> inputStream, dataBufferFactory, DATA_BUFFER_SIZE)
+        .onErrorMap(error -> new ReactiveInputstreamsException(
+            "Exception occurred while creating Flux form input stream.", error));
   }
 
   public static InputStream inputStreamFrom(Flux<DataBuffer> dataBufferFlux) throws IOException {
-    PipedOutputStream osPipe = new PipedOutputStream();
-    PipedInputStream isPipe = new PipedInputStream(osPipe);
+    var osPipe = new PipedOutputStream();
+    var isPipe = new PipedInputStream(osPipe);
 
     DataBufferUtils.write(dataBufferFlux, osPipe)
         .subscribeOn(Schedulers.boundedElastic())
-        .doOnComplete(() -> {
+        .doFinally(onFinally -> {
           try {
             osPipe.close();
-          } catch (IOException ignored) {
+          } catch (IOException triggerWarning) {
+            LOG.warn("An exception occurred while closing a PipedOutputStream:{}{}", System.lineSeparator(),
+                triggerWarning);
           }
         })
-        // TODO : what to do on error?
-        .doOnError(error -> LOG.error("Something went wrong"))
-        .subscribe(DataBufferUtils.releaseConsumer(), error -> LOG.error("ERROR: {}", error));
+        .onErrorMap(error -> new ReactiveInputstreamsException(
+            "Exception occurred while creating input stream form Flux.", error))
+        .subscribe(DataBufferUtils.releaseConsumer());
     return isPipe;
   }
 

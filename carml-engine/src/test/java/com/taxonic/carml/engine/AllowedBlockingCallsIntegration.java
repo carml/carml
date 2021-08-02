@@ -9,7 +9,6 @@ public class AllowedBlockingCallsIntegration implements BlockHoundIntegration {
 
   @Override
   public void applyTo(BlockHound.Builder builder) {
-    allowBlockingCallsInside("com.taxonic.carml.engine.rdf.ModelResult", "from", builder);
     allowBlockingCallsInside("com.taxonic.carml.engine.rdf.RdfTermGeneratorFactory", "mapExecution", builder);
   }
 
