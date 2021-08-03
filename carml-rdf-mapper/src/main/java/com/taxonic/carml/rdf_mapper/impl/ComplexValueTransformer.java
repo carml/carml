@@ -72,21 +72,7 @@ public class ComplexValueTransformer implements ValueTransformer {
     // - must be a subtype of 'propertyType'
     // - must be a specific type, eg. no unbound type parameters, not an interface
 
-    Object targetValue;
-
-    // before mapping, first check the cache for an existing mapping
-    // NOTE: cache includes pre-mapped/registered enum instances
-    // such as <#Male> -> Gender.Male for property gender : Gender
-    targetValue = mappingCache.getCachedMapping(resource, targetTypes);
-
-    if (targetValue == null) {
-
-      // no existing mapping - perform mapping
-      targetValue = mapper.map(model, resource, targetTypes);
-
-      // add mapped value to cache
-      mappingCache.addCachedMapping(resource, targetTypes, targetValue);
-    }
+    Object targetValue = mapper.map(model, resource, targetTypes);
 
     // TODO check cache for adapted value (key: typeAdapter + targetValue)
     Object adaptedValue = typeAdapter.apply(targetValue);

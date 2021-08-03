@@ -1,6 +1,5 @@
 package com.taxonic.carml.rdf_mapper.impl;
 
-
 import static com.taxonic.carml.rdf_mapper.impl.PropertyUtils.createSetterName;
 import static com.taxonic.carml.rdf_mapper.impl.PropertyUtils.findSetter;
 import static com.taxonic.carml.rdf_mapper.impl.PropertyUtils.getPropertyName;
@@ -11,7 +10,6 @@ import static java.util.stream.Collectors.toMap;
 import static java.util.stream.Stream.concat;
 import static java.util.stream.Stream.empty;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.taxonic.carml.rdf_mapper.Combiner;
 import com.taxonic.carml.rdf_mapper.Mapper;
@@ -55,7 +53,13 @@ public class CarmlMapper implements Mapper, MappingCache {
 
   private static final Logger LOG = LoggerFactory.getLogger(CarmlMapper.class);
 
-  private Set<Namespace> namespaces;
+  private final Set<Namespace> namespaces;
+
+  private final Map<Pair<Resource, Set<Type>>, Object> cachedMappings = new LinkedHashMap<>();
+
+  private final Map<IRI, Type> decidableTypes = new LinkedHashMap<>();
+
+  private final Map<Type, Type> boundInterfaceImpls = new LinkedHashMap<>();
 
   public CarmlMapper() {
     this(new HashSet<>());
@@ -69,16 +73,22 @@ public class CarmlMapper implements Mapper, MappingCache {
   // so no unbound type parameters. no interface, unless a list or so.
   // TODO *could* be an interface, but then an implementation type should be registered.
   @Override
+  @SuppressWarnings("unchecked")
   public <T> T map(Model model, Resource resource, Set<Type> types) {
 
+    // before mapping, first check the cache for an existing mapping
+    // NOTE: cache includes pre-mapped/registered enum instances
+    // such as <#Male> -> Gender.Male for property gender : Gender
+    Object cached = getCachedMapping(resource, types);
+    if (cached != null) {
+      return (T) cached;
+    }
 
-    if (types.size() > 1) {
-      if (!types.stream()
-          .allMatch(t -> ((Class<?>) t).isInterface())) {
-        throw new IllegalStateException(
-            String.format("Error mapping %s. In case of multiple types, mapper requires all types to be interfaces",
-                formatResourceForLog(model, resource, namespaces, true)));
-      }
+    if (types.size() > 1 && !types.stream()
+        .allMatch(t -> ((Class<?>) t).isInterface())) {
+      throw new IllegalStateException(
+          String.format("Error mapping %s. In case of multiple types, mapper requires all types to be interfaces",
+              formatResourceForLog(model, resource, namespaces, true)));
     }
 
     if (types.stream()
@@ -105,7 +115,7 @@ public class CarmlMapper implements Mapper, MappingCache {
         .contains(m);
 
 
-    return (T) Proxy.newProxyInstance(CarmlMapper.class.getClassLoader(), types.stream()
+    T result = (T) Proxy.newProxyInstance(CarmlMapper.class.getClassLoader(), types
         .toArray(Class<?>[]::new), (proxy, method, args) -> {
 
           MultiDelegateCall multiDelegateCall = method.getAnnotation(MultiDelegateCall.class);
@@ -116,7 +126,7 @@ public class CarmlMapper implements Mapper, MappingCache {
               .collect(toList());
 
           if (delegates.isEmpty()) {
-            throw new RuntimeException(String.format(
+            throw new CarmlMapperException(String.format(
                 "Error processing %s%nCould not determine type. (No implementation present with specified method [%s])",
                 formatResourceForLog(model, resource, namespaces, true), method));
           }
@@ -133,6 +143,9 @@ public class CarmlMapper implements Mapper, MappingCache {
                 .orElse(null);
           }
         });
+    addCachedMapping(resource, types, result);
+
+    return result;
   }
 
   @SuppressWarnings("unchecked")
@@ -159,7 +172,7 @@ public class CarmlMapper implements Mapper, MappingCache {
             .newInstance());
       } catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
           | NoSuchMethodException | SecurityException e) {
-        throw new RuntimeException(String.format("failed to instantiate multi delegate call combiner class %s",
+        throw new CarmlMapperException(String.format("failed to instantiate multi delegate call combiner class %s",
             combinerClass.getCanonicalName()), e);
       }
     }
@@ -170,8 +183,8 @@ public class CarmlMapper implements Mapper, MappingCache {
     try {
       return method.invoke(delegate, args);
     } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-      throw new RuntimeException(String.format("error trying to invoke method [%s] on delegate [%s]", method, delegate),
-          e);
+      throw new CarmlMapperException(
+          String.format("error trying to invoke method [%s] on delegate [%s]", method, delegate), e);
     }
   }
 
@@ -191,7 +204,7 @@ public class CarmlMapper implements Mapper, MappingCache {
     Class<?> c = (Class<?>) type;
 
     if (c.isEnum()) {
-      throw new RuntimeException(
+      throw new CarmlMapperException(
           "cannot create an instance of " + "enum type [" + c.getCanonicalName() + "]. you should probably "
               + "place an instance of the enum type in the MappingCache " + "prior to mapping.");
     }
@@ -211,9 +224,11 @@ public class CarmlMapper implements Mapper, MappingCache {
           .newInstance();
     } catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
         | NoSuchMethodException | SecurityException e) {
-      throw new RuntimeException(String.format("Error processing %s%n  failed to instantiate [%s]",
+      throw new CarmlMapperException(String.format("Error processing %s%n  failed to instantiate [%s]",
           formatResourceForLog(model, resource, namespaces, true), c.getCanonicalName()), e);
     }
+
+    addCachedMapping(resource, Set.of(type), instance);
 
     propertyHandlers.forEach(h -> h.handle(model, resource, instance));
 
@@ -232,9 +247,9 @@ public class CarmlMapper implements Mapper, MappingCache {
 
   private static class PropertyType {
 
-    private Class<?> elementType;
+    private final Class<?> elementType;
 
-    private Class<?> iterableType;
+    private final Class<?> iterableType;
 
     PropertyType(Class<?> elementType, Class<?> iterableType) {
       this.elementType = elementType;
@@ -292,9 +307,10 @@ public class CarmlMapper implements Mapper, MappingCache {
         return (TypeDecider) deciderClass.getConstructor()
             .newInstance();
       } catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
-          | NoSuchMethodException | SecurityException e) {
-        throw new RuntimeException("failed to instantiate rdf type decider class " + deciderClass.getCanonicalName(),
-            e);
+          | NoSuchMethodException | SecurityException exception) {
+        throw new CarmlMapperException(
+            String.format("failed to instantiate rdf type decider class %s", deciderClass.getCanonicalName()),
+            exception);
       }
     }
     return null;
@@ -311,7 +327,7 @@ public class CarmlMapper implements Mapper, MappingCache {
     // if @RdfType(MyImpl.class) is present on property, use that
     Class<?> typeFromRdfTypeAnnotation = getTypeFromRdfTypeAnnotation(method);
     if (typeFromRdfTypeAnnotation != null) {
-      return (m, r) -> ImmutableSet.of(typeFromRdfTypeAnnotation);
+      return (m, r) -> Set.of(typeFromRdfTypeAnnotation);
     }
 
     // backup: use this property's type.
@@ -319,7 +335,7 @@ public class CarmlMapper implements Mapper, MappingCache {
     // (mapper.registerImplementation(Xyz.class, XyzImpl.class)
     Class<?> implementationType = elementType; // TODO mapper.getRegisteredTypeAlias/Implementation(propertyType);
     // TODO check for pre: no unbound parameter types; not an interface
-    TypeDecider propertyTypeDecider = (m, r) -> ImmutableSet.of(implementationType);
+    TypeDecider propertyTypeDecider = (m, r) -> Set.of(implementationType);
 
     // use rdf:type triple, if present.
     // => the rdf:type value would have to correspond to an @RdfType annotation on a registered class.
@@ -388,8 +404,7 @@ public class CarmlMapper implements Mapper, MappingCache {
     regBuilder.method(method);
     RdfProperty[] annotations = method.getAnnotationsByType(RdfProperty.class);
 
-    Arrays.asList(annotations) //
-        .stream() //
+    Arrays.stream(annotations)
         .forEach(a -> collectRdfPropertyHandler(a, method, c, regBuilder));
 
     return regBuilder.isBuildable() ? regBuilder.build()
@@ -403,8 +418,6 @@ public class CarmlMapper implements Mapper, MappingCache {
 
     String setterName = createSetterName(property);
     Method setter = findSetter(c, setterName).orElseThrow(() -> createCouldNotFindSetterException(c, setterName));
-
-    BiConsumer<Object, Object> set = getSetterInvoker(setter, createSetterInvocationErrorFactory(c, setter));
 
     PropertyType propertyType = determinePropertyType(setter);
     Class<?> elementType = propertyType.getElementType();
@@ -442,12 +455,11 @@ public class CarmlMapper implements Mapper, MappingCache {
     // iterable property - set collection value
     if (iterableProperty) {
       propertyValueMapper = IterablePropertyValueMapper.createForIterableType(valueTransformer, iterableType);
-    }
-
-    // single value property
-    else {
+    } else { // single value property
       propertyValueMapper = new SinglePropertyValueMapper(predicate, valueTransformer);
     }
+
+    BiConsumer<Object, Object> set = getSetterInvoker(setter, createSetterInvocationErrorFactory(c, setter));
 
     // get handler from @RdfProperty.handler, if any
     // TODO cache these per type/property
@@ -500,17 +512,11 @@ public class CarmlMapper implements Mapper, MappingCache {
   }
 
   private static String getActiveAnnotations(RdfProperty annotation, Method method) {
-    return Arrays.asList(method.getAnnotationsByType(RdfProperty.class)) //
-        .stream()//
-        .filter(a -> !a.equals(annotation) && !a.deprecated()) //
-        .map(RdfProperty::value) //
+    return Arrays.stream(method.getAnnotationsByType(RdfProperty.class))
+        .filter(a -> !a.equals(annotation) && !a.deprecated())
+        .map(RdfProperty::value)
         .collect(Collectors.joining(", or "));
   }
-
-
-  // mapping cache
-
-  private Map<Pair<Resource, Set<Type>>, Object> cachedMappings = new LinkedHashMap<>();
 
   @Override
   public Object getCachedMapping(Resource resource, Set<Type> targetType) {
@@ -522,12 +528,11 @@ public class CarmlMapper implements Mapper, MappingCache {
     cachedMappings.put(Pair.of(resource, targetType), value);
   }
 
-  private Map<IRI, Type> decidableTypes = new LinkedHashMap<>();
-
   @Override
   public Type getDecidableType(IRI rdfType) {
     if (!decidableTypes.containsKey(rdfType)) {
-      throw new RuntimeException(String.format("could not find a java type corresponding to rdf type [%s]", rdfType));
+      throw new CarmlMapperException(
+          String.format("could not find a java type corresponding to rdf type [%s]", rdfType));
     }
     return decidableTypes.get(rdfType);
   }
@@ -537,8 +542,6 @@ public class CarmlMapper implements Mapper, MappingCache {
     decidableTypes.put(rdfType, type);
   }
 
-  private Map<Type, Type> boundInterfaceImpls = new LinkedHashMap<>();
-
   @Override
   public void bindInterfaceImplementation(Type interfaze, Type implementation) {
     boundInterfaceImpls.put(interfaze, implementation);
@@ -547,7 +550,7 @@ public class CarmlMapper implements Mapper, MappingCache {
   @Override
   public Type getInterfaceImplementation(Type interfaze) {
     if (!boundInterfaceImpls.containsKey(interfaze)) {
-      throw new RuntimeException(String.format("No implementation bound for [%s]", interfaze));
+      throw new CarmlMapperException(String.format("No implementation bound for [%s]", interfaze));
     }
 
     return boundInterfaceImpls.get(interfaze);
