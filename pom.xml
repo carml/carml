@@ -69,7 +69,6 @@
 		<module>carml-logical-source-resolver-csv</module>
 		<module>carml-join-storage</module>
 		<module>carml-join-storage-mapdb</module>
-		<module>carml-join-storage-redis</module>
 	</modules>
 
 	<properties>
