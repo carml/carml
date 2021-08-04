@@ -1,17 +1,15 @@
 package com.taxonic.carml.engine.rdf;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.engine.LogicalSourcePipeline;
 import com.taxonic.carml.engine.TriplesMapper;
 import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinConditionStoreProvider;
 import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
 import com.taxonic.carml.model.LogicalSource;
 import com.taxonic.carml.model.TriplesMap;
-import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -43,7 +41,7 @@ public class RdfLogicalSourcePipeline<I> implements LogicalSourcePipeline<I, Sta
     Set<RdfTriplesMapper<I>> triplesMappers = triplesMaps.stream()
         .map(triplesMap -> constructTriplesMapper(triplesMap, tmToRoMappers, roMapperToParentTm, logicalSourceResolver,
             rdfMappingContext, parentSideJoinConditionStoreProvider))
-        .collect(ImmutableSet.toImmutableSet());
+        .collect(Collectors.toUnmodifiableSet());
 
     return of(logicalSource, logicalSourceResolver, rdfMappingContext, triplesMappers);
   }
@@ -58,7 +56,7 @@ public class RdfLogicalSourcePipeline<I> implements LogicalSourcePipeline<I, Sta
         .filter(entry -> entry.getValue()
             .equals(triplesMap))
         .map(Map.Entry::getKey)
-        .collect(ImmutableSet.toImmutableSet());
+        .collect(Collectors.toUnmodifiableSet());
 
     return RdfTriplesMapper.of(triplesMap, roMappers, incomingRoMappers,
         logicalSourceResolver.getExpressionEvaluationFactory(), rdfMappingContext,
@@ -73,11 +71,11 @@ public class RdfLogicalSourcePipeline<I> implements LogicalSourcePipeline<I, Sta
     return run(null, triplesMapFilter);
   }
 
-  public Map<TriplesMapper<I, Statement>, Flux<Statement>> run(InputStream source) {
+  public Map<TriplesMapper<I, Statement>, Flux<Statement>> run(Object source) {
     return run(source, Set.of());
   }
 
-  public Map<TriplesMapper<I, Statement>, Flux<Statement>> run(InputStream source, Set<TriplesMap> triplesMapFilter) {
+  public Map<TriplesMapper<I, Statement>, Flux<Statement>> run(Object source, Set<TriplesMap> triplesMapFilter) {
     boolean filterEmpty = triplesMapFilter == null || triplesMapFilter.isEmpty();
     int nrOfTriplesMappers = filterEmpty ? triplesMappers.size() : triplesMapFilter.size();
 
@@ -89,7 +87,7 @@ public class RdfLogicalSourcePipeline<I> implements LogicalSourcePipeline<I, Sta
 
     return triplesMappers.stream()
         .filter(triplesMapper -> filterEmpty || triplesMapFilter.contains(triplesMapper.getTriplesMap()))
-        .collect(ImmutableMap.toImmutableMap(triplesMapper -> triplesMapper,
+        .collect(Collectors.toUnmodifiableMap(triplesMapper -> triplesMapper,
             triplesMapper -> itemFlux.flatMap(triplesMapper::map)
                 .publish()
                 // wait for all subscribers to be ready

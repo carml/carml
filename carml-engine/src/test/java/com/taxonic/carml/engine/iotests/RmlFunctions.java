@@ -1,6 +1,5 @@
 package com.taxonic.carml.engine.iotests;
 
-import com.google.common.collect.ImmutableList;
 import com.taxonic.carml.engine.function.FnoFunction;
 import com.taxonic.carml.engine.function.FnoParam;
 import java.util.List;
@@ -73,7 +72,7 @@ public class RmlFunctions {
 
   @FnoFunction(Ex.constantListFunction)
   public List<String> constantListFunction() {
-    return ImmutableList.of(Ex.prefix + "abc", Ex.prefix + "def", Ex.prefix + "ghi");
+    return List.of(Ex.prefix + "abc", Ex.prefix + "def", Ex.prefix + "ghi");
   }
 
   @FnoFunction(Ex.listParamFunction)

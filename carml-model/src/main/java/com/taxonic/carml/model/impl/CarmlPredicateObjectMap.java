@@ -75,28 +75,6 @@ public class CarmlPredicateObjectMap extends CarmlResource implements PredicateO
     return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
   }
 
-  // @Override
-  // public int hashCode() {
-  // return Objects.hash(predicateMaps, objectMaps, graphMaps, id);
-  // }
-  //
-  // @Override
-  // public boolean equals(Object obj) {
-  // if (this == obj) {
-  // return true;
-  // }
-  // if (obj == null) {
-  // return false;
-  // }
-  // if (getClass() != obj.getClass()) {
-  // return false;
-  // }
-  // CarmlPredicateObjectMap other = (CarmlPredicateObjectMap) obj;
-  // return Objects.equals(predicateMaps, other.predicateMaps) && Objects.equals(objectMaps,
-  // other.objectMaps)
-  // && Objects.equals(graphMaps, other.graphMaps);
-  // }
-
   @Override
   public Set<Resource> getReferencedResources() {
     return ImmutableSet.<Resource>builder()

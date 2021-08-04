@@ -1,13 +1,16 @@
 package com.taxonic.carml.model.impl;
 
-import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.model.Resource;
 import com.taxonic.carml.model.TermMap;
 import com.taxonic.carml.model.TermType;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.rdf_mapper.annotations.RdfType;
-import com.taxonic.carml.vocab.*;
+import com.taxonic.carml.vocab.Carml;
+import com.taxonic.carml.vocab.Fnml;
+import com.taxonic.carml.vocab.Rdf;
+import com.taxonic.carml.vocab.Rml;
+import com.taxonic.carml.vocab.Rr;
 import java.util.Objects;
 import java.util.Set;
 import org.eclipse.rdf4j.model.Value;
@@ -27,11 +30,11 @@ public abstract class CarmlTermMap extends CarmlResource implements TermMap {
 
   TriplesMap functionValue;
 
-  public CarmlTermMap() {
+  CarmlTermMap() {
     // Empty constructor for object mapper
   }
 
-  public CarmlTermMap(String reference, String inverseExpression, String template, TermType termType, Value constant,
+  CarmlTermMap(String reference, String inverseExpression, String template, TermType termType, Value constant,
       TriplesMap functionValue) {
     this.reference = reference;
     this.inverseExpression = inverseExpression;
@@ -129,7 +132,7 @@ public abstract class CarmlTermMap extends CarmlResource implements TermMap {
   }
 
   Set<Resource> getReferencedResourcesBase() {
-    return functionValue != null ? ImmutableSet.of(functionValue) : ImmutableSet.of();
+    return functionValue != null ? Set.of(functionValue) : Set.of();
   }
 
   void addTriplesBase(ModelBuilder builder) {

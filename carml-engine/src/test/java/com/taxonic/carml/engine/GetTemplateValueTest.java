@@ -9,16 +9,17 @@ import com.taxonic.carml.engine.template.TemplateParser;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class GetTemplateValueTest {
+class GetTemplateValueTest {
 
   @Mock
-  Function<String, String> transformValue;
+  UnaryOperator<String> transformValue;
 
   @Mock
   Function<Object, String> createNaturalRdfLexicalForm;
@@ -27,7 +28,7 @@ public class GetTemplateValueTest {
   ExpressionEvaluation expressionEvaluation;
 
   @Test
-  public void getTemplateValue_givenValidInputAndFindingValue_performsAsExpected() {
+  void getTemplateValue_givenValidInputAndFindingValue_performsAsExpected() {
     when(expressionEvaluation.apply("xyz")).thenReturn(Optional.of("evaluated"));
     when(createNaturalRdfLexicalForm.apply("evaluated")).thenReturn("natural");
     when(transformValue.apply("natural")).thenReturn("transformed");
@@ -55,7 +56,7 @@ public class GetTemplateValueTest {
   }
 
   @Test
-  public void getTemplateValue_givenValidInputWithMultipleExpressions_performsAsExpected() {
+  void getTemplateValue_givenValidInputWithMultipleExpressions_performsAsExpected() {
     when(expressionEvaluation.apply("xyz")).thenReturn(Optional.of("evaluated"));
     when(createNaturalRdfLexicalForm.apply("evaluated")).thenReturn("natural");
     when(transformValue.apply("natural")).thenReturn("transformed");
@@ -70,7 +71,7 @@ public class GetTemplateValueTest {
   }
 
   @Test
-  public void getTemplateValue_givenValidInputAndNotFindingValue_returnsNoValues() {
+  void getTemplateValue_givenValidInputAndNotFindingValue_returnsNoValues() {
     when(expressionEvaluation.apply("xyz")).thenReturn(Optional.empty());
 
     Template template = TemplateParser.build()

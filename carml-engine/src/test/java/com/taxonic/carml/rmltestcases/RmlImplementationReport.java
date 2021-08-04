@@ -1,6 +1,5 @@
 package com.taxonic.carml.rmltestcases;
 
-import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.engine.rdf.RdfRmlMapper;
 import com.taxonic.carml.logical_source_resolver.CsvResolver;
 import com.taxonic.carml.logical_source_resolver.JsonPathResolver;
@@ -18,6 +17,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.eclipse.rdf4j.model.Model;
@@ -58,7 +58,7 @@ public class RmlImplementationReport {
   }
 
   static Function<Model, Set<Resource>> selectTestCases =
-      model -> ImmutableSet.copyOf(model.filter(null, RDF.TYPE, TestRmlTestCases.EARL_TESTCASE)
+      model -> Set.copyOf(model.filter(null, RDF.TYPE, TestRmlTestCases.EARL_TESTCASE)
           .subjects());
 
 
@@ -66,7 +66,7 @@ public class RmlImplementationReport {
     InputStream metadata = RmlImplementationReport.class.getResourceAsStream("test-cases/metadata.nt");
     return RdfObjectLoader.load(selectTestCases, RmlTestCase.class, Models.parse(metadata, RDFFormat.NTRIPLES)) //
         .stream() //
-        .collect(ImmutableSet.toImmutableSet());
+        .collect(Collectors.toUnmodifiableSet());
   }
 
   private static boolean isSupported(String resource) {

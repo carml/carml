@@ -82,26 +82,6 @@ public class CarmlSubjectMap extends CarmlTermMap implements SubjectMap {
     classes.forEach(cl -> modelBuilder.add(Rr.clazz, cl));
   }
 
-  // @Override
-  // public int hashCode() {
-  // return Objects.hash(classes, graphMaps, super.hashCode());
-  // }
-  //
-  // @Override
-  // public boolean equals(Object obj) {
-  // if (this == obj) {
-  // return true;
-  // }
-  // if (!super.equals(obj)) {
-  // return false;
-  // }
-  // if (getClass() != obj.getClass()) {
-  // return false;
-  // }
-  // CarmlSubjectMap other = (CarmlSubjectMap) obj;
-  // return Objects.equals(classes, other.classes) && Objects.equals(graphMaps, other.graphMaps);
-  // }
-
   public static Builder newBuilder() {
     return new Builder();
   }

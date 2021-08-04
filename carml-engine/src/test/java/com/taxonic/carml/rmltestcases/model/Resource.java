@@ -4,6 +4,8 @@ public interface Resource {
 
   String getId();
 
+  void setId(String id);
+
   String getLabel();
 
   default String getResourceName() {

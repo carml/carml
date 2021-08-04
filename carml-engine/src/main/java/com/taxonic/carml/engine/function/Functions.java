@@ -1,6 +1,5 @@
 package com.taxonic.carml.engine.function;
 
-import com.google.common.collect.ImmutableList;
 import com.taxonic.carml.engine.RmlMapperException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -131,7 +130,7 @@ public class Functions {
 
       List<Value> values = paramValues.stream()
           .map(Statement::getObject)
-          .collect(ImmutableList.toImmutableList());
+          .collect(Collectors.toUnmodifiableList());
 
       return adapter.apply(values);
     };
@@ -156,7 +155,7 @@ public class Functions {
 
     return values.stream()
         .map(Value::stringValue)
-        .collect(ImmutableList.toImmutableList());
+        .collect(Collectors.toUnmodifiableList());
   }
 
 

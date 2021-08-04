@@ -5,10 +5,10 @@ import java.util.Map;
 import java.util.Objects;
 import org.junit.jupiter.api.Test;
 
-public class InputStreamMappingTest extends MappingTester {
+class InputStreamMappingTest extends MappingTester {
 
   @Test
-  public void testSimpleReferenceMapping() {
+  void testSimpleReferenceMapping() {
 
     InputStream inputStream = InputStreamMappingTest.class.getResourceAsStream("/RmlMapper/inputStream/input.json");
 
@@ -17,7 +17,7 @@ public class InputStreamMappingTest extends MappingTester {
   }
 
   @Test
-  public void given_mappingWithDoublyDefinedEqualLogicalSource_ShouldBeTreatedEqual() {
+  void given_mappingWithDoublyDefinedEqualLogicalSource_ShouldBeTreatedEqual() {
     InputStream inputStream = InputStreamMappingTest.class.getResourceAsStream("/RmlMapper/simpleTestInput.json");
 
     testMapping("RmlMapper", "/RmlMapper/multDefLogicalSource/multiplyDefinedEqualLogicalSource.rml.ttl",

@@ -1,7 +1,5 @@
 package com.taxonic.carml.engine.rdf;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.engine.ExpressionEvaluation;
 import com.taxonic.carml.engine.GetTemplateValue;
 import com.taxonic.carml.engine.TermGenerator;
@@ -78,25 +76,23 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
 
   @SuppressWarnings("unchecked")
   public TermGenerator<Resource> getSubjectGenerator(SubjectMap map) {
-    return (TermGenerator<Resource>) getGenerator(map, ImmutableSet.of(TermType.BLANK_NODE, TermType.IRI),
-        ImmutableSet.of(IRI.class));
+    return (TermGenerator<Resource>) getGenerator(map, Set.of(TermType.BLANK_NODE, TermType.IRI), Set.of(IRI.class));
   }
 
   @SuppressWarnings("unchecked")
   public TermGenerator<IRI> getPredicateGenerator(PredicateMap map) {
-    return (TermGenerator<IRI>) getGenerator(map, ImmutableSet.of(TermType.IRI), ImmutableSet.of(IRI.class));
+    return (TermGenerator<IRI>) getGenerator(map, Set.of(TermType.IRI), Set.of(IRI.class));
   }
 
   @SuppressWarnings("unchecked")
   public TermGenerator<Value> getObjectGenerator(ObjectMap map) {
-    return (TermGenerator<Value>) getGenerator(map,
-        ImmutableSet.of(TermType.IRI, TermType.BLANK_NODE, TermType.LITERAL),
-        ImmutableSet.of(IRI.class, Literal.class));
+    return (TermGenerator<Value>) getGenerator(map, Set.of(TermType.IRI, TermType.BLANK_NODE, TermType.LITERAL),
+        Set.of(IRI.class, Literal.class));
   }
 
   @SuppressWarnings("unchecked")
   public TermGenerator<Resource> getGraphGenerator(GraphMap map) {
-    return (TermGenerator<Resource>) getGenerator(map, ImmutableSet.of(TermType.IRI), ImmutableSet.of(IRI.class));
+    return (TermGenerator<Resource>) getGenerator(map, Set.of(TermType.IRI), Set.of(IRI.class));
   }
 
   private TermGenerator<? extends Value> getGenerator(TermMap map, Set<TermType> allowedTermTypes,
@@ -144,7 +140,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
           }
 
           return referenceValue.map(value -> unpackEvaluatedExpression(value, generateTerm))
-              .orElse(ImmutableList.of());
+              .orElse(List.of());
         };
 
     if (!allowedTermTypes.contains(termType)) {
@@ -203,7 +199,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
       throw new TermGeneratorFactoryException(
           "encountered constant value of type " + constant.getClass() + ", which is not allowed for this term map");
     }
-    List<Value> constants = ImmutableList.of(constant);
+    List<Value> constants = List.of(constant);
     if (LOG.isTraceEnabled()) {
       LOG.trace("Generated constant values: {}", constants);
     }
@@ -312,7 +308,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
     if (result instanceof Collection<?>) {
       return ((Collection<?>) result).stream()
           .map(this::encodeAsIri)
-          .collect(ImmutableList.toImmutableList());
+          .collect(Collectors.toUnmodifiableList());
     } else {
       return encodeAsIri(result);
     }
@@ -366,12 +362,12 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
     if (result instanceof Collection<?>) {
       return ((Collection<?>) result).stream()
           .map(i -> generateTerm.apply(createNaturalRdfLexicalForm(i)))
-          .collect(ImmutableList.toImmutableList());
+          .collect(Collectors.toUnmodifiableList());
     }
 
     Value value = generateTerm.apply(createNaturalRdfLexicalForm(result));
 
-    return value == null ? ImmutableList.of() : ImmutableList.of(value);
+    return value == null ? List.of() : List.of(value);
   }
 
   private IRI generateIriTerm(String lexicalForm) {

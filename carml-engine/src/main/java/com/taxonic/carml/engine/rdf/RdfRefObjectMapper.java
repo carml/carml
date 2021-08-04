@@ -1,7 +1,5 @@
 package com.taxonic.carml.engine.rdf;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.engine.ExpressionEvaluation;
 import com.taxonic.carml.engine.RefObjectMapper;
 import com.taxonic.carml.engine.TriplesMapper;
@@ -80,7 +78,7 @@ public class RdfRefObjectMapper implements RefObjectMapper<Statement> {
           String childReference = joinCondition.getChildReference();
           List<String> childValues = expressionEvaluation.apply(joinCondition.getChildReference())
               .map(ExpressionEvaluation::extractValues)
-              .orElse(ImmutableList.of());
+              .orElse(List.of());
 
           return ChildSideJoinCondition.of(childReference, childValues, joinCondition.getParentReference());
         })
@@ -159,7 +157,7 @@ public class RdfRefObjectMapper implements RefObjectMapper<Statement> {
         .collect(Collectors.toList());
 
     if (parentResults.isEmpty()) {
-      return ImmutableSet.of();
+      return Set.of();
     } else if (parentResults.size() == 1) {
       return parentResults.get(0);
     }
@@ -174,14 +172,13 @@ public class RdfRefObjectMapper implements RefObjectMapper<Statement> {
         .stream()
         .flatMap(childValue -> checkChildSideJoinConditionChildValue(childSideJoinCondition, childValue,
             parentJoinConditions).stream())
-        .collect(ImmutableSet.toImmutableSet());
+        .collect(Collectors.toUnmodifiableSet());
   }
 
   private Set<Resource> checkChildSideJoinConditionChildValue(ChildSideJoinCondition childSideJoinCondition,
       String childValue, Map<ParentSideJoinKey, Set<Resource>> parentJoinConditions) {
     ParentSideJoinKey parentSideKey = ParentSideJoinKey.of(childSideJoinCondition.getParentReference(), childValue);
 
-    return parentJoinConditions.containsKey(parentSideKey) ? parentJoinConditions.get(parentSideKey)
-        : ImmutableSet.of();
+    return parentJoinConditions.containsKey(parentSideKey) ? parentJoinConditions.get(parentSideKey) : Set.of();
   }
 }

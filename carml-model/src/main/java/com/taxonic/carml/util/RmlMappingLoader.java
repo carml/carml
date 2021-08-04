@@ -21,11 +21,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
-import org.eclipse.rdf4j.model.impl.LinkedHashModel;
+import org.eclipse.rdf4j.model.util.ModelCollector;
 import org.eclipse.rdf4j.rio.RDFFormat;
 
 public class RmlMappingLoader {
@@ -80,7 +79,7 @@ public class RmlMappingLoader {
   public Set<TriplesMap> load(Model... models) {
     Model model = Arrays.stream(models)
         .flatMap(Collection::stream)
-        .collect(Collectors.toCollection(LinkedHashModel::new));
+        .collect(ModelCollector.toModel());
 
     return Set.copyOf(RdfObjectLoader.load(selectTriplesMaps, CarmlTriplesMap.class, model, shorthandExpander,
         this::addTermTypes, mapper -> {

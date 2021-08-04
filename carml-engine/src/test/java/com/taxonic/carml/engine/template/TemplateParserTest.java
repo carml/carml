@@ -9,57 +9,57 @@ import java.util.Arrays;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class TemplateParserTest {
+class TemplateParserTest {
 
   private TemplateParser parser;
 
   @BeforeEach
-  public void createParser() {
+  void createParser() {
     parser = TemplateParser.build();
   }
 
   @Test
-  public void testTrailingVariable() {
+  void testTrailingVariable() {
     testTemplate("abc{xyz}", new Text("abc"), new ExpressionSegment(0, "xyz"));
   }
 
   @Test
-  public void testTrailingText() {
+  void testTrailingText() {
     testTemplate("abc{xyz}x", new Text("abc"), new ExpressionSegment(0, "xyz"), new Text("x"));
   }
 
   @Test
-  public void testLeadingVariable() {
+  void testLeadingVariable() {
     testTemplate("{xyz}x", new ExpressionSegment(0, "xyz"), new Text("x"));
   }
 
   @Test
-  public void testVariableOnly() {
+  void testVariableOnly() {
     testTemplate("{xyz}", new ExpressionSegment(0, "xyz"));
   }
 
   @Test
-  public void testTextOnly() {
+  void testTextOnly() {
     testTemplate("xyz", new Text("xyz"));
   }
 
   @Test
-  public void testEscaping() {
+  void testEscaping() {
     testTemplate("xyz\\{", new Text("xyz{"));
   }
 
   @Test
-  public void testClosingBraceInText() {
+  void testClosingBraceInText() {
     testTemplate("xyz}", new Text("xyz}"));
   }
 
   @Test
-  public void testMultipleVariables() {
+  void testMultipleVariables() {
     testTemplate("{abc}{xyz}", new ExpressionSegment(0, "abc"), new ExpressionSegment(1, "xyz"));
   }
 
   @Test
-  public void testEmpty() {
+  void testEmpty() {
     testTemplate("");
   }
 

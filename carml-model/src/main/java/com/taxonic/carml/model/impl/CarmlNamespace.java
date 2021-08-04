@@ -1,6 +1,5 @@
 package com.taxonic.carml.model.impl;
 
-import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.model.Namespace;
 import com.taxonic.carml.model.Resource;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
@@ -75,7 +74,7 @@ public class CarmlNamespace extends CarmlResource implements Namespace {
 
   @Override
   public Set<Resource> getReferencedResources() {
-    return ImmutableSet.of();
+    return Set.of();
   }
 
   @Override

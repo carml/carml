@@ -1,6 +1,5 @@
 package com.taxonic.carml.model.impl;
 
-import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.model.LogicalSource;
 import com.taxonic.carml.model.Resource;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
@@ -90,10 +89,10 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
 
   @Override
   public Set<Resource> getReferencedResources() {
-    if (source != null && source instanceof Resource) {
-      return ImmutableSet.of((Resource) source);
+    if (source instanceof Resource) {
+      return Set.of((Resource) source);
     } else {
-      return ImmutableSet.of();
+      return Set.of();
     }
   }
 

@@ -1,6 +1,5 @@
 package com.taxonic.carml.model.impl;
 
-import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.model.FileSource;
 import com.taxonic.carml.model.Resource;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
@@ -52,7 +51,7 @@ public class CarmlFileSource extends CarmlResource implements FileSource {
 
   @Override
   public Set<Resource> getReferencedResources() {
-    return ImmutableSet.of();
+    return Set.of();
   }
 
   @Override

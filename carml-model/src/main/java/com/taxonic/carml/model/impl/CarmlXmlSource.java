@@ -1,6 +1,5 @@
 package com.taxonic.carml.model.impl;
 
-import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.model.Namespace;
 import com.taxonic.carml.model.Resource;
 import com.taxonic.carml.model.XmlSource;
@@ -60,7 +59,7 @@ public class CarmlXmlSource extends CarmlResource implements XmlSource {
 
   @Override
   public Set<Resource> getReferencedResources() {
-    return ImmutableSet.copyOf(declaredNamespaces);
+    return Set.copyOf(declaredNamespaces);
   }
 
   @Override

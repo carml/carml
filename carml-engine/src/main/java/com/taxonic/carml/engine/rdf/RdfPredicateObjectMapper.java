@@ -3,7 +3,6 @@ package com.taxonic.carml.engine.rdf;
 import static com.taxonic.carml.util.LogUtil.exception;
 import static com.taxonic.carml.util.LogUtil.log;
 
-import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.engine.ExpressionEvaluation;
 import com.taxonic.carml.engine.TermGenerator;
 import com.taxonic.carml.engine.TriplesMapperException;
@@ -16,6 +15,7 @@ import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.util.Models;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -61,7 +61,7 @@ public class RdfPredicateObjectMapper {
     Set<RdfRefObjectMapper> filteredRefObjectMappers = refObjectMappers.stream()
         .filter(rom -> pom.getObjectMaps()
             .contains(rom.getRefObjectMap()))
-        .collect(ImmutableSet.toImmutableSet());
+        .collect(Collectors.toUnmodifiableSet());
 
     return new RdfPredicateObjectMapper(graphGenerators, predicateGenerators, objectGenerators,
         filteredRefObjectMappers, rdfMappingContext.getValueFactorySupplier()
@@ -82,7 +82,7 @@ public class RdfPredicateObjectMapper {
                 ex);
           }
         })
-        .collect(ImmutableSet.toImmutableSet());
+        .collect(Collectors.toUnmodifiableSet());
   }
 
   private static Set<TermGenerator<? extends Value>> createObjectGenerators(Set<BaseObjectMap> objectMaps,
@@ -92,13 +92,13 @@ public class RdfPredicateObjectMapper {
         createObjectMapGenerators(objectMaps, triplesMap, termGeneratorFactory),
         // ref object maps without joins -> object generators.
         createJoinlessRefObjectMapGenerators(objectMaps, triplesMap, termGeneratorFactory))
-        .collect(ImmutableSet.toImmutableSet());
+        .collect(Collectors.toUnmodifiableSet());
   }
 
   private static Stream<TermGenerator<? extends Value>> createObjectMapGenerators(Set<BaseObjectMap> objectMaps,
       TriplesMap triplesMap, RdfTermGeneratorFactory termGeneratorFactory) {
     return objectMaps.stream()
-        .filter(objectMap -> objectMap instanceof ObjectMap)
+        .filter(ObjectMap.class::isInstance)
         .peek(objectMap -> LOG.debug("Creating term generator for ObjectMap {}", objectMap.getResourceName()))
         .map(objectMap -> {
           try {
@@ -144,7 +144,7 @@ public class RdfPredicateObjectMapper {
     LogicalSource logicalSource = triplesMap.getLogicalSource();
 
     return objectMaps.stream()
-        .filter(objectMap -> objectMap instanceof RefObjectMap)
+        .filter(RefObjectMap.class::isInstance)
         .peek(objectMap -> LOG.debug("Creating mapper for RefObjectMap {}", objectMap.getResourceName()))
         .map(RefObjectMap.class::cast)
         .filter(refObjMap -> refObjMap.getJoinConditions()
@@ -170,7 +170,7 @@ public class RdfPredicateObjectMapper {
     Set<IRI> predicates = predicateGenerators.stream()
         .map(g -> g.apply(expressionEvaluation))
         .flatMap(List::stream)
-        .collect(ImmutableSet.toImmutableSet());
+        .collect(Collectors.toUnmodifiableSet());
 
     if (predicates.isEmpty()) {
       return Flux.empty();
@@ -179,12 +179,12 @@ public class RdfPredicateObjectMapper {
     Set<Value> objects = objectGenerators.stream()
         .map(g -> g.apply(expressionEvaluation))
         .flatMap(List::stream)
-        .collect(ImmutableSet.toImmutableSet());
+        .collect(Collectors.toUnmodifiableSet());
 
     Set<Resource> graphs = Stream.concat(subjectGraphs.stream(), graphGenerators.stream()
         .flatMap(graphGenerator -> graphGenerator.apply(expressionEvaluation)
             .stream()))
-        .collect(ImmutableSet.toImmutableSet());
+        .collect(Collectors.toUnmodifiableSet());
 
     Flux<Statement> cartesianProductStatements = Flux.empty();
 

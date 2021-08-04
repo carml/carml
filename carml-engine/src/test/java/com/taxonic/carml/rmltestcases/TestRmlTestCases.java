@@ -5,7 +5,6 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.engine.rdf.RdfRmlMapper;
 import com.taxonic.carml.logical_source_resolver.CsvResolver;
 import com.taxonic.carml.logical_source_resolver.JsonPathResolver;
@@ -29,7 +28,6 @@ import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
-import org.eclipse.rdf4j.model.impl.TreeModel;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 import org.eclipse.rdf4j.rio.RDFFormat;
 import org.junit.jupiter.api.BeforeEach;
@@ -73,15 +71,15 @@ public class TestRmlTestCases {
     return RdfObjectLoader.load(selectTestCases, RmlTestCase.class, Models.parse(metadata, RDFFormat.NTRIPLES))
         .stream()
         .filter(TestRmlTestCases::shouldBeTested)
-        .collect(ImmutableSet.toImmutableSet());
+        .collect(Collectors.toUnmodifiableSet());
   }
 
   private static final Function<Model, Set<Resource>> selectTestCases =
-      model -> ImmutableSet.copyOf(model.filter(null, RDF.TYPE, EARL_TESTCASE)
+      model -> Set.copyOf(model.filter(null, RDF.TYPE, EARL_TESTCASE)
           .subjects()
           .stream()
           .filter(TestRmlTestCases::isSupported)
-          .collect(ImmutableSet.toImmutableSet()));
+          .collect(Collectors.toUnmodifiableSet()));
 
   private static boolean isSupported(Resource resource) {
     return SUPPORTED_SOURCE_TYPES.stream()//
@@ -113,7 +111,7 @@ public class TestRmlTestCases {
 
       Model expected = Models.parse(expectedOutputStream, RDFFormat.NQUADS)
           .stream()
-          .collect(Collectors.toCollection(TreeModel::new));
+          .collect(RdfCollectors.toRdf4JTreeModel());
 
       assertThat(result, is(expected));
     }

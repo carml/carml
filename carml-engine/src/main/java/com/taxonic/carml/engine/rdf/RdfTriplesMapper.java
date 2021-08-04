@@ -3,7 +3,6 @@ package com.taxonic.carml.engine.rdf;
 import static com.taxonic.carml.util.LogUtil.exception;
 import static com.taxonic.carml.util.LogUtil.log;
 
-import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.engine.ExpressionEvaluation;
 import com.taxonic.carml.engine.RefObjectMapper;
 import com.taxonic.carml.engine.TermGenerator;
@@ -99,7 +98,7 @@ public class RdfTriplesMapper<I> implements TriplesMapper<I, Statement> {
       RdfTermGeneratorFactory termGeneratorFactory) {
     return graphMaps.stream()
         .map(termGeneratorFactory::getGraphGenerator)
-        .collect(ImmutableSet.toImmutableSet());
+        .collect(Collectors.toUnmodifiableSet());
   }
 
   private static Set<RdfPredicateObjectMapper> createPredicateObjectMappers(TriplesMap triplesMap,
@@ -108,7 +107,7 @@ public class RdfTriplesMapper<I> implements TriplesMapper<I, Statement> {
         .stream()
         .peek(pom -> LOG.debug("Creating mapper for PredicateObjectMap {}", pom.getResourceName()))
         .map(pom -> RdfPredicateObjectMapper.of(pom, triplesMap, refObjectMappers, rdfMappingContext))
-        .collect(ImmutableSet.toImmutableSet());
+        .collect(Collectors.toUnmodifiableSet());
   }
 
   @Override
@@ -116,12 +115,12 @@ public class RdfTriplesMapper<I> implements TriplesMapper<I, Statement> {
     return predicateObjectMappers.stream()
         .flatMap(pom -> pom.getRdfRefObjectMappers()
             .stream())
-        .collect(ImmutableSet.toImmutableSet());
+        .collect(Collectors.toUnmodifiableSet());
   }
 
   Set<RdfRefObjectMapper> getConnectedRefObjectMappers() {
     return Stream.concat(getRefObjectMappers().stream(), incomingRefObjectMappers.stream())
-        .collect(ImmutableSet.toImmutableSet());
+        .collect(Collectors.toUnmodifiableSet());
   }
 
   @Override

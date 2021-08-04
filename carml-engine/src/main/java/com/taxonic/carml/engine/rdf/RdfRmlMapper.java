@@ -1,6 +1,5 @@
 package com.taxonic.carml.engine.rdf;
 
-import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.engine.LogicalSourcePipeline;
 import com.taxonic.carml.engine.RefObjectMapper;
 import com.taxonic.carml.engine.RmlMapper;
@@ -106,12 +105,6 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
       return this;
     }
 
-    // TODO is this necessary?
-    public Builder removeLogicalSourceResolver(IRI iri) {
-      logicalSourceResolverSuppliers.remove(iri);
-      return this;
-    }
-
     public Builder valueFactorySupplier(Supplier<ValueFactory> valueFactorySupplier) {
       this.valueFactorySupplier = valueFactorySupplier;
       return this;
@@ -166,7 +159,7 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
             RdfTermGeneratorFactory.of(valueFactorySupplier.get(), mapperOptions, TemplateParser.build());
       }
 
-      RdfMappingContext rdfMappingContext = RdfMappingContext.builder()
+      var rdfMappingContext = RdfMappingContext.builder()
           .valueFactorySupplier(valueFactorySupplier)
           .termGeneratorFactory(termGeneratorFactory)
           .childSideJoinStoreProvider(childSideJoinCacheProvider)
@@ -186,8 +179,7 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
             .filter(rom -> !rom.getJoinConditions()
                 .isEmpty())
             .forEach(rom -> {
-              RdfRefObjectMapper roMapper =
-                  RdfRefObjectMapper.of(rom, triplesMap, rdfMappingContext, childSideJoinCacheProvider);
+              var roMapper = RdfRefObjectMapper.of(rom, triplesMap, rdfMappingContext, childSideJoinCacheProvider);
               roMappers.add(roMapper);
               roMapperToParentTm.put(roMapper, rom.getParentTriplesMap());
             });
@@ -210,7 +202,7 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
                 logicalSourcePipeline));
       }
 
-      CompositeSourceResolver compositeResolver = CompositeSourceResolver.of(ImmutableSet.copyOf(sourceResolvers));
+      var compositeResolver = CompositeSourceResolver.of(Set.copyOf(sourceResolvers));
 
 
       return new RdfRmlMapper(compositeResolver, logicalSourcePipelinePool, roMapperToParentTm);

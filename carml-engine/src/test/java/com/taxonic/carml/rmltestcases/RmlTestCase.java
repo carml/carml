@@ -1,6 +1,5 @@
 package com.taxonic.carml.rmltestcases;
 
-import com.github.jsonldjava.shaded.com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
 import com.taxonic.carml.rdf_mapper.annotations.RdfType;
 import com.taxonic.carml.rmltestcases.model.Dataset;
@@ -9,6 +8,7 @@ import com.taxonic.carml.rmltestcases.model.Output;
 import com.taxonic.carml.rmltestcases.model.Rules;
 import com.taxonic.carml.rmltestcases.model.TestCase;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.eclipse.rdf4j.model.IRI;
 
 public class RmlTestCase extends RtcResource implements TestCase {
@@ -83,7 +83,7 @@ public class RmlTestCase extends RtcResource implements TestCase {
         .filter(p -> p.getId()
             .contains("/input")) //
         .map(Input.class::cast) //
-        .collect(ImmutableSet.toImmutableSet());
+        .collect(Collectors.toUnmodifiableSet());
   }
 
   @RdfProperty("http://www.w3.org/2006/03/test-description#expectedResults")

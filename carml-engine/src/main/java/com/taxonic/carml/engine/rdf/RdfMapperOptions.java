@@ -12,10 +12,10 @@ import lombok.Getter;
 @Getter
 public class RdfMapperOptions {
 
-  private Normalizer.Form normalizationForm;
+  private final Normalizer.Form normalizationForm;
 
-  private boolean iriUpperCasePercentEncoding;
+  private final boolean iriUpperCasePercentEncoding;
 
-  private Functions functions;
+  private final Functions functions;
 
 }

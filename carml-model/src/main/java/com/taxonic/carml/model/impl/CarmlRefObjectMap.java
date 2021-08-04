@@ -60,27 +60,6 @@ public class CarmlRefObjectMap extends CarmlResource implements RefObjectMap {
     return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
   }
 
-  // @Override
-  // public int hashCode() {
-  // return Objects.hash(parentTriplesMap, joinConditions);
-  // }
-  //
-  // @Override
-  // public boolean equals(Object obj) {
-  // if (this == obj) {
-  // return true;
-  // }
-  // if (obj == null) {
-  // return false;
-  // }
-  // if (getClass() != obj.getClass()) {
-  // return false;
-  // }
-  // CarmlRefObjectMap other = (CarmlRefObjectMap) obj;
-  // return Objects.equals(parentTriplesMap, other.parentTriplesMap)
-  // && Objects.equals(joinConditions, other.joinConditions);
-  // }
-
   @Override
   public Set<Resource> getReferencedResources() {
     ImmutableSet.Builder<Resource> builder = ImmutableSet.<Resource>builder();

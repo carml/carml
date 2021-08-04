@@ -9,6 +9,7 @@ public class RtcDistribution extends RtcResource implements Distribution {
   private IRI downloadUrl;
 
   @RdfProperty("http://www.w3.org/ns/dcat#downloadUrl")
+  @RdfProperty("http://www.w3.org/ns/dcat#downloadURL")
   @Override
   public IRI getDownloadUrl() {
     return downloadUrl;
@@ -21,7 +22,7 @@ public class RtcDistribution extends RtcResource implements Distribution {
   @Override
   public String getRelativeFileLocation() {
     String urlString = downloadUrl.stringValue();
-    return urlString.substring(urlString.lastIndexOf("test-cases/"));
+    return urlString.substring(urlString.lastIndexOf("master/") + 7);
   }
 
 }

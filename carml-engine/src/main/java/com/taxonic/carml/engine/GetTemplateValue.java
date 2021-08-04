@@ -1,6 +1,5 @@
 package com.taxonic.carml.engine;
 
-import com.google.common.collect.ImmutableList;
 import com.taxonic.carml.engine.template.Template;
 import com.taxonic.carml.engine.template.Template.Expression;
 import java.util.Collection;
@@ -8,6 +7,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,15 +16,15 @@ public class GetTemplateValue implements Function<ExpressionEvaluation, Optional
 
   private static final Logger LOG = LoggerFactory.getLogger(GetTemplateValue.class);
 
-  private Template template;
+  private final Template template;
 
-  private Set<Expression> expressions;
+  private final Set<Expression> expressions;
 
-  private Function<String, String> transformValue;
+  private final Function<String, String> transformValue;
 
-  private Function<Object, String> createNaturalRdfLexicalForm;
+  private final Function<Object, String> createNaturalRdfLexicalForm;
 
-  public GetTemplateValue(Template template, Set<Expression> expressions, Function<String, String> transformValue,
+  public GetTemplateValue(Template template, Set<Expression> expressions, UnaryOperator<String> transformValue,
       Function<Object, String> createNaturalRdfLexicalForm) {
     this.template = template;
     this.expressions = expressions;
@@ -41,26 +42,21 @@ public class GetTemplateValue implements Function<ExpressionEvaluation, Optional
     return templateBuilder.create();
   }
 
-  private Template.Builder bindTemplateExpression(Expression expression, ExpressionEvaluation expressionEvaluation,
+  private void bindTemplateExpression(Expression expression, ExpressionEvaluation expressionEvaluation,
       Template.Builder templateBuilder) {
-    return templateBuilder.bind(expression, e -> expressionEvaluation.apply(e.getValue())
+    templateBuilder.bind(expression, expr -> expressionEvaluation.apply(expr.getValue())
         .map(this::prepareValueForTemplate));
   }
 
-  /**
-   * See https://www.w3.org/TR/r2rml/#from-template
-   *
-   * @param raw
-   * @return
-   */
+  // See https://www.w3.org/TR/r2rml/#from-template
   private Object prepareValueForTemplate(Object raw) {
     Objects.requireNonNull(raw);
 
     if (raw instanceof Collection<?>) {
       return ((Collection<?>) raw).stream()
-          .map(createNaturalRdfLexicalForm::apply)
-          .map(transformValue::apply)
-          .collect(ImmutableList.toImmutableList());
+          .map(createNaturalRdfLexicalForm)
+          .map(transformValue)
+          .collect(Collectors.toUnmodifiableList());
     } else {
       String value = createNaturalRdfLexicalForm.apply(raw);
       return transformValue.apply(value);

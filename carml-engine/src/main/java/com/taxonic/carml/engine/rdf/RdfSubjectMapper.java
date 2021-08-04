@@ -3,7 +3,6 @@ package com.taxonic.carml.engine.rdf;
 import static com.taxonic.carml.util.LogUtil.exception;
 import static com.taxonic.carml.util.LogUtil.log;
 
-import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.engine.ExpressionEvaluation;
 import com.taxonic.carml.engine.TermGenerator;
 import com.taxonic.carml.engine.TriplesMapperException;
@@ -11,6 +10,7 @@ import com.taxonic.carml.model.SubjectMap;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.util.Models;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -71,19 +71,19 @@ public class RdfSubjectMapper {
     LOG.debug("Determining subjects ...");
     Set<Resource> subjects = subjectGenerator.apply(expressionEvaluation)
         .stream()
-        .collect(ImmutableSet.toImmutableSet());
+        .collect(Collectors.toUnmodifiableSet());
 
     LOG.debug("Determined subjects {}", subjects);
 
     if (subjects.isEmpty()) {
-      return resultOf(subjects, ImmutableSet.of(), Flux.empty());
+      return resultOf(subjects, Set.of(), Flux.empty());
     }
 
     // graphs to be used when generating statements in predicate object mapper
     Set<Resource> graphs = graphGenerators.stream()
         .flatMap(graph -> graph.apply(expressionEvaluation)
             .stream())
-        .collect(ImmutableSet.toImmutableSet());
+        .collect(Collectors.toUnmodifiableSet());
 
     Flux<Statement> typeStatements = classes.isEmpty() ? Flux.empty() : mapTypeStatements(subjects, graphs);
 
@@ -93,8 +93,8 @@ public class RdfSubjectMapper {
   private Flux<Statement> mapTypeStatements(Set<Resource> subjects, Set<Resource> graphs) {
     LOG.debug("Generating triples for subjects: {}", subjects);
 
-    Stream<Statement> typeStatementStream = Models.streamCartesianProductStatements(subjects, Set.of(RDF.TYPE),
-        classes, graphs, RdfTriplesMapper.defaultGraphModifier, valueFactory, RdfTriplesMapper.logAddStatements);
+    Stream<Statement> typeStatementStream = Models.streamCartesianProductStatements(subjects, Set.of(RDF.TYPE), classes,
+        graphs, RdfTriplesMapper.defaultGraphModifier, valueFactory, RdfTriplesMapper.logAddStatements);
 
     return Flux.fromStream(typeStatementStream);
   }

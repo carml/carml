@@ -1,6 +1,5 @@
 package com.taxonic.carml.model.impl;
 
-import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.model.Join;
 import com.taxonic.carml.model.Resource;
 import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
@@ -75,7 +74,7 @@ public class CarmlJoin extends CarmlResource implements Join {
 
   @Override
   public Set<Resource> getReferencedResources() {
-    return ImmutableSet.of();
+    return Set.of();
   }
 
   @Override

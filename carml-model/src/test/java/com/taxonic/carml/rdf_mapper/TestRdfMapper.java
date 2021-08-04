@@ -3,7 +3,6 @@ package com.taxonic.carml.rdf_mapper;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
-import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.model.TermType;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.model.impl.CarmlGraphMap;
@@ -81,7 +80,7 @@ public class TestRdfMapper extends RmlLoader {
             .build())
         .build();
 
-    Set<TriplesMap> expected = ImmutableSet.of(CarmlTriplesMap.newBuilder()
+    Set<TriplesMap> expected = Set.of(CarmlTriplesMap.newBuilder()
         .logicalSource(CarmlLogicalSource.newBuilder()
             .source("joinBreakfast.xml")
             .iterator("/breakfast-menu/food")
@@ -112,7 +111,7 @@ public class TestRdfMapper extends RmlLoader {
 
   // @Test
   public void testLoadMappingWithGraphMapsPredicateObject() {
-    Set<TriplesMap> expected = ImmutableSet.of(CarmlTriplesMap.newBuilder()
+    Set<TriplesMap> expected = Set.of(CarmlTriplesMap.newBuilder()
         .logicalSource(CarmlLogicalSource.newBuilder()
             .source("simple2TestInput.json")
             .iterator("$.Child")
@@ -140,7 +139,7 @@ public class TestRdfMapper extends RmlLoader {
 
   // @Test
   public void testLoadMappingWithGraphMapsSubjectB() {
-    Set<TriplesMap> expected = ImmutableSet.of(CarmlTriplesMap.newBuilder()
+    Set<TriplesMap> expected = Set.of(CarmlTriplesMap.newBuilder()
         .logicalSource(CarmlLogicalSource.newBuilder()
             .source("simple2TestInput.json")
             .iterator("$.Child")
@@ -161,7 +160,7 @@ public class TestRdfMapper extends RmlLoader {
 
   // @Test
   public void testLoadMappingWithGraphMapsSubjectA() {
-    Set<TriplesMap> expected = ImmutableSet.of(CarmlTriplesMap.newBuilder()
+    Set<TriplesMap> expected = Set.of(CarmlTriplesMap.newBuilder()
         .logicalSource(CarmlLogicalSource.newBuilder()
             .source("simple2TestInput.json")
             .iterator("$.Child")
@@ -181,7 +180,7 @@ public class TestRdfMapper extends RmlLoader {
 
   // @Test
   public void testLoadMappingWithTermTypeLiteral() {
-    Set<TriplesMap> expected = ImmutableSet.of(CarmlTriplesMap.newBuilder()
+    Set<TriplesMap> expected = Set.of(CarmlTriplesMap.newBuilder()
         .logicalSource(CarmlLogicalSource.newBuilder()
             .source("simple2TestInput.json")
             .iterator("$.Child")
@@ -208,7 +207,7 @@ public class TestRdfMapper extends RmlLoader {
 
   // @Test
   public void testLoadMappingWithTermTypeIRI() {
-    Set<TriplesMap> expected = ImmutableSet.of(CarmlTriplesMap.newBuilder()
+    Set<TriplesMap> expected = Set.of(CarmlTriplesMap.newBuilder()
         .logicalSource(CarmlLogicalSource.newBuilder()
             .source("simple2TestInput.json")
             .iterator("$.Child")
@@ -236,7 +235,7 @@ public class TestRdfMapper extends RmlLoader {
 
   // @Test
   public void testLoadMappingWithTermTypeBlankNodeB() {
-    Set<TriplesMap> expected = ImmutableSet.of(CarmlTriplesMap.newBuilder()
+    Set<TriplesMap> expected = Set.of(CarmlTriplesMap.newBuilder()
         .logicalSource(CarmlLogicalSource.newBuilder()
             .source("simple2TestInput.json")
             .iterator("$.Child")
@@ -262,7 +261,7 @@ public class TestRdfMapper extends RmlLoader {
 
   // @Test
   public void testLoadMappingWithTermTypeBlankNodeA() {
-    Set<TriplesMap> expected = ImmutableSet.of(CarmlTriplesMap.newBuilder()
+    Set<TriplesMap> expected = Set.of(CarmlTriplesMap.newBuilder()
         .logicalSource(CarmlLogicalSource.newBuilder()
             .source("simple2TestInput.json")
             .iterator("$.Child")
@@ -287,7 +286,7 @@ public class TestRdfMapper extends RmlLoader {
 
   // @Test
   public void testLoadMappingWithLanguage() {
-    Set<TriplesMap> expected = ImmutableSet.of(CarmlTriplesMap.newBuilder()
+    Set<TriplesMap> expected = Set.of(CarmlTriplesMap.newBuilder()
         .logicalSource(CarmlLogicalSource.newBuilder()
             .source("simpleTestInput.json")
             .iterator("$")
@@ -313,7 +312,7 @@ public class TestRdfMapper extends RmlLoader {
 
   // @Test
   public void testLoadMappingWithSubjectConstantShortcut() {
-    Set<TriplesMap> expected = ImmutableSet.of(CarmlTriplesMap.newBuilder()
+    Set<TriplesMap> expected = Set.of(CarmlTriplesMap.newBuilder()
         .logicalSource(CarmlLogicalSource.newBuilder()
             .source("constantShortcutMappingTestInput.json")
             .iterator("$.colors")
@@ -338,7 +337,7 @@ public class TestRdfMapper extends RmlLoader {
 
   // @Test
   public void testLoadMappingWithObjectConstantShortcut() {
-    Set<TriplesMap> expected = ImmutableSet.of((CarmlTriplesMap.newBuilder()
+    Set<TriplesMap> expected = Set.of((CarmlTriplesMap.newBuilder()
         .logicalSource(CarmlLogicalSource.newBuilder()
             .source("constantShortcutMappingTestInput.json")
             .iterator("$.colors")
@@ -361,7 +360,7 @@ public class TestRdfMapper extends RmlLoader {
 
   // @Test
   public void testLoadMappingWithSeparateMaps() {
-    Set<TriplesMap> expected = ImmutableSet.of((CarmlTriplesMap.newBuilder()
+    Set<TriplesMap> expected = Set.of((CarmlTriplesMap.newBuilder()
         .logicalSource(CarmlLogicalSource.newBuilder()
             .source("SeparateMappingTestInput.json")
             .iterator("$.colors")
@@ -398,7 +397,7 @@ public class TestRdfMapper extends RmlLoader {
             .build())
         .build();
 
-    Set<TriplesMap> expected = ImmutableSet.of((CarmlTriplesMap.newBuilder()
+    Set<TriplesMap> expected = Set.of((CarmlTriplesMap.newBuilder()
         .logicalSource(CarmlLogicalSource.newBuilder()
             .source("parentTriplesTestInput.json")
             .iterator("$.colors")
@@ -435,7 +434,7 @@ public class TestRdfMapper extends RmlLoader {
   // @Test
   public void testLoadMappingWithJustALogicalSource() {
 
-    Set<TriplesMap> expected = ImmutableSet.of(CarmlTriplesMap.newBuilder()
+    Set<TriplesMap> expected = Set.of(CarmlTriplesMap.newBuilder()
         .logicalSource(CarmlLogicalSource.newBuilder()
             .source("test-source.json")
             .iterator("$")
@@ -452,7 +451,7 @@ public class TestRdfMapper extends RmlLoader {
   // @Test
   public void test() {
 
-    Set<TriplesMap> expected = ImmutableSet.of(CarmlTriplesMap.newBuilder()
+    Set<TriplesMap> expected = Set.of(CarmlTriplesMap.newBuilder()
         .logicalSource(CarmlLogicalSource.newBuilder()
             .source("source-a.json")
             .iterator("$")

@@ -6,12 +6,11 @@ import com.taxonic.carml.rdf_mapper.annotations.RdfResourceName;
 import com.taxonic.carml.util.RdfValues;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.ValueFactory;
-import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
+import org.eclipse.rdf4j.model.util.ModelCollector;
 import org.eclipse.rdf4j.model.vocabulary.RDFS;
 
 public abstract class CarmlResource implements Resource {
@@ -81,7 +80,7 @@ public abstract class CarmlResource implements Resource {
     Model nestedModel = getReferencedResources().stream()
         .flatMap(resource -> resource.asRdf()
             .stream())
-        .collect(Collectors.toCollection(LinkedHashModel::new));
+        .collect(ModelCollector.toModel());
 
     model.addAll(nestedModel);
 
