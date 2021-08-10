@@ -14,6 +14,7 @@ import com.taxonic.carml.model.RefObjectMap;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.util.Models;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -151,22 +152,24 @@ public class RdfPredicateObjectMapper {
             .isEmpty())
         // ref object maps without joins MUST have an identical logical source.
         .map(refObjMap -> checkLogicalSource(refObjMap, logicalSource, triplesMap))
-        .map(refObjMap -> createRefObjectJoinlessMapper(refObjMap, triplesMap, termGeneratorFactory));
+        .flatMap(refObjMap -> createRefObjectJoinlessMapper(refObjMap, triplesMap, termGeneratorFactory));
   }
 
-  private static TermGenerator<Resource> createRefObjectJoinlessMapper(RefObjectMap refObjectMap, TriplesMap triplesMap,
-      RdfTermGeneratorFactory termGeneratorFactory) {
+  private static Stream<TermGenerator<Resource>> createRefObjectJoinlessMapper(RefObjectMap refObjectMap,
+      TriplesMap triplesMap, RdfTermGeneratorFactory termGeneratorFactory) {
     try {
-      return termGeneratorFactory.getSubjectGenerator(refObjectMap.getParentTriplesMap()
-          .getSubjectMap());
+      return refObjectMap.getParentTriplesMap()
+          .getSubjectMaps()
+          .stream()
+          .map(termGeneratorFactory::getSubjectGenerator);
     } catch (RuntimeException ex) {
       throw new TriplesMapperException(String.format("Exception occurred for %s", exception(triplesMap, refObjectMap)),
           ex);
     }
   }
 
-  public Flux<Statement> map(ExpressionEvaluation expressionEvaluation, Set<Resource> subjects,
-      Set<Resource> subjectGraphs) {
+  public Flux<Statement> map(ExpressionEvaluation expressionEvaluation,
+      Map<Set<Resource>, Set<Resource>> subjectsAndSubjectGraphs) {
     Set<IRI> predicates = predicateGenerators.stream()
         .map(g -> g.apply(expressionEvaluation))
         .flatMap(List::stream)
@@ -181,22 +184,40 @@ public class RdfPredicateObjectMapper {
         .flatMap(List::stream)
         .collect(Collectors.toUnmodifiableSet());
 
-    Set<Resource> graphs = Stream.concat(subjectGraphs.stream(), graphGenerators.stream()
+    Set<Resource> pomGraphs = graphGenerators.stream()
         .flatMap(graphGenerator -> graphGenerator.apply(expressionEvaluation)
-            .stream()))
+            .stream())
         .collect(Collectors.toUnmodifiableSet());
 
-    Flux<Statement> cartesianProductStatements = Flux.empty();
+    Map<Set<Resource>, Set<Resource>> subjectsAndAllGraphs =
+        addPomGraphsToSubjectsAndSubjectGraphs(subjectsAndSubjectGraphs, pomGraphs);
 
-    if (!objects.isEmpty()) {
-      cartesianProductStatements = Flux.fromStream(Models.streamCartesianProductStatements(subjects, predicates,
-          objects, graphs, RdfTriplesMapper.defaultGraphModifier, valueFactory, RdfTriplesMapper.logAddStatements));
+    // process RefObjectMaps for resolving later
+    rdfRefObjectMappers
+        .forEach(rdfRefObjectMapper -> rdfRefObjectMapper.map(subjectsAndAllGraphs, predicates, expressionEvaluation));
+
+    if (objects.isEmpty()) {
+      return Flux.empty();
     }
 
-    rdfRefObjectMappers
-        .forEach(rdfRefObjectMapper -> rdfRefObjectMapper.map(subjects, predicates, graphs, expressionEvaluation));
+    Set<Flux<Statement>> statementsPerGraphSet = subjectsAndAllGraphs.entrySet()
+        .stream()
+        .map(subjectsAndAllGraphsEntry -> Flux.fromStream(Models.streamCartesianProductStatements(
+            subjectsAndAllGraphsEntry.getKey(), predicates, objects, subjectsAndAllGraphsEntry.getValue(),
+            RdfTriplesMapper.defaultGraphModifier, valueFactory, RdfTriplesMapper.logAddStatements)))
+        .collect(Collectors.toUnmodifiableSet());
 
-    return cartesianProductStatements;
+    return Flux.merge(statementsPerGraphSet);
+  }
+
+  private Map<Set<Resource>, Set<Resource>> addPomGraphsToSubjectsAndSubjectGraphs(
+      Map<Set<Resource>, Set<Resource>> subjectsAndSubjectGraphs, Set<Resource> pomGraphs) {
+    return subjectsAndSubjectGraphs.entrySet()
+        .stream()
+        .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey,
+            subjectsAndSubjectGraphsEntry -> Stream.concat(subjectsAndSubjectGraphsEntry.getValue()
+                .stream(), pomGraphs.stream())
+                .collect(Collectors.toUnmodifiableSet())));
   }
 
 }

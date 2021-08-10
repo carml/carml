@@ -30,7 +30,6 @@ import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -69,11 +68,6 @@ class RdfSubjectMapperTest {
   @Mock
   private TermGenerator<Resource> graphGenerator2;
 
-  @BeforeEach
-  void setup() {
-    when(triplesMap.getSubjectMap()).thenReturn(subjectMap);
-  }
-
   @Test
   void givenAllParams_whenOfCalled_thenConstructRdfSubjectMapper() {
     // Given
@@ -85,27 +79,10 @@ class RdfSubjectMapperTest {
         .build();
 
     // When
-    RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(triplesMap, rdfMappingContext);
+    RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingContext);
 
     // Then
     assertThat(rdfSubjectMapper, is(not(nullValue())));
-  }
-
-  @Test
-  void givenNullSubjectMap_whenOfCalled_thenThrowException() {
-    // Given
-    when(triplesMap.getSubjectMap()).thenReturn(null);
-    when(triplesMap.asRdf()).thenReturn(new ModelBuilder().build());
-    when(triplesMap.getAsResource()).thenReturn(VALUE_FACTORY.createBNode("triplesMap"));
-    RdfMappingContext rdfMappingContext = mock(RdfMappingContext.class);
-
-    // When
-    Throwable exception =
-        assertThrows(TriplesMapperException.class, () -> RdfSubjectMapper.of(triplesMap, rdfMappingContext));
-
-    // Then
-    assertThat(exception.getMessage(),
-        startsWith("Subject map must be specified in triples map blank node resource _:triplesMap in:"));
   }
 
   @Test
@@ -116,8 +93,8 @@ class RdfSubjectMapperTest {
     RdfMappingContext rdfMappingContext = mock(RdfMappingContext.class);
 
     // When
-    Throwable exception =
-        assertThrows(TriplesMapperException.class, () -> RdfSubjectMapper.of(triplesMap, rdfMappingContext));
+    Throwable exception = assertThrows(TriplesMapperException.class,
+        () -> RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingContext));
 
     // Then
     assertThat(exception.getMessage(),
@@ -137,7 +114,7 @@ class RdfSubjectMapperTest {
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
         .build();
 
-    RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(triplesMap, rdfMappingContext);
+    RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingContext);
 
     // When
     RdfSubjectMapper.Result rdfSubjectMapperResult = rdfSubjectMapper.map(any());
@@ -161,7 +138,7 @@ class RdfSubjectMapperTest {
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
         .build();
 
-    RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(triplesMap, rdfMappingContext);
+    RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingContext);
 
     // When
     RdfSubjectMapper.Result rdfSubjectMapperResult = rdfSubjectMapper.map(any());
@@ -188,7 +165,7 @@ class RdfSubjectMapperTest {
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
         .build();
 
-    RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(triplesMap, rdfMappingContext);
+    RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingContext);
 
     // When
     RdfSubjectMapper.Result rdfSubjectMapperResult = rdfSubjectMapper.map(any());
@@ -229,7 +206,7 @@ class RdfSubjectMapperTest {
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
         .build();
 
-    RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(triplesMap, rdfMappingContext);
+    RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingContext);
 
     // When
     RdfSubjectMapper.Result rdfSubjectMapperResult = rdfSubjectMapper.map(any());
@@ -279,7 +256,7 @@ class RdfSubjectMapperTest {
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
         .build();
 
-    RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(triplesMap, rdfMappingContext);
+    RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingContext);
 
     // When
     RdfSubjectMapper.Result rdfSubjectMapperResult = rdfSubjectMapper.map(any());

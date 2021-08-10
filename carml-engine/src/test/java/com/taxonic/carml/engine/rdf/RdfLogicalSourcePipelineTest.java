@@ -99,7 +99,7 @@ class RdfLogicalSourcePipelineTest {
 
     when(logicalSourceResolver.getExpressionEvaluationFactory()).thenReturn(expressionEvaluatorFactory);
 
-    when(triplesMapA.getSubjectMap()).thenReturn(subjectMapA);
+    when(triplesMapA.getSubjectMaps()).thenReturn(Set.of(subjectMapA));
     when(rdfMappingContext.getTermGeneratorFactory()).thenReturn(rdfTermGeneratorFactory);
     when(rdfMappingContext.getValueFactorySupplier()).thenReturn(SimpleValueFactory::getInstance);
     when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMapA)).thenReturn(subjectGenerator);

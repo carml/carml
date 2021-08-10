@@ -2,6 +2,7 @@ package com.taxonic.carml.util;
 
 import com.taxonic.carml.model.ObjectMap;
 import com.taxonic.carml.model.RefObjectMap;
+import com.taxonic.carml.model.SubjectMap;
 import com.taxonic.carml.model.TermMap;
 import com.taxonic.carml.model.TriplesMap;
 import java.util.Objects;
@@ -11,9 +12,11 @@ import java.util.stream.Stream;
 
 public class Mapping {
 
+  private Mapping() {}
+
   public static Set<TriplesMap> filterMappable(Set<TriplesMap> mapping) {
-    Set<TriplesMap> functionValueTriplesMaps = getTermMaps(mapping).filter(t -> t.getFunctionValue() != null)
-        .map(TermMap::getFunctionValue)
+    Set<TriplesMap> functionValueTriplesMaps = getTermMaps(mapping).map(TermMap::getFunctionValue)
+        .filter(Objects::nonNull)
         .collect(Collectors.toUnmodifiableSet());
 
     Set<TriplesMap> refObjectTriplesMaps = getAllTriplesMapsUsedInRefObjectMap(mapping);
@@ -35,9 +38,12 @@ public class Mapping {
                         .stream()
                         .filter(ObjectMap.class::isInstance)
                         .map(ObjectMap.class::cast)))),
-            Stream.concat(Stream.of(m.getSubjectMap()), m.getSubjectMap() != null ? m.getSubjectMap()
-                .getGraphMaps()
-                .stream() : Stream.empty())))
+            Stream.concat(m.getSubjectMaps()
+                .stream(),
+                m.getSubjectMaps()
+                    .stream()
+                    .map(SubjectMap::getGraphMaps)
+                    .flatMap(Set::stream))))
         .filter(Objects::nonNull);
   }
 
@@ -48,9 +54,8 @@ public class Mapping {
             .stream())
         .flatMap(p -> p.getObjectMaps()
             .stream())
-        .filter(o -> o instanceof RefObjectMap)
-        .map(o -> (RefObjectMap) o)
-
+        .filter(RefObjectMap.class::isInstance)
+        .map(RefObjectMap.class::cast)
         // check that no referencing object map
         // has 'map' as its parent triples map
         .map(RefObjectMap::getParentTriplesMap)

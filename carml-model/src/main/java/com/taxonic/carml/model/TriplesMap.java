@@ -6,7 +6,7 @@ public interface TriplesMap extends Resource {
 
   LogicalSource getLogicalSource();
 
-  SubjectMap getSubjectMap();
+  Set<SubjectMap> getSubjectMaps();
 
   Set<PredicateObjectMap> getPredicateObjectMaps();
 

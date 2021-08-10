@@ -14,7 +14,7 @@ import org.eclipse.rdf4j.rio.RDFFormat;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class TriplesMapRdfSerializeTest {
+class TriplesMapRdfSerializeTest {
 
   private RmlMappingLoader mappingLoader;
 
@@ -24,7 +24,7 @@ public class TriplesMapRdfSerializeTest {
   }
 
   @Test
-  public void TriplesMapAsRdfRoundTripTest() {
+  void TriplesMapAsRdfRoundTripTest() {
     InputStream mappingSource = TriplesMapRdfSerializeTest.class.getResourceAsStream("Mapping.rml.ttl");
     Set<TriplesMap> mapping = mappingLoader.load(RDFFormat.TURTLE, mappingSource);
 

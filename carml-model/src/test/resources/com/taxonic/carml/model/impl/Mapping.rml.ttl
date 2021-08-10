@@ -25,6 +25,16 @@ ex:TriplesMap a rr:TriplesMap ;
         rr:termType rr:IRI ;
     ] ;
   ] ;
+  rr:subjectMap [
+    rr:template "http://example.org/{/some-other-node}" ;
+    rr:class
+      ex:Class4 , ex:Class5 ;
+    rr:graph ex:Graph3 ;
+    rr:graphMap [
+        rml:reference "graph3" ;
+        rr:termType rr:BlankNode ;
+    ] ;
+  ] ;
   rr:predicateObjectMap [
     rr:predicate
       ex:predicate1 ,

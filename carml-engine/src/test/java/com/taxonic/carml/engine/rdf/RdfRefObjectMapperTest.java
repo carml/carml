@@ -9,10 +9,10 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
 import com.google.common.collect.Iterables;
 import com.taxonic.carml.engine.ExpressionEvaluation;
 import com.taxonic.carml.engine.reactivedev.join.ChildSideJoin;
@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Statement;
@@ -44,7 +45,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -134,9 +134,11 @@ class RdfRefObjectMapperTest {
 
     when(expressionEvaluation.apply(any())).thenReturn(Optional.of(List.of("baz")));
 
+    Map<Set<Resource>, Set<Resource>> subjectsAndAllGraphs = Map.of(subjects, graphs);
+
     // When
     Mono<Statement> refObjectMapperPromise = Mono.empty();
-    rdfRefObjectMapper.map(subjects, predicates, graphs, expressionEvaluation);
+    rdfRefObjectMapper.map(subjectsAndAllGraphs, predicates, expressionEvaluation);
 
     // Then
     StepVerifier.create(refObjectMapperPromise)
@@ -160,6 +162,64 @@ class RdfRefObjectMapperTest {
     assertThat(childSideJoinCondition.getChildReference(), is("foo"));
     assertThat(childSideJoinCondition.getChildValues(), containsInAnyOrder("baz"));
     assertThat(childSideJoinCondition.getParentReference(), is("bar"));
+  }
+
+  @Test
+  void givenRefObjectMapperWitMultipleSubjectAndGraphCombos_whenMap_thenChildSideJoinConditionWithConditionAdded() {
+    // Given
+    RdfMappingContext rdfMappingContext = RdfMappingContext.builder()
+        .valueFactorySupplier(() -> VALUE_FACTORY)
+        .termGeneratorFactory(rdfTermGeneratorFactory)
+        .childSideJoinStoreProvider(childSideJoinStoreProvider)
+        .build();
+
+    RdfRefObjectMapper rdfRefObjectMapper =
+        RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingContext, childSideJoinStoreProvider);
+
+    Resource subject1 = VALUE_FACTORY.createIRI("http://foo.bar/subject1");
+    Resource subject2 = VALUE_FACTORY.createIRI("http://foo.bar/subject2");
+    IRI predicate1 = VALUE_FACTORY.createIRI("http://foo.bar/predicate1");
+    Resource graph1 = VALUE_FACTORY.createIRI("http://foo.bar/graph1");
+    Resource graph2 = VALUE_FACTORY.createIRI("http://foo.bar/graph2");
+    Set<Resource> subjects = Set.of(subject1);
+    Set<Resource> subjects2 = Set.of(subject2);
+    Set<IRI> predicates = Set.of(predicate1);
+    Set<Resource> graphs = Set.of(graph1);
+    Set<Resource> graphs2 = Set.of(graph2);
+
+    when(refObjectMap.getJoinConditions()).thenReturn(Set.of(join1));
+    when(join1.getChildReference()).thenReturn("foo");
+    when(join1.getParentReference()).thenReturn("bar");
+
+    when(expressionEvaluation.apply(any())).thenReturn(Optional.of(List.of("baz")));
+
+    Map<Set<Resource>, Set<Resource>> subjectsAndAllGraphs = Map.of(subjects, graphs, subjects2, graphs2);
+
+    // When
+    Mono<Statement> refObjectMapperPromise = Mono.empty();
+    rdfRefObjectMapper.map(subjectsAndAllGraphs, predicates, expressionEvaluation);
+
+    // Then
+    StepVerifier.create(refObjectMapperPromise)
+        .expectComplete()
+        .verify();
+
+    verify(childSideJoinCache, times(2)).add(childSideJoinCaptor.capture());
+
+    List<ChildSideJoin<Resource, IRI>> childSideJoins = childSideJoinCaptor.getAllValues();
+
+    assertThat(childSideJoins.stream()
+        .map(ChildSideJoin::getSubjects)
+        .flatMap(Set::stream)
+        .collect(Collectors.toUnmodifiableSet()), containsInAnyOrder(subject1, subject2));
+    assertThat(childSideJoins.stream()
+        .map(ChildSideJoin::getPredicates)
+        .flatMap(Set::stream)
+        .collect(Collectors.toUnmodifiableSet()), containsInAnyOrder(predicate1));
+    assertThat(childSideJoins.stream()
+        .map(ChildSideJoin::getGraphs)
+        .flatMap(Set::stream)
+        .collect(Collectors.toUnmodifiableSet()), containsInAnyOrder(graph1, graph2));
   }
 
   @Test
@@ -188,9 +248,11 @@ class RdfRefObjectMapperTest {
     when(expressionEvaluation.apply(any())).thenReturn(Optional.of(List.of("baz")))
         .thenReturn(Optional.of(List.of("Carol")));
 
+    Map<Set<Resource>, Set<Resource>> subjectsAndAllGraphs = Map.of(subjects, graphs);
+
     // When
     Mono<Statement> refObjectMapperPromise = Mono.empty();
-    rdfRefObjectMapper.map(subjects, predicates, graphs, expressionEvaluation);
+    rdfRefObjectMapper.map(subjectsAndAllGraphs, predicates, expressionEvaluation);
 
     // Then
     StepVerifier.create(refObjectMapperPromise)
@@ -356,7 +418,7 @@ class RdfRefObjectMapperTest {
 
     when(parentRdfTriplesMapper.getParentSideJoinConditions()).thenReturn(parentSideJoinConditions);
 
-    Mockito.lenient()
+    lenient()
         .when(parentRdfTriplesMapper.notifyCompletion(any(), any()))
         .thenReturn(Mono.when());
 
@@ -372,6 +434,98 @@ class RdfRefObjectMapperTest {
             VALUE_FACTORY.createStatement(subject1, predicate1, parentSubject2, graph1))
         .contains(statement);
     StepVerifier deferred = StepVerifier.create(joinedStatementFlux)
+        .expectNextMatches(expectedStatement)
+        .expectNextMatches(expectedStatement)
+        .expectComplete()
+        .verifyLater();
+
+    // When
+    StepVerifier.create(joinlessFlux)
+        .expectComplete();
+
+    StepVerifier.create(parentJoinlessFlux)
+        .expectComplete();
+
+    // Then
+    deferred.verify(Duration.ofSeconds(1));
+  }
+
+  @Test
+  void givenValidJoinWithTwoParentValuesForTwoSubjectGraphCombos_whenResolveJoins_ThenReturnsFourStatements() {
+    // Given
+    IRI subject1 = VALUE_FACTORY.createIRI("http://foo.bar/subject1");
+    Set<Resource> subjects = Set.of(subject1);
+    IRI predicate1 = VALUE_FACTORY.createIRI("http://foo.bar/predicate1");
+    Set<IRI> predicates = Set.of(predicate1);
+    IRI graph1 = VALUE_FACTORY.createIRI("http://foo.bar/graph1");
+    Set<Resource> graphs = Set.of(graph1);
+
+
+    IRI subject2 = VALUE_FACTORY.createIRI("http://foo.bar/subject1");
+    Set<Resource> subjects2 = Set.of(subject2);
+    IRI graph2 = VALUE_FACTORY.createIRI("http://foo.bar/graph2");
+    Set<Resource> graphs2 = Set.of(graph2);
+
+    ChildSideJoin<Resource, IRI> childSideJoin1 = ChildSideJoin.<Resource, IRI>builder()
+        .subjects(subjects)
+        .predicates(predicates)
+        .graphs(graphs)
+        .childSideJoinConditions(Set.of(ChildSideJoinCondition.of("foo", List.of("baz"), "bar")))
+        .build();
+
+    ChildSideJoin<Resource, IRI> childSideJoin2 = ChildSideJoin.<Resource, IRI>builder()
+        .subjects(subjects2)
+        .predicates(predicates)
+        .graphs(graphs2)
+        .childSideJoinConditions(Set.of(ChildSideJoinCondition.of("foo", List.of("baz"), "bar")))
+        .build();
+
+    Set<ChildSideJoin<Resource, IRI>> childSideJoins = new HashSet<>();
+    childSideJoins.add(childSideJoin1);
+    childSideJoins.add(childSideJoin2);
+
+    when(childSideJoinStoreProvider.create(any())).thenReturn(childSideJoins);
+
+    RdfMappingContext rdfMappingContext = RdfMappingContext.builder()
+        .valueFactorySupplier(() -> VALUE_FACTORY)
+        .termGeneratorFactory(rdfTermGeneratorFactory)
+        .childSideJoinStoreProvider(childSideJoinStoreProvider)
+        .build();
+
+    RdfRefObjectMapper rdfRefObjectMapper =
+        RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingContext, childSideJoinStoreProvider);
+
+    IRI parentSubject1 = VALUE_FACTORY.createIRI("http://foo.bar/parentSubject1");
+    IRI parentSubject2 = VALUE_FACTORY.createIRI("http://foo.bar/parentSubject2");
+    Set<Resource> parentSubjects = Set.of(parentSubject1, parentSubject2);
+
+    ParentSideJoinKey parentSideJoinKey = ParentSideJoinKey.of("bar", "baz");
+
+    ConcurrentMap<ParentSideJoinKey, Set<Resource>> parentSideJoinConditions =
+        new ConcurrentHashMap<>(Map.of(parentSideJoinKey, parentSubjects));
+
+    when(parentRdfTriplesMapper.getParentSideJoinConditions()).thenReturn(parentSideJoinConditions);
+
+    lenient()
+        .when(parentRdfTriplesMapper.notifyCompletion(any(), any()))
+        .thenReturn(Mono.when());
+
+    Flux<Statement> joinlessFlux = generateStatementsFor("main", 2);
+    Flux<Statement> parentJoinlessFlux = generateStatementsFor("parent", 2);
+
+    Flux<Statement> joinedStatementFlux =
+        rdfRefObjectMapper.resolveJoins(joinlessFlux, parentRdfTriplesMapper, parentJoinlessFlux);
+
+    // With deferred expectation
+    Predicate<Statement> expectedStatement = statement -> Set
+        .of(VALUE_FACTORY.createStatement(subject1, predicate1, parentSubject1, graph1),
+            VALUE_FACTORY.createStatement(subject1, predicate1, parentSubject2, graph1),
+            VALUE_FACTORY.createStatement(subject2, predicate1, parentSubject1, graph2),
+            VALUE_FACTORY.createStatement(subject2, predicate1, parentSubject2, graph2))
+        .contains(statement);
+    StepVerifier deferred = StepVerifier.create(joinedStatementFlux)
+        .expectNextMatches(expectedStatement)
+        .expectNextMatches(expectedStatement)
         .expectNextMatches(expectedStatement)
         .expectNextMatches(expectedStatement)
         .expectComplete()

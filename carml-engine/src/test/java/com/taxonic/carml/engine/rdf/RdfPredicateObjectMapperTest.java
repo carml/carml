@@ -29,6 +29,7 @@ import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.vocab.Rdf;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 import org.eclipse.rdf4j.model.IRI;
@@ -191,8 +192,10 @@ class RdfPredicateObjectMapperTest {
     RdfPredicateObjectMapper rdfPredicateObjectMapper =
         RdfPredicateObjectMapper.of(pom, triplesMap, rdfRefObjectMappers, rdfMappingContext);
 
+    Map<Set<Resource>, Set<Resource>> subjectsAndSubjectGraphs = Map.of(subjects, subjectGraphs);
+
     // When
-    Flux<Statement> pomStatements = rdfPredicateObjectMapper.map(any(), subjects, subjectGraphs);
+    Flux<Statement> pomStatements = rdfPredicateObjectMapper.map(any(), subjectsAndSubjectGraphs);
 
     // Then
     StepVerifier.create(pomStatements)
@@ -224,8 +227,10 @@ class RdfPredicateObjectMapperTest {
     RdfPredicateObjectMapper rdfPredicateObjectMapper =
         RdfPredicateObjectMapper.of(pom, triplesMap, rdfRefObjectMappers, rdfMappingContext);
 
+    Map<Set<Resource>, Set<Resource>> subjectsAndSubjectGraphs = Map.of(subjects, subjectGraphs);
+
     // When
-    Flux<Statement> pomStatements = rdfPredicateObjectMapper.map(any(), subjects, subjectGraphs);
+    Flux<Statement> pomStatements = rdfPredicateObjectMapper.map(any(), subjectsAndSubjectGraphs);
 
     // Then
     StepVerifier.create(pomStatements)
@@ -266,8 +271,10 @@ class RdfPredicateObjectMapperTest {
     RdfPredicateObjectMapper rdfPredicateObjectMapper =
         RdfPredicateObjectMapper.of(pom, triplesMap, rdfRefObjectMappers, rdfMappingContext);
 
+    Map<Set<Resource>, Set<Resource>> subjectsAndSubjectGraphs = Map.of(subjects, subjectGraphs);
+
     // When
-    Flux<Statement> pomStatements = rdfPredicateObjectMapper.map(any(), subjects, subjectGraphs);
+    Flux<Statement> pomStatements = rdfPredicateObjectMapper.map(any(), subjectsAndSubjectGraphs);
 
     // Then
     Predicate<Statement> expectedStatement = statement -> Set
@@ -313,8 +320,10 @@ class RdfPredicateObjectMapperTest {
     RdfPredicateObjectMapper rdfPredicateObjectMapper =
         RdfPredicateObjectMapper.of(pom, triplesMap, rdfRefObjectMappers, rdfMappingContext);
 
+    Map<Set<Resource>, Set<Resource>> subjectsAndSubjectGraphs = Map.of(subjects, subjectGraphs);
+
     // When
-    Flux<Statement> pomStatements = rdfPredicateObjectMapper.map(any(), subjects, subjectGraphs);
+    Flux<Statement> pomStatements = rdfPredicateObjectMapper.map(any(), subjectsAndSubjectGraphs);
 
     // Then
     Predicate<Statement> expectedStatement = statement -> Set
@@ -347,7 +356,7 @@ class RdfPredicateObjectMapperTest {
     when(refObjectMap1.getParentTriplesMap()).thenReturn(triplesMap2);
 
     when(triplesMap2.getLogicalSource()).thenReturn(logicalSource);
-    when(triplesMap2.getSubjectMap()).thenReturn(subjectMap2);
+    when(triplesMap2.getSubjectMaps()).thenReturn(Set.of(subjectMap2));
 
     when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap2)).thenReturn(subjectGenerator2);
 
@@ -366,8 +375,10 @@ class RdfPredicateObjectMapperTest {
     RdfPredicateObjectMapper rdfPredicateObjectMapper =
         RdfPredicateObjectMapper.of(pom, triplesMap, rdfRefObjectMappers, rdfMappingContext);
 
+    Map<Set<Resource>, Set<Resource>> subjectsAndSubjectGraphs = Map.of(subjects, subjectGraphs);
+
     // When
-    Flux<Statement> pomStatements = rdfPredicateObjectMapper.map(any(), subjects, subjectGraphs);
+    Flux<Statement> pomStatements = rdfPredicateObjectMapper.map(any(), subjectsAndSubjectGraphs);
 
     // Then
     StepVerifier.create(pomStatements)
@@ -409,11 +420,13 @@ class RdfPredicateObjectMapperTest {
 
     ExpressionEvaluation expressionEvaluation = mock(ExpressionEvaluation.class);
 
+    Map<Set<Resource>, Set<Resource>> subjectsAndSubjectGraphs = Map.of(subjects, subjectGraphs);
+
     // When
-    Flux<Statement> pomStatements = rdfPredicateObjectMapper.map(expressionEvaluation, subjects, subjectGraphs);
+    Flux<Statement> pomStatements = rdfPredicateObjectMapper.map(expressionEvaluation, subjectsAndSubjectGraphs);
 
     // Then
-    verify(rdfRefObjectMapper1, times(1)).map(subjects, Set.of(predicate1), subjectGraphs, expressionEvaluation);
+    verify(rdfRefObjectMapper1, times(1)).map(subjectsAndSubjectGraphs, Set.of(predicate1), expressionEvaluation);
 
     StepVerifier.create(pomStatements)
         .verifyComplete();

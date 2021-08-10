@@ -62,6 +62,10 @@ public class TestRmlTestCases {
       .add("RMLTC0020b-CSV")
       .add("RMLTC0020b-JSON")
       .add("RMLTC0020b-XML")
+      // multiple subjectMaps
+      .add("RMLTC0012d-CSV")
+      .add("RMLTC0012d-JSON")
+      .add("RMLTC0012d-XML")
       .build();
 
   private RdfRmlMapper.Builder mapperBuilder;

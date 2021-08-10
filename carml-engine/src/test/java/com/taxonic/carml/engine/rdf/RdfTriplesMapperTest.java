@@ -9,8 +9,9 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
 import com.taxonic.carml.engine.ExpressionEvaluation;
 import com.taxonic.carml.engine.TermGenerator;
 import com.taxonic.carml.engine.TriplesMapperException;
@@ -52,7 +53,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.SignalType;
 import reactor.test.StepVerifier;
 
-@ExtendWith(MockitoExtension.class)
+@ExtendWith({MockitoExtension.class})
 class RdfTriplesMapperTest {
 
   private static final ValueFactory VALUE_FACTORY = SimpleValueFactory.getInstance();
@@ -65,6 +66,12 @@ class RdfTriplesMapperTest {
 
   @Mock
   private SubjectMap subjectMap;
+
+  @Mock
+  private TermGenerator<Resource> subjectGenerator2;
+
+  @Mock
+  private SubjectMap subjectMap2;
 
   @Mock
   private TermGenerator<IRI> predicateGenerator1;
@@ -94,6 +101,12 @@ class RdfTriplesMapperTest {
 
   @Mock
   private GraphMap graphMap2;
+
+  @Mock
+  private TermGenerator<Resource> graphGenerator3;
+
+  @Mock
+  private GraphMap graphMap3;
 
   @Mock
   private RefObjectMap refObjectMap1;
@@ -142,11 +155,11 @@ class RdfTriplesMapperTest {
   void setup() {
     refObjectMappers = new HashSet<>();
     incomingRefObjectMappers = new HashSet<>();
-    when(triplesMap.getSubjectMap()).thenReturn(subjectMap);
-    when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
-    when(triplesMap.getPredicateObjectMaps()).thenReturn(Set.of(pom));
+    when(triplesMap.getSubjectMaps()).thenReturn(Set.of(subjectMap));
+    lenient().when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
+    lenient().when(triplesMap.getPredicateObjectMaps()).thenReturn(Set.of(pom));
     parentSideJoinConditions = new ConcurrentHashMap<>();
-    when(parentSideJoinConditionStoreProvider.create(any())).thenReturn(parentSideJoinConditions);
+    lenient().when(parentSideJoinConditionStoreProvider.create(any())).thenReturn(parentSideJoinConditions);
   }
 
   @Test
@@ -166,6 +179,24 @@ class RdfTriplesMapperTest {
     assertThat(rdfTriplesMapper, is(not(nullValue())));
     assertThat(rdfTriplesMapper.getRefObjectMappers(), is(empty()));
     assertThat(rdfTriplesMapper.getConnectedRefObjectMappers(), is(empty()));
+  }
+
+  @Test
+  void givenNoSubjectMap_whenOfCalled_thenThrowException() {
+    // Given
+    when(triplesMap.getSubjectMaps()).thenReturn(Set.of());
+    when(triplesMap.asRdf()).thenReturn(new ModelBuilder().build());
+    when(triplesMap.getAsResource()).thenReturn(VALUE_FACTORY.createBNode("triplesMap"));
+    RdfMappingContext rdfMappingContext = mock(RdfMappingContext.class);
+
+    // When
+    Throwable exception = assertThrows(TriplesMapperException.class,
+        () -> RdfTriplesMapper.of(triplesMap, refObjectMappers, incomingRefObjectMappers, expressionEvaluatorFactory,
+            rdfMappingContext, parentSideJoinConditionStoreProvider));
+
+    // Then
+    assertThat(exception.getMessage(),
+        startsWith("Subject map must be specified in triples map blank node resource _:triplesMap in:"));
   }
 
   @Test
@@ -223,8 +254,6 @@ class RdfTriplesMapperTest {
     // Given
     IRI subject1 = VALUE_FACTORY.createIRI("http://foo.bar/subject1");
     when(subjectGenerator.apply(any())).thenReturn(List.of(subject1));
-    when(subjectGenerator.apply(any())).thenReturn(List.of(subject1));
-    when(subjectGenerator.apply(any())).thenReturn(List.of(subject1));
     when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
 
     when(subjectMap.getGraphMaps()).thenReturn(Set.of(graphMap1));
@@ -267,6 +296,75 @@ class RdfTriplesMapperTest {
         .contains(statement);
 
     StepVerifier.create(statements)
+        .expectNextMatches(expectedStatement)
+        .expectNextMatches(expectedStatement)
+        .expectNextMatches(expectedStatement)
+        .verifyComplete();
+  }
+
+  @Test
+  void givenMultipleSubjectMapsAndPom_whenMap_thenReturnStatements() {
+    // Given
+    when(triplesMap.getSubjectMaps()).thenReturn(Set.of(subjectMap, subjectMap2));
+    when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap2)).thenReturn(subjectGenerator2);
+
+    IRI subject1 = VALUE_FACTORY.createIRI("http://foo.bar/subject1");
+    when(subjectGenerator.apply(any())).thenReturn(List.of(subject1));
+    when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
+
+    IRI subject2 = VALUE_FACTORY.createIRI("http://foo.bar/subject2");
+    when(subjectGenerator2.apply(any())).thenReturn(List.of(subject2));
+    when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap2)).thenReturn(subjectGenerator2);
+
+    when(subjectMap.getGraphMaps()).thenReturn(Set.of(graphMap1));
+    when(rdfTermGeneratorFactory.getGraphGenerator(graphMap1)).thenReturn(graphGenerator1);
+    IRI subjectGraph1 = VALUE_FACTORY.createIRI("http://foo.bar/subjectGraph1");
+    when(graphGenerator1.apply(any())).thenReturn(List.of(subjectGraph1, Rdf.Rr.defaultGraph));
+
+    when(subjectMap2.getGraphMaps()).thenReturn(Set.of(graphMap2));
+    when(rdfTermGeneratorFactory.getGraphGenerator(graphMap2)).thenReturn(graphGenerator2);
+    IRI subjectGraph2 = VALUE_FACTORY.createIRI("http://foo.bar/subjectGraph2");
+    when(graphGenerator2.apply(any())).thenReturn(List.of(subjectGraph2));
+
+    when(pom.getPredicateMaps()).thenReturn(Set.of(predicateMap1));
+    when(rdfTermGeneratorFactory.getPredicateGenerator(predicateMap1)).thenReturn(predicateGenerator1);
+    IRI predicate1 = VALUE_FACTORY.createIRI("http://foo.bar/predicate1");
+    when(predicateGenerator1.apply(any())).thenReturn(List.of(predicate1));
+
+    when(pom.getObjectMaps()).thenReturn(Set.of(objectMap1));
+    when(rdfTermGeneratorFactory.getObjectGenerator(objectMap1)).thenReturn(objectGenerator1);
+    Value object1 = VALUE_FACTORY.createLiteral("object1");
+    when(objectGenerator1.apply(any())).thenReturn(List.of(object1));
+
+    when(pom.getGraphMaps()).thenReturn(Set.of(graphMap3));
+    when(rdfTermGeneratorFactory.getGraphGenerator(graphMap3)).thenReturn(graphGenerator3);
+    IRI graph1 = VALUE_FACTORY.createIRI("http://foo.bar/graph1");
+    when(graphGenerator3.apply(any())).thenReturn(List.of(graph1));
+
+    RdfMappingContext rdfMappingContext = RdfMappingContext.builder()
+        .valueFactorySupplier(() -> VALUE_FACTORY)
+        .termGeneratorFactory(rdfTermGeneratorFactory)
+        .childSideJoinStoreProvider(childSideJoinStoreProvider)
+        .build();
+
+    RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(triplesMap, refObjectMappers,
+        incomingRefObjectMappers, expressionEvaluatorFactory, rdfMappingContext, parentSideJoinConditionStoreProvider);
+
+    // When
+    Flux<Statement> statements = rdfTriplesMapper.map("foo");
+
+    // Then
+    Predicate<Statement> expectedStatement = statement -> Set
+        .of(VALUE_FACTORY.createStatement(subject1, predicate1, object1, subjectGraph1),
+            VALUE_FACTORY.createStatement(subject1, predicate1, object1, graph1),
+            VALUE_FACTORY.createStatement(subject1, predicate1, object1),
+            VALUE_FACTORY.createStatement(subject2, predicate1, object1, subjectGraph2),
+            VALUE_FACTORY.createStatement(subject2, predicate1, object1, graph1))
+        .contains(statement);
+
+    StepVerifier.create(statements)
+        .expectNextMatches(expectedStatement)
+        .expectNextMatches(expectedStatement)
         .expectNextMatches(expectedStatement)
         .expectNextMatches(expectedStatement)
         .expectNextMatches(expectedStatement)

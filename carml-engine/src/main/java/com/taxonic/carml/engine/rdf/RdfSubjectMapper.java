@@ -38,14 +38,8 @@ public class RdfSubjectMapper {
   @NonNull
   private final ValueFactory valueFactory;
 
-  public static RdfSubjectMapper of(@NonNull TriplesMap triplesMap, @NonNull RdfMappingContext rdfMappingContext) {
-    SubjectMap subjectMap = triplesMap.getSubjectMap();
-
-    if (subjectMap == null) {
-      throw new TriplesMapperException(
-          String.format("Subject map must be specified in triples map %s", exception(triplesMap, triplesMap)));
-    }
-
+  public static RdfSubjectMapper of(@NonNull SubjectMap subjectMap, @NonNull TriplesMap triplesMap,
+      @NonNull RdfMappingContext rdfMappingContext) {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Creating mapper for SubjectMap {}", log(triplesMap, subjectMap));
     }

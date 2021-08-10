@@ -24,7 +24,7 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap {
 
   private LogicalSource logicalSource;
 
-  private SubjectMap subjectMap;
+  private Set<SubjectMap> subjectMaps;
 
   private Set<PredicateObjectMap> predicateObjectMaps;
 
@@ -32,10 +32,10 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap {
     // Empty constructor for object mapper
   }
 
-  public CarmlTriplesMap(LogicalSource logicalSource, SubjectMap subjectMap,
+  public CarmlTriplesMap(LogicalSource logicalSource, Set<SubjectMap> subjectMap,
       Set<PredicateObjectMap> predicateObjectMaps) {
     this.logicalSource = logicalSource;
-    this.subjectMap = subjectMap;
+    this.subjectMaps = subjectMaps;
     this.predicateObjectMaps = predicateObjectMaps;
   }
 
@@ -49,8 +49,8 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap {
   @RdfProperty(Rr.subjectMap)
   @RdfType(CarmlSubjectMap.class)
   @Override
-  public SubjectMap getSubjectMap() {
-    return subjectMap;
+  public Set<SubjectMap> getSubjectMaps() {
+    return subjectMaps;
   }
 
   @RdfProperty(Rr.predicateObjectMap)
@@ -64,8 +64,8 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap {
     this.logicalSource = logicalSource;
   }
 
-  public void setSubjectMap(SubjectMap subjectMap) {
-    this.subjectMap = subjectMap;
+  public void setSubjectMaps(Set<SubjectMap> subjectMaps) {
+    this.subjectMaps = subjectMaps;
   }
 
   public void setPredicateObjectMaps(Set<PredicateObjectMap> predicateObjectMaps) {
@@ -82,7 +82,7 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap {
 
   @Override
   public int hashCode() {
-    return Objects.hash(logicalSource, subjectMap, predicateObjectMaps);
+    return Objects.hash(logicalSource, subjectMaps, predicateObjectMaps);
   }
 
   @Override
@@ -97,7 +97,7 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap {
       return false;
     }
     CarmlTriplesMap other = (CarmlTriplesMap) obj;
-    return Objects.equals(logicalSource, other.logicalSource) && Objects.equals(subjectMap, other.subjectMap)
+    return Objects.equals(logicalSource, other.logicalSource) && Objects.equals(subjectMaps, other.subjectMaps)
         && Objects.equals(predicateObjectMaps, other.predicateObjectMaps);
   }
 
@@ -107,10 +107,8 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap {
     if (logicalSource != null) {
       builder.add(logicalSource);
     }
-    if (subjectMap != null) {
-      builder.add(subjectMap);
-    }
-    return builder.addAll(predicateObjectMaps)
+    return builder.addAll(subjectMaps)
+        .addAll(predicateObjectMaps)
         .build();
   }
 
@@ -121,9 +119,7 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap {
     if (logicalSource != null) {
       modelBuilder.add(Rml.logicalSource, logicalSource.getAsResource());
     }
-    if (subjectMap != null) {
-      modelBuilder.add(Rr.subjectMap, subjectMap.getAsResource());
-    }
+    subjectMaps.forEach(sm -> modelBuilder.add(Rr.subjectMap, sm.getAsResource()));
     predicateObjectMaps.forEach(pom -> modelBuilder.add(Rr.predicateObjectMap, pom.getAsResource()));
   }
 
@@ -135,9 +131,9 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap {
 
     private LogicalSource logicalSource;
 
-    private SubjectMap subjectMap;
+    private final Set<SubjectMap> subjectMaps = new LinkedHashSet<>();
 
-    private Set<PredicateObjectMap> predicateObjectMaps = new LinkedHashSet<>();
+    private final Set<PredicateObjectMap> predicateObjectMaps = new LinkedHashSet<>();
 
     public Builder logicalSource(LogicalSource logicalSource) {
       this.logicalSource = logicalSource;
@@ -145,7 +141,7 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap {
     }
 
     public Builder subjectMap(SubjectMap subjectMap) {
-      this.subjectMap = subjectMap;
+      subjectMaps.add(subjectMap);
       return this;
     }
 
@@ -155,7 +151,7 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap {
     }
 
     public CarmlTriplesMap build() {
-      return new CarmlTriplesMap(logicalSource, subjectMap, predicateObjectMaps);
+      return new CarmlTriplesMap(logicalSource, subjectMaps, predicateObjectMaps);
     }
   }
 

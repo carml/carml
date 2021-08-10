@@ -37,6 +37,7 @@ public class RdfRefObjectMapper implements RefObjectMapper<Statement> {
   @NonNull
   private final RefObjectMap refObjectMap;
 
+  @Getter(AccessLevel.PUBLIC)
   @NonNull
   private final TriplesMap triplesMap;
 
@@ -65,12 +66,12 @@ public class RdfRefObjectMapper implements RefObjectMapper<Statement> {
     this.valueFactory = valueFactory;
   }
 
-  public void map(Set<Resource> subjects, Set<IRI> predicates, Set<Resource> graphs,
+  public void map(Map<Set<Resource>, Set<Resource>> subjectsAndAllGraphs, Set<IRI> predicates,
       ExpressionEvaluation expressionEvaluation) {
-    prepareChildSideJoins(subjects, predicates, graphs, expressionEvaluation);
+    prepareChildSideJoins(subjectsAndAllGraphs, predicates, expressionEvaluation);
   }
 
-  private void prepareChildSideJoins(Set<Resource> subjects, Set<IRI> predicates, Set<Resource> graphs,
+  private void prepareChildSideJoins(Map<Set<Resource>, Set<Resource>> subjectsAndAllGraphs, Set<IRI> predicates,
       ExpressionEvaluation expressionEvaluation) {
     Set<ChildSideJoinCondition> childSideJoinConditions = refObjectMap.getJoinConditions()
         .stream()
@@ -84,6 +85,12 @@ public class RdfRefObjectMapper implements RefObjectMapper<Statement> {
         })
         .collect(Collectors.toSet());
 
+    subjectsAndAllGraphs
+        .forEach((subjects, graphs) -> prepareChildSideJoin(subjects, predicates, graphs, childSideJoinConditions));
+  }
+
+  private void prepareChildSideJoin(Set<Resource> subjects, Set<IRI> predicates, Set<Resource> graphs,
+      Set<ChildSideJoinCondition> childSideJoinConditions) {
     ChildSideJoin<Resource, IRI> childSideJoin = ChildSideJoin.<Resource, IRI>builder()
         .subjects(subjects)
         .predicates(predicates)
@@ -98,7 +105,7 @@ public class RdfRefObjectMapper implements RefObjectMapper<Statement> {
   public Flux<Statement> resolveJoins(Flux<Statement> mainFlux, TriplesMapper<?, Statement> parentTriplesMapper,
       Flux<Statement> parentFlux) {
 
-    ConnectableFlux<Statement> joinedStatementFlux2 = Flux.using(() -> childSideJoins, Flux::fromIterable, Set::clear)
+    ConnectableFlux<Statement> joinedStatementFlux = Flux.using(() -> childSideJoins, Flux::fromIterable, Set::clear)
         .subscribeOn(Schedulers.boundedElastic())
         .flatMap(childSideJoin -> resolveJoin(parentTriplesMapper, childSideJoin))
         .doFinally(signalType -> parentTriplesMapper.notifyCompletion(this, signalType)
@@ -106,9 +113,9 @@ public class RdfRefObjectMapper implements RefObjectMapper<Statement> {
             .subscribe())
         .publish();
 
-    Flux<Statement> barrier = setTriplesMapperCompletionBarrier(joinedStatementFlux2, mainFlux, parentFlux);
+    Flux<Statement> barrier = setTriplesMapperCompletionBarrier(joinedStatementFlux, mainFlux, parentFlux);
 
-    return Flux.merge(joinedStatementFlux2, barrier);
+    return Flux.merge(joinedStatementFlux, barrier);
   }
 
   private Flux<Statement> setTriplesMapperCompletionBarrier(ConnectableFlux<Statement> joinedStatementFlux,
