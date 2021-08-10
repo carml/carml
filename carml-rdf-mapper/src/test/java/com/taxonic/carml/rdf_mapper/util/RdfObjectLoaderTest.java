@@ -7,14 +7,12 @@ import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.IsNull.nullValue;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.rdf4j.common.iteration.Iterations;
 import org.eclipse.rdf4j.model.Literal;
@@ -22,8 +20,8 @@ import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.ValueFactory;
-import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
+import org.eclipse.rdf4j.model.util.ModelCollector;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 import org.eclipse.rdf4j.repository.Repository;
 import org.eclipse.rdf4j.repository.RepositoryConnection;
@@ -52,15 +50,15 @@ public class RdfObjectLoaderTest {
 
   private Model model;
 
-  private static Function<Model, Set<Resource>> selectAllResources = model -> ImmutableSet.copyOf(model.subjects());
+  private static Function<Model, Set<Resource>> selectAllResources = model -> Set.copyOf(model.subjects());
 
 
   private static Function<Model, Set<Resource>> selectPersons =
-      model -> ImmutableSet.copyOf(model.filter(null, RDF.TYPE, VF.createIRI(Person.SCHEMAORG + "Person"))
+      model -> Set.copyOf(model.filter(null, RDF.TYPE, VF.createIRI(Person.SCHEMAORG + "Person"))
           .subjects());
 
   private static Function<Model, Set<Resource>> selectAddresses =
-      model -> ImmutableSet.copyOf(model.filter(null, VF.createIRI(PostalAddress.SCHEMAORG_POSTALCODE), null)
+      model -> Set.copyOf(model.filter(null, VF.createIRI(PostalAddress.SCHEMAORG_POSTALCODE), null)
           .subjects());
 
   private static UnaryOperator<Model> uppercaser = model -> model.stream()
@@ -70,7 +68,7 @@ public class RdfObjectLoaderTest {
         }
         return st;
       })
-      .collect(Collectors.toCollection(LinkedHashModel::new));
+      .collect(ModelCollector.toModel());
 
   private static Statement upperCaseStatementLiteral(Statement st) {
     return VF.createStatement(st.getSubject(), st.getPredicate(), VF.createLiteral(StringUtils.upperCase(st.getObject()

@@ -13,6 +13,7 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
 import com.google.common.collect.Iterables;
 import com.taxonic.carml.engine.ExpressionEvaluation;
 import com.taxonic.carml.engine.reactivedev.join.ChildSideJoin;
@@ -418,8 +419,7 @@ class RdfRefObjectMapperTest {
 
     when(parentRdfTriplesMapper.getParentSideJoinConditions()).thenReturn(parentSideJoinConditions);
 
-    lenient()
-        .when(parentRdfTriplesMapper.notifyCompletion(any(), any()))
+    lenient().when(parentRdfTriplesMapper.notifyCompletion(any(), any()))
         .thenReturn(Mono.when());
 
     Flux<Statement> joinlessFlux = generateStatementsFor("main", 2);
@@ -506,8 +506,7 @@ class RdfRefObjectMapperTest {
 
     when(parentRdfTriplesMapper.getParentSideJoinConditions()).thenReturn(parentSideJoinConditions);
 
-    lenient()
-        .when(parentRdfTriplesMapper.notifyCompletion(any(), any()))
+    lenient().when(parentRdfTriplesMapper.notifyCompletion(any(), any()))
         .thenReturn(Mono.when());
 
     Flux<Statement> joinlessFlux = generateStatementsFor("main", 2);

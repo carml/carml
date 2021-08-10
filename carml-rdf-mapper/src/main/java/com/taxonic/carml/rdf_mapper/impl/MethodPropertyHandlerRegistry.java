@@ -13,11 +13,11 @@ import org.eclipse.rdf4j.model.Resource;
 
 public class MethodPropertyHandlerRegistry {
 
-  private Method method;
+  private final Method method;
 
-  private boolean isIterable;
+  private final boolean isIterable;
 
-  private Set<PropertyHandler> handlers;
+  private final Set<PropertyHandler> handlers;
 
   private MethodPropertyHandlerRegistry(Method method, boolean isIterable, Set<PropertyHandler> handlers) {
     this.method = method;
@@ -35,21 +35,18 @@ public class MethodPropertyHandlerRegistry {
 
     private Boolean isIterable;
 
-    private ImmutableSet.Builder<PropertyHandler> handlersBuilder = new ImmutableSet.Builder<>();
+    private final ImmutableSet.Builder<PropertyHandler> handlersBuilder = new ImmutableSet.Builder<>();
 
-    Builder method(Method method) {
+    void method(Method method) {
       this.method = method;
-      return this;
     }
 
-    Builder isIterable(Boolean isIterable) {
+    void isIterable(Boolean isIterable) {
       this.isIterable = isIterable;
-      return this;
     }
 
-    Builder addHandler(PropertyHandler handler) {
+    void addHandler(PropertyHandler handler) {
       handlersBuilder.add(handler);
-      return this;
     }
 
     boolean isBuildable() {
@@ -63,7 +60,7 @@ public class MethodPropertyHandlerRegistry {
       if (isIterable == null) {
         throw new IllegalStateException("isIterable cannot be null");
       }
-      return new MethodPropertyHandlerRegistry(method, isIterable.booleanValue(), handlersBuilder.build());
+      return new MethodPropertyHandlerRegistry(method, isIterable, handlersBuilder.build());
     }
   }
 

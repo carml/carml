@@ -115,8 +115,8 @@ public class CarmlMapper implements Mapper, MappingCache {
         .contains(m);
 
 
-    T result = (T) Proxy.newProxyInstance(CarmlMapper.class.getClassLoader(), types
-        .toArray(Class<?>[]::new), (proxy, method, args) -> {
+    T result = (T) Proxy.newProxyInstance(CarmlMapper.class.getClassLoader(), types.toArray(Class<?>[]::new),
+        (proxy, method, args) -> {
 
           MultiDelegateCall multiDelegateCall = method.getAnnotation(MultiDelegateCall.class);
 
@@ -411,13 +411,14 @@ public class CarmlMapper implements Mapper, MappingCache {
         .getEffectiveHandlers(model, resource) : Stream.empty();
   }
 
-  private void collectRdfPropertyHandler(RdfProperty annotation, Method method, Class<?> c,
+  private void collectRdfPropertyHandler(RdfProperty annotation, Method method, Class<?> clazz,
       MethodPropertyHandlerRegistry.Builder regBuilder) {
     String name = method.getName();
     String property = getPropertyName(name);
 
     String setterName = createSetterName(property);
-    Method setter = findSetter(c, setterName).orElseThrow(() -> createCouldNotFindSetterException(c, setterName));
+    Method setter =
+        findSetter(clazz, setterName).orElseThrow(() -> createCouldNotFindSetterException(clazz, setterName));
 
     PropertyType propertyType = determinePropertyType(setter);
     Class<?> elementType = propertyType.getElementType();
@@ -430,9 +431,18 @@ public class CarmlMapper implements Mapper, MappingCache {
 
     // if property type is a sub-type of Value, no transform is needed
     if (Value.class.isAssignableFrom(elementType)) {
-      valueTransformer = (m, v) -> v;
+      valueTransformer = (model, value) -> value;
     } else if (String.class.isAssignableFrom(elementType)) {
-      valueTransformer = (m, v) -> ((Literal) v).getLabel();
+      valueTransformer = (model, value) -> {
+        if (value instanceof Literal) {
+          return ((Literal) value).getLabel();
+        } else {
+          throw new CarmlMapperException(String.format(
+              "Cannot map value %s for property %s on class %s. Expecting value to be of type Literal, but was %s",
+              value, annotation.value(), clazz.getSimpleName(), value.getClass()
+                  .getSimpleName()));
+        }
+      };
     } else {
 
       TypeDecider typeDecider = createTypeDecider(method, elementType);
@@ -459,7 +469,7 @@ public class CarmlMapper implements Mapper, MappingCache {
       propertyValueMapper = new SinglePropertyValueMapper(predicate, valueTransformer);
     }
 
-    BiConsumer<Object, Object> set = getSetterInvoker(setter, createSetterInvocationErrorFactory(c, setter));
+    BiConsumer<Object, Object> set = getSetterInvoker(setter, createSetterInvocationErrorFactory(clazz, setter));
 
     // get handler from @RdfProperty.handler, if any
     // TODO cache these per type/property

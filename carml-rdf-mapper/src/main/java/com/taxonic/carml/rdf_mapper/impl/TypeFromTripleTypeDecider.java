@@ -1,6 +1,5 @@
 package com.taxonic.carml.rdf_mapper.impl;
 
-import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.rdf_mapper.Mapper;
 import com.taxonic.carml.rdf_mapper.TypeDecider;
 import java.lang.reflect.Type;
@@ -56,7 +55,7 @@ public class TypeFromTripleTypeDecider implements TypeDecider {
     }
 
     IRI rdfType = rdfTypes.get(0);
-    return ImmutableSet.of(mapper.getDecidableType(rdfType));
+    return Set.of(mapper.getDecidableType(rdfType));
   }
 
 }

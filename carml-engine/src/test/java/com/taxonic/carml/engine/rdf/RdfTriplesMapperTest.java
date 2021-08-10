@@ -12,6 +12,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
 import com.taxonic.carml.engine.ExpressionEvaluation;
 import com.taxonic.carml.engine.TermGenerator;
 import com.taxonic.carml.engine.TriplesMapperException;
@@ -156,10 +157,13 @@ class RdfTriplesMapperTest {
     refObjectMappers = new HashSet<>();
     incomingRefObjectMappers = new HashSet<>();
     when(triplesMap.getSubjectMaps()).thenReturn(Set.of(subjectMap));
-    lenient().when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
-    lenient().when(triplesMap.getPredicateObjectMaps()).thenReturn(Set.of(pom));
+    lenient().when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap))
+        .thenReturn(subjectGenerator);
+    lenient().when(triplesMap.getPredicateObjectMaps())
+        .thenReturn(Set.of(pom));
     parentSideJoinConditions = new ConcurrentHashMap<>();
-    lenient().when(parentSideJoinConditionStoreProvider.create(any())).thenReturn(parentSideJoinConditions);
+    lenient().when(parentSideJoinConditionStoreProvider.create(any()))
+        .thenReturn(parentSideJoinConditions);
   }
 
   @Test

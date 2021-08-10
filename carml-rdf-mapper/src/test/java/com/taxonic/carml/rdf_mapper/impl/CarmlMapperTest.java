@@ -3,7 +3,6 @@ package com.taxonic.carml.rdf_mapper.impl;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 
-import com.github.jsonldjava.shaded.com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Set;
@@ -15,7 +14,7 @@ import org.eclipse.rdf4j.rio.RDFFormat;
 import org.eclipse.rdf4j.rio.Rio;
 import org.junit.jupiter.api.Test;
 
-public class CarmlMapperTest {
+class CarmlMapperTest {
 
   private static final ValueFactory VF = SimpleValueFactory.getInstance();
 
@@ -30,16 +29,15 @@ public class CarmlMapperTest {
   }
 
   @Test
-  public void mapper_havingMethodWithMultiplePropertyAnnotations_MapsCorrectly() {
+  void mapper_havingMethodWithMultiplePropertyAnnotations_MapsCorrectly() {
     prepareTest();
     CarmlMapper mapper = new CarmlMapper();
-    Person manu =
-        mapper.map(model, (Resource) VF.createIRI("http://example.org/people#manu"), ImmutableSet.of(Person.class));
+    Person manu = mapper.map(model, (Resource) VF.createIRI("http://example.org/people#manu"), Set.of(Person.class));
     Set<Person> acquaintances = manu.getKnows();
     assertThat(acquaintances, hasSize(6));
   }
 
-  public void mapper_ifContainsCachedMappings_UsesThem() {
+  void mapper_ifContainsCachedMappings_UsesThem() {
     // TODO
   }
 
