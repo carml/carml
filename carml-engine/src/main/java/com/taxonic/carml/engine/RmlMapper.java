@@ -208,7 +208,13 @@ public abstract class RmlMapper<T> {
         .filter(triplesMapper -> triplesMapper.getTriplesMap()
             .equals(parentTriplesMap))
         .findFirst()
-        .ifPresent(triplesMapper -> roToParentTm.put(refObjectMapper, triplesMapper)));
+        .ifPresentOrElse(triplesMapper -> roToParentTm.put(refObjectMapper, triplesMapper), () -> {
+          throw new TriplesMapperException(String.format(
+              "Could not find corresponding triples map for parent triples map %s for %s%nPossibly the parent triples "
+                  + "map does not exist, or the reference to it is misspelled?",
+              exception(parentTriplesMap),
+              exception(refObjectMapper.getTriplesMap(), refObjectMapper.getRefObjectMap())));
+        }));
 
     return roToParentTm;
   }

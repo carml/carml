@@ -168,6 +168,10 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
       Map<TriplesMap, Set<RdfRefObjectMapper>> tmToRoMappers = new HashMap<>();
       Map<RdfRefObjectMapper, TriplesMap> roMapperToParentTm = new HashMap<>();
 
+      if (mappableTriplesMaps.isEmpty()) {
+        throw new RmlMapperException("No actionable triples maps provided.");
+      }
+
       for (TriplesMap triplesMap : mappableTriplesMaps) {
         Set<RdfRefObjectMapper> roMappers = new HashSet<>();
         triplesMap.getPredicateObjectMaps()
