@@ -56,6 +56,7 @@
 		<module>carml-logical-source-resolver</module>
 		<module>carml-logical-source-resolver-xpath</module>
 		<module>carml-logical-source-resolver-jsonpath</module>
+		<module>carml-logical-source-resolver-jsonpath-jayway-jackson</module>
 		<module>carml-logical-source-resolver-csv</module>
 		<module>carml-join-storage</module>
 		<module>carml-join-storage-mapdb</module>
