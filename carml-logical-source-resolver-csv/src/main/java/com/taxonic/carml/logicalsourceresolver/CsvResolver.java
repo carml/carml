@@ -6,7 +6,6 @@ import com.univocity.parsers.common.record.Record;
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.Optional;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -36,22 +35,22 @@ public class CsvResolver implements LogicalSourceResolver<Record> {
   }
 
   private Flux<Record> getCsvRecordFlux(InputStream inputStream, LogicalSource logicalSource) {
-    CsvParserSettings settings = new CsvParserSettings();
+    var settings = new CsvParserSettings();
     settings.setHeaderExtractionEnabled(true);
     settings.setLineSeparatorDetectionEnabled(true);
     settings.setDelimiterDetectionEnabled(true);
     settings.setReadInputOnSeparateThread(true);
     settings.setMaxCharsPerColumn(-1);
-    CsvParser parser = new CsvParser(settings);
+    var parser = new CsvParser(settings);
 
-    return Flux.fromIterable(parser.iterateRecords(new InputStreamReader(inputStream)));
+    return Flux.fromIterable(parser.iterateRecords(inputStream));
   }
 
   @Override
   public LogicalSourceResolver.ExpressionEvaluationFactory<Record> getExpressionEvaluationFactory() {
-    return entry -> expression -> {
-      logEvaluateExpression(expression, LOG);
-      return Optional.ofNullable(entry.getString(expression));
+    return row -> headerName -> {
+      logEvaluateExpression(headerName, LOG);
+      return Optional.ofNullable(row.getString(headerName));
     };
   }
 

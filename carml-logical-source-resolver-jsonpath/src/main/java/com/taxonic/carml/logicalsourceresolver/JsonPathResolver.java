@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.util.Optional;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.jsfr.json.JsonSurfer;
 import org.jsfr.json.JsonSurferJackson;
@@ -17,13 +18,6 @@ import reactor.core.publisher.Flux;
 @Slf4j
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class JsonPathResolver implements LogicalSourceResolver<Object> {
-
-  // TODO reuse compiled paths reactively vor jsonsurfer and jayway
-  // private ConcurrentMap<String, JsonPath> compiledPaths = new ConcurrentHashMap<>();
-
-  // static {
-  // CacheProvider.setCache(new NOOPCache());
-  // }
 
   private final JsonSurfer jsonSurfer;
 
@@ -41,13 +35,13 @@ public class JsonPathResolver implements LogicalSourceResolver<Object> {
     return this::getObjectFlux;
   }
 
-  private Flux<Object> getObjectFlux(Object source, LogicalSource logicalSource) {
-    if (!(source instanceof InputStream)) {
+  private Flux<Object> getObjectFlux(@NonNull Object source, @NonNull LogicalSource logicalSource) {
+    if (source instanceof InputStream) {
+      return getObjectFlux((InputStream) source, logicalSource);
+    } else {
       throw new LogicalSourceResolverException(
           String.format("No valid input stream provided for logical source %s", LogUtil.exception(logicalSource)));
     }
-
-    return getObjectFlux((InputStream) source, logicalSource);
   }
 
   private Flux<Object> getObjectFlux(InputStream inputStream, LogicalSource logicalSource) {
