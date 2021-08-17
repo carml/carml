@@ -1,4 +1,4 @@
-package com.taxonic.carml.logical_source_resolver;
+package com.taxonic.carml.logicalsourceresolver;
 
 import static com.taxonic.carml.util.LogUtil.exception;
 

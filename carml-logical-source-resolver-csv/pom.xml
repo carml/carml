@@ -18,7 +18,6 @@
 		<dependency>
 			<groupId>com.univocity</groupId>
 			<artifactId>univocity-parsers</artifactId>
-			<version>2.9.0</version>
 		</dependency>
 
 		<dependency>
@@ -50,6 +49,12 @@
 		<dependency>
 			<groupId>org.hamcrest</groupId>
 			<artifactId>hamcrest</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>io.projectreactor</groupId>
+			<artifactId>reactor-test</artifactId>
 			<scope>test</scope>
 		</dependency>
 

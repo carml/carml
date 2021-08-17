@@ -1,4 +1,4 @@
-package com.taxonic.carml.logical_source_resolver;
+package com.taxonic.carml.logicalsourceresolver;
 
 
 import static org.hamcrest.MatcherAssert.assertThat;

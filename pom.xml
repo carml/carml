@@ -73,7 +73,10 @@
 		<reactor.version>2020.0.9</reactor.version>
 		<lombok.version>1.18.20</lombok.version>
 		<spring.version>5.3.8</spring.version>
+		<univocity.version>2.9.0</univocity.version>
+		<jayway.version>2.6.0</jayway.version>
 		<jsurfer.version>1.6.0</jsurfer.version>
+		<saxon.version>10.5</saxon.version>
 		<mapdb.version>3.0.8</mapdb.version>
 		<auto-service.version>1.0-rc7</auto-service.version>
 		<mockito.version>3.6.0</mockito.version>
@@ -221,21 +224,33 @@
 			</dependency>
 
 			<dependency>
+				<groupId>com.univocity</groupId>
+				<artifactId>univocity-parsers</artifactId>
+				<version>${univocity.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>com.jayway.jsonpath</groupId>
+				<artifactId>json-path</artifactId>
+				<version>${jayway.version}</version>
+			</dependency>
+
+			<dependency>
 				<groupId>com.github.jsurfer</groupId>
 				<artifactId>jsurfer-jackson</artifactId>
 				<version>${jsurfer.version}</version>
 			</dependency>
 
 			<dependency>
-				<groupId>org.mapdb</groupId>
-				<artifactId>mapdb</artifactId>
-				<version>${mapdb.version}</version>
+				<groupId>net.sf.saxon</groupId>
+				<artifactId>Saxon-HE</artifactId>
+				<version>${saxon.version}</version>
 			</dependency>
 
 			<dependency>
-				<groupId>org.redisson</groupId>
-				<artifactId>redisson</artifactId>
-				<version>${redisson.version}</version>
+				<groupId>org.mapdb</groupId>
+				<artifactId>mapdb</artifactId>
+				<version>${mapdb.version}</version>
 			</dependency>
 
 			<dependency>

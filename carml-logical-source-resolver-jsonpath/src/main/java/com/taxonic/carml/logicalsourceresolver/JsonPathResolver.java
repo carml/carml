@@ -1,4 +1,4 @@
-package com.taxonic.carml.logical_source_resolver;
+package com.taxonic.carml.logicalsourceresolver;
 
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.JsonPath;

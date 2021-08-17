@@ -1,4 +1,4 @@
-package com.taxonic.carml.logical_source_resolver;
+package com.taxonic.carml.logicalsourceresolver;
 
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -58,20 +58,20 @@ class XPathResolverTest {
 
   private Processor processor;
 
-  private XPathResolver xPathResolver;
+  private XPathResolver xpathResolver;
 
   @BeforeEach
   public void init() {
     processor = new Processor(false);
     XPathCompiler compiler = processor.newXPathCompiler();
     compiler.setCaching(true);
-    xPathResolver = XPathResolver.getInstance(processor, compiler, true);
+    xpathResolver = XPathResolver.getInstance(processor, compiler, true);
   }
 
   @Test
   void givenXml_whenSourceFluxApplied_givenCsv_thenReturnFluxOfAllRecords() {
     // Given
-    LogicalSourceResolver.SourceFlux<XdmItem> sourceFlux = xPathResolver.getSourceFlux();
+    LogicalSourceResolver.SourceFlux<XdmItem> sourceFlux = xpathResolver.getSourceFlux();
     InputStream inputStream = IOUtils.toInputStream(SOURCE, StandardCharsets.UTF_8);
 
     // When
@@ -88,7 +88,7 @@ class XPathResolverTest {
     // Given
     String expression = "book/author";
     LogicalSourceResolver.ExpressionEvaluationFactory<XdmItem> evaluationFactory =
-        xPathResolver.getExpressionEvaluationFactory();
+        xpathResolver.getExpressionEvaluationFactory();
     DocumentBuilder documentBuilder = processor.newDocumentBuilder();
     StringReader reader = new StringReader(BOOK_ONE);
     XdmItem item = documentBuilder.build(new StreamSource(reader));
@@ -107,14 +107,14 @@ class XPathResolverTest {
 
   @Test
   void givenExpression_whenExpressionEvaluationWithoutAutoTextExtractionApplied_thenReturnCorrectValue() {
-    LogicalSourceResolver.SourceFlux<XdmItem> sourceFlux = xPathResolver.getSourceFlux();
+    LogicalSourceResolver.SourceFlux<XdmItem> sourceFlux = xpathResolver.getSourceFlux();
     InputStream inputStream = IOUtils.toInputStream(SOURCE, StandardCharsets.UTF_8);
     Flux<XdmItem> itemFlux = sourceFlux.apply(inputStream, LSOURCE);
     XdmItem item = itemFlux.blockFirst();
 
     String expression = "./author";
     LogicalSourceResolver.ExpressionEvaluationFactory<XdmItem> evaluationFactory =
-        xPathResolver.getExpressionEvaluationFactory();
+        xpathResolver.getExpressionEvaluationFactory();
     ExpressionEvaluation expressionEvaluation = evaluationFactory.apply(item);
 
     // When
@@ -128,13 +128,13 @@ class XPathResolverTest {
 
     // Given
     boolean autoExtractNodeText = false;
-    xPathResolver = XPathResolver.getInstance(autoExtractNodeText);
-    sourceFlux = xPathResolver.getSourceFlux();
+    xpathResolver = XPathResolver.getInstance(autoExtractNodeText);
+    sourceFlux = xpathResolver.getSourceFlux();
     inputStream = IOUtils.toInputStream(SOURCE, StandardCharsets.UTF_8);
     itemFlux = sourceFlux.apply(inputStream, LSOURCE);
     item = itemFlux.blockFirst();
 
-    evaluationFactory = xPathResolver.getExpressionEvaluationFactory();
+    evaluationFactory = xpathResolver.getExpressionEvaluationFactory();
     expressionEvaluation = evaluationFactory.apply(item);
 
     // When
@@ -151,17 +151,17 @@ class XPathResolverTest {
     Set<TriplesMap> mapping = RmlMappingLoader.build()
         .load(RDFFormat.TURTLE, XPathResolverTest.class.getResourceAsStream("xmlns.rml.ttl"));
 
-    TriplesMap tMap = Iterables.getOnlyElement(mapping);
-    LogicalSource lSource = tMap.getLogicalSource();
+    TriplesMap triplesMap = Iterables.getOnlyElement(mapping);
+    LogicalSource logicalSource = triplesMap.getLogicalSource();
 
-    LogicalSourceResolver.SourceFlux<XdmItem> sourceFlux = xPathResolver.getSourceFlux();
+    LogicalSourceResolver.SourceFlux<XdmItem> sourceFlux = xpathResolver.getSourceFlux();
 
-    Flux<XdmItem> itemFlux = sourceFlux.apply(IOUtils.toInputStream(SOURCE_NS, StandardCharsets.UTF_8), lSource);
+    Flux<XdmItem> itemFlux = sourceFlux.apply(IOUtils.toInputStream(SOURCE_NS, StandardCharsets.UTF_8), logicalSource);
     XdmItem item = itemFlux.blockFirst();
 
     String expression = "./ex:author/lower-case(.)";
     LogicalSourceResolver.ExpressionEvaluationFactory<XdmItem> evaluationFactory =
-        xPathResolver.getExpressionEvaluationFactory();
+        xpathResolver.getExpressionEvaluationFactory();
     ExpressionEvaluation expressionEvaluation = evaluationFactory.apply(item);
 
     // When
