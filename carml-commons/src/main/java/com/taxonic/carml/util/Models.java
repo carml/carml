@@ -3,7 +3,6 @@ package com.taxonic.carml.util;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
@@ -140,8 +139,9 @@ public final class Models {
 
     var statement = valueFactory.createStatement(subject, predicate, object, graph);
 
-    Arrays.stream(statementConsumers)
-        .forEach(consumer -> consumer.accept(statement));
+    for (Consumer<Statement> statementConsumer : statementConsumers) {
+      statementConsumer.accept(statement);
+    }
 
     return valueFactory.createStatement(subject, predicate, object, graph);
   }

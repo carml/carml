@@ -1,6 +1,6 @@
 package com.taxonic.carml.rmltestcases;
 
-import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
+import com.taxonic.carml.rdfmapper.annotations.RdfProperty;
 import com.taxonic.carml.rmltestcases.model.Distribution;
 import org.eclipse.rdf4j.model.IRI;
 

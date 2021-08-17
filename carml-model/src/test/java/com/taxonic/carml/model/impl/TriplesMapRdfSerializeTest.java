@@ -24,7 +24,7 @@ class TriplesMapRdfSerializeTest {
   }
 
   @Test
-  void TriplesMapAsRdfRoundTripTest() {
+  void triplesMapAsRdfRoundTripTest() {
     InputStream mappingSource = TriplesMapRdfSerializeTest.class.getResourceAsStream("Mapping.rml.ttl");
     Set<TriplesMap> mapping = mappingLoader.load(RDFFormat.TURTLE, mappingSource);
 

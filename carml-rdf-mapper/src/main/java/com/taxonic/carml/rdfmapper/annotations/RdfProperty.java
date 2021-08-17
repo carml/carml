@@ -1,6 +1,6 @@
-package com.taxonic.carml.rdf_mapper.annotations;
+package com.taxonic.carml.rdfmapper.annotations;
 
-import com.taxonic.carml.rdf_mapper.PropertyHandler;
+import com.taxonic.carml.rdfmapper.PropertyHandler;
 import java.lang.annotation.Repeatable;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

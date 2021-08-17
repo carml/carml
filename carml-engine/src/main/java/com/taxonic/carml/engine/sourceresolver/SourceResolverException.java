@@ -2,6 +2,8 @@ package com.taxonic.carml.engine.sourceresolver;
 
 public class SourceResolverException extends RuntimeException {
 
+  private static final long serialVersionUID = -5720641872220161835L;
+
   public SourceResolverException(String message) {
     super(message);
   }

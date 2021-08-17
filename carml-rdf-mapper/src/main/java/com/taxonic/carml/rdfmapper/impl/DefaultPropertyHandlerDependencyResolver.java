@@ -1,9 +1,9 @@
-package com.taxonic.carml.rdf_mapper.impl;
+package com.taxonic.carml.rdfmapper.impl;
 
-import com.taxonic.carml.rdf_mapper.Mapper;
-import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
-import com.taxonic.carml.rdf_mapper.qualifiers.PropertyPredicate;
-import com.taxonic.carml.rdf_mapper.qualifiers.PropertySetter;
+import com.taxonic.carml.rdfmapper.Mapper;
+import com.taxonic.carml.rdfmapper.annotations.RdfProperty;
+import com.taxonic.carml.rdfmapper.qualifiers.PropertyPredicate;
+import com.taxonic.carml.rdfmapper.qualifiers.PropertySetter;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 import java.util.List;
@@ -16,16 +16,20 @@ import org.eclipse.rdf4j.model.IRI;
  * Simple {@code DependencyResolver} that contains, and can resolve, (optional) dependencies for
  * custom property handlers, set through {@link RdfProperty#handler()}.
  *
+ * <p>
  * Any such property handler is instantiated through its (no-args) constructor, and can then have
  * things injected through setters annotated with {@link Inject}. Such injections are attempted to
  * be resolved by an instance of this class.
+ * </p>
  *
+ * <p>
  * The current implementation simply contains several values that can be injected by type or by
  * using a qualifier. Things that can currently be injected by type: {@link Mapper},
  * {@link MappingCache}. Things that can be injected by pre-set qualifiers: a
  * {@code BiConsumer&lt;Object, Object&gt;}, which takes the mapped instance and value to set for
  * the property as arguments, qualified by {@link PropertySetter}, the predicate of the property, of
  * type {@link IRI}, qualified by {@link PropertyPredicate}.
+ * </p>
  */
 class DefaultPropertyHandlerDependencyResolver implements DependencyResolver {
 

@@ -11,37 +11,35 @@ public class RmlFunctions {
 
   private static class Ex {
 
-    final static String
+    static final String prefix = "http://example.com/";
 
-    prefix = "http://example.com/",
+    static final String toBoolFunction = prefix + "toBoolFunction";
 
-        toBoolFunction = prefix + "toBoolFunction",
+    static final String startString = prefix + "startString";
 
-        startString = prefix + "startString",
+    static final String stringParam = prefix + "stringParam";
 
-        stringParam = prefix + "stringParam",
+    static final String removeNonLatinCharsFunction = prefix + "removeNonLatinCharsFunction";
 
-        removeNonLatinCharsFunction = prefix + "removeNonLatinCharsFunction",
+    static final String toLowercase = prefix + "toLowercase";
 
-        toLowercase = prefix + "toLowercase",
+    static final String sumFunction = prefix + "sumFunction";
 
-        sumFunction = prefix + "sumFunction",
+    static final String toIntFunction = prefix + "toIntFunction";
 
-        toIntFunction = prefix + "toIntFunction",
+    static final String toIntOutput = prefix + "toIntOutput";
 
-        toIntOutput = prefix + "toIntOutput",
+    static final String intParam = prefix + "intParam";
 
-        intParam = prefix + "intParam",
+    static final String constantListFunction = prefix + "constantListFunction";
 
-        constantListFunction = prefix + "constantListFunction",
+    static final String listParamFunction = prefix + "listParamFunction";
 
-        listParamFunction = prefix + "listParamFunction",
+    static final String listParam = prefix + "listParam";
 
-        listParam = prefix + "listParam",
+    static final String iriFunction = prefix + "iriFunction";
 
-        iriFunction = prefix + "iriFunction",
-
-        baseIriParam = prefix + "baseIriParam";
+    static final String baseIriParam = prefix + "baseIriParam";
   }
 
   @FnoFunction(Ex.toBoolFunction)

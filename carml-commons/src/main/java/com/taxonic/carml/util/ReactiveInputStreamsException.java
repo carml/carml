@@ -1,12 +1,14 @@
 package com.taxonic.carml.util;
 
-public class ReactiveInputstreamsException extends RuntimeException {
+public class ReactiveInputStreamsException extends RuntimeException {
 
-  public ReactiveInputstreamsException(String message) {
+  private static final long serialVersionUID = -7732539568074224539L;
+
+  public ReactiveInputStreamsException(String message) {
     super(message);
   }
 
-  public ReactiveInputstreamsException(String message, Throwable throwable) {
+  public ReactiveInputStreamsException(String message, Throwable throwable) {
     super(message, throwable);
   }
 

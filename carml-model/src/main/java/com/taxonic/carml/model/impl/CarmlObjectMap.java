@@ -5,7 +5,7 @@ import com.taxonic.carml.model.ObjectMap;
 import com.taxonic.carml.model.Resource;
 import com.taxonic.carml.model.TermType;
 import com.taxonic.carml.model.TriplesMap;
-import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
+import com.taxonic.carml.rdfmapper.annotations.RdfProperty;
 import com.taxonic.carml.vocab.Rdf;
 import com.taxonic.carml.vocab.Rr;
 import java.util.Objects;

@@ -1,4 +1,4 @@
-package com.taxonic.carml.rdf_mapper.annotations;
+package com.taxonic.carml.rdfmapper.annotations;
 
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 

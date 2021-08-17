@@ -232,8 +232,8 @@ class ModelsTest {
         () -> Models.createStatement(subjectValue, predicateValue, objectValue, graphValue));
 
     // Then
-    assertThat(modelsException.getMessage(), is(
-        "Expected subjectValue `\"subject\"` to be instance of Resource, but was org.eclipse.rdf4j.model.impl.SimpleLiteral"));
+    assertThat(modelsException.getMessage(), is("Expected subjectValue `\"subject\"` to be instance of Resource, "
+        + "but was org.eclipse.rdf4j.model.impl.SimpleLiteral"));
   }
 
   @Test
@@ -249,8 +249,8 @@ class ModelsTest {
         () -> Models.createStatement(subjectValue, predicateValue, objectValue, graphValue));
 
     // Then
-    assertThat(modelsException.getMessage(), is(
-        "Expected predicateValue `\"predicate\"` to be instance of IRI, but was org.eclipse.rdf4j.model.impl.SimpleLiteral"));
+    assertThat(modelsException.getMessage(), is("Expected predicateValue `\"predicate\"` to be instance of IRI, "
+        + "but was org.eclipse.rdf4j.model.impl.SimpleLiteral"));
   }
 
   @Test
@@ -266,8 +266,8 @@ class ModelsTest {
         () -> Models.createStatement(subjectValue, predicateValue, objectValue, graphValue));
 
     // Then
-    assertThat(modelsException.getMessage(), is(
-        "Expected graphValue `\"graph\"` to be instance of Resource, but was org.eclipse.rdf4j.model.impl.SimpleLiteral"));
+    assertThat(modelsException.getMessage(), is("Expected graphValue `\"graph\"` to be instance of Resource, but "
+        + "was org.eclipse.rdf4j.model.impl.SimpleLiteral"));
   }
 
   @Test
@@ -430,8 +430,8 @@ class ModelsTest {
             graphs, DEFAULT_GRAPH_MODIFIER, VALUE_FACTORY, statementConsumer1, statementConsumer2));
 
     // Then
-    assertThat(modelsException.getMessage(), is(
-        "Could not create cartesian product statements because at least one of subjects, predicates or objects was empty."));
+    assertThat(modelsException.getMessage(), is("Could not create cartesian product statements because at least "
+        + "one of subjects, predicates or objects was empty."));
   }
 
   static Matcher<Model> isIsomorphicWith(final Model expected) {

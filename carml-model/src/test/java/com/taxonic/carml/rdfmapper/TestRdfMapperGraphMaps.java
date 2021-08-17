@@ -1,4 +1,4 @@
-package com.taxonic.carml.rdf_mapper;
+package com.taxonic.carml.rdfmapper;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
@@ -29,8 +29,13 @@ public class TestRdfMapperGraphMaps extends RmlLoader {
 
     static final String prefix = "http://example.com/";
 
-    static final IRI Child = iri("Child"), language = iri("language"), hasBirthday = iri("hasBirthday"),
-        mainGraph = iri("mainGraph");
+    static final IRI Child = iri("Child");
+
+    static final IRI language = iri("language");
+
+    static final IRI hasBirthday = iri("hasBirthday");
+
+    static final IRI mainGraph = iri("mainGraph");
   }
 
   // @Test

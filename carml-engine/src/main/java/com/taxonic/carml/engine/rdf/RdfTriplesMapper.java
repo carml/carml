@@ -11,7 +11,7 @@ import com.taxonic.carml.engine.TriplesMapperException;
 import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinConditionStore;
 import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinConditionStoreProvider;
 import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinKey;
-import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
+import com.taxonic.carml.logicalsourceresolver.LogicalSourceResolver;
 import com.taxonic.carml.model.GraphMap;
 import com.taxonic.carml.model.Join;
 import com.taxonic.carml.model.SubjectMap;

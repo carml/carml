@@ -1,4 +1,4 @@
-package com.taxonic.carml.rdf_mapper;
+package com.taxonic.carml.rdfmapper;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
@@ -32,7 +32,9 @@ public class TestFunctionModelMapping {
       return f.createIRI(prefix, localName);
     }
 
-    static final IRI toBoolFunction = iri("toBoolFunction"), isPresentBool = iri("isPresentBool");
+    static final IRI toBoolFunction = iri("toBoolFunction");
+
+    static final IRI isPresentBool = iri("isPresentBool");
 
   }
 

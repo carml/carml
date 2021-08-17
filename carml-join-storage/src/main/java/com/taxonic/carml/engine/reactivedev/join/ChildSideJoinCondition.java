@@ -13,6 +13,8 @@ import lombok.NonNull;
 @EqualsAndHashCode
 public class ChildSideJoinCondition implements Serializable {
 
+  private static final long serialVersionUID = -3366382556631470961L;
+
   @NonNull
   String childReference;
 

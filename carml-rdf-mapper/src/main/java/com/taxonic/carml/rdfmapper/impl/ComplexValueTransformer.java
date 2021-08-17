@@ -1,8 +1,8 @@
-package com.taxonic.carml.rdf_mapper.impl;
+package com.taxonic.carml.rdfmapper.impl;
 
 import com.google.common.collect.ImmutableMap;
-import com.taxonic.carml.rdf_mapper.Mapper;
-import com.taxonic.carml.rdf_mapper.TypeDecider;
+import com.taxonic.carml.rdfmapper.Mapper;
+import com.taxonic.carml.rdfmapper.TypeDecider;
 import java.lang.reflect.Type;
 import java.util.Map;
 import java.util.Set;
@@ -47,18 +47,19 @@ public class ComplexValueTransformer implements ValueTransformer {
   private Object transform(Literal literal) {
     IRI type = literal.getDatatype();
     Function<Literal, Object> getter = literalGetters.get(type);
-    if (getter == null)
-      throw new RuntimeException(String
+    if (getter == null) {
+      throw new CarmlMapperException(String
           .format("no getter for Literal [%s] defined that can handle literal with datatype [%s]", literal, type));
+    }
     return getter.apply(literal);
   }
 
   @Override
   public Object transform(Model model, Value value) {
 
-    if (value instanceof Literal)
+    if (value instanceof Literal) {
       return transform((Literal) value);
-
+    }
 
     // =========== RESOURCE ===========
 

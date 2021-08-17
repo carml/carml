@@ -1,7 +1,7 @@
-package com.taxonic.carml.rdf_mapper.impl;
+package com.taxonic.carml.rdfmapper.impl;
 
 import com.google.common.collect.ImmutableSet;
-import com.taxonic.carml.rdf_mapper.PropertyHandler;
+import com.taxonic.carml.rdfmapper.PropertyHandler;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Optional;

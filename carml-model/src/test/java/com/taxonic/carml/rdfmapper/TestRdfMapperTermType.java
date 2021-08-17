@@ -1,4 +1,4 @@
-package com.taxonic.carml.rdf_mapper;
+package com.taxonic.carml.rdfmapper;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
@@ -30,7 +30,11 @@ public class TestRdfMapperTermType extends RmlLoader {
 
     static final String prefix = "http://example.com/";
 
-    static final IRI Unknown = iri("Unknown"), Child = iri("Child"), hasBirthday = iri("hasBirthday");
+    static final IRI Unknown = iri("Unknown");
+
+    static final IRI Child = iri("Child");
+
+    static final IRI hasBirthday = iri("hasBirthday");
   }
 
   // @Test
@@ -62,7 +66,7 @@ public class TestRdfMapperTermType extends RmlLoader {
   }
 
   // @Test
-  public void testLoadMappingWithTermTypeIRI() {
+  public void testLoadMappingWithTermTypeIri() {
     Set<TriplesMap> expected = ImmutableSet.of(CarmlTriplesMap.newBuilder()
         .logicalSource(CarmlLogicalSource.newBuilder()
             .source("simple2TestInput.json")

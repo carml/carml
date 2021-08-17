@@ -1,4 +1,4 @@
-package com.taxonic.carml.rdf_mapper;
+package com.taxonic.carml.rdfmapper;
 
 // @RunWith(Suite.class)
 // @SelectClasses({TestRdfMapper.class, TestRdfMapperBasic.class, TestRdfMapperGraphMaps.class,

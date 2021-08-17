@@ -1,6 +1,6 @@
 package com.taxonic.carml.model;
 
-import com.taxonic.carml.rdf_mapper.Combiner;
+import com.taxonic.carml.rdfmapper.Combiner;
 import java.util.List;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.util.ModelCollector;

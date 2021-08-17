@@ -1,7 +1,7 @@
-package com.taxonic.carml.rdf_mapper.impl;
+package com.taxonic.carml.rdfmapper.impl;
 
-import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
-import com.taxonic.carml.rdf_mapper.annotations.RdfType;
+import com.taxonic.carml.rdfmapper.annotations.RdfProperty;
+import com.taxonic.carml.rdfmapper.annotations.RdfType;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;

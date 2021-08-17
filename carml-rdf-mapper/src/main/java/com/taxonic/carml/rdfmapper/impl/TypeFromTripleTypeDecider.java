@@ -1,7 +1,7 @@
-package com.taxonic.carml.rdf_mapper.impl;
+package com.taxonic.carml.rdfmapper.impl;
 
-import com.taxonic.carml.rdf_mapper.Mapper;
-import com.taxonic.carml.rdf_mapper.TypeDecider;
+import com.taxonic.carml.rdfmapper.Mapper;
+import com.taxonic.carml.rdfmapper.TypeDecider;
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Optional;
@@ -14,9 +14,9 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 
 public class TypeFromTripleTypeDecider implements TypeDecider {
 
-  private Mapper mapper;
+  private final Mapper mapper;
 
-  private Optional<TypeDecider> propertyTypeDecider;
+  private final Optional<TypeDecider> propertyTypeDecider;
 
   public TypeFromTripleTypeDecider(Mapper mapper) {
     this(mapper, Optional.empty());
@@ -33,15 +33,16 @@ public class TypeFromTripleTypeDecider implements TypeDecider {
     List<IRI> rdfTypes = model.filter(resource, RDF.TYPE, null)
         .objects()
         .stream()
-        .map(v -> (IRI) v)
+        .map(IRI.class::cast)
         .collect(Collectors.toList());
 
     // TODO what if multiple rdf:types? probably choose the only 1 that's known/registered. what if
     // multiple of those?
-    if (rdfTypes.size() > 1)
+    if (rdfTypes.size() > 1) {
       return rdfTypes.stream()
           .map(mapper::getDecidableType)
           .collect(Collectors.toSet());
+    }
 
     // if no rdf:type, use property type (or its registered implementation) as target type
     if (rdfTypes.isEmpty()) {
@@ -49,7 +50,7 @@ public class TypeFromTripleTypeDecider implements TypeDecider {
         return propertyTypeDecider.get()
             .decide(model, resource);
       } else {
-        throw new RuntimeException(
+        throw new CarmlMapperException(
             String.format("No decidable type found for %s. Register decidable type on rdf mapper.", resource));
       }
     }

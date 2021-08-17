@@ -1,7 +1,7 @@
 package com.taxonic.carml.rmltestcases;
 
-import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
-import com.taxonic.carml.rdf_mapper.annotations.RdfType;
+import com.taxonic.carml.rdfmapper.annotations.RdfProperty;
+import com.taxonic.carml.rdfmapper.annotations.RdfType;
 import com.taxonic.carml.rmltestcases.model.Dataset;
 import com.taxonic.carml.rmltestcases.model.Input;
 import com.taxonic.carml.rmltestcases.model.Output;

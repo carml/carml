@@ -14,6 +14,8 @@ import lombok.Getter;
 @EqualsAndHashCode
 public class ChildSideJoin<T1 extends Serializable, T2 extends Serializable> implements Serializable {
 
+  private static final long serialVersionUID = 5242886114029652320L;
+
   private final HashSet<T1> subjects;
 
   private final HashSet<T2> predicates;

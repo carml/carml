@@ -1,6 +1,6 @@
-package com.taxonic.carml.rdf_mapper.util;
+package com.taxonic.carml.rdfmapper.util;
 
-import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
+import com.taxonic.carml.rdfmapper.annotations.RdfProperty;
 
 public class PostalAddress {
 

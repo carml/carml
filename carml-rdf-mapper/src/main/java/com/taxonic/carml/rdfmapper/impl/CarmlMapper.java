@@ -1,8 +1,8 @@
-package com.taxonic.carml.rdf_mapper.impl;
+package com.taxonic.carml.rdfmapper.impl;
 
-import static com.taxonic.carml.rdf_mapper.impl.PropertyUtils.createSetterName;
-import static com.taxonic.carml.rdf_mapper.impl.PropertyUtils.findSetter;
-import static com.taxonic.carml.rdf_mapper.impl.PropertyUtils.getPropertyName;
+import static com.taxonic.carml.rdfmapper.impl.PropertyUtils.createSetterName;
+import static com.taxonic.carml.rdfmapper.impl.PropertyUtils.findSetter;
+import static com.taxonic.carml.rdfmapper.impl.PropertyUtils.getPropertyName;
 import static com.taxonic.carml.util.ModelSerializer.formatResourceForLog;
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toList;
@@ -11,14 +11,14 @@ import static java.util.stream.Stream.concat;
 import static java.util.stream.Stream.empty;
 
 import com.google.common.collect.Iterables;
-import com.taxonic.carml.rdf_mapper.Combiner;
-import com.taxonic.carml.rdf_mapper.Mapper;
-import com.taxonic.carml.rdf_mapper.PropertyHandler;
-import com.taxonic.carml.rdf_mapper.TypeDecider;
-import com.taxonic.carml.rdf_mapper.annotations.MultiDelegateCall;
-import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
-import com.taxonic.carml.rdf_mapper.annotations.RdfResourceName;
-import com.taxonic.carml.rdf_mapper.annotations.RdfType;
+import com.taxonic.carml.rdfmapper.Combiner;
+import com.taxonic.carml.rdfmapper.Mapper;
+import com.taxonic.carml.rdfmapper.PropertyHandler;
+import com.taxonic.carml.rdfmapper.TypeDecider;
+import com.taxonic.carml.rdfmapper.annotations.MultiDelegateCall;
+import com.taxonic.carml.rdfmapper.annotations.RdfProperty;
+import com.taxonic.carml.rdfmapper.annotations.RdfResourceName;
+import com.taxonic.carml.rdfmapper.annotations.RdfType;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
@@ -33,7 +33,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -111,7 +111,7 @@ public class CarmlMapper implements Mapper, MappingCache {
     Map<Type, List<Method>> implementationMethods = implementations.stream()
         .collect(toMap(t -> t, t -> gatherMethods((Class<?>) t).collect(toList())));
 
-    BiFunction<Type, Method, Boolean> implementationHasMethod = (t, m) -> implementationMethods.get(t)
+    BiPredicate<Type, Method> implementationHasMethod = (t, m) -> implementationMethods.get(t)
         .contains(m);
 
 
@@ -121,7 +121,7 @@ public class CarmlMapper implements Mapper, MappingCache {
           MultiDelegateCall multiDelegateCall = method.getAnnotation(MultiDelegateCall.class);
 
           List<Object> delegates = implementations.stream()
-              .filter(t -> implementationHasMethod.apply(t, method))
+              .filter(type -> implementationHasMethod.test(type, method))
               .map(implementationsToDelegates::get) // TODO can this ever be null? this case is not checked below
               .collect(toList());
 
@@ -164,9 +164,10 @@ public class CarmlMapper implements Mapper, MappingCache {
         });
   }
 
+  @SuppressWarnings("rawtypes")
   private Optional<Combiner> getCombinerFromMultiDelegateCall(MultiDelegateCall multiDelegateCall) {
     Class<?> combinerClass = multiDelegateCall.value();
-    if (combinerClass != null && combinerClass != MultiDelegateCall.DEFAULT.class) {
+    if (combinerClass != null && combinerClass != MultiDelegateCall.Default.class) {
       try {
         return Optional.of((Combiner) combinerClass.getConstructor()
             .newInstance());
@@ -299,8 +300,8 @@ public class CarmlMapper implements Mapper, MappingCache {
   }
 
   private TypeDecider getTypeDeciderFromAnnotation(Method method) {
-    com.taxonic.carml.rdf_mapper.annotations.RdfTypeDecider annotation =
-        method.getAnnotation(com.taxonic.carml.rdf_mapper.annotations.RdfTypeDecider.class);
+    com.taxonic.carml.rdfmapper.annotations.RdfTypeDecider annotation =
+        method.getAnnotation(com.taxonic.carml.rdfmapper.annotations.RdfTypeDecider.class);
     if (annotation != null) {
       Class<?> deciderClass = annotation.value();
       try {
@@ -494,9 +495,8 @@ public class CarmlMapper implements Mapper, MappingCache {
         if (!values.isEmpty() || propertyValueMapper instanceof IterablePropertyValueMapper) {
 
           if (!values.isEmpty() && annotation.deprecated()) {
-            LOG.warn(
-                "Usage of deprecated predicate {} encountered. Support in next release is not guaranteed. Upgrade to {}.",
-                annotation.value(), getActiveAnnotations(annotation, method));
+            LOG.warn("Usage of deprecated predicate {} encountered. Support in next release is not guaranteed. "
+                + "Upgrade to {}.", annotation.value(), getActiveAnnotations(annotation, method));
           }
 
           // map data from rdf model to a value for this property,

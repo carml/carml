@@ -14,6 +14,8 @@ import lombok.ToString;
 @ToString
 public class ParentSideJoinKey implements Serializable {
 
+  private static final long serialVersionUID = -8655379521016481101L;
+
   @NonNull
   String parentReference;
 

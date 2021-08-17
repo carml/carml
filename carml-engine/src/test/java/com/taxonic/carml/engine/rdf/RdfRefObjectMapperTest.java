@@ -125,20 +125,21 @@ class RdfRefObjectMapperTest {
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
         .build();
 
-    RdfRefObjectMapper rdfRefObjectMapper =
-        RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingContext, childSideJoinStoreProvider);
-
-    Set<Resource> subjects = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/subject1"));
-    Set<IRI> predicates = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/predicate1"));
-    Set<Resource> graphs = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/graph1"));
-
     when(refObjectMap.getJoinConditions()).thenReturn(Set.of(join1));
     when(join1.getChildReference()).thenReturn("foo");
     when(join1.getParentReference()).thenReturn("bar");
 
     when(expressionEvaluation.apply(any())).thenReturn(Optional.of(List.of("baz")));
 
+    Set<Resource> subjects = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/subject1"));
+    Set<Resource> graphs = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/graph1"));
+
     Map<Set<Resource>, Set<Resource>> subjectsAndAllGraphs = Map.of(subjects, graphs);
+
+    RdfRefObjectMapper rdfRefObjectMapper =
+        RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingContext, childSideJoinStoreProvider);
+
+    Set<IRI> predicates = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/predicate1"));
 
     // When
     Mono<Statement> refObjectMapperPromise = Mono.empty();
@@ -179,8 +180,9 @@ class RdfRefObjectMapperTest {
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
         .build();
 
-    RdfRefObjectMapper rdfRefObjectMapper =
-        RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingContext, childSideJoinStoreProvider);
+    when(refObjectMap.getJoinConditions()).thenReturn(Set.of(join1));
+    when(join1.getChildReference()).thenReturn("foo");
+    when(join1.getParentReference()).thenReturn("bar");
 
     Resource subject1 = VALUE_FACTORY.createIRI("http://foo.bar/subject1");
     Resource subject2 = VALUE_FACTORY.createIRI("http://foo.bar/subject2");
@@ -189,17 +191,17 @@ class RdfRefObjectMapperTest {
     Resource graph2 = VALUE_FACTORY.createIRI("http://foo.bar/graph2");
     Set<Resource> subjects = Set.of(subject1);
     Set<Resource> subjects2 = Set.of(subject2);
-    Set<IRI> predicates = Set.of(predicate1);
     Set<Resource> graphs = Set.of(graph1);
     Set<Resource> graphs2 = Set.of(graph2);
-
-    when(refObjectMap.getJoinConditions()).thenReturn(Set.of(join1));
-    when(join1.getChildReference()).thenReturn("foo");
-    when(join1.getParentReference()).thenReturn("bar");
 
     when(expressionEvaluation.apply(any())).thenReturn(Optional.of(List.of("baz")));
 
     Map<Set<Resource>, Set<Resource>> subjectsAndAllGraphs = Map.of(subjects, graphs, subjects2, graphs2);
+
+    RdfRefObjectMapper rdfRefObjectMapper =
+        RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingContext, childSideJoinStoreProvider);
+
+    Set<IRI> predicates = Set.of(predicate1);
 
     // When
     Mono<Statement> refObjectMapperPromise = Mono.empty();
@@ -231,18 +233,11 @@ class RdfRefObjectMapperTest {
   @Test
   void givenRefObjectMapperWithMultipleJoinConditions_whenMap_thenChildSideJoinConditionWithAllConditionsAdded() {
     // Given
-    Set<Resource> subjects = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/subject1"));
-    Set<IRI> predicates = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/predicate1"));
-    Set<Resource> graphs = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/graph1"));
-
     RdfMappingContext rdfMappingContext = RdfMappingContext.builder()
         .valueFactorySupplier(() -> VALUE_FACTORY)
         .termGeneratorFactory(rdfTermGeneratorFactory)
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
         .build();
-
-    RdfRefObjectMapper rdfRefObjectMapper =
-        RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingContext, childSideJoinStoreProvider);
 
     when(refObjectMap.getJoinConditions()).thenReturn(Set.of(join1, join2));
     when(join1.getChildReference()).thenReturn("foo");
@@ -254,7 +249,15 @@ class RdfRefObjectMapperTest {
     when(expressionEvaluation.apply(any())).thenReturn(Optional.of(List.of("baz")))
         .thenReturn(Optional.of(List.of("Carol")));
 
+    Set<Resource> subjects = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/subject1"));
+    Set<Resource> graphs = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/graph1"));
+
     Map<Set<Resource>, Set<Resource>> subjectsAndAllGraphs = Map.of(subjects, graphs);
+
+    Set<IRI> predicates = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/predicate1"));
+
+    RdfRefObjectMapper rdfRefObjectMapper =
+        RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingContext, childSideJoinStoreProvider);
 
     // When
     Mono<Statement> refObjectMapperPromise = Mono.empty();

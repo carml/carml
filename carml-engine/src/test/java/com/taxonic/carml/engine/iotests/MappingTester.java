@@ -4,9 +4,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.collect.Sets;
 import com.taxonic.carml.engine.rdf.RdfRmlMapper;
-import com.taxonic.carml.logical_source_resolver.CsvResolver;
-import com.taxonic.carml.logical_source_resolver.JsonPathResolver;
-import com.taxonic.carml.logical_source_resolver.XPathResolver;
+import com.taxonic.carml.logicalsourceresolver.CsvResolver;
+import com.taxonic.carml.logicalsourceresolver.JsonPathResolver;
+import com.taxonic.carml.logicalsourceresolver.XPathResolver;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.util.Models;
 import com.taxonic.carml.util.RdfCollectors;

@@ -15,7 +15,7 @@ import com.taxonic.carml.engine.sourceresolver.CompositeSourceResolver;
 import com.taxonic.carml.engine.sourceresolver.FileResolver;
 import com.taxonic.carml.engine.sourceresolver.SourceResolver;
 import com.taxonic.carml.engine.template.TemplateParser;
-import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
+import com.taxonic.carml.logicalsourceresolver.LogicalSourceResolver;
 import com.taxonic.carml.model.LogicalSource;
 import com.taxonic.carml.model.RefObjectMap;
 import com.taxonic.carml.model.TriplesMap;

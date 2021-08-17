@@ -1,6 +1,14 @@
 package com.taxonic.carml.util;
 
-import static com.taxonic.carml.vocab.Rdf.Rr.*;
+import static com.taxonic.carml.vocab.Rdf.Rr.constant;
+import static com.taxonic.carml.vocab.Rdf.Rr.graph;
+import static com.taxonic.carml.vocab.Rdf.Rr.graphMap;
+import static com.taxonic.carml.vocab.Rdf.Rr.object;
+import static com.taxonic.carml.vocab.Rdf.Rr.objectMap;
+import static com.taxonic.carml.vocab.Rdf.Rr.predicate;
+import static com.taxonic.carml.vocab.Rdf.Rr.predicateMap;
+import static com.taxonic.carml.vocab.Rdf.Rr.subject;
+import static com.taxonic.carml.vocab.Rdf.Rr.subjectMap;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
@@ -8,8 +16,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
-import org.eclipse.rdf4j.model.*;
+import org.eclipse.rdf4j.model.BNode;
 import org.eclipse.rdf4j.model.IRI;
+import org.eclipse.rdf4j.model.Model;
+import org.eclipse.rdf4j.model.Resource;
+import org.eclipse.rdf4j.model.Statement;
+import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 
@@ -44,12 +56,15 @@ public class RmlConstantShorthandExpander implements UnaryOperator<Model> {
         return ImmutableMap.copyOf(expandedPredicates);
       }
     }
+
     expandedPredicates = new CreateExpandedPredicates().run();
   }
 
   private IRI getExpandedPredicate(IRI shortcutPredicate) {
-    if (!expandedPredicates.containsKey(shortcutPredicate))
+    if (!expandedPredicates.containsKey(shortcutPredicate)) {
       throw new IllegalArgumentException("predicate [" + shortcutPredicate + "] is not a valid shortcut predicate");
+    }
+
     return expandedPredicates.get(shortcutPredicate);
   }
 
@@ -73,9 +88,9 @@ public class RmlConstantShorthandExpander implements UnaryOperator<Model> {
 
     // 'p' is a shortcut predicate
     Resource context = statement.getContext();
-    BNode bNode = f.createBNode();
+    BNode blankNode = f.createBNode();
     // TODO verify that 'context' works properly, even if it is null
-    model.add(statement.getSubject(), getExpandedPredicate(p), bNode, context);
-    model.add(bNode, constant, statement.getObject(), context);
+    model.add(statement.getSubject(), getExpandedPredicate(p), blankNode, context);
+    model.add(blankNode, constant, statement.getObject(), context);
   }
 }

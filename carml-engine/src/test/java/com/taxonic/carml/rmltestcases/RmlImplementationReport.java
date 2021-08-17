@@ -1,11 +1,11 @@
 package com.taxonic.carml.rmltestcases;
 
 import com.taxonic.carml.engine.rdf.RdfRmlMapper;
-import com.taxonic.carml.logical_source_resolver.CsvResolver;
-import com.taxonic.carml.logical_source_resolver.JsonPathResolver;
-import com.taxonic.carml.logical_source_resolver.XPathResolver;
+import com.taxonic.carml.logicalsourceresolver.CsvResolver;
+import com.taxonic.carml.logicalsourceresolver.JsonPathResolver;
+import com.taxonic.carml.logicalsourceresolver.XPathResolver;
 import com.taxonic.carml.model.TriplesMap;
-import com.taxonic.carml.rdf_mapper.util.RdfObjectLoader;
+import com.taxonic.carml.rdfmapper.util.RdfObjectLoader;
 import com.taxonic.carml.rmltestcases.model.Output;
 import com.taxonic.carml.rmltestcases.model.TestCase;
 import com.taxonic.carml.util.Models;
@@ -136,7 +136,7 @@ public class RmlImplementationReport {
     inapplicable, failed, passed
   }
 
-  final static class TestCaseResult {
+  static final class TestCaseResult {
     private final TestCase testCase;
 
     private final TestResult testResult;

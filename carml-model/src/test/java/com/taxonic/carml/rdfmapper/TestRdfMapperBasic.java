@@ -1,4 +1,4 @@
-package com.taxonic.carml.rdf_mapper;
+package com.taxonic.carml.rdfmapper;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
@@ -29,8 +29,13 @@ public class TestRdfMapperBasic extends RmlLoader {
 
     static final String prefix = "http://data.example.com/";
 
-    static final IRI MyResource = iri("def/MyResource"), when = iri("def/when"), description = iri("def/description"),
-        accuracy = iri("def/accuracy");
+    static final IRI MyResource = iri("def/MyResource");
+
+    static final IRI when = iri("def/when");
+
+    static final IRI description = iri("def/description");
+
+    static final IRI accuracy = iri("def/accuracy");
 
   }
 
@@ -42,9 +47,21 @@ public class TestRdfMapperBasic extends RmlLoader {
 
     static final String prefix = "http://example.com/";
 
-    static final IRI RGBA = iri("RGBA"), Color = iri("Color"), hasCode = iri("hasCode"), hasHex = iri("hasHex"),
-        asciihex = f.createIRI("http://www.asciitable.com/hex"), Child = iri("Child"), language = iri("language"),
-        hasBirthday = iri("hasBirthday");
+    static final IRI RGBA = iri("RGBA");
+
+    static final IRI Color = iri("Color");
+
+    static final IRI hasCode = iri("hasCode");
+
+    static final IRI hasHex = iri("hasHex");
+
+    static final IRI asciihex = f.createIRI("http://www.asciitable.com/hex");
+
+    static final IRI Child = iri("Child");
+
+    static final IRI language = iri("language");
+
+    static final IRI hasBirthday = iri("hasBirthday");
   }
 
   // @Test

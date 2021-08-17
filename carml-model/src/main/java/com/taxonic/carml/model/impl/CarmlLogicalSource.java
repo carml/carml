@@ -2,7 +2,7 @@ package com.taxonic.carml.model.impl;
 
 import com.taxonic.carml.model.LogicalSource;
 import com.taxonic.carml.model.Resource;
-import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
+import com.taxonic.carml.rdfmapper.annotations.RdfProperty;
 import com.taxonic.carml.vocab.Rdf;
 import com.taxonic.carml.vocab.Rml;
 import java.util.Objects;

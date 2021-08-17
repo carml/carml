@@ -20,7 +20,7 @@ import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinConditionStore;
 import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinConditionStoreProvider;
 import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinKey;
 import com.taxonic.carml.engine.reactivedev.join.impl.CarmlParentSideJoinConditionStoreProvider;
-import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
+import com.taxonic.carml.logicalsourceresolver.LogicalSourceResolver;
 import com.taxonic.carml.model.GraphMap;
 import com.taxonic.carml.model.Join;
 import com.taxonic.carml.model.ObjectMap;
@@ -500,7 +500,6 @@ class RdfTriplesMapperTest {
     // When
     Flux<Statement> statements = rdfTriplesMapper.map("foo");
     Mono<Void> donePromise1 = rdfTriplesMapper.notifyCompletion(rdfRefObjectMapper1, SignalType.ON_COMPLETE);
-    Mono<Void> donePromise2 = rdfTriplesMapper.notifyCompletion(rdfRefObjectMapper2, SignalType.ON_COMPLETE);
 
     // Then
     StepVerifier.create(statements)
@@ -515,6 +514,10 @@ class RdfTriplesMapperTest {
     assertThat(joinConditions.get(ParentSideJoinKey.of("bar2", "baz")), is(Set.of(subject1)));
     assertThat(joinConditions.get(ParentSideJoinKey.of("bar3", "baz")), is(Set.of(subject1)));
 
+    // When
+    Mono<Void> donePromise2 = rdfTriplesMapper.notifyCompletion(rdfRefObjectMapper2, SignalType.ON_COMPLETE);
+
+    // Then
     StepVerifier.create(donePromise2)
         .verifyComplete();
 

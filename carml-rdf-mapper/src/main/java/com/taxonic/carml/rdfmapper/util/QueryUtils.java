@@ -1,4 +1,4 @@
-package com.taxonic.carml.rdf_mapper.util;
+package com.taxonic.carml.rdfmapper.util;
 
 import java.util.Arrays;
 import java.util.Objects;

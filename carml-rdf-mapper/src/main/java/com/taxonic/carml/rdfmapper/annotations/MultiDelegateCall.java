@@ -1,15 +1,16 @@
-package com.taxonic.carml.rdf_mapper.annotations;
+package com.taxonic.carml.rdfmapper.annotations;
 
-import com.taxonic.carml.rdf_mapper.Combiner;
+import com.taxonic.carml.rdfmapper.Combiner;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
+@SuppressWarnings("rawtypes")
 @Retention(RetentionPolicy.RUNTIME)
 public @interface MultiDelegateCall {
 
-  Class<? extends Combiner> value() default DEFAULT.class;
+  Class<? extends Combiner> value() default Default.class;
 
-  abstract class DEFAULT implements Combiner {
+  interface Default extends Combiner {
   }
 
 }

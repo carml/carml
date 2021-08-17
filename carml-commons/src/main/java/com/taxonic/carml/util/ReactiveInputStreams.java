@@ -23,7 +23,7 @@ public final class ReactiveInputStreams {
   public static Flux<DataBuffer> fluxInputStream(@NonNull InputStream inputStream) {
     DataBufferFactory dataBufferFactory = new DefaultDataBufferFactory();
     return DataBufferUtils.readInputStream(() -> inputStream, dataBufferFactory, DATA_BUFFER_SIZE)
-        .onErrorMap(error -> new ReactiveInputstreamsException(
+        .onErrorMap(error -> new ReactiveInputStreamsException(
             "Exception occurred while creating Flux form input stream.", error));
   }
 
@@ -41,7 +41,7 @@ public final class ReactiveInputStreams {
                 triggerWarning);
           }
         })
-        .onErrorMap(error -> new ReactiveInputstreamsException(
+        .onErrorMap(error -> new ReactiveInputStreamsException(
             "Exception occurred while creating input stream form Flux.", error))
         .subscribe(DataBufferUtils.releaseConsumer());
     return isPipe;

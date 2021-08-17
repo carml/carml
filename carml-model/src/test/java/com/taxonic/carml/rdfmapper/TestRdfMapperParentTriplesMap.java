@@ -1,4 +1,4 @@
-package com.taxonic.carml.rdf_mapper;
+package com.taxonic.carml.rdfmapper;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
@@ -30,10 +30,23 @@ public class TestRdfMapperParentTriplesMap extends RmlLoader {
 
     static final String prefix = "http://example.com/";
 
-    static final IRI RGBA = iri("RGBA"), Color = iri("Color"), hasCode = iri("hasCode"), hasHex = iri("hasHex"),
-        asciihex = f.createIRI("http://www.asciitable.com/hex"), breakfastItem = iri("ns#breakfastItem"),
-        originatesFrom = iri("ns#originatesFrom"), Country = iri("ns#Country"),
-        officialLanguage = iri("ns#officialLanguage");
+    static final IRI RGBA = iri("RGBA");
+
+    static final IRI Color = iri("Color");
+
+    static final IRI hasCode = iri("hasCode");
+
+    static final IRI hasHex = iri("hasHex");
+
+    static final IRI asciihex = f.createIRI("http://www.asciitable.com/hex");
+
+    static final IRI breakfastItem = iri("ns#breakfastItem");
+
+    static final IRI originatesFrom = iri("ns#originatesFrom");
+
+    static final IRI Country = iri("ns#Country");
+
+    static final IRI officialLanguage = iri("ns#officialLanguage");
   }
 
   // @Test

@@ -30,7 +30,7 @@ class RmlMapperTest extends MappingTester {
   }
 
   @Test
-  void testTermTypeMappingIRI() {
+  void testTermTypeMappingIri() {
     testMapping("RmlMapper", "/RmlMapper/test14/termTypeMappingIRI.rml.ttl",
         "/RmlMapper/test14/termTypeMappingIRI.output.ttl");
   }

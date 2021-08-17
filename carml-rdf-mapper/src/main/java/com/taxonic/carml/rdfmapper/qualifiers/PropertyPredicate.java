@@ -1,4 +1,4 @@
-package com.taxonic.carml.rdf_mapper.qualifiers;
+package com.taxonic.carml.rdfmapper.qualifiers;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

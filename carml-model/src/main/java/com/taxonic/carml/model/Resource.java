@@ -1,6 +1,6 @@
 package com.taxonic.carml.model;
 
-import com.taxonic.carml.rdf_mapper.annotations.MultiDelegateCall;
+import com.taxonic.carml.rdfmapper.annotations.MultiDelegateCall;
 import java.util.Set;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.util.ModelBuilder;

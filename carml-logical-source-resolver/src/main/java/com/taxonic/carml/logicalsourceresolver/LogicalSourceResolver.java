@@ -1,4 +1,4 @@
-package com.taxonic.carml.logical_source_resolver;
+package com.taxonic.carml.logicalsourceresolver;
 
 import com.taxonic.carml.engine.ExpressionEvaluation;
 import com.taxonic.carml.model.LogicalSource;

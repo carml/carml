@@ -3,7 +3,7 @@ package com.taxonic.carml.engine.rdf;
 import com.taxonic.carml.engine.LogicalSourcePipeline;
 import com.taxonic.carml.engine.TriplesMapper;
 import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinConditionStoreProvider;
-import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
+import com.taxonic.carml.logicalsourceresolver.LogicalSourceResolver;
 import com.taxonic.carml.model.LogicalSource;
 import com.taxonic.carml.model.TriplesMap;
 import java.util.List;

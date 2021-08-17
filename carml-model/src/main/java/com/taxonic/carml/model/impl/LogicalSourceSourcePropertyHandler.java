@@ -1,11 +1,11 @@
 package com.taxonic.carml.model.impl;
 
-import com.taxonic.carml.rdf_mapper.Mapper;
-import com.taxonic.carml.rdf_mapper.PropertyHandler;
-import com.taxonic.carml.rdf_mapper.impl.ComplexValueTransformer;
-import com.taxonic.carml.rdf_mapper.impl.MappingCache;
-import com.taxonic.carml.rdf_mapper.qualifiers.PropertyPredicate;
-import com.taxonic.carml.rdf_mapper.qualifiers.PropertySetter;
+import com.taxonic.carml.rdfmapper.Mapper;
+import com.taxonic.carml.rdfmapper.PropertyHandler;
+import com.taxonic.carml.rdfmapper.impl.ComplexValueTransformer;
+import com.taxonic.carml.rdfmapper.impl.MappingCache;
+import com.taxonic.carml.rdfmapper.qualifiers.PropertyPredicate;
+import com.taxonic.carml.rdfmapper.qualifiers.PropertySetter;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -30,17 +30,20 @@ public class LogicalSourceSourcePropertyHandler implements PropertyHandler {
 
     Set<Value> objects = model.filter(resource, predicate, null)
         .objects();
-    if (objects.size() > 1)
+    if (objects.size() > 1) {
       throw new RuntimeException("more than 1 object for the predicate [" + predicate + "] for a logical source");
+    }
 
-    if (objects.isEmpty())
+    if (objects.isEmpty()) {
       return Optional.empty();
+    }
 
     Value object = objects.iterator()
         .next();
 
-    if (object instanceof Literal)
+    if (object instanceof Literal) {
       return Optional.of(object.stringValue());
+    }
 
     // map 'object' to some complex type
     // TODO quite nasty to create the transformer here

@@ -1,4 +1,4 @@
-package com.taxonic.carml.rdf_mapper;
+package com.taxonic.carml.rdfmapper;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
@@ -36,8 +36,13 @@ public class TestRdfMapper extends RmlLoader {
 
     static final String prefix = "http://data.example.com/";
 
-    static final IRI MyResource = iri("def/MyResource"), when = iri("def/when"), description = iri("def/description"),
-        accuracy = iri("def/accuracy");
+    static final IRI MyResource = iri("def/MyResource");
+
+    static final IRI when = iri("def/when");
+
+    static final IRI description = iri("def/description");
+
+    static final IRI accuracy = iri("def/accuracy");
 
   }
 
@@ -49,11 +54,33 @@ public class TestRdfMapper extends RmlLoader {
 
     static final String prefix = "http://example.com/";
 
-    static final IRI RGBA = iri("RGBA"), Color = iri("Color"), hasCode = iri("hasCode"), hasHex = iri("hasHex"),
-        asciihex = f.createIRI("http://www.asciitable.com/hex"), Child = iri("Child"), language = iri("language"),
-        hasBirthday = iri("hasBirthday"), Unknown = iri("Unknown"), mainGraph = iri("mainGraph"),
-        breakfastItem = iri("ns#breakfastItem"), originatesFrom = iri("ns#originatesFrom"), Country = iri("ns#Country"),
-        officialLanguage = iri("ns#officialLanguage");
+    static final IRI RGBA = iri("RGBA");
+
+    static final IRI Color = iri("Color");
+
+    static final IRI hasCode = iri("hasCode");
+
+    static final IRI hasHex = iri("hasHex");
+
+    static final IRI asciihex = f.createIRI("http://www.asciitable.com/hex");
+
+    static final IRI Child = iri("Child");
+
+    static final IRI language = iri("language");
+
+    static final IRI hasBirthday = iri("hasBirthday");
+
+    static final IRI Unknown = iri("Unknown");
+
+    static final IRI mainGraph = iri("mainGraph");
+
+    static final IRI breakfastItem = iri("ns#breakfastItem");
+
+    static final IRI originatesFrom = iri("ns#originatesFrom");
+
+    static final IRI Country = iri("ns#Country");
+
+    static final IRI officialLanguage = iri("ns#officialLanguage");
   }
 
   // @Test
@@ -206,7 +233,7 @@ public class TestRdfMapper extends RmlLoader {
   }
 
   // @Test
-  public void testLoadMappingWithTermTypeIRI() {
+  public void testLoadMappingWithTermTypeIri() {
     Set<TriplesMap> expected = Set.of(CarmlTriplesMap.newBuilder()
         .logicalSource(CarmlLogicalSource.newBuilder()
             .source("simple2TestInput.json")

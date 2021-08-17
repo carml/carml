@@ -1,4 +1,4 @@
-package com.taxonic.carml.rdf_mapper.impl;
+package com.taxonic.carml.rdfmapper.impl;
 
 import static java.util.Objects.requireNonNull;
 
@@ -54,14 +54,12 @@ class IterablePropertyValueMapper implements PropertyValueMapper {
 
     if (iterableType.equals(Set.class)) {
       return ImmutableSet::builder;
-    }
-
-    else if (iterableType.equals(List.class)) {
+    } else if (iterableType.equals(List.class)) {
       return ImmutableList::builder;
     }
 
-    throw new RuntimeException(
-        "don't know how to create a factory for collection type [" + iterableType.getCanonicalName() + "]");
+    throw new CarmlMapperException(
+        String.format("don't know how to create a factory for collection type [%s]", iterableType.getCanonicalName()));
   }
 
 }

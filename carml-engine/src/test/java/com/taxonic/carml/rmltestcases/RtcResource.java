@@ -1,7 +1,7 @@
 package com.taxonic.carml.rmltestcases;
 
-import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
-import com.taxonic.carml.rdf_mapper.annotations.RdfResourceName;
+import com.taxonic.carml.rdfmapper.annotations.RdfProperty;
+import com.taxonic.carml.rdfmapper.annotations.RdfResourceName;
 import com.taxonic.carml.rmltestcases.model.Resource;
 
 public class RtcResource implements Resource {

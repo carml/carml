@@ -1,8 +1,8 @@
 package com.taxonic.carml.model.impl;
 
 import com.google.common.collect.ImmutableMap;
-import com.taxonic.carml.rdf_mapper.Mapper;
-import com.taxonic.carml.rdf_mapper.TypeDecider;
+import com.taxonic.carml.rdfmapper.Mapper;
+import com.taxonic.carml.rdfmapper.TypeDecider;
 import com.taxonic.carml.vocab.Rdf;
 import java.lang.reflect.Type;
 import java.util.Map;

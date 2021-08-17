@@ -60,9 +60,6 @@ class ReactiveInputStreamsTest {
     InputStream inputStream = IOUtils.toInputStream(inputString, StandardCharsets.UTF_8);
     ConnectableFlux<DataBuffer> dataBufferFlux = ReactiveInputStreams.fluxInputStream(inputStream)
         .publish();
-    String out1;
-    String out2;
-    String out3;
 
     // When
     InputStream input1 = ReactiveInputStreams.inputStreamFrom(dataBufferFlux);
@@ -71,9 +68,9 @@ class ReactiveInputStreamsTest {
 
     dataBufferFlux.connect();
 
-    out1 = IOUtils.toString(input1, StandardCharsets.UTF_8);
-    out2 = IOUtils.toString(input2, StandardCharsets.UTF_8);
-    out3 = IOUtils.toString(input3, StandardCharsets.UTF_8);
+    String out1 = IOUtils.toString(input1, StandardCharsets.UTF_8);
+    String out2 = IOUtils.toString(input2, StandardCharsets.UTF_8);
+    String out3 = IOUtils.toString(input3, StandardCharsets.UTF_8);
 
     // Then
     assertThat(out1, is(inputString));

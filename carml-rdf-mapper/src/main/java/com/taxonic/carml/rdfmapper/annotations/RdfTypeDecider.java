@@ -1,6 +1,6 @@
-package com.taxonic.carml.rdf_mapper.annotations;
+package com.taxonic.carml.rdfmapper.annotations;
 
-import com.taxonic.carml.rdf_mapper.TypeDecider;
+import com.taxonic.carml.rdfmapper.TypeDecider;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 

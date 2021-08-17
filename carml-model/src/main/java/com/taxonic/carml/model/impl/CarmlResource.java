@@ -1,8 +1,8 @@
 package com.taxonic.carml.model.impl;
 
 import com.taxonic.carml.model.Resource;
-import com.taxonic.carml.rdf_mapper.annotations.RdfProperty;
-import com.taxonic.carml.rdf_mapper.annotations.RdfResourceName;
+import com.taxonic.carml.rdfmapper.annotations.RdfProperty;
+import com.taxonic.carml.rdfmapper.annotations.RdfResourceName;
 import com.taxonic.carml.util.RdfValues;
 import java.util.HashMap;
 import java.util.Map;

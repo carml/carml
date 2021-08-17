@@ -1,4 +1,4 @@
-package com.taxonic.carml.rdf_mapper;
+package com.taxonic.carml.rdfmapper;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
@@ -22,9 +22,9 @@ public class TestRdfMapperLogicalSource extends RmlLoader {
 
     assertThat(mapping.size(), is(1));
 
-    TriplesMap tMap = Iterables.getOnlyElement(mapping);
+    TriplesMap triplesMap = Iterables.getOnlyElement(mapping);
 
-    Object source = tMap.getLogicalSource()
+    Object source = triplesMap.getLogicalSource()
         .getSource();
 
     assertThat(source, instanceOf(NameableStream.class));
@@ -37,9 +37,9 @@ public class TestRdfMapperLogicalSource extends RmlLoader {
 
     assertThat(mapping.size(), is(1));
 
-    TriplesMap tMap = Iterables.getOnlyElement(mapping);
+    TriplesMap triplesMap = Iterables.getOnlyElement(mapping);
 
-    Object source = tMap.getLogicalSource()
+    Object source = triplesMap.getLogicalSource()
         .getSource();
 
     assertThat(source, instanceOf(FileSource.class));
