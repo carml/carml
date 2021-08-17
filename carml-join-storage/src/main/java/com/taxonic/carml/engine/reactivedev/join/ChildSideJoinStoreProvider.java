@@ -1,9 +1,10 @@
 package com.taxonic.carml.engine.reactivedev.join;
 
-import java.util.Set;
+import java.io.Serializable;
+import lombok.NonNull;
 
-public interface ChildSideJoinStoreProvider<T1, T2> {
+public interface ChildSideJoinStoreProvider<T1 extends Serializable, T2 extends Serializable> {
 
-  Set<ChildSideJoin<T1, T2>> create(String name);
+  ChildSideJoinStore<T1, T2> createChildSideJoinStore(@NonNull String name);
 
 }

@@ -8,6 +8,7 @@ import com.taxonic.carml.engine.RefObjectMapper;
 import com.taxonic.carml.engine.TermGenerator;
 import com.taxonic.carml.engine.TriplesMapper;
 import com.taxonic.carml.engine.TriplesMapperException;
+import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinConditionStore;
 import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinConditionStoreProvider;
 import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinKey;
 import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
@@ -22,7 +23,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -71,7 +71,7 @@ public class RdfTriplesMapper<I> implements TriplesMapper<I, Statement> {
 
   @NonNull
   @Getter(AccessLevel.PUBLIC)
-  private final ConcurrentMap<ParentSideJoinKey, Set<Resource>> parentSideJoinConditions;
+  private final ParentSideJoinConditionStore<Resource> parentSideJoinConditions;
 
   private final Map<RefObjectMapper<Statement>, Boolean> incomingRefObjectMapperStatus;
 
@@ -94,7 +94,8 @@ public class RdfTriplesMapper<I> implements TriplesMapper<I, Statement> {
         .collect(Collectors.toMap(rom -> rom, rom -> false));
 
     return new RdfTriplesMapper<>(triplesMap, subjectMappers, predicateObjectMappers, incomingRefObjectMappers,
-        expressionEvaluatorFactory, rdfMappingContext, parentSideJoinConditionStoreProvider.create(triplesMap.getId()),
+        expressionEvaluatorFactory, rdfMappingContext,
+        parentSideJoinConditionStoreProvider.createParentSideJoinConditionStore(triplesMap.getId()),
         connectedRefObjectMapperStatus);
   }
 

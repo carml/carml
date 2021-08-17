@@ -7,9 +7,9 @@ import com.taxonic.carml.engine.RmlMapperException;
 import com.taxonic.carml.engine.TermGeneratorFactory;
 import com.taxonic.carml.engine.function.Functions;
 import com.taxonic.carml.engine.reactivedev.join.ChildSideJoinStoreProvider;
-import com.taxonic.carml.engine.reactivedev.join.MapDbChildSideJoinStoreProvider;
-import com.taxonic.carml.engine.reactivedev.join.MapDbParentSideJoinConditionStoreProvider;
 import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinConditionStoreProvider;
+import com.taxonic.carml.engine.reactivedev.join.impl.CarmlChildSideJoinStoreProvider;
+import com.taxonic.carml.engine.reactivedev.join.impl.CarmlParentSideJoinConditionStoreProvider;
 import com.taxonic.carml.engine.sourceresolver.ClassPathResolver;
 import com.taxonic.carml.engine.sourceresolver.CompositeSourceResolver;
 import com.taxonic.carml.engine.sourceresolver.FileResolver;
@@ -74,11 +74,10 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
 
     private TermGeneratorFactory<Value> termGeneratorFactory;
 
-    private ChildSideJoinStoreProvider<Resource, IRI> childSideJoinCacheProvider =
-        MapDbChildSideJoinStoreProvider.getInstance();
+    private ChildSideJoinStoreProvider<Resource, IRI> childSideJoinCacheProvider = CarmlChildSideJoinStoreProvider.of();
 
     private ParentSideJoinConditionStoreProvider<Resource> parentSideJoinConditionStoreProvider =
-        MapDbParentSideJoinConditionStoreProvider.getInstance();
+        CarmlParentSideJoinConditionStoreProvider.of();
 
     public Builder addFunctions(Object... fn) {
       functions.addFunctions(fn);
@@ -132,12 +131,12 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
       return this;
     }
 
-    public Builder childSideJoinCacheProvider(ChildSideJoinStoreProvider<Resource, IRI> childSideJoinCacheProvider) {
+    public Builder childSideJoinStoreProvider(ChildSideJoinStoreProvider<Resource, IRI> childSideJoinCacheProvider) {
       this.childSideJoinCacheProvider = childSideJoinCacheProvider;
       return this;
     }
 
-    public Builder parentSideJoinConditionCacheProvider(
+    public Builder parentSideJoinConditionStoreProvider(
         ParentSideJoinConditionStoreProvider<Resource> parentSideJoinConditionStoreProvider) {
       this.parentSideJoinConditionStoreProvider = parentSideJoinConditionStoreProvider;
       return this;
@@ -155,8 +154,8 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
             .functions(functions)
             .build();
 
-        termGeneratorFactory =
-            RdfTermGeneratorFactory.of(valueFactorySupplier.get(), mapperOptions, TemplateParser.build());
+        termGeneratorFactory = RdfTermGeneratorFactory.of(valueFactorySupplier.get(), mapperOptions,
+            TemplateParser.build(), parentSideJoinConditionStoreProvider);
       }
 
       var rdfMappingContext = RdfMappingContext.builder()

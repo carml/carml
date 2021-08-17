@@ -18,7 +18,9 @@ import com.google.common.collect.Iterables;
 import com.taxonic.carml.engine.ExpressionEvaluation;
 import com.taxonic.carml.engine.reactivedev.join.ChildSideJoin;
 import com.taxonic.carml.engine.reactivedev.join.ChildSideJoinCondition;
+import com.taxonic.carml.engine.reactivedev.join.ChildSideJoinStore;
 import com.taxonic.carml.engine.reactivedev.join.ChildSideJoinStoreProvider;
+import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinConditionStore;
 import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinKey;
 import com.taxonic.carml.model.Join;
 import com.taxonic.carml.model.RefObjectMap;
@@ -30,8 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.eclipse.rdf4j.model.IRI;
@@ -79,20 +79,23 @@ class RdfRefObjectMapperTest {
   private ExpressionEvaluation expressionEvaluation;
 
   @Mock
-  private Set<ChildSideJoin<Resource, IRI>> childSideJoinCache;
+  private ChildSideJoinStore<Resource, IRI> childSideJoinStore;
 
   @Mock
   private RdfTriplesMapper<?> parentRdfTriplesMapper;
 
   @Mock
+  private ParentSideJoinConditionStore<Resource> parentSideJoinConditionStore;
+
+  @Mock
   Mono<Void> completion;
 
   @Captor
-  private ArgumentCaptor<ChildSideJoin<Resource, IRI>> childSideJoinCaptor;
+  private ArgumentCaptor<Set<ChildSideJoin<Resource, IRI>>> childSideJoinCaptor;
 
   @BeforeEach
   void setup() {
-    when(childSideJoinStoreProvider.create(any())).thenReturn(childSideJoinCache);
+    when(childSideJoinStoreProvider.createChildSideJoinStore(any())).thenReturn(childSideJoinStore);
   }
 
   @Test
@@ -146,9 +149,11 @@ class RdfRefObjectMapperTest {
         .expectComplete()
         .verify();
 
-    verify(childSideJoinCache, times(1)).add(childSideJoinCaptor.capture());
+    verify(childSideJoinStore, times(1)).addAll(childSideJoinCaptor.capture());
 
-    ChildSideJoin<Resource, IRI> childSideJoin = childSideJoinCaptor.getValue();
+    Set<ChildSideJoin<Resource, IRI>> childSideJoins = childSideJoinCaptor.getValue();
+
+    ChildSideJoin<Resource, IRI> childSideJoin = Iterables.getOnlyElement(childSideJoins);
 
     assertThat(childSideJoin.getSubjects(), is(subjects));
     assertThat(childSideJoin.getPredicates(), is(predicates));
@@ -205,9 +210,9 @@ class RdfRefObjectMapperTest {
         .expectComplete()
         .verify();
 
-    verify(childSideJoinCache, times(2)).add(childSideJoinCaptor.capture());
+    verify(childSideJoinStore, times(1)).addAll(childSideJoinCaptor.capture());
 
-    List<ChildSideJoin<Resource, IRI>> childSideJoins = childSideJoinCaptor.getAllValues();
+    Set<ChildSideJoin<Resource, IRI>> childSideJoins = childSideJoinCaptor.getValue();
 
     assertThat(childSideJoins.stream()
         .map(ChildSideJoin::getSubjects)
@@ -259,9 +264,11 @@ class RdfRefObjectMapperTest {
     StepVerifier.create(refObjectMapperPromise)
         .verifyComplete();
 
-    verify(childSideJoinCache, times(1)).add(childSideJoinCaptor.capture());
+    verify(childSideJoinStore, times(1)).addAll(childSideJoinCaptor.capture());
 
-    ChildSideJoin<Resource, IRI> childSideJoin = childSideJoinCaptor.getValue();
+    Set<ChildSideJoin<Resource, IRI>> childSideJoins = childSideJoinCaptor.getValue();
+
+    ChildSideJoin<Resource, IRI> childSideJoin = Iterables.getOnlyElement(childSideJoins);
 
     assertThat(childSideJoin.getSubjects(), is(subjects));
     assertThat(childSideJoin.getPredicates(), is(predicates));
@@ -280,15 +287,14 @@ class RdfRefObjectMapperTest {
     Set<Resource> graphs = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/graph1"));
 
     ChildSideJoin<Resource, IRI> childSideJoin1 = ChildSideJoin.<Resource, IRI>builder()
-        .subjects(subjects)
-        .predicates(predicates)
-        .graphs(graphs)
-        .childSideJoinConditions(Set.of(ChildSideJoinCondition.of("foo", List.of("baz"), "bar")))
+        .subjects(new HashSet<>(subjects))
+        .predicates(new HashSet<>(predicates))
+        .graphs(new HashSet<>(graphs))
+        .childSideJoinConditions(
+            new HashSet<>(Set.of(ChildSideJoinCondition.of("foo", new ArrayList<>(List.of("baz")), "bar"))))
         .build();
 
-    Set<ChildSideJoin<Resource, IRI>> childSideJoins = Set.of(childSideJoin1);
-
-    when(childSideJoinStoreProvider.create(any())).thenReturn(childSideJoins);
+    when(childSideJoinStore.clearingFlux()).thenReturn(Flux.just(childSideJoin1));
 
     RdfMappingContext rdfMappingContext = RdfMappingContext.builder()
         .valueFactorySupplier(() -> VALUE_FACTORY)
@@ -328,16 +334,14 @@ class RdfRefObjectMapperTest {
     Set<Resource> graphs = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/graph1"));
 
     ChildSideJoin<Resource, IRI> childSideJoin1 = ChildSideJoin.<Resource, IRI>builder()
-        .subjects(subjects)
-        .predicates(predicates)
-        .graphs(graphs)
-        .childSideJoinConditions(Set.of(ChildSideJoinCondition.of("foo", List.of("baz"), "bar")))
+        .subjects(new HashSet<>(subjects))
+        .predicates(new HashSet<>(predicates))
+        .graphs(new HashSet<>(graphs))
+        .childSideJoinConditions(
+            new HashSet<>(Set.of(ChildSideJoinCondition.of("foo", new ArrayList<>(List.of("baz")), "bar"))))
         .build();
 
-    Set<ChildSideJoin<Resource, IRI>> childSideJoins = new HashSet<>();
-    childSideJoins.add(childSideJoin1);
-
-    when(childSideJoinStoreProvider.create(any())).thenReturn(childSideJoins);
+    when(childSideJoinStore.clearingFlux()).thenReturn(Flux.just(childSideJoin1));
 
     RdfMappingContext rdfMappingContext = RdfMappingContext.builder()
         .valueFactorySupplier(() -> VALUE_FACTORY)
@@ -348,9 +352,10 @@ class RdfRefObjectMapperTest {
     RdfRefObjectMapper rdfRefObjectMapper =
         RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingContext, childSideJoinStoreProvider);
 
-    when(parentRdfTriplesMapper.getParentSideJoinConditions()).thenReturn(new ConcurrentHashMap<>());
+    when(parentRdfTriplesMapper.getParentSideJoinConditions()).thenReturn(parentSideJoinConditionStore);
 
-    when(parentRdfTriplesMapper.notifyCompletion(rdfRefObjectMapper, SignalType.ON_COMPLETE)).thenReturn(completion);
+    lenient().when(parentRdfTriplesMapper.notifyCompletion(rdfRefObjectMapper, SignalType.ON_COMPLETE))
+        .thenReturn(completion);
 
     Flux<Statement> joinlessFlux = generateStatementsFor("main", 3);
     Flux<Statement> parentJoinlessFlux = generateStatementsFor("parent", 3);
@@ -388,16 +393,14 @@ class RdfRefObjectMapperTest {
     Set<Resource> graphs = Set.of(graph1);
 
     ChildSideJoin<Resource, IRI> childSideJoin1 = ChildSideJoin.<Resource, IRI>builder()
-        .subjects(subjects)
-        .predicates(predicates)
-        .graphs(graphs)
-        .childSideJoinConditions(Set.of(ChildSideJoinCondition.of("foo", List.of("baz"), "bar")))
+        .subjects(new HashSet<>(subjects))
+        .predicates(new HashSet<>(predicates))
+        .graphs(new HashSet<>(graphs))
+        .childSideJoinConditions(
+            new HashSet<>(Set.of(ChildSideJoinCondition.of("foo", new ArrayList<>(List.of("baz")), "bar"))))
         .build();
 
-    Set<ChildSideJoin<Resource, IRI>> childSideJoins = new HashSet<>();
-    childSideJoins.add(childSideJoin1);
-
-    when(childSideJoinStoreProvider.create(any())).thenReturn(childSideJoins);
+    when(childSideJoinStore.clearingFlux()).thenReturn(Flux.just(childSideJoin1));
 
     RdfMappingContext rdfMappingContext = RdfMappingContext.builder()
         .valueFactorySupplier(() -> VALUE_FACTORY)
@@ -414,10 +417,10 @@ class RdfRefObjectMapperTest {
 
     ParentSideJoinKey parentSideJoinKey = ParentSideJoinKey.of("bar", "baz");
 
-    ConcurrentMap<ParentSideJoinKey, Set<Resource>> parentSideJoinConditions =
-        new ConcurrentHashMap<>(Map.of(parentSideJoinKey, parentSubjects));
+    when(parentSideJoinConditionStore.containsKey(parentSideJoinKey)).thenReturn(true);
+    when(parentSideJoinConditionStore.get(parentSideJoinKey)).thenReturn(parentSubjects);
 
-    when(parentRdfTriplesMapper.getParentSideJoinConditions()).thenReturn(parentSideJoinConditions);
+    when(parentRdfTriplesMapper.getParentSideJoinConditions()).thenReturn(parentSideJoinConditionStore);
 
     lenient().when(parentRdfTriplesMapper.notifyCompletion(any(), any()))
         .thenReturn(Mono.when());
@@ -467,24 +470,22 @@ class RdfRefObjectMapperTest {
     Set<Resource> graphs2 = Set.of(graph2);
 
     ChildSideJoin<Resource, IRI> childSideJoin1 = ChildSideJoin.<Resource, IRI>builder()
-        .subjects(subjects)
-        .predicates(predicates)
-        .graphs(graphs)
-        .childSideJoinConditions(Set.of(ChildSideJoinCondition.of("foo", List.of("baz"), "bar")))
+        .subjects(new HashSet<>(subjects))
+        .predicates(new HashSet<>(predicates))
+        .graphs(new HashSet<>(graphs))
+        .childSideJoinConditions(
+            new HashSet<>(Set.of(ChildSideJoinCondition.of("foo", new ArrayList<>(List.of("baz")), "bar"))))
         .build();
 
     ChildSideJoin<Resource, IRI> childSideJoin2 = ChildSideJoin.<Resource, IRI>builder()
-        .subjects(subjects2)
-        .predicates(predicates)
-        .graphs(graphs2)
-        .childSideJoinConditions(Set.of(ChildSideJoinCondition.of("foo", List.of("baz"), "bar")))
+        .subjects(new HashSet<>(subjects2))
+        .predicates(new HashSet<>(predicates))
+        .graphs(new HashSet<>(graphs2))
+        .childSideJoinConditions(
+            new HashSet<>(Set.of(ChildSideJoinCondition.of("foo", new ArrayList<>(List.of("baz")), "bar"))))
         .build();
 
-    Set<ChildSideJoin<Resource, IRI>> childSideJoins = new HashSet<>();
-    childSideJoins.add(childSideJoin1);
-    childSideJoins.add(childSideJoin2);
-
-    when(childSideJoinStoreProvider.create(any())).thenReturn(childSideJoins);
+    when(childSideJoinStore.clearingFlux()).thenReturn(Flux.just(childSideJoin1, childSideJoin2));
 
     RdfMappingContext rdfMappingContext = RdfMappingContext.builder()
         .valueFactorySupplier(() -> VALUE_FACTORY)
@@ -501,10 +502,10 @@ class RdfRefObjectMapperTest {
 
     ParentSideJoinKey parentSideJoinKey = ParentSideJoinKey.of("bar", "baz");
 
-    ConcurrentMap<ParentSideJoinKey, Set<Resource>> parentSideJoinConditions =
-        new ConcurrentHashMap<>(Map.of(parentSideJoinKey, parentSubjects));
+    when(parentSideJoinConditionStore.containsKey(parentSideJoinKey)).thenReturn(true);
+    when(parentSideJoinConditionStore.get(parentSideJoinKey)).thenReturn(parentSubjects);
 
-    when(parentRdfTriplesMapper.getParentSideJoinConditions()).thenReturn(parentSideJoinConditions);
+    when(parentRdfTriplesMapper.getParentSideJoinConditions()).thenReturn(parentSideJoinConditionStore);
 
     lenient().when(parentRdfTriplesMapper.notifyCompletion(any(), any()))
         .thenReturn(Mono.when());

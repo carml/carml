@@ -61,13 +61,13 @@ class RefObjectMapperTest extends MappingTester {
   @Test
   void testParentTriplesMappingWithBlankNodeSubjectTemplate() {
     testMapping("RmlMapper", "/RmlMapper/test9/parentTriplesMappingBlankNodeA.rml.ttl",
-        "/RmlMapper/test9/parentTriplesMappingBlankNode.output.ttl");
+        "/RmlMapper/test9/parentTriplesMappingBlankNodeA.output.ttl");
   }
 
   @Test
   void testParentTriplesMappingWithBlankNodeSubjectReference() {
     testMapping("RmlMapper", "/RmlMapper/test9/parentTriplesMappingBlankNodeB.rml.ttl",
-        "/RmlMapper/test9/parentTriplesMappingBlankNode.output.ttl");
+        "/RmlMapper/test9/parentTriplesMappingBlankNodeB.output.ttl");
   }
 
   @Test

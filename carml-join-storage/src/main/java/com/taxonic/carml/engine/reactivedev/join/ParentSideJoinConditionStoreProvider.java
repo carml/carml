@@ -1,10 +1,10 @@
 package com.taxonic.carml.engine.reactivedev.join;
 
-import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
+import java.io.Serializable;
+import lombok.NonNull;
 
-public interface ParentSideJoinConditionStoreProvider<T> {
+public interface ParentSideJoinConditionStoreProvider<T extends Serializable> {
 
-  ConcurrentMap<ParentSideJoinKey, Set<T>> create(String name);
+  ParentSideJoinConditionStore<T> createParentSideJoinConditionStore(@NonNull String name);
 
 }

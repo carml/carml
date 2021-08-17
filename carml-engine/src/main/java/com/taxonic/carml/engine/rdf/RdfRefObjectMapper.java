@@ -5,11 +5,15 @@ import com.taxonic.carml.engine.RefObjectMapper;
 import com.taxonic.carml.engine.TriplesMapper;
 import com.taxonic.carml.engine.reactivedev.join.ChildSideJoin;
 import com.taxonic.carml.engine.reactivedev.join.ChildSideJoinCondition;
+import com.taxonic.carml.engine.reactivedev.join.ChildSideJoinStore;
 import com.taxonic.carml.engine.reactivedev.join.ChildSideJoinStoreProvider;
+import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinConditionStore;
 import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinKey;
 import com.taxonic.carml.model.RefObjectMap;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.util.Models;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -19,12 +23,10 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.collections.impl.factory.Sets;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.ValueFactory;
-import org.jetbrains.annotations.NotNull;
 import reactor.core.publisher.ConnectableFlux;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -41,7 +43,7 @@ public class RdfRefObjectMapper implements RefObjectMapper<Statement> {
   @NonNull
   private final TriplesMap triplesMap;
 
-  private final Set<ChildSideJoin<Resource, IRI>> childSideJoins;
+  private final ChildSideJoinStore<Resource, IRI> childSideJoinStore;
 
   @NonNull
   private final ValueFactory valueFactory;
@@ -53,16 +55,17 @@ public class RdfRefObjectMapper implements RefObjectMapper<Statement> {
       LOG.debug("Creating mapper for RefObjectMap {}", refObjectMap.getResourceName());
     }
 
-    return new RdfRefObjectMapper(refObjectMap, triplesMap, childSideJoinStoreProvider.create(refObjectMap.getId()),
+    return new RdfRefObjectMapper(refObjectMap, triplesMap,
+        childSideJoinStoreProvider.createChildSideJoinStore(refObjectMap.getId()),
         rdfMappingContext.getValueFactorySupplier()
             .get());
   }
 
-  private RdfRefObjectMapper(@NotNull RefObjectMap refObjectMap, @NotNull TriplesMap triplesMap,
-      Set<ChildSideJoin<Resource, IRI>> childSideJoins, @NotNull ValueFactory valueFactory) {
+  private RdfRefObjectMapper(@NonNull RefObjectMap refObjectMap, @NonNull TriplesMap triplesMap,
+      ChildSideJoinStore<Resource, IRI> childSideJoinStore, @NonNull ValueFactory valueFactory) {
     this.refObjectMap = refObjectMap;
     this.triplesMap = triplesMap;
-    this.childSideJoins = childSideJoins;
+    this.childSideJoinStore = childSideJoinStore;
     this.valueFactory = valueFactory;
   }
 
@@ -77,35 +80,38 @@ public class RdfRefObjectMapper implements RefObjectMapper<Statement> {
         .stream()
         .map(joinCondition -> {
           String childReference = joinCondition.getChildReference();
-          List<String> childValues = expressionEvaluation.apply(joinCondition.getChildReference())
-              .map(ExpressionEvaluation::extractValues)
-              .orElse(List.of());
+          ArrayList<String> childValues = expressionEvaluation.apply(joinCondition.getChildReference())
+              .map(expressionResult -> new ArrayList<>(ExpressionEvaluation.extractValues(expressionResult)))
+              .orElse(new ArrayList<>());
 
           return ChildSideJoinCondition.of(childReference, childValues, joinCondition.getParentReference());
         })
         .collect(Collectors.toSet());
 
-    subjectsAndAllGraphs
-        .forEach((subjects, graphs) -> prepareChildSideJoin(subjects, predicates, graphs, childSideJoinConditions));
+    Set<ChildSideJoin<Resource, IRI>> childSideJoins = subjectsAndAllGraphs.entrySet()
+        .stream()
+        .map(subjectsAndAllGraphsEntry -> prepareChildSideJoin(subjectsAndAllGraphsEntry.getKey(), predicates,
+            subjectsAndAllGraphsEntry.getValue(), childSideJoinConditions))
+        .collect(Collectors.toUnmodifiableSet());
+
+    childSideJoinStore.addAll(childSideJoins);
   }
 
-  private void prepareChildSideJoin(Set<Resource> subjects, Set<IRI> predicates, Set<Resource> graphs,
-      Set<ChildSideJoinCondition> childSideJoinConditions) {
-    ChildSideJoin<Resource, IRI> childSideJoin = ChildSideJoin.<Resource, IRI>builder()
-        .subjects(subjects)
-        .predicates(predicates)
-        .graphs(graphs)
-        .childSideJoinConditions(childSideJoinConditions)
+  private ChildSideJoin<Resource, IRI> prepareChildSideJoin(Set<Resource> subjects, Set<IRI> predicates,
+      Set<Resource> graphs, Set<ChildSideJoinCondition> childSideJoinConditions) {
+    return ChildSideJoin.<Resource, IRI>builder()
+        .subjects(new HashSet<>(subjects))
+        .predicates(new HashSet<>(predicates))
+        .graphs(new HashSet<>(graphs))
+        .childSideJoinConditions(new HashSet<>(childSideJoinConditions))
         .build();
-
-    childSideJoins.add(childSideJoin);
   }
 
   @Override
   public Flux<Statement> resolveJoins(Flux<Statement> mainFlux, TriplesMapper<?, Statement> parentTriplesMapper,
       Flux<Statement> parentFlux) {
 
-    ConnectableFlux<Statement> joinedStatementFlux = Flux.using(() -> childSideJoins, Flux::fromIterable, Set::clear)
+    ConnectableFlux<Statement> joinedStatementFlux = childSideJoinStore.clearingFlux()
         .subscribeOn(Schedulers.boundedElastic())
         .flatMap(childSideJoin -> resolveJoin(parentTriplesMapper, childSideJoin))
         .doFinally(signalType -> parentTriplesMapper.notifyCompletion(this, signalType)
@@ -138,7 +144,7 @@ public class RdfRefObjectMapper implements RefObjectMapper<Statement> {
 
   private Flux<Statement> resolveJoin(TriplesMapper<?, Statement> parentTriplesMapper2,
       ChildSideJoin<Resource, IRI> childSideJoin) {
-    Map<ParentSideJoinKey, Set<Resource>> parentJoinConditions = parentTriplesMapper2.getParentSideJoinConditions();
+    ParentSideJoinConditionStore<Resource> parentJoinConditions = parentTriplesMapper2.getParentSideJoinConditions();
 
     Set<Resource> objects = checkJoinAndGetObjects(childSideJoin, parentJoinConditions);
 
@@ -156,7 +162,7 @@ public class RdfRefObjectMapper implements RefObjectMapper<Statement> {
 
   @SuppressWarnings("unchecked")
   private Set<Resource> checkJoinAndGetObjects(ChildSideJoin<Resource, IRI> childSideJoin,
-      Map<ParentSideJoinKey, Set<Resource>> parentJoinConditions) {
+      ParentSideJoinConditionStore<Resource> parentJoinConditions) {
 
     List<Set<Resource>> parentResults = childSideJoin.getChildSideJoinConditions()
         .stream()
@@ -169,11 +175,14 @@ public class RdfRefObjectMapper implements RefObjectMapper<Statement> {
       return parentResults.get(0);
     }
 
-    return Sets.intersectAll(parentResults.toArray(Set[]::new));
+    // return intersection or parentResults
+    return parentResults.stream()
+        .skip(1)
+        .collect(() -> new HashSet<>(parentResults.get(0)), Set::retainAll, Set::retainAll);
   }
 
   private Set<Resource> checkChildSideJoinCondition(ChildSideJoinCondition childSideJoinCondition,
-      Map<ParentSideJoinKey, Set<Resource>> parentJoinConditions) {
+      ParentSideJoinConditionStore<Resource> parentJoinConditions) {
 
     return childSideJoinCondition.getChildValues()
         .stream()
@@ -183,7 +192,7 @@ public class RdfRefObjectMapper implements RefObjectMapper<Statement> {
   }
 
   private Set<Resource> checkChildSideJoinConditionChildValue(ChildSideJoinCondition childSideJoinCondition,
-      String childValue, Map<ParentSideJoinKey, Set<Resource>> parentJoinConditions) {
+      String childValue, ParentSideJoinConditionStore<Resource> parentJoinConditions) {
     ParentSideJoinKey parentSideKey = ParentSideJoinKey.of(childSideJoinCondition.getParentReference(), childValue);
 
     return parentJoinConditions.containsKey(parentSideKey) ? parentJoinConditions.get(parentSideKey) : Set.of();

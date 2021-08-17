@@ -6,7 +6,7 @@ import com.taxonic.carml.engine.TermGenerator;
 import com.taxonic.carml.engine.TermGeneratorFactory;
 import com.taxonic.carml.engine.TermGeneratorFactoryException;
 import com.taxonic.carml.engine.function.ExecuteFunction;
-import com.taxonic.carml.engine.reactivedev.join.MapDbParentSideJoinConditionStoreProvider;
+import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinConditionStoreProvider;
 import com.taxonic.carml.engine.template.Template;
 import com.taxonic.carml.engine.template.TemplateParser;
 import com.taxonic.carml.model.GraphMap;
@@ -67,11 +67,14 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
 
   private final TemplateParser templateParser;
 
+  private final ParentSideJoinConditionStoreProvider<Resource> parentSideJoinConditionStoreProvider;
+
   public static RdfTermGeneratorFactory of(ValueFactory valueFactory, RdfMapperOptions mapperOptions,
-      TemplateParser templateParser) {
+      TemplateParser templateParser,
+      ParentSideJoinConditionStoreProvider<Resource> parentSideJoinConditionStoreProvider) {
     return new RdfTermGeneratorFactory(valueFactory, RML_BASE_IRI, mapperOptions,
         IriSafeMaker.create(mapperOptions.getNormalizationForm(), mapperOptions.isIriUpperCasePercentEncoding()),
-        templateParser);
+        templateParser, parentSideJoinConditionStoreProvider);
   }
 
   @SuppressWarnings("unchecked")
@@ -260,7 +263,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
             .valueFactorySupplier(() -> valueFactory)
             .termGeneratorFactory(this)
             .build(),
-        MapDbParentSideJoinConditionStoreProvider.getInstance());
+        parentSideJoinConditionStoreProvider);
 
     TermType termType = determineTermType(termMap);
 
@@ -386,20 +389,12 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
   }
 
   private BNode generateBNodeTerm(String lexicalForm) {
-    // TODO consider hash of 'lexicalForm' instead
     String id = createValidBNodeId(lexicalForm);
     return valueFactory.createBNode(id);
   }
 
   private String createValidBNodeId(String lexicalForm) {
-    StringBuilder id = new StringBuilder("bnode");
-    String suffix = lexicalForm.replaceAll("[^a-zA-Z_0-9-]+", "");
-    if (!suffix.isEmpty()) {
-      id.append("-")
-          .append(suffix);
-    }
-
-    return id.toString();
+    return lexicalForm.replaceAll("[^a-zA-Z_0-9-]+", "");
   }
 
   private String createNaturalRdfLexicalForm(Object value) {

@@ -19,6 +19,7 @@ import com.taxonic.carml.util.RdfCollectors;
 import com.taxonic.carml.util.RmlMappingLoader;
 import com.taxonic.carml.vocab.Rdf;
 import java.io.InputStream;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
@@ -70,20 +71,21 @@ public class TestRmlTestCases {
 
   private RdfRmlMapper.Builder mapperBuilder;
 
-  public static Set<TestCase> populateTestCases() {
+  public static List<TestCase> populateTestCases() {
     InputStream metadata = TestRmlTestCases.class.getResourceAsStream("test-cases/metadata.nt");
     return RdfObjectLoader.load(selectTestCases, RmlTestCase.class, Models.parse(metadata, RDFFormat.NTRIPLES))
         .stream()
         .filter(TestRmlTestCases::shouldBeTested)
-        .collect(Collectors.toUnmodifiableSet());
+        .sorted(Comparator.comparing(RmlTestCase::getIdentifier))
+        .collect(Collectors.toUnmodifiableList());
   }
 
   private static final Function<Model, Set<Resource>> selectTestCases =
-      model -> Set.copyOf(model.filter(null, RDF.TYPE, EARL_TESTCASE)
+      model -> model.filter(null, RDF.TYPE, EARL_TESTCASE)
           .subjects()
           .stream()
           .filter(TestRmlTestCases::isSupported)
-          .collect(Collectors.toUnmodifiableSet()));
+          .collect(Collectors.toUnmodifiableSet());
 
   private static boolean isSupported(Resource resource) {
     return SUPPORTED_SOURCE_TYPES.stream()//

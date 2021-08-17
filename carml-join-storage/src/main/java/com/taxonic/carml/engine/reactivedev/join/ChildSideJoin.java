@@ -1,7 +1,7 @@
 package com.taxonic.carml.engine.reactivedev.join;
 
 import java.io.Serializable;
-import java.util.Set;
+import java.util.HashSet;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,14 +12,15 @@ import lombok.Getter;
 @Builder
 @Getter
 @EqualsAndHashCode
-public class ChildSideJoin<T1, T2> implements Serializable {
+public class ChildSideJoin<T1 extends Serializable, T2 extends Serializable> implements Serializable {
 
-  private Set<T1> subjects;
+  private final HashSet<T1> subjects;
 
-  private Set<T2> predicates;
+  private final HashSet<T2> predicates;
 
-  private Set<T1> graphs;
+  private final HashSet<T1> graphs;
 
-  private Set<ChildSideJoinCondition> childSideJoinConditions;
+  @SuppressWarnings("java:S1948") // Suppressing this seemingly false positive warning
+  private final HashSet<ChildSideJoinCondition> childSideJoinConditions;
 
 }

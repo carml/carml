@@ -2,7 +2,6 @@ package com.taxonic.carml.engine.rdf;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -17,8 +16,10 @@ import com.taxonic.carml.engine.ExpressionEvaluation;
 import com.taxonic.carml.engine.TermGenerator;
 import com.taxonic.carml.engine.TriplesMapperException;
 import com.taxonic.carml.engine.reactivedev.join.ChildSideJoinStoreProvider;
+import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinConditionStore;
 import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinConditionStoreProvider;
 import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinKey;
+import com.taxonic.carml.engine.reactivedev.join.impl.CarmlParentSideJoinConditionStoreProvider;
 import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
 import com.taxonic.carml.model.GraphMap;
 import com.taxonic.carml.model.Join;
@@ -33,8 +34,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.function.Predicate;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Resource;
@@ -130,11 +129,6 @@ class RdfTriplesMapperTest {
   private LogicalSourceResolver.ExpressionEvaluationFactory<String> expressionEvaluatorFactory;
 
   @Mock
-  private ParentSideJoinConditionStoreProvider<Resource> parentSideJoinConditionStoreProvider;
-
-  private ConcurrentMap<ParentSideJoinKey, Set<Resource>> parentSideJoinConditions;
-
-  @Mock
   private RdfTermGeneratorFactory rdfTermGeneratorFactory;
 
   @Mock
@@ -152,18 +146,20 @@ class RdfTriplesMapperTest {
   @Mock
   private Join join3;
 
+  private ParentSideJoinConditionStoreProvider<Resource> parentSideJoinConditionStoreProvider;
+
   @BeforeEach
   void setup() {
     refObjectMappers = new HashSet<>();
     incomingRefObjectMappers = new HashSet<>();
     when(triplesMap.getSubjectMaps()).thenReturn(Set.of(subjectMap));
+    lenient().when(triplesMap.getId())
+        .thenReturn("triples-map-1");
     lenient().when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap))
         .thenReturn(subjectGenerator);
     lenient().when(triplesMap.getPredicateObjectMaps())
         .thenReturn(Set.of(pom));
-    parentSideJoinConditions = new ConcurrentHashMap<>();
-    lenient().when(parentSideJoinConditionStoreProvider.create(any()))
-        .thenReturn(parentSideJoinConditions);
+    parentSideJoinConditionStoreProvider = CarmlParentSideJoinConditionStoreProvider.of();
   }
 
   @Test
@@ -413,9 +409,11 @@ class RdfTriplesMapperTest {
     StepVerifier.create(statements)
         .verifyComplete();
 
-    assertThat(parentSideJoinConditions, hasEntry(ParentSideJoinKey.of("bar1", "baz"), Set.of(subject1)));
-    assertThat(parentSideJoinConditions, hasEntry(ParentSideJoinKey.of("bar2", "baz"), Set.of(subject1)));
-    assertThat(parentSideJoinConditions, hasEntry(ParentSideJoinKey.of("bar3", "baz"), Set.of(subject1)));
+    ParentSideJoinConditionStore<Resource> joinConditions = rdfTriplesMapper.getParentSideJoinConditions();
+
+    assertThat(joinConditions.get(ParentSideJoinKey.of("bar1", "baz")), is(Set.of(subject1)));
+    assertThat(joinConditions.get(ParentSideJoinKey.of("bar2", "baz")), is(Set.of(subject1)));
+    assertThat(joinConditions.get(ParentSideJoinKey.of("bar3", "baz")), is(Set.of(subject1)));
   }
 
   @Test
@@ -452,20 +450,20 @@ class RdfTriplesMapperTest {
     rdfTriplesMapper.map("foo");
 
     // Then
-    assertThat(parentSideJoinConditions, hasEntry(ParentSideJoinKey.of("bar1", "baz"), Set.of(subject1)));
+    ParentSideJoinConditionStore<Resource> joinConditions = rdfTriplesMapper.getParentSideJoinConditions();
+    assertThat(joinConditions.get(ParentSideJoinKey.of("bar1", "baz")), is(Set.of(subject1)));
 
     // When
     rdfTriplesMapper.map("foo");
 
     // Then
-    assertThat(parentSideJoinConditions, hasEntry(ParentSideJoinKey.of("bar1", "baz"), Set.of(subject1, subject2)));
+    assertThat(joinConditions.get(ParentSideJoinKey.of("bar1", "baz")), is(Set.of(subject1, subject2)));
 
     // When
     rdfTriplesMapper.map("foo");
 
     // Then
-    assertThat(parentSideJoinConditions,
-        hasEntry(ParentSideJoinKey.of("bar1", "baz"), Set.of(subject1, subject2, subject3)));
+    assertThat(joinConditions.get(ParentSideJoinKey.of("bar1", "baz")), is(Set.of(subject1, subject2, subject3)));
   }
 
   @Test
@@ -511,14 +509,18 @@ class RdfTriplesMapperTest {
     StepVerifier.create(donePromise1)
         .verifyComplete();
 
-    assertThat(parentSideJoinConditions, hasEntry(ParentSideJoinKey.of("bar1", "baz"), Set.of(subject1)));
-    assertThat(parentSideJoinConditions, hasEntry(ParentSideJoinKey.of("bar2", "baz"), Set.of(subject1)));
-    assertThat(parentSideJoinConditions, hasEntry(ParentSideJoinKey.of("bar3", "baz"), Set.of(subject1)));
+    ParentSideJoinConditionStore<Resource> joinConditions = rdfTriplesMapper.getParentSideJoinConditions();
+
+    assertThat(joinConditions.get(ParentSideJoinKey.of("bar1", "baz")), is(Set.of(subject1)));
+    assertThat(joinConditions.get(ParentSideJoinKey.of("bar2", "baz")), is(Set.of(subject1)));
+    assertThat(joinConditions.get(ParentSideJoinKey.of("bar3", "baz")), is(Set.of(subject1)));
 
     StepVerifier.create(donePromise2)
         .verifyComplete();
 
-    assertThat(parentSideJoinConditions.size(), is(0));
+    assertThat(joinConditions.containsKey(ParentSideJoinKey.of("bar1", "baz")), is(false));
+    assertThat(joinConditions.containsKey(ParentSideJoinKey.of("bar2", "baz")), is(false));
+    assertThat(joinConditions.containsKey(ParentSideJoinKey.of("bar3", "baz")), is(false));
   }
 
   @Test

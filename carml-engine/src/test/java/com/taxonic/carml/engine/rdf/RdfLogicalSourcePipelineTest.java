@@ -10,8 +10,8 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.Iterables;
 import com.taxonic.carml.engine.TermGenerator;
 import com.taxonic.carml.engine.TriplesMapper;
+import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinConditionStore;
 import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinConditionStoreProvider;
-import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinKey;
 import com.taxonic.carml.logical_source_resolver.LogicalSourceResolver;
 import com.taxonic.carml.model.LogicalSource;
 import com.taxonic.carml.model.SubjectMap;
@@ -20,8 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.ValueFactory;
@@ -82,6 +80,9 @@ class RdfLogicalSourcePipelineTest {
   private ParentSideJoinConditionStoreProvider<Resource> parentSideJoinConditionStoreProvider;
 
   @Mock
+  private ParentSideJoinConditionStore<Resource> parentSideJoinConditionStore;
+
+  @Mock
   private RdfTermGeneratorFactory rdfTermGeneratorFactory;
 
   @Mock
@@ -103,8 +104,8 @@ class RdfLogicalSourcePipelineTest {
     when(rdfMappingContext.getTermGeneratorFactory()).thenReturn(rdfTermGeneratorFactory);
     when(rdfMappingContext.getValueFactorySupplier()).thenReturn(SimpleValueFactory::getInstance);
     when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMapA)).thenReturn(subjectGenerator);
-    ConcurrentMap<ParentSideJoinKey, Set<Resource>> parentSideJoinConditions = new ConcurrentHashMap<>();
-    when(parentSideJoinConditionStoreProvider.create(any())).thenReturn(parentSideJoinConditions);
+    when(parentSideJoinConditionStoreProvider.createParentSideJoinConditionStore(any()))
+        .thenReturn(parentSideJoinConditionStore);
 
     // When
     RdfLogicalSourcePipeline<String> rdfLogicalSourcePipeline =

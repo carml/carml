@@ -1,7 +1,7 @@
 package com.taxonic.carml.engine.reactivedev.join;
 
 import java.io.Serializable;
-import java.util.List;
+import java.util.ArrayList;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
@@ -16,12 +16,14 @@ public class ChildSideJoinCondition implements Serializable {
   @NonNull
   String childReference;
 
-  List<String> childValues;
+  ArrayList<String> childValues;
 
   @NonNull
   String parentReference;
 
-  public static ChildSideJoinCondition of(String childReference, List<String> childValues, String parentReference) {
+  @SuppressWarnings("java:S1319")
+  public static ChildSideJoinCondition of(String childReference, ArrayList<String> childValues,
+      String parentReference) {
     return new ChildSideJoinCondition(childReference, childValues, parentReference);
   }
 }

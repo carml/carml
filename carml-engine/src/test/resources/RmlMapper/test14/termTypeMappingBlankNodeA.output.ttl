@@ -2,7 +2,7 @@
 # NOTE: algorithm for generating blank node ids will change
 
 <http://example.com/Child/Amarise/Fernand> a <http://example.com/Child> ;
-<http://example.com/hasBirthday> _:0 .
+<http://example.com/hasBirthday> _:httpexamplecomThisHasToBeABlankNode2017-02-16 .
 
 <http://example.com/Child/Kelsey/Jirsten> a <http://example.com/Child> ;
-<http://example.com/hasBirthday> _:1 .
+<http://example.com/hasBirthday> _:httpexamplecomThisHasToBeABlankNode2009-04-13 .
