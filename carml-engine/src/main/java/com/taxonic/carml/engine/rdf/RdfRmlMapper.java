@@ -20,6 +20,8 @@ import com.taxonic.carml.model.LogicalSource;
 import com.taxonic.carml.model.RefObjectMap;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.util.Mapping;
+import com.taxonic.carml.util.RdfCollectors;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.text.Normalizer;
 import java.util.HashMap;
@@ -31,9 +33,12 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.rdf4j.model.IRI;
+import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.Value;
@@ -55,11 +60,41 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
     return new Builder();
   }
 
-  @NoArgsConstructor
+  public Model mapToRdf4jModel() {
+    return map().collect(RdfCollectors.toRdf4JModel())
+        .block();
+  }
+
+  public Model mapToRdf4jModel(Set<TriplesMap> triplesMapFilter) {
+    return map(triplesMapFilter).collect(RdfCollectors.toRdf4JModel())
+        .block();
+  }
+
+  public Model mapToRdf4jModel(@NonNull InputStream inputStream) {
+    return map(inputStream).collect(RdfCollectors.toRdf4JModel())
+        .block();
+  }
+
+  public Model mapToRdf4jModel(@NonNull InputStream inputStream, Set<TriplesMap> triplesMapFilter) {
+    return map(inputStream, triplesMapFilter).collect(RdfCollectors.toRdf4JModel())
+        .block();
+  }
+
+  public Model mapToRdf4jModel(Map<String, InputStream> namedInputStreams) {
+    return map(namedInputStreams).collect(RdfCollectors.toRdf4JModel())
+        .block();
+  }
+
+  public Model mapToRdf4jModel(Map<String, InputStream> namedInputStreams, Set<TriplesMap> triplesMapFilter) {
+    return map(namedInputStreams, triplesMapFilter).collect(RdfCollectors.toRdf4JModel())
+        .block();
+  }
+
+  @NoArgsConstructor(access = AccessLevel.PRIVATE)
   public static class Builder {
     private final Map<IRI, Supplier<LogicalSourceResolver<?>>> logicalSourceResolverSuppliers = new HashMap<>();
 
-    // TODO validate triplesMaps?
+    //TODO validate triplesMaps?
     private Set<TriplesMap> mappableTriplesMaps;
 
     private final Functions functions = new Functions();
