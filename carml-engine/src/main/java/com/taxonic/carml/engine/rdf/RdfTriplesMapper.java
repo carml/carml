@@ -194,7 +194,7 @@ public class RdfTriplesMapper<I> implements TriplesMapper<I, Statement> {
   }
 
   private void processJoinCondition(Join join, ExpressionEvaluation expressionEvaluation, Set<Resource> subjects) {
-    String parentReference = join.getParentReference();
+    String parentReference = join.getParent();
 
     expressionEvaluation.apply(parentReference)
         .ifPresent(referenceResult -> ExpressionEvaluation.extractValues(referenceResult)

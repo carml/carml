@@ -1,16 +1,8 @@
 package com.taxonic.carml.util;
 
-import static com.taxonic.carml.vocab.Rdf.Rr.constant;
-import static com.taxonic.carml.vocab.Rdf.Rr.graph;
-import static com.taxonic.carml.vocab.Rdf.Rr.graphMap;
-import static com.taxonic.carml.vocab.Rdf.Rr.object;
-import static com.taxonic.carml.vocab.Rdf.Rr.objectMap;
-import static com.taxonic.carml.vocab.Rdf.Rr.predicate;
-import static com.taxonic.carml.vocab.Rdf.Rr.predicateMap;
-import static com.taxonic.carml.vocab.Rdf.Rr.subject;
-import static com.taxonic.carml.vocab.Rdf.Rr.subjectMap;
-
 import com.google.common.collect.ImmutableMap;
+import com.taxonic.carml.vocab.Rdf.Rml;
+import com.taxonic.carml.vocab.Rdf.Rr;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -34,25 +26,28 @@ import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
  */
 public class RmlConstantShorthandExpander implements UnaryOperator<Model> {
 
-  private static final List<IRI> shortcutPredicates = Arrays.asList(subject, predicate, object, graph);
+  private static final List<IRI> shortcutPredicates =
+      Arrays.asList(Rr.subject, Rr.predicate, Rr.object, Rr.graph, Rr.datatype, Rr.language);
 
   private static final Map<IRI, IRI> expandedPredicates;
 
-  private static final ValueFactory f = SimpleValueFactory.getInstance();
+  private static final ValueFactory VALUE_FACTORY = SimpleValueFactory.getInstance();
 
   static {
     class CreateExpandedPredicates {
-      Map<IRI, IRI> expandedPredicates = new LinkedHashMap<>();
+      final Map<IRI, IRI> expandedPredicates = new LinkedHashMap<>();
 
       void add(IRI shortcutPredicate, IRI expandedPredicate) {
         expandedPredicates.put(shortcutPredicate, expandedPredicate);
       }
 
       Map<IRI, IRI> run() {
-        add(subject, subjectMap);
-        add(predicate, predicateMap);
-        add(object, objectMap);
-        add(graph, graphMap);
+        add(Rr.subject, Rr.subjectMap);
+        add(Rr.predicate, Rr.predicateMap);
+        add(Rr.object, Rr.objectMap);
+        add(Rr.graph, Rr.graphMap);
+        add(Rr.datatype, Rml.datatypeMap);
+        add(Rr.language, Rml.languageMap);
         return ImmutableMap.copyOf(expandedPredicates);
       }
     }
@@ -62,7 +57,8 @@ public class RmlConstantShorthandExpander implements UnaryOperator<Model> {
 
   private IRI getExpandedPredicate(IRI shortcutPredicate) {
     if (!expandedPredicates.containsKey(shortcutPredicate)) {
-      throw new IllegalArgumentException("predicate [" + shortcutPredicate + "] is not a valid shortcut predicate");
+      throw new IllegalArgumentException(
+          String.format("predicate [%s] is not a valid shortcut predicate", shortcutPredicate));
     }
 
     return expandedPredicates.get(shortcutPredicate);
@@ -77,20 +73,18 @@ public class RmlConstantShorthandExpander implements UnaryOperator<Model> {
   }
 
   private void expandStatements(Model model, Statement statement) {
-    IRI p = statement.getPredicate();
+    IRI shortcutPredicate = statement.getPredicate();
 
     // add statements that are NOT shortcut properties
     // as-is to the result model
-    if (!shortcutPredicates.contains(p)) {
+    if (!shortcutPredicates.contains(shortcutPredicate)) {
       model.add(statement);
       return;
     }
 
-    // 'p' is a shortcut predicate
     Resource context = statement.getContext();
-    BNode blankNode = f.createBNode();
-    // TODO verify that 'context' works properly, even if it is null
-    model.add(statement.getSubject(), getExpandedPredicate(p), blankNode, context);
-    model.add(blankNode, constant, statement.getObject(), context);
+    BNode blankNode = VALUE_FACTORY.createBNode();
+    model.add(statement.getSubject(), getExpandedPredicate(shortcutPredicate), blankNode, context);
+    model.add(blankNode, Rr.constant, statement.getObject(), context);
   }
 }

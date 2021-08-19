@@ -1,6 +1,5 @@
 package com.taxonic.carml.model.impl;
 
-import com.google.common.collect.ImmutableMap;
 import com.taxonic.carml.rdfmapper.Mapper;
 import com.taxonic.carml.rdfmapper.TypeDecider;
 import com.taxonic.carml.vocab.Rdf;
@@ -15,13 +14,13 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 
 public class LogicalSourceSourceTypeDecider implements TypeDecider {
 
-  private Mapper mapper;
+  private final Mapper mapper;
 
   public LogicalSourceSourceTypeDecider(Mapper mapper) {
     this.mapper = mapper;
   }
 
-  Map<IRI, IRI> inferenceMap = ImmutableMap.of(Rdf.Carml.streamName, Rdf.Carml.Stream, Rdf.Carml.declaresNamespace,
+  Map<IRI, IRI> inferenceMap = Map.of(Rdf.Carml.streamName, Rdf.Carml.Stream, Rdf.Carml.declaresNamespace,
       Rdf.Carml.XmlDocument, Rdf.Carml.url, Rdf.Carml.FileSource);
 
   @Override
@@ -29,7 +28,7 @@ public class LogicalSourceSourceTypeDecider implements TypeDecider {
     Set<IRI> rdfTypes = model.filter(resource, RDF.TYPE, null)
         .objects()
         .stream()
-        .map(v -> (IRI) v)
+        .map(IRI.class::cast)
         .collect(Collectors.toSet());
 
     Set<IRI> usedPredicates = model.filter(resource, null, null)
@@ -47,8 +46,5 @@ public class LogicalSourceSourceTypeDecider implements TypeDecider {
     return rdfTypes.stream()
         .map(mapper::getDecidableType)
         .collect(Collectors.toSet());
-
-
   }
-
 }

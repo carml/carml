@@ -7,31 +7,25 @@ import com.taxonic.carml.vocab.Carml;
 import com.taxonic.carml.vocab.Rdf;
 import java.util.Objects;
 import java.util.Set;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 
+@SuperBuilder
+@NoArgsConstructor
 public class CarmlStream extends CarmlResource implements NameableStream {
 
+  @Setter
   private String streamName;
-
-  public CarmlStream() {
-    // Empty constructor for object mapper
-  }
-
-  public CarmlStream(String streamName) {
-    this.streamName = streamName;
-  }
 
   @RdfProperty(Carml.streamName)
   @Override
   public String getStreamName() {
     return streamName;
-  }
-
-  public void setStreamName(String streamName) {
-    this.streamName = streamName;
   }
 
   @Override

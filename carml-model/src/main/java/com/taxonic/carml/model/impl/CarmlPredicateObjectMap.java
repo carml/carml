@@ -11,31 +11,31 @@ import com.taxonic.carml.rdfmapper.annotations.RdfType;
 import com.taxonic.carml.rdfmapper.annotations.RdfTypeDecider;
 import com.taxonic.carml.vocab.Rdf;
 import com.taxonic.carml.vocab.Rr;
-import java.util.LinkedHashSet;
 import java.util.Set;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.Singular;
+import lombok.experimental.SuperBuilder;
 import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 
+@SuperBuilder
+@NoArgsConstructor
 public class CarmlPredicateObjectMap extends CarmlResource implements PredicateObjectMap {
 
+  @Singular
+  @Setter
   private Set<PredicateMap> predicateMaps;
 
+  @Singular
+  @Setter
   private Set<BaseObjectMap> objectMaps;
 
+  @Singular
+  @Setter
   private Set<GraphMap> graphMaps;
-
-  public CarmlPredicateObjectMap() {
-    // Empty constructor for object mapper
-  }
-
-  public CarmlPredicateObjectMap(Set<PredicateMap> predicateMaps, Set<BaseObjectMap> objectMaps,
-      Set<GraphMap> graphMaps) {
-    this.predicateMaps = predicateMaps;
-    this.objectMaps = objectMaps;
-    this.graphMaps = graphMaps;
-  }
 
   @RdfProperty(Rr.predicateMap)
   @RdfType(CarmlPredicateMap.class)
@@ -56,18 +56,6 @@ public class CarmlPredicateObjectMap extends CarmlResource implements PredicateO
   @Override
   public Set<GraphMap> getGraphMaps() {
     return graphMaps;
-  }
-
-  public void setPredicateMaps(Set<PredicateMap> predicateMaps) {
-    this.predicateMaps = predicateMaps;
-  }
-
-  public void setObjectMaps(Set<BaseObjectMap> objectMaps) {
-    this.objectMaps = objectMaps;
-  }
-
-  public void setGraphMaps(Set<GraphMap> graphMaps) {
-    this.graphMaps = graphMaps;
   }
 
   @Override
@@ -92,42 +80,5 @@ public class CarmlPredicateObjectMap extends CarmlResource implements PredicateO
     predicateMaps.forEach(pm -> modelBuilder.add(Rr.predicateMap, pm.getAsResource()));
     objectMaps.forEach(om -> modelBuilder.add(Rr.objectMap, om.getAsResource()));
     graphMaps.forEach(gm -> modelBuilder.add(Rr.graphMap, gm.getAsResource()));
-  }
-
-  public static Builder newBuilder() {
-    return new Builder();
-  }
-
-  public static class Builder {
-
-    private Set<PredicateMap> predicateMaps = new LinkedHashSet<>();
-
-    private Set<BaseObjectMap> objectMaps = new LinkedHashSet<>();
-
-    private Set<GraphMap> graphMaps = new LinkedHashSet<>();
-
-    public Builder predicateMap(PredicateMap predicateMap) {
-      predicateMaps.add(predicateMap);
-      return this;
-    }
-
-    public Builder objectMap(BaseObjectMap objectMap) {
-      objectMaps.add(objectMap);
-      return this;
-    }
-
-    public Builder graphMap(CarmlGraphMap carmlGraphMap) {
-      graphMaps.add(carmlGraphMap);
-      return this;
-    }
-
-    public Builder graphMaps(Set<GraphMap> graphMaps) {
-      this.graphMaps = graphMaps;
-      return this;
-    }
-
-    public CarmlPredicateObjectMap build() {
-      return new CarmlPredicateObjectMap(predicateMaps, objectMaps, graphMaps);
-    }
   }
 }

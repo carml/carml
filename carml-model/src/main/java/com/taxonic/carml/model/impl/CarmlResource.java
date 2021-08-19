@@ -6,6 +6,10 @@ import com.taxonic.carml.rdfmapper.annotations.RdfResourceName;
 import com.taxonic.carml.util.RdfValues;
 import java.util.HashMap;
 import java.util.Map;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
@@ -13,15 +17,25 @@ import org.eclipse.rdf4j.model.util.ModelBuilder;
 import org.eclipse.rdf4j.model.util.ModelCollector;
 import org.eclipse.rdf4j.model.vocabulary.RDFS;
 
+@SuperBuilder
+@NoArgsConstructor
 public abstract class CarmlResource implements Resource {
 
   private static final ValueFactory VF = SimpleValueFactory.getInstance();
 
+  @Setter
   String id;
 
+  @Setter
   String label;
 
+  @Builder.Default
   private Map<Resource, Model> modelCache = new HashMap<>();
+
+  CarmlResource(String id, String label) {
+    this.id = id;
+    this.label = label;
+  }
 
   @Override
   @RdfResourceName
@@ -29,18 +43,10 @@ public abstract class CarmlResource implements Resource {
     return id;
   }
 
-  public void setId(String id) {
-    this.id = id;
-  }
-
   @Override
   @RdfProperty("http://www.w3.org/2000/01/rdf-schema#label")
   public String getLabel() {
     return label;
-  }
-
-  public void setLabel(String label) {
-    this.label = label;
   }
 
   public org.eclipse.rdf4j.model.Resource getAsResource() {

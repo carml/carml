@@ -5,71 +5,40 @@ import com.taxonic.carml.model.Resource;
 import com.taxonic.carml.rdfmapper.annotations.RdfProperty;
 import com.taxonic.carml.vocab.Rdf;
 import com.taxonic.carml.vocab.Rr;
-import java.util.Objects;
 import java.util.Set;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 
+@SuperBuilder
+@NoArgsConstructor
 public class CarmlJoin extends CarmlResource implements Join {
 
+  @Setter
   private String child;
 
+  @Setter
   private String parent;
-
-  public CarmlJoin() {
-    // Empty constructor for object mapper
-  }
-
-  public CarmlJoin(String child, String parent) {
-    this.child = child;
-    this.parent = parent;
-  }
 
   @RdfProperty(Rr.child)
   @Override
-  public String getChildReference() {
+  public String getChild() {
     return child;
-  }
-
-  public void setChildReference(String child) {
-    this.child = child;
   }
 
   @RdfProperty(Rr.parent)
   @Override
-  public String getParentReference() {
+  public String getParent() {
     return parent;
-  }
-
-  public void setParentReference(String parent) {
-    this.parent = parent;
   }
 
   @Override
   public String toString() {
     return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(child, parent);
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
-      return false;
-    }
-    CarmlJoin other = (CarmlJoin) obj;
-    return Objects.equals(child, other.child) && Objects.equals(parent, other.parent);
   }
 
   @Override
@@ -86,33 +55,6 @@ public class CarmlJoin extends CarmlResource implements Join {
     }
     if (parent != null) {
       modelBuilder.add(Rr.parent, parent);
-    }
-  }
-
-  public static Builder newBuilder() {
-    return new Builder();
-  }
-
-  public static class Builder {
-
-    private String child;
-
-    private String parent;
-
-    Builder() {}
-
-    public Builder child(String child) {
-      this.child = child;
-      return this;
-    }
-
-    public Builder parent(String parent) {
-      this.parent = parent;
-      return this;
-    }
-
-    public CarmlJoin build() {
-      return new CarmlJoin(child, parent);
     }
   }
 }

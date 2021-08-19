@@ -23,4 +23,11 @@ public class Rml {
 
   public static final String logicalSource = NAMESPACE + "logicalSource";
 
+  public static final String datatypeMap = NAMESPACE + "datatypeMap";
+
+  public static final String languageMap = NAMESPACE + "languageMap";
+
+  public static final String DatatypeMap = NAMESPACE + "DatatypeMap";
+
+  public static final String LanguageMap = NAMESPACE + "LanguageMap";
 }

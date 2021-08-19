@@ -1,57 +1,45 @@
 package com.taxonic.carml.model.impl;
 
 import com.google.common.collect.ImmutableSet;
+import com.taxonic.carml.model.DatatypeMap;
+import com.taxonic.carml.model.LanguageMap;
 import com.taxonic.carml.model.ObjectMap;
 import com.taxonic.carml.model.Resource;
-import com.taxonic.carml.model.TermType;
-import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.rdfmapper.annotations.RdfProperty;
+import com.taxonic.carml.rdfmapper.annotations.RdfType;
 import com.taxonic.carml.vocab.Rdf;
-import com.taxonic.carml.vocab.Rr;
-import java.util.Objects;
+import com.taxonic.carml.vocab.Rml;
 import java.util.Set;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
-import org.eclipse.rdf4j.model.IRI;
-import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 
+@SuperBuilder
+@NoArgsConstructor
 public class CarmlObjectMap extends CarmlTermMap implements ObjectMap {
 
-  private IRI datatype;
+  @Setter
+  private DatatypeMap datatypeMap;
 
-  private String language;
+  @Setter
+  private LanguageMap languageMap;
 
-  public CarmlObjectMap() {
-    // Empty constructor for object mapper
-  }
-
-  public CarmlObjectMap(String reference, String inverseExpression, String template, TermType termType, Value constant,
-      TriplesMap functionValue, IRI datatype, String language) {
-    super(reference, inverseExpression, template, termType, constant, functionValue);
-    this.datatype = datatype;
-    this.language = language;
-  }
-
-  @RdfProperty(Rr.datatype)
+  @RdfProperty(Rml.datatypeMap)
+  @RdfType(CarmlDatatypeMap.class)
   @Override
-  public IRI getDatatype() {
-    return datatype;
+  public DatatypeMap getDatatypeMap() {
+    return datatypeMap;
   }
 
-  @RdfProperty(Rr.language)
+  @RdfProperty(Rml.languageMap)
+  @RdfType(CarmlLanguageMap.class)
   @Override
-  public String getLanguage() {
-    return language;
-  }
-
-  public void setDatatype(IRI datatype) {
-    this.datatype = datatype;
-  }
-
-  public void setLanguage(String language) {
-    this.language = language;
+  public LanguageMap getLanguageMap() {
+    return languageMap;
   }
 
   @Override
@@ -60,30 +48,15 @@ public class CarmlObjectMap extends CarmlTermMap implements ObjectMap {
   }
 
   @Override
-  public int hashCode() {
-    return Objects.hash(datatype, language, super.hashCode());
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (!super.equals(obj)) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
-      return false;
-    }
-    CarmlObjectMap other = (CarmlObjectMap) obj;
-    return Objects.equals(datatype, other.datatype) && Objects.equals(language, other.language);
-  }
-
-  @Override
   public Set<Resource> getReferencedResources() {
-    return ImmutableSet.<Resource>builder()
-        .addAll(getReferencedResourcesBase())
-        .build();
+    ImmutableSet.Builder<Resource> builder = ImmutableSet.<Resource>builder()
+        .addAll(getReferencedResourcesBase());
+
+    if (datatypeMap != null) {
+      builder.add(datatypeMap);
+    }
+
+    return builder.build();
   }
 
   @Override
@@ -93,73 +66,11 @@ public class CarmlObjectMap extends CarmlTermMap implements ObjectMap {
 
     addTriplesBase(modelBuilder);
 
-    if (datatype != null) {
-      modelBuilder.add(Rr.datatype, datatype);
+    if (datatypeMap != null) {
+      modelBuilder.add(Rml.datatypeMap, datatypeMap.getAsResource());
     }
-    if (language != null) {
-      modelBuilder.add(Rr.language, language);
-    }
-  }
-
-  public static Builder newBuilder() {
-    return new Builder();
-  }
-
-  public static class Builder extends CarmlTermMap.Builder {
-
-    private IRI datatype;
-
-    private String language;
-
-    @Override
-    public Builder reference(String reference) {
-      super.reference(reference);
-      return this;
-    }
-
-    @Override
-    public Builder inverseExpression(String inverseExpression) {
-      super.inverseExpression(inverseExpression);
-      return this;
-    }
-
-    @Override
-    public Builder template(String template) {
-      super.template(template);
-      return this;
-    }
-
-    @Override
-    public Builder termType(TermType termType) {
-      super.termType(termType);
-      return this;
-    }
-
-    @Override
-    public Builder constant(Value constant) {
-      super.constant(constant);
-      return this;
-    }
-
-    @Override
-    public Builder functionValue(TriplesMap functionValue) {
-      super.functionValue(functionValue);
-      return this;
-    }
-
-    public Builder datatype(IRI datatype) {
-      this.datatype = datatype;
-      return this;
-    }
-
-    public Builder language(String language) {
-      this.language = language;
-      return this;
-    }
-
-    public CarmlObjectMap build() {
-      return new CarmlObjectMap(getReference(), getInverseExpression(), getTemplate(), getTermType(), getConstant(),
-          getFunctionValue(), datatype, language);
+    if (languageMap != null) {
+      modelBuilder.add(Rml.languageMap, languageMap.getAsResource());
     }
   }
 }

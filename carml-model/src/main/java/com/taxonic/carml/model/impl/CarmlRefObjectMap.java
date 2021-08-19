@@ -10,27 +10,26 @@ import com.taxonic.carml.rdfmapper.annotations.RdfType;
 import com.taxonic.carml.vocab.Carml;
 import com.taxonic.carml.vocab.Rdf;
 import com.taxonic.carml.vocab.Rr;
-import java.util.LinkedHashSet;
 import java.util.Set;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.Singular;
+import lombok.experimental.SuperBuilder;
 import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 
+@SuperBuilder
+@NoArgsConstructor
 public class CarmlRefObjectMap extends CarmlResource implements RefObjectMap {
 
-  TriplesMap parentTriplesMap;
+  @Setter
+  private TriplesMap parentTriplesMap;
 
-  Set<Join> joinConditions;
-
-  public CarmlRefObjectMap() {
-    // Empty constructor for object mapper
-  }
-
-  public CarmlRefObjectMap(TriplesMap parentTriplesMap, Set<Join> joinConditions) {
-    this.parentTriplesMap = parentTriplesMap;
-    this.joinConditions = joinConditions;
-  }
+  @Singular
+  @Setter
+  private Set<Join> joinConditions;
 
   @RdfProperty(Rr.parentTriplesMap)
   @RdfType(CarmlTriplesMap.class)
@@ -45,14 +44,6 @@ public class CarmlRefObjectMap extends CarmlResource implements RefObjectMap {
   @Override
   public Set<Join> getJoinConditions() {
     return joinConditions;
-  }
-
-  public void setParentTriplesMap(TriplesMap parentTriplesMap) {
-    this.parentTriplesMap = parentTriplesMap;
-  }
-
-  public void setJoinConditions(Set<Join> joinConditions) {
-    this.joinConditions = joinConditions;
   }
 
   @Override
@@ -78,37 +69,5 @@ public class CarmlRefObjectMap extends CarmlResource implements RefObjectMap {
       modelBuilder.add(Rr.parentTriplesMap, parentTriplesMap.getAsResource());
     }
     joinConditions.forEach(jc -> modelBuilder.add(Rr.joinCondition, jc.getAsResource()));
-  }
-
-  public static Builder newBuilder() {
-    return new Builder();
-  }
-
-  public static class Builder {
-
-    TriplesMap parentTriplesMap;
-
-    Set<Join> joinConditions = new LinkedHashSet<>();
-
-    Builder() {}
-
-    public Builder parentTriplesMap(TriplesMap parentTriplesMap) {
-      this.parentTriplesMap = parentTriplesMap;
-      return this;
-    }
-
-    public Builder joinConditions(Set<Join> joinConditions) {
-      this.joinConditions = joinConditions;
-      return this;
-    }
-
-    public Builder condition(Join condition) {
-      joinConditions.add(condition);
-      return this;
-    }
-
-    public CarmlRefObjectMap build() {
-      return new CarmlRefObjectMap(parentTriplesMap, joinConditions);
-    }
   }
 }

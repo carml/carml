@@ -31,7 +31,6 @@ public class Rr {
 
   public static final String inverseExpression = NAMESPACE + "inverseExpression";
 
-  // TODO Decide whether instead of termType --> dfn-term-type?
   public static final String termType = NAMESPACE + "termType";
 
   public static final String constant = NAMESPACE + "constant";

@@ -2,6 +2,7 @@ package com.taxonic.carml.model.impl;
 
 import com.taxonic.carml.rdfmapper.Mapper;
 import com.taxonic.carml.rdfmapper.PropertyHandler;
+import com.taxonic.carml.rdfmapper.impl.CarmlMapperException;
 import com.taxonic.carml.rdfmapper.impl.ComplexValueTransformer;
 import com.taxonic.carml.rdfmapper.impl.MappingCache;
 import com.taxonic.carml.rdfmapper.qualifiers.PropertyPredicate;
@@ -31,7 +32,8 @@ public class LogicalSourceSourcePropertyHandler implements PropertyHandler {
     Set<Value> objects = model.filter(resource, predicate, null)
         .objects();
     if (objects.size() > 1) {
-      throw new RuntimeException("more than 1 object for the predicate [" + predicate + "] for a logical source");
+      throw new CarmlMapperException(
+          String.format("more than 1 object for the predicate [%s] for a logical source", predicate));
     }
 
     if (objects.isEmpty()) {

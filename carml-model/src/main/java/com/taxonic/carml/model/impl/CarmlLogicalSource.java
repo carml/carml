@@ -7,29 +7,27 @@ import com.taxonic.carml.vocab.Rdf;
 import com.taxonic.carml.vocab.Rml;
 import java.util.Objects;
 import java.util.Set;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 
+@SuperBuilder
+@NoArgsConstructor
 public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
 
+  @Setter
   private Object source;
 
+  @Setter
   private String iterator;
 
+  @Setter
   private IRI referenceFormulation;
-
-  public CarmlLogicalSource() {
-    // Empty constructor for object mapper
-  }
-
-  public CarmlLogicalSource(Object source, String iterator, IRI referenceFormulation) {
-    this.source = source;
-    this.iterator = iterator;
-    this.referenceFormulation = referenceFormulation;
-  }
 
   @RdfProperty(value = Rml.source, handler = LogicalSourceSourcePropertyHandler.class)
   @Override
@@ -47,18 +45,6 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
   @Override
   public IRI getReferenceFormulation() {
     return referenceFormulation;
-  }
-
-  public void setSource(Object source) {
-    this.source = source;
-  }
-
-  public void setIterator(String iterator) {
-    this.iterator = iterator;
-  }
-
-  public void setReferenceFormulation(IRI referenceFormulation) {
-    this.referenceFormulation = referenceFormulation;
   }
 
   @Override
@@ -115,35 +101,4 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
     }
   }
 
-  public static Builder newBuilder() {
-    return new Builder();
-  }
-
-  public static class Builder {
-
-    private Object source;
-
-    private String iterator;
-
-    private IRI referenceFormulation;
-
-    public Builder source(Object source) {
-      this.source = source;
-      return this;
-    }
-
-    public Builder iterator(String iterator) {
-      this.iterator = iterator;
-      return this;
-    }
-
-    public Builder referenceFormulation(IRI referenceFormulation) {
-      this.referenceFormulation = referenceFormulation;
-      return this;
-    }
-
-    public CarmlLogicalSource build() {
-      return new CarmlLogicalSource(source, iterator, referenceFormulation);
-    }
-  }
 }

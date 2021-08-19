@@ -45,7 +45,11 @@ class JaywayJacksonJsonPathResolverTest {
   void givenJsonPathExpressionAndJsonInputStreamInput_whenApplySourceFlux_thenReturnSourceFluxWithMatchingObjects()
       throws IOException {
     // Given
-    LogicalSource foodSource = new CarmlLogicalSource("", "$.food[*]", Rdf.Ql.JsonPath);
+    LogicalSource foodSource = CarmlLogicalSource.builder()
+        .source("")
+        .iterator("$.food[*]")
+        .referenceFormulation(Rdf.Ql.JsonPath)
+        .build();
     LogicalSourceResolver.SourceFlux<Object> sourceFlux = jsonPathResolver.getSourceFlux();
 
     inputStream = JaywayJacksonJsonPathResolverTest.class.getResourceAsStream("food.json");
@@ -63,7 +67,11 @@ class JaywayJacksonJsonPathResolverTest {
   void givenJsonPathExpressionAndJsonObjectInput_whenApplySourceFlux_thenReturnSourceFluxWithMatchingObjects()
       throws IOException {
     // Given
-    LogicalSource foodSource = new CarmlLogicalSource("", "$.food[*]", Rdf.Ql.JsonPath);
+    LogicalSource foodSource = CarmlLogicalSource.builder()
+        .source("")
+        .iterator("$.food[*]")
+        .referenceFormulation(Rdf.Ql.JsonPath)
+        .build();
     LogicalSourceResolver.SourceFlux<Object> sourceFlux = jsonPathResolver.getSourceFlux();
 
     inputStream = JaywayJacksonJsonPathResolverTest.class.getResourceAsStream("food.json");
@@ -105,7 +113,11 @@ class JaywayJacksonJsonPathResolverTest {
   @Test
   void givenUnresolvableJsonPath_whenSourceFluxApplied_shouldReturnEmptyFlux() throws IOException {
     // Given
-    LogicalSource foodSource = new CarmlLogicalSource("", "foo", Rdf.Ql.JsonPath);
+    LogicalSource foodSource = CarmlLogicalSource.builder()
+        .source("")
+        .iterator("foo")
+        .referenceFormulation(Rdf.Ql.JsonPath)
+        .build();
     LogicalSourceResolver.SourceFlux<Object> sourceFlux = jsonPathResolver.getSourceFlux();
 
     inputStream = JaywayJacksonJsonPathResolverTest.class.getResourceAsStream("food.json");
@@ -122,7 +134,11 @@ class JaywayJacksonJsonPathResolverTest {
   @Test
   void givenInvalidJsonPath_whenSourceFluxApplied_shouldThrowException() throws IOException {
     // Given
-    LogicalSource foodSource = new CarmlLogicalSource("", "foo[invalid]", Rdf.Ql.JsonPath);
+    LogicalSource foodSource = CarmlLogicalSource.builder()
+        .source("")
+        .iterator("foo[invalid]")
+        .referenceFormulation(Rdf.Ql.JsonPath)
+        .build();
     LogicalSourceResolver.SourceFlux<Object> sourceFlux = jsonPathResolver.getSourceFlux();
 
     inputStream = JaywayJacksonJsonPathResolverTest.class.getResourceAsStream("food.json");

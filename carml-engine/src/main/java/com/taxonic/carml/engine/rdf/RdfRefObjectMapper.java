@@ -79,12 +79,12 @@ public class RdfRefObjectMapper implements RefObjectMapper<Statement> {
     Set<ChildSideJoinCondition> childSideJoinConditions = refObjectMap.getJoinConditions()
         .stream()
         .map(joinCondition -> {
-          String childReference = joinCondition.getChildReference();
-          ArrayList<String> childValues = expressionEvaluation.apply(joinCondition.getChildReference())
+          String childReference = joinCondition.getChild();
+          ArrayList<String> childValues = expressionEvaluation.apply(joinCondition.getChild())
               .map(expressionResult -> new ArrayList<>(ExpressionEvaluation.extractValues(expressionResult)))
               .orElse(new ArrayList<>());
 
-          return ChildSideJoinCondition.of(childReference, childValues, joinCondition.getParentReference());
+          return ChildSideJoinCondition.of(childReference, childValues, joinCondition.getParent());
         })
         .collect(Collectors.toSet());
 

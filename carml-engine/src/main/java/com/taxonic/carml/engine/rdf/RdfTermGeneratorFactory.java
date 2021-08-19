@@ -9,7 +9,10 @@ import com.taxonic.carml.engine.function.ExecuteFunction;
 import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinConditionStoreProvider;
 import com.taxonic.carml.engine.template.Template;
 import com.taxonic.carml.engine.template.TemplateParser;
+import com.taxonic.carml.model.DatatypeMap;
+import com.taxonic.carml.model.ExpressionMap;
 import com.taxonic.carml.model.GraphMap;
+import com.taxonic.carml.model.LanguageMap;
 import com.taxonic.carml.model.ObjectMap;
 import com.taxonic.carml.model.PredicateMap;
 import com.taxonic.carml.model.SubjectMap;
@@ -98,7 +101,17 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
     return (TermGenerator<Resource>) getGenerator(map, Set.of(TermType.IRI), Set.of(IRI.class));
   }
 
-  private TermGenerator<? extends Value> getGenerator(TermMap map, Set<TermType> allowedTermTypes,
+  @SuppressWarnings("unchecked")
+  private TermGenerator<IRI> getDatatypeGenerator(DatatypeMap map) {
+    return (TermGenerator<IRI>) getGenerator(map, Set.of(TermType.IRI), Set.of(IRI.class));
+  }
+
+  @SuppressWarnings("unchecked")
+  private TermGenerator<Literal> getLanguageGenerator(LanguageMap map) {
+    return (TermGenerator<Literal>) getGenerator(map, Set.of(TermType.LITERAL), Set.of(Literal.class));
+  }
+
+  private TermGenerator<? extends Value> getGenerator(ExpressionMap map, Set<TermType> allowedTermTypes,
       Set<Class<? extends Value>> allowedConstantTypes) {
     List<TermGenerator<? extends Value>> generators = Stream.<Supplier<Optional<TermGenerator<? extends Value>>>>of(
 
@@ -132,19 +145,11 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
     return generators.get(0);
   }
 
-  private TermGenerator<Value> getGenerator(TermMap termMap, Function<ExpressionEvaluation, Optional<Object>> getValue,
-      Set<TermType> allowedTermTypes, TermType termType) {
+  private TermGenerator<Value> getGenerator(ExpressionMap termMap,
+      Function<ExpressionEvaluation, Optional<Object>> getValue, Set<TermType> allowedTermTypes, TermType termType) {
 
     Function<Function<String, ? extends Value>, TermGenerator<Value>> createGenerator =
-        generateTerm -> evaluateExpression -> {
-          Optional<Object> referenceValue = getValue.apply(evaluateExpression);
-          if (LOG.isTraceEnabled()) {
-            LOG.trace("with result: {}", referenceValue.orElse("null"));
-          }
-
-          return referenceValue.map(value -> unpackEvaluatedExpression(value, generateTerm))
-              .orElse(List.of());
-        };
+        generateTerm -> expressionEvaluation -> generateValues(getValue, expressionEvaluation, generateTerm);
 
     if (!allowedTermTypes.contains(termType)) {
       throw new TermGeneratorFactoryException(
@@ -165,19 +170,12 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
         // term map is assumed to be an object map if it has term type literal
         ObjectMap objectMap = (ObjectMap) termMap;
 
-        String languageTag = objectMap.getLanguage();
-
-        if (languageTag != null) {
-          if (!Literals.isValidLanguageTag(languageTag)) {
-            throw new TermGeneratorFactoryException(
-                String.format("Invalid lang tag '%s' used in object map %n%s", languageTag, objectMap));
-          }
-          return createGenerator.apply(lexicalForm -> valueFactory.createLiteral(lexicalForm, languageTag));
+        if (objectMap.getLanguageMap() != null) {
+          return getLanguageTaggedLiteralGenerator(objectMap, getValue);
         }
 
-        IRI datatype = objectMap.getDatatype();
-        if (datatype != null) {
-          return createGenerator.apply(lexicalForm -> valueFactory.createLiteral(lexicalForm, datatype));
+        if (objectMap.getDatatypeMap() != null) {
+          return getDatatypedLiteralGenerator(objectMap, getValue);
         }
 
         // f.createLiteral(label, datatype) // TODO infer datatype, see
@@ -191,7 +189,65 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
     }
   }
 
-  public Optional<TermGenerator<? extends Value>> getConstantGenerator(TermMap map,
+  private List<Value> generateValues(Function<ExpressionEvaluation, Optional<Object>> getValue,
+      ExpressionEvaluation expressionEvaluation, Function<String, ? extends Value> generateTerm) {
+    Optional<Object> referenceValue = getValue.apply(expressionEvaluation);
+    if (LOG.isTraceEnabled()) {
+      LOG.trace("with result: {}", referenceValue.orElse("null"));
+    }
+
+    return referenceValue.map(value -> unpackEvaluatedExpression(value, generateTerm))
+        .orElse(List.of());
+  }
+
+  private TermGenerator<Value> getDatatypedLiteralGenerator(ObjectMap objectMap,
+      Function<ExpressionEvaluation, Optional<Object>> getLabelValue) {
+
+    return expressionEvaluation -> {
+      // determine label values
+      List<Value> labels = generateValues(getLabelValue, expressionEvaluation, valueFactory::createLiteral);
+
+      // determine datatypes by creating a nested term generator
+      List<IRI> datatypes = getDatatypeGenerator(objectMap.getDatatypeMap()).apply(expressionEvaluation);
+
+      // return literals for all combinations of label and datatype
+      return labels.stream()
+          .map(Value::stringValue)
+          .flatMap(label -> datatypes.stream()
+              .map(datatype -> valueFactory.createLiteral(label, datatype)))
+          .collect(Collectors.toUnmodifiableList());
+    };
+  }
+
+  private TermGenerator<Value> getLanguageTaggedLiteralGenerator(ObjectMap objectMap,
+      Function<ExpressionEvaluation, Optional<Object>> getLabelValue) {
+
+    return expressionEvaluation -> {
+      // determine label values
+      List<Value> labels = generateValues(getLabelValue, expressionEvaluation, valueFactory::createLiteral);
+
+      // determine languages by creating a nested term generator
+      // TODO languages arent really literals, but that would require some refactoring
+      List<Literal> languages = getLanguageGenerator(objectMap.getLanguageMap()).apply(expressionEvaluation);
+
+      // return literals for all combinations of label and datatype
+      return labels.stream()
+          .map(Value::stringValue)
+          .flatMap(label -> languages.stream()
+              .map(Literal::getLabel)
+              .filter(language -> {
+                if (!Literals.isValidLanguageTag(language)) {
+                  throw new TermGeneratorFactoryException(
+                      String.format("Invalid lang tag '%s' used in object map %n%s", language, objectMap));
+                }
+                return true;
+              })
+              .map(language -> valueFactory.createLiteral(label, language)))
+          .collect(Collectors.toUnmodifiableList());
+    };
+  }
+
+  public Optional<TermGenerator<? extends Value>> getConstantGenerator(ExpressionMap map,
       Set<Class<? extends Value>> allowedConstantTypes) {
     Value constant = map.getConstant();
     if (constant == null) {
@@ -210,7 +266,8 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
     return Optional.of(e -> constants);
   }
 
-  public Optional<TermGenerator<? extends Value>> getReferenceGenerator(TermMap map, Set<TermType> allowedTermTypes) {
+  public Optional<TermGenerator<? extends Value>> getReferenceGenerator(ExpressionMap map,
+      Set<TermType> allowedTermTypes) {
 
     String reference = map.getReference();
     if (reference == null) {
@@ -223,7 +280,8 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
     return Optional.of(getGenerator(map, getValue, allowedTermTypes, determineTermType(map)));
   }
 
-  public Optional<TermGenerator<? extends Value>> getTemplateGenerator(TermMap map, Set<TermType> allowedTermTypes) {
+  public Optional<TermGenerator<? extends Value>> getTemplateGenerator(ExpressionMap map,
+      Set<TermType> allowedTermTypes) {
 
     String templateStr = map.getTemplate();
     if (templateStr == null) {
@@ -244,10 +302,10 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
     return Optional.of(getGenerator(map, getValue, allowedTermTypes, termType));
   }
 
-  public Optional<TermGenerator<? extends Value>> getFunctionValueGenerator(TermMap termMap,
+  public Optional<TermGenerator<? extends Value>> getFunctionValueGenerator(ExpressionMap expressionMap,
       Set<TermType> allowedTermTypes) {
 
-    TriplesMap executionMap = termMap.getFunctionValue();
+    TriplesMap executionMap = expressionMap.getFunctionValue();
     if (executionMap == null) {
       return Optional.empty();
     }
@@ -265,7 +323,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
             .build(),
         parentSideJoinConditionStoreProvider);
 
-    TermType termType = determineTermType(termMap);
+    TermType termType = determineTermType(expressionMap);
 
     // for IRI term types, make values valid IRIs.
     UnaryOperator<Object> returnValueAdapter = termType == TermType.IRI ? this::iriEncodeResult : v -> v;
@@ -273,7 +331,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
     Function<ExpressionEvaluation, Optional<Object>> getValue =
         expressionEvaluation -> functionEvaluation(expressionEvaluation, executionTriplesMapper, returnValueAdapter);
 
-    return Optional.of(getGenerator(termMap, getValue, allowedTermTypes, determineTermType(termMap)));
+    return Optional.of(getGenerator(expressionMap, getValue, allowedTermTypes, determineTermType(expressionMap)));
   }
 
   private Optional<Object> functionEvaluation(ExpressionEvaluation expressionEvaluation,
@@ -340,21 +398,31 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
                 () -> new TermGeneratorFactoryException("function execution does not have fno:executes value")));
   }
 
-  private TermType determineTermType(TermMap map) {
+  private TermType determineTermType(ExpressionMap map) {
+    if (map instanceof DatatypeMap) {
+      return TermType.IRI;
+    } else if (map instanceof LanguageMap) {
+      return TermType.LITERAL;
+    } else if (map instanceof TermMap) {
+      TermMap termMap = (TermMap) map;
 
-    TermType termType = map.getTermType();
-    if (termType != null) {
-      return termType;
-    }
-
-    if (map instanceof ObjectMap) {
-      ObjectMap objectMap = (ObjectMap) map;
-      if (isReferenceTermMap(map) || objectMap.getLanguage() != null || objectMap.getDatatype() != null) {
-        return TermType.LITERAL;
+      TermType termType = termMap.getTermType();
+      if (termType != null) {
+        return termType;
       }
-    }
 
-    return TermType.IRI;
+      if (map instanceof ObjectMap) {
+        ObjectMap objectMap = (ObjectMap) map;
+        if (isReferenceTermMap(termMap) || objectMap.getLanguageMap() != null || objectMap.getDatatypeMap() != null) {
+          return TermType.LITERAL;
+        }
+      }
+
+      return TermType.IRI;
+    } else {
+      throw new IllegalStateException(String.format("Unknown expression map type %s for %s", map.getClass()
+          .getSimpleName(), map));
+    }
   }
 
   private boolean isReferenceTermMap(TermMap map) {

@@ -26,12 +26,18 @@ class CsvResolverTest {
   private static final String SOURCE = "Year,Make,Model,Description,Price\r\n"
       + "1997,Ford,E350,\"ac, abs, moon\",3000.00\r\n" + "1999,Chevy,\"Venture \"\"Extended Edition\"\"\",\"\",4900.00";
 
-  private static final LogicalSource LSOURCE = new CarmlLogicalSource(SOURCE, null, Ql.Csv);
+  private static final LogicalSource LSOURCE = CarmlLogicalSource.builder()
+      .source(SOURCE)
+      .referenceFormulation(Ql.Csv)
+      .build();
 
   private static final String SOURCE_DELIM = "Year^Make^Model^Description^Price\r\n"
       + "1997^Ford^E350^\"ac, abs, moon\"^3000.00\r\n" + "1999^Chevy^\"Venture \"\"Extended Edition\"\"\"^\"\"^4900.00";
 
-  private static final LogicalSource LSOURCE_DELIM = new CarmlLogicalSource(SOURCE_DELIM, null, Ql.Csv);
+  private static final LogicalSource LSOURCE_DELIM = CarmlLogicalSource.builder()
+      .source(SOURCE_DELIM)
+      .referenceFormulation(Ql.Csv)
+      .build();
 
   private final Function<Object, InputStream> sourceResolver = s -> {
     try {
@@ -64,7 +70,7 @@ class CsvResolverTest {
   }
 
   @Test
-  public void givenRandomDelimitedCsv_whenSourceFluxApplied_thenReturnFluxOfAllCorrectRecords() {
+  void givenRandomDelimitedCsv_whenSourceFluxApplied_thenReturnFluxOfAllCorrectRecords() {
     // Given
     LogicalSourceResolver.SourceFlux<Record> sourceFlux = csvResolver.getSourceFlux();
 
@@ -101,7 +107,10 @@ class CsvResolverTest {
   void givenLargeColumns_whenSourceFluxApplied_thenReturnFluxWithLargeColumnRecords() throws IOException {
     String csv = IOUtils.toString(Objects.requireNonNull(CsvResolverTest.class.getResourceAsStream("large_column.csv")),
         StandardCharsets.UTF_8);
-    LogicalSource logicalSource = new CarmlLogicalSource(csv, null, Ql.Csv);
+    LogicalSource logicalSource = CarmlLogicalSource.builder()
+        .source(csv)
+        .referenceFormulation(Ql.Csv)
+        .build();
     LogicalSourceResolver.SourceFlux<Record> sourceFlux = csvResolver.getSourceFlux();
 
     // When

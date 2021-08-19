@@ -380,13 +380,13 @@ class RdfTriplesMapperTest {
 
     when(rdfRefObjectMapper1.getRefObjectMap()).thenReturn(refObjectMap1);
     when(refObjectMap1.getJoinConditions()).thenReturn(Set.of(join1));
-    when(join1.getParentReference()).thenReturn("bar1");
+    when(join1.getParent()).thenReturn("bar1");
 
     when(rdfRefObjectMapper2.getRefObjectMap()).thenReturn(refObjectMap2);
 
     when(refObjectMap2.getJoinConditions()).thenReturn(Set.of(join2, join3));
-    when(join2.getParentReference()).thenReturn("bar2");
-    when(join3.getParentReference()).thenReturn("bar3");
+    when(join2.getParent()).thenReturn("bar2");
+    when(join3.getParent()).thenReturn("bar3");
 
     incomingRefObjectMappers = Set.of(rdfRefObjectMapper1, rdfRefObjectMapper2);
 
@@ -430,7 +430,7 @@ class RdfTriplesMapperTest {
 
     when(rdfRefObjectMapper1.getRefObjectMap()).thenReturn(refObjectMap1);
     when(refObjectMap1.getJoinConditions()).thenReturn(Set.of(join1));
-    when(join1.getParentReference()).thenReturn("bar1");
+    when(join1.getParent()).thenReturn("bar1");
 
     incomingRefObjectMappers = Set.of(rdfRefObjectMapper1);
 
@@ -475,13 +475,13 @@ class RdfTriplesMapperTest {
 
     when(rdfRefObjectMapper1.getRefObjectMap()).thenReturn(refObjectMap1);
     when(refObjectMap1.getJoinConditions()).thenReturn(Set.of(join1));
-    when(join1.getParentReference()).thenReturn("bar1");
+    when(join1.getParent()).thenReturn("bar1");
 
     when(rdfRefObjectMapper2.getRefObjectMap()).thenReturn(refObjectMap2);
 
     when(refObjectMap2.getJoinConditions()).thenReturn(Set.of(join2, join3));
-    when(join2.getParentReference()).thenReturn("bar2");
-    when(join3.getParentReference()).thenReturn("bar3");
+    when(join2.getParent()).thenReturn("bar2");
+    when(join3.getParent()).thenReturn("bar3");
 
     incomingRefObjectMappers = Set.of(rdfRefObjectMapper1, rdfRefObjectMapper2);
 

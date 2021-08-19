@@ -37,7 +37,12 @@ class JsonPathResolverTest {
   @Test
   void givenJsonPathExpression_whenGetSourceFlux_givenJsonPath_thenReturnSourceFluxWithMatchingObjects() {
     // Given
-    LogicalSource foodSource = new CarmlLogicalSource("", "$.food[*]", Rdf.Ql.JsonPath);
+    LogicalSource foodSource = CarmlLogicalSource.builder()
+        .source("")
+        .iterator("$.food[*]")
+        .referenceFormulation(Rdf.Ql.JsonPath)
+        .build();
+
     inputStream = JsonPathResolverTest.class.getResourceAsStream("food.json");
 
     LogicalSourceResolver.SourceFlux<Object> sourceFlux = jsonPathResolver.getSourceFlux();
@@ -77,7 +82,11 @@ class JsonPathResolverTest {
   @Test
   void givenUnresolvableJsonPath_whenSourceFluxApplied_shouldReturnEmptyFlux() throws IOException {
     // Given
-    LogicalSource foodSource = new CarmlLogicalSource("", "foo", Rdf.Ql.JsonPath);
+    LogicalSource foodSource = CarmlLogicalSource.builder()
+        .source("")
+        .iterator("foo")
+        .referenceFormulation(Rdf.Ql.JsonPath)
+        .build();
     LogicalSourceResolver.SourceFlux<Object> sourceFlux = jsonPathResolver.getSourceFlux();
 
     inputStream = JsonPathResolverTest.class.getResourceAsStream("food.json");
@@ -94,7 +103,11 @@ class JsonPathResolverTest {
   @Test
   void givenInvalidJsonPath_whenSourceFluxApplied_shouldThrowException() throws IOException {
     // Given
-    LogicalSource foodSource = new CarmlLogicalSource("", "foo[invalid]", Rdf.Ql.JsonPath);
+    LogicalSource foodSource = CarmlLogicalSource.builder()
+        .source("")
+        .iterator("foo[invalid]")
+        .referenceFormulation(Rdf.Ql.JsonPath)
+        .build();
     LogicalSourceResolver.SourceFlux<Object> sourceFlux = jsonPathResolver.getSourceFlux();
 
     inputStream = JsonPathResolverTest.class.getResourceAsStream("food.json");

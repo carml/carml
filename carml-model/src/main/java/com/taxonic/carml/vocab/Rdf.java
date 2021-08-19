@@ -21,6 +21,10 @@ public class Rdf {
 
     public static final IRI logicalSource = iri("logicalSource");
 
+    public static final IRI datatypeMap = iri("datatypeMap");
+
+    public static final IRI languageMap = iri("languageMap");
+
     public static final IRI LogicalSource = iri("LogicalSource");
   }
 
@@ -72,6 +76,10 @@ public class Rdf {
     public static final IRI parentTriplesMap = iri("parentTriplesMap");
 
     public static final IRI joinCondition = iri("joinCondition");
+
+    public static final IRI datatype = iri("datatype");
+
+    public static final IRI language = iri("language");
 
     public static final IRI child = iri("child");
 

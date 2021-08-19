@@ -44,7 +44,11 @@ class XPathResolverTest {
       + "  <title lang=\"en\">Harry Potter</title>\r\n" + "  <author>J K. Rowling</author>\r\n"
       + "  <year>2005</year>\r\n" + "  <price>29.99</price>\r\n" + "</book>\r\n" + "\r\n" + "</bookstore>";
 
-  private static final LogicalSource LSOURCE = new CarmlLogicalSource(SOURCE, "/bookstore/*", Ql.XPath);
+  private static final LogicalSource LSOURCE = CarmlLogicalSource.builder()
+      .source(SOURCE)
+      .iterator("/bookstore/*")
+      .referenceFormulation(Ql.XPath)
+      .build();
 
   private static final String SOURCE_NS = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n" + "\r\n"
       + "<ex:bookstore xmlns:ex=\"http://www.example.com/books/1.0/\">\r\n" + "\r\n"

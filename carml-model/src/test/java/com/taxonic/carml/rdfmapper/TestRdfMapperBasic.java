@@ -5,6 +5,8 @@ import static org.hamcrest.core.Is.is;
 
 import com.google.common.collect.ImmutableSet;
 import com.taxonic.carml.model.TriplesMap;
+import com.taxonic.carml.model.impl.CarmlDatatypeMap;
+import com.taxonic.carml.model.impl.CarmlLanguageMap;
 import com.taxonic.carml.model.impl.CarmlLogicalSource;
 import com.taxonic.carml.model.impl.CarmlObjectMap;
 import com.taxonic.carml.model.impl.CarmlPredicateMap;
@@ -19,12 +21,12 @@ import org.eclipse.rdf4j.model.vocabulary.XSD;
 
 public class TestRdfMapperBasic extends RmlLoader {
 
-  static final SimpleValueFactory f = SimpleValueFactory.getInstance();
+  private static final SimpleValueFactory VALUE_FACTORY = SimpleValueFactory.getInstance();
 
   static class Example {
 
     static IRI iri(String suffix) {
-      return f.createIRI(prefix + suffix);
+      return VALUE_FACTORY.createIRI(prefix + suffix);
     }
 
     static final String prefix = "http://data.example.com/";
@@ -42,7 +44,7 @@ public class TestRdfMapperBasic extends RmlLoader {
   static class SecondExample {
 
     static IRI iri(String suffix) {
-      return f.createIRI(prefix + suffix);
+      return VALUE_FACTORY.createIRI(prefix + suffix);
     }
 
     static final String prefix = "http://example.com/";
@@ -55,7 +57,7 @@ public class TestRdfMapperBasic extends RmlLoader {
 
     static final IRI hasHex = iri("hasHex");
 
-    static final IRI asciihex = f.createIRI("http://www.asciitable.com/hex");
+    static final IRI asciihex = VALUE_FACTORY.createIRI("http://www.asciitable.com/hex");
 
     static final IRI Child = iri("Child");
 
@@ -66,23 +68,25 @@ public class TestRdfMapperBasic extends RmlLoader {
 
   // @Test
   public void testLoadMappingWithLanguage() {
-    Set<TriplesMap> expected = ImmutableSet.of(CarmlTriplesMap.newBuilder()
-        .logicalSource(CarmlLogicalSource.newBuilder()
+    Set<TriplesMap> expected = ImmutableSet.of(CarmlTriplesMap.builder()
+        .logicalSource(CarmlLogicalSource.builder()
             .source("simpleTestInput.json")
             .iterator("$")
             .referenceFormulation(Rdf.Ql.JsonPath)
             .build())
-        .subjectMap(CarmlSubjectMap.newBuilder()
+        .subjectMap(CarmlSubjectMap.builder()
             .template(SecondExample.prefix + "Child/{first}/{last}")
             .clazz(SecondExample.Child)
             .build())
-        .predicateObjectMap(CarmlPredicateObjectMap.newBuilder()
-            .predicateMap(CarmlPredicateMap.newBuilder()
+        .predicateObjectMap(CarmlPredicateObjectMap.builder()
+            .predicateMap(CarmlPredicateMap.builder()
                 .constant(SecondExample.language)
                 .build())
-            .objectMap(CarmlObjectMap.newBuilder()
+            .objectMap(CarmlObjectMap.builder()
                 .reference("language")
-                .language("nl")
+                .languageMap(CarmlLanguageMap.builder()
+                    .constant(VALUE_FACTORY.createLiteral("nl"))
+                    .build())
                 .build())
             .build())
         .build());
@@ -92,20 +96,20 @@ public class TestRdfMapperBasic extends RmlLoader {
 
   // @Test
   public void testLoadMappingWithSubjectConstantShortcut() {
-    Set<TriplesMap> expected = ImmutableSet.of(CarmlTriplesMap.newBuilder()
-        .logicalSource(CarmlLogicalSource.newBuilder()
+    Set<TriplesMap> expected = ImmutableSet.of(CarmlTriplesMap.builder()
+        .logicalSource(CarmlLogicalSource.builder()
             .source("constantShortcutMappingTestInput.json")
             .iterator("$.colors")
             .referenceFormulation(Rdf.Ql.JsonPath)
             .build())
-        .subjectMap(CarmlSubjectMap.newBuilder()
+        .subjectMap(CarmlSubjectMap.builder()
             .constant(SecondExample.Color)
             .build())
-        .predicateObjectMap(CarmlPredicateObjectMap.newBuilder()
-            .predicateMap(CarmlPredicateMap.newBuilder()
+        .predicateObjectMap(CarmlPredicateObjectMap.builder()
+            .predicateMap(CarmlPredicateMap.builder()
                 .constant(SecondExample.hasHex)
                 .build())
-            .objectMap(CarmlObjectMap.newBuilder()
+            .objectMap(CarmlObjectMap.builder()
                 .reference("code.hex")
                 .build())
             .build())
@@ -117,20 +121,20 @@ public class TestRdfMapperBasic extends RmlLoader {
 
   // @Test
   public void testLoadMappingWithObjectConstantShortcut() {
-    Set<TriplesMap> expected = ImmutableSet.of((CarmlTriplesMap.newBuilder()
-        .logicalSource(CarmlLogicalSource.newBuilder()
+    Set<TriplesMap> expected = ImmutableSet.of((CarmlTriplesMap.builder()
+        .logicalSource(CarmlLogicalSource.builder()
             .source("constantShortcutMappingTestInput.json")
             .iterator("$.colors")
             .referenceFormulation(Rdf.Ql.JsonPath)
             .build())
-        .subjectMap(CarmlSubjectMap.newBuilder()
+        .subjectMap(CarmlSubjectMap.builder()
             .template(SecondExample.prefix + "Color/{color}")
             .build())
-        .predicateObjectMap(CarmlPredicateObjectMap.newBuilder()
-            .predicateMap(CarmlPredicateMap.newBuilder()
+        .predicateObjectMap(CarmlPredicateObjectMap.builder()
+            .predicateMap(CarmlPredicateMap.builder()
                 .constant(SecondExample.hasHex)
                 .build())
-            .objectMap(CarmlObjectMap.newBuilder()
+            .objectMap(CarmlObjectMap.builder()
                 .constant(SecondExample.asciihex)
                 .build())
             .build())).build());
@@ -140,21 +144,21 @@ public class TestRdfMapperBasic extends RmlLoader {
 
   // @Test
   public void testLoadMappingWithSeparateMaps() {
-    Set<TriplesMap> expected = ImmutableSet.of((CarmlTriplesMap.newBuilder()
-        .logicalSource(CarmlLogicalSource.newBuilder()
+    Set<TriplesMap> expected = ImmutableSet.of((CarmlTriplesMap.builder()
+        .logicalSource(CarmlLogicalSource.builder()
             .source("SeparateMappingTestInput.json")
             .iterator("$.colors")
             .referenceFormulation(Rdf.Ql.JsonPath)
             .build())
-        .subjectMap(CarmlSubjectMap.newBuilder()
+        .subjectMap(CarmlSubjectMap.builder()
             .template(SecondExample.prefix + "Color/{color}")
             .clazz(SecondExample.Color)
             .build())
-        .predicateObjectMap(CarmlPredicateObjectMap.newBuilder()
-            .predicateMap(CarmlPredicateMap.newBuilder()
+        .predicateObjectMap(CarmlPredicateObjectMap.builder()
+            .predicateMap(CarmlPredicateMap.builder()
                 .constant(SecondExample.hasHex)
                 .build())
-            .objectMap(CarmlObjectMap.newBuilder()
+            .objectMap(CarmlObjectMap.builder()
                 .reference("code.hex")
                 .build())
             .build())).build());
@@ -166,8 +170,8 @@ public class TestRdfMapperBasic extends RmlLoader {
   // @Test
   public void testLoadMappingWithJustALogicalSource() {
 
-    Set<TriplesMap> expected = ImmutableSet.of(CarmlTriplesMap.newBuilder()
-        .logicalSource(CarmlLogicalSource.newBuilder()
+    Set<TriplesMap> expected = ImmutableSet.of(CarmlTriplesMap.builder()
+        .logicalSource(CarmlLogicalSource.builder()
             .source("test-source.json")
             .iterator("$")
             .referenceFormulation(Rdf.Ql.JsonPath)
@@ -183,48 +187,52 @@ public class TestRdfMapperBasic extends RmlLoader {
   // @Test
   public void test() {
 
-    Set<TriplesMap> expected = ImmutableSet.of(CarmlTriplesMap.newBuilder()
-        .logicalSource(CarmlLogicalSource.newBuilder()
+    Set<TriplesMap> expected = ImmutableSet.of(CarmlTriplesMap.builder()
+        .logicalSource(CarmlLogicalSource.builder()
             .source("source-a.json")
             .iterator("$")
             .referenceFormulation(Rdf.Ql.JsonPath)
             .build())
-        .subjectMap(CarmlSubjectMap.newBuilder()
+        .subjectMap(CarmlSubjectMap.builder()
             .template(Example.prefix + "resource/{id}")
             .clazz(Example.MyResource)
             .build())
-        .predicateObjectMap(CarmlPredicateObjectMap.newBuilder()
-            .predicateMap(CarmlPredicateMap.newBuilder()
+        .predicateObjectMap(CarmlPredicateObjectMap.builder()
+            .predicateMap(CarmlPredicateMap.builder()
                 .constant(Example.when)
                 .build())
-            .objectMap(CarmlObjectMap.newBuilder()
+            .objectMap(CarmlObjectMap.builder()
                 .reference("when")
-                .datatype(XSD.DATE)
+                .datatypeMap(CarmlDatatypeMap.builder()
+                    .constant(XSD.DATE)
+                    .build())
                 .build())
             .build())
-        .predicateObjectMap(CarmlPredicateObjectMap.newBuilder()
-            .predicateMap(CarmlPredicateMap.newBuilder()
+        .predicateObjectMap(CarmlPredicateObjectMap.builder()
+            .predicateMap(CarmlPredicateMap.builder()
                 .constant(TestRdfMapperBasic.Example.description)
                 .build())
-            .objectMap(CarmlObjectMap.newBuilder()
+            .objectMap(CarmlObjectMap.builder()
                 .reference("description")
                 .build())
             .build())
-        .predicateObjectMap(CarmlPredicateObjectMap.newBuilder()
-            .predicateMap(CarmlPredicateMap.newBuilder()
+        .predicateObjectMap(CarmlPredicateObjectMap.builder()
+            .predicateMap(CarmlPredicateMap.builder()
                 .constant(TestRdfMapperBasic.Example.description)
                 .build())
-            .objectMap(CarmlObjectMap.newBuilder()
-                .constant(f.createLiteral("constant description", "en"))
+            .objectMap(CarmlObjectMap.builder()
+                .constant(VALUE_FACTORY.createLiteral("constant description", "en"))
                 .build())
             .build())
-        .predicateObjectMap(CarmlPredicateObjectMap.newBuilder()
-            .predicateMap(CarmlPredicateMap.newBuilder()
+        .predicateObjectMap(CarmlPredicateObjectMap.builder()
+            .predicateMap(CarmlPredicateMap.builder()
                 .constant(TestRdfMapperBasic.Example.accuracy)
                 .build())
-            .objectMap(CarmlObjectMap.newBuilder()
+            .objectMap(CarmlObjectMap.builder()
                 .reference("accuracy")
-                .datatype(XSD.FLOAT)
+                .datatypeMap(CarmlDatatypeMap.builder()
+                    .constant(XSD.FLOAT)
+                    .build())
                 .build())
             .build())
         .build());

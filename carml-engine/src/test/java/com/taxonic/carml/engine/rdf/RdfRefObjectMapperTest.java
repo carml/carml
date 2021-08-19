@@ -126,8 +126,8 @@ class RdfRefObjectMapperTest {
         .build();
 
     when(refObjectMap.getJoinConditions()).thenReturn(Set.of(join1));
-    when(join1.getChildReference()).thenReturn("foo");
-    when(join1.getParentReference()).thenReturn("bar");
+    when(join1.getChild()).thenReturn("foo");
+    when(join1.getParent()).thenReturn("bar");
 
     when(expressionEvaluation.apply(any())).thenReturn(Optional.of(List.of("baz")));
 
@@ -181,8 +181,8 @@ class RdfRefObjectMapperTest {
         .build();
 
     when(refObjectMap.getJoinConditions()).thenReturn(Set.of(join1));
-    when(join1.getChildReference()).thenReturn("foo");
-    when(join1.getParentReference()).thenReturn("bar");
+    when(join1.getChild()).thenReturn("foo");
+    when(join1.getParent()).thenReturn("bar");
 
     Resource subject1 = VALUE_FACTORY.createIRI("http://foo.bar/subject1");
     Resource subject2 = VALUE_FACTORY.createIRI("http://foo.bar/subject2");
@@ -240,11 +240,11 @@ class RdfRefObjectMapperTest {
         .build();
 
     when(refObjectMap.getJoinConditions()).thenReturn(Set.of(join1, join2));
-    when(join1.getChildReference()).thenReturn("foo");
-    when(join1.getParentReference()).thenReturn("bar");
+    when(join1.getChild()).thenReturn("foo");
+    when(join1.getParent()).thenReturn("bar");
 
-    when(join2.getChildReference()).thenReturn("Alice");
-    when(join2.getParentReference()).thenReturn("Bob");
+    when(join2.getChild()).thenReturn("Alice");
+    when(join2.getParent()).thenReturn("Bob");
 
     when(expressionEvaluation.apply(any())).thenReturn(Optional.of(List.of("baz")))
         .thenReturn(Optional.of(List.of("Carol")));
