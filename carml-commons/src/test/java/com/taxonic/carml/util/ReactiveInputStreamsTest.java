@@ -20,6 +20,7 @@ import reactor.core.scheduler.Schedulers;
 
 class ReactiveInputStreamsTest {
 
+  @SuppressWarnings("java:S2925")
   @Test
   void blockHoundWorks() {
     try {

@@ -58,6 +58,7 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap {
     return predicateObjectMaps;
   }
 
+  @SuppressWarnings("java:S1149")
   @Override
   public String toString() {
     ToStringStyle style = new MultilineRecursiveToStringStyle();

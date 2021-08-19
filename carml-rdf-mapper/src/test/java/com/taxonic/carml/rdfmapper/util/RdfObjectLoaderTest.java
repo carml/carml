@@ -36,7 +36,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class RdfObjectLoaderTest {
+class RdfObjectLoaderTest {
 
   private static final ValueFactory VF = SimpleValueFactory.getInstance();
 
@@ -114,7 +114,7 @@ public class RdfObjectLoaderTest {
   }
 
   @Test
-  public void personLoader_givenPersonSelector_shouldLoadFourPeople()
+  void personLoader_givenPersonSelector_shouldLoadFourPeople()
       throws RDFParseException, UnsupportedRDFormatException, IOException {
 
     Set<Person> people = RdfObjectLoader.load(selectPersons, Person.class, model);
@@ -122,7 +122,7 @@ public class RdfObjectLoaderTest {
   }
 
   @Test
-  public void personLoader_givenPersonSelector_shouldLoadFourPeopleOneWithAddress()
+  void personLoader_givenPersonSelector_shouldLoadFourPeopleOneWithAddress()
       throws RDFParseException, UnsupportedRDFormatException, IOException {
 
     Set<Person> people = RdfObjectLoader.load(selectPersons, Person.class, model);
@@ -134,7 +134,7 @@ public class RdfObjectLoaderTest {
   }
 
   @Test
-  public void addressLoader_givenAddressSelector_shouldLoadOneAddress()
+  void addressLoader_givenAddressSelector_shouldLoadOneAddress()
       throws RDFParseException, UnsupportedRDFormatException, IOException {
 
     Set<PostalAddress> addresses = RdfObjectLoader.load(selectAddresses, PostalAddress.class, model);
@@ -142,7 +142,7 @@ public class RdfObjectLoaderTest {
   }
 
   @Test
-  public void personLoader_givenAllResourcesSelector_shouldLoadEightPeople()
+  void personLoader_givenAllResourcesSelector_shouldLoadEightPeople()
       throws RDFParseException, UnsupportedRDFormatException, IOException {
 
     Set<Person> people = RdfObjectLoader.load(selectAllResources, Person.class, model);
@@ -150,14 +150,14 @@ public class RdfObjectLoaderTest {
   }
 
   @Test
-  public void repoLoader_givenContextAndPersonFilter_shouldNotLoadPersonStamentsInOtherContexts() {
+  void repoLoader_givenContextAndPersonFilter_shouldNotLoadPersonStamentsInOtherContexts() {
     Set<Person> people = RdfObjectLoader.load(selectPersons, Person.class, repo, VF.createIRI(CONTEXT_C));
 
     assertThat("3 person resources should be created", people, hasSize(3));
   }
 
   @Test
-  public void repoLoader_givenQuery_shouldLoadStamentsCorrespondingToQuery() {
+  void repoLoader_givenQuery_shouldLoadStamentsCorrespondingToQuery() {
     String sparqlQuery =
         "" + "CONSTRUCT {" + "  ?s <http://schema.org/name> ?name . " + "  ?s <http://schema.org/gender> ?gender "
             + "} " + "FROM NAMED <http://example.org/A>" + "WHERE { " + "  GRAPH ?g { "
@@ -179,7 +179,7 @@ public class RdfObjectLoaderTest {
   }
 
   @Test
-  public void addressLoader_givenAddressSelectorAndUpperCaseAdapter_shouldLoadAddressWithUppercaseLiterals()
+  void addressLoader_givenAddressSelectorAndUpperCaseAdapter_shouldLoadAddressWithUppercaseLiterals()
       throws RDFParseException, UnsupportedRDFormatException, IOException {
 
     Set<PostalAddress> addresses = RdfObjectLoader.load(selectAddresses, PostalAddress.class, model, uppercaser);

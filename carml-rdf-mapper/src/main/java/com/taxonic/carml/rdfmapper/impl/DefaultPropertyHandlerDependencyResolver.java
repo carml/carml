@@ -97,7 +97,7 @@ class DefaultPropertyHandlerDependencyResolver implements DependencyResolver {
     // TODO ..
 
 
-    throw new RuntimeException(
+    throw new CarmlMapperException(
         String.format("could not resolve dependency for type [%s] and qualifiers [%s]", type, qualifiers));
   }
 

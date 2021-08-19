@@ -16,7 +16,7 @@ public interface TriplesMapper<E, V> {
 
   TriplesMap getTriplesMap();
 
-  Set<? extends RefObjectMapper<V>> getRefObjectMappers();
+  Set<RefObjectMapper<V>> getRefObjectMappers();
 
   ParentSideJoinConditionStore<Resource> getParentSideJoinConditions();
 

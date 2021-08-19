@@ -73,10 +73,10 @@ public class TestRmlTestCases {
 
   public static List<TestCase> populateTestCases() {
     InputStream metadata = TestRmlTestCases.class.getResourceAsStream("test-cases/metadata.nt");
-    return RdfObjectLoader.load(selectTestCases, RmlTestCase.class, Models.parse(metadata, RDFFormat.NTRIPLES))
+    return RdfObjectLoader.load(selectTestCases, RmlTestCaze.class, Models.parse(metadata, RDFFormat.NTRIPLES))
         .stream()
         .filter(TestRmlTestCases::shouldBeTested)
-        .sorted(Comparator.comparing(RmlTestCase::getIdentifier))
+        .sorted(Comparator.comparing(RmlTestCaze::getIdentifier))
         .collect(Collectors.toUnmodifiableList());
   }
 

@@ -99,7 +99,7 @@ class JsonPathResolverTest {
         .expectComplete();
   }
 
-  @Disabled
+  @Disabled("Why doesn't json surfer throw exception?")
   @Test
   void givenInvalidJsonPath_whenSourceFluxApplied_shouldThrowException() throws IOException {
     // Given

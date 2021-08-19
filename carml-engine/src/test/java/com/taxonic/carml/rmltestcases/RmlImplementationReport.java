@@ -64,7 +64,7 @@ public class RmlImplementationReport {
 
   public static Set<TestCase> populateTestCases() {
     InputStream metadata = RmlImplementationReport.class.getResourceAsStream("test-cases/metadata.nt");
-    return RdfObjectLoader.load(selectTestCases, RmlTestCase.class, Models.parse(metadata, RDFFormat.NTRIPLES)) //
+    return RdfObjectLoader.load(selectTestCases, RmlTestCaze.class, Models.parse(metadata, RDFFormat.NTRIPLES)) //
         .stream() //
         .collect(Collectors.toUnmodifiableSet());
   }

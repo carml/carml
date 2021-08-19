@@ -106,6 +106,8 @@ public class RdfTriplesMapper<I> implements TriplesMapper<I, Statement> {
         .collect(Collectors.toUnmodifiableSet());
   }
 
+
+  @SuppressWarnings("java:S3864")
   private static Set<RdfSubjectMapper> createSubjectMappers(TriplesMap triplesMap,
       RdfMappingContext rdfMappingContext) {
 
@@ -121,6 +123,7 @@ public class RdfTriplesMapper<I> implements TriplesMapper<I, Statement> {
         .collect(Collectors.toUnmodifiableSet());
   }
 
+  @SuppressWarnings("java:S3864")
   private static Set<RdfPredicateObjectMapper> createPredicateObjectMappers(TriplesMap triplesMap,
       RdfMappingContext rdfMappingContext, Set<RdfRefObjectMapper> refObjectMappers) {
     return triplesMap.getPredicateObjectMaps()
@@ -131,14 +134,14 @@ public class RdfTriplesMapper<I> implements TriplesMapper<I, Statement> {
   }
 
   @Override
-  public Set<RdfRefObjectMapper> getRefObjectMappers() {
+  public Set<RefObjectMapper<Statement>> getRefObjectMappers() {
     return predicateObjectMappers.stream()
         .flatMap(pom -> pom.getRdfRefObjectMappers()
             .stream())
         .collect(Collectors.toUnmodifiableSet());
   }
 
-  Set<RdfRefObjectMapper> getConnectedRefObjectMappers() {
+  Set<RefObjectMapper<Statement>> getConnectedRefObjectMappers() {
     return Stream.concat(getRefObjectMappers().stream(), incomingRefObjectMappers.stream())
         .collect(Collectors.toUnmodifiableSet());
   }

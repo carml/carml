@@ -24,6 +24,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -35,6 +36,7 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.tuple.Pair;
@@ -345,7 +347,6 @@ public class CarmlMapper implements Mapper, MappingCache {
 
   }
 
-
   private Optional<PropertyHandler> getRdfResourceNameHandler(Method method, Class<?> c) {
     return Optional.ofNullable(method.getAnnotation(RdfResourceName.class))
         .map(a -> {
@@ -448,7 +449,7 @@ public class CarmlMapper implements Mapper, MappingCache {
 
       TypeDecider typeDecider = createTypeDecider(method, elementType);
 
-      Function<Object, Object> typeAdapter = o -> o;
+      UnaryOperator<Object> typeAdapter = o -> o;
       // TODO use type adapter from @RdfTypeAdapter annotation, if any
 
       valueTransformer = new ComplexValueTransformer(typeDecider, this, this, typeAdapter);
@@ -461,7 +462,7 @@ public class CarmlMapper implements Mapper, MappingCache {
 
     PropertyValueMapper propertyValueMapper;
 
-    Boolean iterableProperty = iterableType != null;
+    boolean iterableProperty = iterableType != null;
     regBuilder.isIterable(iterableProperty);
     // iterable property - set collection value
     if (iterableProperty) {
@@ -483,14 +484,17 @@ public class CarmlMapper implements Mapper, MappingCache {
       return;
     }
 
+    registerPropertyHandler(annotation, method, set, predicate, propertyValueMapper, regBuilder);
+  }
+
+  private void registerPropertyHandler(RdfProperty annotation, Method method, BiConsumer<Object, Object> set, IRI predicate,
+      PropertyValueMapper propertyValueMapper, MethodPropertyHandlerRegistry.Builder regBuilder) {
     regBuilder.addHandler(new PropertyHandler() {
 
       @Override
       public void handle(Model model, Resource resource, Object instance) {
-        List<Value> values = model.filter(resource, predicate, null)
-            .objects()
-            .stream()
-            .collect(toList());
+        List<Value> values = new ArrayList<>(model.filter(resource, predicate, null)
+            .objects());
 
         if (!values.isEmpty() || propertyValueMapper instanceof IterablePropertyValueMapper) {
 

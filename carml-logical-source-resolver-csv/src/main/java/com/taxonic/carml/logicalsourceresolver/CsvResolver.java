@@ -31,10 +31,10 @@ public class CsvResolver implements LogicalSourceResolver<Record> {
           String.format("No valid input stream provided for logical source %s", LogUtil.exception(logicalSource)));
     }
 
-    return getCsvRecordFlux((InputStream) source, logicalSource);
+    return getCsvRecordFlux((InputStream) source);
   }
 
-  private Flux<Record> getCsvRecordFlux(InputStream inputStream, LogicalSource logicalSource) {
+  private Flux<Record> getCsvRecordFlux(InputStream inputStream) {
     var settings = new CsvParserSettings();
     settings.setHeaderExtractionEnabled(true);
     settings.setLineSeparatorDetectionEnabled(true);

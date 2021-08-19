@@ -7,6 +7,7 @@ import java.lang.reflect.Type;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Literal;
 import org.eclipse.rdf4j.model.Model;
@@ -25,7 +26,7 @@ public class ComplexValueTransformer implements ValueTransformer {
   private Function<Object, Object> typeAdapter;
 
   public ComplexValueTransformer(TypeDecider typeDecider, MappingCache mappingCache, Mapper mapper,
-      Function<Object, Object> typeAdapter) {
+      UnaryOperator<Object> typeAdapter) {
     this.typeDecider = typeDecider;
     this.mappingCache = mappingCache;
     this.mapper = mapper;
@@ -76,9 +77,8 @@ public class ComplexValueTransformer implements ValueTransformer {
     Object targetValue = mapper.map(model, resource, targetTypes);
 
     // TODO check cache for adapted value (key: typeAdapter + targetValue)
-    Object adaptedValue = typeAdapter.apply(targetValue);
-    // TODO maybe we should cache this as well, in a diff. cache. (key: typeAdapter + targetValue)
 
-    return adaptedValue;
+    // TODO maybe we should cache this as well, in a diff. cache. (key: typeAdapter + targetValue)
+    return typeAdapter.apply(targetValue);
   }
 }

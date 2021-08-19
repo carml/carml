@@ -11,7 +11,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.eclipse.rdf4j.model.IRI;
 
-public class RmlTestCase extends RtcResource implements TestCase {
+public class RmlTestCaze extends RtcResource implements TestCase {
 
   private String identifier;
 

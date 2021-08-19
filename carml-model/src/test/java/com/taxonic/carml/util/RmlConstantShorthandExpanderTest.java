@@ -18,7 +18,7 @@ import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class RmlConstantShorthandExpanderTest {
+class RmlConstantShorthandExpanderTest {
 
   private static final RmlConstantShorthandExpander SHORTHAND_EXPANDER = new RmlConstantShorthandExpander();
 
@@ -40,34 +40,34 @@ public class RmlConstantShorthandExpanderTest {
   }
 
   @Test
-  public void expander_givenSubjectShorthand_ShouldExpandCorrectly() {
+  void expander_givenSubjectShorthand_ShouldExpandCorrectly() {
     Statement toExpand = VF.createStatement(TM, Rr.subject, SM);
     expandAndTestShorthandStatement(toExpand, Rr.subjectMap);
   }
 
   @Test
-  public void expander_givenPredicateShorthand_ShouldExpandCorrectly() {
+  void expander_givenPredicateShorthand_ShouldExpandCorrectly() {
     IRI predicateMapValue = VF.createIRI(NS + "somePredicateMap");
     Statement toExpand = VF.createStatement(POM, Rr.predicate, predicateMapValue);
     expandAndTestShorthandStatement(toExpand, Rr.predicateMap);
   }
 
   @Test
-  public void expander_givenObjectShorthand_ShouldExpandCorrectly() {
+  void expander_givenObjectShorthand_ShouldExpandCorrectly() {
     IRI objectMapValue = VF.createIRI(NS + "someObjectMap");
     Statement toExpand = VF.createStatement(POM, Rr.object, objectMapValue);
     expandAndTestShorthandStatement(toExpand, Rr.objectMap);
   }
 
   @Test
-  public void expander_givenGraphShorthand_ShouldExpandCorrectly() {
+  void expander_givenGraphShorthand_ShouldExpandCorrectly() {
     IRI graphMapValue = VF.createIRI(NS + "someGraphMap");
     Statement toExpand = VF.createStatement(SM, Rr.graph, graphMapValue);
     expandAndTestShorthandStatement(toExpand, Rr.graphMap);
   }
 
   @Test
-  public void expander_givenShorthandWithContext_ShouldHaveContextOnExpandedStatements() {
+  void expander_givenShorthandWithContext_ShouldHaveContextOnExpandedStatements() {
     IRI context = VF.createIRI(NS + "someContext");
     Statement toExpand = VF.createStatement(TM, Rr.subject, SM, context);
     Model expanded = expandAndTestShorthandStatement(toExpand, Rr.subjectMap);

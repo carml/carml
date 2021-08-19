@@ -54,9 +54,10 @@ public class SpecifiedPropertyHandlerFactory {
       return handlerCls.getConstructor()
           .newInstance();
     } catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
-        | NoSuchMethodException | SecurityException e) {
-      throw new RuntimeException(
-          "could not instantiate specified " + "PropertyHandler class [" + handlerCls.getCanonicalName() + "]", e);
+        | NoSuchMethodException | SecurityException exception) {
+      throw new CarmlMapperException(
+          String.format("could not instantiate specified PropertyHandler class [%s]", handlerCls.getCanonicalName()),
+          exception);
     }
   }
 
@@ -91,10 +92,12 @@ public class SpecifiedPropertyHandlerFactory {
 
   private Type getPropertyType(Method method) {
     List<Type> parameterTypes = asList(method.getGenericParameterTypes());
-    if (parameterTypes.isEmpty() || parameterTypes.size() > 1) {
-      throw new RuntimeException("method [" + method.getName() + "], annotated "
-          + "with @Inject does NOT take exactly 1 parameter; it takes " + parameterTypes.size());
+    if (parameterTypes.size() != 1) {
+      throw new CarmlMapperException(
+          String.format("method [%s], annotated with @Inject does NOT take exactly 1 parameter; it takes %s",
+              method.getName(), parameterTypes.size()));
     }
+
     return parameterTypes.get(0);
   }
 
@@ -121,8 +124,8 @@ public class SpecifiedPropertyHandlerFactory {
         // invoke the setter to set the resolved value
         method.invoke(i, propertyValue);
 
-      } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-        throw new RuntimeException("error invoking setter [" + method.getName() + "]", e);
+      } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException exception) {
+        throw new CarmlMapperException(String.format("error invoking setter [%s]", method.getName()), exception);
       }
     };
   }

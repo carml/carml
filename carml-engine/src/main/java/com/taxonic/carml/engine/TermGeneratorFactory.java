@@ -9,6 +9,7 @@ import com.taxonic.carml.model.TermType;
 import java.util.Optional;
 import java.util.Set;
 
+@SuppressWarnings("java:S1452")
 public interface TermGeneratorFactory<T> {
 
   TermGenerator<? extends T> getSubjectGenerator(SubjectMap subjectMap);

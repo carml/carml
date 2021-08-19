@@ -23,7 +23,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class QueryUtilsTest {
+class QueryUtilsTest {
 
   private static final ValueFactory VF = SimpleValueFactory.getInstance();
 
@@ -73,7 +73,7 @@ public class QueryUtilsTest {
   }
 
   @Test
-  public void modelGetter_givenSparqlQuery_ShouldReturnAllCorrespondingStatements() {
+  void modelGetter_givenSparqlQuery_ShouldReturnAllCorrespondingStatements() {
     String sparqlQuery =
         "" + "CONSTRUCT {" + "  ?s <http://schema.org/name> ?name . " + "  ?s <http://schema.org/gender> ?gender "
             + "} " + "FROM NAMED <http://example.org/A>" + "WHERE { " + "  GRAPH ?g { "
@@ -84,14 +84,14 @@ public class QueryUtilsTest {
   }
 
   @Test
-  public void modelGetter_givenSpecifiContexts_shouldLoadAllStatementsInRepo() {
+  void modelGetter_givenSpecifiContexts_shouldLoadAllStatementsInRepo() {
     Model model = QueryUtils.getModelFromRepo(repo);
     assertThat(String.format("The in-memory store should contain %s statemtents", REPO_CONTEXTS_NR_STATEMENTS), model,
         hasSize(REPO_CONTEXTS_NR_STATEMENTS));
   }
 
   @Test
-  public void modelGetter_givenNoContext_shouldReturnAllStatementsInContexts() {
+  void modelGetter_givenNoContext_shouldReturnAllStatementsInContexts() {
     Model model = QueryUtils.getModelFromRepo(repo, VF.createIRI(CONTEXT_A), VF.createIRI(CONTEXT_C));
 
     assertThat(
@@ -101,7 +101,7 @@ public class QueryUtilsTest {
   }
 
   @Test
-  public void modelGetter_givenSingleContext_shouldLoadAllStatementsOfContext() {
+  void modelGetter_givenSingleContext_shouldLoadAllStatementsOfContext() {
     Model model = QueryUtils.getModelFromRepo(repo, VF.createIRI(CONTEXT_A));
 
     assertThat(String.format("The in-memory store should contain %s statemtents", REPO_CONTEXT_A_NR_STATEMENTS), model,

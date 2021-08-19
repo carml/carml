@@ -127,7 +127,6 @@ class RmlMapperTest extends MappingTester {
 
   @Test
   void testSimpleBlankNodeMapping() {
-    // TODO Note: algorithm for generating blank node ids will change
     testMapping("RmlMapper", "/RmlMapper/test8/simpleBlankNodeMapping.rml.ttl",
         "/RmlMapper/test8/simpleBlankNodeMapping.output.ttl");
   }

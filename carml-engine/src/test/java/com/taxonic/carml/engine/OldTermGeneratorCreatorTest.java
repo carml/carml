@@ -1,9 +1,19 @@
 package com.taxonic.carml.engine;
 
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
 
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+
+@Disabled("TODO")
 public class OldTermGeneratorCreatorTest {
 
+  @Test
+  void test() {
+    assertThat(true, is(true));
+  }
 
   // @Test
   // public void getGenerator_withReferenceAndTemplate_throwsRuntimeException() throws Exception {

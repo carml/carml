@@ -1,7 +1,10 @@
 package com.taxonic.carml.util;
 
 import com.taxonic.carml.model.Resource;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class LogUtil {
 
   public static String log(Resource resource) {

@@ -27,6 +27,7 @@ public final class ReactiveInputStreams {
             "Exception occurred while creating Flux form input stream.", error));
   }
 
+  @SuppressWarnings("java:S2095")
   public static InputStream inputStreamFrom(Flux<DataBuffer> dataBufferFlux) throws IOException {
     var osPipe = new PipedOutputStream();
     var isPipe = new PipedInputStream(osPipe);

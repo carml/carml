@@ -96,6 +96,7 @@ public class RdfPredicateObjectMapper {
         .collect(Collectors.toUnmodifiableSet());
   }
 
+  @SuppressWarnings("java:S3864")
   private static Stream<TermGenerator<? extends Value>> createObjectMapGenerators(Set<BaseObjectMap> objectMaps,
       TriplesMap triplesMap, RdfTermGeneratorFactory termGeneratorFactory) {
     return objectMaps.stream()
@@ -139,6 +140,7 @@ public class RdfPredicateObjectMapper {
     return refObjectMap;
   }
 
+  @SuppressWarnings("java:S3864")
   private static Stream<TermGenerator<? extends Value>> createJoinlessRefObjectMapGenerators(
       Set<BaseObjectMap> objectMaps, TriplesMap triplesMap, RdfTermGeneratorFactory termGeneratorFactory) {
 

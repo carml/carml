@@ -23,7 +23,7 @@ class SinglePropertyValueMapper implements PropertyValueMapper {
 
     // multiple values present - error
     if (values.size() > 1) {
-      throw new RuntimeException(String.format("multiple values for property <%s> on resource <%s>, but "
+      throw new CarmlMapperException(String.format("multiple values for property <%s> on resource <%s>, but "
           + "corresponding java property is NOT an Iterable property", predicate, resource));
     }
 

@@ -12,8 +12,9 @@ import reactor.core.scheduler.Schedulers;
 
 class RmlMapperTest {
 
+  @SuppressWarnings("java:S2925")
   @Test
-  public void blockHoundWorks() {
+  void blockHoundWorks() {
     try {
       FutureTask<?> task = new FutureTask<>(() -> {
         Thread.sleep(0);

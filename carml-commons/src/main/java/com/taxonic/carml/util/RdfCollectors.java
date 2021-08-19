@@ -18,7 +18,4 @@ public final class RdfCollectors {
   }
 
   // TODO add JENA model collector
-  // public static toJenaModel() {
-  //
-  // }
 }
