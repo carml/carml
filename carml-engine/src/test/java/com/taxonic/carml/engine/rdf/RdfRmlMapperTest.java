@@ -10,7 +10,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @Disabled("TODO")
 @ExtendWith(MockitoExtension.class)
-public class RdfRmlMapperTest {
+class RdfRmlMapperTest {
 
   @Test
   void test() {
