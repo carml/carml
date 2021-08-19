@@ -94,7 +94,7 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
   public static class Builder {
     private final Map<IRI, Supplier<LogicalSourceResolver<?>>> logicalSourceResolverSuppliers = new HashMap<>();
 
-    //TODO validate triplesMaps?
+    // TODO validate triplesMaps?
     private Set<TriplesMap> mappableTriplesMaps;
 
     private final Functions functions = new Functions();

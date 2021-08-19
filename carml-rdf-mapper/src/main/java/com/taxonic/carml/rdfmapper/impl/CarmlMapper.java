@@ -487,8 +487,8 @@ public class CarmlMapper implements Mapper, MappingCache {
     registerPropertyHandler(annotation, method, set, predicate, propertyValueMapper, regBuilder);
   }
 
-  private void registerPropertyHandler(RdfProperty annotation, Method method, BiConsumer<Object, Object> set, IRI predicate,
-      PropertyValueMapper propertyValueMapper, MethodPropertyHandlerRegistry.Builder regBuilder) {
+  private void registerPropertyHandler(RdfProperty annotation, Method method, BiConsumer<Object, Object> set,
+      IRI predicate, PropertyValueMapper propertyValueMapper, MethodPropertyHandlerRegistry.Builder regBuilder) {
     regBuilder.addHandler(new PropertyHandler() {
 
       @Override
