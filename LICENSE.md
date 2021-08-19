@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2017 Taxonic B.V.
+Copyright (c) 2017 Taxonic B.V., 2020 Skemu
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
