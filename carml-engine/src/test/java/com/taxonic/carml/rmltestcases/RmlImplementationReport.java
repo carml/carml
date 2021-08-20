@@ -14,6 +14,7 @@ import com.taxonic.carml.vocab.Rdf;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -34,8 +35,12 @@ public class RmlImplementationReport {
   public static void main(String[] args) {
     try (FileWriter results = new FileWriter("rml-implementation-report/results.csv");
         FileWriter errors = new FileWriter("rml-implementation-report/errors.csv")) {
-      try (CSVPrinter resultPrinter = new CSVPrinter(results, CSVFormat.DEFAULT.withHeader(RESULT_HEADERS));
-          CSVPrinter errorPrinter = new CSVPrinter(errors, CSVFormat.DEFAULT.withHeader(ERROR_HEADERS));) {
+      try (CSVPrinter resultPrinter = new CSVPrinter(results, CSVFormat.Builder.create()
+          .setHeader(RESULT_HEADERS)
+          .build());
+          CSVPrinter errorPrinter = new CSVPrinter(errors, CSVFormat.Builder.create()
+              .setHeader(ERROR_HEADERS)
+              .build())) {
         populateTestCases().stream()
             .map(RmlImplementationReport::runTestCase)
             .forEach(result -> {
@@ -64,8 +69,9 @@ public class RmlImplementationReport {
 
   public static Set<TestCase> populateTestCases() {
     InputStream metadata = RmlImplementationReport.class.getResourceAsStream("test-cases/metadata.nt");
-    return RdfObjectLoader.load(selectTestCases, RmlTestCaze.class, Models.parse(metadata, RDFFormat.NTRIPLES)) //
-        .stream() //
+    return RdfObjectLoader
+        .load(selectTestCases, RmlTestCaze.class, Models.parse(Objects.requireNonNull(metadata), RDFFormat.NTRIPLES))
+        .stream()
         .collect(Collectors.toUnmodifiableSet());
   }
 
