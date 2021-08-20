@@ -71,13 +71,10 @@ CARML is available from the Central Maven Repository.
 Example usage:
 
 ```java
-Set<TriplesMap> mapping=
-    RmlMappingLoader
-    .build()
+Set<TriplesMap> mapping = RmlMappingLoader.build()
     .load(RDFFormat.TURTLE,Paths.get("path-to-mapping-file"));
 
-    RdfRmlMapper mapper=
-    RdfRmlMapper.builder()
+RdfRmlMapper mapper = RdfRmlMapper.builder()
     // add mappings
     .triplesMaps(mapping)
     // Add the resolvers to suit your need
@@ -101,7 +98,7 @@ Set<TriplesMap> mapping=
 
     .build();
 
-    Model result=mapper.mapToRdf4jModel();
+Model result = mapper.mapToRdf4jModel();
 ```
 
 Input stream extension
@@ -126,19 +123,28 @@ So now, you can define streams in your mapping like so:
 .
 ```
 
-In order to provide access to the input stream, it needs to be registered on the mapper.
+Then the input stream can be mapped by providing a map of named input streams.
 
 ```java
-RmlMapper mapper=
-    RmlMapper
-    .newBuilder()
+RdfRmlMapper mapper = RdfRmlMapper.builder()
+    .triplesMaps(mapping)    
     .setLogicalSourceResolver(Rdf.Ql.JsonPath,new JsonPathResolver())
     .build();
-    mapper.bindInputStream("stream-A",inputStream);
+
+mapper.map(Map.of("stream-A", inputStream));
 ```
 
-Note that it is possible to register several streams, allowing you to combine several streams to create your desired RDF
-output.
+Note that it is possible to map several input streams. When combining named input streams with an unnamed input stream, 
+the constant `RmlMapper.DEFAULT_STREAM_NAME` can be used as the name for the unnamed input stream. 
+
+```java
+RdfRmlMapper mapper = RdfRmlMapper.builder()
+    .triplesMaps(mapping)    
+    .setLogicalSourceResolver(Rdf.Ql.JsonPath,new JsonPathResolver())
+    .build();
+
+mapper.map(Map.of("stream-A", inputStreamA, RmlMapper.DEFAULT_STREAM_NAME, defaultInputStream));
+```
 
 Function extension
 ------------------
@@ -224,12 +230,13 @@ The class or classes containing the annotated functions can then be registered o
 the `RmlMapper#addFunctions` method.
 
 ```java
-RdfRmlMapper mapper=RdfRmlMapper.builder()
+RdfRmlMapper mapper = RdfRmlMapper.builder()
     .triplesMaps(mapping)
     .setLogicalSourceResolver(Rdf.Ql.JsonPath,new JsonPathResolver())
     .addFunctions(new YourRmlFunctions())
     .build();
-    Model result=mapper.mapToRdf4jModel();
+
+Model result=mapper.mapToRdf4jModel();
 ```
 
 It is recommended to describe and publish new functions in terms of FnO for interpretability of mappings, and, possibly,
