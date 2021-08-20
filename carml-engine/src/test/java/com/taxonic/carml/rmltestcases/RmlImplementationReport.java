@@ -9,12 +9,12 @@ import com.taxonic.carml.rdfmapper.util.RdfObjectLoader;
 import com.taxonic.carml.rmltestcases.model.Output;
 import com.taxonic.carml.rmltestcases.model.TestCase;
 import com.taxonic.carml.util.Models;
-import com.taxonic.carml.util.RdfCollectors;
 import com.taxonic.carml.util.RmlMappingLoader;
 import com.taxonic.carml.vocab.Rdf;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -22,6 +22,7 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
+import org.eclipse.rdf4j.model.util.ModelCollector;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 import org.eclipse.rdf4j.rio.RDFFormat;
 
@@ -34,8 +35,12 @@ public class RmlImplementationReport {
   public static void main(String[] args) {
     try (FileWriter results = new FileWriter("rml-implementation-report/results.csv");
         FileWriter errors = new FileWriter("rml-implementation-report/errors.csv")) {
-      try (CSVPrinter resultPrinter = new CSVPrinter(results, CSVFormat.DEFAULT.withHeader(RESULT_HEADERS));
-          CSVPrinter errorPrinter = new CSVPrinter(errors, CSVFormat.DEFAULT.withHeader(ERROR_HEADERS));) {
+      try (CSVPrinter resultPrinter = new CSVPrinter(results, CSVFormat.Builder.create()
+          .setHeader(RESULT_HEADERS)
+          .build());
+          CSVPrinter errorPrinter = new CSVPrinter(errors, CSVFormat.Builder.create()
+              .setHeader(ERROR_HEADERS)
+              .build())) {
         populateTestCases().stream()
             .map(RmlImplementationReport::runTestCase)
             .forEach(result -> {
@@ -64,8 +69,9 @@ public class RmlImplementationReport {
 
   public static Set<TestCase> populateTestCases() {
     InputStream metadata = RmlImplementationReport.class.getResourceAsStream("test-cases/metadata.nt");
-    return RdfObjectLoader.load(selectTestCases, RmlTestCaze.class, Models.parse(metadata, RDFFormat.NTRIPLES)) //
-        .stream() //
+    return RdfObjectLoader
+        .load(selectTestCases, RmlTestCaze.class, Models.parse(Objects.requireNonNull(metadata), RDFFormat.NTRIPLES))
+        .stream()
         .collect(Collectors.toUnmodifiableSet());
   }
 
@@ -105,7 +111,7 @@ public class RmlImplementationReport {
 
         Model expected = Models.parse(expectedOutputStream, RDFFormat.NQUADS)
             .stream() //
-            .collect(RdfCollectors.toRdf4JTreeModel());
+            .collect(ModelCollector.toTreeModel());
 
         passed = result.equals(expected);
       } catch (Exception exception) {
@@ -128,7 +134,7 @@ public class RmlImplementationReport {
         .build();
 
     return mapper.map()
-        .collect(RdfCollectors.toRdf4JTreeModel())
+        .collect(ModelCollector.toTreeModel())
         .block();
   }
 

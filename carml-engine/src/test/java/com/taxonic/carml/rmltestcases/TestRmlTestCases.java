@@ -15,7 +15,6 @@ import com.taxonic.carml.rmltestcases.model.Dataset;
 import com.taxonic.carml.rmltestcases.model.Output;
 import com.taxonic.carml.rmltestcases.model.TestCase;
 import com.taxonic.carml.util.Models;
-import com.taxonic.carml.util.RdfCollectors;
 import com.taxonic.carml.util.RmlMappingLoader;
 import com.taxonic.carml.vocab.Rdf;
 import java.io.InputStream;
@@ -29,6 +28,7 @@ import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
+import org.eclipse.rdf4j.model.util.ModelCollector;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 import org.eclipse.rdf4j.rio.RDFFormat;
 import org.junit.jupiter.api.BeforeEach;
@@ -117,7 +117,7 @@ public class TestRmlTestCases {
 
       Model expected = Models.parse(expectedOutputStream, RDFFormat.NQUADS)
           .stream()
-          .collect(RdfCollectors.toRdf4JTreeModel());
+          .collect(ModelCollector.toTreeModel());
 
       assertThat(result, is(expected));
     }
@@ -133,7 +133,7 @@ public class TestRmlTestCases {
         .build();
 
     return mapper.map()
-        .collect(RdfCollectors.toRdf4JTreeModel())
+        .collect(ModelCollector.toTreeModel())
         .block();
   }
 

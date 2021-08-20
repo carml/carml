@@ -16,6 +16,7 @@ import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
+import org.eclipse.rdf4j.model.util.ModelCollector;
 import org.eclipse.rdf4j.rio.ParserConfig;
 import org.eclipse.rdf4j.rio.RDFFormat;
 import org.eclipse.rdf4j.rio.Rio;
@@ -49,7 +50,7 @@ public final class Models {
               ? Stream.concat(Stream.of(statement), describeResource(model, (BNode) object).stream())
               : Stream.of(statement);
         })
-        .collect(RdfCollectors.toRdf4JModel());
+        .collect(ModelCollector.toModel());
   }
 
   public static Model reverseDescribeResource(@NonNull Model model, @NonNull Resource resource) {
@@ -61,7 +62,7 @@ public final class Models {
               ? Stream.concat(Stream.of(statement), reverseDescribeResource(model, subject).stream())
               : Stream.of(statement);
         })
-        .collect(RdfCollectors.toRdf4JModel());
+        .collect(ModelCollector.toModel());
   }
 
   public static Model symmetricDescribeResource(@NonNull Model model, @NonNull Resource resource) {

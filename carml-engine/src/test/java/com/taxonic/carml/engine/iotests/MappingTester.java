@@ -9,7 +9,6 @@ import com.taxonic.carml.logicalsourceresolver.JsonPathResolver;
 import com.taxonic.carml.logicalsourceresolver.XPathResolver;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.util.Models;
-import com.taxonic.carml.util.RdfCollectors;
 import com.taxonic.carml.util.RmlMappingLoader;
 import com.taxonic.carml.util.RmlNamespaces;
 import com.taxonic.carml.vocab.Rdf;
@@ -22,6 +21,7 @@ import java.util.function.Consumer;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
+import org.eclipse.rdf4j.model.util.ModelCollector;
 import org.eclipse.rdf4j.rio.RDFFormat;
 import org.eclipse.rdf4j.rio.Rio;
 import org.hamcrest.Description;
@@ -58,11 +58,11 @@ class MappingTester {
     Model result;
     if (namedInputStreams.isEmpty()) {
       result = mapper.map()
-          .collect(RdfCollectors.toRdf4JTreeModel())
+          .collect(ModelCollector.toTreeModel())
           .block();
     } else {
       result = mapper.map(namedInputStreams)
-          .collect(RdfCollectors.toRdf4JTreeModel())
+          .collect(ModelCollector.toTreeModel())
           .block();
     }
 
@@ -75,7 +75,7 @@ class MappingTester {
 
     Model expected = Models.parse(Objects.requireNonNull(expectedModel), determineRdfFormat(outputPath))
         .stream()
-        .collect(RdfCollectors.toRdf4JTreeModel());
+        .collect(ModelCollector.toTreeModel());
 
     assertThat(result, equalTo(expected));
   }
