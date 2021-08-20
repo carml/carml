@@ -30,7 +30,7 @@ import reactor.core.publisher.Flux;
 @NoArgsConstructor
 public abstract class RmlMapper<T> {
 
-  private static final String DEFAULT_STREAM_NAME = "DEFAULT";
+  public static final String DEFAULT_STREAM_NAME = "DEFAULT";
 
   private Function<Object, Optional<Flux<DataBuffer>>> sourceResolver;
 
