@@ -1,6 +1,9 @@
+# Perform a manual release from the main branch
 name: Release
 
+# Controls when the workflow will run
 on:
+  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
     inputs:
       releaseVersion:
@@ -12,17 +15,6 @@ on:
         required: true
         default: "X.Y.Z-SNAPSHOT"
 
-#on:
-#  workflow_dispatch:
-#    inputs:
-#      releaseVersion:
-#        description: "Default version to use when preparing a release."
-#        required: true
-#        default: "X.Y.Z"
-#      developmentVersion:
-#        description: "Default version to use for new local working copy."
-#        required: true
-#        default: "X.Y.Z-SNAPSHOT"
 jobs:
   release:
     runs-on: ubuntu-latest
