@@ -61,32 +61,39 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
   }
 
   public Model mapToRdf4jModel() {
-    return map().collect(RdfCollectors.toRdf4JModel())
-        .block();
+    return toRdf4jModel(map());
   }
 
   public Model mapToRdf4jModel(Set<TriplesMap> triplesMapFilter) {
-    return map(triplesMapFilter).collect(RdfCollectors.toRdf4JModel())
-        .block();
+    return toRdf4jModel(map(triplesMapFilter));
   }
 
   public Model mapToRdf4jModel(@NonNull InputStream inputStream) {
-    return map(inputStream).collect(RdfCollectors.toRdf4JModel())
-        .block();
+    return toRdf4jModel(map(inputStream));
   }
 
   public Model mapToRdf4jModel(@NonNull InputStream inputStream, Set<TriplesMap> triplesMapFilter) {
-    return map(inputStream, triplesMapFilter).collect(RdfCollectors.toRdf4JModel())
-        .block();
+    return toRdf4jModel(map(inputStream, triplesMapFilter));
   }
 
   public Model mapToRdf4jModel(Map<String, InputStream> namedInputStreams) {
-    return map(namedInputStreams).collect(RdfCollectors.toRdf4JModel())
-        .block();
+    return toRdf4jModel(map(namedInputStreams));
   }
 
   public Model mapToRdf4jModel(Map<String, InputStream> namedInputStreams, Set<TriplesMap> triplesMapFilter) {
-    return map(namedInputStreams, triplesMapFilter).collect(RdfCollectors.toRdf4JModel())
+    return toRdf4jModel(map(namedInputStreams, triplesMapFilter));
+  }
+
+  public Model mapItemToRdf4jModel(Object item) {
+    return toRdf4jModel(mapItem(item));
+  }
+
+  public Model mapItemToRdf4jModel(Object item, Set<TriplesMap> triplesMapFilter) {
+    return toRdf4jModel(mapItem(item, triplesMapFilter));
+  }
+
+  private Model toRdf4jModel(Flux<Statement> statementFlux) {
+    return statementFlux.collect(RdfCollectors.toRdf4JModel())
         .block();
   }
 
