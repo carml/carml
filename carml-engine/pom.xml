@@ -4,7 +4,7 @@
 	<parent>
 		<groupId>com.taxonic.carml</groupId>
 		<artifactId>carml</artifactId>
-		<version>0.4.0-beta-2-SNAPSHOT</version>
+		<version>0.4.0-beta-2</version>
 	</parent>
 
 	<artifactId>carml-engine</artifactId>
