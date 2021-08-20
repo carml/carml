@@ -43,8 +43,8 @@
 
 	<scm>
 		<url>https://github.com/carml/carml</url>
-		<connection>scm:git:git@github.com:carml/carml.git</connection>
-		<developerConnection>scm:git:git@github.com:carml/carml.git</developerConnection>
+		<connection>scm:git:https://github.com:carml/carml.git</connection>
+		<developerConnection>scm:git:https://github.com:carml/carml.git</developerConnection>
 		<tag>HEAD</tag>
 	</scm>
 
