@@ -13,6 +13,7 @@ import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.Serializer;
 
+@SuppressWarnings({"java:S1135"})
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class MapDbChildSideJoinStoreProvider<T1 extends Serializable, T2 extends Serializable>
     implements ChildSideJoinStoreProvider<T1, T2> {

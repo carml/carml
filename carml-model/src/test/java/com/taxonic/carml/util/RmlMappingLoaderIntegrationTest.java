@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 @Disabled("TODO")
-public class RmlMappingLoaderIntegrationTest {
+class RmlMappingLoaderIntegrationTest {
 
   @Test
   void test() {

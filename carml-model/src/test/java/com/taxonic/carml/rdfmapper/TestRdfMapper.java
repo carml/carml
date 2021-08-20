@@ -2,7 +2,6 @@ package com.taxonic.carml.rdfmapper;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-
 import com.taxonic.carml.model.TermType;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.model.impl.CarmlDatatypeMap;
@@ -21,12 +20,8 @@ import java.util.Set;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.model.vocabulary.XSD;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class TestRdfMapper extends RmlLoader {
-  // TODO Add logger stuff
-  private static final Logger logger = LoggerFactory.getLogger(TestRdfMapper.class);
 
   private static final SimpleValueFactory VALUE_FACTORY = SimpleValueFactory.getInstance();
 
@@ -87,8 +82,6 @@ public class TestRdfMapper extends RmlLoader {
 
   // @Test
   public void testLoadMappingWithJoinIntegration() {
-    logger.info("testing JoinIntegration mapping");
-
     CarmlTriplesMap parentTriplesMap = CarmlTriplesMap.builder()
         .logicalSource(CarmlLogicalSource.builder()
             .source("joinCountries.json")

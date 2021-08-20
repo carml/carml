@@ -14,6 +14,7 @@ import org.eclipse.rdf4j.rio.RDFFormat;
 import org.eclipse.rdf4j.rio.Rio;
 import org.junit.jupiter.api.Test;
 
+@SuppressWarnings("java:S1135")
 class CarmlMapperTest {
 
   private static final ValueFactory VF = SimpleValueFactory.getInstance();

@@ -51,6 +51,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 
+@SuppressWarnings("java:S1135")
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
 

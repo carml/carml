@@ -13,6 +13,7 @@ import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Value;
 
+@SuppressWarnings("java:S1135")
 class IterablePropertyValueMapper implements PropertyValueMapper {
 
   private ValueTransformer valueTransformer;

@@ -3,6 +3,7 @@ package com.taxonic.carml.engine.function;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
+@SuppressWarnings("java:S1135")
 @Retention(RetentionPolicy.RUNTIME)
 public @interface FnoParam {
 

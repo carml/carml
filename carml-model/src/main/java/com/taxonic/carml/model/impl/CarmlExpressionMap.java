@@ -17,6 +17,7 @@ import lombok.experimental.SuperBuilder;
 import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
 
+@SuppressWarnings("java:S1135")
 @SuperBuilder
 @NoArgsConstructor(access = AccessLevel.PACKAGE)
 abstract class CarmlExpressionMap extends CarmlResource implements ExpressionMap {

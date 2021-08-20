@@ -27,7 +27,6 @@ abstract class CarmlTermMap extends CarmlExpressionMap implements TermMap {
     return inverseExpression;
   }
 
-  // TODO https://www.w3.org/TR/r2rml/#dfn-term-type
   @RdfProperty(Rr.termType)
   @Override
   public TermType getTermType() {

@@ -15,15 +15,16 @@ import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.vocabulary.XSD;
 
+@SuppressWarnings({"java:S1135", "java:S1068"})
 public class ComplexValueTransformer implements ValueTransformer {
 
-  private TypeDecider typeDecider;
+  private final TypeDecider typeDecider;
 
-  private MappingCache mappingCache;
+  private final MappingCache mappingCache;
 
-  private Mapper mapper;
+  private final Mapper mapper;
 
-  private Function<Object, Object> typeAdapter;
+  private final Function<Object, Object> typeAdapter;
 
   public ComplexValueTransformer(TypeDecider typeDecider, MappingCache mappingCache, Mapper mapper,
       UnaryOperator<Object> typeAdapter) {

@@ -36,6 +36,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+@SuppressWarnings("java:S1135")
 class RdfObjectLoaderTest {
 
   private static final ValueFactory VF = SimpleValueFactory.getInstance();

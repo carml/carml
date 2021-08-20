@@ -17,6 +17,7 @@ import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Value;
 
+@SuppressWarnings("java:S1135")
 public class LogicalSourceSourcePropertyHandler implements PropertyHandler {
 
   private IRI predicate;

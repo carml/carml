@@ -12,6 +12,7 @@ import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 
+@SuppressWarnings("java:S1135")
 public class TypeFromTripleTypeDecider implements TypeDecider {
 
   private final Mapper mapper;

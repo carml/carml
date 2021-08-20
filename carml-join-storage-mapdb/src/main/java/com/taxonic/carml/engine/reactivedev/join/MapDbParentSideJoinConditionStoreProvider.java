@@ -13,6 +13,7 @@ import lombok.NonNull;
 import org.mapdb.DB;
 import org.mapdb.Serializer;
 
+@SuppressWarnings({"java:S1135", "java:S125", "java:S1144"})
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class MapDbParentSideJoinConditionStoreProvider<T extends Serializable>
     implements ParentSideJoinConditionStoreProvider<T> {

@@ -51,6 +51,7 @@ import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@SuppressWarnings({"java:S1135", "java:S125"})
 public class CarmlMapper implements Mapper, MappingCache {
 
   private static final Logger LOG = LoggerFactory.getLogger(CarmlMapper.class);

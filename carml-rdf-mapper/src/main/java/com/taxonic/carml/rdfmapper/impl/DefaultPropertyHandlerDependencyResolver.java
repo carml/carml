@@ -31,6 +31,7 @@ import org.eclipse.rdf4j.model.IRI;
  * type {@link IRI}, qualified by {@link PropertyPredicate}.
  * </p>
  */
+@SuppressWarnings("java:S1135")
 class DefaultPropertyHandlerDependencyResolver implements DependencyResolver {
 
   private BiConsumer<Object, Object> set;

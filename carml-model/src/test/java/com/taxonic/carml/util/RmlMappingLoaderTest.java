@@ -7,8 +7,8 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 @Disabled("TODO")
-public class RmlMappingLoaderTest {
-  // TODO: PM: what are we testing here? We should not be testing the functioning of the RDF Mapper.
+class RmlMappingLoaderTest {
+  // PM: what are we testing here? We should not be testing the functioning of the RDF Mapper.
 
   @Test
   void test() {
