@@ -20,7 +20,6 @@ import com.taxonic.carml.model.LogicalSource;
 import com.taxonic.carml.model.RefObjectMap;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.util.Mapping;
-import com.taxonic.carml.util.RdfCollectors;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.text.Normalizer;
@@ -44,6 +43,7 @@ import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
+import org.eclipse.rdf4j.model.util.ModelCollector;
 import org.springframework.core.io.buffer.DataBuffer;
 import reactor.core.publisher.Flux;
 
@@ -60,40 +60,40 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
     return new Builder();
   }
 
-  public Model mapToRdf4jModel() {
-    return toRdf4jModel(map());
+  public Model mapToModel() {
+    return toModel(map());
   }
 
-  public Model mapToRdf4jModel(Set<TriplesMap> triplesMapFilter) {
-    return toRdf4jModel(map(triplesMapFilter));
+  public Model mapToModel(Set<TriplesMap> triplesMapFilter) {
+    return toModel(map(triplesMapFilter));
   }
 
-  public Model mapToRdf4jModel(@NonNull InputStream inputStream) {
-    return toRdf4jModel(map(inputStream));
+  public Model mapToModel(@NonNull InputStream inputStream) {
+    return toModel(map(inputStream));
   }
 
-  public Model mapToRdf4jModel(@NonNull InputStream inputStream, Set<TriplesMap> triplesMapFilter) {
-    return toRdf4jModel(map(inputStream, triplesMapFilter));
+  public Model mapToModel(@NonNull InputStream inputStream, Set<TriplesMap> triplesMapFilter) {
+    return toModel(map(inputStream, triplesMapFilter));
   }
 
-  public Model mapToRdf4jModel(Map<String, InputStream> namedInputStreams) {
-    return toRdf4jModel(map(namedInputStreams));
+  public Model mapToModel(Map<String, InputStream> namedInputStreams) {
+    return toModel(map(namedInputStreams));
   }
 
-  public Model mapToRdf4jModel(Map<String, InputStream> namedInputStreams, Set<TriplesMap> triplesMapFilter) {
-    return toRdf4jModel(map(namedInputStreams, triplesMapFilter));
+  public Model mapToModel(Map<String, InputStream> namedInputStreams, Set<TriplesMap> triplesMapFilter) {
+    return toModel(map(namedInputStreams, triplesMapFilter));
   }
 
   public Model mapItemToRdf4jModel(Object item) {
-    return toRdf4jModel(mapItem(item));
+    return toModel(mapItem(item));
   }
 
   public Model mapItemToRdf4jModel(Object item, Set<TriplesMap> triplesMapFilter) {
-    return toRdf4jModel(mapItem(item, triplesMapFilter));
+    return toModel(mapItem(item, triplesMapFilter));
   }
 
-  private Model toRdf4jModel(Flux<Statement> statementFlux) {
-    return statementFlux.collect(RdfCollectors.toRdf4JModel())
+  private Model toModel(Flux<Statement> statementFlux) {
+    return statementFlux.collect(ModelCollector.toModel())
         .block();
   }
 

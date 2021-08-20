@@ -98,7 +98,7 @@ RdfRmlMapper mapper = RdfRmlMapper.builder()
 
     .build();
 
-Model result = mapper.mapToRdf4jModel();
+Model result = mapper.mapToModel();
 ```
 
 Input stream extension
@@ -236,7 +236,7 @@ RdfRmlMapper mapper = RdfRmlMapper.builder()
     .addFunctions(new YourRmlFunctions())
     .build();
 
-Model result=mapper.mapToRdf4jModel();
+Model result=mapper.mapToModel();
 ```
 
 It is recommended to describe and publish new functions in terms of FnO for interpretability of mappings, and, possibly,

@@ -9,7 +9,6 @@ import com.taxonic.carml.rdfmapper.util.RdfObjectLoader;
 import com.taxonic.carml.rmltestcases.model.Output;
 import com.taxonic.carml.rmltestcases.model.TestCase;
 import com.taxonic.carml.util.Models;
-import com.taxonic.carml.util.RdfCollectors;
 import com.taxonic.carml.util.RmlMappingLoader;
 import com.taxonic.carml.vocab.Rdf;
 import java.io.FileWriter;
@@ -22,6 +21,7 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
+import org.eclipse.rdf4j.model.util.ModelCollector;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 import org.eclipse.rdf4j.rio.RDFFormat;
 
@@ -105,7 +105,7 @@ public class RmlImplementationReport {
 
         Model expected = Models.parse(expectedOutputStream, RDFFormat.NQUADS)
             .stream() //
-            .collect(RdfCollectors.toRdf4JTreeModel());
+            .collect(ModelCollector.toTreeModel());
 
         passed = result.equals(expected);
       } catch (Exception exception) {
@@ -128,7 +128,7 @@ public class RmlImplementationReport {
         .build();
 
     return mapper.map()
-        .collect(RdfCollectors.toRdf4JTreeModel())
+        .collect(ModelCollector.toTreeModel())
         .block();
   }
 
