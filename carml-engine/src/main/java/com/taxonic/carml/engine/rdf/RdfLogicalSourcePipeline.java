@@ -31,6 +31,8 @@ public class RdfLogicalSourcePipeline<I> implements LogicalSourcePipeline<I, Sta
   @NonNull
   private final RdfMappingContext rdfMappingContext;
 
+  private final List<TriplesMap> triplesMaps;
+
   private final Set<RdfTriplesMapper<I>> triplesMappers;
 
   public static <I> RdfLogicalSourcePipeline<I> of(@NonNull LogicalSource logicalSource, List<TriplesMap> triplesMaps,
@@ -43,7 +45,7 @@ public class RdfLogicalSourcePipeline<I> implements LogicalSourcePipeline<I, Sta
             rdfMappingContext, parentSideJoinConditionStoreProvider))
         .collect(Collectors.toUnmodifiableSet());
 
-    return of(logicalSource, logicalSourceResolver, rdfMappingContext, triplesMappers);
+    return of(logicalSource, logicalSourceResolver, rdfMappingContext, triplesMaps, triplesMappers);
   }
 
   private static <I> RdfTriplesMapper<I> constructTriplesMapper(TriplesMap triplesMap,
@@ -76,22 +78,27 @@ public class RdfLogicalSourcePipeline<I> implements LogicalSourcePipeline<I, Sta
   }
 
   public Map<TriplesMapper<I, Statement>, Flux<Statement>> run(Object source, Set<TriplesMap> triplesMapFilter) {
-    boolean filterEmpty = triplesMapFilter == null || triplesMapFilter.isEmpty();
-    int nrOfTriplesMappers = filterEmpty ? triplesMappers.size() : triplesMapFilter.size();
+    var actionableTriplesMappers = filterTriplesMappers(triplesMapFilter);
 
     Flux<I> itemFlux = logicalSourceResolver.getSourceFlux()
         .apply(source, logicalSource)
         .subscribeOn(Schedulers.boundedElastic())
         .publish()
-        .autoConnect(nrOfTriplesMappers);
+        .autoConnect(actionableTriplesMappers.size());
 
-    return triplesMappers.stream()
-        .filter(triplesMapper -> filterEmpty || triplesMapFilter.contains(triplesMapper.getTriplesMap()))
+    return actionableTriplesMappers.stream()
         .collect(Collectors.toUnmodifiableMap(triplesMapper -> triplesMapper,
             triplesMapper -> itemFlux.flatMap(triplesMapper::map)
                 .publish()
                 // wait for all subscribers to be ready
                 .autoConnect(1 + triplesMapper.getConnectedRefObjectMappers()
                     .size())));
+  }
+
+  private Set<RdfTriplesMapper<I>> filterTriplesMappers(Set<TriplesMap> triplesMapFilter) {
+    boolean filterEmpty = triplesMapFilter == null || triplesMapFilter.isEmpty();
+    return triplesMappers.stream()
+        .filter(triplesMapper -> filterEmpty || triplesMapFilter.contains(triplesMapper.getTriplesMap()))
+        .collect(Collectors.toUnmodifiableSet());
   }
 }
