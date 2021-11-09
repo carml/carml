@@ -1,6 +1,7 @@
 package com.taxonic.carml.rmltestcases;
 
 import com.taxonic.carml.engine.rdf.RdfRmlMapper;
+import com.taxonic.carml.engine.sourceresolver.ClassPathResolver;
 import com.taxonic.carml.logicalsourceresolver.CsvResolver;
 import com.taxonic.carml.logicalsourceresolver.JsonPathResolver;
 import com.taxonic.carml.logicalsourceresolver.XPathResolver;
@@ -85,7 +86,8 @@ public class RmlImplementationReport {
         .setLogicalSourceResolver(Rdf.Ql.JsonPath, JsonPathResolver::getInstance)
         .setLogicalSourceResolver(Rdf.Ql.XPath, XPathResolver::getInstance)
         .setLogicalSourceResolver(Rdf.Ql.Csv, CsvResolver::getInstance)
-        .classPathResolver(String.format("%s/%s", TestRmlTestCases.CLASS_LOCATION, testCase.getIdentifier()));
+        .classPathResolver(ClassPathResolver.of(String.format("test-cases/%s", testCase.getIdentifier()),
+            RmlImplementationReport.class));
 
     Output expectedOutput = testCase.getOutput();
     boolean passed = false;
@@ -130,7 +132,8 @@ public class RmlImplementationReport {
         .load(RDFFormat.TURTLE, mappingStream);
 
     RdfRmlMapper mapper = mapperBuilder.triplesMaps(mapping)
-        .classPathResolver(String.format("%s/%s", TestRmlTestCases.CLASS_LOCATION, testCase.getIdentifier()))
+        .classPathResolver(ClassPathResolver.of(String.format("test-cases/%s", testCase.getIdentifier()),
+            RmlImplementationReport.class))
         .build();
 
     return mapper.map()

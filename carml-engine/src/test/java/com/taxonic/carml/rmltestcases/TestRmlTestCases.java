@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.taxonic.carml.engine.rdf.RdfRmlMapper;
+import com.taxonic.carml.engine.sourceresolver.ClassPathResolver;
 import com.taxonic.carml.logicalsourceresolver.CsvResolver;
 import com.taxonic.carml.logicalsourceresolver.JsonPathResolver;
 import com.taxonic.carml.logicalsourceresolver.XPathResolver;
@@ -36,8 +37,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 public class TestRmlTestCases {
-
-  static final String CLASS_LOCATION = "com/taxonic/carml/rmltestcases/test-cases";
 
   private static final ValueFactory VF = SimpleValueFactory.getInstance();
 
@@ -129,7 +128,8 @@ public class TestRmlTestCases {
         .load(RDFFormat.TURTLE, mappingStream);
 
     RdfRmlMapper mapper = mapperBuilder.triplesMaps(mapping)
-        .classPathResolver(String.format("%s/%s", CLASS_LOCATION, testCase.getIdentifier()))
+        .classPathResolver(
+            ClassPathResolver.of(String.format("test-cases/%s", testCase.getIdentifier()), TestRmlTestCases.class))
         .build();
 
     return mapper.map()
