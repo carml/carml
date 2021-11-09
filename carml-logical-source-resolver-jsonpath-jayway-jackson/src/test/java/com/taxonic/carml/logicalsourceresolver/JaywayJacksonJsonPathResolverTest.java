@@ -5,11 +5,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.startsWith;
+import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.jayway.jsonpath.InvalidPathException;
 import com.taxonic.carml.engine.ExpressionEvaluation;
 import com.taxonic.carml.model.LogicalSource;
 import com.taxonic.carml.model.impl.CarmlLogicalSource;
@@ -87,7 +87,26 @@ class JaywayJacksonJsonPathResolverTest {
   }
 
   @Test
-  void givenInputAndJsonPathExpression_whenEvaluateExpressionApply_executesJsonPathCorrectly() throws IOException {
+  void givenUnsupportedSourceObject_whenApplySourceFlux_thenThrowsException() {
+    // Given
+    LogicalSource foodSource = CarmlLogicalSource.builder()
+        .source("")
+        .iterator("$.food[*]")
+        .referenceFormulation(Rdf.Ql.JsonPath)
+        .build();
+    LogicalSourceResolver.SourceFlux<Object> sourceFlux = jsonPathResolver.getSourceFlux();
+
+    // When
+    LogicalSourceResolverException exception =
+        assertThrows(LogicalSourceResolverException.class, () -> sourceFlux.apply(new Object(), foodSource));
+
+    // Then
+    assertThat(exception.getMessage(),
+        startsWith("No supported source object provided for logical source blank node resource"));
+  }
+
+  @Test
+  void givenInputAndJsonPathExpression_whenEvaluateExpressionApply_thenExecutesJsonPathCorrectly() throws IOException {
     // Given
     String food = IOUtils.toString(
         Objects.requireNonNull(JaywayJacksonJsonPathResolverTest.class.getResourceAsStream("food.json")),
@@ -111,7 +130,7 @@ class JaywayJacksonJsonPathResolverTest {
   }
 
   @Test
-  void givenUnresolvableJsonPath_whenSourceFluxApplied_shouldReturnEmptyFlux() throws IOException {
+  void givenUnresolvableJsonPath_whenSourceFluxApplied_thenReturnEmptyFlux() throws IOException {
     // Given
     LogicalSource foodSource = CarmlLogicalSource.builder()
         .source("")
@@ -132,7 +151,7 @@ class JaywayJacksonJsonPathResolverTest {
   }
 
   @Test
-  void givenInvalidJsonPath_whenSourceFluxApplied_shouldThrowException() throws IOException {
+  void givenInvalidJsonPath_whenSourceFluxApplied_thenThrowsException() throws IOException {
     // Given
     LogicalSource foodSource = CarmlLogicalSource.builder()
         .source("")
@@ -145,9 +164,32 @@ class JaywayJacksonJsonPathResolverTest {
     Map<String, Object> json = objectMapper.readValue(inputStream, new TypeReference<>() {});
 
     // When
-    Throwable exception = assertThrows(InvalidPathException.class, () -> sourceFlux.apply(json, foodSource));
+    LogicalSourceResolverException exception =
+        assertThrows(LogicalSourceResolverException.class, () -> sourceFlux.apply(json, foodSource));
 
     // Then
-    assertThat(exception.getMessage(), startsWith("Could not parse"));
+    assertThat(exception.getMessage(), is("An exception occurred while evaluating: foo[invalid]"));
   }
+
+  @Test
+  void givenInputAndJsonPathExpression_whenInvalidEvaluateExpressionApply_thenThrowsException() throws IOException {
+    // Given
+    String food = IOUtils.toString(
+        Objects.requireNonNull(JaywayJacksonJsonPathResolverTest.class.getResourceAsStream("food.json")),
+        StandardCharsets.UTF_8);
+
+    Map<String, Object> json = objectMapper.readValue(food, new TypeReference<>() {});
+
+    LogicalSourceResolver.ExpressionEvaluationFactory<Object> expressionEvaluationFactory =
+        jsonPathResolver.getExpressionEvaluationFactory();
+    ExpressionEvaluation expressionEvaluation = expressionEvaluationFactory.apply(json);
+
+    // When
+    LogicalSourceResolverException exception =
+        assertThrows(LogicalSourceResolverException.class, () -> expressionEvaluation.apply("foo[invalid]"));
+
+    // Then
+    assertThat(exception.getMessage(), is("An exception occurred while evaluating: foo[invalid]"));
+  }
+
 }
