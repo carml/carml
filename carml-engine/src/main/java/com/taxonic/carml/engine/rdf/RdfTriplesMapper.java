@@ -248,5 +248,4 @@ public class RdfTriplesMapper<I> implements TriplesMapper<I, Statement> {
         .subscribeOn(Schedulers.boundedElastic())
         .then();
   }
-
 }

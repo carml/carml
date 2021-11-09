@@ -61,11 +61,9 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
 
   private static final Logger LOG = LoggerFactory.getLogger(RdfTermGeneratorFactory.class);
 
-  private final ValueFactory valueFactory;
-
-  private final String baseIri;
-
   private final RdfMapperOptions mapperOptions;
+
+  private final ValueFactory valueFactory;
 
   private final UnaryOperator<String> makeIriSafe;
 
@@ -73,10 +71,9 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
 
   private final ParentSideJoinConditionStoreProvider<Resource> parentSideJoinConditionStoreProvider;
 
-  public static RdfTermGeneratorFactory of(ValueFactory valueFactory, RdfMapperOptions mapperOptions,
-      TemplateParser templateParser,
+  public static RdfTermGeneratorFactory of(RdfMapperOptions mapperOptions, TemplateParser templateParser,
       ParentSideJoinConditionStoreProvider<Resource> parentSideJoinConditionStoreProvider) {
-    return new RdfTermGeneratorFactory(valueFactory, RML_BASE_IRI, mapperOptions,
+    return new RdfTermGeneratorFactory(mapperOptions, mapperOptions.getValueFactory(),
         IriSafeMaker.create(mapperOptions.getNormalizationForm(), mapperOptions.isIriUpperCasePercentEncoding()),
         templateParser, parentSideJoinConditionStoreProvider);
   }
@@ -447,14 +444,14 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
       return valueFactory.createIRI(lexicalForm);
     }
 
-    String iri = baseIri + lexicalForm;
+    String iri = RML_BASE_IRI + lexicalForm;
     if (RdfValues.isValidIri(iri)) {
       return valueFactory.createIRI(iri);
     }
 
     throw new TermGeneratorFactoryException(String.format(
         "Could not generate a valid iri from term lexical form [%s] as-is, or prefixed with base iri [%s]", lexicalForm,
-        baseIri));
+        RML_BASE_IRI));
   }
 
   private BNode generateBNodeTerm(String lexicalForm) {

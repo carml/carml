@@ -139,8 +139,8 @@ class RdfLogicalSourcePipelineTest {
 
     when(logicalSourceResolver.getSourceFlux()).thenReturn((foo, bar) -> Flux.just("one", "two"));
 
-    rdfLogicalSourcePipeline =
-        RdfLogicalSourcePipeline.of(logicalSource, logicalSourceResolver, rdfMappingContext, triplesMappers);
+    rdfLogicalSourcePipeline = RdfLogicalSourcePipeline.of(logicalSource, logicalSourceResolver, rdfMappingContext,
+        List.of(triplesMapA, triplesMapB), triplesMappers);
 
     Map<TriplesMapper<String, Statement>, Flux<Statement>> pipelineResult = rdfLogicalSourcePipeline.run();
 

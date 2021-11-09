@@ -19,7 +19,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
+import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -28,10 +28,12 @@ import reactor.core.publisher.Flux;
 
 @Slf4j
 @AllArgsConstructor
-@NoArgsConstructor
 public abstract class RmlMapper<T> {
 
   public static final String DEFAULT_STREAM_NAME = "DEFAULT";
+
+  @Getter
+  private Set<TriplesMap> triplesMaps;
 
   private Function<Object, Optional<Flux<DataBuffer>>> sourceResolver;
 

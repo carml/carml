@@ -23,6 +23,7 @@ import com.taxonic.carml.util.Mapping;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.text.Normalizer;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -50,58 +51,48 @@ import reactor.core.publisher.Flux;
 @Slf4j
 public class RdfRmlMapper extends RmlMapper<Statement> {
 
-  private RdfRmlMapper(Function<Object, Optional<Flux<DataBuffer>>> sourceResolver,
+  private static final long SECONDS_TO_TIMEOUT = 30;
+
+  private final RdfMapperOptions rdfMapperOptions;
+
+  private final Supplier<ValueFactory> valueFactorySupplier;
+
+  private final TermGeneratorFactory<Value> termGeneratorFactory;
+
+  private final Map<IRI, Supplier<LogicalSourceResolver<?>>> logicalSourceResolverSuppliers;
+
+  private final ChildSideJoinStoreProvider<Resource, IRI> childSideJoinCacheProvider;
+
+  private final ParentSideJoinConditionStoreProvider<Resource> parentSideJoinConditionStoreProvider;
+
+  private RdfRmlMapper(Set<TriplesMap> triplesMaps, Function<Object, Optional<Flux<DataBuffer>>> sourceResolver,
       Map<TriplesMap, LogicalSourcePipeline<?, Statement>> logicalSourcePipelinePool,
-      Map<? extends RefObjectMapper<Statement>, TriplesMap> refObjectMapperToParentTriplesMap) {
-    super(sourceResolver, logicalSourcePipelinePool, refObjectMapperToParentTriplesMap);
+      Map<? extends RefObjectMapper<Statement>, TriplesMap> refObjectMapperToParentTriplesMap,
+      RdfMapperOptions rdfMapperOptions, Supplier<ValueFactory> valueFactorySupplier,
+      TermGeneratorFactory<Value> termGeneratorFactory,
+      Map<IRI, Supplier<LogicalSourceResolver<?>>> logicalSourceResolverSuppliers,
+      ChildSideJoinStoreProvider<Resource, IRI> childSideJoinCacheProvider,
+      ParentSideJoinConditionStoreProvider<Resource> parentSideJoinConditionStoreProvider) {
+    super(triplesMaps, sourceResolver, logicalSourcePipelinePool, refObjectMapperToParentTriplesMap);
+    this.rdfMapperOptions = rdfMapperOptions;
+    this.valueFactorySupplier = valueFactorySupplier;
+    this.termGeneratorFactory = termGeneratorFactory;
+    this.logicalSourceResolverSuppliers = logicalSourceResolverSuppliers;
+    this.childSideJoinCacheProvider = childSideJoinCacheProvider;
+    this.parentSideJoinConditionStoreProvider = parentSideJoinConditionStoreProvider;
   }
 
   public static Builder builder() {
     return new Builder();
   }
 
-  public Model mapToModel() {
-    return toModel(map());
-  }
-
-  public Model mapToModel(Set<TriplesMap> triplesMapFilter) {
-    return toModel(map(triplesMapFilter));
-  }
-
-  public Model mapToModel(@NonNull InputStream inputStream) {
-    return toModel(map(inputStream));
-  }
-
-  public Model mapToModel(@NonNull InputStream inputStream, Set<TriplesMap> triplesMapFilter) {
-    return toModel(map(inputStream, triplesMapFilter));
-  }
-
-  public Model mapToModel(Map<String, InputStream> namedInputStreams) {
-    return toModel(map(namedInputStreams));
-  }
-
-  public Model mapToModel(Map<String, InputStream> namedInputStreams, Set<TriplesMap> triplesMapFilter) {
-    return toModel(map(namedInputStreams, triplesMapFilter));
-  }
-
-  public Model mapItemToRdf4jModel(Object item) {
-    return toModel(mapItem(item));
-  }
-
-  public Model mapItemToRdf4jModel(Object item, Set<TriplesMap> triplesMapFilter) {
-    return toModel(mapItem(item, triplesMapFilter));
-  }
-
-  private Model toModel(Flux<Statement> statementFlux) {
-    return statementFlux.collect(ModelCollector.toModel())
-        .block();
-  }
-
   @NoArgsConstructor(access = AccessLevel.PRIVATE)
   public static class Builder {
     private final Map<IRI, Supplier<LogicalSourceResolver<?>>> logicalSourceResolverSuppliers = new HashMap<>();
 
-    private Set<TriplesMap> mappableTriplesMaps;
+    private Set<TriplesMap> triplesMaps = new HashSet<>();
+
+    private Set<TriplesMap> mappableTriplesMaps = new HashSet<>();
 
     private final Functions functions = new Functions();
 
@@ -140,6 +131,11 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
       return this;
     }
 
+    public Builder classPathResolver(ClassPathResolver classPathResolver) {
+      sourceResolvers.add(classPathResolver);
+      return this;
+    }
+
     public Builder setLogicalSourceResolver(IRI iri, Supplier<LogicalSourceResolver<?>> resolver) {
       logicalSourceResolverSuppliers.put(iri, resolver);
       return this;
@@ -168,6 +164,7 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
     }
 
     public Builder triplesMaps(Set<TriplesMap> triplesMaps) {
+      this.triplesMaps = triplesMaps;
       this.mappableTriplesMaps = Mapping.filterMappable(triplesMaps);
       return this;
     }
@@ -188,15 +185,16 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
         throw new RmlMapperException("No logical source resolver suppliers specified.");
       }
 
-      if (termGeneratorFactory == null) {
-        RdfMapperOptions mapperOptions = RdfMapperOptions.builder()
-            .normalizationForm(normalizationForm)
-            .iriUpperCasePercentEncoding(iriUpperCasePercentEncoding)
-            .functions(functions)
-            .build();
+      RdfMapperOptions mapperOptions = RdfMapperOptions.builder()
+          .valueFactory(valueFactorySupplier.get())
+          .normalizationForm(normalizationForm)
+          .iriUpperCasePercentEncoding(iriUpperCasePercentEncoding)
+          .functions(functions)
+          .build();
 
-        termGeneratorFactory = RdfTermGeneratorFactory.of(valueFactorySupplier.get(), mapperOptions,
-            TemplateParser.build(), parentSideJoinConditionStoreProvider);
+      if (termGeneratorFactory == null) {
+        termGeneratorFactory =
+            RdfTermGeneratorFactory.of(mapperOptions, TemplateParser.build(), parentSideJoinConditionStoreProvider);
       }
 
       var rdfMappingContext = RdfMappingContext.builder()
@@ -248,8 +246,9 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
 
       var compositeResolver = CompositeSourceResolver.of(Set.copyOf(sourceResolvers));
 
-
-      return new RdfRmlMapper(compositeResolver, logicalSourcePipelinePool, roMapperToParentTm);
+      return new RdfRmlMapper(triplesMaps, compositeResolver, logicalSourcePipelinePool, roMapperToParentTm,
+          mapperOptions, valueFactorySupplier, termGeneratorFactory, logicalSourceResolverSuppliers,
+          childSideJoinCacheProvider, parentSideJoinConditionStoreProvider);
     }
 
     private RdfLogicalSourcePipeline<?> buildRdfLogicalSourcePipeline(LogicalSource logicalSource,
@@ -268,6 +267,42 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
       return RdfLogicalSourcePipeline.of(logicalSource, triplesMaps, tmToRoMappers, roMapperToParentTm,
           logicalSourceResolverSupplier.get(), rdfMappingContext, parentSideJoinConditionStoreProvider);
     }
+  }
 
+  public Model mapToModel() {
+    return toModel(map());
+  }
+
+  public Model mapToModel(Set<TriplesMap> triplesMapFilter) {
+    return toModel(map(triplesMapFilter));
+  }
+
+  public Model mapToModel(@NonNull InputStream inputStream) {
+    return toModel(map(inputStream));
+  }
+
+  public Model mapToModel(@NonNull InputStream inputStream, Set<TriplesMap> triplesMapFilter) {
+    return toModel(map(inputStream, triplesMapFilter));
+  }
+
+  public Model mapToModel(Map<String, InputStream> namedInputStreams) {
+    return toModel(map(namedInputStreams));
+  }
+
+  public Model mapToModel(Map<String, InputStream> namedInputStreams, Set<TriplesMap> triplesMapFilter) {
+    return toModel(map(namedInputStreams, triplesMapFilter));
+  }
+
+  public Model mapItemToModel(Object item) {
+    return toModel(mapItem(item));
+  }
+
+  public Model mapItemToModel(Object item, Set<TriplesMap> triplesMapFilter) {
+    return toModel(mapItem(item, triplesMapFilter));
+  }
+
+  private Model toModel(Flux<Statement> statementFlux) {
+    return statementFlux.collect(ModelCollector.toModel())
+        .block(Duration.ofSeconds(SECONDS_TO_TIMEOUT));
   }
 }
