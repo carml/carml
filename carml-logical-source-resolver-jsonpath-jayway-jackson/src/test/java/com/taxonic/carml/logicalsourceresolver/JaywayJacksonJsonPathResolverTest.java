@@ -95,10 +95,11 @@ class JaywayJacksonJsonPathResolverTest {
         .referenceFormulation(Rdf.Ql.JsonPath)
         .build();
     LogicalSourceResolver.SourceFlux<Object> sourceFlux = jsonPathResolver.getSourceFlux();
+    Object unsupported = new Object();
 
     // When
     LogicalSourceResolverException exception =
-        assertThrows(LogicalSourceResolverException.class, () -> sourceFlux.apply(new Object(), foodSource));
+        assertThrows(LogicalSourceResolverException.class, () -> sourceFlux.apply(unsupported, foodSource));
 
     // Then
     assertThat(exception.getMessage(),

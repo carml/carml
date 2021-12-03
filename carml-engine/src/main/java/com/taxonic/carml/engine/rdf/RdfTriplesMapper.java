@@ -106,7 +106,6 @@ public class RdfTriplesMapper<I> implements TriplesMapper<I, Statement> {
         .collect(Collectors.toUnmodifiableSet());
   }
 
-
   @SuppressWarnings("java:S3864")
   private static Set<RdfSubjectMapper> createSubjectMappers(TriplesMap triplesMap,
       RdfMappingContext rdfMappingContext) {
