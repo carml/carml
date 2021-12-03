@@ -53,33 +53,10 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
 
   private static final long SECONDS_TO_TIMEOUT = 30;
 
-  private final RdfMapperOptions rdfMapperOptions;
-
-  private final Supplier<ValueFactory> valueFactorySupplier;
-
-  private final TermGeneratorFactory<Value> termGeneratorFactory;
-
-  private final Map<IRI, Supplier<LogicalSourceResolver<?>>> logicalSourceResolverSuppliers;
-
-  private final ChildSideJoinStoreProvider<Resource, IRI> childSideJoinCacheProvider;
-
-  private final ParentSideJoinConditionStoreProvider<Resource> parentSideJoinConditionStoreProvider;
-
   private RdfRmlMapper(Set<TriplesMap> triplesMaps, Function<Object, Optional<Flux<DataBuffer>>> sourceResolver,
       Map<TriplesMap, LogicalSourcePipeline<?, Statement>> logicalSourcePipelinePool,
-      Map<? extends RefObjectMapper<Statement>, TriplesMap> refObjectMapperToParentTriplesMap,
-      RdfMapperOptions rdfMapperOptions, Supplier<ValueFactory> valueFactorySupplier,
-      TermGeneratorFactory<Value> termGeneratorFactory,
-      Map<IRI, Supplier<LogicalSourceResolver<?>>> logicalSourceResolverSuppliers,
-      ChildSideJoinStoreProvider<Resource, IRI> childSideJoinCacheProvider,
-      ParentSideJoinConditionStoreProvider<Resource> parentSideJoinConditionStoreProvider) {
+      Map<? extends RefObjectMapper<Statement>, TriplesMap> refObjectMapperToParentTriplesMap) {
     super(triplesMaps, sourceResolver, logicalSourcePipelinePool, refObjectMapperToParentTriplesMap);
-    this.rdfMapperOptions = rdfMapperOptions;
-    this.valueFactorySupplier = valueFactorySupplier;
-    this.termGeneratorFactory = termGeneratorFactory;
-    this.logicalSourceResolverSuppliers = logicalSourceResolverSuppliers;
-    this.childSideJoinCacheProvider = childSideJoinCacheProvider;
-    this.parentSideJoinConditionStoreProvider = parentSideJoinConditionStoreProvider;
   }
 
   public static Builder builder() {
@@ -246,9 +223,7 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
 
       var compositeResolver = CompositeSourceResolver.of(Set.copyOf(sourceResolvers));
 
-      return new RdfRmlMapper(triplesMaps, compositeResolver, logicalSourcePipelinePool, roMapperToParentTm,
-          mapperOptions, valueFactorySupplier, termGeneratorFactory, logicalSourceResolverSuppliers,
-          childSideJoinCacheProvider, parentSideJoinConditionStoreProvider);
+      return new RdfRmlMapper(triplesMaps, compositeResolver, logicalSourcePipelinePool, roMapperToParentTm);
     }
 
     private RdfLogicalSourcePipeline<?> buildRdfLogicalSourcePipeline(LogicalSource logicalSource,
