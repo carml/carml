@@ -11,7 +11,10 @@
 
 exm:LogicalSource a rml:LogicalSource ;
   #rml:source "cars.csv" ;
-  rml:source [ a carml:Stream ] ;
+  rml:source [
+    a carml:Stream ;
+    carml:streamName "cars" ;
+  ] ;
   rml:referenceFormulation ql:CSV ;
 .
 

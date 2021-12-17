@@ -48,7 +48,7 @@ public class JaywayJacksonJsonPathResolver implements LogicalSourceResolver<Obje
       return getObjectFluxFromCustomObject((Map<String, Object>) source, logicalSource);
     } else {
       throw new LogicalSourceResolverException(
-          String.format("No valid source object provided for logical source %s", LogUtil.exception(logicalSource)));
+          String.format("No supported source object provided for logical source %s", LogUtil.exception(logicalSource)));
     }
   }
 
@@ -62,9 +62,15 @@ public class JaywayJacksonJsonPathResolver implements LogicalSourceResolver<Obje
   }
 
   private Flux<Object> getObjectFluxFromCustomObject(Map<String, Object> customObject, LogicalSource logicalSource) {
-    Object data = JsonPath.using(JSONPATH_JSON_NODE_CONF)
-        .parse(customObject)
-        .read(logicalSource.getIterator());
+    Object data;
+    try {
+      data = JsonPath.using(JSONPATH_JSON_NODE_CONF)
+          .parse(customObject)
+          .read(logicalSource.getIterator());
+    } catch (RuntimeException exception) {
+      throw new LogicalSourceResolverException(
+          String.format("An exception occurred while evaluating: %s", logicalSource.getIterator()));
+    }
 
     if (data == null) {
       return Flux.empty();
@@ -79,9 +85,14 @@ public class JaywayJacksonJsonPathResolver implements LogicalSourceResolver<Obje
     return object -> expression -> {
       logEvaluateExpression(expression, LOG);
 
-      return Optional.ofNullable(JsonPath.using(JSONPATH_JSON_NODE_CONF)
-          .parse(object)
-          .read(expression));
+      try {
+        return Optional.ofNullable(JsonPath.using(JSONPATH_JSON_NODE_CONF)
+            .parse(object)
+            .read(expression));
+      } catch (RuntimeException exception) {
+        throw new LogicalSourceResolverException(
+            String.format("An exception occurred while evaluating: %s", expression));
+      }
     };
   }
 

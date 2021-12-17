@@ -38,7 +38,8 @@ class ReactiveInputStreamsTest {
     } catch (ExecutionException | InterruptedException | TimeoutException e) {
       assertThat("detected", e.getCause() instanceof BlockingOperationError);
       if (e instanceof InterruptedException) {
-        Thread.currentThread().interrupt();
+        Thread.currentThread()
+            .interrupt();
       }
     }
   }

@@ -18,7 +18,6 @@ Table of Contents
 -----------------
 
 - [CARML](#carml)
-    - [Table of Contents](#table-of-contents)
     - [Introduction](#introduction)
     - [Getting started](#getting-started)
     - [Input stream extension](#input-stream-extension)
@@ -36,6 +35,9 @@ of [R2RML](https://www.w3.org/TR/r2rml/) which is a W3C recommendation that desc
 from relational databases to RDF datasets. RML allows not only the expression of mappings for relational databases, but
 generalizes this to any structured source. All you need is a way to iterate over and query the source.
 
+> NOTE: If you have questions about RML in general, the best place to ask them is at
+> [RML questions](https://github.com/kg-construct/rml-questions).
+
 Getting started
 ---------------
 
@@ -51,19 +53,19 @@ CARML is available from the Central Maven Repository.
 
     <!-- Choose the resolvers to suit your need -->
 <dependency>
-<groupId>com.taxonic.carml</groupId>
-<artifactId>carml-logical-source-resolver-jsonpath</artifactId>
-<version>${carml.version}</version>
+    <groupId>com.taxonic.carml</groupId>
+    <artifactId>carml-logical-source-resolver-jsonpath</artifactId>
+    <version>${carml.version}</version>
+    </dependency>
+<dependency>
+    <groupId>com.taxonic.carml</groupId>
+    <artifactId>carml-logical-source-resolver-xpath</artifactId>
+    <version>${carml.version}</version>
 </dependency>
 <dependency>
-<groupId>com.taxonic.carml</groupId>
-<artifactId>carml-logical-source-resolver-xpath</artifactId>
-<version>${carml.version}</version>
-</dependency>
-<dependency>
-<groupId>com.taxonic.carml</groupId>
-<artifactId>carml-logical-source-resolver-csv</artifactId>
-<version>${carml.version}</version>
+    <groupId>com.taxonic.carml</groupId>
+    <artifactId>carml-logical-source-resolver-csv</artifactId>
+    <version>${carml.version}</version>
 </dependency>
 
 ```
@@ -154,7 +156,8 @@ UGhent.
 
 Because we believe that this extension can already be of great value, we've already adopted it in CARML.
 
-<!--- TODO: explain that the function execution is a finisher, that is it runs the normal mapping, which creates the function execution triples, and the described execution is in turn evaluated and results in the term map value. --->
+<!--- TODO: explain that the function execution is a finisher, that is it runs the normal mapping, which creates the 
+function execution triples, and the described execution is in turn evaluated and results in the term map value. --->
 The way it works is, you describe the execution of a function in terms of the [Function Ontology (FnO)](https://fno.io/)
 .
 
@@ -312,4 +315,5 @@ CARML in RML Test Cases
 See the [RML implementation Report](https://rml.io/implementation-report/) for how CARML does in
 the [RML test cases](https://rml.io/test-cases/).
 
-> Note: currently we've raised [issues](https://github.com/RMLio/rml-test-cases/issues?q=is%3Aissue+author%3Apmaria+) for some of the test cases which we believe are incorrect, or have an adverse effect on mapping data.
+> Note: currently we've raised [issues](https://github.com/RMLio/rml-test-cases/issues?q=is%3Aissue+author%3Apmaria+) 
+> for some of the test cases which we believe are incorrect, or have an adverse effect on mapping data.

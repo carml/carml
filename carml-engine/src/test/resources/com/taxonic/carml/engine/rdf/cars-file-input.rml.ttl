@@ -10,8 +10,7 @@
 @prefix carml: <http://carml.taxonic.com/carml/> .
 
 exm:LogicalSource a rml:LogicalSource ;
-  #rml:source "cars.csv" ;
-  rml:source [ a carml:Stream ] ;
+  rml:source "cars.csv" ;
   rml:referenceFormulation ql:CSV ;
 .
 
