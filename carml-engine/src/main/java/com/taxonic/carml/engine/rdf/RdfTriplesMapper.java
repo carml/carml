@@ -47,7 +47,6 @@ public class RdfTriplesMapper<I> implements TriplesMapper<I, Statement> {
 
   static UnaryOperator<Resource> defaultGraphModifier = graph -> graph.equals(Rdf.Rr.defaultGraph) ? null : graph;
 
-
   static Consumer<Statement> logAddStatements = statement -> {
     if (LOG.isTraceEnabled()) {
       LOG.trace("Adding statement {} {} {} {} to result set", statement.getSubject(), statement.getPredicate(),
