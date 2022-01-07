@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -45,6 +46,7 @@ import reactor.core.scheduler.Schedulers;
 public class RdfTriplesMapper<I> implements TriplesMapper<I, Statement> {
 
   static UnaryOperator<Resource> defaultGraphModifier = graph -> graph.equals(Rdf.Rr.defaultGraph) ? null : graph;
+
 
   static Consumer<Statement> logAddStatements = statement -> {
     if (LOG.isTraceEnabled()) {
@@ -73,7 +75,7 @@ public class RdfTriplesMapper<I> implements TriplesMapper<I, Statement> {
   @Getter(AccessLevel.PUBLIC)
   private final ParentSideJoinConditionStore<Resource> parentSideJoinConditions;
 
-  private final Map<RefObjectMapper<Statement>, Boolean> incomingRefObjectMapperStatus;
+  private final Map<RefObjectMapper<Statement>, AtomicBoolean> incomingRefObjectMapperStatus;
 
   public static <I> RdfTriplesMapper<I> of(@NonNull TriplesMap triplesMap, Set<RdfRefObjectMapper> refObjectMappers,
       Set<RdfRefObjectMapper> incomingRefObjectMappers,
@@ -90,8 +92,8 @@ public class RdfTriplesMapper<I> implements TriplesMapper<I, Statement> {
     Set<RdfPredicateObjectMapper> predicateObjectMappers =
         createPredicateObjectMappers(triplesMap, rdfMappingContext, refObjectMappers);
 
-    Map<RefObjectMapper<Statement>, Boolean> connectedRefObjectMapperStatus = incomingRefObjectMappers.stream()
-        .collect(Collectors.toMap(rom -> rom, rom -> false));
+    Map<RefObjectMapper<Statement>, AtomicBoolean> connectedRefObjectMapperStatus = incomingRefObjectMappers.stream()
+        .collect(Collectors.toMap(rom -> rom, rom -> new AtomicBoolean()));
 
     return new RdfTriplesMapper<>(triplesMap, subjectMappers, predicateObjectMappers, incomingRefObjectMappers,
         expressionEvaluatorFactory, rdfMappingContext,
@@ -229,11 +231,12 @@ public class RdfTriplesMapper<I> implements TriplesMapper<I, Statement> {
               exception(refObjectMapper.getRefObjectMap()), log(triplesMap)));
     }
 
-    incomingRefObjectMapperStatus.put(refObjectMapper, true);
+    incomingRefObjectMapperStatus.get(refObjectMapper)
+        .compareAndSet(false, true);
 
     boolean incomingRefObjectMappersDone = incomingRefObjectMapperStatus.values()
         .stream()
-        .allMatch(Boolean::valueOf);
+        .allMatch(AtomicBoolean::get);
 
     if (incomingRefObjectMappersDone) {
       return cleanup();
@@ -243,7 +246,10 @@ public class RdfTriplesMapper<I> implements TriplesMapper<I, Statement> {
   }
 
   private Mono<Void> cleanup() {
-    return Mono.fromRunnable(parentSideJoinConditions::clear)
+    return Mono.fromRunnable(() -> {
+      parentSideJoinConditions.clear();
+      incomingRefObjectMapperStatus.forEach((roMapper, status) -> status.compareAndSet(true, false));
+    })
         .subscribeOn(Schedulers.boundedElastic())
         .then();
   }

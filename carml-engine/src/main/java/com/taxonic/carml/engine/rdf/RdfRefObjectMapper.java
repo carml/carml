@@ -160,7 +160,6 @@ public class RdfRefObjectMapper implements RefObjectMapper<Statement> {
     return Flux.empty();
   }
 
-  @SuppressWarnings("unchecked")
   private Set<Resource> checkJoinAndGetObjects(ChildSideJoin<Resource, IRI> childSideJoin,
       ParentSideJoinConditionStore<Resource> parentJoinConditions) {
 
