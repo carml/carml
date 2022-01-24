@@ -19,8 +19,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Phaser;
 import java.util.stream.Collectors;
-import lombok.AccessLevel;
-import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.rdf4j.model.IRI;
@@ -35,11 +33,9 @@ import reactor.core.scheduler.Schedulers;
 @Slf4j
 public class RdfRefObjectMapper implements RefObjectMapper<Statement> {
 
-  @Getter(AccessLevel.PUBLIC)
   @NonNull
   private final RefObjectMap refObjectMap;
 
-  @Getter(AccessLevel.PUBLIC)
   @NonNull
   private final TriplesMap triplesMap;
 
@@ -67,6 +63,16 @@ public class RdfRefObjectMapper implements RefObjectMapper<Statement> {
     this.triplesMap = triplesMap;
     this.childSideJoinStore = childSideJoinStore;
     this.valueFactory = valueFactory;
+  }
+
+  @Override
+  public TriplesMap getTriplesMap() {
+    return triplesMap;
+  }
+
+  @Override
+  public RefObjectMap getRefObjectMap() {
+    return refObjectMap;
   }
 
   public void map(Map<Set<Resource>, Set<Resource>> subjectsAndAllGraphs, Set<IRI> predicates,
@@ -112,6 +118,8 @@ public class RdfRefObjectMapper implements RefObjectMapper<Statement> {
       Flux<Statement> parentFlux) {
 
     ConnectableFlux<Statement> joinedStatementFlux = childSideJoinStore.clearingFlux()
+        .as(flux -> Flux.deferContextual(contextView -> flux.doOnComplete(() -> Mono.just(this)
+            .contextWrite(ctx -> ctx.put(this, true)))))
         .subscribeOn(Schedulers.boundedElastic())
         .flatMap(childSideJoin -> resolveJoin(parentTriplesMapper, childSideJoin))
         .doFinally(signalType -> parentTriplesMapper.notifyCompletion(this, signalType)

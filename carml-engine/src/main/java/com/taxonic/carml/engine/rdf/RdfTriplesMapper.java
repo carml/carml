@@ -55,7 +55,6 @@ public class RdfTriplesMapper<I> implements TriplesMapper<I, Statement> {
   };
 
   @NonNull
-  @Getter(AccessLevel.PUBLIC)
   private final TriplesMap triplesMap;
 
   private final Set<RdfSubjectMapper> subjectMappers;
@@ -71,7 +70,6 @@ public class RdfTriplesMapper<I> implements TriplesMapper<I, Statement> {
   private final RdfMappingContext rdfMappingContext;
 
   @NonNull
-  @Getter(AccessLevel.PUBLIC)
   private final ParentSideJoinConditionStore<Resource> parentSideJoinConditions;
 
   private final Map<RefObjectMapper<Statement>, AtomicBoolean> incomingRefObjectMapperStatus;
@@ -134,6 +132,11 @@ public class RdfTriplesMapper<I> implements TriplesMapper<I, Statement> {
   }
 
   @Override
+  public TriplesMap getTriplesMap() {
+    return triplesMap;
+  }
+
+  @Override
   public Set<RefObjectMapper<Statement>> getRefObjectMappers() {
     return predicateObjectMappers.stream()
         .flatMap(pom -> pom.getRdfRefObjectMappers()
@@ -144,6 +147,11 @@ public class RdfTriplesMapper<I> implements TriplesMapper<I, Statement> {
   Set<RefObjectMapper<Statement>> getConnectedRefObjectMappers() {
     return Stream.concat(getRefObjectMappers().stream(), incomingRefObjectMappers.stream())
         .collect(Collectors.toUnmodifiableSet());
+  }
+
+  @Override
+  public ParentSideJoinConditionStore<Resource> getParentSideJoinConditions() {
+    return parentSideJoinConditions;
   }
 
   @Override

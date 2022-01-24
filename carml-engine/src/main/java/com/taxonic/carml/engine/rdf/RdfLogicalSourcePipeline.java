@@ -65,10 +65,16 @@ public class RdfLogicalSourcePipeline<I> implements LogicalSourcePipeline<I, Sta
         parentSideJoinConditionStoreProvider);
   }
 
+  @Override
+  public LogicalSource getLogicalSource() {
+    return logicalSource;
+  }
+
   public Map<TriplesMapper<I, Statement>, Flux<Statement>> run() {
     return run(Set.of());
   }
 
+  @Override
   public Map<TriplesMapper<I, Statement>, Flux<Statement>> run(Set<TriplesMap> triplesMapFilter) {
     return run(null, triplesMapFilter);
   }
@@ -77,6 +83,7 @@ public class RdfLogicalSourcePipeline<I> implements LogicalSourcePipeline<I, Sta
     return run(source, Set.of());
   }
 
+  @Override
   public Map<TriplesMapper<I, Statement>, Flux<Statement>> run(Object source, Set<TriplesMap> triplesMapFilter) {
     var actionableTriplesMappers = filterTriplesMappers(triplesMapFilter);
 
