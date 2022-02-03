@@ -38,7 +38,6 @@ import org.eclipse.rdf4j.model.Statement;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.SignalType;
-import reactor.core.scheduler.Schedulers;
 
 @Slf4j
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -256,8 +255,6 @@ public class RdfTriplesMapper<I> implements TriplesMapper<I, Statement> {
     return Mono.fromRunnable(() -> {
       parentSideJoinConditions.clear();
       incomingRefObjectMapperStatus.forEach((roMapper, status) -> status.compareAndSet(true, false));
-    })
-        .subscribeOn(Schedulers.boundedElastic())
-        .then();
+    });
   }
 }

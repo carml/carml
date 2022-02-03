@@ -17,7 +17,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Phaser;
 import java.util.stream.Collectors;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -25,10 +24,7 @@ import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.ValueFactory;
-import reactor.core.publisher.ConnectableFlux;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 @Slf4j
 public class RdfRefObjectMapper implements RefObjectMapper<Statement> {
@@ -117,37 +113,13 @@ public class RdfRefObjectMapper implements RefObjectMapper<Statement> {
   public Flux<Statement> resolveJoins(Flux<Statement> mainFlux, TriplesMapper<?, Statement> parentTriplesMapper,
       Flux<Statement> parentFlux) {
 
-    ConnectableFlux<Statement> joinedStatementFlux = childSideJoinStore.clearingFlux()
-        .as(flux -> Flux.deferContextual(contextView -> flux.doOnComplete(() -> Mono.just(this)
-            .contextWrite(ctx -> ctx.put(this, true)))))
-        .subscribeOn(Schedulers.boundedElastic())
+    Flux<Statement> joinedStatementFlux = childSideJoinStore.clearingFlux()
         .flatMap(childSideJoin -> resolveJoin(parentTriplesMapper, childSideJoin))
         .doFinally(signalType -> parentTriplesMapper.notifyCompletion(this, signalType)
-            .subscribeOn(Schedulers.boundedElastic())
-            .subscribe())
-        .publish();
+            .subscribe());
 
-    Flux<Statement> barrier = setTriplesMapperCompletionBarrier(joinedStatementFlux, mainFlux, parentFlux);
-
-    return Flux.merge(joinedStatementFlux, barrier);
-  }
-
-  private Flux<Statement> setTriplesMapperCompletionBarrier(ConnectableFlux<Statement> joinedStatementFlux,
-      Flux<Statement> mainFlux, Flux<Statement> parentFlux) {
-    return Mono.fromRunnable(() -> {
-      Phaser phaser = new Phaser(1);
-      mainFlux.doOnSubscribe(subscription -> phaser.register())
-          .doFinally(signalType -> phaser.arriveAndDeregister())
-          .subscribe();
-      parentFlux.doOnSubscribe(subscription -> phaser.register())
-          .doFinally(signalType -> phaser.arriveAndDeregister())
-          .subscribe();
-
-      phaser.arriveAndAwaitAdvance();
-      joinedStatementFlux.connect();
-    })
-        .subscribeOn(Schedulers.boundedElastic())
-        .thenMany(Flux.empty());
+    return Flux.merge(mainFlux, parentFlux)
+        .thenMany(joinedStatementFlux);
   }
 
   private Flux<Statement> resolveJoin(TriplesMapper<?, Statement> parentTriplesMapper2,

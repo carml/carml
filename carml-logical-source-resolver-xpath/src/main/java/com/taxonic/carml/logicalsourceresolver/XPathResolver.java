@@ -23,7 +23,6 @@ import net.sf.saxon.s9api.XdmNode;
 import net.sf.saxon.s9api.XdmValue;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 @Slf4j
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -96,7 +95,6 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
             String.format("Exception while processing iterator from %s", exception(logicalSource)), saxonApiException);
       }
     })
-        .subscribeOn(Schedulers.boundedElastic())
         .thenReturn(Flux.fromIterable(selector))
         .flatMapMany(f -> f);
   }
