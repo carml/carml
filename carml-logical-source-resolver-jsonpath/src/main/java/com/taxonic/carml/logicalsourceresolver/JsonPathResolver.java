@@ -5,6 +5,7 @@ import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.Option;
 import com.taxonic.carml.model.LogicalSource;
 import com.taxonic.carml.util.LogUtil;
+import com.taxonic.carml.util.ReactiveInputStreams;
 import java.io.InputStream;
 import java.util.Optional;
 import lombok.AccessLevel;
@@ -13,6 +14,9 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.jsfr.json.JsonSurfer;
 import org.jsfr.json.JsonSurferJackson;
+import org.jsfr.json.NonBlockingParser;
+import org.jsfr.json.SurfingConfiguration;
+import org.springframework.core.io.buffer.DataBufferUtils;
 import reactor.core.publisher.Flux;
 
 @Slf4j
@@ -46,10 +50,26 @@ public class JsonPathResolver implements LogicalSourceResolver<Object> {
 
   private Flux<Object> getObjectFlux(InputStream inputStream, LogicalSource logicalSource) {
     return Flux.create(sink -> {
-      jsonSurfer.configBuilder()
-          .bind(logicalSource.getIterator(), (obj, context) -> sink.next(obj))
-          .buildAndSurf(inputStream);
-      sink.complete();
+      SurfingConfiguration config = jsonSurfer.configBuilder()
+          .bind(logicalSource.getIterator(), (value, context) -> sink.next(value))
+          .build();
+
+      NonBlockingParser parser = jsonSurfer.createNonBlockingParser(config);
+
+      Flux.defer(() -> ReactiveInputStreams.fluxInputStream(inputStream))
+          .doOnNext(dataBuffer -> {
+            int bufferSize = dataBuffer.readableByteCount();
+            byte[] bytes = new byte[bufferSize];
+            dataBuffer.read(bytes);
+            DataBufferUtils.release(dataBuffer);
+
+            parser.feed(bytes, 0, bytes.length);
+          })
+          .doOnComplete(() -> {
+            parser.endOfInput();
+            sink.complete();
+          })
+          .subscribe();
     });
   }
 

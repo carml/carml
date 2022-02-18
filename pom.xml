@@ -73,8 +73,8 @@
 		<lombok.version>1.18.22</lombok.version>
 		<spring.version>5.3.14</spring.version>
 		<univocity.version>2.9.0</univocity.version>
-		<jayway.version>2.6.0</jayway.version>
-		<jsurfer.version>1.6.1</jsurfer.version>
+		<jayway.version>2.7.0</jayway.version>
+		<jsurfer.version>1.6.3</jsurfer.version>
 		<saxon.version>10.6</saxon.version>
 		<mapdb.version>3.0.8</mapdb.version>
 		<mockito.version>4.2.0</mockito.version>
