@@ -17,8 +17,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.function.Function;
 import javax.xml.transform.stream.StreamSource;
-import jlibs.xml.DefaultNamespaceContext;
-import jlibs.xml.sax.dog.XMLDog;
 import net.sf.saxon.s9api.Processor;
 import net.sf.saxon.s9api.SaxonApiException;
 import org.apache.commons.io.IOUtils;
@@ -27,7 +25,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.test.StepVerifier;
 
-class XPathResolverTest {
+class SaxonXPathResolverTest {
 
   private static final String BOOK_ONE = "<book category=\"cooking\">\r\n"
       + "  <title lang=\"en\">Everyday Italian</title>\r\n" + "  <author>Giada De Laurentiis</author>\r\n"
@@ -56,14 +54,14 @@ class XPathResolverTest {
 
   private Processor processor;
 
-  private XPathResolver xpathResolver;
+  private SaxonXPathResolver xpathResolver;
 
   @BeforeEach
   public void init() {
     processor = new Processor(false);
     var compiler = processor.newXPathCompiler();
     compiler.setCaching(true);
-    xpathResolver = XPathResolver.getInstance(new XMLDog(new DefaultNamespaceContext()), processor, compiler, true);
+    xpathResolver = SaxonXPathResolver.getInstance(processor, compiler, true);
   }
 
   @Test
@@ -86,7 +84,6 @@ class XPathResolverTest {
     // Given
     var expression = "book/author";
     var evaluationFactory = xpathResolver.getExpressionEvaluationFactory();
-
     var documentBuilder = processor.newDocumentBuilder();
     var reader = new StringReader(BOOK_ONE);
     var item = documentBuilder.build(new StreamSource(reader));
@@ -125,7 +122,7 @@ class XPathResolverTest {
 
     // Given
     var autoExtractNodeText = false;
-    xpathResolver = XPathResolver.getInstance(autoExtractNodeText);
+    xpathResolver = SaxonXPathResolver.getInstance(autoExtractNodeText);
     sourceFlux = xpathResolver.getSourceFlux();
     inputStream = IOUtils.toInputStream(SOURCE, StandardCharsets.UTF_8);
     itemFlux = sourceFlux.apply(inputStream, LSOURCE);
@@ -146,7 +143,7 @@ class XPathResolverTest {
   void givenExpressionWithNamespace_whenExpressionEvaluationApplied_thenReturnCorrectValue() {
     // Given
     var mapping = RmlMappingLoader.build()
-        .load(RDFFormat.TURTLE, XPathResolverTest.class.getResourceAsStream("xmlns.rml.ttl"));
+        .load(RDFFormat.TURTLE, SaxonXPathResolverTest.class.getResourceAsStream("xmlns.rml.ttl"));
 
     var triplesMap = Iterables.getOnlyElement(mapping);
     var logicalSource = triplesMap.getLogicalSource();
