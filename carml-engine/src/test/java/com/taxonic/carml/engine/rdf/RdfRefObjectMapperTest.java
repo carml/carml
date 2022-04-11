@@ -2,30 +2,26 @@ package com.taxonic.carml.engine.rdf;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.Iterables;
 import com.taxonic.carml.engine.ExpressionEvaluation;
-import com.taxonic.carml.engine.reactivedev.join.ChildSideJoin;
-import com.taxonic.carml.engine.reactivedev.join.ChildSideJoinCondition;
-import com.taxonic.carml.engine.reactivedev.join.ChildSideJoinStore;
-import com.taxonic.carml.engine.reactivedev.join.ChildSideJoinStoreProvider;
-import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinConditionStore;
-import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinKey;
+import com.taxonic.carml.engine.join.ChildSideJoin;
+import com.taxonic.carml.engine.join.ChildSideJoinCondition;
+import com.taxonic.carml.engine.join.ChildSideJoinStore;
+import com.taxonic.carml.engine.join.ChildSideJoinStoreProvider;
+import com.taxonic.carml.engine.join.ParentSideJoinConditionStore;
+import com.taxonic.carml.engine.join.ParentSideJoinKey;
 import com.taxonic.carml.model.Join;
 import com.taxonic.carml.model.RefObjectMap;
 import com.taxonic.carml.model.TriplesMap;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -49,7 +45,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.SignalType;
 import reactor.test.StepVerifier;
 
 @ExtendWith(MockitoExtension.class)
@@ -283,109 +278,6 @@ class RdfRefObjectMapperTest {
   }
 
   @Test
-  void givenOnlyOneTriplesMapperDone_whenArrives_thenDeferPublishing() {
-    // Given
-    Set<Resource> subjects = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/subject1"));
-    Set<IRI> predicates = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/predicate1"));
-    Set<Resource> graphs = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/graph1"));
-
-    ChildSideJoin<Resource, IRI> childSideJoin1 = ChildSideJoin.<Resource, IRI>builder()
-        .subjects(new HashSet<>(subjects))
-        .predicates(new HashSet<>(predicates))
-        .graphs(new HashSet<>(graphs))
-        .childSideJoinConditions(
-            new HashSet<>(Set.of(ChildSideJoinCondition.of("foo", new ArrayList<>(List.of("baz")), "bar"))))
-        .build();
-
-    when(childSideJoinStore.clearingFlux()).thenReturn(Flux.just(childSideJoin1));
-
-    RdfMappingContext rdfMappingContext = RdfMappingContext.builder()
-        .valueFactorySupplier(() -> VALUE_FACTORY)
-        .termGeneratorFactory(rdfTermGeneratorFactory)
-        .childSideJoinStoreProvider(childSideJoinStoreProvider)
-        .build();
-
-    RdfRefObjectMapper rdfRefObjectMapper =
-        RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingContext, childSideJoinStoreProvider);
-
-    Flux<Statement> joinlessFlux = generateStatementsFor("main", 3);
-    Flux<Statement> parentJoinlessFlux = generateStatementsFor("parent", 3).delayElements(Duration.ofSeconds(10));
-
-    Flux<Statement> joinedStatementFlux =
-        rdfRefObjectMapper.resolveJoins(joinlessFlux, parentRdfTriplesMapper, parentJoinlessFlux);
-
-    // With deferred expectation
-    StepVerifier deferred = StepVerifier.create(joinedStatementFlux)
-        .expectComplete()
-        .verifyLater();
-
-    // When
-    StepVerifier.create(joinlessFlux)
-        .expectComplete();
-
-    // Then
-    Duration afterFourSeconds = Duration.ofSeconds(4);
-    AssertionError timeOutAssertion = assertThrows(AssertionError.class, () -> deferred.verify(afterFourSeconds));
-    assertThat(timeOutAssertion.getMessage(), containsString("timed out"));
-  }
-
-  @Test
-  void givenTriplesMapperAndParentTriplesMapperDone_whenArrive_thenStartPublishing() {
-    // Given
-    Set<Resource> subjects = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/subject1"));
-    Set<IRI> predicates = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/predicate1"));
-    Set<Resource> graphs = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/graph1"));
-
-    ChildSideJoin<Resource, IRI> childSideJoin1 = ChildSideJoin.<Resource, IRI>builder()
-        .subjects(new HashSet<>(subjects))
-        .predicates(new HashSet<>(predicates))
-        .graphs(new HashSet<>(graphs))
-        .childSideJoinConditions(
-            new HashSet<>(Set.of(ChildSideJoinCondition.of("foo", new ArrayList<>(List.of("baz")), "bar"))))
-        .build();
-
-    when(childSideJoinStore.clearingFlux()).thenReturn(Flux.just(childSideJoin1));
-
-    RdfMappingContext rdfMappingContext = RdfMappingContext.builder()
-        .valueFactorySupplier(() -> VALUE_FACTORY)
-        .termGeneratorFactory(rdfTermGeneratorFactory)
-        .childSideJoinStoreProvider(childSideJoinStoreProvider)
-        .build();
-
-    RdfRefObjectMapper rdfRefObjectMapper =
-        RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingContext, childSideJoinStoreProvider);
-
-    when(parentRdfTriplesMapper.getParentSideJoinConditions()).thenReturn(parentSideJoinConditionStore);
-
-    lenient().when(parentRdfTriplesMapper.notifyCompletion(rdfRefObjectMapper, SignalType.ON_COMPLETE))
-        .thenReturn(completion);
-
-    Flux<Statement> joinlessFlux = generateStatementsFor("main", 3);
-    Flux<Statement> parentJoinlessFlux = generateStatementsFor("parent", 3);
-
-    Flux<Statement> joinedStatementFlux =
-        rdfRefObjectMapper.resolveJoins(joinlessFlux, parentRdfTriplesMapper, parentJoinlessFlux);
-
-    // With deferred expectation
-    StepVerifier deferred = StepVerifier.create(joinedStatementFlux)
-        .expectComplete()
-        .verifyLater();
-
-    // When
-    StepVerifier.create(joinlessFlux)
-        .expectComplete();
-
-    StepVerifier.create(parentJoinlessFlux)
-        .expectComplete();
-
-    // Then
-    deferred.verify(Duration.ofSeconds(1));
-
-    StepVerifier.create(completion)
-        .expectSubscription();
-  }
-
-  @Test
   void givenValidJoinWithTwoParentValues_whenResolveJoins_ThenReturnsTwoStatements() {
     // Given
     IRI subject1 = VALUE_FACTORY.createIRI("http://foo.bar/subject1");
@@ -425,35 +317,19 @@ class RdfRefObjectMapperTest {
 
     when(parentRdfTriplesMapper.getParentSideJoinConditions()).thenReturn(parentSideJoinConditionStore);
 
-    lenient().when(parentRdfTriplesMapper.notifyCompletion(any(), any()))
-        .thenReturn(Mono.when());
+    // When
+    Flux<Statement> joinedStatementFlux = rdfRefObjectMapper.resolveJoins(parentRdfTriplesMapper);
 
-    Flux<Statement> joinlessFlux = generateStatementsFor("main", 2);
-    Flux<Statement> parentJoinlessFlux = generateStatementsFor("parent", 2);
-
-    Flux<Statement> joinedStatementFlux =
-        rdfRefObjectMapper.resolveJoins(joinlessFlux, parentRdfTriplesMapper, parentJoinlessFlux);
-
-    // With deferred expectation
+    // Then
     Predicate<Statement> expectedStatement = statement -> Set
         .of(VALUE_FACTORY.createStatement(subject1, predicate1, parentSubject1, graph1),
             VALUE_FACTORY.createStatement(subject1, predicate1, parentSubject2, graph1))
         .contains(statement);
-    StepVerifier deferred = StepVerifier.create(joinedStatementFlux)
+
+    StepVerifier.create(joinedStatementFlux)
         .expectNextMatches(expectedStatement)
         .expectNextMatches(expectedStatement)
-        .expectComplete()
-        .verifyLater();
-
-    // When
-    StepVerifier.create(joinlessFlux)
-        .expectComplete();
-
-    StepVerifier.create(parentJoinlessFlux)
-        .expectComplete();
-
-    // Then
-    deferred.verify(Duration.ofSeconds(1));
+        .verifyComplete();
   }
 
   @Test
@@ -510,39 +386,23 @@ class RdfRefObjectMapperTest {
 
     when(parentRdfTriplesMapper.getParentSideJoinConditions()).thenReturn(parentSideJoinConditionStore);
 
-    lenient().when(parentRdfTriplesMapper.notifyCompletion(any(), any()))
-        .thenReturn(Mono.when());
+    // When
+    Flux<Statement> joinedStatementFlux = rdfRefObjectMapper.resolveJoins(parentRdfTriplesMapper);
 
-    Flux<Statement> joinlessFlux = generateStatementsFor("main", 2);
-    Flux<Statement> parentJoinlessFlux = generateStatementsFor("parent", 2);
-
-    Flux<Statement> joinedStatementFlux =
-        rdfRefObjectMapper.resolveJoins(joinlessFlux, parentRdfTriplesMapper, parentJoinlessFlux);
-
-    // With deferred expectation
+    // Then
     Predicate<Statement> expectedStatement = statement -> Set
         .of(VALUE_FACTORY.createStatement(subject1, predicate1, parentSubject1, graph1),
             VALUE_FACTORY.createStatement(subject1, predicate1, parentSubject2, graph1),
             VALUE_FACTORY.createStatement(subject2, predicate1, parentSubject1, graph2),
             VALUE_FACTORY.createStatement(subject2, predicate1, parentSubject2, graph2))
         .contains(statement);
-    StepVerifier deferred = StepVerifier.create(joinedStatementFlux)
-        .expectNextMatches(expectedStatement)
-        .expectNextMatches(expectedStatement)
-        .expectNextMatches(expectedStatement)
-        .expectNextMatches(expectedStatement)
-        .expectComplete()
-        .verifyLater();
 
-    // When
-    StepVerifier.create(joinlessFlux)
-        .expectComplete();
-
-    StepVerifier.create(parentJoinlessFlux)
-        .expectComplete();
-
-    // Then
-    deferred.verify(Duration.ofSeconds(1));
+    StepVerifier.create(joinedStatementFlux)
+        .expectNextMatches(expectedStatement)
+        .expectNextMatches(expectedStatement)
+        .expectNextMatches(expectedStatement)
+        .expectNextMatches(expectedStatement)
+        .verifyComplete();
   }
 
   private static Flux<Statement> generateStatementsFor(String id, int amount) {

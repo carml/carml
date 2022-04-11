@@ -3,19 +3,24 @@ package com.taxonic.carml.logicalsourceresolver;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.google.common.collect.Iterables;
 import com.taxonic.carml.engine.ExpressionEvaluation;
 import com.taxonic.carml.model.LogicalSource;
 import com.taxonic.carml.model.impl.CarmlLogicalSource;
+import com.taxonic.carml.model.impl.CarmlStream;
 import com.taxonic.carml.util.RmlMappingLoader;
 import com.taxonic.carml.vocab.Rdf.Ql;
+import java.io.InputStream;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.List;
-import java.util.function.Function;
+import java.util.Set;
 import javax.xml.transform.stream.StreamSource;
 import jlibs.xml.DefaultNamespaceContext;
 import jlibs.xml.sax.dog.XMLDog;
@@ -29,14 +34,31 @@ import reactor.test.StepVerifier;
 
 class XPathResolverTest {
 
-  private static final String BOOK_ONE = "<book category=\"cooking\">\r\n"
-      + "  <title lang=\"en\">Everyday Italian</title>\r\n" + "  <author>Giada De Laurentiis</author>\r\n"
-      + "  <year>2005</year>\r\n" + "  <price>30.00</price>\r\n" + "</book>";
+  private static final String BOOK_ONE = //
+      "<book category=\"cooking &amp; food\">" //
+          + "  <title lang=\"en\">Everyday Italian</title>"//
+          + "  <author>Giada De Laurentiis</author>" //
+          + "  <year>2005</year>" //
+          + "  <price>30.00</price>" //
+          + "</book>";
 
-  private static final String SOURCE = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n" + "\r\n" + "<bookstore>\r\n"
-      + "\r\n" + BOOK_ONE + "\r\n" + "<book category=\"children\">\r\n"
-      + "  <title lang=\"en\">Harry Potter</title>\r\n" + "  <author>J K. Rowling</author>\r\n"
-      + "  <year>2005</year>\r\n" + "  <price>29.99</price>\r\n" + "</book>\r\n" + "\r\n" + "</bookstore>";
+  private static final String SOURCE = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" //
+      + "<!DOCTYPE bookstore [\n" + "  <!ENTITY reftest \"J K. &amp; Rowling\">\n" + "  <!ELEMENT bookstore (book)*>\n"
+      + "  <!ELEMENT book (title|author|year|price)*>\n" + "  <!ATTLIST book\n" + "    category CDATA #REQUIRED>\n"
+      + "  <!ELEMENT title (#PCDATA)>\n" + "     <!ATTLIST title\n" + "       lang CDATA #REQUIRED>\n"
+      + " <!ELEMENT author (#PCDATA)>\n" + " <!ELEMENT year (#PCDATA)>\n" + " <!ELEMENT price (#PCDATA)>\n" + " ]>" //
+      + "<bookstore>" //
+      + "  <!-- Data about books -->" //
+      + "  <![CDATA[Data about <books>]]>" //
+      + "  <?xml-stylesheet type=\"text/xsl\" href=\"style.xsl\"?>" //
+      + BOOK_ONE //
+      + "<book category=\"children\">" //
+      + "  <title lang=\"en\">Harry Potter</title>" //
+      + "  <author>&reftest;</author>" //
+      + "  <year>2005</year>" //
+      + "  <price>29.99</price>" //
+      + "</book>" //
+      + "</bookstore>";
 
   private static final LogicalSource LSOURCE = CarmlLogicalSource.builder()
       .source(SOURCE)
@@ -44,15 +66,27 @@ class XPathResolverTest {
       .referenceFormulation(Ql.XPath)
       .build();
 
-  private static final String SOURCE_NS = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n" + "\r\n"
-      + "<ex:bookstore xmlns:ex=\"http://www.example.com/books/1.0/\">\r\n" + "\r\n"
-      + "<ex:book category=\"children\">\r\n" + "  <ex:title lang=\"en\">Harry Potter</ex:title>\r\n"
-      + "  <ex:author>J K. Rowling</ex:author>\r\n" + "  <ex:year>2005</ex:year>\r\n"
-      + "  <ex:price>29.99</ex:price>\r\n" + "</ex:book>\r\n" + "\r\n" + "</ex:bookstore>";
+  private static final LogicalSource LSOURCE2 = CarmlLogicalSource.builder()
+      .source(SOURCE)
+      .iterator("/bookstore/*/author")
+      .referenceFormulation(Ql.XPath)
+      .build();
 
-  private static final Function<Object, String> nsSourceResolver = s -> SOURCE_NS;
+  private static final LogicalSource LSOURCE_INVALID = CarmlLogicalSource.builder()
+      .source(SOURCE)
+      .iterator("/bookstore/\\\\")
+      .referenceFormulation(Ql.XPath)
+      .build();
 
-  private static final Function<Object, String> sourceResolver = Object::toString;
+  private static final String SOURCE_NS = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" //
+      + "<ex:bookstore xmlns:ex=\"http://www.example.com/books/1.0/\">" //
+      + "<ex:book category=\"children\">" //
+      + "  <ex:title lang=\"en\">Harry Potter</ex:title>" //
+      + "  <ex:author>J K. Rowling</ex:author>" //
+      + "  <ex:year>2005</ex:year>" //
+      + "  <ex:price>29.99</ex:price>" //
+      + "</ex:book>" //
+      + "</ex:bookstore>";
 
   private Processor processor;
 
@@ -67,18 +101,79 @@ class XPathResolverTest {
   }
 
   @Test
-  void givenXml_whenSourceFluxApplied_givenCsv_thenReturnFluxOfAllRecords() {
+  void givenXml_whenRecordResolverApplied_thenReturnFluxOfAllRecords() {
     // Given
-    var sourceFlux = xpathResolver.getSourceFlux();
     var inputStream = IOUtils.toInputStream(SOURCE, StandardCharsets.UTF_8);
 
+    var resolvedSource = ResolvedSource.of(new CarmlStream(), inputStream, InputStream.class);
+    var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(LSOURCE, LSOURCE2));
+
     // When
-    var itemFlux = sourceFlux.apply(inputStream, LSOURCE);
+    var recordFlux = recordResolver.apply(resolvedSource);
 
     // Then
-    StepVerifier.create(itemFlux)
-        .expectNextCount(2)
+    StepVerifier.create(recordFlux)
+        .expectNextCount(4)
         .verifyComplete();
+  }
+
+  @Test
+  void givenXmlAndSlowSubscriber_whenRecordResolverApplied_thenReturnFluxOfAllRecords() {
+    // Given
+    var inputStream = IOUtils.toInputStream(SOURCE, StandardCharsets.UTF_8);
+
+    var resolvedSource = ResolvedSource.of(new CarmlStream(), inputStream, InputStream.class);
+    var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(LSOURCE, LSOURCE2));
+
+    // When
+    var recordFlux = recordResolver.apply(resolvedSource);
+
+    // Then
+    StepVerifier.create(recordFlux, 1)
+        .expectNextCount(1)
+        .thenAwait(Duration.ofMillis(100))
+        .thenRequest(1)
+        .expectNextCount(1)
+        .thenAwait(Duration.ofMillis(100))
+        .thenRequest(1)
+        .expectNextCount(1)
+        .thenAwait(Duration.ofMillis(100))
+        .thenRequest(1)
+        .expectNextCount(1)
+        .thenAwait(Duration.ofMillis(100))
+        .verifyComplete();
+  }
+
+  @Test
+  void givenLogicalSourceWithInvalidXpath_whenRecordResolverApplied_thenThrowException() {
+    // Given
+    var inputStream = IOUtils.toInputStream(SOURCE, StandardCharsets.UTF_8);
+
+    var resolvedSource = ResolvedSource.of(SOURCE, inputStream, InputStream.class);
+    var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(LSOURCE_INVALID));
+
+    // When
+    var recordFlux = recordResolver.apply(resolvedSource);
+
+    // Then
+    StepVerifier.create(recordFlux)
+        .expectErrorMessage("Error parsing XPath expression: /bookstore/\\\\")
+        .verify();
+  }
+
+  @Test
+  void givenNoLogicalSources_whenRecordResolverApplied_thenThrowException() {
+    // Given
+    var inputStream = IOUtils.toInputStream(SOURCE, StandardCharsets.UTF_8);
+
+    var resolvedSource = ResolvedSource.of(SOURCE, inputStream, InputStream.class);
+    var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of());
+
+    // When
+    var illegalStateException = assertThrows(IllegalStateException.class, () -> recordResolver.apply(resolvedSource));
+
+    // Then
+    assertThat(illegalStateException.getMessage(), is("No logical sources registered"));
   }
 
   @Test
@@ -104,15 +199,41 @@ class XPathResolverTest {
   }
 
   @Test
+  void givenExpressionWithMultipleResults_whenExpressionEvaluationApplied_thenReturnCorrectValue()
+      throws SaxonApiException {
+    // Given
+    var expression = "tokenize(book/price, '\\.')";
+    var evaluationFactory = xpathResolver.getExpressionEvaluationFactory();
+
+    var documentBuilder = processor.newDocumentBuilder();
+    var reader = new StringReader(BOOK_ONE);
+    var item = documentBuilder.build(new StreamSource(reader));
+
+    var expressionEvaluation = evaluationFactory.apply(item);
+
+    // When
+    var values = expressionEvaluation.apply(expression)
+        .map(ExpressionEvaluation::extractValues)
+        .orElse(List.of());
+
+    // Then
+    assertThat(values, hasSize(2));
+    assertThat(values, hasItems("30", "00"));
+  }
+
+  @Test
   void givenExpression_whenExpressionEvaluationWithoutAutoTextExtractionApplied_thenReturnCorrectValue() {
-    var sourceFlux = xpathResolver.getSourceFlux();
     var inputStream = IOUtils.toInputStream(SOURCE, StandardCharsets.UTF_8);
-    var itemFlux = sourceFlux.apply(inputStream, LSOURCE);
-    var item = itemFlux.blockFirst();
+
+    var resolvedSource = ResolvedSource.of(LSOURCE.getSource(), inputStream, InputStream.class);
+    var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(LSOURCE));
+
+    var recordFlux = recordResolver.apply(resolvedSource);
+    var item = recordFlux.blockFirst();
 
     var expression = "./author";
     var evaluationFactory = xpathResolver.getExpressionEvaluationFactory();
-    var expressionEvaluation = evaluationFactory.apply(item);
+    var expressionEvaluation = evaluationFactory.apply(item.getRecord());
 
     // When
     var evaluationResult = expressionEvaluation.apply(expression);
@@ -124,15 +245,18 @@ class XPathResolverTest {
     // redefine XPath resolver to not auto-extract text
 
     // Given
-    var autoExtractNodeText = false;
-    xpathResolver = XPathResolver.getInstance(autoExtractNodeText);
-    sourceFlux = xpathResolver.getSourceFlux();
+    xpathResolver = XPathResolver.getInstance(false);
+
     inputStream = IOUtils.toInputStream(SOURCE, StandardCharsets.UTF_8);
-    itemFlux = sourceFlux.apply(inputStream, LSOURCE);
-    item = itemFlux.blockFirst();
+
+    resolvedSource = ResolvedSource.of(LSOURCE.getSource(), inputStream, InputStream.class);
+    recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(LSOURCE));
+
+    recordFlux = recordResolver.apply(resolvedSource);
+    item = recordFlux.blockFirst();
 
     evaluationFactory = xpathResolver.getExpressionEvaluationFactory();
-    expressionEvaluation = evaluationFactory.apply(item);
+    expressionEvaluation = evaluationFactory.apply(item.getRecord());
 
     // When
     evaluationResult = expressionEvaluation.apply(expression);
@@ -151,14 +275,16 @@ class XPathResolverTest {
     var triplesMap = Iterables.getOnlyElement(mapping);
     var logicalSource = triplesMap.getLogicalSource();
 
-    var sourceFlux = xpathResolver.getSourceFlux();
+    var resolvedSource = ResolvedSource.of(logicalSource.getSource(),
+        IOUtils.toInputStream(SOURCE_NS, StandardCharsets.UTF_8), InputStream.class);
+    var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(logicalSource));
 
-    var itemFlux = sourceFlux.apply(IOUtils.toInputStream(SOURCE_NS, StandardCharsets.UTF_8), logicalSource);
-    var item = itemFlux.blockFirst();
+    var recordFlux = recordResolver.apply(resolvedSource);
+    var item = recordFlux.blockFirst();
 
     var expression = "./ex:author/lower-case(.)";
     var evaluationFactory = xpathResolver.getExpressionEvaluationFactory();
-    var expressionEvaluation = evaluationFactory.apply(item);
+    var expressionEvaluation = evaluationFactory.apply(item.getRecord());
 
     // When
     var evaluationResult = expressionEvaluation.apply(expression);

@@ -54,11 +54,8 @@
 		<module>carml-logical-source-resolver</module>
 		<module>carml-logical-source-resolver-xpath</module>
 		<module>carml-logical-source-resolver-jsonpath</module>
-		<module>carml-logical-source-resolver-jsonpath-jayway-jackson</module>
 		<module>carml-logical-source-resolver-csv</module>
 		<module>carml-join-storage</module>
-		<module>carml-join-storage-mapdb</module>
-		<module>carml-logical-source-resolver-xpath-saxon</module>
 	</modules>
 
 	<properties>
@@ -70,16 +67,14 @@
 		<commons-io.version>2.11.0</commons-io.version>
 		<slf4j.version>1.7.32</slf4j.version>
 		<guava.version>30.1.1-jre</guava.version>
-		<reactor.version>2020.0.14</reactor.version>
+		<reactor.version>2020.0.16</reactor.version>
 		<lombok.version>1.18.22</lombok.version>
-		<spring.version>5.3.14</spring.version>
 		<univocity.version>2.9.0</univocity.version>
 		<jayway.version>2.7.0</jayway.version>
 		<jsurfer.version>1.6.3</jsurfer.version>
 		<saxon.version>11.2</saxon.version>
 		<xmldog.version>3.0.1</xmldog.version>
-		<mapdb.version>3.0.8</mapdb.version>
-		<mockito.version>4.2.0</mockito.version>
+		<mockito.version>4.3.1</mockito.version>
 		<junit.version>5.8.2</junit.version>
 		<hamcrest.version>2.2</hamcrest.version>
 		<blockhound.version>1.0.6.RELEASE</blockhound.version>
@@ -143,12 +138,6 @@
 			<dependency>
 				<groupId>com.taxonic.carml</groupId>
 				<artifactId>carml-join-storage</artifactId>
-				<version>${project.version}</version>
-			</dependency>
-
-			<dependency>
-				<groupId>com.taxonic.carml</groupId>
-				<artifactId>carml-join-storage-mapdb</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 
@@ -222,12 +211,6 @@
 			</dependency>
 
 			<dependency>
-				<groupId>org.springframework</groupId>
-				<artifactId>spring-core</artifactId>
-				<version>${spring.version}</version>
-			</dependency>
-
-			<dependency>
 				<groupId>com.univocity</groupId>
 				<artifactId>univocity-parsers</artifactId>
 				<version>${univocity.version}</version>
@@ -255,12 +238,6 @@
 				<groupId>in.jlibs</groupId>
 				<artifactId>jlibs-xmldog</artifactId>
 				<version>${xmldog.version}</version>
-			</dependency>
-
-			<dependency>
-				<groupId>org.mapdb</groupId>
-				<artifactId>mapdb</artifactId>
-				<version>${mapdb.version}</version>
 			</dependency>
 
 			<dependency>
@@ -402,7 +379,7 @@
 						<dependency>
 							<groupId>com.puppycrawl.tools</groupId>
 							<artifactId>checkstyle</artifactId>
-							<version>9.2</version>
+							<version>9.3</version>
 						</dependency>
 					</dependencies>
 				</plugin>
