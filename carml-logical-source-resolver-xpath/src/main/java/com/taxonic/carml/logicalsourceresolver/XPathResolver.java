@@ -65,7 +65,7 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
 
   public static XPathResolver getInstance(XMLDog xmlDog, Processor xpathProcessor, XPathCompiler xpathCompiler,
       boolean autoNodeTextExtraction) {
-    var namespaceContext = (!(xmlDog.nsContext instanceof DefaultNamespaceContext)) ? new DefaultNamespaceContext()
+    var namespaceContext = !(xmlDog.nsContext instanceof DefaultNamespaceContext) ? new DefaultNamespaceContext()
         : (DefaultNamespaceContext) xmlDog.nsContext;
 
     return new XPathResolver(namespaceContext, xmlDog, xpathProcessor, xpathCompiler, autoNodeTextExtraction);

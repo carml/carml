@@ -20,7 +20,6 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Set;
-import java.util.function.Function;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
@@ -28,10 +27,6 @@ import org.eclipse.rdf4j.model.util.ModelCollector;
 import org.eclipse.rdf4j.rio.RDFFormat;
 
 public class RmlMappingLoader {
-
-  private static final Function<Model, Set<Resource>> selectTriplesMaps =
-      model -> Set.copyOf(model.filter(null, Rdf.Rml.logicalSource, null)
-          .subjects());
 
   public static RmlMappingLoader build() {
     return new RmlMappingLoader(new RmlConstantShorthandExpander());
@@ -81,8 +76,8 @@ public class RmlMappingLoader {
         .flatMap(Collection::stream)
         .collect(ModelCollector.toModel());
 
-    return Set.copyOf(RdfObjectLoader.load(selectTriplesMaps, CarmlTriplesMap.class, model, shorthandExpander,
-        this::addTermTypes, mapper -> {
+    return Set.copyOf(RdfObjectLoader.load(RmlMappingLoader::selectTriplesMaps, CarmlTriplesMap.class, model,
+        shorthandExpander, this::addTermTypes, mapper -> {
           mapper.addDecidableType(Rdf.Carml.Stream, NameableStream.class);
           mapper.addDecidableType(Rdf.Carml.XmlDocument, XmlSource.class);
           mapper.addDecidableType(Rdf.Carml.FileSource, FileSource.class);
@@ -90,6 +85,11 @@ public class RmlMappingLoader {
           mapper.bindInterfaceImplementation(XmlSource.class, CarmlXmlSource.class);
           mapper.bindInterfaceImplementation(FileSource.class, CarmlFileSource.class);
         }, RmlNamespaces.RML_NAMESPACES));
+  }
+
+  private static Set<Resource> selectTriplesMaps(Model model) {
+    return Set.copyOf(model.filter(null, Rdf.Rml.logicalSource, null)
+        .subjects());
   }
 
   private void addTermTypes(MappingCache cache) {

@@ -62,7 +62,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.source>11</maven.compiler.source>
 		<maven.compiler.target>11</maven.compiler.target>
-		<rdf4j.version>3.7.4</rdf4j.version>
+		<rdf4j.version>3.7.6</rdf4j.version>
 		<commons-lang3.version>3.12.0</commons-lang3.version>
 		<commons-io.version>2.11.0</commons-io.version>
 		<slf4j.version>1.7.32</slf4j.version>
@@ -72,7 +72,7 @@
 		<univocity.version>2.9.0</univocity.version>
 		<jayway.version>2.7.0</jayway.version>
 		<jsurfer.version>1.6.3</jsurfer.version>
-		<saxon.version>11.2</saxon.version>
+		<saxon.version>11.3</saxon.version>
 		<xmldog.version>3.0.1</xmldog.version>
 		<mockito.version>4.3.1</mockito.version>
 		<junit.version>5.8.2</junit.version>

@@ -53,6 +53,7 @@ public class PausableStaxXmlReader extends AbstractXMLReader {
 
   public PausableStaxXmlReader(XMLInputFactory factory) {
     this.factory = factory;
+    this.factory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
   }
 
   public PausableStaxXmlReader() {
