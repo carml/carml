@@ -1,7 +1,7 @@
-package com.taxonic.carml.engine.reactivedev.join.impl;
+package com.taxonic.carml.engine.join.impl;
 
-import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinConditionStore;
-import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinConditionStoreProvider;
+import com.taxonic.carml.engine.join.ParentSideJoinConditionStore;
+import com.taxonic.carml.engine.join.ParentSideJoinConditionStoreProvider;
 import java.io.Serializable;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.AccessLevel;

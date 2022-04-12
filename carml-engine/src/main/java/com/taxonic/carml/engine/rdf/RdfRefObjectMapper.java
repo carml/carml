@@ -3,12 +3,12 @@ package com.taxonic.carml.engine.rdf;
 import com.taxonic.carml.engine.ExpressionEvaluation;
 import com.taxonic.carml.engine.RefObjectMapper;
 import com.taxonic.carml.engine.TriplesMapper;
-import com.taxonic.carml.engine.reactivedev.join.ChildSideJoin;
-import com.taxonic.carml.engine.reactivedev.join.ChildSideJoinCondition;
-import com.taxonic.carml.engine.reactivedev.join.ChildSideJoinStore;
-import com.taxonic.carml.engine.reactivedev.join.ChildSideJoinStoreProvider;
-import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinConditionStore;
-import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinKey;
+import com.taxonic.carml.engine.join.ChildSideJoin;
+import com.taxonic.carml.engine.join.ChildSideJoinCondition;
+import com.taxonic.carml.engine.join.ChildSideJoinStore;
+import com.taxonic.carml.engine.join.ChildSideJoinStoreProvider;
+import com.taxonic.carml.engine.join.ParentSideJoinConditionStore;
+import com.taxonic.carml.engine.join.ParentSideJoinKey;
 import com.taxonic.carml.model.RefObjectMap;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.util.Models;
@@ -110,21 +110,14 @@ public class RdfRefObjectMapper implements RefObjectMapper<Statement> {
   }
 
   @Override
-  public Flux<Statement> resolveJoins(Flux<Statement> mainFlux, TriplesMapper<?, Statement> parentTriplesMapper,
-      Flux<Statement> parentFlux) {
-
-    Flux<Statement> joinedStatementFlux = childSideJoinStore.clearingFlux()
-        .flatMap(childSideJoin -> resolveJoin(parentTriplesMapper, childSideJoin))
-        .doFinally(signalType -> parentTriplesMapper.notifyCompletion(this, signalType)
-            .subscribe());
-
-    return Flux.merge(mainFlux, parentFlux)
-        .thenMany(joinedStatementFlux);
+  public Flux<Statement> resolveJoins(TriplesMapper<Statement> parentTriplesMapper) {
+    return childSideJoinStore.clearingFlux()
+        .flatMap(childSideJoin -> resolveJoin(parentTriplesMapper, childSideJoin));
   }
 
-  private Flux<Statement> resolveJoin(TriplesMapper<?, Statement> parentTriplesMapper2,
+  private Flux<Statement> resolveJoin(TriplesMapper<Statement> parentTriplesMapper,
       ChildSideJoin<Resource, IRI> childSideJoin) {
-    ParentSideJoinConditionStore<Resource> parentJoinConditions = parentTriplesMapper2.getParentSideJoinConditions();
+    ParentSideJoinConditionStore<Resource> parentJoinConditions = parentTriplesMapper.getParentSideJoinConditions();
 
     Set<Resource> objects = checkJoinAndGetObjects(childSideJoin, parentJoinConditions);
 

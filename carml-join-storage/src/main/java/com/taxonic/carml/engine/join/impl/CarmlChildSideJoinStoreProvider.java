@@ -1,7 +1,7 @@
-package com.taxonic.carml.engine.reactivedev.join.impl;
+package com.taxonic.carml.engine.join.impl;
 
-import com.taxonic.carml.engine.reactivedev.join.ChildSideJoinStore;
-import com.taxonic.carml.engine.reactivedev.join.ChildSideJoinStoreProvider;
+import com.taxonic.carml.engine.join.ChildSideJoinStore;
+import com.taxonic.carml.engine.join.ChildSideJoinStoreProvider;
 import java.io.Serializable;
 import java.util.HashSet;
 import lombok.AccessLevel;

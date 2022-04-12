@@ -6,7 +6,7 @@ import com.taxonic.carml.engine.TermGenerator;
 import com.taxonic.carml.engine.TermGeneratorFactory;
 import com.taxonic.carml.engine.TermGeneratorFactoryException;
 import com.taxonic.carml.engine.function.ExecuteFunction;
-import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinConditionStoreProvider;
+import com.taxonic.carml.engine.join.ParentSideJoinConditionStoreProvider;
 import com.taxonic.carml.engine.template.Template;
 import com.taxonic.carml.engine.template.TemplateParser;
 import com.taxonic.carml.model.DatatypeMap;
@@ -341,7 +341,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
 
   private Optional<Object> functionEvaluation(ExpressionEvaluation expressionEvaluation,
       RdfTriplesMapper<?> executionTriplesMapper, UnaryOperator<Object> returnValueAdapter) {
-    Flux<Statement> functionExecution = executionTriplesMapper.map(expressionEvaluation);
+    Flux<Statement> functionExecution = executionTriplesMapper.mapEvaluation(expressionEvaluation);
     return mapExecution(functionExecution, returnValueAdapter);
   }
 

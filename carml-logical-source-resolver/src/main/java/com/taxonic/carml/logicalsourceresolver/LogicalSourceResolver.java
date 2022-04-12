@@ -2,21 +2,18 @@ package com.taxonic.carml.logicalsourceresolver;
 
 import com.taxonic.carml.engine.ExpressionEvaluation;
 import com.taxonic.carml.model.LogicalSource;
-import java.util.function.BiFunction;
+import java.util.Set;
 import java.util.function.Function;
 import org.slf4j.Logger;
 import reactor.core.publisher.Flux;
 
-public interface LogicalSourceResolver<E> {
+public interface LogicalSourceResolver<R> {
 
-  SourceFlux<E> getSourceFlux();
+  Function<ResolvedSource<?>, Flux<LogicalSourceRecord<R>>> getLogicalSourceRecords(Set<LogicalSource> logicalSources);
 
-  LogicalSourceResolver.ExpressionEvaluationFactory<E> getExpressionEvaluationFactory();
+  LogicalSourceResolver.ExpressionEvaluationFactory<R> getExpressionEvaluationFactory();
 
-  interface SourceFlux<E> extends BiFunction<Object, LogicalSource, Flux<E>> {
-  }
-
-  interface ExpressionEvaluationFactory<E> extends Function<E, ExpressionEvaluation> {
+  interface ExpressionEvaluationFactory<R> extends Function<R, ExpressionEvaluation> {
   }
 
   default void logEvaluateExpression(String expression, Logger logger) {

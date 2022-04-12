@@ -1,18 +1,17 @@
 package com.taxonic.carml.engine;
 
-import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinConditionStore;
+import com.taxonic.carml.engine.join.ParentSideJoinConditionStore;
+import com.taxonic.carml.logicalsourceresolver.LogicalSourceRecord;
 import com.taxonic.carml.model.TriplesMap;
 import java.util.Set;
 import org.eclipse.rdf4j.model.Resource;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.core.publisher.SignalType;
 
-public interface TriplesMapper<E, V> {
+public interface TriplesMapper<V> {
 
-  Flux<V> map(E item);
+  Flux<V> map(LogicalSourceRecord<?> logicalSourceRecord);
 
-  Flux<V> map(ExpressionEvaluation expressionEvaluation);
+  Flux<V> mapEvaluation(ExpressionEvaluation expressionEvaluation);
 
   TriplesMap getTriplesMap();
 
@@ -20,6 +19,5 @@ public interface TriplesMapper<E, V> {
 
   ParentSideJoinConditionStore<Resource> getParentSideJoinConditions();
 
-  Mono<Void> notifyCompletion(RefObjectMapper<V> refObjectMapper, SignalType signalType);
-
+  void cleanup();
 }

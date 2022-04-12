@@ -20,6 +20,11 @@
 		</dependency>
 
 		<dependency>
+			<groupId>in.jlibs</groupId>
+			<artifactId>jlibs-xmldog</artifactId>
+		</dependency>
+
+		<dependency>
 			<groupId>com.taxonic.carml</groupId>
 			<artifactId>carml-logical-source-resolver</artifactId>
 		</dependency>

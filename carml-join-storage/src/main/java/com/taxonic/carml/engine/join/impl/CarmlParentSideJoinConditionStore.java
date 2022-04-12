@@ -1,7 +1,7 @@
-package com.taxonic.carml.engine.reactivedev.join.impl;
+package com.taxonic.carml.engine.join.impl;
 
-import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinConditionStore;
-import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinKey;
+import com.taxonic.carml.engine.join.ParentSideJoinConditionStore;
+import com.taxonic.carml.engine.join.ParentSideJoinKey;
 import java.io.Serializable;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;

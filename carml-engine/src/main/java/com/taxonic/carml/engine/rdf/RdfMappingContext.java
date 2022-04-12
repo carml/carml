@@ -1,7 +1,7 @@
 package com.taxonic.carml.engine.rdf;
 
 import com.taxonic.carml.engine.TermGeneratorFactory;
-import com.taxonic.carml.engine.reactivedev.join.ChildSideJoinStoreProvider;
+import com.taxonic.carml.engine.join.ChildSideJoinStoreProvider;
 import java.util.function.Supplier;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;

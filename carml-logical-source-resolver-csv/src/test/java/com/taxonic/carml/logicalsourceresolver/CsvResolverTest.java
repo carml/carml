@@ -3,22 +3,18 @@ package com.taxonic.carml.logicalsourceresolver;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-import com.taxonic.carml.engine.ExpressionEvaluation;
 import com.taxonic.carml.model.LogicalSource;
 import com.taxonic.carml.model.impl.CarmlLogicalSource;
-import com.taxonic.carml.util.ReactiveInputStreams;
 import com.taxonic.carml.vocab.Rdf.Ql;
-import com.univocity.parsers.common.record.Record;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
-import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 class CsvResolverTest {
@@ -39,14 +35,8 @@ class CsvResolverTest {
       .referenceFormulation(Ql.Csv)
       .build();
 
-  private final Function<Object, InputStream> sourceResolver = s -> {
-    try {
-      return ReactiveInputStreams.inputStreamFrom(
-          ReactiveInputStreams.fluxInputStream(IOUtils.toInputStream((String) s, StandardCharsets.UTF_8)));
-    } catch (IOException ioException) {
-      throw new RuntimeException(ioException);
-    }
-  };
+  private final Function<Object, InputStream> sourceResolver =
+      s -> IOUtils.toInputStream((String) s, StandardCharsets.UTF_8);
 
   private CsvResolver csvResolver;
 
@@ -56,12 +46,13 @@ class CsvResolverTest {
   }
 
   @Test
-  void givenCsv_whenSourceFluxApplied_givenCsv_thenReturnFluxOfAllRecords() throws InterruptedException {
+  void givenCsv_whenSourceFluxApplied_givenCsv_thenReturnFluxOfAllRecords() {
     // Given
-    LogicalSourceResolver.SourceFlux<Record> sourceFlux = csvResolver.getSourceFlux();
+    var recordResolver = csvResolver.getLogicalSourceRecords(Set.of(LSOURCE));
+    var resolvedSource = ResolvedSource.of(SOURCE, sourceResolver.apply(SOURCE), InputStream.class);
 
     // When
-    Flux<Record> recordFlux = sourceFlux.apply(sourceResolver.apply(SOURCE), LSOURCE);
+    var recordFlux = recordResolver.apply(resolvedSource);
 
     // Then
     StepVerifier.create(recordFlux)
@@ -72,14 +63,16 @@ class CsvResolverTest {
   @Test
   void givenRandomDelimitedCsv_whenSourceFluxApplied_thenReturnFluxOfAllCorrectRecords() {
     // Given
-    LogicalSourceResolver.SourceFlux<Record> sourceFlux = csvResolver.getSourceFlux();
+    var recordResolver = csvResolver.getLogicalSourceRecords(Set.of(LSOURCE_DELIM));
+    var resolvedSource = ResolvedSource.of(SOURCE, sourceResolver.apply(SOURCE), InputStream.class);
 
     // When
-    Flux<Record> recordFlux = sourceFlux.apply(sourceResolver.apply(SOURCE), LSOURCE_DELIM);
+    var recordFlux = recordResolver.apply(resolvedSource);
 
     // Then
     StepVerifier.create(recordFlux)
-        .expectNextMatches(record -> record.getValues().length == 5)
+        .expectNextMatches(logicalSourceRecord -> logicalSourceRecord.getRecord()
+            .getValues().length == 5)
         .expectNextCount(1)
         .verifyComplete();
   }
@@ -87,16 +80,17 @@ class CsvResolverTest {
   @Test
   void givenExpression_whenExpressionEvaluationApplied_thenReturnCorrectValue() {
     // Given
-    String expression = "Year";
-    LogicalSourceResolver.SourceFlux<Record> sourceFlux = csvResolver.getSourceFlux();
-    Flux<Record> recordFlux = sourceFlux.apply(sourceResolver.apply(SOURCE), LSOURCE);
-    Record record = recordFlux.blockFirst();
-    LogicalSourceResolver.ExpressionEvaluationFactory<Record> evaluationFactory =
-        csvResolver.getExpressionEvaluationFactory();
-    ExpressionEvaluation evaluation = evaluationFactory.apply(record);
+    var expression = "Year";
+    var sourceFlux = csvResolver.getLogicalSourceRecords(Set.of(LSOURCE));
+    var resolvedSource = ResolvedSource.of(SOURCE, sourceResolver.apply(SOURCE), InputStream.class);
+    var recordFlux = sourceFlux.apply(resolvedSource);
+    var record = recordFlux.blockFirst()
+        .getRecord();
+    var evaluationFactory = csvResolver.getExpressionEvaluationFactory();
+    var evaluation = evaluationFactory.apply(record);
 
     // When
-    Optional<Object> evaluationResult = evaluation.apply(expression);
+    var evaluationResult = evaluation.apply(expression);
 
     // Then
     assertThat(evaluationResult.isPresent(), is(true));
@@ -105,16 +99,17 @@ class CsvResolverTest {
 
   @Test
   void givenLargeColumns_whenSourceFluxApplied_thenReturnFluxWithLargeColumnRecords() throws IOException {
-    String csv = IOUtils.toString(Objects.requireNonNull(CsvResolverTest.class.getResourceAsStream("large_column.csv")),
+    var csv = IOUtils.toString(Objects.requireNonNull(CsvResolverTest.class.getResourceAsStream("large_column.csv")),
         StandardCharsets.UTF_8);
-    LogicalSource logicalSource = CarmlLogicalSource.builder()
+    var logicalSource = CarmlLogicalSource.builder()
         .source(csv)
         .referenceFormulation(Ql.Csv)
         .build();
-    LogicalSourceResolver.SourceFlux<Record> sourceFlux = csvResolver.getSourceFlux();
+    var resolvedSource = ResolvedSource.of(logicalSource.getSource(), sourceResolver.apply(csv), InputStream.class);
+    var recordResolver = csvResolver.getLogicalSourceRecords(Set.of(logicalSource));
 
     // When
-    Flux<Record> recordFlux = sourceFlux.apply(sourceResolver.apply(csv), logicalSource);
+    var recordFlux = recordResolver.apply(resolvedSource);
 
     // Then
     StepVerifier.create(recordFlux)
