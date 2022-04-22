@@ -71,7 +71,7 @@
 		<guava.version>30.1.1-jre</guava.version>
 		<reactor.version>2020.0.14</reactor.version>
 		<lombok.version>1.18.22</lombok.version>
-		<spring.version>5.3.14</spring.version>
+		<spring.version>5.3.19</spring.version>
 		<univocity.version>2.9.0</univocity.version>
 		<jayway.version>2.6.0</jayway.version>
 		<jsurfer.version>1.6.1</jsurfer.version>
