@@ -166,7 +166,7 @@ class CarmlTemplate implements Template {
 
       if (!expressionSegments.isEmpty()) {
 
-        // map segment to list of it's evaluation results
+        // map segment to list of its evaluation results
         for (ExpressionSegment expressionSegment : expressionSegments) {
           Optional<Object> evalResult = getExpressionSegmentValue(expressionSegment);
           indexedExprValues.put(expressionSegment, evalResult.map(this::getValuesExpressionEvaluation)

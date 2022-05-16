@@ -1,6 +1,7 @@
 package com.taxonic.carml.engine.rdf;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -72,7 +73,8 @@ class RdfRmlMapperTest {
 
     // Then
     assertThat(rmlMapperException.getMessage(),
-        is("No logical source resolver supplier bound for reference formulation http://semweb.mmlab.be/ns/ql#XPath"));
+        equalToCompressingWhiteSpace("No logical source resolver supplier bound for reference formulation "
+            + "http://semweb.mmlab.be/ns/ql#XPath Resolvers available: http://semweb.mmlab.be/ns/ql#JSONPath"));
   }
 
   @Test

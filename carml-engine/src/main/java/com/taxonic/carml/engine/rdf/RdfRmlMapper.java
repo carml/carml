@@ -2,6 +2,7 @@ package com.taxonic.carml.engine.rdf;
 
 import static com.taxonic.carml.util.LogUtil.exception;
 import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toSet;
 
@@ -265,8 +266,12 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
       var logicalSourceResolverSupplier = logicalSourceResolverSuppliers.get(referenceFormulation);
 
       if (logicalSourceResolverSupplier == null) {
-        throw new RmlMapperException(String
-            .format("No logical source resolver supplier bound for reference formulation %s", referenceFormulation));
+        throw new RmlMapperException(String.format(
+            "No logical source resolver supplier bound for reference formulation %s%nResolvers available: %s",
+            referenceFormulation, logicalSourceResolverSuppliers.keySet()
+                .stream()
+                .map(IRI::stringValue)
+                .collect(joining(", "))));
       }
 
       return logicalSourceResolverSupplier.get();
