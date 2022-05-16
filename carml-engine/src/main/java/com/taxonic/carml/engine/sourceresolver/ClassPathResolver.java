@@ -1,12 +1,9 @@
 package com.taxonic.carml.engine.sourceresolver;
 
-import com.taxonic.carml.util.ReactiveInputStreams;
 import java.io.InputStream;
 import java.util.Optional;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import org.springframework.core.io.buffer.DataBuffer;
-import reactor.core.publisher.Flux;
 
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class ClassPathResolver implements SourceResolver {
@@ -28,7 +25,7 @@ public class ClassPathResolver implements SourceResolver {
   }
 
   @Override
-  public Optional<Flux<DataBuffer>> apply(Object source) {
+  public Optional<Object> apply(Object source) {
     return unpackFileSource(source).map(relativePath -> {
       String sourceName = basePath.equals("") ? relativePath : String.format("%s/%s", basePath, relativePath);
 
@@ -39,7 +36,7 @@ public class ClassPathResolver implements SourceResolver {
         throw new SourceResolverException(String.format("Could not resolve source %s", sourceName));
       }
 
-      return ReactiveInputStreams.fluxInputStream(inputStream);
+      return inputStream;
     });
   }
 }

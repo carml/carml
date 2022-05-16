@@ -49,6 +49,7 @@ public abstract class CarmlResource implements Resource {
     return label;
   }
 
+  @Override
   public org.eclipse.rdf4j.model.Resource getAsResource() {
 
     if (id == null) {
@@ -67,6 +68,7 @@ public abstract class CarmlResource implements Resource {
     modelCache.put(this, model);
   }
 
+  @Override
   public Model asRdf() {
 
     if (modelCache.containsKey(this)) {

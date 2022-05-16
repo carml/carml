@@ -15,7 +15,7 @@ import static org.mockito.Mockito.when;
 
 import com.taxonic.carml.engine.TermGenerator;
 import com.taxonic.carml.engine.TriplesMapperException;
-import com.taxonic.carml.engine.reactivedev.join.ChildSideJoinStoreProvider;
+import com.taxonic.carml.engine.join.ChildSideJoinStoreProvider;
 import com.taxonic.carml.model.GraphMap;
 import com.taxonic.carml.model.SubjectMap;
 import com.taxonic.carml.model.TriplesMap;

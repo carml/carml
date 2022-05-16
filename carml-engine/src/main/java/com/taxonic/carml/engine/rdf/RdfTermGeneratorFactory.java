@@ -6,7 +6,7 @@ import com.taxonic.carml.engine.TermGenerator;
 import com.taxonic.carml.engine.TermGeneratorFactory;
 import com.taxonic.carml.engine.TermGeneratorFactoryException;
 import com.taxonic.carml.engine.function.ExecuteFunction;
-import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinConditionStoreProvider;
+import com.taxonic.carml.engine.join.ParentSideJoinConditionStoreProvider;
 import com.taxonic.carml.engine.template.Template;
 import com.taxonic.carml.engine.template.TemplateParser;
 import com.taxonic.carml.model.DatatypeMap;
@@ -49,7 +49,6 @@ import org.eclipse.rdf4j.model.util.Models;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
-import reactor.core.scheduler.Schedulers;
 
 @SuppressWarnings("java:S1135")
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -78,22 +77,26 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
         templateParser, parentSideJoinConditionStoreProvider);
   }
 
+  @Override
   @SuppressWarnings("unchecked")
   public TermGenerator<Resource> getSubjectGenerator(SubjectMap map) {
     return (TermGenerator<Resource>) getGenerator(map, Set.of(TermType.BLANK_NODE, TermType.IRI), Set.of(IRI.class));
   }
 
+  @Override
   @SuppressWarnings("unchecked")
   public TermGenerator<IRI> getPredicateGenerator(PredicateMap map) {
     return (TermGenerator<IRI>) getGenerator(map, Set.of(TermType.IRI), Set.of(IRI.class));
   }
 
+  @Override
   @SuppressWarnings("unchecked")
   public TermGenerator<Value> getObjectGenerator(ObjectMap map) {
     return (TermGenerator<Value>) getGenerator(map, Set.of(TermType.IRI, TermType.BLANK_NODE, TermType.LITERAL),
         Set.of(IRI.class, Literal.class));
   }
 
+  @Override
   @SuppressWarnings("unchecked")
   public TermGenerator<Resource> getGraphGenerator(GraphMap map) {
     return (TermGenerator<Resource>) getGenerator(map, Set.of(TermType.IRI), Set.of(IRI.class));
@@ -245,6 +248,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
     };
   }
 
+  @Override
   public Optional<TermGenerator<? extends Value>> getConstantGenerator(ExpressionMap map,
       Set<Class<? extends Value>> allowedConstantTypes) {
     Value constant = map.getConstant();
@@ -264,6 +268,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
     return Optional.of(e -> constants);
   }
 
+  @Override
   public Optional<TermGenerator<? extends Value>> getReferenceGenerator(ExpressionMap map,
       Set<TermType> allowedTermTypes) {
 
@@ -278,6 +283,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
     return Optional.of(getGenerator(map, getValue, allowedTermTypes, determineTermType(map)));
   }
 
+  @Override
   public Optional<TermGenerator<? extends Value>> getTemplateGenerator(ExpressionMap map,
       Set<TermType> allowedTermTypes) {
 
@@ -300,6 +306,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
     return Optional.of(getGenerator(map, getValue, allowedTermTypes, termType));
   }
 
+  @Override
   public Optional<TermGenerator<? extends Value>> getFunctionValueGenerator(ExpressionMap expressionMap,
       Set<TermType> allowedTermTypes) {
 
@@ -334,7 +341,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
 
   private Optional<Object> functionEvaluation(ExpressionEvaluation expressionEvaluation,
       RdfTriplesMapper<?> executionTriplesMapper, UnaryOperator<Object> returnValueAdapter) {
-    Flux<Statement> functionExecution = executionTriplesMapper.map(expressionEvaluation);
+    Flux<Statement> functionExecution = executionTriplesMapper.mapEvaluation(expressionEvaluation);
     return mapExecution(functionExecution, returnValueAdapter);
   }
 
@@ -344,7 +351,6 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
       return model;
     })
         .map(executionStatements -> mapExecution(executionStatements, returnValueAdapter))
-        .subscribeOn(Schedulers.boundedElastic())
         .block();
   }
 

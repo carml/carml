@@ -3,12 +3,12 @@ package com.taxonic.carml.engine.rdf;
 import com.taxonic.carml.engine.ExpressionEvaluation;
 import com.taxonic.carml.engine.RefObjectMapper;
 import com.taxonic.carml.engine.TriplesMapper;
-import com.taxonic.carml.engine.reactivedev.join.ChildSideJoin;
-import com.taxonic.carml.engine.reactivedev.join.ChildSideJoinCondition;
-import com.taxonic.carml.engine.reactivedev.join.ChildSideJoinStore;
-import com.taxonic.carml.engine.reactivedev.join.ChildSideJoinStoreProvider;
-import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinConditionStore;
-import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinKey;
+import com.taxonic.carml.engine.join.ChildSideJoin;
+import com.taxonic.carml.engine.join.ChildSideJoinCondition;
+import com.taxonic.carml.engine.join.ChildSideJoinStore;
+import com.taxonic.carml.engine.join.ChildSideJoinStoreProvider;
+import com.taxonic.carml.engine.join.ParentSideJoinConditionStore;
+import com.taxonic.carml.engine.join.ParentSideJoinKey;
 import com.taxonic.carml.model.RefObjectMap;
 import com.taxonic.carml.model.TriplesMap;
 import com.taxonic.carml.util.Models;
@@ -17,29 +17,21 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Phaser;
 import java.util.stream.Collectors;
-import lombok.AccessLevel;
-import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.ValueFactory;
-import reactor.core.publisher.ConnectableFlux;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 @Slf4j
 public class RdfRefObjectMapper implements RefObjectMapper<Statement> {
 
-  @Getter(AccessLevel.PUBLIC)
   @NonNull
   private final RefObjectMap refObjectMap;
 
-  @Getter(AccessLevel.PUBLIC)
   @NonNull
   private final TriplesMap triplesMap;
 
@@ -67,6 +59,16 @@ public class RdfRefObjectMapper implements RefObjectMapper<Statement> {
     this.triplesMap = triplesMap;
     this.childSideJoinStore = childSideJoinStore;
     this.valueFactory = valueFactory;
+  }
+
+  @Override
+  public TriplesMap getTriplesMap() {
+    return triplesMap;
+  }
+
+  @Override
+  public RefObjectMap getRefObjectMap() {
+    return refObjectMap;
   }
 
   public void map(Map<Set<Resource>, Set<Resource>> subjectsAndAllGraphs, Set<IRI> predicates,
@@ -108,43 +110,14 @@ public class RdfRefObjectMapper implements RefObjectMapper<Statement> {
   }
 
   @Override
-  public Flux<Statement> resolveJoins(Flux<Statement> mainFlux, TriplesMapper<?, Statement> parentTriplesMapper,
-      Flux<Statement> parentFlux) {
-
-    ConnectableFlux<Statement> joinedStatementFlux = childSideJoinStore.clearingFlux()
-        .subscribeOn(Schedulers.boundedElastic())
-        .flatMap(childSideJoin -> resolveJoin(parentTriplesMapper, childSideJoin))
-        .doFinally(signalType -> parentTriplesMapper.notifyCompletion(this, signalType)
-            .subscribeOn(Schedulers.boundedElastic())
-            .subscribe())
-        .publish();
-
-    Flux<Statement> barrier = setTriplesMapperCompletionBarrier(joinedStatementFlux, mainFlux, parentFlux);
-
-    return Flux.merge(joinedStatementFlux, barrier);
+  public Flux<Statement> resolveJoins(TriplesMapper<Statement> parentTriplesMapper) {
+    return childSideJoinStore.clearingFlux()
+        .flatMap(childSideJoin -> resolveJoin(parentTriplesMapper, childSideJoin));
   }
 
-  private Flux<Statement> setTriplesMapperCompletionBarrier(ConnectableFlux<Statement> joinedStatementFlux,
-      Flux<Statement> mainFlux, Flux<Statement> parentFlux) {
-    return Mono.fromRunnable(() -> {
-      Phaser phaser = new Phaser(1);
-      mainFlux.doOnSubscribe(subscription -> phaser.register())
-          .doFinally(signalType -> phaser.arriveAndDeregister())
-          .subscribe();
-      parentFlux.doOnSubscribe(subscription -> phaser.register())
-          .doFinally(signalType -> phaser.arriveAndDeregister())
-          .subscribe();
-
-      phaser.arriveAndAwaitAdvance();
-      joinedStatementFlux.connect();
-    })
-        .subscribeOn(Schedulers.boundedElastic())
-        .thenMany(Flux.empty());
-  }
-
-  private Flux<Statement> resolveJoin(TriplesMapper<?, Statement> parentTriplesMapper2,
+  private Flux<Statement> resolveJoin(TriplesMapper<Statement> parentTriplesMapper,
       ChildSideJoin<Resource, IRI> childSideJoin) {
-    ParentSideJoinConditionStore<Resource> parentJoinConditions = parentTriplesMapper2.getParentSideJoinConditions();
+    ParentSideJoinConditionStore<Resource> parentJoinConditions = parentTriplesMapper.getParentSideJoinConditions();
 
     Set<Resource> objects = checkJoinAndGetObjects(childSideJoin, parentJoinConditions);
 

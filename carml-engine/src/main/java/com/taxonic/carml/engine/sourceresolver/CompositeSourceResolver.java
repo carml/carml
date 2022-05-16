@@ -5,8 +5,6 @@ import java.util.Optional;
 import java.util.Set;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import org.springframework.core.io.buffer.DataBuffer;
-import reactor.core.publisher.Flux;
 
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class CompositeSourceResolver implements SourceResolver {
@@ -22,7 +20,7 @@ public class CompositeSourceResolver implements SourceResolver {
   }
 
   @Override
-  public Optional<Flux<DataBuffer>> apply(Object source) {
+  public Optional<Object> apply(Object source) {
     return resolvers.stream()
         .map(resolver -> resolver.apply(source))
         .filter(Optional::isPresent)

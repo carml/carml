@@ -1,6 +1,8 @@
 package com.taxonic.carml.util;
 
 import com.taxonic.carml.model.Resource;
+import java.util.Collection;
+import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
@@ -11,9 +13,21 @@ public class LogUtil {
     return log(resource, resource);
   }
 
+  public static String log(Collection<? extends Resource> resources) {
+    return resources.stream()
+        .map(LogUtil::log)
+        .collect(Collectors.joining(String.format(",%n")));
+  }
+
   public static String log(Resource ancestor, Resource resource) {
     return ModelSerializer.formatResourceForLog(ancestor.asRdf(), resource.getAsResource(),
         RmlNamespaces.RML_NAMESPACES, false);
+  }
+
+  public static String exception(Collection<? extends Resource> resources) {
+    return resources.stream()
+        .map(LogUtil::exception)
+        .collect(Collectors.joining(String.format(",%n")));
   }
 
   public static String exception(Resource resource) {

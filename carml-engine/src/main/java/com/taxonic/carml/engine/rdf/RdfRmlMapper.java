@@ -1,15 +1,21 @@
 package com.taxonic.carml.engine.rdf;
 
-import com.taxonic.carml.engine.LogicalSourcePipeline;
+import static com.taxonic.carml.util.LogUtil.exception;
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.mapping;
+import static java.util.stream.Collectors.toSet;
+
 import com.taxonic.carml.engine.RefObjectMapper;
 import com.taxonic.carml.engine.RmlMapper;
 import com.taxonic.carml.engine.RmlMapperException;
 import com.taxonic.carml.engine.TermGeneratorFactory;
+import com.taxonic.carml.engine.TriplesMapper;
 import com.taxonic.carml.engine.function.Functions;
-import com.taxonic.carml.engine.reactivedev.join.ChildSideJoinStoreProvider;
-import com.taxonic.carml.engine.reactivedev.join.ParentSideJoinConditionStoreProvider;
-import com.taxonic.carml.engine.reactivedev.join.impl.CarmlChildSideJoinStoreProvider;
-import com.taxonic.carml.engine.reactivedev.join.impl.CarmlParentSideJoinConditionStoreProvider;
+import com.taxonic.carml.engine.join.ChildSideJoinStoreProvider;
+import com.taxonic.carml.engine.join.ParentSideJoinConditionStoreProvider;
+import com.taxonic.carml.engine.join.impl.CarmlChildSideJoinStoreProvider;
+import com.taxonic.carml.engine.join.impl.CarmlParentSideJoinConditionStoreProvider;
 import com.taxonic.carml.engine.sourceresolver.ClassPathResolver;
 import com.taxonic.carml.engine.sourceresolver.CompositeSourceResolver;
 import com.taxonic.carml.engine.sourceresolver.FileResolver;
@@ -26,7 +32,6 @@ import java.text.Normalizer;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -45,7 +50,6 @@ import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.model.util.ModelCollector;
-import org.springframework.core.io.buffer.DataBuffer;
 import reactor.core.publisher.Flux;
 
 @Slf4j
@@ -53,10 +57,12 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
 
   private static final long SECONDS_TO_TIMEOUT = 30;
 
-  private RdfRmlMapper(Set<TriplesMap> triplesMaps, Function<Object, Optional<Flux<DataBuffer>>> sourceResolver,
-      Map<TriplesMap, LogicalSourcePipeline<?, Statement>> logicalSourcePipelinePool,
-      Map<? extends RefObjectMapper<Statement>, TriplesMap> refObjectMapperToParentTriplesMap) {
-    super(triplesMaps, sourceResolver, logicalSourcePipelinePool, refObjectMapperToParentTriplesMap);
+  private RdfRmlMapper(Set<TriplesMap> triplesMaps, Function<Object, Optional<Object>> sourceResolver,
+      Set<TriplesMapper<Statement>> triplesMappers,
+      Map<RefObjectMapper<Statement>, TriplesMapper<Statement>> refObjectMapperToParentTriplesMapper,
+      Map<Object, LogicalSourceResolver<?>> sourceToLogicalSourceResolver) {
+    super(triplesMaps, sourceResolver, triplesMappers, refObjectMapperToParentTriplesMapper,
+        sourceToLogicalSourceResolver);
   }
 
   public static Builder builder() {
@@ -113,8 +119,8 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
       return this;
     }
 
-    public Builder setLogicalSourceResolver(IRI iri, Supplier<LogicalSourceResolver<?>> resolver) {
-      logicalSourceResolverSuppliers.put(iri, resolver);
+    public Builder setLogicalSourceResolver(IRI iri, Supplier<LogicalSourceResolver<?>> resolverSupplier) {
+      logicalSourceResolverSuppliers.put(iri, resolverSupplier);
       return this;
     }
 
@@ -205,42 +211,94 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
         tmToRoMappers.put(triplesMap, roMappers);
       }
 
-      Map<LogicalSource, List<TriplesMap>> groupedTriplesMaps = mappableTriplesMaps.stream()
-          .collect(Collectors.groupingBy(TriplesMap::getLogicalSource));
-
-      Set<RdfLogicalSourcePipeline<?>> logicalSourcePipelines = groupedTriplesMaps.entrySet()
+      var parentTmToRoMappers = roMapperToParentTm.entrySet()
           .stream()
-          .map(triplesMapGroup -> buildRdfLogicalSourcePipeline(triplesMapGroup.getKey(), triplesMapGroup.getValue(),
-              tmToRoMappers, roMapperToParentTm, rdfMappingContext))
-          .collect(Collectors.toSet());
+          .collect(groupingBy(Map.Entry::getValue, mapping(Map.Entry::getKey, toSet())));
 
-      Map<TriplesMap, LogicalSourcePipeline<?, Statement>> logicalSourcePipelinePool = new HashMap<>();
-      for (RdfLogicalSourcePipeline<?> logicalSourcePipeline : logicalSourcePipelines) {
-        logicalSourcePipeline.getTriplesMappers()
-            .forEach(rdfTriplesMapper -> logicalSourcePipelinePool.put(rdfTriplesMapper.getTriplesMap(),
-                logicalSourcePipeline));
-      }
+      var sourceToLogicalSourceResolver = buildLogicalSourceResolvers(mappableTriplesMaps);
+
+      Set<TriplesMapper<Statement>> triplesMappers = mappableTriplesMaps.stream()
+          .map(triplesMap -> RdfTriplesMapper.of(triplesMap, tmToRoMappers.get(triplesMap),
+              !parentTmToRoMappers.containsKey(triplesMap) ? Set.of() : parentTmToRoMappers.get(triplesMap),
+              getExpressionEvaluationFactory(triplesMap, sourceToLogicalSourceResolver), rdfMappingContext,
+              parentSideJoinConditionStoreProvider))
+          .collect(Collectors.toUnmodifiableSet());
+
+      Map<RefObjectMapper<Statement>, TriplesMapper<Statement>> roMapperToParentTriplesMapper =
+          roMapperToParentTm.entrySet()
+              .stream()
+              .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey,
+                  entry -> getTriplesMapper(entry.getValue(), triplesMappers)));
 
       var compositeResolver = CompositeSourceResolver.of(Set.copyOf(sourceResolvers));
 
-      return new RdfRmlMapper(triplesMaps, compositeResolver, logicalSourcePipelinePool, roMapperToParentTm);
+      return new RdfRmlMapper(triplesMaps, compositeResolver, triplesMappers, roMapperToParentTriplesMapper,
+          sourceToLogicalSourceResolver);
     }
 
-    private RdfLogicalSourcePipeline<?> buildRdfLogicalSourcePipeline(LogicalSource logicalSource,
-        List<TriplesMap> triplesMaps, Map<TriplesMap, Set<RdfRefObjectMapper>> tmToRoMappers,
-        Map<RdfRefObjectMapper, TriplesMap> roMapperToParentTm, RdfMappingContext rdfMappingContext) {
+    private Map<Object, LogicalSourceResolver<?>> buildLogicalSourceResolvers(Set<TriplesMap> triplesMaps) {
 
-      Supplier<LogicalSourceResolver<?>> logicalSourceResolverSupplier =
-          logicalSourceResolverSuppliers.get(logicalSource.getReferenceFormulation());
-
-      if (logicalSourceResolverSupplier == null) {
-        throw new RmlMapperException(
-            String.format("No logical source resolver supplier bound for reference formulation %s",
-                logicalSource.getReferenceFormulation()));
+      if (triplesMaps.isEmpty()) {
+        throw new RmlMapperException("No executable triples maps found.");
       }
 
-      return RdfLogicalSourcePipeline.of(logicalSource, triplesMaps, tmToRoMappers, roMapperToParentTm,
-          logicalSourceResolverSupplier.get(), rdfMappingContext, parentSideJoinConditionStoreProvider);
+      var sourceToLogicalSources = triplesMaps.stream()
+          .map(TriplesMap::getLogicalSource)
+          .collect(groupingBy(LogicalSource::getSource, toSet()));
+
+      return sourceToLogicalSources.entrySet()
+          .stream()
+          .collect(
+              Collectors.toUnmodifiableMap(Map.Entry::getKey, entry -> buildLogicalSourceResolver(entry.getValue())));
+    }
+
+    private LogicalSourceResolver<?> buildLogicalSourceResolver(Set<LogicalSource> logicalSources) {
+      var referenceFormulation = logicalSources.stream()
+          .map(LogicalSource::getReferenceFormulation)
+          .findFirst();
+
+      return referenceFormulation.map(this::getLogicalSourceResolver)
+          .orElseThrow(() -> new RmlMapperException(
+              String.format("No logical sources found in triplesMaps:%n%s", exception(triplesMaps))));
+    }
+
+    private LogicalSourceResolver<?> getLogicalSourceResolver(IRI referenceFormulation) {
+      var logicalSourceResolverSupplier = logicalSourceResolverSuppliers.get(referenceFormulation);
+
+      if (logicalSourceResolverSupplier == null) {
+        throw new RmlMapperException(String.format(
+            "No logical source resolver supplier bound for reference formulation %s%nResolvers available: %s",
+            referenceFormulation, logicalSourceResolverSuppliers.keySet()
+                .stream()
+                .map(IRI::stringValue)
+                .collect(joining(", "))));
+      }
+
+      return logicalSourceResolverSupplier.get();
+    }
+
+    private LogicalSourceResolver.ExpressionEvaluationFactory<?> getExpressionEvaluationFactory(TriplesMap triplesMap,
+        Map<Object, LogicalSourceResolver<?>> sourceToLogicalSourceResolver) {
+      return sourceToLogicalSourceResolver.entrySet()
+          .stream()
+          .filter(entry -> entry.getKey()
+              .equals(triplesMap.getLogicalSource()
+                  .getSource()))
+          .map(Map.Entry::getValue)
+          .map(LogicalSourceResolver::getExpressionEvaluationFactory)
+          .findFirst()
+          .orElseThrow(() -> new IllegalStateException(
+              String.format("LogicalSourceResolver not found for TriplesMap:%n%s", exception(triplesMap))));
+    }
+
+    private TriplesMapper<Statement> getTriplesMapper(TriplesMap triplesMap,
+        Set<TriplesMapper<Statement>> triplesMappers) {
+      return triplesMappers.stream()
+          .filter(triplesMapper -> triplesMapper.getTriplesMap()
+              .equals(triplesMap))
+          .findFirst()
+          .orElseThrow(() -> new IllegalStateException(
+              String.format("TriplesMapper not found for TriplesMap:%n%s", exception(triplesMap))));
     }
   }
 
@@ -268,12 +326,12 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
     return toModel(map(namedInputStreams, triplesMapFilter));
   }
 
-  public Model mapItemToModel(Object item) {
-    return toModel(mapItem(item));
+  public <R> Model mapRecordToModel(R providedRecord, Class<R> providedRecordClass) {
+    return toModel(mapRecord(providedRecord, providedRecordClass));
   }
 
-  public Model mapItemToModel(Object item, Set<TriplesMap> triplesMapFilter) {
-    return toModel(mapItem(item, triplesMapFilter));
+  public <R> Model mapRecordToModel(R providedRecord, Class<R> providedRecordClass, Set<TriplesMap> triplesMapFilter) {
+    return toModel(mapRecord(providedRecord, providedRecordClass, triplesMapFilter));
   }
 
   private Model toModel(Flux<Statement> statementFlux) {
