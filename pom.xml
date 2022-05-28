@@ -74,7 +74,7 @@
 		<jsurfer.version>1.6.3</jsurfer.version>
 		<saxon.version>11.3</saxon.version>
 		<xmldog.version>3.0.1</xmldog.version>
-		<mockito.version>4.5.1</mockito.version>
+		<mockito.version>4.6.0</mockito.version>
 		<junit.version>5.8.2</junit.version>
 		<hamcrest.version>2.2</hamcrest.version>
 		<blockhound.version>1.0.6.RELEASE</blockhound.version>
