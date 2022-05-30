@@ -1,5 +1,5 @@
-# Perform a manual release from the main branch
-name: Release
+# Perform a manual relocation release from the reloc branch
+name: Relocate
 
 # Controls when the workflow will run
 on:
