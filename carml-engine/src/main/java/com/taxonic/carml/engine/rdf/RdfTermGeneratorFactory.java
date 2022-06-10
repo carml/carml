@@ -1,12 +1,15 @@
 package com.taxonic.carml.engine.rdf;
 
+import static com.taxonic.carml.engine.rdf.RdfPredicateObjectMapper.createObjectMapGenerators;
+import static com.taxonic.carml.engine.rdf.RdfPredicateObjectMapper.createPredicateGenerators;
+import static com.taxonic.carml.util.Models.streamCartesianProductStatements;
+
 import com.taxonic.carml.engine.ExpressionEvaluation;
 import com.taxonic.carml.engine.GetTemplateValue;
 import com.taxonic.carml.engine.TermGenerator;
 import com.taxonic.carml.engine.TermGeneratorFactory;
 import com.taxonic.carml.engine.TermGeneratorFactoryException;
 import com.taxonic.carml.engine.function.ExecuteFunction;
-import com.taxonic.carml.engine.join.ParentSideJoinConditionStoreProvider;
 import com.taxonic.carml.engine.template.Template;
 import com.taxonic.carml.engine.template.TemplateParser;
 import com.taxonic.carml.model.DatatypeMap;
@@ -15,6 +18,7 @@ import com.taxonic.carml.model.GraphMap;
 import com.taxonic.carml.model.LanguageMap;
 import com.taxonic.carml.model.ObjectMap;
 import com.taxonic.carml.model.PredicateMap;
+import com.taxonic.carml.model.PredicateObjectMap;
 import com.taxonic.carml.model.SubjectMap;
 import com.taxonic.carml.model.TermMap;
 import com.taxonic.carml.model.TermType;
@@ -43,12 +47,11 @@ import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.ValueFactory;
-import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 import org.eclipse.rdf4j.model.util.Literals;
+import org.eclipse.rdf4j.model.util.ModelCollector;
 import org.eclipse.rdf4j.model.util.Models;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.Flux;
 
 @SuppressWarnings("java:S1135")
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -68,13 +71,10 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
 
   private final TemplateParser templateParser;
 
-  private final ParentSideJoinConditionStoreProvider<Resource> parentSideJoinConditionStoreProvider;
-
-  public static RdfTermGeneratorFactory of(RdfMapperOptions mapperOptions, TemplateParser templateParser,
-      ParentSideJoinConditionStoreProvider<Resource> parentSideJoinConditionStoreProvider) {
+  public static RdfTermGeneratorFactory of(RdfMapperOptions mapperOptions, TemplateParser templateParser) {
     return new RdfTermGeneratorFactory(mapperOptions, mapperOptions.getValueFactory(),
         IriSafeMaker.create(mapperOptions.getNormalizationForm(), mapperOptions.isIriUpperCasePercentEncoding()),
-        templateParser, parentSideJoinConditionStoreProvider);
+        templateParser);
   }
 
   @Override
@@ -309,53 +309,60 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
   @Override
   public Optional<TermGenerator<? extends Value>> getFunctionValueGenerator(ExpressionMap expressionMap,
       Set<TermType> allowedTermTypes) {
-
-    TriplesMap executionMap = expressionMap.getFunctionValue();
+    var executionMap = expressionMap.getFunctionValue();
     if (executionMap == null) {
       return Optional.empty();
     }
 
-    // when 'executionMap' is evaluated, the generated triples
-    // describe a fno:Execution instance, which we can then execute.
-
-    // TODO check that executionMap has an identical logical source?
-
-    // TODO: RefObjectMappers?? pass to TermGeneratorFactory?
-    RdfTriplesMapper<?> executionTriplesMapper = RdfTriplesMapper.of(executionMap, Set.of(), Set.of(),
-        a -> b -> Optional.empty(), RdfMappingContext.builder()
-            .valueFactorySupplier(() -> valueFactory)
-            .termGeneratorFactory(this)
-            .build(),
-        parentSideJoinConditionStoreProvider);
-
-    TermType termType = determineTermType(expressionMap);
-
-    // for IRI term types, make values valid IRIs.
-    UnaryOperator<Object> returnValueAdapter = termType == TermType.IRI ? this::iriEncodeResult : v -> v;
-
     Function<ExpressionEvaluation, Optional<Object>> getValue =
-        expressionEvaluation -> functionEvaluation(expressionEvaluation, executionTriplesMapper, returnValueAdapter);
+        expressionEvaluation -> mapFunctionExecution(expressionEvaluation, expressionMap, executionMap);
 
     return Optional.of(getGenerator(expressionMap, getValue, allowedTermTypes, determineTermType(expressionMap)));
   }
 
-  private Optional<Object> functionEvaluation(ExpressionEvaluation expressionEvaluation,
-      RdfTriplesMapper<?> executionTriplesMapper, UnaryOperator<Object> returnValueAdapter) {
-    Flux<Statement> functionExecution = executionTriplesMapper.mapEvaluation(expressionEvaluation);
-    return mapExecution(functionExecution, returnValueAdapter);
+  private Optional<Object> mapFunctionExecution(ExpressionEvaluation expressionEvaluation, ExpressionMap expressionMap,
+      TriplesMap executionMap) {
+    Resource functionExecution = valueFactory.createBNode();
+
+    var executionStatements = executionMap.getPredicateObjectMaps()
+        .stream()
+        .flatMap(pom -> getFunctionPredicateObjectMapModel(functionExecution, executionMap, pom, expressionEvaluation))
+        .collect(new ModelCollector());
+
+    var termType = determineTermType(expressionMap);
+
+    // for IRI term types, make values valid IRIs.
+    UnaryOperator<Object> returnValueAdapter = termType == TermType.IRI ? this::iriEncodeResult : v -> v;
+
+    return mapExecution(executionStatements, returnValueAdapter);
   }
 
-  private Optional<Object> mapExecution(Flux<Statement> functionExecution, UnaryOperator<Object> returnValueAdapter) {
-    return functionExecution.reduceWith(LinkedHashModel::new, (model, statement) -> {
-      model.add(statement);
-      return model;
-    })
-        .map(executionStatements -> mapExecution(executionStatements, returnValueAdapter))
-        .block();
+  private Stream<Statement> getFunctionPredicateObjectMapModel(Resource functionExecution, TriplesMap executionMap,
+      PredicateObjectMap pom, ExpressionEvaluation expressionEvaluation) {
+    var predicateGenerators = createPredicateGenerators(pom, executionMap, this);
+    var objectGenerators = createObjectMapGenerators(pom.getObjectMaps(), executionMap, this);
+
+    Set<IRI> predicates = predicateGenerators.stream()
+        .map(g -> g.apply(expressionEvaluation))
+        .flatMap(List::stream)
+        .collect(Collectors.toUnmodifiableSet());
+
+    if (predicates.isEmpty()) {
+      return Stream.empty();
+    }
+
+    Set<Value> objects = objectGenerators.map(g -> g.apply(expressionEvaluation))
+        .flatMap(List::stream)
+        .collect(Collectors.toUnmodifiableSet());
+
+    if (objects.isEmpty()) {
+      return Stream.empty();
+    }
+
+    return streamCartesianProductStatements(Set.of(functionExecution), predicates, objects, Set.of());
   }
 
   private Optional<Object> mapExecution(Model executionStatements, UnaryOperator<Object> returnValueAdapter) {
-    // TODO: how to handle function map with multiple subject maps?
     Optional<Resource> optionalExecution = Models.subject(executionStatements);
 
     return optionalExecution.map(execution -> {

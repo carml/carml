@@ -69,7 +69,7 @@ public class RdfPredicateObjectMapper {
             .get());
   }
 
-  private static Set<TermGenerator<IRI>> createPredicateGenerators(PredicateObjectMap pom, TriplesMap triplesMap,
+  static Set<TermGenerator<IRI>> createPredicateGenerators(PredicateObjectMap pom, TriplesMap triplesMap,
       RdfTermGeneratorFactory termGeneratorFactory) {
     return pom.getPredicateMaps()
         .stream()
@@ -97,7 +97,7 @@ public class RdfPredicateObjectMapper {
   }
 
   @SuppressWarnings("java:S3864")
-  private static Stream<TermGenerator<? extends Value>> createObjectMapGenerators(Set<BaseObjectMap> objectMaps,
+  static Stream<TermGenerator<? extends Value>> createObjectMapGenerators(Set<BaseObjectMap> objectMaps,
       TriplesMap triplesMap, RdfTermGeneratorFactory termGeneratorFactory) {
     return objectMaps.stream()
         .filter(ObjectMap.class::isInstance)
