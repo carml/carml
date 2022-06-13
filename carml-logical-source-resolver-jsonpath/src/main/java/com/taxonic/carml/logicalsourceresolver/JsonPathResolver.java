@@ -63,19 +63,27 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
     return resolvedSource -> getLogicalSourceRecordFlux(resolvedSource, logicalSources);
   }
 
-  @SuppressWarnings("java:S3655")
   private Flux<LogicalSourceRecord<JsonNode>> getLogicalSourceRecordFlux(ResolvedSource<?> resolvedSource,
       Set<LogicalSource> logicalSources) {
-    if (resolvedSource == null || !(resolvedSource.getResolved()
-        .isPresent()
-        && resolvedSource.getResolved()
-            .get() instanceof InputStream)) {
+    if (resolvedSource == null || resolvedSource.getResolved()
+        .isEmpty()) {
       throw new LogicalSourceResolverException(
-          String.format("No valid input stream provided for logical sources:%n%s", exception(logicalSources)));
+          String.format("No source provided for logical sources:%n%s", exception(logicalSources)));
     }
 
-    return getObjectFlux((InputStream) resolvedSource.getResolved()
-        .get(), logicalSources);
+    var resolved = resolvedSource.getResolved()
+        .get();
+
+    if (resolved instanceof InputStream) {
+      return getObjectFlux((InputStream) resolvedSource.getResolved()
+          .get(), logicalSources);
+    } else if (resolved instanceof JsonNode) {
+      return Flux.fromStream(logicalSources.stream()
+          .map(logicalSource -> LogicalSourceRecord.of(logicalSource, (JsonNode) resolved)));
+    } else {
+      throw new LogicalSourceResolverException(
+          String.format("Unsupported source object provided for logical sources:%n%s", exception(logicalSources)));
+    }
   }
 
   private Flux<LogicalSourceRecord<JsonNode>> getObjectFlux(InputStream inputStream,

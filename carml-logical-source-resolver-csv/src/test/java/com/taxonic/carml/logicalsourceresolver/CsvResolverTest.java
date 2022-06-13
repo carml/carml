@@ -6,9 +6,12 @@ import static org.hamcrest.Matchers.is;
 import com.taxonic.carml.model.LogicalSource;
 import com.taxonic.carml.model.impl.CarmlLogicalSource;
 import com.taxonic.carml.vocab.Rdf.Ql;
+import com.univocity.parsers.common.DefaultContext;
+import com.univocity.parsers.common.record.Record;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
@@ -46,7 +49,7 @@ class CsvResolverTest {
   }
 
   @Test
-  void givenCsv_whenSourceFluxApplied_givenCsv_thenReturnFluxOfAllRecords() {
+  void givenCsv_whenRecordResolverApplied_givenCsv_thenReturnFluxOfAllRecords() {
     // Given
     var recordResolver = csvResolver.getLogicalSourceRecords(Set.of(LSOURCE));
     var resolvedSource = ResolvedSource.of(SOURCE, sourceResolver.apply(SOURCE), InputStream.class);
@@ -61,7 +64,7 @@ class CsvResolverTest {
   }
 
   @Test
-  void givenRandomDelimitedCsv_whenSourceFluxApplied_thenReturnFluxOfAllCorrectRecords() {
+  void givenRandomDelimitedCsv_whenRecordResolverApplied_thenReturnFluxOfAllCorrectRecords() {
     // Given
     var recordResolver = csvResolver.getLogicalSourceRecords(Set.of(LSOURCE_DELIM));
     var resolvedSource = ResolvedSource.of(SOURCE, sourceResolver.apply(SOURCE), InputStream.class);
@@ -74,6 +77,24 @@ class CsvResolverTest {
         .expectNextMatches(logicalSourceRecord -> logicalSourceRecord.getRecord()
             .getValues().length == 5)
         .expectNextCount(1)
+        .verifyComplete();
+  }
+
+  @Test
+  void givenRecordFluxWithProvidedRecord_whenRecordResolverApplied_thenReturnFluxOfRecord() {
+    // Given
+    var recordResolver = csvResolver.getLogicalSourceRecords(Set.of(LSOURCE));
+    var record = new DefaultContext(1).toRecord(List.of("foo", "bar")
+        .toArray(String[]::new));
+    var resolvedSource = ResolvedSource.of(SOURCE, record, Record.class);
+
+    // When
+    var records = recordResolver.apply(resolvedSource);
+
+    // Then
+    StepVerifier.create(records)
+        .expectNextMatches(logicalSourceRecord -> logicalSourceRecord.getRecord()
+            .equals(record))
         .verifyComplete();
   }
 
@@ -98,7 +119,7 @@ class CsvResolverTest {
   }
 
   @Test
-  void givenLargeColumns_whenSourceFluxApplied_thenReturnFluxWithLargeColumnRecords() throws IOException {
+  void givenLargeColumns_whenRecordResolverApplied_thenReturnFluxWithLargeColumnRecords() throws IOException {
     var csv = IOUtils.toString(Objects.requireNonNull(CsvResolverTest.class.getResourceAsStream("large_column.csv")),
         StandardCharsets.UTF_8);
     var logicalSource = CarmlLogicalSource.builder()

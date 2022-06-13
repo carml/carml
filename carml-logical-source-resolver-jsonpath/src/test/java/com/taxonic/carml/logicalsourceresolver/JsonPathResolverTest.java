@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.taxonic.carml.engine.ExpressionEvaluation;
 import com.taxonic.carml.model.LogicalSource;
@@ -16,6 +17,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import org.apache.commons.io.IOUtils;
@@ -60,7 +62,7 @@ class JsonPathResolverTest {
     var exception = assertThrows(LogicalSourceResolverException.class, () -> recordResolver.apply(resolvedSource));
 
     // Then
-    assertThat(exception.getMessage(), startsWith("No valid input stream provided for logical sources:"));
+    assertThat(exception.getMessage(), startsWith("Unsupported source object provided for logical sources:"));
   }
 
   @Test
@@ -172,6 +174,30 @@ class JsonPathResolverTest {
         .verifyComplete();
   }
 
+  @Test
+  void givenRecordResolverWithProvidedRecord_whenGetRecordResolver_thenReturnSourceFluxWithRecord() {
+    // Given
+    var foodSource = CarmlLogicalSource.builder()
+        .source("")
+        .iterator("")
+        .referenceFormulation(Rdf.Ql.JsonPath)
+        .build();
+
+    Map<String, Object> waffles = Map.of("name", "Belgian Waffles", "countryOfOrigin", "Belgium");
+
+    var record = new ObjectMapper().valueToTree(waffles);
+    var resolvedSource = ResolvedSource.of(foodSource.getSource(), record, JsonNode.class);
+
+    // When
+    var recordResolver = jsonPathResolver.getLogicalSourceRecords(Set.of(foodSource));
+    var records = recordResolver.apply(resolvedSource);
+
+    // Then
+    StepVerifier.create(records)
+        .expectNextMatches(logicalSourceRecord -> logicalSourceRecord.getRecord()
+            .equals(record))
+        .verifyComplete();
+  }
 
   @Test
   void givenInputAndJsonPathExpression_whenEvaluateExpressionApply_executesJsonPathCorrectly() throws IOException {
@@ -197,7 +223,7 @@ class JsonPathResolverTest {
 
 
   @Test
-  void givenUnresolvableJsonPath_whenSourceFluxApplied_shouldReturnEmptyFlux() throws IOException {
+  void givenUnresolvableJsonPath_whenSourceFluxApplied_shouldReturnEmptyFlux() {
     // Given
     var foodSource = CarmlLogicalSource.builder()
         .source("")
@@ -218,7 +244,7 @@ class JsonPathResolverTest {
   }
 
   @Test
-  void givenInvalidJsonPath_whenSourceFluxApplied_shouldThrowException() throws IOException {
+  void givenInvalidJsonPath_whenSourceFluxApplied_shouldThrowException() {
     // Given
     LogicalSource foodSource = CarmlLogicalSource.builder()
         .source("")
