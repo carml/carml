@@ -43,14 +43,23 @@ public class CsvResolver implements LogicalSourceResolver<Record> {
 
     var logicalSource = Iterables.getOnlyElement(logicalSources);
 
-    var resolved = resolvedSource.getResolved();
-    if (!(resolved.isPresent() && resolved.get() instanceof InputStream)) {
+    if (resolvedSource == null || resolvedSource.getResolved()
+        .isEmpty()) {
       throw new LogicalSourceResolverException(
-          String.format("No valid input stream provided for logical source %s", logicalSource));
+          String.format("No source provided for logical sources:%n%s", exception(logicalSources)));
     }
 
-    return getCsvRecordFlux((InputStream) resolved.get())
-        .map(lsRecord -> LogicalSourceRecord.of(logicalSource, lsRecord));
+    var resolved = resolvedSource.getResolved()
+        .get();
+
+    if (resolved instanceof InputStream) {
+      return getCsvRecordFlux((InputStream) resolved).map(lsRecord -> LogicalSourceRecord.of(logicalSource, lsRecord));
+    } else if (resolved instanceof Record) {
+      return Flux.just(LogicalSourceRecord.of(logicalSource, (Record) resolved));
+    } else {
+      throw new LogicalSourceResolverException(
+          String.format("Unsupported source object provided for logical sources:%n%s", exception(logicalSources)));
+    }
   }
 
   private Flux<Record> getCsvRecordFlux(InputStream inputStream) {

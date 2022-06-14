@@ -88,19 +88,27 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
     return resolvedSource -> getLogicalSourceRecordFlux(resolvedSource, logicalSources);
   }
 
-  @SuppressWarnings("java:S3655")
   private Flux<LogicalSourceRecord<XdmItem>> getLogicalSourceRecordFlux(ResolvedSource<?> resolvedSource,
       Set<LogicalSource> logicalSources) {
-    if (resolvedSource == null || !(resolvedSource.getResolved()
-        .isPresent()
-        && resolvedSource.getResolved()
-            .get() instanceof InputStream)) {
+    if (resolvedSource == null || resolvedSource.getResolved()
+        .isEmpty()) {
       throw new LogicalSourceResolverException(
-          String.format("No valid input stream provided for logical sources:%n%s", exception(logicalSources)));
+          String.format("No source provided for logical sources:%n%s", exception(logicalSources)));
     }
 
-    return getXpathResultFlux((InputStream) resolvedSource.getResolved()
-        .get(), logicalSources);
+    var resolved = resolvedSource.getResolved()
+        .get();
+
+    if (resolved instanceof InputStream) {
+      return getXpathResultFlux((InputStream) resolvedSource.getResolved()
+          .get(), logicalSources);
+    } else if (resolved instanceof XdmItem) {
+      return Flux.fromStream(logicalSources.stream()
+          .map(logicalSource -> LogicalSourceRecord.of(logicalSource, (XdmItem) resolved)));
+    } else {
+      throw new LogicalSourceResolverException(
+          String.format("Unsupported source object provided for logical sources:%n%s", exception(logicalSources)));
+    }
   }
 
   private Flux<LogicalSourceRecord<XdmItem>> getXpathResultFlux(InputStream inputStream,

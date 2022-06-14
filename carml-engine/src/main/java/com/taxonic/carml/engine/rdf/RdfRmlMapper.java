@@ -176,8 +176,7 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
           .build();
 
       if (termGeneratorFactory == null) {
-        termGeneratorFactory =
-            RdfTermGeneratorFactory.of(mapperOptions, TemplateParser.build(), parentSideJoinConditionStoreProvider);
+        termGeneratorFactory = RdfTermGeneratorFactory.of(mapperOptions, TemplateParser.build());
       }
 
       var rdfMappingContext = RdfMappingContext.builder()

@@ -24,8 +24,10 @@ import java.util.Set;
 import javax.xml.transform.stream.StreamSource;
 import jlibs.xml.DefaultNamespaceContext;
 import jlibs.xml.sax.dog.XMLDog;
+import net.sf.saxon.s9api.DocumentBuilder;
 import net.sf.saxon.s9api.Processor;
 import net.sf.saxon.s9api.SaxonApiException;
+import net.sf.saxon.s9api.XdmItem;
 import org.apache.commons.io.IOUtils;
 import org.eclipse.rdf4j.rio.RDFFormat;
 import org.junit.jupiter.api.BeforeEach;
@@ -141,6 +143,26 @@ class XPathResolverTest {
         .thenRequest(1)
         .expectNextCount(1)
         .thenAwait(Duration.ofMillis(100))
+        .verifyComplete();
+  }
+
+  @Test
+  void givenXmlRecod_whenRecordResolverApplied_thenReturnFluxOfRecord() throws SaxonApiException {
+    // Given
+    DocumentBuilder docBuilder = processor.newDocumentBuilder();
+
+    var record = docBuilder.build(new StreamSource(new StringReader(BOOK_ONE)));
+
+    var resolvedSource = ResolvedSource.of(new CarmlStream(), record, XdmItem.class);
+    var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(LSOURCE));
+
+    // When
+    var records = recordResolver.apply(resolvedSource);
+
+    // Then
+    StepVerifier.create(records)
+        .expectNextMatches(logicalSourceRecord -> logicalSourceRecord.getRecord()
+            .equals(record))
         .verifyComplete();
   }
 

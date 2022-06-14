@@ -6,9 +6,6 @@ CARML
 =====================
 **A pretty sweet RML engine**
 
-CARML was first developed by [Taxonic](http://www.taxonic.com) in cooperation with [Kadaster](https://www.kadaster.com/)
-. And is now being maintained and developed further by [Skemu](https://skemu.com).
-
 [![Build](https://github.com/carml/carml/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/carml/carml/actions/workflows/build.yml)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.taxonic.carml/carml/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.taxonic.carml/carml)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=com.taxonic.carml%3Acarml&metric=alert_status)](https://sonarcloud.io/dashboard?id=com.taxonic.carml%3Acarml)
@@ -17,17 +14,18 @@ CARML was first developed by [Taxonic](http://www.taxonic.com) in cooperation wi
 Table of Contents
 -----------------
 
-- [CARML](#carml)
-    - [Introduction](#introduction)
-    - [Getting started](#getting-started)
-    - [Input stream extension](#input-stream-extension)
-    - [Function extension](#function-extension)
-    - [XML namespace extension](#xml-namespace-extension)
-    - [CARML in RML Test Cases](#carml-in-rml-test-cases)
+- [Introduction](#introduction)
+- [Getting started](#getting-started)
+- [Reactive streams](#reactive-streams)
+- [Input stream extension](#input-stream-extension)
+- [Function extension](#function-extension)
+- [XML namespace extension](#xml-namespace-extension)
+- [CARML in RML Test Cases](#carml-in-rml-test-cases)
+- [About CARML](#about-carml)
 
 Introduction
 ------------
-CARML is a java library that transforms structured sources to RDF based as declared in and [RML](http://rml.io) mapping,
+CARML is a java library that transforms structured sources to RDF as declared in an [RML](http://rml.io) mapping,
 in accordance with the [RML spec](http://rml.io/spec.html).
 
 The best place to start learning about RML is at the [source](http://rml.io), but basically RML is defined as a superset
@@ -74,7 +72,7 @@ Example usage:
 
 ```java
 Set<TriplesMap> mapping = RmlMappingLoader.build()
-    .load(RDFFormat.TURTLE,Paths.get("path-to-mapping-file"));
+    .load(RDFFormat.TURTLE, Paths.get("path-to-mapping-file"));
 
 RdfRmlMapper mapper = RdfRmlMapper.builder()
     // add mappings
@@ -101,6 +99,23 @@ RdfRmlMapper mapper = RdfRmlMapper.builder()
     .build();
 
 Model result = mapper.mapToModel();
+```
+
+Reactive Streams
+---------------------
+CARML leverages [Project Reactor's](https://projectreactor.io/) implementation of
+[reactive streams](https://www.reactive-streams.org/) to achieve streaming and (potentially) non-blocking processing of
+mappings.
+
+CARML exposes Reactor's [Flux](https://projectreactor.io/docs/core/release/reference/#flux) data structure. When you
+execute a RML mapping using one of the `Flux` returning methods you get a `Flux<Statement>` as result.
+This allows for further processing with [the many reactive operators](https://projectreactor.io/docs/core/release/api/reactor/core/publisher/Flux.html) available for Flux.
+
+```java
+Flux<Statement> statements = mapper.map();
+// do some operations
+Model result = statements.collect(ModelCollector.toModel())
+    .block();
 ```
 
 Input stream extension
@@ -317,3 +332,9 @@ the [RML test cases](https://rml.io/test-cases/).
 
 > Note: currently we've raised [issues](https://github.com/RMLio/rml-test-cases/issues?q=is%3Aissue+author%3Apmaria+) 
 > for some of the test cases which we believe are incorrect, or have an adverse effect on mapping data.
+
+
+About CARML
+-----------
+CARML was first developed by [Taxonic](http://www.taxonic.com) in cooperation with [Kadaster](https://www.kadaster.com/)
+. And is now being maintained and developed further by [Skemu](https://skemu.com).
