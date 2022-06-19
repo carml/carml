@@ -7,9 +7,9 @@ CARML
 **A pretty sweet RML engine**
 
 [![Build](https://github.com/carml/carml/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/carml/carml/actions/workflows/build.yml)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.taxonic.carml/carml/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.taxonic.carml/carml)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=com.taxonic.carml%3Acarml&metric=alert_status)](https://sonarcloud.io/dashboard?id=com.taxonic.carml%3Acarml)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=com.taxonic.carml%3Acarml&metric=coverage)](https://sonarcloud.io/dashboard?id=com.taxonic.carml%3Acarml)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.carml/carml/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.carml/carml)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=io.carml%3Acarml&metric=alert_status)](https://sonarcloud.io/dashboard?id=io.carml%3Acarml)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=io.carml%3Acarml&metric=coverage)](https://sonarcloud.io/dashboard?id=io.carml%3Acarml)
 
 Table of Contents
 -----------------
@@ -44,24 +44,24 @@ CARML is available from the Central Maven Repository.
 ```xml
 
 <dependency>
-    <groupId>com.taxonic.carml</groupId>
+    <groupId>io.carml</groupId>
     <artifactId>carml-engine</artifactId>
     <version>${carml.version}</version>
 </dependency>
 
     <!-- Choose the resolvers to suit your need -->
 <dependency>
-    <groupId>com.taxonic.carml</groupId>
+    <groupId>io.carml</groupId>
     <artifactId>carml-logical-source-resolver-jsonpath</artifactId>
     <version>${carml.version}</version>
     </dependency>
 <dependency>
-    <groupId>com.taxonic.carml</groupId>
+    <groupId>io.carml</groupId>
     <artifactId>carml-logical-source-resolver-xpath</artifactId>
     <version>${carml.version}</version>
 </dependency>
 <dependency>
-    <groupId>com.taxonic.carml</groupId>
+    <groupId>io.carml</groupId>
     <artifactId>carml-logical-source-resolver-csv</artifactId>
     <version>${carml.version}</version>
 </dependency>

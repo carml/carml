@@ -2,7 +2,7 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
-		<groupId>com.taxonic.carml</groupId>
+		<groupId>io.carml</groupId>
 		<artifactId>carml</artifactId>
 		<version>0.4.0-beta-6-SNAPSHOT</version>
 	</parent>
@@ -25,17 +25,17 @@
 		</dependency>
 
 		<dependency>
-			<groupId>com.taxonic.carml</groupId>
+			<groupId>io.carml</groupId>
 			<artifactId>carml-logical-source-resolver</artifactId>
 		</dependency>
 
 		<dependency>
-			<groupId>com.taxonic.carml</groupId>
+			<groupId>io.carml</groupId>
 			<artifactId>carml-model</artifactId>
 		</dependency>
 
 		<dependency>
-			<groupId>com.taxonic.carml</groupId>
+			<groupId>io.carml</groupId>
 			<artifactId>carml-commons</artifactId>
 		</dependency>
 
