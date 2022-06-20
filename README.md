@@ -78,9 +78,9 @@ RdfRmlMapper mapper = RdfRmlMapper.builder()
     // add mappings
     .triplesMaps(mapping)
     // Add the resolvers to suit your need
-    .setLogicalSourceResolver(Rdf.Ql.JsonPath,new JsonPathResolver())
-    .setLogicalSourceResolver(Rdf.Ql.XPath,new XPathResolver())
-    .setLogicalSourceResolver(Rdf.Ql.Csv,new CsvResolver())
+    .setLogicalSourceResolver(Rdf.Ql.JsonPath, JsonPathResolver::getInstance)
+    .setLogicalSourceResolver(Rdf.Ql.XPath, XPathResolver::getInstance)
+    .setLogicalSourceResolver(Rdf.Ql.Csv, CsvResolver::getInstance)
     //-- optional: --
     // specify IRI unicode normalization form (default = NFC)
     // see http://www.unicode.org/unicode/reports/tr15/tr15-23.html
