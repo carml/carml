@@ -2,13 +2,19 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
-		<groupId>io.carml</groupId>
+		<groupId>com.taxonic.carml</groupId>
 		<artifactId>carml</artifactId>
 		<version>0.4.0-beta-6-SNAPSHOT</version>
 	</parent>
 
 	<artifactId>carml-logical-source-resolver-xpath</artifactId>
 	<packaging>jar</packaging>
+
+	<distributionManagement>
+		<relocation>
+			<groupId>io.carml</groupId>
+		</relocation>
+	</distributionManagement>
 
 	<name>carml-logical-source-resolver-xpath</name>
 
@@ -25,17 +31,17 @@
 		</dependency>
 
 		<dependency>
-			<groupId>io.carml</groupId>
+			<groupId>com.taxonic.carml</groupId>
 			<artifactId>carml-logical-source-resolver</artifactId>
 		</dependency>
 
 		<dependency>
-			<groupId>io.carml</groupId>
+			<groupId>com.taxonic.carml</groupId>
 			<artifactId>carml-model</artifactId>
 		</dependency>
 
 		<dependency>
-			<groupId>io.carml</groupId>
+			<groupId>com.taxonic.carml</groupId>
 			<artifactId>carml-commons</artifactId>
 		</dependency>
 
