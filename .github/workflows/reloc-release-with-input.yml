@@ -48,7 +48,7 @@ jobs:
           git config user.name "GitHub Actions"
 
       - name: Maven Release
-        run: mvn release:clean release:prepare release:perform -B -Dgpg.passphrase=${{ secrets.GPG_PASSPHRASE }} -DreleaseVersion=${{ github.event.inputs.releaseVersion }} -DdevelopmentVersion=${{ github.event.inputs.developmentVersion }}
+        run: mvn -B clean deploy -Pci-cd
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ github.token }}
