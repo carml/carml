@@ -4,7 +4,7 @@
 	<parent>
 		<groupId>io.carml</groupId>
 		<artifactId>carml</artifactId>
-		<version>0.4.0-beta-6-SNAPSHOT</version>
+		<version>0.4.0</version>
 	</parent>
 
 	<artifactId>carml-join-storage</artifactId>
