@@ -145,7 +145,7 @@ Then the input stream can be mapped by providing a map of named input streams.
 ```java
 RdfRmlMapper mapper = RdfRmlMapper.builder()
     .triplesMaps(mapping)    
-    .setLogicalSourceResolver(Rdf.Ql.JsonPath,new JsonPathResolver())
+    .setLogicalSourceResolver(Rdf.Ql.JsonPath, JsonPathResolver::getInstance)
     .build();
 
 mapper.map(Map.of("stream-A", inputStream));
@@ -157,7 +157,7 @@ the constant `RmlMapper.DEFAULT_STREAM_NAME` can be used as the name for the unn
 ```java
 RdfRmlMapper mapper = RdfRmlMapper.builder()
     .triplesMaps(mapping)    
-    .setLogicalSourceResolver(Rdf.Ql.JsonPath,new JsonPathResolver())
+    .setLogicalSourceResolver(Rdf.Ql.JsonPath, JsonPathResolver::getInstance)
     .build();
 
 mapper.map(Map.of("stream-A", inputStreamA, RmlMapper.DEFAULT_STREAM_NAME, defaultInputStream));
@@ -250,7 +250,7 @@ the `RmlMapper#addFunctions` method.
 ```java
 RdfRmlMapper mapper = RdfRmlMapper.builder()
     .triplesMaps(mapping)
-    .setLogicalSourceResolver(Rdf.Ql.JsonPath,new JsonPathResolver())
+    .setLogicalSourceResolver(Rdf.Ql.JsonPath, JsonPathResolver::getInstance)
     .addFunctions(new YourRmlFunctions())
     .build();
 
