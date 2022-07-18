@@ -29,6 +29,7 @@ import io.carml.vocab.Rdf;
 import java.text.Normalizer;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -443,6 +444,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
   private List<Value> unpackEvaluatedExpression(Object result, Function<String, ? extends Value> generateTerm) {
     if (result instanceof Collection<?>) {
       return ((Collection<?>) result).stream()
+          .filter(Objects::nonNull)
           .map(i -> generateTerm.apply(createNaturalRdfLexicalForm(i)))
           .collect(Collectors.toUnmodifiableList());
     }
