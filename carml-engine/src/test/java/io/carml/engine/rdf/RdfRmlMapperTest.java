@@ -16,6 +16,7 @@ import io.carml.util.RmlMappingLoader;
 import io.carml.vocab.Rdf;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.Normalizer;
 import java.util.Map;
 import java.util.Optional;
@@ -339,6 +340,27 @@ class RdfRmlMapperTest {
 
     // Then
     assertThat(model.size(), is(3));
+  }
+
+  @Test
+  void givenMappingWithUnresolvableSource_whenMapCalled_thenThrowException() {
+    // Given
+    InputStream mappingSource = RdfRmlMapperTest.class.getResourceAsStream("cars-file-input.rml.ttl");
+    Set<TriplesMap> mapping = RmlMappingLoader.build()
+        .load(RDFFormat.TURTLE, mappingSource);
+    RdfRmlMapper rmlMapper = RdfRmlMapper.builder()
+        .setLogicalSourceResolver(Rdf.Ql.Csv, CsvResolver::getInstance)
+        .triplesMaps(mapping)
+        .classPathResolver("foo")
+        .fileResolver(Paths.get("bar"))
+        .build();
+
+    // When
+    RmlMapperException rmlMapperException = assertThrows(RmlMapperException.class, rmlMapper::map);
+
+    // Then
+    assertThat(rmlMapperException.getMessage(),
+        is("Could not resolve source for logical source: resource <http://example.com/mapping/LogicalSource>"));
   }
 
   private static TriplesMap getTriplesMapByName(String name, Set<TriplesMap> mapping) {

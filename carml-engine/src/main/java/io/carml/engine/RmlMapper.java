@@ -130,7 +130,8 @@ public abstract class RmlMapper<T> {
     }
 
     var resolved = sourceResolver.apply(source)
-        .orElse(source);
+        .orElseThrow(() -> new RmlMapperException(String.format("Could not resolve source for logical source: %s",
+            exception(Iterables.getFirst(inCaseOfException, null)))));
 
     return ResolvedSource.of(source, resolved, Object.class);
   }

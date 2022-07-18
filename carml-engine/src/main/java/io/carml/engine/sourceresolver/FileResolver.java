@@ -20,11 +20,15 @@ public class FileResolver implements SourceResolver {
   public Optional<Object> apply(Object source) {
     return unpackFileSource(source).map(relativePath -> {
       Path path = basePath.resolve(relativePath);
-      try {
-        return Files.newInputStream(path);
-      } catch (IOException e) {
-        throw new SourceResolverException(String.format("Could not resolve file path %s", path));
+      if (Files.exists(path)) {
+        try {
+          return Files.newInputStream(path);
+        } catch (IOException e) {
+          throw new SourceResolverException(String.format("Could not resolve file path %s", path));
+        }
       }
+
+      return null;
     });
   }
 }

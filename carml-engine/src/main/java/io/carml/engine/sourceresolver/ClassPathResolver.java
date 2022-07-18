@@ -1,6 +1,5 @@
 package io.carml.engine.sourceresolver;
 
-import java.io.InputStream;
 import java.util.Optional;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -29,14 +28,8 @@ public class ClassPathResolver implements SourceResolver {
     return unpackFileSource(source).map(relativePath -> {
       String sourceName = basePath.equals("") ? relativePath : String.format("%s/%s", basePath, relativePath);
 
-      InputStream inputStream = loadingClass == null ? ClassPathResolver.class.getClassLoader()
+      return loadingClass == null ? ClassPathResolver.class.getClassLoader()
           .getResourceAsStream(sourceName) : loadingClass.getResourceAsStream(sourceName);
-
-      if (inputStream == null) {
-        throw new SourceResolverException(String.format("Could not resolve source %s", sourceName));
-      }
-
-      return inputStream;
     });
   }
 }
