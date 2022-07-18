@@ -84,11 +84,11 @@ class RdfTermGeneratorTest {
         .reference("foo")
         .build();
 
-    var objectGenerator = rdfTermGeneratorFactory.getObjectGenerator(objectMap);
     var nullList = new ArrayList<>();
     nullList.add(null);
     nullList.add("bar");
     when(expressionEvaluation.apply(any())).thenReturn(Optional.of(nullList));
+    var objectGenerator = rdfTermGeneratorFactory.getObjectGenerator(objectMap);
 
     // When
     var objects = objectGenerator.apply(expressionEvaluation);
