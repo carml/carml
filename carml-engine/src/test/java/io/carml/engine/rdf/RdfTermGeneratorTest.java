@@ -79,15 +79,15 @@ class RdfTermGeneratorTest {
   @Test
   void givenRdfTermGenerator_whenExpressionEvaluationReturnsListWithNullAndNonNull_thenResultWithoutNulls() {
     // Given
-    var objectMap = CarmlObjectMap.builder()
-        .id("obj-map-1")
-        .reference("foo")
-        .build();
-
     var nullList = new ArrayList<>();
     nullList.add(null);
     nullList.add("bar");
     when(expressionEvaluation.apply(any())).thenReturn(Optional.of(nullList));
+
+    var objectMap = CarmlObjectMap.builder()
+        .id("obj-map-1")
+        .reference("foo")
+        .build();
     var objectGenerator = rdfTermGeneratorFactory.getObjectGenerator(objectMap);
 
     // When
