@@ -60,8 +60,6 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
 
   // TODO cache results of evaluated expressions?
 
-  private static final String RML_BASE_IRI = "http://example.com/base/";
-
   private static final Logger LOG = LoggerFactory.getLogger(RdfTermGeneratorFactory.class);
 
   private final RdfMapperOptions mapperOptions;
@@ -459,14 +457,15 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
       return valueFactory.createIRI(lexicalForm);
     }
 
-    String iri = RML_BASE_IRI + lexicalForm;
+    String iri = mapperOptions.getBaseIri()
+        .stringValue() + lexicalForm;
     if (RdfValues.isValidIri(iri)) {
       return valueFactory.createIRI(iri);
     }
 
     throw new TermGeneratorFactoryException(String.format(
         "Could not generate a valid iri from term lexical form [%s] as-is, or prefixed with base iri [%s]", lexicalForm,
-        RML_BASE_IRI));
+        mapperOptions.getBaseIri()));
   }
 
   private BNode generateBNodeTerm(String lexicalForm) {
