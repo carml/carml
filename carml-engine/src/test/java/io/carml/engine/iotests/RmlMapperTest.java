@@ -74,43 +74,45 @@ class RmlMapperTest extends MappingTester {
   @Test
   void testRemoveNonLatinCharsFunction() {
     testMapping("RmlMapper", "/RmlMapper/test12/removeNonLatinCharsMapping.fnml.ttl",
-        "/RmlMapper/test12/removeNonLatinCharsMapping.output.ttl", m -> m.addFunctions(new RmlFunctions()));
+        "/RmlMapper/test12/removeNonLatinCharsMapping.output.ttl", builder -> builder.addFunctions(new RmlFunctions()));
   }
 
   @Test
   void testToBoolFunction() {
     testMapping("RmlMapper", "/RmlMapper/test11/toBoolMapping.fnml.ttl", "/RmlMapper/test11/toBoolMapping.output.ttl",
-        m -> m.addFunctions(new RmlFunctions()));
+        builder -> builder.addFunctions(new RmlFunctions()));
   }
 
   @Test
   void testNestedFunction() {
     testMapping("RmlMapper", "/RmlMapper/test18/nestedFunctionMapping.fnml.ttl",
-        "/RmlMapper/test18/nestedFunctionMapping.output.ttl", m -> m.addFunctions(new RmlFunctions()));
+        "/RmlMapper/test18/nestedFunctionMapping.output.ttl", builder -> builder.addFunctions(new RmlFunctions()));
   }
 
   @Test
   void testListReturningFunction() {
     testMapping("RmlMapper", "/RmlMapper/test18/listReturningFunctionMapping.rml.ttl",
-        "/RmlMapper/test18/listReturningFunctionMapping.output.ttl", m -> m.addFunctions(new RmlFunctions()));
+        "/RmlMapper/test18/listReturningFunctionMapping.output.ttl",
+        builder -> builder.addFunctions(new RmlFunctions()));
   }
 
   @Test
   void testListTakingFunction() {
     testMapping("RmlMapper", "/RmlMapper/test18/listTakingFunctionMapping.rml.ttl",
-        "/RmlMapper/test18/listTakingFunctionMapping.output.ttl", m -> m.addFunctions(new RmlFunctions()));
+        "/RmlMapper/test18/listTakingFunctionMapping.output.ttl", builder -> builder.addFunctions(new RmlFunctions()));
   }
 
   @Test
   void testIriFunctionMapping() {
     testMapping("RmlMapper", "/RmlMapper/test18/iriFunctionMapping.rml.ttl",
-        "/RmlMapper/test18/iriFunctionMapping.output.ttl", m -> m.addFunctions(new RmlFunctions()));
+        "/RmlMapper/test18/iriFunctionMapping.output.ttl", builder -> builder.addFunctions(new RmlFunctions()));
   }
 
   @Test
   void testIriFunctionMappingWithNulls() {
     testMapping("RmlMapper", "/RmlMapper/test18/iriFunctionMappingWithNulls.rml.ttl",
-        "/RmlMapper/test18/iriFunctionMappingWithNulls.output.ttl", m -> m.addFunctions(new RmlFunctions()));
+        "/RmlMapper/test18/iriFunctionMappingWithNulls.output.ttl",
+        builder -> builder.addFunctions(new RmlFunctions()));
   }
 
   @Test
@@ -184,6 +186,12 @@ class RmlMapperTest extends MappingTester {
   @Test
   void testCsvPipeDelimeterMapping() {
     testMapping("RmlMapper", "/RmlMapper/csv/cars-pipe.rml.ttl", "/RmlMapper/csv/cars.output.ttl");
+  }
+
+  @Test
+  void testSettingCustomBaseIri() {
+    testMapping("RmlMapper", "/RmlMapper/baseIriTest/cars.rml.ttl", "/RmlMapper/baseIriTest/cars.output.ttl",
+        builder -> builder.baseIri("http://foo.bar/base/"));
   }
 
   // TODO: PM: add test for rml:reference and rr:template where a value is not found.

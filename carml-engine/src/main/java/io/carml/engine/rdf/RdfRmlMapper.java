@@ -5,6 +5,7 @@ import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toSet;
+import static org.eclipse.rdf4j.model.util.Values.iri;
 
 import io.carml.engine.RefObjectMapper;
 import io.carml.engine.RmlMapper;
@@ -55,6 +56,8 @@ import reactor.core.publisher.Flux;
 @Slf4j
 public class RdfRmlMapper extends RmlMapper<Statement> {
 
+  private static final IRI RML_BASE_IRI = iri("http://example.com/base/");
+
   private static final long SECONDS_TO_TIMEOUT = 30;
 
   private RdfRmlMapper(Set<TriplesMap> triplesMaps, Function<Object, Optional<Object>> sourceResolver,
@@ -71,6 +74,9 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
 
   @NoArgsConstructor(access = AccessLevel.PRIVATE)
   public static class Builder {
+
+    private IRI baseIri = RML_BASE_IRI;
+
     private final Map<IRI, Supplier<LogicalSourceResolver<?>>> logicalSourceResolverSuppliers = new HashMap<>();
 
     private Set<TriplesMap> triplesMaps = new HashSet<>();
@@ -93,6 +99,29 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
 
     private ParentSideJoinConditionStoreProvider<Resource> parentSideJoinConditionStoreProvider =
         CarmlParentSideJoinConditionStoreProvider.of();
+
+    /**
+     * Sets the base IRI used in resolving relative IRIs produced by RML mappings.<br>
+     * If not set, the base IRI will default to <code>"http://example.com/base/"</code>.
+     *
+     * @param baseIriString the base IRI String
+     * @return {@link Builder}
+     */
+    public Builder baseIri(String baseIriString) {
+      return baseIri(iri(baseIriString));
+    }
+
+    /**
+     * Sets the base IRI used in resolving relative IRIs produced by RML mappings.<br>
+     * If not set, the base IRI will default to <code>&lt;http://example.com/base/&gt;</code>.
+     *
+     * @param baseIri the base IRI
+     * @return {@link Builder}
+     */
+    public Builder baseIri(IRI baseIri) {
+      this.baseIri = baseIri;
+      return this;
+    }
 
     public Builder addFunctions(Object... fn) {
       functions.addFunctions(fn);
@@ -169,6 +198,7 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
       }
 
       RdfMapperOptions mapperOptions = RdfMapperOptions.builder()
+          .baseIri(baseIri)
           .valueFactory(valueFactorySupplier.get())
           .normalizationForm(normalizationForm)
           .iriUpperCasePercentEncoding(iriUpperCasePercentEncoding)

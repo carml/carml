@@ -1,6 +1,7 @@
 package io.carml.engine.rdf;
 
 
+import static org.eclipse.rdf4j.model.util.Values.iri;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
@@ -32,6 +33,7 @@ class RdfTermGeneratorTest {
   @BeforeEach
   void beforeEach() {
     var rdfMapperOptions = RdfMapperOptions.builder()
+        .baseIri(iri("http://example.com/base/"))
         .valueFactory(SimpleValueFactory.getInstance())
         .normalizationForm(Normalizer.Form.NFC)
         .build();

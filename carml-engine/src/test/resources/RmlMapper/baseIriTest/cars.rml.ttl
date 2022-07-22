@@ -1,0 +1,54 @@
+@prefix rr: <http://www.w3.org/ns/r2rml#> .
+@prefix rml: <http://semweb.mmlab.be/ns/rml#> .
+@prefix ql: <http://semweb.mmlab.be/ns/ql#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix exm: <http://example.com/mapping/> .
+@prefix data: <http://example.com/data/> .
+@prefix car: <http://example.com/car/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix dct: <http://purl.org/dc/terms/> .
+
+exm:LogicalSource a rml:LogicalSource ;
+  rml:source "baseIriTest/cars.csv" ;
+  rml:referenceFormulation ql:CSV ;
+.
+
+exm:CarMapping a rr:TriplesMap ;
+  rml:logicalSource exm:LogicalSource ;
+  rr:subjectMap [
+    rr:template "car/{Make}-{Model}" ;
+    rr:class car:Car ;
+  ] ;
+  rr:predicateObjectMap [
+    rr:predicate car:make ;
+    rr:objectMap [
+      rr:parentTriplesMap exm:MakeMapping ;
+    ] ;
+  ] ;
+  rr:predicateObjectMap [
+    rr:predicate dct:description ;
+    rr:objectMap [
+      rml:reference "Description" ;
+    ] ;
+  ] ;
+  rr:predicateObjectMap [
+    rr:predicate car:year ;
+    rr:objectMap [
+      rr:template "year/{Year}" ;
+    ] ;
+  ] ;
+  rr:predicateObjectMap [
+    rr:predicate car:price ;
+    rr:objectMap [
+      rml:reference "Price" ;
+    ] ;
+  ] ;
+.
+
+exm:MakeMapping a rr:TriplesMap ;
+  rml:logicalSource exm:LogicalSource ;
+  rr:subjectMap [
+    rr:template "make/{Make}" ;
+    rr:class car:CarMake ;
+  ] ;
+.
