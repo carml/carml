@@ -9,7 +9,6 @@ import static org.hamcrest.core.IsNot.not;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.stream.Collectors;
-
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.ValueFactory;
