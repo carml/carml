@@ -1,5 +1,6 @@
 package io.carml.rdfmapper.util;
 
+import static java.util.stream.Collectors.toSet;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.hamcrest.collection.IsEmptyCollection.empty;
@@ -14,7 +15,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.rdf4j.common.iteration.Iterations;
 import org.eclipse.rdf4j.model.Literal;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
@@ -101,7 +101,8 @@ class RdfObjectLoaderTest {
       }
 
       try (RepositoryResult<Statement> result = conn.getStatements(null, null, null)) {
-        assertThat("The in-memory store may not be empty", Iterations.asSet(result), is(not(empty())));
+        assertThat("The in-memory store may not be empty", result.stream()
+            .collect(toSet()), is(not(empty())));
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
