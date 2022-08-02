@@ -1,5 +1,6 @@
 package io.carml.rdfmapper.util;
 
+import static java.util.stream.Collectors.toSet;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.hamcrest.collection.IsEmptyCollection.empty;
@@ -8,7 +9,6 @@ import static org.hamcrest.core.IsNot.not;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.stream.Collectors;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.ValueFactory;
@@ -60,7 +60,7 @@ class QueryUtilsTest {
 
       try (RepositoryResult<Statement> result = conn.getStatements(null, null, null)) {
         assertThat("The in-memory store may not be empty", result.stream()
-            .collect(Collectors.toSet()), is(not(empty())));
+            .collect(toSet()), is(not(empty())));
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
