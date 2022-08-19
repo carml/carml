@@ -17,6 +17,7 @@ Table of Contents
 - [Introduction](#introduction)
 - [Getting started](#getting-started)
 - [Reactive streams](#reactive-streams)
+- [Support for Apache Jena](#support-for-apache-jena)
 - [Input stream extension](#input-stream-extension)
 - [Function extension](#function-extension)
 - [XML namespace extension](#xml-namespace-extension)
@@ -105,20 +106,51 @@ Model result = mapper.mapToModel();
 ```
 
 Reactive Streams
----------------------
+----------------
 CARML leverages [Project Reactor's](https://projectreactor.io/) implementation of
 [reactive streams](https://www.reactive-streams.org/) to achieve streaming and (potentially) non-blocking processing of
 mappings.
 
 CARML exposes Reactor's [Flux](https://projectreactor.io/docs/core/release/reference/#flux) data structure. When you
 execute a RML mapping using one of the `Flux` returning methods you get a `Flux<Statement>` as result.
-This allows for further processing with [the many reactive operators](https://projectreactor.io/docs/core/release/api/reactor/core/publisher/Flux.html) available for Flux.
+This allows for further processing with
+[the many reactive operators](https://projectreactor.io/docs/core/release/api/reactor/core/publisher/Flux.html)
+available for Flux.
 
 ```java
 Flux<Statement> statements = mapper.map();
 // do some operations
 Model result = statements.collect(ModelCollector.toModel())
     .block();
+```
+
+Support for Apache Jena
+-------------------------
+As CARML is built on [RDF4J](https://rdf4j.org/), the default output is either a
+[`Flux`](https://projectreactor.io/docs/core/release/api/reactor/core/publisher/Flux.html) of RDF4J 
+[`Statement`](https://rdf4j.org/javadoc/latest/org/eclipse/rdf4j/model/Statement.html)s, or an RDF4J 
+[`Model`](https://rdf4j.org/javadoc/latest/org/eclipse/rdf4j/model/Model.html).
+
+However, CARML provides utilities to transform this output to equivalent Jena datastructures.
+
+To use these utilities one needs to import the `io.carml.carml-converters-jena` dependency.
+
+```xml
+<dependency>
+    <groupId>io.carml</groupId>
+    <artifactId>carml-converters-jena</artifactId>
+    <version>${carml.version}</version>
+</dependency>
+```
+
+The following example shows the streaming transformation of RDF Statements to Jena Quads and subsequent collection into
+a Jena Dataset using the provided utilities.
+
+```java
+Flux<Statement> statements = mapper.map();
+
+Dataset jenaDataset = statements.map(JenaConverters::toQuad)
+    .collect(JenaCollectors.toDataset());
 ```
 
 Input stream extension
@@ -159,7 +191,7 @@ the constant `RmlMapper.DEFAULT_STREAM_NAME` can be used as the name for the unn
 
 ```java
 RdfRmlMapper mapper = RdfRmlMapper.builder()
-    .triplesMaps(mapping)    
+    .triplesMaps(mapping)
     .setLogicalSourceResolver(Rdf.Ql.JsonPath, JsonPathResolver::getInstance)
     .build();
 
