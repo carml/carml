@@ -74,6 +74,12 @@ class XPathResolverTest {
       .referenceFormulation(Ql.XPath)
       .build();
 
+  private static final LogicalSource LSOURCE_ROOT = CarmlLogicalSource.builder()
+      .source(SOURCE)
+      .iterator("/bookstore")
+      .referenceFormulation(Ql.XPath)
+      .build();
+
   private static final LogicalSource LSOURCE_INVALID = CarmlLogicalSource.builder()
       .source(SOURCE)
       .iterator("/bookstore/\\\\")
@@ -120,6 +126,23 @@ class XPathResolverTest {
   }
 
   @Test
+  void givenXmlAndLSourceWithNestedAndRootExpression_whenRecordResolverApplied_thenReturnFluxOfAllRecords() {
+    // Given
+    var inputStream = IOUtils.toInputStream(SOURCE, StandardCharsets.UTF_8);
+
+    var resolvedSource = ResolvedSource.of(new CarmlStream(), inputStream, InputStream.class);
+    var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(LSOURCE, LSOURCE_ROOT));
+
+    // When
+    var recordFlux = recordResolver.apply(resolvedSource);
+
+    // Then
+    StepVerifier.create(recordFlux)
+        .expectNextCount(3)
+        .verifyComplete();
+  }
+
+  @Test
   void givenXmlAndSlowSubscriber_whenRecordResolverApplied_thenReturnFluxOfAllRecords() {
     // Given
     var inputStream = IOUtils.toInputStream(SOURCE, StandardCharsets.UTF_8);
@@ -147,7 +170,7 @@ class XPathResolverTest {
   }
 
   @Test
-  void givenXmlRecod_whenRecordResolverApplied_thenReturnFluxOfRecord() throws SaxonApiException {
+  void givenXmlRecord_whenRecordResolverApplied_thenReturnFluxOfRecord() throws SaxonApiException {
     // Given
     DocumentBuilder docBuilder = processor.newDocumentBuilder();
 
