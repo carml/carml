@@ -13,6 +13,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.xpath.XPathException;
 import jlibs.xml.DefaultNamespaceContext;
@@ -166,6 +167,10 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
   private void bridgeAndListen(Map<Expression, LogicalSource> logicalSourceByExpression, Event event,
       FluxSink<LogicalSourceRecord<XdmItem>> sink, AtomicLong outstandingRequests) {
 
+    var expressionCompletion = logicalSourceByExpression.entrySet()
+        .stream()
+        .collect(Collectors.toMap(Map.Entry::getKey, entry -> false));
+
     event.setXMLBuilder(new DOMBuilder());
     event.setListener(new InstantEvaluationListener() {
       private final DocumentBuilder docBuilder = xpathProcessor.newDocumentBuilder();
@@ -179,7 +184,12 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
 
       @Override
       public void finishedNodeSet(Expression expression) {
-        sink.complete();
+        expressionCompletion.put(expression, true);
+        if (expressionCompletion.values()
+            .stream()
+            .allMatch(Boolean::valueOf)) {
+          sink.complete();
+        }
       }
 
       @Override
