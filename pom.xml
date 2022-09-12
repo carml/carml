@@ -63,7 +63,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.source>11</maven.compiler.source>
 		<maven.compiler.target>11</maven.compiler.target>
-		<rdf4j.version>4.1.1</rdf4j.version>
+		<rdf4j.version>4.1.2</rdf4j.version>
 		<commons-lang3.version>3.12.0</commons-lang3.version>
 		<commons-io.version>2.11.0</commons-io.version>
 		<slf4j.version>1.7.36</slf4j.version>
