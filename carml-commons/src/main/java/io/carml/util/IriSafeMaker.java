@@ -97,12 +97,8 @@ public class IriSafeMaker implements UnaryOperator<String> {
       return IntStream.of(codePoint);
     }
 
-    var hex = Integer.toHexString(codePoint);
+    var percentEncoded = upperCaseHex ? String.format("%%%02X", codePoint) : String.format("%%%02x", codePoint);
 
-    hex = upperCaseHex ? hex.toUpperCase() : hex;
-
-    // percent-encode
-    return ("%" + hex).codePoints();
+    return percentEncoded.codePoints();
   }
-
 }

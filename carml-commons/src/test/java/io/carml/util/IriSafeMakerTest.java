@@ -9,15 +9,21 @@ import org.junit.jupiter.api.Test;
 
 class IriSafeMakerTest {
 
-  private Function<String, String> safeMaker = IriSafeMaker.create(Form.NFC, true);
+  private final Function<String, String> safeMaker = IriSafeMaker.create(Form.NFC, true);
 
-  private Function<String, String> lcSafeMaker = IriSafeMaker.create(Form.NFC, false);
+  private final Function<String, String> lcSafeMaker = IriSafeMaker.create(Form.NFC, false);
 
-  private Function<String, String> nfkcSafeMaker = IriSafeMaker.create(Form.NFKC, true);
+  private final Function<String, String> nfkcSafeMaker = IriSafeMaker.create(Form.NFKC, true);
 
   @Test
   void safeMaker_givenStringWithSpace_encodesAsExpected() {
     test("hello there", "hello%20there", true);
+  }
+
+  @Test
+  void safeMaker_givenStringWithNewline_encodesAsExpected() {
+    test("hello\nthere", "hello%0Athere", true);
+    test("hello\r\nthere", "hello%0D%0Athere", true);
   }
 
   @Test
@@ -56,7 +62,7 @@ class IriSafeMakerTest {
 
   private void test(String toMakeIriSafe, String expectedResult, boolean upperCasePercentEncoding) {
     String iriSafeValue = makeSafe(toMakeIriSafe, upperCasePercentEncoding);
-    assertThat(expectedResult, is(iriSafeValue));
+    assertThat(iriSafeValue, is(expectedResult));
   }
 
   private String makeSafe(String input, boolean upperCasePercentEncoding) {
