@@ -68,7 +68,7 @@
 		<commons-io.version>2.11.0</commons-io.version>
 		<slf4j.version>1.7.36</slf4j.version>
 		<guava.version>31.1-jre</guava.version>
-		<reactor.version>2020.0.22</reactor.version>
+		<reactor.version>2020.0.23</reactor.version>
 		<lombok.version>1.18.24</lombok.version>
 		<univocity.version>2.9.0</univocity.version>
 		<jayway.version>2.7.0</jayway.version>
