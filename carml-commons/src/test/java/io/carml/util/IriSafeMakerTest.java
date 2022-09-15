@@ -34,6 +34,7 @@ class IriSafeMakerTest {
     test("~test", "~test", true);
     test("葉篤正", "葉篤正", true);
     test("StandaardGeluidsruimteDagInDb_a_M²", "StandaardGeluidsruimteDagInDb_a_M²", true);
+    test("öɦ﹩4", "öɦ﹩4", true);
   }
 
   @Test
