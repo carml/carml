@@ -4,6 +4,7 @@ import java.text.Normalizer;
 import java.text.Normalizer.Form;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -11,12 +12,11 @@ import lombok.NonNull;
 
 /**
  * Creates IRI-safe values, by percent-encoding any characters in a {@code String} that are NOT one
- * of the following: - alphabetic, as per {@code Character::isAlphabetic} - a digit, as per
- * {@code Character::isDigit} - a dash (-), dot (.), underscore (_) or tilde (~) - part of any of
- * the ranges of character codes specified when creating the {@code IriSafeMaker} through its
- * constructor {@link #IriSafeMaker(List, Form, boolean)}. When creating an {@code IriSafeMaker}
- * through {@link #create}, these ranges correspond to the {@code ucschar} production rule from
- * RFC-3987, as specified by <a href=
+ * of the following: - {@code alpha} or {@code digit} as per
+ * <a href="https://www.rfc-editor.org/rfc/rfc5234">RFC-5234</a>, a dash (-), dot (.), underscore
+ * (_) or tilde (~), or {@code ucschar} as per
+ * <a href="https://www.rfc-editor.org/rfc/rfc3987#section-2.2">RFC-3987</a>}, as specified by
+ * <a href=
  * "https://www.w3.org/TR/r2rml/#from-template">https://www.w3.org/TR/r2rml/#from-template</a>.
  */
 public class IriSafeMaker implements UnaryOperator<String> {
@@ -51,30 +51,50 @@ public class IriSafeMaker implements UnaryOperator<String> {
      * %xE1000-EFFFD
      */
 
-    String rangesStr = "%xA0-D7FF / %xF900-FDCF / %xFDF0-FFEF " + "/ %x10000-1FFFD / %x20000-2FFFD / %x30000-3FFFD "
-        + "/ %x40000-4FFFD / %x50000-5FFFD / %x60000-6FFFD " + "/ %x70000-7FFFD / %x80000-8FFFD / %x90000-9FFFD "
-        + "/ %xA0000-AFFFD / %xB0000-BFFFD / %xC0000-CFFFD " + "/ %xD0000-DFFFD / %xE1000-EFFFD";
+    var alphaString = "%x41-5A / %x61-7A";
+    var digitString = "%x30-39";
+    var ucscharString = "%xA0-D7FF / %xF900-FDCF / %xFDF0-FFEF " //
+        + "/ %x10000-1FFFD / %x20000-2FFFD / %x30000-3FFFD " //
+        + "/ %x40000-4FFFD / %x50000-5FFFD / %x60000-6FFFD " //
+        + "/ %x70000-7FFFD / %x80000-8FFFD / %x90000-9FFFD " //
+        + "/ %xA0000-AFFFD / %xB0000-BFFFD / %xC0000-CFFFD " //
+        + "/ %xD0000-DFFFD / %xE1000-EFFFD";
 
-    List<Range> ranges = Arrays.stream(rangesStr.split("/"))
-        .map(p -> {
-          String[] range = p.trim()
+    var alpha = parseAbnfRangeString(alphaString);
+    var digit = parseAbnfRangeString(digitString);
+    var ucschar = parseAbnfRangeString(ucscharString);
+
+    Predicate<Integer> isIunreserved =
+        codePoint -> withinRange(codePoint, alpha) || withinRange(codePoint, digit) || codePoint == '-'
+            || codePoint == '.' || codePoint == '_' || codePoint == '~' || withinRange(codePoint, ucschar);
+
+    return new IriSafeMaker(isIunreserved, normalizationForm, upperCaseHex);
+  }
+
+  private static List<Range> parseAbnfRangeString(String rangeString) {
+    return Arrays.stream(rangeString.split("/"))
+        .map(rangeStringPart -> {
+          String[] range = rangeStringPart.trim()
               .substring(2)
               .split("-");
           return new Range(Integer.parseInt(range[0], 16), Integer.parseInt(range[1], 16));
         })
         .collect(Collectors.toList());
-
-    return new IriSafeMaker(ranges, normalizationForm, upperCaseHex);
   }
 
-  private final List<Range> ranges;
+  private static boolean withinRange(int codePoint, List<Range> ranges) {
+    return ranges.stream()
+        .anyMatch(range -> range.includes(codePoint));
+  }
+
+  private final Predicate<Integer> inIunreserved;
 
   private final Form normalizationForm;
 
   private final boolean upperCaseHex;
 
-  private IriSafeMaker(List<Range> ranges, Form normalizationForm, boolean upperCaseHex) {
-    this.ranges = ranges;
+  private IriSafeMaker(Predicate<Integer> inIunreserved, Form normalizationForm, boolean upperCaseHex) {
+    this.inIunreserved = inIunreserved;
     this.normalizationForm = normalizationForm;
     this.upperCaseHex = upperCaseHex;
   }
@@ -91,9 +111,8 @@ public class IriSafeMaker implements UnaryOperator<String> {
   }
 
   private IntStream percentEncode(int codePoint) {
-    if (Character.isAlphabetic(codePoint) || Character.isDigit(codePoint) || codePoint == '-' || codePoint == '.'
-        || codePoint == '_' || codePoint == '~' || ranges.stream()
-            .anyMatch(r -> r.includes(codePoint))) {
+
+    if (inIunreserved.test(codePoint)) {
       return IntStream.of(codePoint);
     }
 
