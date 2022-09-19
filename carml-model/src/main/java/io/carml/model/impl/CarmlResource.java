@@ -5,7 +5,9 @@ import io.carml.rdfmapper.annotations.RdfProperty;
 import io.carml.rdfmapper.annotations.RdfResourceName;
 import io.carml.util.RdfValues;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import lombok.Builder;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -78,6 +80,15 @@ public abstract class CarmlResource implements Resource {
       }
     }
 
+    var model = asRdfInternal(this, new HashSet<>());
+
+    cacheModel(model);
+
+    return model;
+  }
+
+  private Model asRdfInternal(Resource resource, Set<Resource> processed) {
+    processed.add(resource);
     ModelBuilder builder = new ModelBuilder();
     addTriples(builder);
     if (label != null) {
@@ -86,13 +97,11 @@ public abstract class CarmlResource implements Resource {
     Model model = builder.build();
 
     Model nestedModel = getReferencedResources().stream()
-        .flatMap(resource -> resource.asRdf()
-            .stream())
+        .filter(refResource -> !processed.contains(refResource))
+        .flatMap(refResource -> asRdfInternal(refResource, processed).stream())
         .collect(ModelCollector.toModel());
 
     model.addAll(nestedModel);
-
-    cacheModel(model);
 
     return model;
   }

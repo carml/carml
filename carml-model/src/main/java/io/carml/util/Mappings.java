@@ -10,9 +10,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class Mapping {
+public class Mappings {
 
-  private Mapping() {}
+  private Mappings() {}
 
   public static Set<TriplesMap> filterMappable(Set<TriplesMap> mapping) {
     Set<TriplesMap> functionValueTriplesMaps = getTermMaps(mapping).map(TermMap::getFunctionValue)
