@@ -11,7 +11,7 @@ import io.carml.logicalsourceresolver.ResolvedSource;
 import io.carml.model.LogicalSource;
 import io.carml.model.NameableStream;
 import io.carml.model.TriplesMap;
-import io.carml.util.Mapping;
+import io.carml.util.Mappings;
 import java.io.InputStream;
 import java.util.Map;
 import java.util.Optional;
@@ -200,7 +200,7 @@ public abstract class RmlMapper<T> {
       }
 
       public MappingContext<U> build() {
-        var actionableTriplesMaps = Mapping.filterMappable(triplesMappers.stream()
+        var actionableTriplesMaps = Mappings.filterMappable(triplesMappers.stream()
             .map(TriplesMapper::getTriplesMap)
             .filter(triplesMap -> triplesMapFilter.isEmpty() || triplesMapFilter.contains(triplesMap))
             .collect(toSet()));

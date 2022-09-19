@@ -26,7 +26,7 @@ import io.carml.logicalsourceresolver.LogicalSourceResolver;
 import io.carml.model.LogicalSource;
 import io.carml.model.RefObjectMap;
 import io.carml.model.TriplesMap;
-import io.carml.util.Mapping;
+import io.carml.util.Mappings;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.text.Normalizer;
@@ -177,7 +177,7 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
 
     public Builder triplesMaps(Set<TriplesMap> triplesMaps) {
       this.triplesMaps = triplesMaps;
-      this.mappableTriplesMaps = Mapping.filterMappable(triplesMaps);
+      this.mappableTriplesMaps = Mappings.filterMappable(triplesMaps);
       return this;
     }
 
