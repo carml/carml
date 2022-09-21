@@ -62,7 +62,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
 
   private static final Logger LOG = LoggerFactory.getLogger(RdfTermGeneratorFactory.class);
 
-  private final RdfMapperOptions mapperOptions;
+  private final RdfTermGeneratorConfig rdfTermGeneratorConfig;
 
   private final ValueFactory valueFactory;
 
@@ -70,9 +70,9 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
 
   private final TemplateParser templateParser;
 
-  public static RdfTermGeneratorFactory of(RdfMapperOptions mapperOptions, TemplateParser templateParser) {
-    return new RdfTermGeneratorFactory(mapperOptions, mapperOptions.getValueFactory(),
-        IriSafeMaker.create(mapperOptions.getNormalizationForm(), mapperOptions.isIriUpperCasePercentEncoding()),
+  public static RdfTermGeneratorFactory of(RdfTermGeneratorConfig rdfTermGeneratorConfig, TemplateParser templateParser) {
+    return new RdfTermGeneratorFactory(rdfTermGeneratorConfig, rdfTermGeneratorConfig.getValueFactory(),
+        IriSafeMaker.create(rdfTermGeneratorConfig.getNormalizationForm(), rdfTermGeneratorConfig.isIriUpperCasePercentEncoding()),
         templateParser);
   }
 
@@ -366,7 +366,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
 
     return optionalExecution.map(execution -> {
       IRI functionIri = getFunctionIri(execution, executionStatements);
-      ExecuteFunction function = mapperOptions.getFunctions()
+      ExecuteFunction function = rdfTermGeneratorConfig.getFunctions()
           .getFunction(functionIri)
           .orElseThrow(
               () -> new TermGeneratorFactoryException("no function registered for function IRI [" + functionIri + "]"));
@@ -395,7 +395,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
     }
 
     // perform unicode normalization
-    iriValue = Normalizer.normalize(iriValue, mapperOptions.getNormalizationForm());
+    iriValue = Normalizer.normalize(iriValue, rdfTermGeneratorConfig.getNormalizationForm());
 
     return ParsedIRI.create(iriValue)
         .toString();
@@ -457,7 +457,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
       return valueFactory.createIRI(lexicalForm);
     }
 
-    String iri = mapperOptions.getBaseIri()
+    String iri = rdfTermGeneratorConfig.getBaseIri()
         .stringValue() + lexicalForm;
     if (RdfValues.isValidIri(iri)) {
       return valueFactory.createIRI(iri);
@@ -465,7 +465,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
 
     throw new TermGeneratorFactoryException(String.format(
         "Could not generate a valid iri from term lexical form [%s] as-is, or prefixed with base iri [%s]", lexicalForm,
-        mapperOptions.getBaseIri()));
+        rdfTermGeneratorConfig.getBaseIri()));
   }
 
   private BNode generateBNodeTerm(String lexicalForm) {

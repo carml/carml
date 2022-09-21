@@ -197,7 +197,7 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
         throw new RmlMapperException("No logical source resolver suppliers specified.");
       }
 
-      RdfMapperOptions mapperOptions = RdfMapperOptions.builder()
+      RdfTermGeneratorConfig rdfTermGeneratorConfig = RdfTermGeneratorConfig.builder()
           .baseIri(baseIri)
           .valueFactory(valueFactorySupplier.get())
           .normalizationForm(normalizationForm)
@@ -206,7 +206,7 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
           .build();
 
       if (termGeneratorFactory == null) {
-        termGeneratorFactory = RdfTermGeneratorFactory.of(mapperOptions, TemplateParser.build());
+        termGeneratorFactory = RdfTermGeneratorFactory.of(rdfTermGeneratorConfig, TemplateParser.build());
       }
 
       var rdfMapperConfig = RdfMapperConfig.builder()

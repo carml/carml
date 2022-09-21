@@ -32,12 +32,12 @@ class RdfTermGeneratorTest {
 
   @BeforeEach
   void beforeEach() {
-    var rdfMapperOptions = RdfMapperOptions.builder()
+    var rdfTermGeneratorConfig = RdfTermGeneratorConfig.builder()
         .baseIri(iri("http://example.com/base/"))
         .valueFactory(SimpleValueFactory.getInstance())
         .normalizationForm(Normalizer.Form.NFC)
         .build();
-    rdfTermGeneratorFactory = RdfTermGeneratorFactory.of(rdfMapperOptions, TemplateParser.build());
+    rdfTermGeneratorFactory = RdfTermGeneratorFactory.of(rdfTermGeneratorConfig, TemplateParser.build());
   }
 
   @Test
