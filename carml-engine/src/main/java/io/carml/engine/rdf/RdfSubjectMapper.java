@@ -39,13 +39,13 @@ public class RdfSubjectMapper {
   private final ValueFactory valueFactory;
 
   public static RdfSubjectMapper of(@NonNull SubjectMap subjectMap, @NonNull TriplesMap triplesMap,
-      @NonNull RdfMappingContext rdfMappingContext) {
+      @NonNull RdfMapperConfig rdfMapperConfig) {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Creating mapper for SubjectMap {}", log(triplesMap, subjectMap));
     }
 
     RdfTermGeneratorFactory rdfTermGeneratorFactory =
-        (RdfTermGeneratorFactory) rdfMappingContext.getTermGeneratorFactory();
+        (RdfTermGeneratorFactory) rdfMapperConfig.getTermGeneratorFactory();
 
     TermGenerator<Resource> subjectGenerator;
     try {
@@ -57,7 +57,7 @@ public class RdfSubjectMapper {
 
     return new RdfSubjectMapper(subjectGenerator,
         RdfTriplesMapper.createGraphGenerators(subjectMap.getGraphMaps(), rdfTermGeneratorFactory),
-        subjectMap.getClasses(), rdfMappingContext.getValueFactorySupplier()
+        subjectMap.getClasses(), rdfMapperConfig.getValueFactorySupplier()
             .get());
   }
 

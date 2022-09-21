@@ -41,7 +41,7 @@ public class RdfRefObjectMapper implements RefObjectMapper<Statement> {
   private final ValueFactory valueFactory;
 
   public static RdfRefObjectMapper of(@NonNull RefObjectMap refObjectMap, @NonNull TriplesMap triplesMap,
-      @NonNull RdfMappingContext rdfMappingContext,
+      @NonNull RdfMapperConfig rdfMapperConfig,
       @NonNull ChildSideJoinStoreProvider<Resource, IRI> childSideJoinStoreProvider) {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Creating mapper for RefObjectMap {}", refObjectMap.getResourceName());
@@ -49,7 +49,7 @@ public class RdfRefObjectMapper implements RefObjectMapper<Statement> {
 
     return new RdfRefObjectMapper(refObjectMap, triplesMap,
         childSideJoinStoreProvider.createChildSideJoinStore(refObjectMap.getId()),
-        rdfMappingContext.getValueFactorySupplier()
+        rdfMapperConfig.getValueFactorySupplier()
             .get());
   }
 
@@ -147,7 +147,7 @@ public class RdfRefObjectMapper implements RefObjectMapper<Statement> {
       return parentResults.get(0);
     }
 
-    // return intersection or parentResults
+    // return intersection of parentResults
     return parentResults.stream()
         .skip(1)
         .collect(() -> new HashSet<>(parentResults.get(0)), Set::retainAll, Set::retainAll);

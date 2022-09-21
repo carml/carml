@@ -47,10 +47,10 @@ public class RdfPredicateObjectMapper {
   private final ValueFactory valueFactory;
 
   public static RdfPredicateObjectMapper of(@NonNull PredicateObjectMap pom, @NonNull TriplesMap triplesMap,
-      Set<RdfRefObjectMapper> refObjectMappers, @NonNull RdfMappingContext rdfMappingContext) {
+      Set<RdfRefObjectMapper> refObjectMappers, @NonNull RdfMapperConfig rdfMapperConfig) {
 
     RdfTermGeneratorFactory rdfTermGeneratorFactory =
-        (RdfTermGeneratorFactory) rdfMappingContext.getTermGeneratorFactory();
+        (RdfTermGeneratorFactory) rdfMapperConfig.getTermGeneratorFactory();
 
     Set<TermGenerator<Resource>> graphGenerators =
         RdfTriplesMapper.createGraphGenerators(pom.getGraphMaps(), rdfTermGeneratorFactory);
@@ -65,7 +65,7 @@ public class RdfPredicateObjectMapper {
         .collect(Collectors.toUnmodifiableSet());
 
     return new RdfPredicateObjectMapper(graphGenerators, predicateGenerators, objectGenerators,
-        filteredRefObjectMappers, rdfMappingContext.getValueFactorySupplier()
+        filteredRefObjectMappers, rdfMapperConfig.getValueFactorySupplier()
             .get());
   }
 

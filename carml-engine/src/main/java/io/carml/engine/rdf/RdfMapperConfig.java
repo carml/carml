@@ -16,7 +16,7 @@ import org.eclipse.rdf4j.model.ValueFactory;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 @Getter
-public class RdfMappingContext {
+public class RdfMapperConfig {
 
   @NonNull
   private final Supplier<ValueFactory> valueFactorySupplier;

@@ -72,14 +72,14 @@ class RdfSubjectMapperTest {
   void givenAllParams_whenOfCalled_thenConstructRdfSubjectMapper() {
     // Given
     when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
-    RdfMappingContext rdfMappingContext = RdfMappingContext.builder()
+    RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
         .valueFactorySupplier(() -> VALUE_FACTORY)
         .termGeneratorFactory(rdfTermGeneratorFactory)
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
         .build();
 
     // When
-    RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingContext);
+    RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingConfig);
 
     // Then
     assertThat(rdfSubjectMapper, is(not(nullValue())));
@@ -90,11 +90,11 @@ class RdfSubjectMapperTest {
     // Given
     when(triplesMap.asRdf()).thenReturn(new ModelBuilder().build());
     when(subjectMap.getAsResource()).thenReturn(VALUE_FACTORY.createBNode("subject"));
-    RdfMappingContext rdfMappingContext = mock(RdfMappingContext.class);
+    RdfMapperConfig rdfMappingConfig = mock(RdfMapperConfig.class);
 
     // When
-    Throwable exception = assertThrows(TriplesMapperException.class,
-        () -> RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingContext));
+    Throwable exception =
+        assertThrows(TriplesMapperException.class, () -> RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingConfig));
 
     // Then
     assertThat(exception.getMessage(),
@@ -108,13 +108,13 @@ class RdfSubjectMapperTest {
     when(subjectGenerator.apply(any())).thenReturn(List.of(subject));
     when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
 
-    RdfMappingContext rdfMappingContext = RdfMappingContext.builder()
+    RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
         .valueFactorySupplier(() -> VALUE_FACTORY)
         .termGeneratorFactory(rdfTermGeneratorFactory)
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
         .build();
 
-    RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingContext);
+    RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingConfig);
 
     // When
     RdfSubjectMapper.Result rdfSubjectMapperResult = rdfSubjectMapper.map(any());
@@ -132,13 +132,13 @@ class RdfSubjectMapperTest {
     when(subjectGenerator.apply(any())).thenReturn(List.of(subject, subject2));
     when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
 
-    RdfMappingContext rdfMappingContext = RdfMappingContext.builder()
+    RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
         .valueFactorySupplier(() -> VALUE_FACTORY)
         .termGeneratorFactory(rdfTermGeneratorFactory)
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
         .build();
 
-    RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingContext);
+    RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingConfig);
 
     // When
     RdfSubjectMapper.Result rdfSubjectMapperResult = rdfSubjectMapper.map(any());
@@ -159,13 +159,13 @@ class RdfSubjectMapperTest {
     IRI class2 = VALUE_FACTORY.createIRI("http://foo.bar/class2");
     when(subjectMap.getClasses()).thenReturn(Set.of(class1, class2));
 
-    RdfMappingContext rdfMappingContext = RdfMappingContext.builder()
+    RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
         .valueFactorySupplier(() -> VALUE_FACTORY)
         .termGeneratorFactory(rdfTermGeneratorFactory)
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
         .build();
 
-    RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingContext);
+    RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingConfig);
 
     // When
     RdfSubjectMapper.Result rdfSubjectMapperResult = rdfSubjectMapper.map(any());
@@ -200,13 +200,13 @@ class RdfSubjectMapperTest {
     IRI graph22 = VALUE_FACTORY.createIRI("http://foo.bar/graph22");
     when(graphGenerator2.apply(any())).thenReturn(List.of(graph21, graph22));
 
-    RdfMappingContext rdfMappingContext = RdfMappingContext.builder()
+    RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
         .valueFactorySupplier(() -> VALUE_FACTORY)
         .termGeneratorFactory(rdfTermGeneratorFactory)
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
         .build();
 
-    RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingContext);
+    RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingConfig);
 
     // When
     RdfSubjectMapper.Result rdfSubjectMapperResult = rdfSubjectMapper.map(any());
@@ -250,13 +250,13 @@ class RdfSubjectMapperTest {
     IRI graph21 = VALUE_FACTORY.createIRI("http://foo.bar/graph21");
     when(graphGenerator2.apply(any())).thenReturn(List.of(graph21, Rdf.Rr.defaultGraph));
 
-    RdfMappingContext rdfMappingContext = RdfMappingContext.builder()
+    RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
         .valueFactorySupplier(() -> VALUE_FACTORY)
         .termGeneratorFactory(rdfTermGeneratorFactory)
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
         .build();
 
-    RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingContext);
+    RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingConfig);
 
     // When
     RdfSubjectMapper.Result rdfSubjectMapperResult = rdfSubjectMapper.map(any());

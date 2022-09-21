@@ -13,7 +13,7 @@ import org.eclipse.rdf4j.model.ValueFactory;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 @Getter
-public class RdfMapperOptions {
+public class RdfTermGeneratorConfig {
 
   @NonNull
   private IRI baseIri;
@@ -27,5 +27,4 @@ public class RdfMapperOptions {
   private final boolean iriUpperCasePercentEncoding;
 
   private final Functions functions;
-
 }

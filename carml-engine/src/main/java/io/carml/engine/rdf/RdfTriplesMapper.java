@@ -61,7 +61,7 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
   private final LogicalSourceResolver.ExpressionEvaluationFactory<R> expressionEvaluationFactory;
 
   @NonNull
-  private final RdfMappingContext rdfMappingContext;
+  private final RdfMapperConfig rdfMapperConfig;
 
   @NonNull
   private final ParentSideJoinConditionStore<Resource> parentSideJoinConditions;
@@ -69,20 +69,20 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
   public static <I> RdfTriplesMapper<I> of(@NonNull TriplesMap triplesMap, Set<RdfRefObjectMapper> refObjectMappers,
       Set<RdfRefObjectMapper> incomingRefObjectMappers,
       @NonNull LogicalSourceResolver.ExpressionEvaluationFactory<I> expressionEvaluatorFactory,
-      @NonNull RdfMappingContext rdfMappingContext,
+      @NonNull RdfMapperConfig rdfMapperConfig,
       @NonNull ParentSideJoinConditionStoreProvider<Resource> parentSideJoinConditionStoreProvider) {
 
     if (LOG.isDebugEnabled()) {
       LOG.debug("Creating mapper for TriplesMap {}", triplesMap.getResourceName());
     }
 
-    Set<RdfSubjectMapper> subjectMappers = createSubjectMappers(triplesMap, rdfMappingContext);
+    Set<RdfSubjectMapper> subjectMappers = createSubjectMappers(triplesMap, rdfMapperConfig);
 
     Set<RdfPredicateObjectMapper> predicateObjectMappers =
-        createPredicateObjectMappers(triplesMap, rdfMappingContext, refObjectMappers);
+        createPredicateObjectMappers(triplesMap, rdfMapperConfig, refObjectMappers);
 
     return new RdfTriplesMapper<>(triplesMap, subjectMappers, predicateObjectMappers, incomingRefObjectMappers,
-        expressionEvaluatorFactory, rdfMappingContext,
+        expressionEvaluatorFactory, rdfMapperConfig,
         parentSideJoinConditionStoreProvider.createParentSideJoinConditionStore(triplesMap.getId()));
   }
 
@@ -94,8 +94,7 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
   }
 
   @SuppressWarnings("java:S3864")
-  private static Set<RdfSubjectMapper> createSubjectMappers(TriplesMap triplesMap,
-      RdfMappingContext rdfMappingContext) {
+  private static Set<RdfSubjectMapper> createSubjectMappers(TriplesMap triplesMap, RdfMapperConfig rdfMapperConfig) {
 
     Set<SubjectMap> subjectMaps = triplesMap.getSubjectMaps();
     if (subjectMaps.isEmpty()) {
@@ -105,17 +104,17 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
 
     return subjectMaps.stream()
         .peek(sm -> LOG.debug("Creating mapper for SubjectMap {}", sm.getResourceName()))
-        .map(sm -> RdfSubjectMapper.of(sm, triplesMap, rdfMappingContext))
+        .map(sm -> RdfSubjectMapper.of(sm, triplesMap, rdfMapperConfig))
         .collect(Collectors.toUnmodifiableSet());
   }
 
   @SuppressWarnings("java:S3864")
   private static Set<RdfPredicateObjectMapper> createPredicateObjectMappers(TriplesMap triplesMap,
-      RdfMappingContext rdfMappingContext, Set<RdfRefObjectMapper> refObjectMappers) {
+      RdfMapperConfig rdfMapperConfig, Set<RdfRefObjectMapper> refObjectMappers) {
     return triplesMap.getPredicateObjectMaps()
         .stream()
         .peek(pom -> LOG.debug("Creating mapper for PredicateObjectMap {}", pom.getResourceName()))
-        .map(pom -> RdfPredicateObjectMapper.of(pom, triplesMap, refObjectMappers, rdfMappingContext))
+        .map(pom -> RdfPredicateObjectMapper.of(pom, triplesMap, refObjectMappers, rdfMapperConfig))
         .collect(Collectors.toUnmodifiableSet());
   }
 
