@@ -93,8 +93,8 @@ class RdfSubjectMapperTest {
     RdfMapperConfig rdfMappingConfig = mock(RdfMapperConfig.class);
 
     // When
-    Throwable exception = assertThrows(TriplesMapperException.class,
-        () -> RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingConfig));
+    Throwable exception =
+        assertThrows(TriplesMapperException.class, () -> RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingConfig));
 
     // Then
     assertThat(exception.getMessage(),

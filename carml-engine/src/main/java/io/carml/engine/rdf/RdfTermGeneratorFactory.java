@@ -70,9 +70,10 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
 
   private final TemplateParser templateParser;
 
-  public static RdfTermGeneratorFactory of(RdfTermGeneratorConfig rdfTermGeneratorConfig, TemplateParser templateParser) {
-    return new RdfTermGeneratorFactory(rdfTermGeneratorConfig, rdfTermGeneratorConfig.getValueFactory(),
-        IriSafeMaker.create(rdfTermGeneratorConfig.getNormalizationForm(), rdfTermGeneratorConfig.isIriUpperCasePercentEncoding()),
+  public static RdfTermGeneratorFactory of(RdfTermGeneratorConfig rdfTermGeneratorConfig,
+      TemplateParser templateParser) {
+    return new RdfTermGeneratorFactory(rdfTermGeneratorConfig, rdfTermGeneratorConfig.getValueFactory(), IriSafeMaker
+        .create(rdfTermGeneratorConfig.getNormalizationForm(), rdfTermGeneratorConfig.isIriUpperCasePercentEncoding()),
         templateParser);
   }
 
