@@ -209,7 +209,7 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
         termGeneratorFactory = RdfTermGeneratorFactory.of(mapperOptions, TemplateParser.build());
       }
 
-      var rdfMappingContext = RdfMappingContext.builder()
+      var rdfMapperConfig = RdfMapperConfig.builder()
           .valueFactorySupplier(valueFactorySupplier)
           .termGeneratorFactory(termGeneratorFactory)
           .childSideJoinStoreProvider(childSideJoinCacheProvider)
@@ -233,7 +233,7 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
             .filter(rom -> !rom.getJoinConditions()
                 .isEmpty())
             .forEach(rom -> {
-              var roMapper = RdfRefObjectMapper.of(rom, triplesMap, rdfMappingContext, childSideJoinCacheProvider);
+              var roMapper = RdfRefObjectMapper.of(rom, triplesMap, rdfMapperConfig, childSideJoinCacheProvider);
               roMappers.add(roMapper);
               roMapperToParentTm.put(roMapper, rom.getParentTriplesMap());
             });
@@ -249,7 +249,7 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
       Set<TriplesMapper<Statement>> triplesMappers = mappableTriplesMaps.stream()
           .map(triplesMap -> RdfTriplesMapper.of(triplesMap, tmToRoMappers.get(triplesMap),
               !parentTmToRoMappers.containsKey(triplesMap) ? Set.of() : parentTmToRoMappers.get(triplesMap),
-              getExpressionEvaluationFactory(triplesMap, sourceToLogicalSourceResolver), rdfMappingContext,
+              getExpressionEvaluationFactory(triplesMap, sourceToLogicalSourceResolver), rdfMapperConfig,
               parentSideJoinConditionStoreProvider))
           .collect(Collectors.toUnmodifiableSet());
 

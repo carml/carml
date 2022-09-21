@@ -122,7 +122,7 @@ class RdfPredicateObjectMapperTest {
   @Test
   void givenAllParams_whenOfCalled_thenConstructRdfPredicateObjectMapper() {
     // Given
-    RdfMappingContext rdfMappingContext = RdfMappingContext.builder()
+    RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
         .valueFactorySupplier(() -> VALUE_FACTORY)
         .termGeneratorFactory(rdfTermGeneratorFactory)
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
@@ -130,7 +130,7 @@ class RdfPredicateObjectMapperTest {
 
     // When
     RdfPredicateObjectMapper rdfPredicateObjectMapper =
-        RdfPredicateObjectMapper.of(pom, triplesMap, rdfRefObjectMappers, rdfMappingContext);
+        RdfPredicateObjectMapper.of(pom, triplesMap, rdfRefObjectMappers, rdfMappingConfig);
 
     // Then
     assertThat(rdfPredicateObjectMapper, is(not(nullValue())));
@@ -162,7 +162,7 @@ class RdfPredicateObjectMapperTest {
     IRI subjectGraph1 = VALUE_FACTORY.createIRI("http://foo.bar/subjectGraph1");
     subjectGraphs = Set.of(subjectGraph1);
 
-    RdfMappingContext rdfMappingContext = RdfMappingContext.builder()
+    RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
         .valueFactorySupplier(() -> VALUE_FACTORY)
         .termGeneratorFactory(rdfTermGeneratorFactory)
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
@@ -170,7 +170,7 @@ class RdfPredicateObjectMapperTest {
 
     // When
     Throwable exception = assertThrows(TriplesMapperException.class,
-        () -> RdfPredicateObjectMapper.of(pom, triplesMap, rdfRefObjectMappers, rdfMappingContext));
+        () -> RdfPredicateObjectMapper.of(pom, triplesMap, rdfRefObjectMappers, rdfMappingConfig));
 
     // Then
     assertThat(exception.getMessage(), startsWith("Logical sources are not equal."));
@@ -183,14 +183,14 @@ class RdfPredicateObjectMapperTest {
     when(rdfTermGeneratorFactory.getPredicateGenerator(predicateMap1)).thenReturn(predicateGenerator1);
     when(predicateGenerator1.apply(any())).thenReturn(List.of());
 
-    RdfMappingContext rdfMappingContext = RdfMappingContext.builder()
+    RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
         .valueFactorySupplier(() -> VALUE_FACTORY)
         .termGeneratorFactory(rdfTermGeneratorFactory)
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
         .build();
 
     RdfPredicateObjectMapper rdfPredicateObjectMapper =
-        RdfPredicateObjectMapper.of(pom, triplesMap, rdfRefObjectMappers, rdfMappingContext);
+        RdfPredicateObjectMapper.of(pom, triplesMap, rdfRefObjectMappers, rdfMappingConfig);
 
     Map<Set<Resource>, Set<Resource>> subjectsAndSubjectGraphs = Map.of(subjects, subjectGraphs);
 
@@ -218,14 +218,14 @@ class RdfPredicateObjectMapperTest {
     Value object1 = VALUE_FACTORY.createLiteral("object1");
     when(objectGenerator1.apply(any())).thenReturn(List.of(object1));
 
-    RdfMappingContext rdfMappingContext = RdfMappingContext.builder()
+    RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
         .valueFactorySupplier(() -> VALUE_FACTORY)
         .termGeneratorFactory(rdfTermGeneratorFactory)
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
         .build();
 
     RdfPredicateObjectMapper rdfPredicateObjectMapper =
-        RdfPredicateObjectMapper.of(pom, triplesMap, rdfRefObjectMappers, rdfMappingContext);
+        RdfPredicateObjectMapper.of(pom, triplesMap, rdfRefObjectMappers, rdfMappingConfig);
 
     Map<Set<Resource>, Set<Resource>> subjectsAndSubjectGraphs = Map.of(subjects, subjectGraphs);
 
@@ -262,14 +262,14 @@ class RdfPredicateObjectMapperTest {
     IRI graph1 = VALUE_FACTORY.createIRI("http://foo.bar/graph");
     when(graphGenerator1.apply(any())).thenReturn(List.of(graph1));
 
-    RdfMappingContext rdfMappingContext = RdfMappingContext.builder()
+    RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
         .valueFactorySupplier(() -> VALUE_FACTORY)
         .termGeneratorFactory(rdfTermGeneratorFactory)
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
         .build();
 
     RdfPredicateObjectMapper rdfPredicateObjectMapper =
-        RdfPredicateObjectMapper.of(pom, triplesMap, rdfRefObjectMappers, rdfMappingContext);
+        RdfPredicateObjectMapper.of(pom, triplesMap, rdfRefObjectMappers, rdfMappingConfig);
 
     Map<Set<Resource>, Set<Resource>> subjectsAndSubjectGraphs = Map.of(subjects, subjectGraphs);
 
@@ -311,14 +311,14 @@ class RdfPredicateObjectMapperTest {
     IRI graph1 = VALUE_FACTORY.createIRI("http://foo.bar/graph1");
     when(graphGenerator1.apply(any())).thenReturn(List.of(graph1, Rdf.Rr.defaultGraph));
 
-    RdfMappingContext rdfMappingContext = RdfMappingContext.builder()
+    RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
         .valueFactorySupplier(() -> VALUE_FACTORY)
         .termGeneratorFactory(rdfTermGeneratorFactory)
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
         .build();
 
     RdfPredicateObjectMapper rdfPredicateObjectMapper =
-        RdfPredicateObjectMapper.of(pom, triplesMap, rdfRefObjectMappers, rdfMappingContext);
+        RdfPredicateObjectMapper.of(pom, triplesMap, rdfRefObjectMappers, rdfMappingConfig);
 
     Map<Set<Resource>, Set<Resource>> subjectsAndSubjectGraphs = Map.of(subjects, subjectGraphs);
 
@@ -366,14 +366,14 @@ class RdfPredicateObjectMapperTest {
     IRI subjectGraph1 = VALUE_FACTORY.createIRI("http://foo.bar/subjectGraph1");
     subjectGraphs = Set.of(subjectGraph1);
 
-    RdfMappingContext rdfMappingContext = RdfMappingContext.builder()
+    RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
         .valueFactorySupplier(() -> VALUE_FACTORY)
         .termGeneratorFactory(rdfTermGeneratorFactory)
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
         .build();
 
     RdfPredicateObjectMapper rdfPredicateObjectMapper =
-        RdfPredicateObjectMapper.of(pom, triplesMap, rdfRefObjectMappers, rdfMappingContext);
+        RdfPredicateObjectMapper.of(pom, triplesMap, rdfRefObjectMappers, rdfMappingConfig);
 
     Map<Set<Resource>, Set<Resource>> subjectsAndSubjectGraphs = Map.of(subjects, subjectGraphs);
 
@@ -409,14 +409,14 @@ class RdfPredicateObjectMapperTest {
     rdfRefObjectMappers = Set.of(rdfRefObjectMapper1);
     when(rdfRefObjectMapper1.getRefObjectMap()).thenReturn(refObjectMap1);
 
-    RdfMappingContext rdfMappingContext = RdfMappingContext.builder()
+    RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
         .valueFactorySupplier(() -> VALUE_FACTORY)
         .termGeneratorFactory(rdfTermGeneratorFactory)
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
         .build();
 
     RdfPredicateObjectMapper rdfPredicateObjectMapper =
-        RdfPredicateObjectMapper.of(pom, triplesMap, rdfRefObjectMappers, rdfMappingContext);
+        RdfPredicateObjectMapper.of(pom, triplesMap, rdfRefObjectMappers, rdfMappingConfig);
 
     ExpressionEvaluation expressionEvaluation = mock(ExpressionEvaluation.class);
 
