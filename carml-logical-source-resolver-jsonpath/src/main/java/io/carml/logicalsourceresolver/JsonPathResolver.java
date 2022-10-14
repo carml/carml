@@ -180,7 +180,7 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
         .parse(jsonNode)
         .read(logicalSource.getIterator(), JsonNode.class);
 
-    if (resultNode.isNull()) {
+    if (resultNode == null || resultNode.isNull()) {
       return Flux.empty();
     }
     if (resultNode.isArray()) {
@@ -204,7 +204,7 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
           .read(expression, JsonNode.class);
 
       try {
-        if (resultNode.isNull()) {
+        if (resultNode == null || resultNode.isNull()) {
           return Optional.empty();
         }
         if (resultNode.isArray()) {
