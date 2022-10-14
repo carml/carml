@@ -175,11 +175,57 @@ class JsonPathResolverTest {
   }
 
   @Test
+  void givenJsonPathResolverAndProvidedRecord_whenGetRecordResolver_thenReturnSourceFluxWithMatchingObjects()
+      throws IOException {
+    // Given
+    var foodSource = CarmlLogicalSource.builder()
+        .source("")
+        .iterator("$.food[*]")
+        .referenceFormulation(Rdf.Ql.JsonPath)
+        .build();
+
+    var countrySource = CarmlLogicalSource.builder()
+        .source("")
+        .iterator("$.food[*].countryOfOrigin")
+        .referenceFormulation(Rdf.Ql.JsonPath)
+        .build();
+
+    var record = new ObjectMapper().readTree(JsonPathResolverTest.class.getResourceAsStream("food.json"));
+    var resolvedSource = ResolvedSource.of(foodSource.getSource(), record, JsonNode.class);
+    var jsonPathResolver = JsonPathResolver.getInstance();
+
+    var recordResolver = jsonPathResolver.getLogicalSourceRecords(Set.of(foodSource, countrySource));
+
+    // When
+    var items = recordResolver.apply(resolvedSource);
+
+    // Then
+    StepVerifier.create(items, 1)
+        .expectNextCount(1)
+        .thenAwait(Duration.ofMillis(100))
+        .thenRequest(1)
+        .expectNextCount(1)
+        .thenAwait(Duration.ofMillis(100))
+        .thenRequest(1)
+        .expectNextCount(1)
+        .thenAwait(Duration.ofMillis(100))
+        .thenRequest(1)
+        .expectNextCount(1)
+        .thenAwait(Duration.ofMillis(100))
+        .thenRequest(1)
+        .expectNextCount(1)
+        .thenAwait(Duration.ofMillis(100))
+        .thenRequest(1)
+        .expectNextCount(1)
+        .verifyComplete();
+  }
+
+  @Test
   void givenRecordResolverWithProvidedRecord_whenGetRecordResolver_thenReturnSourceFluxWithRecord() {
     // Given
     var foodSource = CarmlLogicalSource.builder()
         .source("")
-        .iterator("")
+        .iterator("$")
         .referenceFormulation(Rdf.Ql.JsonPath)
         .build();
 
@@ -196,6 +242,55 @@ class JsonPathResolverTest {
     StepVerifier.create(records)
         .expectNextMatches(logicalSourceRecord -> logicalSourceRecord.getRecord()
             .equals(record))
+        .verifyComplete();
+  }
+
+  @Test
+  void givenRecordResolverWithProvidedRecordAndSingleValueIterator_whenGetRecordResolver_thenReturnSourceFluxWithRecord() {
+    // Given
+    var foodSource = CarmlLogicalSource.builder()
+        .source("")
+        .iterator("$.name")
+        .referenceFormulation(Rdf.Ql.JsonPath)
+        .build();
+
+    Map<String, Object> waffles = Map.of("name", "Belgian Waffles", "countryOfOrigin", "Belgium");
+
+    var record = new ObjectMapper().valueToTree(waffles);
+    var resolvedSource = ResolvedSource.of(foodSource.getSource(), record, JsonNode.class);
+
+    // When
+    var recordResolver = jsonPathResolver.getLogicalSourceRecords(Set.of(foodSource));
+    var records = recordResolver.apply(resolvedSource);
+
+    // Then
+    StepVerifier.create(records)
+        .expectNextMatches(logicalSourceRecord -> logicalSourceRecord.getRecord()
+            .equals(new ObjectMapper().valueToTree("Belgian Waffles")))
+        .verifyComplete();
+  }
+
+  @Test
+  void givenRecordResolverWithProvidedRecordAndNonResolvingIterator_whenGetRecordResolver_thenReturnSourceFluxWithRecord() {
+    // Given
+    var nonResolvingSource = CarmlLogicalSource.builder()
+        .source("")
+        .iterator("$.foo")
+        .referenceFormulation(Rdf.Ql.JsonPath)
+        .build();
+
+    Map<String, Object> waffles = Map.of("name", "Belgian Waffles", "countryOfOrigin", "Belgium");
+
+    var record = new ObjectMapper().valueToTree(waffles);
+    var resolvedSource = ResolvedSource.of(nonResolvingSource.getSource(), record, JsonNode.class);
+
+    // When
+    var recordResolver = jsonPathResolver.getLogicalSourceRecords(Set.of(nonResolvingSource));
+    var records = recordResolver.apply(resolvedSource);
+
+    // Then
+    StepVerifier.create(records)
+        .expectNextCount(0)
         .verifyComplete();
   }
 
@@ -219,8 +314,6 @@ class JsonPathResolverTest {
     assertThat(results, hasSize(3));
     assertThat(results, hasItems("Belgian Waffles", "French Toast", "Dutch Pancakes"));
   }
-
-
 
   @Test
   void givenUnresolvableJsonPath_whenSourceFluxApplied_shouldReturnEmptyFlux() {
