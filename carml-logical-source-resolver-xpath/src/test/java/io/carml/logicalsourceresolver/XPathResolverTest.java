@@ -170,22 +170,46 @@ class XPathResolverTest {
   }
 
   @Test
-  void givenXmlRecord_whenRecordResolverApplied_thenReturnFluxOfRecord() throws SaxonApiException {
+  void givenXmlRecord_whenRecordResolverApplied_thenReturnFluxOfAllRecords() throws SaxonApiException {
     // Given
     DocumentBuilder docBuilder = processor.newDocumentBuilder();
+    var record = docBuilder.build(new StreamSource(new StringReader(SOURCE)));
+
+    var resolvedSource = ResolvedSource.of(new CarmlStream(), record, XdmItem.class);
+    var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(LSOURCE, LSOURCE2));
+
+    // When
+    var recordFlux = recordResolver.apply(resolvedSource);
+
+    // Then
+    StepVerifier.create(recordFlux)
+        .expectNextCount(4)
+        .verifyComplete();
+  }
+
+  @Test
+  void givenXmlRecordAndUnresolvableIterator_whenRecordResolverApplied_thenReturnFluxOfRecord()
+      throws SaxonApiException {
+    // Given
+    DocumentBuilder docBuilder = processor.newDocumentBuilder();
+
+    var unresolvable = CarmlLogicalSource.builder()
+        .source(SOURCE)
+        .iterator("/foo")
+        .referenceFormulation(Ql.XPath)
+        .build();
 
     var record = docBuilder.build(new StreamSource(new StringReader(BOOK_ONE)));
 
     var resolvedSource = ResolvedSource.of(new CarmlStream(), record, XdmItem.class);
-    var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(LSOURCE));
+    var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(unresolvable));
 
     // When
     var records = recordResolver.apply(resolvedSource);
 
     // Then
     StepVerifier.create(records)
-        .expectNextMatches(logicalSourceRecord -> logicalSourceRecord.getRecord()
-            .equals(record))
+        .expectNextCount(0)
         .verifyComplete();
   }
 

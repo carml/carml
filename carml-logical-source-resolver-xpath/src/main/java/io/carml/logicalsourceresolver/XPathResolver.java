@@ -91,6 +91,10 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
 
   private Flux<LogicalSourceRecord<XdmItem>> getLogicalSourceRecordFlux(ResolvedSource<?> resolvedSource,
       Set<LogicalSource> logicalSources) {
+    if (logicalSources.isEmpty()) {
+      throw new IllegalStateException("No logical sources registered");
+    }
+
     if (resolvedSource == null || resolvedSource.getResolved()
         .isEmpty()) {
       throw new LogicalSourceResolverException(
@@ -104,8 +108,7 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
       return getXpathResultFlux((InputStream) resolvedSource.getResolved()
           .get(), logicalSources);
     } else if (resolved instanceof XdmItem) {
-      return Flux.fromStream(logicalSources.stream()
-          .map(logicalSource -> LogicalSourceRecord.of(logicalSource, (XdmItem) resolved)));
+      return getXpathResultFlux((XdmItem) resolved, logicalSources);
     } else {
       throw new LogicalSourceResolverException(
           String.format("Unsupported source object provided for logical sources:%n%s", exception(logicalSources)));
@@ -114,14 +117,15 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
 
   private Flux<LogicalSourceRecord<XdmItem>> getXpathResultFlux(InputStream inputStream,
       Set<LogicalSource> logicalSources) {
-    if (logicalSources.isEmpty()) {
-      throw new IllegalStateException("No logical sources registered");
-    }
-
     var outstandingRequests = new AtomicLong();
     var pausableReader = new PausableStaxXmlReader();
 
     return Flux.create(sink -> xpathPathFlux(sink, logicalSources, inputStream, outstandingRequests, pausableReader));
+  }
+
+  private Flux<LogicalSourceRecord<XdmItem>> getXpathResultFlux(XdmItem xdmItem, Set<LogicalSource> logicalSources) {
+    return Flux.fromIterable(logicalSources)
+        .flatMap(logicalSource -> getXpathResultFluxForLogicalSource(xdmItem, logicalSource));
   }
 
   private void xpathPathFlux(FluxSink<LogicalSourceRecord<XdmItem>> sink, Set<LogicalSource> logicalSources,
@@ -206,6 +210,26 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
       inputStream.close();
     } catch (IOException ioException) {
       throw new LogicalSourceResolverException("Error closing input stream.", ioException);
+    }
+  }
+
+  private Flux<LogicalSourceRecord<XdmItem>> getXpathResultFluxForLogicalSource(XdmItem xdmItem,
+      LogicalSource logicalSource) {
+    try {
+      var selector = xpathCompiler.compile(logicalSource.getIterator())
+          .load();
+      selector.setContextItem(xdmItem);
+      var value = selector.evaluate();
+
+      if (value.isEmpty()) {
+        return Flux.empty();
+      }
+
+      return Flux.fromIterable(value)
+          .map(item -> LogicalSourceRecord.of(logicalSource, item));
+    } catch (SaxonApiException e) {
+      throw new LogicalSourceResolverException(
+          String.format("Error applying XPath expression [%s] to entry [%s]", logicalSource.getIterator(), xdmItem), e);
     }
   }
 

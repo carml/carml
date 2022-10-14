@@ -18,9 +18,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.Spliterator;
+import java.util.Spliterators;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
+import java.util.stream.StreamSupport;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -65,6 +68,10 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
 
   private Flux<LogicalSourceRecord<JsonNode>> getLogicalSourceRecordFlux(ResolvedSource<?> resolvedSource,
       Set<LogicalSource> logicalSources) {
+    if (logicalSources.isEmpty()) {
+      throw new IllegalStateException("No logical sources registered");
+    }
+
     if (resolvedSource == null || resolvedSource.getResolved()
         .isEmpty()) {
       throw new LogicalSourceResolverException(
@@ -78,8 +85,7 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
       return getObjectFlux((InputStream) resolvedSource.getResolved()
           .get(), logicalSources);
     } else if (resolved instanceof JsonNode) {
-      return Flux.fromStream(logicalSources.stream()
-          .map(logicalSource -> LogicalSourceRecord.of(logicalSource, (JsonNode) resolved)));
+      return getObjectFlux((JsonNode) resolved, logicalSources);
     } else {
       throw new LogicalSourceResolverException(
           String.format("Unsupported source object provided for logical sources:%n%s", exception(logicalSources)));
@@ -88,10 +94,6 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
 
   private Flux<LogicalSourceRecord<JsonNode>> getObjectFlux(InputStream inputStream,
       Set<LogicalSource> logicalSources) {
-    if (logicalSources.isEmpty()) {
-      throw new IllegalStateException("No logical sources registered");
-    }
-
     var outstandingRequests = new AtomicLong();
     var sourcePaused = new AtomicBoolean();
     var sourceCompleted = new AtomicBoolean();
@@ -122,6 +124,11 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
 
       readSource(inputStream, parser, sink, sourcePaused, sourceCompleted);
     });
+  }
+
+  private Flux<LogicalSourceRecord<JsonNode>> getObjectFlux(JsonNode jsonNode, Set<LogicalSource> logicalSources) {
+    return Flux.fromIterable(logicalSources)
+        .flatMap(logicalSource -> getObjectFluxForLogicalSource(jsonNode, logicalSource));
   }
 
   private void bridgeAndListen(Set<LogicalSource> logicalSources, SurfingConfiguration.Builder configBuilder,
@@ -167,6 +174,26 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
     }
   }
 
+  private Flux<LogicalSourceRecord<JsonNode>> getObjectFluxForLogicalSource(JsonNode jsonNode,
+      LogicalSource logicalSource) {
+    var resultNode = JsonPath.using(JSONPATH_CONF)
+        .parse(jsonNode)
+        .read(logicalSource.getIterator(), JsonNode.class);
+
+    if (resultNode == null || resultNode.isNull()) {
+      return Flux.empty();
+    }
+    if (resultNode.isArray()) {
+      return Flux
+          .fromStream(StreamSupport
+              .stream(Spliterators.spliteratorUnknownSize(resultNode.elements(), Spliterator.ORDERED), false))
+          .map(lsRecord -> LogicalSourceRecord.of(logicalSource, lsRecord));
+    } else if (resultNode.isObject() || resultNode.isValueNode()) {
+      return Flux.just(LogicalSourceRecord.of(logicalSource, resultNode));
+    }
+    throw new LogicalSourceResolverException(String.format("Error interpreting expression result %s", resultNode));
+  }
+
   @Override
   public ExpressionEvaluationFactory<JsonNode> getExpressionEvaluationFactory() {
     return jsonNode -> expression -> {
@@ -177,7 +204,7 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
           .read(expression, JsonNode.class);
 
       try {
-        if (resultNode.isNull()) {
+        if (resultNode == null || resultNode.isNull()) {
           return Optional.empty();
         }
         if (resultNode.isArray()) {
