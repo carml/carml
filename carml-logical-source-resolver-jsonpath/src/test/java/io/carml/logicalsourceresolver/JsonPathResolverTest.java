@@ -246,7 +246,7 @@ class JsonPathResolverTest {
   }
 
   @Test
-  void givenRecordResolverWithProvidedRecordAndSingleValueIterator_whenGetRecordResolver_thenReturnSourceFluxWithRecord() {
+  void givenProvidedRecordAndSingleValueIterator_whenGetRecordResolver_thenReturnSourceFluxWithRecord() {
     // Given
     var foodSource = CarmlLogicalSource.builder()
         .source("")
@@ -271,7 +271,7 @@ class JsonPathResolverTest {
   }
 
   @Test
-  void givenRecordResolverWithProvidedRecordAndNonResolvingIterator_whenGetRecordResolver_thenReturnSourceFluxWithRecord() {
+  void givenProvidedRecordAndNonResolvingIterator_whenGetRecordResolver_thenReturnSourceFluxWithRecord() {
     // Given
     var nonResolvingSource = CarmlLogicalSource.builder()
         .source("")
