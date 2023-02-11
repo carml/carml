@@ -22,8 +22,6 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 import javax.xml.transform.stream.StreamSource;
-import jlibs.xml.DefaultNamespaceContext;
-import jlibs.xml.sax.dog.XMLDog;
 import net.sf.saxon.s9api.DocumentBuilder;
 import net.sf.saxon.s9api.Processor;
 import net.sf.saxon.s9api.SaxonApiException;
@@ -105,7 +103,7 @@ class XPathResolverTest {
     processor = new Processor(false);
     var compiler = processor.newXPathCompiler();
     compiler.setCaching(true);
-    xpathResolver = XPathResolver.getInstance(new XMLDog(new DefaultNamespaceContext()), processor, compiler, true);
+    xpathResolver = XPathResolver.getInstance(processor, compiler, true);
   }
 
   @Test
@@ -121,6 +119,38 @@ class XPathResolverTest {
 
     // Then
     StepVerifier.create(recordFlux)
+        .expectNextCount(4)
+        .verifyComplete();
+  }
+
+  @Test
+  void givenXml_whenRecordResolverAppliedTwice_thenReturnFluxOfAllRecords() {
+    // Given
+    var inputStream = IOUtils.toInputStream(SOURCE, StandardCharsets.UTF_8);
+
+    var resolvedSource = ResolvedSource.of(new CarmlStream(), inputStream, InputStream.class);
+    var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(LSOURCE, LSOURCE2));
+
+    // When
+    var recordFlux = recordResolver.apply(resolvedSource);
+
+    // Then
+    StepVerifier.create(recordFlux)
+        .expectNextCount(4)
+        .verifyComplete();
+
+
+    // Given
+    var inputStream2 = IOUtils.toInputStream(SOURCE, StandardCharsets.UTF_8);
+
+    var resolvedSource2 = ResolvedSource.of(new CarmlStream(), inputStream2, InputStream.class);
+    var recordResolver2 = xpathResolver.getLogicalSourceRecords(Set.of(LSOURCE, LSOURCE2));
+
+    // When
+    var recordFlux2 = recordResolver2.apply(resolvedSource2);
+
+    // Then
+    StepVerifier.create(recordFlux2)
         .expectNextCount(4)
         .verifyComplete();
   }

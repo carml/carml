@@ -94,6 +94,61 @@ class JsonPathResolverTest {
         .verifyComplete();
   }
 
+  @Test
+  void givenRecordResolverAndLogicalSources_whenGetRecordResolverTwice_thenReturnSourceFluxWithMatchingObjects() {
+    // Given
+    var foodSource = CarmlLogicalSource.builder()
+        .source("")
+        .iterator("$.food[*]")
+        .referenceFormulation(Rdf.Ql.JsonPath)
+        .build();
+
+    var countrySource = CarmlLogicalSource.builder()
+        .source("")
+        .iterator("$.food[*].countryOfOrigin")
+        .referenceFormulation(Rdf.Ql.JsonPath)
+        .build();
+
+    inputStream = JsonPathResolverTest.class.getResourceAsStream("food.json");
+    var resolvedSource = ResolvedSource.of(foodSource.getSource(), inputStream, InputStream.class);
+
+    // When
+    var recordResolver = jsonPathResolver.getLogicalSourceRecords(Set.of(foodSource, countrySource));
+    Flux<Object> records = recordResolver.apply(resolvedSource)
+        .flatMap(logicalSourceRecord -> stringFlux(logicalSourceRecord.getRecord()));
+
+    // Then
+    StepVerifier.create(records)
+        .expectNextCount(18)
+        .verifyComplete();
+
+    // Given
+    var foodSource2 = CarmlLogicalSource.builder()
+        .source("")
+        .iterator("$.food[*]")
+        .referenceFormulation(Rdf.Ql.JsonPath)
+        .build();
+
+    var countrySource2 = CarmlLogicalSource.builder()
+        .source("")
+        .iterator("$.food[*].countryOfOrigin")
+        .referenceFormulation(Rdf.Ql.JsonPath)
+        .build();
+
+    inputStream = JsonPathResolverTest.class.getResourceAsStream("food.json");
+    var resolvedSource2 = ResolvedSource.of(foodSource2.getSource(), inputStream, InputStream.class);
+
+    // When
+    var recordResolver2 = jsonPathResolver.getLogicalSourceRecords(Set.of(foodSource2, countrySource2));
+    Flux<Object> records2 = recordResolver2.apply(resolvedSource2)
+        .flatMap(logicalSourceRecord -> stringFlux(logicalSourceRecord.getRecord()));
+
+    // Then
+    StepVerifier.create(records2)
+        .expectNextCount(18)
+        .verifyComplete();
+  }
+
   private Flux<String> stringFlux(Object object) {
     return Flux.merge(Flux.just("a" + object), Flux.just("b" + object), Flux.just("c" + object));
   }

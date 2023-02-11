@@ -44,13 +44,13 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
 
   private final DefaultNamespaceContext nsContext;
 
-  private final XMLDog xmlDog;
-
   private final Processor xpathProcessor;
 
   private final XPathCompiler xpathCompiler;
 
   private final boolean autoNodeTextExtraction;
+
+  private final Map<Set<LogicalSource>, XMLDog> xmlDogCache;
 
   public static XPathResolver getInstance() {
     return getInstance(true);
@@ -60,16 +60,13 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
     var processor = new Processor(false);
     var compiler = processor.newXPathCompiler();
     compiler.setCaching(true);
-    var xmlDog = new XMLDog(new DefaultNamespaceContext());
-    return getInstance(xmlDog, processor, compiler, autoNodeTextExtraction);
+    return getInstance(processor, compiler, autoNodeTextExtraction);
   }
 
-  public static XPathResolver getInstance(XMLDog xmlDog, Processor xpathProcessor, XPathCompiler xpathCompiler,
+  public static XPathResolver getInstance(Processor xpathProcessor, XPathCompiler xpathCompiler,
       boolean autoNodeTextExtraction) {
-    var namespaceContext = !(xmlDog.nsContext instanceof DefaultNamespaceContext) ? new DefaultNamespaceContext()
-        : (DefaultNamespaceContext) xmlDog.nsContext;
-
-    return new XPathResolver(namespaceContext, xmlDog, xpathProcessor, xpathCompiler, autoNodeTextExtraction);
+    return new XPathResolver(new DefaultNamespaceContext(), xpathProcessor, xpathCompiler, autoNodeTextExtraction,
+        new HashMap<>());
   }
 
   private void setNamespaces(LogicalSource logicalSource) {
@@ -146,17 +143,8 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
     });
     sink.onDispose(() -> cleanup(inputStream));
 
-    Map<Expression, LogicalSource> logicalSourceByExpression = new HashMap<>();
-    logicalSources.forEach(logicalSource -> {
-      setNamespaces(logicalSource);
-      try {
-        logicalSourceByExpression.put(xmlDog.addXPath(logicalSource.getIterator()), logicalSource);
-      } catch (SAXPathException saxPathException) {
-        sink.error(new LogicalSourceResolverException(
-            String.format("Error parsing XPath expression: %s", logicalSource.getIterator()), saxPathException));
-      }
-    });
-
+    Map<String, LogicalSource> logicalSourceByExpression = new HashMap<>();
+    XMLDog xmlDog = prepareXmlDog(sink, logicalSources, logicalSourceByExpression);
     var event = xmlDog.createEvent();
     bridgeAndListen(logicalSourceByExpression, event, sink, outstandingRequests, pausableReader);
 
@@ -167,7 +155,34 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
     }
   }
 
-  private void bridgeAndListen(Map<Expression, LogicalSource> logicalSourceByExpression, Event event,
+  private XMLDog prepareXmlDog(FluxSink<LogicalSourceRecord<XdmItem>> sink, Set<LogicalSource> logicalSources,
+      Map<String, LogicalSource> logicalSourceByExpression) {
+    XMLDog xmlDog;
+    if (xmlDogCache.containsKey(logicalSources)) {
+      xmlDog = xmlDogCache.get(logicalSources);
+      logicalSources
+          .forEach(logicalSource -> logicalSourceByExpression.put(logicalSource.getIterator(), logicalSource));
+    } else {
+      xmlDog = new XMLDog(nsContext);
+      logicalSources.forEach(logicalSource -> {
+        setNamespaces(logicalSource);
+        try {
+          var expression = logicalSource.getIterator();
+          xmlDog.addXPath(expression);
+          logicalSourceByExpression.put(expression, logicalSource);
+        } catch (SAXPathException saxPathException) {
+          sink.error(new LogicalSourceResolverException(
+              String.format("Error parsing XPath expression: %s", logicalSource.getIterator()), saxPathException));
+        }
+      });
+
+      xmlDogCache.put(logicalSources, xmlDog);
+    }
+
+    return xmlDog;
+  }
+
+  private void bridgeAndListen(Map<String, LogicalSource> logicalSourceByExpression, Event event,
       FluxSink<LogicalSourceRecord<XdmItem>> sink, AtomicLong outstandingRequests,
       PausableStaxXmlReader pausableReader) {
 
@@ -181,7 +196,7 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
 
       @Override
       public void onNodeHit(Expression expression, NodeItem nodeItem) {
-        var logicalSource = logicalSourceByExpression.get(expression);
+        var logicalSource = logicalSourceByExpression.get(expression.getXPath());
         sink.next(LogicalSourceRecord.of(logicalSource, docBuilder.wrap(nodeItem.xml)));
         var outstanding = outstandingRequests.decrementAndGet();
         checkReaderToPause(outstanding, pausableReader);
@@ -189,7 +204,7 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
 
       @Override
       public void finishedNodeSet(Expression expression) {
-        expressionCompletion.put(expression, true);
+        expressionCompletion.put(expression.getXPath(), true);
         if (expressionCompletion.values()
             .stream()
             .allMatch(Boolean::valueOf)) {
@@ -199,7 +214,7 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
 
       @Override
       public void onResult(Expression expression, Object o) {
-        var logicalSource = logicalSourceByExpression.get(expression);
+        var logicalSource = logicalSourceByExpression.get(expression.getXPath());
         sink.next(LogicalSourceRecord.of(logicalSource, docBuilder.wrap(o)));
         var outstanding = outstandingRequests.decrementAndGet();
         checkReaderToPause(outstanding, pausableReader);

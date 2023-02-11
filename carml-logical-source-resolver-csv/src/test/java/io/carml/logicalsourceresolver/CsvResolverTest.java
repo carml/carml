@@ -49,7 +49,7 @@ class CsvResolverTest {
   }
 
   @Test
-  void givenCsv_whenRecordResolverApplied_givenCsv_thenReturnFluxOfAllRecords() {
+  void givenCsv_whenRecordResolverApplied_thenReturnFluxOfAllRecords() {
     // Given
     var recordResolver = csvResolver.getLogicalSourceRecords(Set.of(LSOURCE));
     var resolvedSource = ResolvedSource.of(SOURCE, sourceResolver.apply(SOURCE), InputStream.class);
@@ -59,6 +59,33 @@ class CsvResolverTest {
 
     // Then
     StepVerifier.create(recordFlux)
+        .expectNextCount(2)
+        .verifyComplete();
+  }
+
+  @Test
+  void givenCsv_whenRecordResolverAppliedTwice_thenReturnFluxOfAllRecords() {
+    // Given
+    var recordResolver = csvResolver.getLogicalSourceRecords(Set.of(LSOURCE));
+    var resolvedSource = ResolvedSource.of(SOURCE, sourceResolver.apply(SOURCE), InputStream.class);
+
+    // When
+    var recordFlux = recordResolver.apply(resolvedSource);
+
+    // Then
+    StepVerifier.create(recordFlux)
+        .expectNextCount(2)
+        .verifyComplete();
+
+    // Given
+    var recordResolver2 = csvResolver.getLogicalSourceRecords(Set.of(LSOURCE));
+    var resolvedSource2 = ResolvedSource.of(SOURCE, sourceResolver.apply(SOURCE), InputStream.class);
+
+    // When
+    var recordFlux2 = recordResolver2.apply(resolvedSource2);
+
+    // Then
+    StepVerifier.create(recordFlux2)
         .expectNextCount(2)
         .verifyComplete();
   }
