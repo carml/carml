@@ -2,8 +2,7 @@ package io.carml.engine;
 
 import io.carml.engine.template.Template;
 import io.carml.engine.template.Template.Expression;
-import java.util.Collection;
-import java.util.Objects;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -45,22 +44,16 @@ public class GetTemplateValue implements Function<ExpressionEvaluation, Optional
   private void bindTemplateExpression(Expression expression, ExpressionEvaluation expressionEvaluation,
       Template.Builder templateBuilder) {
     templateBuilder.bind(expression, expr -> expressionEvaluation.apply(expr.getValue())
-        .map(this::prepareValueForTemplate));
+        .map(ExpressionEvaluation::extractValues)
+        .map(this::prepareExtractedValuesForTemplate));
   }
 
   // See https://www.w3.org/TR/r2rml/#from-template
-  private Object prepareValueForTemplate(Object raw) {
-    Objects.requireNonNull(raw);
-
-    if (raw instanceof Collection<?>) {
-      return ((Collection<?>) raw).stream()
-          .map(createNaturalRdfLexicalForm)
-          .map(transformValue)
-          .collect(Collectors.toUnmodifiableList());
-    } else {
-      String value = createNaturalRdfLexicalForm.apply(raw);
-      return transformValue.apply(value);
-    }
+  private List<String> prepareExtractedValuesForTemplate(List<String> extractedValues) {
+    return extractedValues.stream()
+        .map(createNaturalRdfLexicalForm)
+        .map(transformValue)
+        .collect(Collectors.toList());
   }
 
 }
