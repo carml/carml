@@ -22,6 +22,7 @@ Table of Contents
 - [Function extension](#function-extension)
 - [XML namespace extension](#xml-namespace-extension)
 - [CARML in RML Test Cases](#carml-in-rml-test-cases)
+- [Projects using CARML](#projects-using-carml)
 - [About CARML](#about-carml)
 
 Introduction
@@ -40,7 +41,9 @@ generalizes this to any structured source. All you need is a way to iterate over
 Getting started
 ---------------
 
-CARML is available from the Central Maven Repository.
+CARML is available as a runnable jar with CLI: [CARML jar](https://github.com/carml/carml-jar).
+
+CARML is also available from the Central Maven Repository.
 
 ```xml
 
@@ -368,6 +371,19 @@ the [RML test cases](https://rml.io/test-cases/).
 > Note: currently we've raised [issues](https://github.com/RMLio/rml-test-cases/issues?q=is%3Aissue+author%3Apmaria+) 
 > for some of the test cases which we believe are incorrect, or have an adverse effect on mapping data.
 
+Projects using CARML
+--------------------
+These projects are using CARML.
+
+* [carml-service](https://github.com/zazuko/carml-service/) - A project by [Zazuko](https://zazuko.com/) which creates a
+  web service around CARML. 
+* [barnard59](https://github.com/zazuko/barnard59) - A project by [Zazuko](https://zazuko.com/) which provides a toolkit
+  to automate extract, transform and load (ETL) tasks. Its main focus is on creating Linked Data.
+* [DotWebStack](https://github.com/dotwebstack/dotwebstack-framework) - A Framework for publishing rich data services.
+  DotWebStack provides [an extension](https://dotwebstack.org/dotwebstack-framework/#/ext/rml) to provide support for 
+  Linked data URI dereferencing, which uses CARML to transform data on the fly.
+
+Are you using CARML? Let us know, so we can add you to this list. Or better yet, open a PR.
 
 About CARML
 -----------
