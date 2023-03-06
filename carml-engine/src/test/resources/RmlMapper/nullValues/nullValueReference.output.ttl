@@ -1,0 +1,6 @@
+@prefix ex: <http://example.com/> .
+
+<http://example.com/Child/Fernand> a ex:Child .
+
+<http://example.com/Child/Jirsten> a ex:Child ;
+  ex:hasBirthday "2009-04-13"^^xsd:date .

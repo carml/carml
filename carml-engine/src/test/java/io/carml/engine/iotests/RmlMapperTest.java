@@ -194,6 +194,21 @@ class RmlMapperTest extends MappingTester {
         builder -> builder.baseIri("http://foo.bar/base/"));
   }
 
-  // TODO: PM: add test for rml:reference and rr:template where a value is not found.
+  @Test
+  void testMappingWithNullReference() {
+    testMapping("RmlMapper", "/RmlMapper/nullValues/nullValueReference.rml.ttl",
+        "/RmlMapper/nullValues/nullValueReference.output.ttl");
+  }
 
+  @Test
+  void testMappingWithTemplateWithNullReference() {
+    testMapping("RmlMapper", "/RmlMapper/nullValues/nullValueTemplate.rml.ttl",
+        "/RmlMapper/nullValues/nullValueTemplate.output.ttl");
+  }
+
+  @Test
+  void testMappingWithTemplateWithMultiValuedNullReference() {
+    testMapping("RmlMapper", "/RmlMapper/nullValues/nullValueMultiValuedTemplate.rml.ttl",
+        "/RmlMapper/nullValues/nullValueMultiValuedTemplate.output.ttl");
+  }
 }
