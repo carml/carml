@@ -14,10 +14,10 @@ public interface ExpressionEvaluation extends Function<String, Optional<Object>>
    *
    * <pre>
    * {@code
-   *   expressionEvaluation.apply("foo")
-   *       .map(ExpressionEvaluation::extractValues)
-   *       .orElse(List.of());
-   *}
+   * expressionEvaluation.apply("foo")
+   *     .map(ExpressionEvaluation::extractValues)
+   *     .orElse(List.of());
+   * }
    * </pre>
    *
    * @param evaluationResult The result of the {@link ExpressionEvaluation}
