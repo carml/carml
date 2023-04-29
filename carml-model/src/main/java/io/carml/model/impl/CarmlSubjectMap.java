@@ -10,16 +10,18 @@ import io.carml.vocab.Rdf;
 import io.carml.vocab.Rr;
 import java.util.Set;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.Singular;
+import lombok.ToString;
 import lombok.experimental.SuperBuilder;
-import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
-import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 
-@SuperBuilder
+@SuperBuilder(toBuilder = true)
 @NoArgsConstructor
+@Setter
+@ToString(callSuper = true)
 public class CarmlSubjectMap extends CarmlTermMap implements SubjectMap {
 
   @Singular("clazz")
@@ -35,23 +37,10 @@ public class CarmlSubjectMap extends CarmlTermMap implements SubjectMap {
     return graphMaps;
   }
 
-  public void setGraphMaps(Set<GraphMap> graphMaps) {
-    this.graphMaps = graphMaps;
-  }
-
   @RdfProperty(Rr.clazz)
   @Override
   public Set<IRI> getClasses() {
     return classes;
-  }
-
-  public void setClasses(Set<IRI> classes) {
-    this.classes = classes;
-  }
-
-  @Override
-  public String toString() {
-    return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
   }
 
   @Override

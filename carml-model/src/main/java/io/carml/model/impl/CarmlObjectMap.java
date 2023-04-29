@@ -12,20 +12,19 @@ import io.carml.vocab.Rml;
 import java.util.Set;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 import lombok.experimental.SuperBuilder;
-import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
-import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 
-@SuperBuilder
+@SuperBuilder(toBuilder = true)
 @NoArgsConstructor
+@Setter
+@ToString(callSuper = true)
 public class CarmlObjectMap extends CarmlTermMap implements ObjectMap {
 
-  @Setter
   private DatatypeMap datatypeMap;
 
-  @Setter
   private LanguageMap languageMap;
 
   @RdfProperty(Rml.datatypeMap)
@@ -40,11 +39,6 @@ public class CarmlObjectMap extends CarmlTermMap implements ObjectMap {
   @Override
   public LanguageMap getLanguageMap() {
     return languageMap;
-  }
-
-  @Override
-  public String toString() {
-    return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
   }
 
   @Override

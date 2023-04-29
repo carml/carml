@@ -2,6 +2,7 @@ package io.carml.model.impl;
 
 import com.google.common.collect.ImmutableSet;
 import io.carml.model.LogicalSource;
+import io.carml.model.LogicalTable;
 import io.carml.model.PredicateObjectMap;
 import io.carml.model.Resource;
 import io.carml.model.SubjectMap;
@@ -12,36 +13,41 @@ import io.carml.vocab.Rdf;
 import io.carml.vocab.Rml;
 import io.carml.vocab.Rr;
 import java.util.Set;
+import java.util.StringJoiner;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.Singular;
 import lombok.experimental.SuperBuilder;
-import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
-import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
-import org.apache.commons.lang3.builder.ToStringStyle;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 
-@SuperBuilder
+@SuperBuilder(toBuilder = true)
 @NoArgsConstructor
+@Setter
 public class CarmlTriplesMap extends CarmlResource implements TriplesMap {
 
-  @Setter
   private LogicalSource logicalSource;
 
+  private LogicalTable logicalTable;
+
   @Singular
-  @Setter
   private Set<SubjectMap> subjectMaps;
 
   @Singular
-  @Setter
   private Set<PredicateObjectMap> predicateObjectMaps;
 
   @RdfProperty(Rml.logicalSource)
   @RdfType(CarmlLogicalSource.class)
   @Override
   public LogicalSource getLogicalSource() {
-    return logicalSource;
+    return logicalTable != null ? logicalTable : logicalSource;
+  }
+
+  @RdfProperty(Rr.logicalTable)
+  @RdfType(CarmlLogicalTable.class)
+  @Override
+  public LogicalTable getLogicalTable() {
+    return logicalTable;
   }
 
   @RdfProperty(Rr.subjectMap)
@@ -58,13 +64,15 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap {
     return predicateObjectMaps;
   }
 
-  @SuppressWarnings("java:S1149")
   @Override
   public String toString() {
-    ToStringStyle style = new MultilineRecursiveToStringStyle();
-    StringBuffer buffer = new StringBuffer();
-    buffer.append(String.format("%s %s:%n ", getClass().getSimpleName(), getResourceName()));
-    return new ReflectionToStringBuilder(this, style, buffer).toString();
+    return new StringJoiner(String.format(",%s", System.lineSeparator()), "CarmlTriplesMap(", ")")
+        .add(String.format("super=%s", super.toString()))
+        .add(String.format("logicalSource=%s", logicalSource))
+        .add(String.format("logicalTable=%s", logicalTable))
+        .add(String.format("subjectMaps=%s", subjectMaps))
+        .add(String.format("predicateObjectMaps=%s", predicateObjectMaps))
+        .toString();
   }
 
   @Override
@@ -72,6 +80,9 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap {
     ImmutableSet.Builder<Resource> builder = ImmutableSet.<Resource>builder();
     if (logicalSource != null) {
       builder.add(logicalSource);
+    }
+    if (logicalTable != null) {
+      builder.add(logicalTable);
     }
     return builder.addAll(subjectMaps)
         .addAll(predicateObjectMaps)
@@ -84,6 +95,9 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap {
         .add(RDF.TYPE, Rdf.Rr.TriplesMap);
     if (logicalSource != null) {
       modelBuilder.add(Rml.logicalSource, logicalSource.getAsResource());
+    }
+    if (logicalTable != null) {
+      modelBuilder.add(Rr.logicalTable, logicalTable.getAsResource());
     }
     subjectMaps.forEach(sm -> modelBuilder.add(Rr.subjectMap, sm.getAsResource()));
     predicateObjectMaps.forEach(pom -> modelBuilder.add(Rr.predicateObjectMap, pom.getAsResource()));

@@ -8,17 +8,18 @@ import io.carml.vocab.Rr;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
 
-@SuperBuilder
+@SuperBuilder(toBuilder = true)
 @NoArgsConstructor(access = AccessLevel.PACKAGE)
+@Setter
+@ToString(callSuper = true)
 abstract class CarmlTermMap extends CarmlExpressionMap implements TermMap {
 
-  @Setter
   String inverseExpression;
 
-  @Setter
   TermType termType;
 
   @RdfProperty(Rr.inverseExpression)

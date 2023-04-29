@@ -9,17 +9,17 @@ import java.util.Objects;
 import java.util.Set;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 import lombok.experimental.SuperBuilder;
-import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
-import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 
-@SuperBuilder
+@SuperBuilder(toBuilder = true)
 @NoArgsConstructor
+@Setter
+@ToString(callSuper = true)
 public class CarmlStream extends CarmlResource implements NameableStream {
 
-  @Setter
   private String streamName;
 
   @RdfProperty(Carml.streamName)
@@ -55,10 +55,5 @@ public class CarmlStream extends CarmlResource implements NameableStream {
     if (streamName != null) {
       modelBuilder.add(Carml.streamName, streamName);
     }
-  }
-
-  @Override
-  public String toString() {
-    return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
   }
 }

@@ -43,6 +43,8 @@ public class Rdf {
     public static final IRI XPath = iri("XPath");
 
     public static final IRI Csv = iri("CSV");
+
+    public static final IRI Rdb = iri("Rdb");
   }
 
   public static class Rr {
@@ -106,6 +108,38 @@ public class Rdf {
     public static final IRI BlankNode = iri("BlankNode");
 
     public static final IRI IRI = iri("IRI");
+
+    public static final IRI logicalTable = iri("logicalTable");
+
+    public static final IRI LogicalTable = iri("LogicalTable");
+
+    public static final IRI SQL2008 = iri("SQL2008");
+
+    public static final IRI Oracle = iri("Oracle");
+
+    public static final IRI MySQL = iri("MySQL");
+
+    public static final IRI MSSQLServer = iri("MSSQLServer");
+
+    public static final IRI HSQLDB = iri("HSQLDB");
+
+    public static final IRI PostgreSQL = iri("PostgreSQL");
+
+    public static final IRI DB2 = iri("DB2");
+
+    public static final IRI Informix = iri("Informix");
+
+    public static final IRI Ingres = iri("Ingres");
+
+    public static final IRI Progress = iri("Progress");
+
+    public static final IRI SybaseASE = iri("SybaseASE");
+
+    public static final IRI SybaseSQLAnywhere = iri("SybaseSQLAnywhere");
+
+    public static final IRI Virtuoso = iri("Virtuoso");
+
+    public static final IRI Firebird = iri("Firebird");
   }
 
   public static class Fnml {
@@ -132,6 +166,19 @@ public class Rdf {
     public static final IRI executes = iri("executes");
 
     public static final IRI old_executes = f.createIRI(io.carml.vocab.Fno.OLD_executes);
+  }
+
+  public static class D2rq {
+
+    private D2rq() {}
+
+    private static IRI iri(String suffix) {
+      return f.createIRI(io.carml.vocab.D2rq.NAMESPACE + suffix);
+    }
+
+    public static final IRI Database = iri("Database");
+
+    public static final IRI jdbcDriver = iri("jdbcDriver");
   }
 
   public static class Carml {

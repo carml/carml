@@ -10,4 +10,11 @@ public interface LogicalSource extends Resource {
 
   IRI getReferenceFormulation();
 
+  String getTableName();
+
+  String getSqlQuery();
+
+  IRI getSqlVersion();
+
+  String getQuery();
 }

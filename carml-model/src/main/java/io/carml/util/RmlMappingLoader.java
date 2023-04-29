@@ -1,10 +1,12 @@
 package io.carml.util;
 
+import io.carml.model.DatabaseSource;
 import io.carml.model.FileSource;
 import io.carml.model.NameableStream;
 import io.carml.model.TermType;
 import io.carml.model.TriplesMap;
 import io.carml.model.XmlSource;
+import io.carml.model.impl.CarmlDatabaseSource;
 import io.carml.model.impl.CarmlFileSource;
 import io.carml.model.impl.CarmlStream;
 import io.carml.model.impl.CarmlTriplesMap;
@@ -26,6 +28,8 @@ import org.eclipse.rdf4j.model.util.ModelCollector;
 import org.eclipse.rdf4j.rio.RDFFormat;
 
 public class RmlMappingLoader {
+
+  private static final Set<IRI> BASE_SOURCES = Set.of(Rdf.Rml.logicalSource, Rdf.Rr.logicalTable);
 
   public static RmlMappingLoader build() {
     return new RmlMappingLoader(new RmlConstantShorthandExpander());
@@ -76,20 +80,24 @@ public class RmlMappingLoader {
         .collect(ModelCollector.toModel());
 
     return Set.copyOf(RdfObjectLoader.load(RmlMappingLoader::selectTriplesMaps, CarmlTriplesMap.class, model,
-        shorthandExpander, this::addTermTypes, mapper -> {
-          mapper.addDecidableType(Rdf.Carml.Stream, NameableStream.class);
-          mapper.addDecidableType(Rdf.Carml.XmlDocument, XmlSource.class);
-          mapper.addDecidableType(Rdf.Carml.FileSource, FileSource.class);
-          mapper.bindInterfaceImplementation(NameableStream.class, CarmlStream.class);
-          mapper.bindInterfaceImplementation(XmlSource.class, CarmlXmlSource.class);
-          mapper.bindInterfaceImplementation(FileSource.class, CarmlFileSource.class);
-        }, RmlNamespaces.RML_NAMESPACES));
+        shorthandExpander, this::addTermTypes, mapper -> mapper.addDecidableType(Rdf.Carml.Stream, NameableStream.class)
+            .addDecidableType(Rdf.Carml.XmlDocument, XmlSource.class)
+            .addDecidableType(Rdf.Carml.FileSource, FileSource.class)
+            .addDecidableType(Rdf.D2rq.Database, DatabaseSource.class)
+            .bindInterfaceImplementation(NameableStream.class, CarmlStream.class)
+            .bindInterfaceImplementation(XmlSource.class, CarmlXmlSource.class)
+            .bindInterfaceImplementation(FileSource.class, CarmlFileSource.class)
+            .bindInterfaceImplementation(DatabaseSource.class, CarmlDatabaseSource.class),
+        RmlNamespaces.RML_NAMESPACES));
   }
 
   private static Set<Resource> selectTriplesMaps(Model model) {
-    return Set.copyOf(model.filter(null, Rdf.Rml.logicalSource, null)
+    return Set.copyOf(model.stream()
+        .filter(statement -> BASE_SOURCES.contains(statement.getPredicate()))
+        .collect(new ModelCollector())
         .subjects());
   }
+
 
   private void addTermTypes(MappingCache cache) {
     class AddTermTypes {

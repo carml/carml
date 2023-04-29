@@ -9,28 +9,23 @@ import java.util.Objects;
 import java.util.Set;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 import lombok.experimental.SuperBuilder;
-import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
-import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 
-@SuperBuilder
+@SuperBuilder(toBuilder = true)
 @NoArgsConstructor
+@Setter
+@ToString(callSuper = true)
 public class CarmlFileSource extends CarmlResource implements FileSource {
 
-  @Setter
   private String url;
 
   @RdfProperty(Carml.url)
   @Override
   public String getUrl() {
     return this.url;
-  }
-
-  @Override
-  public String toString() {
-    return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
   }
 
   @Override

@@ -69,4 +69,39 @@ public class Rr {
 
   public static final String LITERAL = NAMESPACE + "Literal";
 
+  public static final String logicalTable = NAMESPACE + "logicalTable";
+
+  public static final String tableName = NAMESPACE + "tableName";
+
+  public static final String sqlQuery = NAMESPACE + "sqlQuery";
+
+  public static final String sqlVersion = NAMESPACE + "sqlVersion";
+
+  public static final String SQL2008 = NAMESPACE + "SQL2008";
+
+  public static final String Oracle = NAMESPACE + "Oracle";
+
+  public static final String MySQL = NAMESPACE + "MySQL";
+
+  public static final String MSSQLServer = NAMESPACE + "MSSQLServer";
+
+  public static final String HSQLDB = NAMESPACE + "HSQLDB";
+
+  public static final String PostgreSQL = NAMESPACE + "PostgreSQL";
+
+  public static final String DB2 = NAMESPACE + "DB2";
+
+  public static final String Informix = NAMESPACE + "Informix";
+
+  public static final String Ingres = NAMESPACE + "Ingres";
+
+  public static final String Progress = NAMESPACE + "Progress";
+
+  public static final String SybaseASE = NAMESPACE + "SybaseASE";
+
+  public static final String SybaseSQLAnywhere = NAMESPACE + "SybaseSQLAnywhere";
+
+  public static final String Virtuoso = NAMESPACE + "Virtuoso";
+
+  public static final String Firebird = NAMESPACE + "Firebird";
 }

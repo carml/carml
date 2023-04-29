@@ -1,38 +1,55 @@
 package io.carml.model.impl;
 
+import io.carml.model.DatabaseSource;
 import io.carml.model.LogicalSource;
 import io.carml.model.Resource;
 import io.carml.rdfmapper.annotations.RdfProperty;
 import io.carml.vocab.Rdf;
 import io.carml.vocab.Rml;
+import io.carml.vocab.Rr;
 import java.util.Objects;
 import java.util.Set;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 import lombok.experimental.SuperBuilder;
-import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
-import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 
-@SuperBuilder
+@SuperBuilder(toBuilder = true)
 @NoArgsConstructor
+@Setter
+@ToString(callSuper = true)
 public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
 
-  @Setter
-  private Object source;
+  protected Object source;
 
-  @Setter
-  private String iterator;
+  protected String iterator;
 
-  @Setter
-  private IRI referenceFormulation;
+  protected IRI referenceFormulation;
+
+  protected String tableName;
+
+  protected String sqlQuery;
+
+  protected IRI sqlVersion;
 
   @RdfProperty(value = Rml.source, handler = LogicalSourceSourcePropertyHandler.class)
   @Override
   public Object getSource() {
+
+    if (source == null && hasTableNameOrSqlQuery()) {
+      return CarmlDatabaseSource.builder()
+          .query(tableName != null ? String.format("SELECT * FROM %s", tableName) : sqlQuery)
+          .build();
+    }
+
     return source;
+  }
+
+  private boolean hasTableNameOrSqlQuery() {
+    return tableName != null || sqlQuery != null;
   }
 
   @RdfProperty(Rml.iterator)
@@ -44,17 +61,53 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
   @RdfProperty(Rml.referenceFormulation)
   @Override
   public IRI getReferenceFormulation() {
+    if (source instanceof DatabaseSource || hasTableNameOrSqlQuery()) {
+      return Rdf.Ql.Rdb;
+    }
+
     return referenceFormulation;
   }
 
+  @RdfProperty(Rr.tableName)
   @Override
-  public String toString() {
-    return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
+  public String getTableName() {
+    return tableName;
+  }
+
+  @RdfProperty(Rr.sqlQuery)
+  @RdfProperty(Rml.query)
+  @Override
+  public String getSqlQuery() {
+    return sqlQuery;
+  }
+
+  @RdfProperty(Rr.sqlVersion)
+  @Override
+  public IRI getSqlVersion() {
+    return sqlVersion;
+  }
+
+  @Override
+  public String getQuery() {
+    String query = null;
+    if (sqlQuery != null) {
+      query = sqlQuery;
+    }
+
+    if (query == null && tableName != null) {
+      query = String.format("SELECT * FROM %s", tableName);
+    }
+
+    if (query == null && source instanceof DatabaseSource) {
+      query = ((DatabaseSource) source).getQuery();
+    }
+
+    return query;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(source, iterator, referenceFormulation);
+    return Objects.hash(source, iterator, referenceFormulation, tableName, sqlQuery, sqlVersion);
   }
 
   @Override
@@ -70,8 +123,11 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
     }
     CarmlLogicalSource other = (CarmlLogicalSource) obj;
     return Objects.equals(source, other.source) && Objects.equals(iterator, other.iterator)
-        && Objects.equals(referenceFormulation, other.referenceFormulation);
+        && Objects.equals(referenceFormulation, other.referenceFormulation)
+        && Objects.equals(tableName, other.tableName) && Objects.equals(sqlQuery, other.sqlQuery)
+        && Objects.equals(sqlVersion, other.sqlVersion);
   }
+
 
   @Override
   public Set<Resource> getReferencedResources() {
@@ -100,5 +156,4 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
       modelBuilder.add(Rml.referenceFormulation, referenceFormulation);
     }
   }
-
 }

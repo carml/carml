@@ -7,6 +7,7 @@
 @prefix carml: <http://carml.taxonic.com/carml/> .
 @prefix ex: <http://example.org/> .
 @prefix fn: <http://example.org/function/> .
+@prefix d2rq : <http://www.wiwiss.fu-berlin.de/suhl/bizer/D2RQ/0.1#> .
 
 ex:TriplesMap a rr:TriplesMap ;
   rml:logicalSource [
@@ -141,3 +142,42 @@ ex:FunctionTM a rr:TriplesMap ;
   ] ;
 .
 
+ex:TriplesMap2 a rr:TriplesMap ;
+  rr:logicalTable [
+    rr:tableName "some_table" ;
+  ] ;
+  rr:subjectMap [
+    rr:template "http://example.org/{/some-node}" ;
+    rr:class ex:Class4 ;
+  ] ;
+.
+
+ex:TriplesMap3 a rr:TriplesMap ;
+  rr:logicalTable [
+    rr:sqlQuery "select * from some_table" ;
+    rr:sqlVersion rr:SQL2008 ;
+  ] ;
+  rr:subjectMap [
+    rr:template "http://example.org/{/some-node}" ;
+    rr:class ex:Class5 ;
+  ] ;
+.
+
+ex:TriplesMap4 a rr:TriplesMap ;
+  rml:logicalSource [
+    rml:source [
+      a d2rq:Database ;
+      d2rq:jdbcDSN "jdbc:mysql://localhost/example" ;
+      d2rq:jdbcDriver "com.mysql.jdbc.Driver" ;
+      d2rq:username "user" ;
+      d2rq:password "password" ;
+      rml:query "select * from some_table" ;
+    ] ;
+    rml:referenceFormulation ql:Rdb ;
+    rr:sqlVersion rr:SQL2008 ;
+  ] ;
+  rr:subjectMap [
+    rr:template "http://example.org/{/some-node}" ;
+    rr:class ex:Class6 ;
+  ] ;
+.

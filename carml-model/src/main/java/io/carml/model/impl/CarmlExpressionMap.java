@@ -13,13 +13,17 @@ import java.util.Set;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
 
 @SuppressWarnings("java:S1135")
-@SuperBuilder
+@SuperBuilder(toBuilder = true)
 @NoArgsConstructor(access = AccessLevel.PACKAGE)
+@Setter
+@ToString(callSuper = true)
+
 abstract class CarmlExpressionMap extends CarmlResource implements ExpressionMap {
 
   CarmlExpressionMap(String id, String label, String reference, String template, Value constant,
@@ -31,17 +35,12 @@ abstract class CarmlExpressionMap extends CarmlResource implements ExpressionMap
     this.functionValue = functionValue;
   }
 
-  @Setter
   String reference;
 
-  @Setter
   String template;
 
-  // TODO constant could also be a lang string or maybe something else.
-  @Setter
   Value constant;
 
-  @Setter
   TriplesMap functionValue;
 
   @RdfProperty(Rml.reference)

@@ -1,5 +1,8 @@
 package io.carml.model.impl;
 
+import static org.eclipse.rdf4j.model.util.Values.bnode;
+import static org.eclipse.rdf4j.model.util.Values.iri;
+
 import io.carml.model.Resource;
 import io.carml.rdfmapper.annotations.RdfProperty;
 import io.carml.rdfmapper.annotations.RdfResourceName;
@@ -11,26 +14,24 @@ import java.util.Set;
 import lombok.Builder;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 import org.eclipse.rdf4j.model.Model;
-import org.eclipse.rdf4j.model.ValueFactory;
-import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
 import org.eclipse.rdf4j.model.util.ModelCollector;
 import org.eclipse.rdf4j.model.vocabulary.RDFS;
 
-@SuperBuilder
+@SuperBuilder(toBuilder = true)
 @NoArgsConstructor
+@Setter
+@ToString(callSuper = true)
 public abstract class CarmlResource implements Resource {
 
-  private static final ValueFactory VF = SimpleValueFactory.getInstance();
-
-  @Setter
   String id;
 
-  @Setter
   String label;
 
+  @ToString.Exclude
   @Builder.Default
   private Map<Resource, Model> modelCache = new HashMap<>();
 
@@ -55,14 +56,14 @@ public abstract class CarmlResource implements Resource {
   public org.eclipse.rdf4j.model.Resource getAsResource() {
 
     if (id == null) {
-      return VF.createBNode();
+      return bnode();
     }
 
     if (RdfValues.isValidIri(id)) {
-      return VF.createIRI(id);
+      return iri(id);
     }
 
-    return VF.createBNode(id);
+    return bnode(id);
   }
 
   private void cacheModel(Model model) {

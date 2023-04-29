@@ -21,7 +21,7 @@ public class LogicalSourceSourceTypeDecider implements TypeDecider {
   }
 
   Map<IRI, IRI> inferenceMap = Map.of(Rdf.Carml.streamName, Rdf.Carml.Stream, Rdf.Carml.declaresNamespace,
-      Rdf.Carml.XmlDocument, Rdf.Carml.url, Rdf.Carml.FileSource);
+      Rdf.Carml.XmlDocument, Rdf.Carml.url, Rdf.Carml.FileSource, Rdf.D2rq.jdbcDriver, Rdf.D2rq.Database);
 
   @Override
   public Set<Type> decide(Model model, Resource resource) {

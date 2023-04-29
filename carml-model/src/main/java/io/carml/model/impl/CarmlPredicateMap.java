@@ -6,20 +6,15 @@ import io.carml.model.Resource;
 import io.carml.vocab.Rdf;
 import java.util.Set;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import lombok.experimental.SuperBuilder;
-import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
-import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 
-@SuperBuilder
+@SuperBuilder(toBuilder = true)
 @NoArgsConstructor
+@ToString(callSuper = true)
 public class CarmlPredicateMap extends CarmlTermMap implements PredicateMap {
-
-  @Override
-  public String toString() {
-    return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
-  }
 
   @Override
   public Set<Resource> getReferencedResources() {

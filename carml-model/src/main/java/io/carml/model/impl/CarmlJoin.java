@@ -8,20 +8,19 @@ import io.carml.vocab.Rr;
 import java.util.Set;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 import lombok.experimental.SuperBuilder;
-import org.apache.commons.lang3.builder.MultilineRecursiveToStringStyle;
-import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 
-@SuperBuilder
+@SuperBuilder(toBuilder = true)
 @NoArgsConstructor
+@Setter
+@ToString(callSuper = true)
 public class CarmlJoin extends CarmlResource implements Join {
 
-  @Setter
   private String child;
 
-  @Setter
   private String parent;
 
   @RdfProperty(Rr.child)
@@ -34,11 +33,6 @@ public class CarmlJoin extends CarmlResource implements Join {
   @Override
   public String getParent() {
     return parent;
-  }
-
-  @Override
-  public String toString() {
-    return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
   }
 
   @Override

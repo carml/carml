@@ -31,7 +31,7 @@ class LogUtilTest {
   @BeforeEach
   void beforeEach() {
     logicalSource = CarmlLogicalSource.builder()
-        .id("_:ls")
+        .id("ls")
         .referenceFormulation(Rdf.Ql.Csv)
         .build();
 
@@ -69,7 +69,7 @@ class LogUtilTest {
     var logMsg = LogUtil.log(resource);
 
     // Then
-    assertThat(logMsg, equalToCompressingWhiteSpace("blank node resource _:_:ls in:" //
+    assertThat(logMsg, equalToCompressingWhiteSpace("blank node resource _:ls in:" //
         + " ```" //
         + "  [] a rml:LogicalSource;" //
         + "  rml:referenceFormulation ql:CSV ." //
@@ -110,7 +110,7 @@ class LogUtilTest {
     var exceptionMsg = LogUtil.exception(resource);
 
     // Then
-    assertThat(exceptionMsg, equalToCompressingWhiteSpace("blank node resource _:_:ls in:" //
+    assertThat(exceptionMsg, equalToCompressingWhiteSpace("blank node resource _:ls in:" //
         + " ```" //
         + "  [] a rml:LogicalSource;" //
         + "  :causedException \"<<<<<<<<<<<<<\";" + "  rml:referenceFormulation ql:CSV ." //

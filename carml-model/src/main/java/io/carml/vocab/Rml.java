@@ -30,4 +30,6 @@ public class Rml {
   public static final String DatatypeMap = NAMESPACE + "DatatypeMap";
 
   public static final String LanguageMap = NAMESPACE + "LanguageMap";
+
+  public static final String query = NAMESPACE + "query";
 }

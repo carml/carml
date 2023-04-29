@@ -553,13 +553,15 @@ public class CarmlMapper implements Mapper, MappingCache {
   }
 
   @Override
-  public void addDecidableType(IRI rdfType, Type type) {
+  public Mapper addDecidableType(IRI rdfType, Type type) {
     decidableTypes.put(rdfType, type);
+    return this;
   }
 
   @Override
-  public void bindInterfaceImplementation(Type interfaze, Type implementation) {
+  public Mapper bindInterfaceImplementation(Type interfaze, Type implementation) {
     boundInterfaceImpls.put(interfaze, implementation);
+    return this;
   }
 
   @Override

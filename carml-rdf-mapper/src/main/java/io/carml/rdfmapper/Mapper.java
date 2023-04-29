@@ -12,9 +12,9 @@ public interface Mapper {
 
   Type getDecidableType(IRI rdfType);
 
-  void addDecidableType(IRI rdfType, Type type);
+  Mapper addDecidableType(IRI rdfType, Type type);
 
-  void bindInterfaceImplementation(Type interfaze, Type implementation);
+  Mapper bindInterfaceImplementation(Type interfaze, Type implementation);
 
   Type getInterfaceImplementation(Type interfaze);
 }
