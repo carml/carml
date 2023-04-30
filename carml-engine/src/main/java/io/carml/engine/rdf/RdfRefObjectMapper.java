@@ -6,7 +6,6 @@ import io.carml.engine.TriplesMapper;
 import io.carml.engine.join.ChildSideJoin;
 import io.carml.engine.join.ChildSideJoinCondition;
 import io.carml.engine.join.ChildSideJoinStore;
-import io.carml.engine.join.ChildSideJoinStoreProvider;
 import io.carml.engine.join.ParentSideJoinConditionStore;
 import io.carml.engine.join.ParentSideJoinKey;
 import io.carml.model.RefObjectMap;
@@ -41,14 +40,13 @@ public class RdfRefObjectMapper implements RefObjectMapper<Statement> {
   private final ValueFactory valueFactory;
 
   public static RdfRefObjectMapper of(@NonNull RefObjectMap refObjectMap, @NonNull TriplesMap triplesMap,
-      @NonNull RdfMapperConfig rdfMapperConfig,
-      @NonNull ChildSideJoinStoreProvider<Resource, IRI> childSideJoinStoreProvider) {
+      @NonNull RdfMapperConfig rdfMapperConfig) {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Creating mapper for RefObjectMap {}", refObjectMap.getResourceName());
     }
 
-    return new RdfRefObjectMapper(refObjectMap, triplesMap,
-        childSideJoinStoreProvider.createChildSideJoinStore(refObjectMap.getId()),
+    return new RdfRefObjectMapper(refObjectMap, triplesMap, rdfMapperConfig.getChildSideJoinStoreProvider()
+        .createChildSideJoinStore(refObjectMap.getId()),
         rdfMapperConfig.getValueFactorySupplier()
             .get());
   }

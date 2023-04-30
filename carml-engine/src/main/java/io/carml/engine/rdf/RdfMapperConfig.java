@@ -2,6 +2,7 @@ package io.carml.engine.rdf;
 
 import io.carml.engine.TermGeneratorFactory;
 import io.carml.engine.join.ChildSideJoinStoreProvider;
+import io.carml.engine.join.ParentSideJoinConditionStoreProvider;
 import java.util.function.Supplier;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -25,5 +26,7 @@ public class RdfMapperConfig {
   private final TermGeneratorFactory<Value> termGeneratorFactory;
 
   private final ChildSideJoinStoreProvider<Resource, IRI> childSideJoinStoreProvider;
+
+  private final ParentSideJoinConditionStoreProvider<Resource> parentSideJoinConditionStoreProvider;
 
 }

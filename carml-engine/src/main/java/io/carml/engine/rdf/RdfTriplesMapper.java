@@ -8,7 +8,6 @@ import io.carml.engine.TermGenerator;
 import io.carml.engine.TriplesMapper;
 import io.carml.engine.TriplesMapperException;
 import io.carml.engine.join.ParentSideJoinConditionStore;
-import io.carml.engine.join.ParentSideJoinConditionStoreProvider;
 import io.carml.engine.join.ParentSideJoinKey;
 import io.carml.logicalsourceresolver.LogicalSourceRecord;
 import io.carml.logicalsourceresolver.LogicalSourceResolver;
@@ -69,8 +68,7 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
   public static <I> RdfTriplesMapper<I> of(@NonNull TriplesMap triplesMap, Set<RdfRefObjectMapper> refObjectMappers,
       Set<RdfRefObjectMapper> incomingRefObjectMappers,
       @NonNull LogicalSourceResolver.ExpressionEvaluationFactory<I> expressionEvaluatorFactory,
-      @NonNull RdfMapperConfig rdfMapperConfig,
-      @NonNull ParentSideJoinConditionStoreProvider<Resource> parentSideJoinConditionStoreProvider) {
+      @NonNull RdfMapperConfig rdfMapperConfig) {
 
     if (LOG.isDebugEnabled()) {
       LOG.debug("Creating mapper for TriplesMap {}", triplesMap.getResourceName());
@@ -82,8 +80,8 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
         createPredicateObjectMappers(triplesMap, rdfMapperConfig, refObjectMappers);
 
     return new RdfTriplesMapper<>(triplesMap, subjectMappers, predicateObjectMappers, incomingRefObjectMappers,
-        expressionEvaluatorFactory, rdfMapperConfig,
-        parentSideJoinConditionStoreProvider.createParentSideJoinConditionStore(triplesMap.getId()));
+        expressionEvaluatorFactory, rdfMapperConfig, rdfMapperConfig.getParentSideJoinConditionStoreProvider()
+            .createParentSideJoinConditionStore(triplesMap.getId()));
   }
 
   static Set<TermGenerator<Resource>> createGraphGenerators(Set<GraphMap> graphMaps,

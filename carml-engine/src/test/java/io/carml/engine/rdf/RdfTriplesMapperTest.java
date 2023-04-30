@@ -171,11 +171,12 @@ class RdfTriplesMapperTest {
         .valueFactorySupplier(() -> VALUE_FACTORY)
         .termGeneratorFactory(rdfTermGeneratorFactory)
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
+        .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
         .build();
 
     // When
     RdfTriplesMapper<?> rdfTriplesMapper = RdfTriplesMapper.of(triplesMap, refObjectMappers, incomingRefObjectMappers,
-        expressionEvaluatorFactory, rdfMappingConfig, parentSideJoinConditionStoreProvider);
+        expressionEvaluatorFactory, rdfMappingConfig);
 
     // Then
     assertThat(rdfTriplesMapper, is(not(nullValue())));
@@ -194,7 +195,7 @@ class RdfTriplesMapperTest {
     // When
     Throwable exception = assertThrows(TriplesMapperException.class,
         () -> RdfTriplesMapper.of(triplesMap, refObjectMappers, incomingRefObjectMappers, expressionEvaluatorFactory,
-            rdfMappingConfig, parentSideJoinConditionStoreProvider));
+            rdfMappingConfig));
 
     // Then
     assertThat(exception.getMessage(),
@@ -214,10 +215,11 @@ class RdfTriplesMapperTest {
         .valueFactorySupplier(() -> VALUE_FACTORY)
         .termGeneratorFactory(rdfTermGeneratorFactory)
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
+        .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
         .build();
 
     RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(triplesMap, refObjectMappers,
-        incomingRefObjectMappers, expressionEvaluatorFactory, rdfMappingConfig, parentSideJoinConditionStoreProvider);
+        incomingRefObjectMappers, expressionEvaluatorFactory, rdfMappingConfig);
 
     // When
     Flux<Statement> statements = rdfTriplesMapper.map(logicalSourceRecord);
@@ -237,10 +239,11 @@ class RdfTriplesMapperTest {
         .valueFactorySupplier(() -> VALUE_FACTORY)
         .termGeneratorFactory(rdfTermGeneratorFactory)
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
+            .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
         .build();
 
     RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(triplesMap, refObjectMappers,
-        incomingRefObjectMappers, expressionEvaluatorFactory, rdfMappingConfig, parentSideJoinConditionStoreProvider);
+        incomingRefObjectMappers, expressionEvaluatorFactory, rdfMappingConfig);
 
     // When
     Flux<Statement> statements = rdfTriplesMapper.map(logicalSourceRecord);
@@ -282,10 +285,11 @@ class RdfTriplesMapperTest {
         .valueFactorySupplier(() -> VALUE_FACTORY)
         .termGeneratorFactory(rdfTermGeneratorFactory)
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
+        .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
         .build();
 
     RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(triplesMap, refObjectMappers,
-        incomingRefObjectMappers, expressionEvaluatorFactory, rdfMappingConfig, parentSideJoinConditionStoreProvider);
+        incomingRefObjectMappers, expressionEvaluatorFactory, rdfMappingConfig);
 
     // When
     Flux<Statement> statements = rdfTriplesMapper.map(logicalSourceRecord);
@@ -347,10 +351,11 @@ class RdfTriplesMapperTest {
         .valueFactorySupplier(() -> VALUE_FACTORY)
         .termGeneratorFactory(rdfTermGeneratorFactory)
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
+            .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
         .build();
 
     RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(triplesMap, refObjectMappers,
-        incomingRefObjectMappers, expressionEvaluatorFactory, rdfMappingConfig, parentSideJoinConditionStoreProvider);
+        incomingRefObjectMappers, expressionEvaluatorFactory, rdfMappingConfig);
 
     // When
     Flux<Statement> statements = rdfTriplesMapper.map(logicalSourceRecord);
@@ -399,10 +404,11 @@ class RdfTriplesMapperTest {
         .valueFactorySupplier(() -> VALUE_FACTORY)
         .termGeneratorFactory(rdfTermGeneratorFactory)
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
+        .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
         .build();
 
     RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(triplesMap, refObjectMappers,
-        incomingRefObjectMappers, expressionEvaluatorFactory, rdfMappingConfig, parentSideJoinConditionStoreProvider);
+        incomingRefObjectMappers, expressionEvaluatorFactory, rdfMappingConfig);
 
     // When
     Flux<Statement> statements = rdfTriplesMapper.map(logicalSourceRecord);
@@ -443,10 +449,11 @@ class RdfTriplesMapperTest {
         .valueFactorySupplier(() -> VALUE_FACTORY)
         .termGeneratorFactory(rdfTermGeneratorFactory)
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
+        .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
         .build();
 
     RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(triplesMap, refObjectMappers,
-        incomingRefObjectMappers, expressionEvaluatorFactory, rdfMappingConfig, parentSideJoinConditionStoreProvider);
+        incomingRefObjectMappers, expressionEvaluatorFactory, rdfMappingConfig);
 
     // When
     rdfTriplesMapper.map(logicalSourceRecord);

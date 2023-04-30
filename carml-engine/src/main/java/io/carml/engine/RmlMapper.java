@@ -6,7 +6,6 @@ import static java.util.stream.Collectors.toSet;
 
 import com.google.common.collect.Iterables;
 import io.carml.logicalsourceresolver.LogicalSourceRecord;
-import io.carml.logicalsourceresolver.LogicalSourceResolver;
 import io.carml.logicalsourceresolver.ResolvedSource;
 import io.carml.model.LogicalSource;
 import io.carml.model.NameableStream;
@@ -37,11 +36,7 @@ public abstract class RmlMapper<T> {
 
   private Function<Object, Optional<Object>> sourceResolver;
 
-  private Set<TriplesMapper<T>> triplesMappers;
-
-  private Map<RefObjectMapper<T>, TriplesMapper<T>> refObjectMapperToParentTriplesMapper;
-
-  private Map<Object, LogicalSourceResolver<?>> sourceToLogicalSourceResolver;
+  private MappingPipeline<T> mappingPipeline;
 
   public <R> Flux<T> mapRecord(R providedRecord, Class<R> providedRecordClass) {
     return mapRecord(providedRecord, providedRecordClass, Set.of());
@@ -79,14 +74,14 @@ public abstract class RmlMapper<T> {
       Set<TriplesMap> triplesMapFilter) {
     var mappingContext = MappingContext.<T>builder()
         .triplesMapFilter(triplesMapFilter)
-        .triplesMappers(triplesMappers)
-        .refObjectMapperToParentTriplesMapper(refObjectMapperToParentTriplesMapper)
+        .mappingPipeline(mappingPipeline)
         .build();
 
     return Flux.fromIterable(getSources(mappingContext, namedInputStreams, providedRecord, providedRecordClass))
         .flatMap(resolvedSourceEntry -> mapSource(mappingContext, resolvedSourceEntry))
         .concatWith(resolveJoins(mappingContext))
-        .doOnTerminate(() -> triplesMappers.forEach(TriplesMapper::cleanup));
+        .doOnTerminate(() -> mappingPipeline.getTriplesMappers()
+            .forEach(TriplesMapper::cleanup));
   }
 
   private <V> Set<ResolvedSource<?>> getSources(MappingContext<T> mappingContext,
@@ -137,7 +132,8 @@ public abstract class RmlMapper<T> {
   }
 
   private Flux<T> mapSource(MappingContext<T> mappingContext, ResolvedSource<?> resolvedSource) {
-    return Flux.just(sourceToLogicalSourceResolver.get(resolvedSource.getRmlSource()))
+    return Flux.just(mappingPipeline.getSourceToLogicalSourceResolver()
+        .get(resolvedSource.getRmlSource()))
         .flatMap(resolver -> resolver
             .getLogicalSourceRecords(mappingContext.logicalSourcesPerSource.get(resolvedSource.getRmlSource()))
             .apply(resolvedSource))
@@ -179,27 +175,25 @@ public abstract class RmlMapper<T> {
     static class Builder<U> {
       private Set<TriplesMap> triplesMapFilter;
 
-      private Set<TriplesMapper<U>> triplesMappers;
-
-      private Map<RefObjectMapper<U>, TriplesMapper<U>> refObjectMapperToParentTriplesMapper;
+      private MappingPipeline<U> mappingPipeline;
 
       public MappingContext.Builder<U> triplesMapFilter(Set<TriplesMap> triplesMapFilter) {
         this.triplesMapFilter = triplesMapFilter;
         return this;
       }
 
-      public MappingContext.Builder<U> triplesMappers(Set<TriplesMapper<U>> triplesMappers) {
-        this.triplesMappers = triplesMappers;
-        return this;
-      }
-
-      public MappingContext.Builder<U> refObjectMapperToParentTriplesMapper(
-          Map<RefObjectMapper<U>, TriplesMapper<U>> refObjectMapperToParentTriplesMapper) {
-        this.refObjectMapperToParentTriplesMapper = refObjectMapperToParentTriplesMapper;
+      public MappingContext.Builder<U> mappingPipeline(MappingPipeline<U> mappingPipeline) {
+        this.mappingPipeline = mappingPipeline;
         return this;
       }
 
       public MappingContext<U> build() {
+        if (mappingPipeline == null) {
+          throw new RmlMapperException("Required mapping pipeline not provided.");
+        }
+
+        var triplesMappers = mappingPipeline.getTriplesMappers();
+
         var actionableTriplesMaps = Mappings.filterMappable(triplesMappers.stream()
             .map(TriplesMapper::getTriplesMap)
             .filter(triplesMap -> triplesMapFilter.isEmpty() || triplesMapFilter.contains(triplesMap))
@@ -213,6 +207,8 @@ public abstract class RmlMapper<T> {
         var filteredLogicalSourcesPerSource = filteredTriplesMappersPerLogicalSource.keySet()
             .stream()
             .collect(groupingBy(LogicalSource::getSource, toSet()));
+
+        var refObjectMapperToParentTriplesMapper = mappingPipeline.getRefObjectMapperToTriplesMapper();
 
         Map<RefObjectMapper<U>, TriplesMapper<U>> filteredRefObjectMapperToParentTriplesMapper =
             refObjectMapperToParentTriplesMapper.entrySet()

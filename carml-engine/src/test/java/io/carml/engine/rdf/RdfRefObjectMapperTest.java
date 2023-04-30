@@ -103,8 +103,7 @@ class RdfRefObjectMapperTest {
         .build();
 
     // When
-    RdfRefObjectMapper rdfRefObjectMapper =
-        RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingConfig, childSideJoinStoreProvider);
+    RdfRefObjectMapper rdfRefObjectMapper = RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingConfig);
 
     // Then
     assertThat(rdfRefObjectMapper, is(not(nullValue())));
@@ -131,8 +130,7 @@ class RdfRefObjectMapperTest {
 
     Map<Set<Resource>, Set<Resource>> subjectsAndAllGraphs = Map.of(subjects, graphs);
 
-    RdfRefObjectMapper rdfRefObjectMapper =
-        RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingConfig, childSideJoinStoreProvider);
+    RdfRefObjectMapper rdfRefObjectMapper = RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingConfig);
 
     Set<IRI> predicates = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/predicate1"));
 
@@ -193,8 +191,7 @@ class RdfRefObjectMapperTest {
 
     Map<Set<Resource>, Set<Resource>> subjectsAndAllGraphs = Map.of(subjects, graphs, subjects2, graphs2);
 
-    RdfRefObjectMapper rdfRefObjectMapper =
-        RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingConfig, childSideJoinStoreProvider);
+    RdfRefObjectMapper rdfRefObjectMapper = RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingConfig);
 
     Set<IRI> predicates = Set.of(predicate1);
 
@@ -251,8 +248,7 @@ class RdfRefObjectMapperTest {
 
     Set<IRI> predicates = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/predicate1"));
 
-    RdfRefObjectMapper rdfRefObjectMapper =
-        RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingConfig, childSideJoinStoreProvider);
+    RdfRefObjectMapper rdfRefObjectMapper = RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingConfig);
 
     // When
     Mono<Statement> refObjectMapperPromise = Mono.empty();
@@ -303,8 +299,7 @@ class RdfRefObjectMapperTest {
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
         .build();
 
-    RdfRefObjectMapper rdfRefObjectMapper =
-        RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingConfig, childSideJoinStoreProvider);
+    RdfRefObjectMapper rdfRefObjectMapper = RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingConfig);
 
     IRI parentSubject1 = VALUE_FACTORY.createIRI("http://foo.bar/parentSubject1");
     IRI parentSubject2 = VALUE_FACTORY.createIRI("http://foo.bar/parentSubject2");
@@ -372,8 +367,7 @@ class RdfRefObjectMapperTest {
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
         .build();
 
-    RdfRefObjectMapper rdfRefObjectMapper =
-        RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingConfig, childSideJoinStoreProvider);
+    RdfRefObjectMapper rdfRefObjectMapper = RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingConfig);
 
     IRI parentSubject1 = VALUE_FACTORY.createIRI("http://foo.bar/parentSubject1");
     IRI parentSubject2 = VALUE_FACTORY.createIRI("http://foo.bar/parentSubject2");
