@@ -168,15 +168,16 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
 
       case LITERAL:
 
-        // term map is assumed to be an object map if it has term type literal
-        ObjectMap objectMap = (ObjectMap) termMap;
+        if (termMap instanceof ObjectMap) {
+          var objectMap = (ObjectMap) termMap;
 
-        if (objectMap.getLanguageMap() != null) {
-          return getLanguageTaggedLiteralGenerator(objectMap, getValue);
-        }
+          if (objectMap.getLanguageMap() != null) {
+            return getLanguageTaggedLiteralGenerator(objectMap, getValue);
+          }
 
-        if (objectMap.getDatatypeMap() != null) {
-          return getDatatypedLiteralGenerator(objectMap, getValue);
+          if (objectMap.getDatatypeMap() != null) {
+            return getDatatypedLiteralGenerator(objectMap, getValue);
+          }
         }
 
         // f.createLiteral(label, datatype) // TODO infer datatype, see

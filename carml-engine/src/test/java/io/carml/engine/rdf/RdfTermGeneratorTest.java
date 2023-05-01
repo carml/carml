@@ -11,9 +11,12 @@ import static org.mockito.Mockito.when;
 
 import io.carml.engine.ExpressionEvaluation;
 import io.carml.engine.template.TemplateParser;
+import io.carml.model.impl.CarmlDatatypeMap;
+import io.carml.model.impl.CarmlLanguageMap;
 import io.carml.model.impl.CarmlObjectMap;
 import java.text.Normalizer;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.junit.jupiter.api.BeforeEach;
@@ -98,5 +101,51 @@ class RdfTermGeneratorTest {
     // Then
     assertThat(objects, hasItems(SimpleValueFactory.getInstance()
         .createLiteral("bar")));
+  }
+
+  @Test
+  void givenObjectMapWithLanguageMap_whenObjectGeneratorApplied_thenReturnLiteralWithLang() {
+    // Given
+    var objectMap = CarmlObjectMap.builder()
+        .id("obj-map-1")
+        .reference("foo")
+        .languageMap(CarmlLanguageMap.builder()
+            .reference("foo")
+            .build())
+        .build();
+
+    when(expressionEvaluation.apply(any())).thenReturn(Optional.of(List.of("bar")));
+
+    var objectGenerator = rdfTermGeneratorFactory.getObjectGenerator(objectMap);
+
+    // When
+    var objects = objectGenerator.apply(expressionEvaluation);
+
+    // Then
+    assertThat(objects, hasItems(SimpleValueFactory.getInstance()
+        .createLiteral("bar", "bar")));
+  }
+
+  @Test
+  void givenObjectMapWithDatatypeMap_whenObjectGeneratorApplied_thenReturnLiteralWithDatatype() {
+    // Given
+    var objectMap = CarmlObjectMap.builder()
+        .id("obj-map-1")
+        .reference("foo")
+        .datatypeMap(CarmlDatatypeMap.builder()
+            .template("https://{foo}.com")
+            .build())
+        .build();
+
+    when(expressionEvaluation.apply(any())).thenReturn(Optional.of(List.of("bar")));
+
+    var objectGenerator = rdfTermGeneratorFactory.getObjectGenerator(objectMap);
+
+    // When
+    var objects = objectGenerator.apply(expressionEvaluation);
+
+    // Then
+    assertThat(objects, hasItems(SimpleValueFactory.getInstance()
+        .createLiteral("bar", iri("https://bar.com"))));
   }
 }

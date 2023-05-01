@@ -211,4 +211,16 @@ class RmlMapperTest extends MappingTester {
     testMapping("RmlMapper", "/RmlMapper/nullValues/nullValueMultiValuedTemplate.rml.ttl",
         "/RmlMapper/nullValues/nullValueMultiValuedTemplate.output.ttl");
   }
+
+  @Test
+  void testMappingWithLanguageMap() {
+    testMapping("RmlMapper", "/RmlMapper/languageMap/languageMap.rml.ttl",
+        "/RmlMapper/languageMap/languageMap.output.ttl");
+  }
+
+  @Test
+  void testMappingWithDatatypeMap() {
+    testMapping("RmlMapper", "/RmlMapper/datatypeMap/datatypeMap.rml.ttl",
+        "/RmlMapper/datatypeMap/datatypeMap.output.ttl");
+  }
 }
