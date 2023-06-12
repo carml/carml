@@ -80,7 +80,7 @@
 		<junit.version>5.9.3</junit.version>
 		<hamcrest.version>2.2</hamcrest.version>
 		<blockhound.version>1.0.8.RELEASE</blockhound.version>
-		<auto-service.version>1.1.0</auto-service.version>
+		<auto-service.version>1.1.1</auto-service.version>
 		<commons-csv.version>1.10.0</commons-csv.version>
 		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
 		<sonar.organization>carml</sonar.organization>
