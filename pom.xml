@@ -67,7 +67,7 @@
 		<commons-lang3.version>3.12.0</commons-lang3.version>
 		<commons-io.version>2.13.0</commons-io.version>
 		<slf4j.version>2.0.7</slf4j.version>
-		<guava.version>32.0.1-jre</guava.version>
+		<guava.version>32.1.0-jre</guava.version>
 		<reactor.version>2022.0.8</reactor.version>
 		<lombok.version>1.18.28</lombok.version>
 		<univocity.version>2.9.0</univocity.version>
