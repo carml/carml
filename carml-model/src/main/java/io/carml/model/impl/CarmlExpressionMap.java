@@ -11,6 +11,7 @@ import io.carml.vocab.Rml;
 import io.carml.vocab.Rr;
 import java.util.Set;
 import lombok.AccessLevel;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
@@ -20,6 +21,7 @@ import org.eclipse.rdf4j.model.util.ModelBuilder;
 @SuppressWarnings("java:S1135")
 @SuperBuilder
 @NoArgsConstructor(access = AccessLevel.PACKAGE)
+@EqualsAndHashCode(callSuper = true)
 abstract class CarmlExpressionMap extends CarmlResource implements ExpressionMap {
 
   CarmlExpressionMap(String id, String label, String reference, String template, Value constant,

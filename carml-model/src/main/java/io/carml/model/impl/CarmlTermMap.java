@@ -6,6 +6,7 @@ import io.carml.rdfmapper.annotations.RdfProperty;
 import io.carml.vocab.Rdf;
 import io.carml.vocab.Rr;
 import lombok.AccessLevel;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
@@ -13,6 +14,7 @@ import org.eclipse.rdf4j.model.util.ModelBuilder;
 
 @SuperBuilder
 @NoArgsConstructor(access = AccessLevel.PACKAGE)
+@EqualsAndHashCode(callSuper = true)
 abstract class CarmlTermMap extends CarmlExpressionMap implements TermMap {
 
   @Setter
