@@ -4,7 +4,7 @@
 	<parent>
 		<groupId>io.carml</groupId>
 		<artifactId>carml</artifactId>
-		<version>0.4.9</version>
+		<version>0.4.10-SNAPSHOT</version>
 	</parent>
 
 	<artifactId>carml-logical-source-resolver-jsonpath</artifactId>
