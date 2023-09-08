@@ -6,6 +6,7 @@ import io.carml.rdfmapper.annotations.RdfProperty;
 import io.carml.vocab.Rdf;
 import io.carml.vocab.Rr;
 import java.util.Set;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
@@ -16,6 +17,7 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 
 @SuperBuilder
 @NoArgsConstructor
+@EqualsAndHashCode(callSuper = false)
 public class CarmlJoin extends CarmlResource implements Join {
 
   @Setter

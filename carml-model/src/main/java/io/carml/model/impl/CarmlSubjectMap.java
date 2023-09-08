@@ -9,6 +9,7 @@ import io.carml.rdfmapper.annotations.RdfType;
 import io.carml.vocab.Rdf;
 import io.carml.vocab.Rr;
 import java.util.Set;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.Singular;
 import lombok.experimental.SuperBuilder;
@@ -20,6 +21,7 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 
 @SuperBuilder
 @NoArgsConstructor
+@EqualsAndHashCode(callSuper = true)
 public class CarmlSubjectMap extends CarmlTermMap implements SubjectMap {
 
   @Singular("clazz")

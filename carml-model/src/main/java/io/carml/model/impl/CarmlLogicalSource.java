@@ -5,8 +5,8 @@ import io.carml.model.Resource;
 import io.carml.rdfmapper.annotations.RdfProperty;
 import io.carml.vocab.Rdf;
 import io.carml.vocab.Rml;
-import java.util.Objects;
 import java.util.Set;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
@@ -18,6 +18,7 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 
 @SuperBuilder
 @NoArgsConstructor
+@EqualsAndHashCode(callSuper = false)
 public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
 
   @Setter
@@ -50,27 +51,6 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
   @Override
   public String toString() {
     return new ReflectionToStringBuilder(this, new MultilineRecursiveToStringStyle()).toString();
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(source, iterator, referenceFormulation);
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
-      return false;
-    }
-    CarmlLogicalSource other = (CarmlLogicalSource) obj;
-    return Objects.equals(source, other.source) && Objects.equals(iterator, other.iterator)
-        && Objects.equals(referenceFormulation, other.referenceFormulation);
   }
 
   @Override

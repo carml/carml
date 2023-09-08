@@ -163,6 +163,7 @@ public class CarmlMapper implements Mapper, MappingCache {
             throw new IllegalStateException(
                 String.format("No combiner specified for non-void multi delegate method %S", method));
           }
+          delegates.forEach(delegate -> singleDelegateMethodInvocation(delegate, method, args));
           return null;
         });
   }
@@ -191,8 +192,6 @@ public class CarmlMapper implements Mapper, MappingCache {
           String.format("error trying to invoke method [%s] on delegate [%s]", method, delegate), e);
     }
   }
-
-
 
   private Stream<Method> gatherMethods(Class<?> clazz) {
     return concat(stream(clazz.getDeclaredMethods()),
