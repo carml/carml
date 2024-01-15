@@ -76,7 +76,7 @@
 		<saxon.version>12.4</saxon.version>
 		<xmldog.version>3.0.1</xmldog.version>
 		<jena.version>4.10.0</jena.version>
-		<mockito.version>5.8.0</mockito.version>
+		<mockito.version>5.9.0</mockito.version>
 		<junit.version>5.10.1</junit.version>
 		<hamcrest.version>2.2</hamcrest.version>
 		<blockhound.version>1.0.8.RELEASE</blockhound.version>
