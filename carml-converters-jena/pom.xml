@@ -4,7 +4,7 @@
     <parent>
         <groupId>io.carml</groupId>
         <artifactId>carml</artifactId>
-        <version>0.4.10</version>
+        <version>0.4.11-SNAPSHOT</version>
     </parent>
 
     <artifactId>carml-converters-jena</artifactId>
