@@ -101,7 +101,7 @@ class CsvResolverTest {
 
     // Then
     StepVerifier.create(recordFlux)
-        .expectNextMatches(logicalSourceRecord -> logicalSourceRecord.getRecord()
+        .expectNextMatches(logicalSourceRecord -> logicalSourceRecord.getSourceRecord()
             .getValues().length == 5)
         .expectNextCount(1)
         .verifyComplete();
@@ -120,7 +120,7 @@ class CsvResolverTest {
 
     // Then
     StepVerifier.create(records)
-        .expectNextMatches(logicalSourceRecord -> logicalSourceRecord.getRecord()
+        .expectNextMatches(logicalSourceRecord -> logicalSourceRecord.getSourceRecord()
             .equals(record))
         .verifyComplete();
   }
@@ -133,7 +133,7 @@ class CsvResolverTest {
     var resolvedSource = ResolvedSource.of(SOURCE, sourceResolver.apply(SOURCE), InputStream.class);
     var recordFlux = sourceFlux.apply(resolvedSource);
     var record = recordFlux.blockFirst()
-        .getRecord();
+        .getSourceRecord();
     var evaluationFactory = csvResolver.getExpressionEvaluationFactory();
     var evaluation = evaluationFactory.apply(record);
 

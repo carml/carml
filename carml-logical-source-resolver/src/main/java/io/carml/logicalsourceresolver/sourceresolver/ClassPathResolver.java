@@ -1,5 +1,6 @@
-package io.carml.engine.sourceresolver;
+package io.carml.logicalsourceresolver.sourceresolver;
 
+import io.carml.model.FileSource;
 import java.util.Optional;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -31,5 +32,10 @@ public class ClassPathResolver implements SourceResolver {
       return loadingClass == null ? ClassPathResolver.class.getClassLoader()
           .getResourceAsStream(sourceName) : loadingClass.getResourceAsStream(sourceName);
     });
+  }
+
+  @Override
+  public boolean supportsSource(Object sourceObject) {
+    return sourceObject instanceof String || sourceObject instanceof FileSource;
   }
 }

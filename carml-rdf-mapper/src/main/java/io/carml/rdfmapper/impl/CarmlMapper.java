@@ -219,8 +219,8 @@ public class CarmlMapper implements Mapper, MappingCache {
     List<PropertyHandler> propertyHandlers =
         concat(stream(c.getMethods()).flatMap(m -> getRdfPropertyHandlers(m, c, model, resource)),
             stream(c.getMethods()).map(m -> getRdfResourceNameHandler(m, c))).filter(Optional::isPresent)
-            .map(Optional::get)
-            .collect(toList());
+                .map(Optional::get)
+                .collect(toList());
 
     Object instance;
     try {

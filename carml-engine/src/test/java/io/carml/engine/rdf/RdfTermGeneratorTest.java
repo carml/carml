@@ -9,8 +9,9 @@ import static org.hamcrest.Matchers.hasItems;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import io.carml.engine.ExpressionEvaluation;
 import io.carml.engine.template.TemplateParser;
+import io.carml.logicalsourceresolver.DatatypeMapper;
+import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.model.impl.CarmlObjectMap;
 import java.text.Normalizer;
 import java.util.ArrayList;
@@ -27,6 +28,9 @@ class RdfTermGeneratorTest {
 
   @Mock
   ExpressionEvaluation expressionEvaluation;
+
+  @Mock
+  DatatypeMapper datatypeMapper;
 
   private RdfTermGeneratorFactory rdfTermGeneratorFactory;
 
@@ -50,9 +54,10 @@ class RdfTermGeneratorTest {
 
     var objectGenerator = rdfTermGeneratorFactory.getObjectGenerator(objectMap);
     when(expressionEvaluation.apply(any())).thenReturn(Optional.empty());
+    when(datatypeMapper.apply(any())).thenReturn(Optional.empty());
 
     // When
-    var objects = objectGenerator.apply(expressionEvaluation);
+    var objects = objectGenerator.apply(expressionEvaluation, datatypeMapper);
 
     // Then
     assertThat(objects, is(empty()));
@@ -66,13 +71,15 @@ class RdfTermGeneratorTest {
         .reference("foo")
         .build();
 
-    var objectGenerator = rdfTermGeneratorFactory.getObjectGenerator(objectMap);
     var nullList = new ArrayList<>();
     nullList.add(null);
+    var objectGenerator = rdfTermGeneratorFactory.getObjectGenerator(objectMap);
+
     when(expressionEvaluation.apply(any())).thenReturn(Optional.of(nullList));
+    when(datatypeMapper.apply(any())).thenReturn(Optional.empty());
 
     // When
-    var objects = objectGenerator.apply(expressionEvaluation);
+    var objects = objectGenerator.apply(expressionEvaluation, datatypeMapper);
 
     // Then
     assertThat(objects, is(empty()));
@@ -84,7 +91,6 @@ class RdfTermGeneratorTest {
     var nullList = new ArrayList<>();
     nullList.add(null);
     nullList.add("bar");
-    when(expressionEvaluation.apply(any())).thenReturn(Optional.of(nullList));
 
     var objectMap = CarmlObjectMap.builder()
         .id("obj-map-1")
@@ -92,8 +98,11 @@ class RdfTermGeneratorTest {
         .build();
     var objectGenerator = rdfTermGeneratorFactory.getObjectGenerator(objectMap);
 
+    when(expressionEvaluation.apply(any())).thenReturn(Optional.of(nullList));
+    when(datatypeMapper.apply(any())).thenReturn(Optional.empty());
+
     // When
-    var objects = objectGenerator.apply(expressionEvaluation);
+    var objects = objectGenerator.apply(expressionEvaluation, datatypeMapper);
 
     // Then
     assertThat(objects, hasItems(SimpleValueFactory.getInstance()

@@ -1,10 +1,10 @@
 package io.carml.rmltestcases;
 
 import io.carml.engine.rdf.RdfRmlMapper;
-import io.carml.engine.sourceresolver.ClassPathResolver;
 import io.carml.logicalsourceresolver.CsvResolver;
 import io.carml.logicalsourceresolver.JsonPathResolver;
 import io.carml.logicalsourceresolver.XPathResolver;
+import io.carml.logicalsourceresolver.sourceresolver.ClassPathResolver;
 import io.carml.model.TriplesMap;
 import io.carml.rdfmapper.util.RdfObjectLoader;
 import io.carml.rmltestcases.model.Output;

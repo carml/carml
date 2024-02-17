@@ -1,6 +1,5 @@
 package io.carml.engine.rdf;
 
-import io.carml.engine.ExpressionEvaluation;
 import io.carml.engine.RefObjectMapper;
 import io.carml.engine.TriplesMapper;
 import io.carml.engine.join.ChildSideJoin;
@@ -8,6 +7,7 @@ import io.carml.engine.join.ChildSideJoinCondition;
 import io.carml.engine.join.ChildSideJoinStore;
 import io.carml.engine.join.ParentSideJoinConditionStore;
 import io.carml.engine.join.ParentSideJoinKey;
+import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.model.RefObjectMap;
 import io.carml.model.TriplesMap;
 import io.carml.util.Models;

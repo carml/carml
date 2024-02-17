@@ -7,13 +7,18 @@ import com.univocity.parsers.common.record.Record;
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
 import io.carml.model.LogicalSource;
+import io.carml.vocab.Rdf;
 import java.io.InputStream;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.rdf4j.model.IRI;
 import reactor.core.publisher.Flux;
 
 @Slf4j
@@ -82,4 +87,52 @@ public class CsvResolver implements LogicalSourceResolver<Record> {
     };
   }
 
+  @Override
+  public Optional<DatatypeMapperFactory<Record>> getDatatypeMapperFactory() {
+    return Optional.empty();
+  }
+
+  @AllArgsConstructor(access = AccessLevel.PRIVATE)
+  public static class Matcher implements MatchingLogicalSourceResolverSupplier {
+    private static final Set<IRI> MATCHING_REF_FORMULATIONS = java.util.Set.of(Rdf.Ql.Csv);
+
+    private List<IRI> matchingReferenceFormulations;
+
+    public static Matcher getInstance() {
+      return getInstance(Set.of());
+    }
+
+    public static Matcher getInstance(Set<IRI> customMatchingReferenceFormulations) {
+      return new Matcher(Stream.concat(customMatchingReferenceFormulations.stream(), MATCHING_REF_FORMULATIONS.stream())
+          .distinct()
+          .collect(Collectors.toUnmodifiableList()));
+    }
+
+    @Override
+    public Optional<MatchedLogicalSourceResolverSupplier> apply(LogicalSource logicalSource) {
+      var scoreBuilder = MatchedLogicalSourceResolverSupplier.MatchScore.builder();
+
+      if (matchesReferenceFormulation(logicalSource)) {
+        scoreBuilder.strongMatch();
+      }
+
+      var matchScore = scoreBuilder.build();
+
+      if (matchScore.getScore() == 0) {
+        return Optional.empty();
+      }
+
+      return Optional.of(MatchedLogicalSourceResolverSupplier.of(matchScore, CsvResolver::getInstance));
+    }
+
+    private boolean matchesReferenceFormulation(LogicalSource logicalSource) {
+      return logicalSource.getReferenceFormulation() != null
+          && matchingReferenceFormulations.contains(logicalSource.getReferenceFormulation());
+    }
+
+    @Override
+    public String getResolverName() {
+      return "CsvResolver";
+    }
+  }
 }

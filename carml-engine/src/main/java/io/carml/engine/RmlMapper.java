@@ -201,8 +201,7 @@ public abstract class RmlMapper<T> {
 
         var filteredTriplesMappersPerLogicalSource = triplesMappers.stream()
             .filter(triplesMapper -> actionableTriplesMaps.contains(triplesMapper.getTriplesMap()))
-            .collect(groupingBy(triplesMapper -> triplesMapper.getTriplesMap()
-                .getLogicalSource(), toSet()));
+            .collect(groupingBy(TriplesMapper::getLogicalSource, toSet()));
 
         var filteredLogicalSourcesPerSource = filteredTriplesMappersPerLogicalSource.keySet()
             .stream()

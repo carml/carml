@@ -12,7 +12,6 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import io.carml.engine.ExpressionEvaluation;
 import io.carml.engine.TermGenerator;
 import io.carml.engine.TriplesMapperException;
 import io.carml.engine.join.ChildSideJoinStoreProvider;
@@ -20,10 +19,12 @@ import io.carml.engine.join.ParentSideJoinConditionStore;
 import io.carml.engine.join.ParentSideJoinConditionStoreProvider;
 import io.carml.engine.join.ParentSideJoinKey;
 import io.carml.engine.join.impl.CarmlParentSideJoinConditionStoreProvider;
+import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.logicalsourceresolver.LogicalSourceRecord;
 import io.carml.logicalsourceresolver.LogicalSourceResolver;
 import io.carml.model.GraphMap;
 import io.carml.model.Join;
+import io.carml.model.LogicalTable;
 import io.carml.model.ObjectMap;
 import io.carml.model.PredicateMap;
 import io.carml.model.PredicateObjectMap;
@@ -65,6 +66,12 @@ class RdfTriplesMapperTest {
 
   @Mock
   private SubjectMap subjectMap;
+
+  @Mock
+  private LogicalTable logicalTable;
+
+  @Mock
+  private TriplesMap triplesMap2;
 
   @Mock
   private TermGenerator<Resource> subjectGenerator2;
@@ -122,10 +129,10 @@ class RdfTriplesMapperTest {
   private Set<RdfRefObjectMapper> incomingRefObjectMappers;
 
   @Mock
-  private RdfRefObjectMapper incomingRdfRefObjectMapper1;
+  private LogicalSourceResolver<String> logicalSourceResolver;
 
   @Mock
-  private LogicalSourceResolver.ExpressionEvaluationFactory<String> expressionEvaluatorFactory;
+  private LogicalSourceResolver.ExpressionEvaluationFactory<String> expressionEvaluationFactory;
 
   @Mock
   private RdfTermGeneratorFactory rdfTermGeneratorFactory;
@@ -154,6 +161,8 @@ class RdfTriplesMapperTest {
   void setup() {
     refObjectMappers = new HashSet<>();
     incomingRefObjectMappers = new HashSet<>();
+    lenient().when(logicalSourceResolver.getExpressionEvaluationFactory())
+        .thenReturn(expressionEvaluationFactory);
     when(triplesMap.getSubjectMaps()).thenReturn(Set.of(subjectMap));
     lenient().when(triplesMap.getId())
         .thenReturn("triples-map-1");
@@ -165,7 +174,7 @@ class RdfTriplesMapperTest {
   }
 
   @Test
-  void givenAllParams_whenOfCalled_thenConstructRdfPredicateObjectMapper() {
+  void givenTriplesMapWithLogicalTable_whenOfCalled_thenConstructRdfTriplesMapper() {
     // Given
     RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
         .valueFactorySupplier(() -> VALUE_FACTORY)
@@ -176,12 +185,40 @@ class RdfTriplesMapperTest {
 
     // When
     RdfTriplesMapper<?> rdfTriplesMapper = RdfTriplesMapper.of(triplesMap, refObjectMappers, incomingRefObjectMappers,
-        expressionEvaluatorFactory, rdfMappingConfig);
+        logicalSourceResolver, rdfMappingConfig);
 
     // Then
     assertThat(rdfTriplesMapper, is(not(nullValue())));
     assertThat(rdfTriplesMapper.getRefObjectMappers(), is(empty()));
     assertThat(rdfTriplesMapper.getConnectedRefObjectMappers(), is(empty()));
+    assertThat(rdfTriplesMapper.getTriplesMap(), is(triplesMap));
+  }
+
+  @Test
+  void givenAllParams_whenOfCalled_thenConstructRdfTriplesMapper() {
+    // Given
+    var rdfMapperConfig = RdfMapperConfig.builder()
+        .valueFactorySupplier(() -> VALUE_FACTORY)
+        .termGeneratorFactory(rdfTermGeneratorFactory)
+        .childSideJoinStoreProvider(childSideJoinStoreProvider)
+        .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
+        .build();
+
+    when(triplesMap.getLogicalTable()).thenReturn(logicalTable);
+    when(rdfRefObjectMapper1.getTriplesMap()).thenReturn(triplesMap2);
+    when(triplesMap2.getLogicalTable()).thenReturn(logicalTable);
+
+    incomingRefObjectMappers.add(rdfRefObjectMapper1);
+
+    // When
+    RdfTriplesMapper<?> rdfTriplesMapper = RdfTriplesMapper.of(triplesMap, refObjectMappers, incomingRefObjectMappers,
+        logicalSourceResolver, rdfMapperConfig);
+
+    // Then
+    assertThat(rdfTriplesMapper, is(not(nullValue())));
+    assertThat(rdfTriplesMapper.getRefObjectMappers(), is(empty()));
+    assertThat(rdfTriplesMapper.getConnectedRefObjectMappers(), is(Set.of(rdfRefObjectMapper1)));
+    assertThat(rdfTriplesMapper.getTriplesMap(), is(triplesMap));
   }
 
   @Test
@@ -190,12 +227,11 @@ class RdfTriplesMapperTest {
     when(triplesMap.getSubjectMaps()).thenReturn(Set.of());
     when(triplesMap.asRdf()).thenReturn(new ModelBuilder().build());
     when(triplesMap.getAsResource()).thenReturn(VALUE_FACTORY.createBNode("triplesMap"));
-    RdfMapperConfig rdfMappingConfig = mock(RdfMapperConfig.class);
+    RdfMapperConfig rdfMapperConfig = mock(RdfMapperConfig.class);
 
     // When
-    Throwable exception = assertThrows(TriplesMapperException.class,
-        () -> RdfTriplesMapper.of(triplesMap, refObjectMappers, incomingRefObjectMappers, expressionEvaluatorFactory,
-            rdfMappingConfig));
+    Throwable exception = assertThrows(TriplesMapperException.class, () -> RdfTriplesMapper.of(triplesMap,
+        refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig));
 
     // Then
     assertThat(exception.getMessage(),
@@ -206,12 +242,12 @@ class RdfTriplesMapperTest {
   void givenOnlySubjectMapWithClass_whenMap_thenReturnTypeStatement() {
     // Given
     IRI subject = VALUE_FACTORY.createIRI("http://foo.bar/subject");
-    when(subjectGenerator.apply(any())).thenReturn(List.of(subject));
+    when(subjectGenerator.apply(any(), any())).thenReturn(List.of(subject));
     when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
     IRI class1 = VALUE_FACTORY.createIRI("http://foo.bar/class1");
     when(subjectMap.getClasses()).thenReturn(Set.of(class1));
 
-    RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
+    var rdfMapperConfig = RdfMapperConfig.builder()
         .valueFactorySupplier(() -> VALUE_FACTORY)
         .termGeneratorFactory(rdfTermGeneratorFactory)
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
@@ -219,7 +255,7 @@ class RdfTriplesMapperTest {
         .build();
 
     RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(triplesMap, refObjectMappers,
-        incomingRefObjectMappers, expressionEvaluatorFactory, rdfMappingConfig);
+        incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
 
     // When
     Flux<Statement> statements = rdfTriplesMapper.map(logicalSourceRecord);
@@ -233,17 +269,17 @@ class RdfTriplesMapperTest {
   @Test
   void givenSubjectMapThatReturnsNothing_whenMap_thenReturnEmptyFlux() {
     // Given
-    when(subjectGenerator.apply(any())).thenReturn(List.of());
+    when(subjectGenerator.apply(any(), any())).thenReturn(List.of());
 
-    RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
+    var rdfMapperConfig = RdfMapperConfig.builder()
         .valueFactorySupplier(() -> VALUE_FACTORY)
         .termGeneratorFactory(rdfTermGeneratorFactory)
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
-            .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
+        .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
         .build();
 
     RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(triplesMap, refObjectMappers,
-        incomingRefObjectMappers, expressionEvaluatorFactory, rdfMappingConfig);
+        incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
 
     // When
     Flux<Statement> statements = rdfTriplesMapper.map(logicalSourceRecord);
@@ -258,30 +294,30 @@ class RdfTriplesMapperTest {
   void givenSubjectMapAndPom_whenMap_thenReturnStatements() {
     // Given
     IRI subject1 = VALUE_FACTORY.createIRI("http://foo.bar/subject1");
-    when(subjectGenerator.apply(any())).thenReturn(List.of(subject1));
+    when(subjectGenerator.apply(any(), any())).thenReturn(List.of(subject1));
     when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
 
     when(subjectMap.getGraphMaps()).thenReturn(Set.of(graphMap1));
     when(rdfTermGeneratorFactory.getGraphGenerator(graphMap1)).thenReturn(graphGenerator1);
     IRI subjectGraph1 = VALUE_FACTORY.createIRI("http://foo.bar/subjectGraph1");
-    when(graphGenerator1.apply(any())).thenReturn(List.of(subjectGraph1, Rdf.Rr.defaultGraph));
+    when(graphGenerator1.apply(any(), any())).thenReturn(List.of(subjectGraph1, Rdf.Rr.defaultGraph));
 
     when(pom.getPredicateMaps()).thenReturn(Set.of(predicateMap1));
     when(rdfTermGeneratorFactory.getPredicateGenerator(predicateMap1)).thenReturn(predicateGenerator1);
     IRI predicate1 = VALUE_FACTORY.createIRI("http://foo.bar/predicate1");
-    when(predicateGenerator1.apply(any())).thenReturn(List.of(predicate1));
+    when(predicateGenerator1.apply(any(), any())).thenReturn(List.of(predicate1));
 
     when(pom.getObjectMaps()).thenReturn(Set.of(objectMap1));
     when(rdfTermGeneratorFactory.getObjectGenerator(objectMap1)).thenReturn(objectGenerator1);
     Value object1 = VALUE_FACTORY.createLiteral("object1");
-    when(objectGenerator1.apply(any())).thenReturn(List.of(object1));
+    when(objectGenerator1.apply(any(), any())).thenReturn(List.of(object1));
 
     when(pom.getGraphMaps()).thenReturn(Set.of(graphMap2));
     when(rdfTermGeneratorFactory.getGraphGenerator(graphMap2)).thenReturn(graphGenerator2);
     IRI graph1 = VALUE_FACTORY.createIRI("http://foo.bar/graph1");
-    when(graphGenerator2.apply(any())).thenReturn(List.of(graph1, Rdf.Rr.defaultGraph));
+    when(graphGenerator2.apply(any(), any())).thenReturn(List.of(graph1, Rdf.Rr.defaultGraph));
 
-    RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
+    var rdfMapperConfig = RdfMapperConfig.builder()
         .valueFactorySupplier(() -> VALUE_FACTORY)
         .termGeneratorFactory(rdfTermGeneratorFactory)
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
@@ -289,7 +325,7 @@ class RdfTriplesMapperTest {
         .build();
 
     RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(triplesMap, refObjectMappers,
-        incomingRefObjectMappers, expressionEvaluatorFactory, rdfMappingConfig);
+        incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
 
     // When
     Flux<Statement> statements = rdfTriplesMapper.map(logicalSourceRecord);
@@ -315,47 +351,47 @@ class RdfTriplesMapperTest {
     when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap2)).thenReturn(subjectGenerator2);
 
     IRI subject1 = VALUE_FACTORY.createIRI("http://foo.bar/subject1");
-    when(subjectGenerator.apply(any())).thenReturn(List.of(subject1));
+    when(subjectGenerator.apply(any(), any())).thenReturn(List.of(subject1));
     when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
 
     IRI subject2 = VALUE_FACTORY.createIRI("http://foo.bar/subject2");
-    when(subjectGenerator2.apply(any())).thenReturn(List.of(subject2));
+    when(subjectGenerator2.apply(any(), any())).thenReturn(List.of(subject2));
     when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap2)).thenReturn(subjectGenerator2);
 
     when(subjectMap.getGraphMaps()).thenReturn(Set.of(graphMap1));
     when(rdfTermGeneratorFactory.getGraphGenerator(graphMap1)).thenReturn(graphGenerator1);
     IRI subjectGraph1 = VALUE_FACTORY.createIRI("http://foo.bar/subjectGraph1");
-    when(graphGenerator1.apply(any())).thenReturn(List.of(subjectGraph1, Rdf.Rr.defaultGraph));
+    when(graphGenerator1.apply(any(), any())).thenReturn(List.of(subjectGraph1, Rdf.Rr.defaultGraph));
 
     when(subjectMap2.getGraphMaps()).thenReturn(Set.of(graphMap2));
     when(rdfTermGeneratorFactory.getGraphGenerator(graphMap2)).thenReturn(graphGenerator2);
     IRI subjectGraph2 = VALUE_FACTORY.createIRI("http://foo.bar/subjectGraph2");
-    when(graphGenerator2.apply(any())).thenReturn(List.of(subjectGraph2));
+    when(graphGenerator2.apply(any(), any())).thenReturn(List.of(subjectGraph2));
 
     when(pom.getPredicateMaps()).thenReturn(Set.of(predicateMap1));
     when(rdfTermGeneratorFactory.getPredicateGenerator(predicateMap1)).thenReturn(predicateGenerator1);
     IRI predicate1 = VALUE_FACTORY.createIRI("http://foo.bar/predicate1");
-    when(predicateGenerator1.apply(any())).thenReturn(List.of(predicate1));
+    when(predicateGenerator1.apply(any(), any())).thenReturn(List.of(predicate1));
 
     when(pom.getObjectMaps()).thenReturn(Set.of(objectMap1));
     when(rdfTermGeneratorFactory.getObjectGenerator(objectMap1)).thenReturn(objectGenerator1);
     Value object1 = VALUE_FACTORY.createLiteral("object1");
-    when(objectGenerator1.apply(any())).thenReturn(List.of(object1));
+    when(objectGenerator1.apply(any(), any())).thenReturn(List.of(object1));
 
     when(pom.getGraphMaps()).thenReturn(Set.of(graphMap3));
     when(rdfTermGeneratorFactory.getGraphGenerator(graphMap3)).thenReturn(graphGenerator3);
     IRI graph1 = VALUE_FACTORY.createIRI("http://foo.bar/graph1");
-    when(graphGenerator3.apply(any())).thenReturn(List.of(graph1));
+    when(graphGenerator3.apply(any(), any())).thenReturn(List.of(graph1));
 
-    RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
+    var rdfMapperConfig = RdfMapperConfig.builder()
         .valueFactorySupplier(() -> VALUE_FACTORY)
         .termGeneratorFactory(rdfTermGeneratorFactory)
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
-            .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
+        .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
         .build();
 
     RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(triplesMap, refObjectMappers,
-        incomingRefObjectMappers, expressionEvaluatorFactory, rdfMappingConfig);
+        incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
 
     // When
     Flux<Statement> statements = rdfTriplesMapper.map(logicalSourceRecord);
@@ -382,7 +418,7 @@ class RdfTriplesMapperTest {
   void givenSubjectMapAndIncomingRefObjectMappers_whenMap_thenCacheParentSideJoinConditions() {
     // Given
     IRI subject1 = VALUE_FACTORY.createIRI("http://foo.bar/subject1");
-    when(subjectGenerator.apply(any())).thenReturn(List.of(subject1));
+    when(subjectGenerator.apply(any(), any())).thenReturn(List.of(subject1));
     when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
 
     when(rdfRefObjectMapper1.getRefObjectMap()).thenReturn(refObjectMap1);
@@ -397,10 +433,11 @@ class RdfTriplesMapperTest {
 
     incomingRefObjectMappers = Set.of(rdfRefObjectMapper1, rdfRefObjectMapper2);
 
-    when(expressionEvaluatorFactory.apply(any())).thenReturn(expressionEvaluation);
+    when(logicalSourceResolver.getExpressionEvaluationFactory()).thenReturn(expressionEvaluationFactory);
+    when(expressionEvaluationFactory.apply(any())).thenReturn(expressionEvaluation);
     when(expressionEvaluation.apply(any())).thenReturn(Optional.of(List.of("baz")));
 
-    RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
+    var rdfMapperConfig = RdfMapperConfig.builder()
         .valueFactorySupplier(() -> VALUE_FACTORY)
         .termGeneratorFactory(rdfTermGeneratorFactory)
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
@@ -408,7 +445,7 @@ class RdfTriplesMapperTest {
         .build();
 
     RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(triplesMap, refObjectMappers,
-        incomingRefObjectMappers, expressionEvaluatorFactory, rdfMappingConfig);
+        incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
 
     // When
     Flux<Statement> statements = rdfTriplesMapper.map(logicalSourceRecord);
@@ -431,7 +468,7 @@ class RdfTriplesMapperTest {
     IRI subject2 = VALUE_FACTORY.createIRI("http://foo.bar/subject2");
     IRI subject3 = VALUE_FACTORY.createIRI("http://foo.bar/subject3");
 
-    when(subjectGenerator.apply(any())).thenReturn(List.of(subject1))
+    when(subjectGenerator.apply(any(), any())).thenReturn(List.of(subject1))
         .thenReturn(List.of(subject2))
         .thenReturn(List.of(subject3));
     when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
@@ -442,10 +479,10 @@ class RdfTriplesMapperTest {
 
     incomingRefObjectMappers = Set.of(rdfRefObjectMapper1);
 
-    when(expressionEvaluatorFactory.apply(any())).thenReturn(expressionEvaluation);
+    when(expressionEvaluationFactory.apply(any())).thenReturn(expressionEvaluation);
     when(expressionEvaluation.apply(any())).thenReturn(Optional.of(List.of("baz")));
 
-    RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
+    var rdfMapperConfig = RdfMapperConfig.builder()
         .valueFactorySupplier(() -> VALUE_FACTORY)
         .termGeneratorFactory(rdfTermGeneratorFactory)
         .childSideJoinStoreProvider(childSideJoinStoreProvider)
@@ -453,7 +490,7 @@ class RdfTriplesMapperTest {
         .build();
 
     RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(triplesMap, refObjectMappers,
-        incomingRefObjectMappers, expressionEvaluatorFactory, rdfMappingConfig);
+        incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
 
     // When
     rdfTriplesMapper.map(logicalSourceRecord);

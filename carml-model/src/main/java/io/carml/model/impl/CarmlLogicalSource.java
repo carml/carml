@@ -35,6 +35,8 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
 
   protected IRI sqlVersion;
 
+  private Set<String> expressions;
+
   @RdfProperty(value = Rml.source, handler = LogicalSourceSourcePropertyHandler.class)
   @Override
   public Object getSource() {
@@ -94,20 +96,32 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
       query = sqlQuery;
     }
 
-    if (query == null && tableName != null) {
-      query = String.format("SELECT * FROM %s", tableName);
-    }
-
     if (query == null && source instanceof DatabaseSource) {
       query = ((DatabaseSource) source).getQuery();
     }
 
-    return query;
+    if (query == null) {
+      return null;
+    }
+
+    return trimTrailingSemiColon(query);
+  }
+
+  private String trimTrailingSemiColon(String in) {
+    if (in.endsWith(";")) {
+      return in.substring(0, in.length() - 1);
+    }
+    return in;
+  }
+
+  @Override
+  public Set<String> getExpressions() {
+    return expressions;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(source, iterator, referenceFormulation, tableName, sqlQuery, sqlVersion);
+    return Objects.hash(source, iterator, referenceFormulation, tableName, sqlQuery, sqlVersion, expressions);
   }
 
   @Override
@@ -125,7 +139,7 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
     return Objects.equals(source, other.source) && Objects.equals(iterator, other.iterator)
         && Objects.equals(referenceFormulation, other.referenceFormulation)
         && Objects.equals(tableName, other.tableName) && Objects.equals(sqlQuery, other.sqlQuery)
-        && Objects.equals(sqlVersion, other.sqlVersion);
+        && Objects.equals(sqlVersion, other.sqlVersion) && Objects.equals(expressions, other.expressions);
   }
 
 

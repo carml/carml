@@ -2,6 +2,7 @@ package io.carml.engine.template;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.carml.engine.template.CarmlTemplate.ExpressionSegment;
 import io.carml.engine.template.CarmlTemplate.Text;
@@ -59,6 +60,43 @@ class TemplateParserTest {
   }
 
   @Test
+  void givenTemplateWithUnclosedExpression_whenParse_thenThrowsException() {
+    // Given
+    var templateString = "{abc}{xyz";
+
+    // When
+    var templateException = assertThrows(TemplateException.class, () -> parser.parse(templateString));
+
+    // Then
+    assertThat(templateException.getMessage(), is("unclosed expression in template [{abc}{xyz]"));
+  }
+
+  @Test
+  void givenTemplateNestedCurlyBracket_whenParse_thenThrowsException() {
+    // Given
+    var templateString = "{abc{xyz}}";
+
+    // When
+    var templateException = assertThrows(TemplateException.class, () -> parser.parse(templateString));
+
+    // Then
+    assertThat(templateException.getMessage(), is("encountered unescaped nested { character in template [{abc{xyz}}]"));
+  }
+
+  @Test
+  void givenTemplateWithInvalidEscapeCharacters_whenParse_thenThrowsException() {
+    // Given
+    var templateString = "{abc\\xyz}";
+
+    // When
+    var templateException = assertThrows(TemplateException.class, () -> parser.parse(templateString));
+
+    // Then
+    assertThat(templateException.getMessage(),
+        is("invalid escape sequence in template [{abc\\xyz}] - escaping char [x]"));
+  }
+
+  @Test
   void testEmpty() {
     testTemplate("");
   }
@@ -68,5 +106,4 @@ class TemplateParserTest {
     Template expected = CarmlTemplate.build(Arrays.asList(expectedSegments));
     assertThat(expected, is(template));
   }
-
 }

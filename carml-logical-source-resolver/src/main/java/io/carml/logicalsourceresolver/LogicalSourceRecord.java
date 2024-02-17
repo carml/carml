@@ -1,11 +1,11 @@
 package io.carml.logicalsourceresolver;
 
 import io.carml.model.LogicalSource;
-import lombok.Data;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NonNull;
 
-@Data(staticConstructor = "of")
+@AllArgsConstructor(staticName = "of")
 @Getter
 public class LogicalSourceRecord<R> {
 
@@ -13,5 +13,5 @@ public class LogicalSourceRecord<R> {
   private LogicalSource logicalSource;
 
   @NonNull
-  private R record;
+  private R sourceRecord;
 }

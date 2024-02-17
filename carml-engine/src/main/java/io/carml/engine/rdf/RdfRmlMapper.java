@@ -11,12 +11,15 @@ import io.carml.engine.join.ChildSideJoinStoreProvider;
 import io.carml.engine.join.ParentSideJoinConditionStoreProvider;
 import io.carml.engine.join.impl.CarmlChildSideJoinStoreProvider;
 import io.carml.engine.join.impl.CarmlParentSideJoinConditionStoreProvider;
-import io.carml.engine.sourceresolver.ClassPathResolver;
-import io.carml.engine.sourceresolver.CompositeSourceResolver;
-import io.carml.engine.sourceresolver.FileResolver;
-import io.carml.engine.sourceresolver.SourceResolver;
 import io.carml.engine.template.TemplateParser;
 import io.carml.logicalsourceresolver.LogicalSourceResolver;
+import io.carml.logicalsourceresolver.MatchingLogicalSourceResolverSupplier;
+import io.carml.logicalsourceresolver.sourceresolver.ClassPathResolver;
+import io.carml.logicalsourceresolver.sourceresolver.CompositeSourceResolver;
+import io.carml.logicalsourceresolver.sourceresolver.FileResolver;
+import io.carml.logicalsourceresolver.sourceresolver.SourceResolver;
+import io.carml.logicalsourceresolver.sql.sourceresolver.DatabaseConnectionOptions;
+import io.carml.logicalsourceresolver.sql.sourceresolver.DatabaseSourceResolver;
 import io.carml.model.TriplesMap;
 import io.carml.util.Mappings;
 import java.io.InputStream;
@@ -25,6 +28,7 @@ import java.text.Normalizer;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -67,13 +71,14 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
 
     private final Map<IRI, Supplier<LogicalSourceResolver<?>>> logicalSourceResolverSuppliers = new HashMap<>();
 
-    private Set<TriplesMap> triplesMaps = new HashSet<>();
+    private final Set<MatchingLogicalSourceResolverSupplier> matchingLogicalSourceResolverSuppliers =
+        new LinkedHashSet<>();
 
-    private Set<TriplesMap> mappableTriplesMaps = new HashSet<>();
+    private Set<TriplesMap> triplesMaps = new HashSet<>();
 
     private final Functions functions = new Functions();
 
-    private final Set<SourceResolver> sourceResolvers = new HashSet<>();
+    private final Set<SourceResolver> sourceResolvers = new LinkedHashSet<>();
 
     private Supplier<ValueFactory> valueFactorySupplier = SimpleValueFactory::getInstance;
 
@@ -87,6 +92,8 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
 
     private ParentSideJoinConditionStoreProvider<Resource> parentSideJoinConditionStoreProvider =
         CarmlParentSideJoinConditionStoreProvider.of();
+
+    private DatabaseConnectionOptions databaseConnectionOptions;
 
     /**
      * Sets the base IRI used in resolving relative IRIs produced by RML mappings.<br>
@@ -136,8 +143,14 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
       return this;
     }
 
+    // TODO: deprecate
     public Builder setLogicalSourceResolver(IRI iri, Supplier<LogicalSourceResolver<?>> resolverSupplier) {
       logicalSourceResolverSuppliers.put(iri, resolverSupplier);
+      return this;
+    }
+
+    public Builder logicalSourceResolverMatcher(MatchingLogicalSourceResolverSupplier matchingResolverSupplier) {
+      matchingLogicalSourceResolverSuppliers.add(matchingResolverSupplier);
       return this;
     }
 
@@ -165,7 +178,6 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
 
     public Builder triplesMaps(Set<TriplesMap> triplesMaps) {
       this.triplesMaps = triplesMaps;
-      this.mappableTriplesMaps = Mappings.filterMappable(triplesMaps);
       return this;
     }
 
@@ -180,8 +192,14 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
       return this;
     }
 
+    // Will override all connections
+    public Builder databaseConnectionOptions(DatabaseConnectionOptions databaseConnectionOptions) {
+      this.databaseConnectionOptions = databaseConnectionOptions;
+      return this;
+    }
+
     public RdfRmlMapper build() {
-      if (logicalSourceResolverSuppliers.isEmpty()) {
+      if (matchingLogicalSourceResolverSuppliers.isEmpty() && logicalSourceResolverSuppliers.isEmpty()) {
         throw new RmlMapperException("No logical source resolver suppliers specified.");
       }
 
@@ -197,6 +215,26 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
         termGeneratorFactory = RdfTermGeneratorFactory.of(rdfTermGeneratorConfig, TemplateParser.build());
       }
 
+      if (databaseConnectionOptions != null) {
+        sourceResolvers.add(DatabaseSourceResolver.of(databaseConnectionOptions));
+      } else {
+        sourceResolvers.add(DatabaseSourceResolver.of());
+      }
+
+      if (sourceResolvers.stream()
+          .noneMatch(FileResolver.class::isInstance)) {
+        // Add default file resolver
+        sourceResolvers.add(FileResolver.of());
+      }
+
+      var compositeResolver = CompositeSourceResolver.of(sourceResolvers);
+
+      System.getProperties()
+          .setProperty("org.jooq.no-logo", "true");
+
+      System.getProperties()
+          .setProperty("org.jooq.no-tips", "true");
+
       var rdfMapperConfig = RdfMapperConfig.builder()
           .valueFactorySupplier(valueFactorySupplier)
           .termGeneratorFactory(termGeneratorFactory)
@@ -206,10 +244,10 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
 
       var pipelineFactory = RdfMappingPipelineFactory.getInstance();
 
-      var mappingPipeline =
-          pipelineFactory.getMappingPipeline(mappableTriplesMaps, rdfMapperConfig, logicalSourceResolverSuppliers);
+      var mappableTriplesMaps = Mappings.filterMappable(triplesMaps);
 
-      var compositeResolver = CompositeSourceResolver.of(Set.copyOf(sourceResolvers));
+      var mappingPipeline = pipelineFactory.getMappingPipeline(mappableTriplesMaps, rdfMapperConfig,
+          logicalSourceResolverSuppliers, matchingLogicalSourceResolverSuppliers);
 
       return new RdfRmlMapper(triplesMaps, compositeResolver, mappingPipeline);
     }

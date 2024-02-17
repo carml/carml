@@ -44,6 +44,7 @@ abstract class CarmlExpressionMap extends CarmlResource implements ExpressionMap
   TriplesMap functionValue;
 
   @RdfProperty(Rml.reference)
+  @RdfProperty(Rr.column)
   @RdfProperty(value = Carml.multiReference, deprecated = true)
   @Override
   public String getReference() {

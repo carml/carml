@@ -2,15 +2,16 @@ package io.carml.engine.rdf;
 
 import static io.carml.util.LogUtil.exception;
 import static io.carml.util.LogUtil.log;
+import static java.util.stream.Collectors.toUnmodifiableSet;
 
-import io.carml.engine.ExpressionEvaluation;
 import io.carml.engine.TermGenerator;
 import io.carml.engine.TriplesMapperException;
+import io.carml.logicalsourceresolver.DatatypeMapper;
+import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.model.SubjectMap;
 import io.carml.model.TriplesMap;
 import io.carml.util.Models;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -61,11 +62,34 @@ public class RdfSubjectMapper {
             .get());
   }
 
-  public Result map(ExpressionEvaluation expressionEvaluation) {
+  public static RdfSubjectMapper ofJoining(@NonNull SubjectMap subjectMap, @NonNull TriplesMap triplesMap,
+      @NonNull RdfMapperConfig rdfMapperConfig) {
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Creating mapper for SubjectMap {}", log(triplesMap, subjectMap));
+    }
+
+    RdfTermGeneratorFactory rdfTermGeneratorFactory =
+        (RdfTermGeneratorFactory) rdfMapperConfig.getTermGeneratorFactory();
+
+    TermGenerator<Resource> subjectGenerator;
+    try {
+      subjectGenerator = rdfTermGeneratorFactory.getSubjectGenerator(subjectMap);
+    } catch (RuntimeException ex) {
+      throw new TriplesMapperException(String.format("Exception occurred while creating subject generator for %s",
+          exception(triplesMap, subjectMap)), ex);
+    }
+
+    return new RdfSubjectMapper(subjectGenerator,
+        RdfTriplesMapper.createGraphGenerators(subjectMap.getGraphMaps(), rdfTermGeneratorFactory), Set.of(),
+        rdfMapperConfig.getValueFactorySupplier()
+            .get());
+  }
+
+  public Result map(ExpressionEvaluation expressionEvaluation, DatatypeMapper datatypeMapper) {
     LOG.debug("Determining subjects ...");
-    Set<Resource> subjects = subjectGenerator.apply(expressionEvaluation)
+    Set<Resource> subjects = subjectGenerator.apply(expressionEvaluation, datatypeMapper)
         .stream()
-        .collect(Collectors.toUnmodifiableSet());
+        .collect(toUnmodifiableSet());
 
     LOG.debug("Determined subjects {}", subjects);
 
@@ -75,9 +99,9 @@ public class RdfSubjectMapper {
 
     // graphs to be used when generating statements in predicate object mapper
     Set<Resource> graphs = graphGenerators.stream()
-        .flatMap(graph -> graph.apply(expressionEvaluation)
+        .flatMap(graph -> graph.apply(expressionEvaluation, datatypeMapper)
             .stream())
-        .collect(Collectors.toUnmodifiableSet());
+        .collect(toUnmodifiableSet());
 
     Flux<Statement> typeStatements = classes.isEmpty() ? Flux.empty() : mapTypeStatements(subjects, graphs);
 
@@ -106,5 +130,4 @@ public class RdfSubjectMapper {
 
     Flux<Statement> typeStatements;
   }
-
 }

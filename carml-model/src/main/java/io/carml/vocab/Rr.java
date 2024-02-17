@@ -69,6 +69,8 @@ public class Rr {
 
   public static final String LITERAL = NAMESPACE + "Literal";
 
+  public static final String column = NAMESPACE + "column";
+
   public static final String logicalTable = NAMESPACE + "logicalTable";
 
   public static final String tableName = NAMESPACE + "tableName";

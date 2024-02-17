@@ -11,12 +11,19 @@ public class TemplateParser {
 
   private final String escapableChars;
 
-  private TemplateParser(String escapableChars) {
+  private final String expressionPrefix;
+
+  private TemplateParser(String escapableChars, String expressionPrefix) {
     this.escapableChars = escapableChars;
+    this.expressionPrefix = expressionPrefix;
   }
 
   public static TemplateParser build() {
-    return new TemplateParser("{}\\");
+    return buildWithExpressionPrefix(null);
+  }
+
+  public static TemplateParser buildWithExpressionPrefix(String expressionPrefix) {
+    return new TemplateParser("{}\\", expressionPrefix == null ? "" : expressionPrefix);
   }
 
   private abstract static class Segment {
@@ -39,7 +46,6 @@ public class TemplateParser {
   }
 
   public Template parse(String template) {
-
     MutableBoolean escaping = new MutableBoolean(false);
     MutableObject<Segment> segmentContainer = new MutableObject<>(new Text());
 
@@ -61,7 +67,8 @@ public class TemplateParser {
       if (segment instanceof Text) {
         segments.add(new CarmlTemplate.Text(value));
       } else if (segment instanceof Expression) {
-        segments.add(new CarmlTemplate.ExpressionSegment(nextId.getAndIncrement(), value));
+        segments.add(new CarmlTemplate.ExpressionSegment(nextId.getAndIncrement(),
+            String.format("%s%s", expressionPrefix, value)));
       }
       // (assuming no other segment types)
     };
@@ -112,5 +119,4 @@ public class TemplateParser {
       segment.append(character);
     }
   }
-
 }

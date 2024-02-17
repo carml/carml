@@ -12,13 +12,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.Iterables;
-import io.carml.engine.ExpressionEvaluation;
 import io.carml.engine.join.ChildSideJoin;
 import io.carml.engine.join.ChildSideJoinCondition;
 import io.carml.engine.join.ChildSideJoinStore;
 import io.carml.engine.join.ChildSideJoinStoreProvider;
 import io.carml.engine.join.ParentSideJoinConditionStore;
 import io.carml.engine.join.ParentSideJoinKey;
+import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.model.Join;
 import io.carml.model.RefObjectMap;
 import io.carml.model.TriplesMap;
@@ -35,7 +35,6 @@ import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
-import org.eclipse.rdf4j.model.vocabulary.RDF;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -81,9 +80,6 @@ class RdfRefObjectMapperTest {
 
   @Mock
   private ParentSideJoinConditionStore<Resource> parentSideJoinConditionStore;
-
-  @Mock
-  Mono<Void> completion;
 
   @Captor
   private ArgumentCaptor<Set<ChildSideJoin<Resource, IRI>>> childSideJoinCaptor;
@@ -397,19 +393,5 @@ class RdfRefObjectMapperTest {
         .expectNextMatches(expectedStatement)
         .expectNextMatches(expectedStatement)
         .verifyComplete();
-  }
-
-  private static Flux<Statement> generateStatementsFor(String id, int amount) {
-    List<Statement> statements = new ArrayList<>();
-    for (int i = 0; i < amount; i++) {
-      statements.add(generateStatementFor(id, i));
-    }
-
-    return Flux.fromIterable(statements);
-  }
-
-  private static Statement generateStatementFor(String id, int number) {
-    return VALUE_FACTORY.createStatement(VALUE_FACTORY.createBNode(String.format("sub-%s-%s", id, number)), RDF.TYPE,
-        VALUE_FACTORY.createBNode(String.format("obj-%s-%s", id, number)));
   }
 }

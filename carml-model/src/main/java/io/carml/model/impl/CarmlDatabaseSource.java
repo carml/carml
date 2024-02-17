@@ -27,6 +27,7 @@ public class CarmlDatabaseSource extends CarmlResource implements DatabaseSource
 
   private String username;
 
+  @ToString.Exclude
   private CharSequence password;
 
   private String query;

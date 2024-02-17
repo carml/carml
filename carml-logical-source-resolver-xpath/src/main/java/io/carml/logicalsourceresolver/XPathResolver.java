@@ -4,16 +4,19 @@ import static io.carml.util.LogUtil.exception;
 
 import io.carml.model.LogicalSource;
 import io.carml.model.XmlSource;
+import io.carml.vocab.Rdf;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.xpath.XPathException;
 import jlibs.xml.DefaultNamespaceContext;
@@ -32,6 +35,7 @@ import net.sf.saxon.s9api.SaxonApiException;
 import net.sf.saxon.s9api.XPathCompiler;
 import net.sf.saxon.s9api.XdmItem;
 import net.sf.saxon.s9api.XdmValue;
+import org.eclipse.rdf4j.model.IRI;
 import org.jaxen.saxpath.SAXPathException;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -296,5 +300,54 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
     }
 
     return autoNodeTextExtraction ? item.getStringValue() : value.toString();
+  }
+
+  @Override
+  public Optional<DatatypeMapperFactory<XdmItem>> getDatatypeMapperFactory() {
+    return Optional.empty();
+  }
+
+  @AllArgsConstructor(access = AccessLevel.PRIVATE)
+  public static class Matcher implements MatchingLogicalSourceResolverSupplier {
+    private static final Set<IRI> MATCHING_REF_FORMULATIONS = java.util.Set.of(Rdf.Ql.XPath);
+
+    private List<IRI> matchingReferenceFormulations;
+
+    public static Matcher getInstance() {
+      return getInstance(Set.of());
+    }
+
+    public static Matcher getInstance(Set<IRI> customMatchingReferenceFormulations) {
+      return new Matcher(Stream.concat(customMatchingReferenceFormulations.stream(), MATCHING_REF_FORMULATIONS.stream())
+          .distinct()
+          .collect(Collectors.toUnmodifiableList()));
+    }
+
+    @Override
+    public Optional<MatchedLogicalSourceResolverSupplier> apply(LogicalSource logicalSource) {
+      var scoreBuilder = MatchedLogicalSourceResolverSupplier.MatchScore.builder();
+
+      if (matchesReferenceFormulation(logicalSource)) {
+        scoreBuilder.strongMatch();
+      }
+
+      var matchScore = scoreBuilder.build();
+
+      if (matchScore.getScore() == 0) {
+        return Optional.empty();
+      }
+
+      return Optional.of(MatchedLogicalSourceResolverSupplier.of(matchScore, XPathResolver::getInstance));
+    }
+
+    private boolean matchesReferenceFormulation(LogicalSource logicalSource) {
+      return logicalSource.getReferenceFormulation() != null
+          && matchingReferenceFormulations.contains(logicalSource.getReferenceFormulation());
+    }
+
+    @Override
+    public String getResolverName() {
+      return "XPathResolver";
+    }
   }
 }

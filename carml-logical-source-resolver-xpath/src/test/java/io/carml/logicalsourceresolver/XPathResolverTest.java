@@ -9,7 +9,6 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.google.common.collect.Iterables;
-import io.carml.engine.ExpressionEvaluation;
 import io.carml.model.LogicalSource;
 import io.carml.model.impl.CarmlLogicalSource;
 import io.carml.model.impl.CarmlStream;
@@ -332,7 +331,7 @@ class XPathResolverTest {
 
     var expression = "./author";
     var evaluationFactory = xpathResolver.getExpressionEvaluationFactory();
-    var expressionEvaluation = evaluationFactory.apply(item.getRecord());
+    var expressionEvaluation = evaluationFactory.apply(item.getSourceRecord());
 
     // When
     var evaluationResult = expressionEvaluation.apply(expression);
@@ -355,7 +354,7 @@ class XPathResolverTest {
     item = recordFlux.blockFirst();
 
     evaluationFactory = xpathResolver.getExpressionEvaluationFactory();
-    expressionEvaluation = evaluationFactory.apply(item.getRecord());
+    expressionEvaluation = evaluationFactory.apply(item.getSourceRecord());
 
     // When
     evaluationResult = expressionEvaluation.apply(expression);
@@ -383,7 +382,7 @@ class XPathResolverTest {
 
     var expression = "./ex:author/lower-case(.)";
     var evaluationFactory = xpathResolver.getExpressionEvaluationFactory();
-    var expressionEvaluation = evaluationFactory.apply(item.getRecord());
+    var expressionEvaluation = evaluationFactory.apply(item.getSourceRecord());
 
     // When
     var evaluationResult = expressionEvaluation.apply(expression);

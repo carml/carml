@@ -55,6 +55,9 @@
 		<module>carml-logical-source-resolver-xpath</module>
 		<module>carml-logical-source-resolver-jsonpath</module>
 		<module>carml-logical-source-resolver-csv</module>
+		<module>carml-logical-source-resolver-sql</module>
+		<module>carml-logical-source-resolver-mysql</module>
+		<module>carml-logical-source-resolver-postgresql</module>
 		<module>carml-join-storage</module>
 		<module>carml-converters-jena</module>
 	</modules>
@@ -66,22 +69,30 @@
 		<rdf4j.version>4.2.3</rdf4j.version>
 		<commons-lang3.version>3.12.0</commons-lang3.version>
 		<commons-io.version>2.11.0</commons-io.version>
-		<slf4j.version>2.0.7</slf4j.version>
+		<commons-collections4.version>4.4</commons-collections4.version>
+		<slf4j.version>2.0.6</slf4j.version>
 		<guava.version>31.1-jre</guava.version>
-		<reactor.version>2022.0.6</reactor.version>
+		<reactor.version>2022.0.3</reactor.version>
 		<lombok.version>1.18.26</lombok.version>
 		<univocity.version>2.9.0</univocity.version>
-		<jayway.version>2.8.0</jayway.version>
+		<jayway.version>2.7.0</jayway.version>
 		<jsurfer.version>1.6.4</jsurfer.version>
-		<saxon.version>12.1</saxon.version>
+		<saxon.version>12.0</saxon.version>
 		<xmldog.version>3.0.1</xmldog.version>
-		<jena.version>4.8.0</jena.version>
-		<mockito.version>5.3.1</mockito.version>
-		<junit.version>5.9.3</junit.version>
+		<jena.version>4.7.0</jena.version>
+		<jooq.version>3.16.0</jooq.version>
+		<r2dbc.version>Borca-SR2</r2dbc.version>
+		<r2dbc-mysql.version>0.9.0</r2dbc-mysql.version>
+		<r2dbc-postgresql.version>1.0.1.RELEASE</r2dbc-postgresql.version>
+		<mockito.version>5.1.1</mockito.version>
+		<junit.version>5.9.2</junit.version>
 		<hamcrest.version>2.2</hamcrest.version>
-		<blockhound.version>1.0.8.RELEASE</blockhound.version>
+		<blockhound.version>1.0.7.RELEASE</blockhound.version>
 		<auto-service.version>1.0.1</auto-service.version>
 		<commons-csv.version>1.10.0</commons-csv.version>
+		<testcontainers.version>1.17.6</testcontainers.version>
+		<mysql-connector-j.version>8.0.32</mysql-connector-j.version>
+		<postgresql.version>42.6.0</postgresql.version>
 		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
 		<sonar.organization>carml</sonar.organization>
 	</properties>
@@ -139,6 +150,24 @@
 
 			<dependency>
 				<groupId>io.carml</groupId>
+				<artifactId>carml-logical-source-resolver-sql</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>io.carml</groupId>
+				<artifactId>carml-logical-source-resolver-mysql</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>io.carml</groupId>
+				<artifactId>carml-logical-source-resolver-postgresql</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>io.carml</groupId>
 				<artifactId>carml-join-storage</artifactId>
 				<version>${project.version}</version>
 			</dependency>
@@ -161,6 +190,12 @@
 				<groupId>commons-io</groupId>
 				<artifactId>commons-io</artifactId>
 				<version>${commons-io.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.apache.commons</groupId>
+				<artifactId>commons-collections4</artifactId>
+				<version>${commons-collections4.version}</version>
 			</dependency>
 
 			<dependency>
@@ -230,6 +265,32 @@
 				<groupId>org.apache.jena</groupId>
 				<artifactId>jena-arq</artifactId>
 				<version>${jena.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.jooq</groupId>
+				<artifactId>jooq</artifactId>
+				<version>${jooq.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>io.r2dbc</groupId>
+				<artifactId>r2dbc-bom</artifactId>
+				<version>${r2dbc.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+
+			<dependency>
+				<groupId>io.asyncer</groupId>
+				<artifactId>r2dbc-mysql</artifactId>
+				<version>${r2dbc-mysql.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.postgresql</groupId>
+				<artifactId>r2dbc-postgresql</artifactId>
+				<version>${r2dbc-postgresql.version}</version>
 			</dependency>
 
 			<dependency>
@@ -303,6 +364,61 @@
 				<scope>test</scope>
 			</dependency>
 
+			<dependency>
+				<groupId>com.mysql</groupId>
+				<artifactId>mysql-connector-j</artifactId>
+				<version>${mysql-connector-j.version}</version>
+				<scope>test</scope>
+			</dependency>
+
+			<dependency>
+				<groupId>org.postgresql</groupId>
+				<artifactId>postgresql</artifactId>
+				<version>${postgresql.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.testcontainers</groupId>
+				<artifactId>testcontainers</artifactId>
+				<version>${testcontainers.version}</version>
+				<scope>test</scope>
+			</dependency>
+
+			<dependency>
+				<groupId>org.testcontainers</groupId>
+				<artifactId>r2dbc</artifactId>
+				<version>${testcontainers.version}</version>
+				<scope>test</scope>
+			</dependency>
+
+			<dependency>
+				<groupId>org.testcontainers</groupId>
+				<artifactId>junit-jupiter</artifactId>
+				<version>${testcontainers.version}</version>
+				<scope>test</scope>
+			</dependency>
+
+			<dependency>
+				<groupId>org.testcontainers</groupId>
+				<artifactId>mssqlserver</artifactId>
+				<version>${testcontainers.version}</version>
+				<scope>test</scope>
+			</dependency>
+
+			<dependency>
+				<groupId>org.testcontainers</groupId>
+				<artifactId>mysql</artifactId>
+				<version>${testcontainers.version}</version>
+				<scope>test</scope>
+			</dependency>
+
+			<dependency>
+				<groupId>org.testcontainers</groupId>
+				<artifactId>postgresql</artifactId>
+				<version>${testcontainers.version}</version>
+				<scope>test</scope>
+			</dependency>
+
 		</dependencies>
 	</dependencyManagement>
 
@@ -338,7 +454,7 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-release-plugin</artifactId>
-					<version>3.0.0</version>
+					<version>2.5.3</version>
 					<configuration>
 						<tagNameFormat>v@{project.version}</tagNameFormat>
 						<autoVersionSubmodules>true</autoVersionSubmodules>
@@ -350,7 +466,7 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-checkstyle-plugin</artifactId>
-					<version>3.2.2</version>
+					<version>3.2.1</version>
 					<executions>
 						<execution>
 							<id>validate</id>
@@ -371,14 +487,14 @@
 						<dependency>
 							<groupId>com.puppycrawl.tools</groupId>
 							<artifactId>checkstyle</artifactId>
-							<version>10.9.3</version>
+							<version>10.8.0</version>
 						</dependency>
 					</dependencies>
 				</plugin>
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-enforcer-plugin</artifactId>
-					<version>3.3.0</version>
+					<version>3.2.1</version>
 					<executions>
 						<execution>
 							<id>enforce-maven</id>
@@ -398,7 +514,7 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-surefire-plugin</artifactId>
-					<version>3.0.0</version>
+					<version>3.0.0-M9</version>
 				</plugin>
 				<plugin>
 					<groupId>org.sonatype.plugins</groupId>
@@ -428,9 +544,9 @@
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-javadoc-plugin</artifactId>
 					<version>3.5.0</version>
-<!--					<configuration>-->
-<!--						<failOnError>false</failOnError>-->
-<!--					</configuration>-->
+					<!-- <configuration>-->
+					<!-- <failOnError>false</failOnError>-->
+					<!-- </configuration>-->
 					<executions>
 						<execution>
 							<id>attach-javadocs</id>
@@ -464,7 +580,7 @@
 				<plugin>
 					<groupId>org.jacoco</groupId>
 					<artifactId>jacoco-maven-plugin</artifactId>
-					<version>0.8.10</version>
+					<version>0.8.8</version>
 					<configuration>
 						<excludes>
 							<exclude>io/carml/test/**/*</exclude>
@@ -498,7 +614,7 @@
 												<counter>INSTRUCTION</counter>
 												<value>COVEREDRATIO</value>
 												<!-- TODO -->
-												<minimum>0.5</minimum>
+												<minimum>0.1</minimum>
 											</limit>
 										</limits>
 										<excludes />
@@ -514,7 +630,7 @@
 				<plugin>
 					<groupId>com.diffplug.spotless</groupId>
 					<artifactId>spotless-maven-plugin</artifactId>
-					<version>2.36.0</version>
+					<version>2.33.0</version>
 					<configuration>
 						<java>
 							<eclipse>

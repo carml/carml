@@ -1,4 +1,4 @@
-package io.carml.engine.sourceresolver;
+package io.carml.logicalsourceresolver.sourceresolver;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
@@ -22,10 +22,15 @@ public class CompositeSourceResolver implements SourceResolver {
   @Override
   public Optional<Object> apply(Object source) {
     return resolvers.stream()
+        .filter(resolver -> resolver.supportsSource(source))
         .map(resolver -> resolver.apply(source))
         .filter(Optional::isPresent)
         .map(Optional::get)
         .findFirst();
   }
 
+  @Override
+  public boolean supportsSource(Object sourceObject) {
+    return false;
+  }
 }

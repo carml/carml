@@ -2,16 +2,19 @@ package io.carml.engine.rdf;
 
 import static io.carml.util.LogUtil.exception;
 import static io.carml.util.LogUtil.log;
+import static java.util.stream.Collectors.toUnmodifiableSet;
 
-import io.carml.engine.ExpressionEvaluation;
 import io.carml.engine.TermGenerator;
 import io.carml.engine.TriplesMapperException;
+import io.carml.logicalsourceresolver.DatatypeMapper;
+import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.model.BaseObjectMap;
 import io.carml.model.LogicalSource;
 import io.carml.model.ObjectMap;
 import io.carml.model.PredicateObjectMap;
 import io.carml.model.RefObjectMap;
 import io.carml.model.TriplesMap;
+import io.carml.util.Expressions;
 import io.carml.util.Models;
 import java.util.List;
 import java.util.Map;
@@ -62,10 +65,27 @@ public class RdfPredicateObjectMapper {
     Set<RdfRefObjectMapper> filteredRefObjectMappers = refObjectMappers.stream()
         .filter(rom -> pom.getObjectMaps()
             .contains(rom.getRefObjectMap()))
-        .collect(Collectors.toUnmodifiableSet());
+        .collect(toUnmodifiableSet());
 
     return new RdfPredicateObjectMapper(graphGenerators, predicateGenerators, objectGenerators,
         filteredRefObjectMappers, rdfMapperConfig.getValueFactorySupplier()
+            .get());
+  }
+
+  public static RdfPredicateObjectMapper forTableJoining(@NonNull PredicateObjectMap pom,
+      @NonNull TriplesMap triplesMap, @NonNull RdfMapperConfig rdfMapperConfig, String parentExpressionPrefix) {
+    RdfTermGeneratorFactory rdfTermGeneratorFactory =
+        (RdfTermGeneratorFactory) rdfMapperConfig.getTermGeneratorFactory();
+
+    Set<TermGenerator<Resource>> graphGenerators =
+        RdfTriplesMapper.createGraphGenerators(pom.getGraphMaps(), rdfTermGeneratorFactory);
+    Set<TermGenerator<IRI>> predicateGenerators = createPredicateGenerators(pom, triplesMap, rdfTermGeneratorFactory);
+    Set<BaseObjectMap> objectMaps = pom.getObjectMaps();
+    Set<TermGenerator<? extends Value>> objectGenerators = createTableJoiningRefObjectMapGenerators(objectMaps,
+        triplesMap, rdfTermGeneratorFactory, parentExpressionPrefix);
+
+    return new RdfPredicateObjectMapper(graphGenerators, predicateGenerators, objectGenerators, Set.of(),
+        rdfMapperConfig.getValueFactorySupplier()
             .get());
   }
 
@@ -83,7 +103,7 @@ public class RdfPredicateObjectMapper {
                 ex);
           }
         })
-        .collect(Collectors.toUnmodifiableSet());
+        .collect(toUnmodifiableSet());
   }
 
   private static Set<TermGenerator<? extends Value>> createObjectGenerators(Set<BaseObjectMap> objectMaps,
@@ -93,7 +113,7 @@ public class RdfPredicateObjectMapper {
         createObjectMapGenerators(objectMaps, triplesMap, termGeneratorFactory),
         // ref object maps without joins -> object generators.
         createJoinlessRefObjectMapGenerators(objectMaps, triplesMap, termGeneratorFactory))
-        .collect(Collectors.toUnmodifiableSet());
+        .collect(toUnmodifiableSet());
   }
 
   @SuppressWarnings("java:S3864")
@@ -151,18 +171,33 @@ public class RdfPredicateObjectMapper {
         .peek(objectMap -> LOG.debug("Creating mapper for RefObjectMap {}", objectMap.getResourceName()))
         .map(RefObjectMap.class::cast)
         .filter(refObjMap -> refObjMap.getJoinConditions()
-            .isEmpty())
+            .isEmpty() || refObjMap.isSelfJoining(triplesMap))
         // ref object maps without joins MUST have an identical logical source.
         .map(refObjMap -> checkLogicalSource(refObjMap, logicalSource, triplesMap))
-        .flatMap(refObjMap -> createRefObjectJoinlessMapper(refObjMap, triplesMap, termGeneratorFactory));
+        .flatMap(refObjMap -> createRefObjectJoinlessMapper(refObjMap, triplesMap, termGeneratorFactory, null));
+  }
+
+  @SuppressWarnings("java:S3864")
+  private static Set<TermGenerator<? extends Value>> createTableJoiningRefObjectMapGenerators(
+      Set<BaseObjectMap> objectMaps, TriplesMap triplesMap, RdfTermGeneratorFactory termGeneratorFactory,
+      String expressionPrefix) {
+
+    return objectMaps.stream()
+        .filter(RefObjectMap.class::isInstance)
+        .peek(objectMap -> LOG.debug("Creating mapper for RefObjectMap {}", objectMap.getResourceName()))
+        .map(RefObjectMap.class::cast)
+        .flatMap(
+            refObjMap -> createRefObjectJoinlessMapper(refObjMap, triplesMap, termGeneratorFactory, expressionPrefix))
+        .collect(toUnmodifiableSet());
   }
 
   private static Stream<TermGenerator<Resource>> createRefObjectJoinlessMapper(RefObjectMap refObjectMap,
-      TriplesMap triplesMap, RdfTermGeneratorFactory termGeneratorFactory) {
+      TriplesMap triplesMap, RdfTermGeneratorFactory termGeneratorFactory, String expressionPrefix) {
     try {
       return refObjectMap.getParentTriplesMap()
           .getSubjectMaps()
           .stream()
+          .map(subjectMap -> Expressions.applyExpressionPrefix(expressionPrefix, subjectMap))
           .map(termGeneratorFactory::getSubjectGenerator);
     } catch (RuntimeException ex) {
       throw new TriplesMapperException(String.format("Exception occurred for %s", exception(triplesMap, refObjectMap)),
@@ -170,26 +205,26 @@ public class RdfPredicateObjectMapper {
     }
   }
 
-  public Flux<Statement> map(ExpressionEvaluation expressionEvaluation,
+  public Flux<Statement> map(ExpressionEvaluation expressionEvaluation, DatatypeMapper datatypeMapper,
       Map<Set<Resource>, Set<Resource>> subjectsAndSubjectGraphs) {
     Set<IRI> predicates = predicateGenerators.stream()
-        .map(g -> g.apply(expressionEvaluation))
+        .map(g -> g.apply(expressionEvaluation, datatypeMapper))
         .flatMap(List::stream)
-        .collect(Collectors.toUnmodifiableSet());
+        .collect(toUnmodifiableSet());
 
     if (predicates.isEmpty()) {
       return Flux.empty();
     }
 
     Set<Value> objects = objectGenerators.stream()
-        .map(g -> g.apply(expressionEvaluation))
+        .map(g -> g.apply(expressionEvaluation, datatypeMapper))
         .flatMap(List::stream)
-        .collect(Collectors.toUnmodifiableSet());
+        .collect(toUnmodifiableSet());
 
     Set<Resource> pomGraphs = graphGenerators.stream()
-        .flatMap(graphGenerator -> graphGenerator.apply(expressionEvaluation)
+        .flatMap(graphGenerator -> graphGenerator.apply(expressionEvaluation, datatypeMapper)
             .stream())
-        .collect(Collectors.toUnmodifiableSet());
+        .collect(toUnmodifiableSet());
 
     Map<Set<Resource>, Set<Resource>> subjectsAndAllGraphs =
         addPomGraphsToSubjectsAndSubjectGraphs(subjectsAndSubjectGraphs, pomGraphs);
@@ -207,7 +242,7 @@ public class RdfPredicateObjectMapper {
         .map(subjectsAndAllGraphsEntry -> Flux.fromStream(Models.streamCartesianProductStatements(
             subjectsAndAllGraphsEntry.getKey(), predicates, objects, subjectsAndAllGraphsEntry.getValue(),
             RdfTriplesMapper.defaultGraphModifier, valueFactory, RdfTriplesMapper.logAddStatements)))
-        .collect(Collectors.toUnmodifiableSet());
+        .collect(toUnmodifiableSet());
 
     return Flux.merge(statementsPerGraphSet);
   }
@@ -219,7 +254,7 @@ public class RdfPredicateObjectMapper {
         .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey,
             subjectsAndSubjectGraphsEntry -> Stream.concat(subjectsAndSubjectGraphsEntry.getValue()
                 .stream(), pomGraphs.stream())
-                .collect(Collectors.toUnmodifiableSet())));
+                .collect(toUnmodifiableSet())));
   }
 
 }

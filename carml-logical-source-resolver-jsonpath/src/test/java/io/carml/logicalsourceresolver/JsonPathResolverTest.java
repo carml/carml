@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.carml.engine.ExpressionEvaluation;
 import io.carml.model.LogicalSource;
 import io.carml.model.impl.CarmlLogicalSource;
 import io.carml.vocab.Rdf;
@@ -86,7 +85,7 @@ class JsonPathResolverTest {
     // When
     var recordResolver = jsonPathResolver.getLogicalSourceRecords(Set.of(foodSource, countrySource));
     Flux<Object> records = recordResolver.apply(resolvedSource)
-        .flatMap(logicalSourceRecord -> stringFlux(logicalSourceRecord.getRecord()));
+        .flatMap(logicalSourceRecord -> stringFlux(logicalSourceRecord.getSourceRecord()));
 
     // Then
     StepVerifier.create(records)
@@ -115,7 +114,7 @@ class JsonPathResolverTest {
     // When
     var recordResolver = jsonPathResolver.getLogicalSourceRecords(Set.of(foodSource, countrySource));
     Flux<Object> records = recordResolver.apply(resolvedSource)
-        .flatMap(logicalSourceRecord -> stringFlux(logicalSourceRecord.getRecord()));
+        .flatMap(logicalSourceRecord -> stringFlux(logicalSourceRecord.getSourceRecord()));
 
     // Then
     StepVerifier.create(records)
@@ -141,7 +140,7 @@ class JsonPathResolverTest {
     // When
     var recordResolver2 = jsonPathResolver.getLogicalSourceRecords(Set.of(foodSource2, countrySource2));
     Flux<Object> records2 = recordResolver2.apply(resolvedSource2)
-        .flatMap(logicalSourceRecord -> stringFlux(logicalSourceRecord.getRecord()));
+        .flatMap(logicalSourceRecord -> stringFlux(logicalSourceRecord.getSourceRecord()));
 
     // Then
     StepVerifier.create(records2)
@@ -295,7 +294,7 @@ class JsonPathResolverTest {
 
     // Then
     StepVerifier.create(records)
-        .expectNextMatches(logicalSourceRecord -> logicalSourceRecord.getRecord()
+        .expectNextMatches(logicalSourceRecord -> logicalSourceRecord.getSourceRecord()
             .equals(record))
         .verifyComplete();
   }
@@ -320,7 +319,7 @@ class JsonPathResolverTest {
 
     // Then
     StepVerifier.create(records)
-        .expectNextMatches(logicalSourceRecord -> logicalSourceRecord.getRecord()
+        .expectNextMatches(logicalSourceRecord -> logicalSourceRecord.getSourceRecord()
             .equals(new ObjectMapper().valueToTree("Belgian Waffles")))
         .verifyComplete();
   }

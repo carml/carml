@@ -10,6 +10,7 @@ import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.Option;
 import com.jayway.jsonpath.spi.json.JacksonJsonNodeJsonProvider;
 import io.carml.model.LogicalSource;
+import io.carml.vocab.Rdf;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -23,10 +24,13 @@ import java.util.Spliterators;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.rdf4j.model.IRI;
 import org.jsfr.json.JsonSurfer;
 import org.jsfr.json.JsonSurferJackson;
 import org.jsfr.json.NonBlockingParser;
@@ -82,8 +86,7 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
         .get();
 
     if (resolved instanceof InputStream) {
-      return getObjectFlux((InputStream) resolvedSource.getResolved()
-          .get(), logicalSources);
+      return getObjectFlux((InputStream) resolved, logicalSources);
     } else if (resolved instanceof JsonNode) {
       return getObjectFlux((JsonNode) resolved, logicalSources);
     } else {
@@ -221,5 +224,54 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
             jsonProcessingException);
       }
     };
+  }
+
+  @Override
+  public Optional<DatatypeMapperFactory<JsonNode>> getDatatypeMapperFactory() {
+    return Optional.empty();
+  }
+
+  @AllArgsConstructor(access = AccessLevel.PRIVATE)
+  public static class Matcher implements MatchingLogicalSourceResolverSupplier {
+    private static final Set<IRI> MATCHING_REF_FORMULATIONS = java.util.Set.of(Rdf.Ql.JsonPath);
+
+    private List<IRI> matchingReferenceFormulations;
+
+    public static Matcher getInstance() {
+      return getInstance(Set.of());
+    }
+
+    public static Matcher getInstance(Set<IRI> customMatchingReferenceFormulations) {
+      return new Matcher(Stream.concat(customMatchingReferenceFormulations.stream(), MATCHING_REF_FORMULATIONS.stream())
+          .distinct()
+          .collect(Collectors.toUnmodifiableList()));
+    }
+
+    @Override
+    public Optional<MatchedLogicalSourceResolverSupplier> apply(LogicalSource logicalSource) {
+      var scoreBuilder = MatchedLogicalSourceResolverSupplier.MatchScore.builder();
+
+      if (matchesReferenceFormulation(logicalSource)) {
+        scoreBuilder.strongMatch();
+      }
+
+      var matchScore = scoreBuilder.build();
+
+      if (matchScore.getScore() == 0) {
+        return Optional.empty();
+      }
+
+      return Optional.of(MatchedLogicalSourceResolverSupplier.of(matchScore, JsonPathResolver::getInstance));
+    }
+
+    private boolean matchesReferenceFormulation(LogicalSource logicalSource) {
+      return logicalSource.getReferenceFormulation() != null
+          && matchingReferenceFormulations.contains(logicalSource.getReferenceFormulation());
+    }
+
+    @Override
+    public String getResolverName() {
+      return "JsonPathResolver";
+    }
   }
 }

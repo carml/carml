@@ -9,8 +9,10 @@ import io.carml.rmltestcases.model.Rules;
 import io.carml.rmltestcases.model.TestCase;
 import java.util.Set;
 import java.util.stream.Collectors;
+import lombok.Setter;
 import org.eclipse.rdf4j.model.IRI;
 
+@Setter
 public class RmlTestCaze extends RtcResource implements TestCase {
 
   private String identifier;
@@ -23,6 +25,8 @@ public class RmlTestCaze extends RtcResource implements TestCase {
 
   private Rules rules;
 
+  private Set<Input> input;
+
   private Output output;
 
   @RdfProperty("http://purl.org/dc/terms/identifier")
@@ -31,28 +35,16 @@ public class RmlTestCaze extends RtcResource implements TestCase {
     return identifier;
   }
 
-  public void setIdentifier(String identifier) {
-    this.identifier = identifier;
-  }
-
   @RdfProperty("http://purl.org/dc/terms/description")
   @Override
   public String getDescription() {
     return description;
   }
 
-  public void setDescription(String description) {
-    this.description = description;
-  }
-
   @RdfProperty("http://www.w3.org/2006/03/test-description#specificationReference")
   @Override
   public IRI getSpecificationReference() {
     return specificationReference;
-  }
-
-  public void setSpecificationReference(IRI specificationReference) {
-    this.specificationReference = specificationReference;
   }
 
   @RdfProperty("http://purl.org/dc/terms/hasPart")
@@ -62,10 +54,6 @@ public class RmlTestCaze extends RtcResource implements TestCase {
     return parts;
   }
 
-  public void setParts(Set<Dataset> parts) {
-    this.parts = parts;
-  }
-
   @RdfProperty("http://rml.io/ns/test-case/rules")
   @RdfType(RtcRules.class)
   @Override
@@ -73,16 +61,13 @@ public class RmlTestCaze extends RtcResource implements TestCase {
     return rules;
   }
 
-  public void setRules(Rules rules) {
-    this.rules = rules;
-  }
-
+  @RdfProperty("http://www.w3.org/2006/03/test-description#informationResourceInput")
+  @RdfType(RtcInput.class)
   @Override
   public Set<Input> getInput() {
-    return parts.stream() //
+    return input.stream()
         .filter(p -> p.getId()
-            .contains("/input")) //
-        .map(Input.class::cast) //
+            .contains("/input"))
         .collect(Collectors.toUnmodifiableSet());
   }
 
@@ -93,13 +78,8 @@ public class RmlTestCaze extends RtcResource implements TestCase {
     return output;
   }
 
-  public void setOutput(Output output) {
-    this.output = output;
-  }
-
   @Override
   public String toString() {
     return String.format("%s: %s", identifier, description);
   }
-
 }

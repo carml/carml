@@ -8,4 +8,14 @@ public interface RefObjectMap extends BaseObjectMap {
 
   Set<Join> getJoinConditions();
 
+  default boolean isSelfJoining(TriplesMap childTriplesMap) {
+    if (!childTriplesMap.getLogicalSource()
+        .equals(getParentTriplesMap().getLogicalSource())) {
+      return false;
+    }
+
+    return getJoinConditions().stream()
+        .allMatch(join -> join.getChild()
+            .equals(join.getParent()));
+  }
 }

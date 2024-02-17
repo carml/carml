@@ -1,4 +1,4 @@
-package io.carml.engine.sourceresolver;
+package io.carml.logicalsourceresolver.sourceresolver;
 
 public class SourceResolverException extends RuntimeException {
 

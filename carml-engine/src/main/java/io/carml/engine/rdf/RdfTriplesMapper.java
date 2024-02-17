@@ -2,17 +2,19 @@ package io.carml.engine.rdf;
 
 import static io.carml.util.LogUtil.exception;
 
-import io.carml.engine.ExpressionEvaluation;
 import io.carml.engine.RefObjectMapper;
 import io.carml.engine.TermGenerator;
 import io.carml.engine.TriplesMapper;
 import io.carml.engine.TriplesMapperException;
 import io.carml.engine.join.ParentSideJoinConditionStore;
 import io.carml.engine.join.ParentSideJoinKey;
+import io.carml.logicalsourceresolver.DatatypeMapper;
+import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.logicalsourceresolver.LogicalSourceRecord;
 import io.carml.logicalsourceresolver.LogicalSourceResolver;
 import io.carml.model.GraphMap;
 import io.carml.model.Join;
+import io.carml.model.LogicalSource;
 import io.carml.model.SubjectMap;
 import io.carml.model.TriplesMap;
 import io.carml.vocab.Rdf;
@@ -59,15 +61,13 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
   @NonNull
   private final LogicalSourceResolver.ExpressionEvaluationFactory<R> expressionEvaluationFactory;
 
-  @NonNull
-  private final RdfMapperConfig rdfMapperConfig;
+  private final LogicalSourceResolver.DatatypeMapperFactory<R> datatypeMapperFactory;
 
   @NonNull
   private final ParentSideJoinConditionStore<Resource> parentSideJoinConditions;
 
-  public static <I> RdfTriplesMapper<I> of(@NonNull TriplesMap triplesMap, Set<RdfRefObjectMapper> refObjectMappers,
-      Set<RdfRefObjectMapper> incomingRefObjectMappers,
-      @NonNull LogicalSourceResolver.ExpressionEvaluationFactory<I> expressionEvaluatorFactory,
+  public static <R> RdfTriplesMapper<R> of(@NonNull TriplesMap triplesMap, Set<RdfRefObjectMapper> refObjectMappers,
+      Set<RdfRefObjectMapper> incomingRefObjectMappers, @NonNull LogicalSourceResolver<R> logicalSourceResolver,
       @NonNull RdfMapperConfig rdfMapperConfig) {
 
     if (LOG.isDebugEnabled()) {
@@ -79,8 +79,21 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
     Set<RdfPredicateObjectMapper> predicateObjectMappers =
         createPredicateObjectMappers(triplesMap, rdfMapperConfig, refObjectMappers);
 
-    return new RdfTriplesMapper<>(triplesMap, subjectMappers, predicateObjectMappers, incomingRefObjectMappers,
-        expressionEvaluatorFactory, rdfMapperConfig, rdfMapperConfig.getParentSideJoinConditionStoreProvider()
+    Set<RdfRefObjectMapper> actionableIncomingRefObjectMappers;
+    if (triplesMap.getLogicalTable() != null) {
+      actionableIncomingRefObjectMappers = incomingRefObjectMappers.stream()
+          .filter(rom -> rom.getTriplesMap()
+              .getLogicalTable() != null)
+          .collect(Collectors.toUnmodifiableSet());
+    } else {
+      actionableIncomingRefObjectMappers = incomingRefObjectMappers;
+    }
+
+    return new RdfTriplesMapper<>(triplesMap, subjectMappers, predicateObjectMappers,
+        actionableIncomingRefObjectMappers, logicalSourceResolver.getExpressionEvaluationFactory(),
+        logicalSourceResolver.getDatatypeMapperFactory()
+            .orElse(null),
+        rdfMapperConfig.getParentSideJoinConditionStoreProvider()
             .createParentSideJoinConditionStore(triplesMap.getId()));
   }
 
@@ -122,7 +135,11 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
   }
 
   @Override
-  public Set<RefObjectMapper<Statement>> getRefObjectMappers() {
+  public LogicalSource getLogicalSource() {
+    return triplesMap.getLogicalSource();
+  }
+
+  Set<RefObjectMapper<Statement>> getRefObjectMappers() {
     return predicateObjectMappers.stream()
         .flatMap(pom -> pom.getRdfRefObjectMappers()
             .stream())
@@ -142,18 +159,19 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
   @Override
   @SuppressWarnings("unchecked")
   public Flux<Statement> map(LogicalSourceRecord<?> logicalSourceRecord) {
-    var lsRecord = (R) logicalSourceRecord.getRecord();
+    var sourceRecord = (R) logicalSourceRecord.getSourceRecord();
     LOG.trace("Mapping triples for record {}", logicalSourceRecord);
-    ExpressionEvaluation expressionEvaluation = expressionEvaluationFactory.apply(lsRecord);
+    var expressionEvaluation = expressionEvaluationFactory.apply(sourceRecord);
+    var datatypeMapper = datatypeMapperFactory != null ? datatypeMapperFactory.apply(sourceRecord) : null;
 
-    return mapEvaluation(expressionEvaluation);
+    return mapEvaluation(expressionEvaluation, datatypeMapper);
   }
 
   @Override
-  public Flux<Statement> mapEvaluation(ExpressionEvaluation expressionEvaluation) {
+  public Flux<Statement> mapEvaluation(ExpressionEvaluation expressionEvaluation, DatatypeMapper datatypeMapper) {
 
     Set<RdfSubjectMapper.Result> subjectMapperResults = subjectMappers.stream()
-        .map(subjectMapper -> subjectMapper.map(expressionEvaluation))
+        .map(subjectMapper -> subjectMapper.map(expressionEvaluation, datatypeMapper))
         .collect(Collectors.toUnmodifiableSet());
 
     Set<Resource> subjects = subjectMapperResults.stream()
@@ -178,7 +196,8 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
 
     Flux<Statement> subjectStatements = Flux.merge(subjectStatementFluxes);
     Flux<Statement> pomStatements = Flux.fromIterable(predicateObjectMappers)
-        .flatMap(predicateObjectMapper -> predicateObjectMapper.map(expressionEvaluation, subjectsAndSubjectGraphs));
+        .flatMap(predicateObjectMapper -> predicateObjectMapper.map(expressionEvaluation, datatypeMapper,
+            subjectsAndSubjectGraphs));
 
     cacheParentSideJoinConditions(expressionEvaluation, subjects);
 

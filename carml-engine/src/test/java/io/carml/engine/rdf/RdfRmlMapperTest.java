@@ -8,9 +8,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import io.carml.engine.RmlMapperException;
 import io.carml.engine.join.impl.CarmlChildSideJoinStoreProvider;
 import io.carml.engine.join.impl.CarmlParentSideJoinConditionStoreProvider;
-import io.carml.engine.sourceresolver.ClassPathResolver;
 import io.carml.logicalsourceresolver.CsvResolver;
 import io.carml.logicalsourceresolver.XPathResolver;
+import io.carml.logicalsourceresolver.sourceresolver.ClassPathResolver;
+import io.carml.logicalsourceresolver.sourceresolver.SourceResolver;
+import io.carml.logicalsourceresolver.sql.sourceresolver.DatabaseConnectionOptions;
 import io.carml.model.TriplesMap;
 import io.carml.util.RmlMappingLoader;
 import io.carml.vocab.Rdf;
@@ -56,7 +58,7 @@ class RdfRmlMapperTest {
     RmlMapperException rmlMapperException = assertThrows(RmlMapperException.class, builder::build);
 
     // Then
-    assertThat(rmlMapperException.getMessage(), is("No actionable triples maps provided."));
+    assertThat(rmlMapperException.getMessage(), is("No executable triples maps found."));
   }
 
   @Test
@@ -95,7 +97,24 @@ class RdfRmlMapperTest {
         .childSideJoinStoreProvider(CarmlChildSideJoinStoreProvider.of())
         .parentSideJoinConditionStoreProvider(CarmlParentSideJoinConditionStoreProvider.of())
         .addFunctions(new Object())
-        .sourceResolver(o -> Optional.empty());
+        .sourceResolver(new SourceResolver() {
+          @Override
+          public boolean supportsSource(Object sourceObject) {
+            return true;
+          }
+
+          @Override
+          public Optional<Object> apply(Object o) {
+            return Optional.empty();
+          }
+        })
+        .baseIri("https://example.com/")
+        .databaseConnectionOptions(DatabaseConnectionOptions.builder()
+            .database("db://")
+            .username("foo")
+            .password("bar")
+            .build())
+        .logicalSourceResolverMatcher(CsvResolver.Matcher.getInstance());
 
     // When
     RdfRmlMapper rmlMapper = builder.build();
