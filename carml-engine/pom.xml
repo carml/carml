@@ -4,7 +4,7 @@
 	<parent>
 		<groupId>io.carml</groupId>
 		<artifactId>carml</artifactId>
-		<version>0.4.8-SNAPSHOT</version>
+		<version>0.4.11-SNAPSHOT</version>
 	</parent>
 
 	<artifactId>carml-engine</artifactId>
@@ -76,6 +76,11 @@
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>javax.xml.bind</groupId>
+			<artifactId>jaxb-api</artifactId>
 		</dependency>
 
 		<dependency>

@@ -7,8 +7,8 @@ import io.carml.rdfmapper.annotations.RdfProperty;
 import io.carml.vocab.Rdf;
 import io.carml.vocab.Rml;
 import io.carml.vocab.Rr;
-import java.util.Objects;
 import java.util.Set;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
@@ -21,6 +21,7 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @NoArgsConstructor
 @Setter
 @ToString(callSuper = true)
+@EqualsAndHashCode(callSuper = false)
 public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
 
   protected Object source;
@@ -119,31 +120,6 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
     return expressions;
   }
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(source, iterator, referenceFormulation, tableName, sqlQuery, sqlVersion, expressions);
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
-      return false;
-    }
-    CarmlLogicalSource other = (CarmlLogicalSource) obj;
-    return Objects.equals(source, other.source) && Objects.equals(iterator, other.iterator)
-        && Objects.equals(referenceFormulation, other.referenceFormulation)
-        && Objects.equals(tableName, other.tableName) && Objects.equals(sqlQuery, other.sqlQuery)
-        && Objects.equals(sqlVersion, other.sqlVersion) && Objects.equals(expressions, other.expressions);
-  }
-
-
-  @Override
   public Set<Resource> getReferencedResources() {
     if (source instanceof Resource) {
       return Set.of((Resource) source);

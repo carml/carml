@@ -91,13 +91,14 @@ public abstract class CarmlResource implements Resource {
   private Model asRdfInternal(Resource resource, Set<Resource> processed) {
     processed.add(resource);
     ModelBuilder builder = new ModelBuilder();
-    addTriples(builder);
+    resource.addTriples(builder);
     if (label != null) {
       builder.add(RDFS.LABEL, label);
     }
     Model model = builder.build();
 
-    Model nestedModel = getReferencedResources().stream()
+    Model nestedModel = resource.getReferencedResources()
+        .stream()
         .filter(refResource -> !processed.contains(refResource))
         .flatMap(refResource -> asRdfInternal(refResource, processed).stream())
         .collect(ModelCollector.toModel());

@@ -6,6 +6,7 @@ import io.carml.rdfmapper.annotations.RdfProperty;
 import io.carml.vocab.Carml;
 import io.carml.vocab.Rdf;
 import java.util.Set;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
@@ -17,6 +18,7 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @NoArgsConstructor
 @Setter
 @ToString(callSuper = true)
+@EqualsAndHashCode(callSuper = false)
 public class CarmlNamespace extends CarmlResource implements Namespace {
 
   private String prefix;

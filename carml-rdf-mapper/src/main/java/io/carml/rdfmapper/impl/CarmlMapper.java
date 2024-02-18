@@ -163,6 +163,7 @@ public class CarmlMapper implements Mapper, MappingCache {
             throw new IllegalStateException(
                 String.format("No combiner specified for non-void multi delegate method %S", method));
           }
+          delegates.forEach(delegate -> singleDelegateMethodInvocation(delegate, method, args));
           return null;
         });
   }
@@ -192,8 +193,6 @@ public class CarmlMapper implements Mapper, MappingCache {
     }
   }
 
-
-
   private Stream<Method> gatherMethods(Class<?> clazz) {
     return concat(stream(clazz.getDeclaredMethods()),
         concat(stream(clazz.getInterfaces()).flatMap(this::gatherMethods), Optional.ofNullable(clazz.getSuperclass())
@@ -219,8 +218,8 @@ public class CarmlMapper implements Mapper, MappingCache {
     List<PropertyHandler> propertyHandlers =
         concat(stream(c.getMethods()).flatMap(m -> getRdfPropertyHandlers(m, c, model, resource)),
             stream(c.getMethods()).map(m -> getRdfResourceNameHandler(m, c))).filter(Optional::isPresent)
-                .map(Optional::get)
-                .collect(toList());
+            .map(Optional::get)
+            .collect(toList());
 
     Object instance;
     try {

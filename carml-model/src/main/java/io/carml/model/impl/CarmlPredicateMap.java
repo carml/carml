@@ -5,6 +5,7 @@ import io.carml.model.PredicateMap;
 import io.carml.model.Resource;
 import io.carml.vocab.Rdf;
 import java.util.Set;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
@@ -14,6 +15,7 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @SuperBuilder(toBuilder = true)
 @NoArgsConstructor
 @ToString(callSuper = true)
+@EqualsAndHashCode(callSuper = true)
 public class CarmlPredicateMap extends CarmlTermMap implements PredicateMap {
 
   @Override

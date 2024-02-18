@@ -197,16 +197,16 @@ class RdfTriplesMapperTest {
   @Test
   void givenAllParams_whenOfCalled_thenConstructRdfTriplesMapper() {
     // Given
-    var rdfMapperConfig = RdfMapperConfig.builder()
-        .valueFactorySupplier(() -> VALUE_FACTORY)
-        .termGeneratorFactory(rdfTermGeneratorFactory)
-        .childSideJoinStoreProvider(childSideJoinStoreProvider)
-        .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
-        .build();
-
     when(triplesMap.getLogicalTable()).thenReturn(logicalTable);
     when(rdfRefObjectMapper1.getTriplesMap()).thenReturn(triplesMap2);
     when(triplesMap2.getLogicalTable()).thenReturn(logicalTable);
+
+    var rdfMapperConfig = RdfMapperConfig.builder()
+            .valueFactorySupplier(() -> VALUE_FACTORY)
+            .termGeneratorFactory(rdfTermGeneratorFactory)
+            .childSideJoinStoreProvider(childSideJoinStoreProvider)
+            .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
+            .build();
 
     incomingRefObjectMappers.add(rdfRefObjectMapper1);
 

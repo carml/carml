@@ -1,0 +1,10 @@
+{
+  "list": [
+    {
+      "id": "test-id",
+      "title": "test-title",
+      "value": "false",
+      "datatype": "boolean"
+    }
+  ]
+}

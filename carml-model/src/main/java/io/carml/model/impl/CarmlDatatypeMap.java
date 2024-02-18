@@ -5,6 +5,7 @@ import io.carml.model.Resource;
 import io.carml.model.TriplesMap;
 import io.carml.vocab.Rml;
 import java.util.Set;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
@@ -15,6 +16,7 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @SuperBuilder(toBuilder = true)
 @NoArgsConstructor
 @ToString(callSuper = true)
+@EqualsAndHashCode(callSuper = true)
 public class CarmlDatatypeMap extends CarmlExpressionMap implements DatatypeMap {
 
   public CarmlDatatypeMap(String id, String label, String reference, String template, Value constant,

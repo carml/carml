@@ -14,6 +14,7 @@ import io.carml.vocab.Rml;
 import io.carml.vocab.Rr;
 import java.util.Set;
 import java.util.StringJoiner;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.Singular;
@@ -24,6 +25,7 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @SuperBuilder(toBuilder = true)
 @NoArgsConstructor
 @Setter
+@EqualsAndHashCode(callSuper = false)
 public class CarmlTriplesMap extends CarmlResource implements TriplesMap {
 
   private LogicalSource logicalSource;

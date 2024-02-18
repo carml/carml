@@ -12,6 +12,7 @@ import io.carml.rdfmapper.annotations.RdfTypeDecider;
 import io.carml.vocab.Rdf;
 import io.carml.vocab.Rr;
 import java.util.Set;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.Singular;
@@ -24,6 +25,7 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @NoArgsConstructor
 @Setter
 @ToString(callSuper = true)
+@EqualsAndHashCode(callSuper = false)
 public class CarmlPredicateObjectMap extends CarmlResource implements PredicateObjectMap {
 
   @Singular

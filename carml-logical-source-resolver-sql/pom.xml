@@ -4,7 +4,7 @@
     <parent>
         <artifactId>carml</artifactId>
         <groupId>io.carml</groupId>
-        <version>0.4.8-SNAPSHOT</version>
+        <version>0.4.11-SNAPSHOT</version>
     </parent>
 
     <artifactId>carml-logical-source-resolver-sql</artifactId>
