@@ -57,11 +57,12 @@ import org.testcontainers.shaded.org.apache.commons.io.IOUtils;
 @Testcontainers
 public class TestRmlTestCases {
 
-  public static MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0.32").withUsername("root")
+  public static MySQLContainer<?> mysql = new MySQLContainer<>("mysql:latest").withUsername("root")
       .withUrlParam("allowMultiQueries", "true");
 
-  public static PostgreSQLContainer<?> postgresql = new PostgreSQLContainer<>("postgres:13.9").withUsername("root")
+  public static PostgreSQLContainer<?> postgresql = new PostgreSQLContainer<>("postgres:latest").withUsername("root")
       .withUrlParam("allowMultiQueries", "true");
+
 
   @BeforeAll
   public static void beforeAll() {
@@ -79,8 +80,7 @@ public class TestRmlTestCases {
 
   static final IRI EARL_TESTCASE = VF.createIRI("http://www.w3.org/ns/earl#TestCase");
 
-  static final List<String> SUPPORTED_SOURCE_TYPES =
-      ImmutableList.of(/* "CSV", "JSON", "XML", */ "MySQL", "PostgreSQL");
+  static final List<String> SUPPORTED_SOURCE_TYPES = ImmutableList.of("CSV", "JSON", "XML", "MySQL", "PostgreSQL");
 
   // Under discussion in https://github.com/RMLio/rml-test-cases/issues
   private static final List<String> SKIP_TESTS = new ImmutableList.Builder<String>() //
