@@ -1,7 +1,6 @@
 package io.carml.rdfmapper.impl;
 
 import static java.util.Arrays.stream;
-import static java.util.stream.Collectors.toList;
 
 import java.lang.reflect.Method;
 import java.util.List;
@@ -27,7 +26,7 @@ class PropertyUtils {
     List<Method> setters = stream(clazz.getMethods()).filter(method -> method.getName()
         .equals(setterName))
         .filter(method -> method.getParameterCount() == 1)
-        .collect(toList());
+        .toList();
     if (setters.isEmpty()) {
       return Optional.empty();
     }

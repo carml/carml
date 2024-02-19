@@ -46,8 +46,8 @@ public final class Models {
         .stream()
         .flatMap(statement -> {
           Value object = statement.getObject();
-          return object instanceof BNode
-              ? Stream.concat(Stream.of(statement), describeResource(model, (BNode) object).stream())
+          return object instanceof BNode bNodeObject
+              ? Stream.concat(Stream.of(statement), describeResource(model, bNodeObject).stream())
               : Stream.of(statement);
         })
         .collect(ModelCollector.toModel());
@@ -108,8 +108,8 @@ public final class Models {
       @NonNull Value object, Value graphValue, @NonNull UnaryOperator<Resource> graphModifier,
       @NonNull ValueFactory valueFactory, Consumer<Statement>... statementConsumers) {
     Resource subject;
-    if (subjectValue instanceof Resource) {
-      subject = (Resource) subjectValue;
+    if (subjectValue instanceof Resource resourceSubject) {
+      subject = resourceSubject;
     } else {
       throw new ModelsException(String.format("Expected subjectValue `%s` to be instance of Resource, but was %s",
           subjectValue, subjectValue.getClass()
@@ -117,8 +117,8 @@ public final class Models {
     }
 
     IRI predicate;
-    if (predicateValue instanceof IRI) {
-      predicate = (IRI) predicateValue;
+    if (predicateValue instanceof IRI iriPredicate) {
+      predicate = iriPredicate;
     } else {
       throw new ModelsException(String.format("Expected predicateValue `%s` to be instance of IRI, but was %s",
           predicateValue, predicateValue.getClass()
@@ -127,8 +127,8 @@ public final class Models {
 
     Resource graph;
     if (graphValue != null) {
-      if (graphValue instanceof Resource) {
-        graph = graphModifier.apply((Resource) graphValue);
+      if (graphValue instanceof Resource resourceGraph) {
+        graph = graphModifier.apply(resourceGraph);
       } else {
         throw new ModelsException(String.format("Expected graphValue `%s` to be instance of Resource, but was %s",
             graphValue, graphValue.getClass()

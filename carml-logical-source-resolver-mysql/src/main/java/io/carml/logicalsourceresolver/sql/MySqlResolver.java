@@ -12,7 +12,6 @@ import io.r2dbc.spi.Type;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -46,51 +45,29 @@ public class MySqlResolver extends SqlResolver {
 
   @Override
   public IRI getDatatypeIri(Type sqlDataType) {
-    if (sqlDataType instanceof MySqlType) {
-      var mysqlType = (MySqlType) sqlDataType;
-      switch (mysqlType) {
-        case SMALLINT:
-        case MEDIUMINT:
-        case BIGINT:
-        case INT:
-          return XSD.INTEGER;
-        case DECIMAL:
-          return XSD.DECIMAL;
-        case FLOAT:
-        case DOUBLE:
-          return XSD.DOUBLE;
-        case DATE:
-          return XSD.DATE;
-        case TIME:
-          return XSD.TIME;
-        case YEAR:
-          return XSD.GYEAR;
-        case TIMESTAMP:
-          return XSD.DATETIME;
-        case TINYINT:
+    if (sqlDataType instanceof MySqlType mySqlType) {
+      return switch (mySqlType) {
+        case SMALLINT, MEDIUMINT, BIGINT, INT -> XSD.INTEGER;
+        case DECIMAL -> XSD.DECIMAL;
+        case FLOAT, DOUBLE -> XSD.DOUBLE;
+        case DATE -> XSD.DATE;
+        case TIME -> XSD.TIME;
+        case YEAR -> XSD.GYEAR;
+        case TIMESTAMP -> XSD.DATETIME;
+        case TINYINT -> {
           if (((MySqlType) sqlDataType).getBinarySize() == 1) {
-            return XSD.BOOLEAN;
+            yield XSD.BOOLEAN;
           } else {
-            return XSD.BYTE;
+            yield XSD.BYTE;
           }
-        case SMALLINT_UNSIGNED:
-          return XSD.UNSIGNED_SHORT;
-        case MEDIUMINT_UNSIGNED:
-        case INT_UNSIGNED:
-          return XSD.UNSIGNED_INT;
-        case BIGINT_UNSIGNED:
-          return XSD.UNSIGNED_LONG;
-        case VARBINARY:
-        case TINYBLOB:
-        case MEDIUMBLOB:
-        case BLOB:
-        case LONGBLOB:
-          return XSD.HEXBINARY;
-        case TINYINT_UNSIGNED:
-          return XSD.UNSIGNED_BYTE;
-        default:
-          return XSD.STRING;
-      }
+        }
+        case SMALLINT_UNSIGNED -> XSD.UNSIGNED_SHORT;
+        case MEDIUMINT_UNSIGNED, INT_UNSIGNED -> XSD.UNSIGNED_INT;
+        case BIGINT_UNSIGNED -> XSD.UNSIGNED_LONG;
+        case VARBINARY, TINYBLOB, MEDIUMBLOB, BLOB, LONGBLOB -> XSD.HEXBINARY;
+        case TINYINT_UNSIGNED -> XSD.UNSIGNED_BYTE;
+        default -> XSD.STRING;
+      };
     } else {
       throw new LogicalSourceResolverException(String.format("Encountered unsupported type: %s", sqlDataType));
     }
@@ -109,7 +86,7 @@ public class MySqlResolver extends SqlResolver {
     public static Matcher getInstance(Set<IRI> customMatchingReferenceFormulations) {
       return new Matcher(Stream.concat(customMatchingReferenceFormulations.stream(), MATCHING_REF_FORMULATIONS.stream())
           .distinct()
-          .collect(Collectors.toUnmodifiableList()));
+          .toList());
     }
 
     @Override
@@ -152,8 +129,7 @@ public class MySqlResolver extends SqlResolver {
     }
 
     private boolean hasMySqlSource(LogicalSource logicalSource) {
-      if (logicalSource.getSource() instanceof DatabaseSource) {
-        var dbSource = (DatabaseSource) logicalSource.getSource();
+      if (logicalSource.getSource() instanceof DatabaseSource dbSource) {
         return dbSource.getJdbcDriver() != null && dbSource.getJdbcDriver()
             .contains("mysql");
       }

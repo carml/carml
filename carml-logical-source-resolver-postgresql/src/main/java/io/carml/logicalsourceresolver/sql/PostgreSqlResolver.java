@@ -23,7 +23,6 @@ import io.r2dbc.spi.Type;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -101,7 +100,7 @@ public class PostgreSqlResolver extends SqlResolver {
     public static Matcher getInstance(Set<IRI> customMatchingReferenceFormulations) {
       return new Matcher(Stream.concat(customMatchingReferenceFormulations.stream(), MATCHING_REF_FORMULATIONS.stream())
           .distinct()
-          .collect(Collectors.toUnmodifiableList()));
+          .toList());
     }
 
     @Override
@@ -144,8 +143,7 @@ public class PostgreSqlResolver extends SqlResolver {
     }
 
     private boolean hasMySqlSource(LogicalSource logicalSource) {
-      if (logicalSource.getSource() instanceof DatabaseSource) {
-        var dbSource = (DatabaseSource) logicalSource.getSource();
+      if (logicalSource.getSource() instanceof DatabaseSource dbSource) {
         return dbSource.getJdbcDriver() != null && dbSource.getJdbcDriver()
             .contains("postgresql");
       }

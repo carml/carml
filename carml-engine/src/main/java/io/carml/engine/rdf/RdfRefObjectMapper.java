@@ -137,7 +137,7 @@ public class RdfRefObjectMapper implements RefObjectMapper<Statement> {
     List<Set<Resource>> parentResults = childSideJoin.getChildSideJoinConditions()
         .stream()
         .map(childSideJoinCondition -> checkChildSideJoinCondition(childSideJoinCondition, parentJoinConditions))
-        .collect(Collectors.toList());
+        .toList();
 
     if (parentResults.isEmpty()) {
       return Set.of();

@@ -75,8 +75,8 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
 
   private void setNamespaces(LogicalSource logicalSource) {
     var source = logicalSource.getSource();
-    if (source instanceof XmlSource) {
-      ((XmlSource) source).getDeclaredNamespaces()
+    if (source instanceof XmlSource xmlSource) {
+      xmlSource.getDeclaredNamespaces()
           .forEach(n -> {
             nsContext.declarePrefix(n.getPrefix(), n.getName());
             xpathCompiler.declareNamespace(n.getPrefix(), n.getName());
@@ -105,11 +105,10 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
     var resolved = resolvedSource.getResolved()
         .get();
 
-    if (resolved instanceof InputStream) {
-      return getXpathResultFlux((InputStream) resolvedSource.getResolved()
-          .get(), logicalSources);
-    } else if (resolved instanceof XdmItem) {
-      return getXpathResultFlux((XdmItem) resolved, logicalSources);
+    if (resolved instanceof InputStream resolvedInputStream) {
+      return getXpathResultFlux(resolvedInputStream, logicalSources);
+    } else if (resolved instanceof XdmItem resolvedXdmItem) {
+      return getXpathResultFlux(resolvedXdmItem, logicalSources);
     } else {
       throw new LogicalSourceResolverException(
           String.format("Unsupported source object provided for logical sources:%n%s", exception(logicalSources)));
@@ -320,7 +319,7 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
     public static Matcher getInstance(Set<IRI> customMatchingReferenceFormulations) {
       return new Matcher(Stream.concat(customMatchingReferenceFormulations.stream(), MATCHING_REF_FORMULATIONS.stream())
           .distinct()
-          .collect(Collectors.toUnmodifiableList()));
+          .toList());
     }
 
     @Override

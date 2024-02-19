@@ -97,8 +97,8 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
       query = sqlQuery;
     }
 
-    if (query == null && source instanceof DatabaseSource) {
-      query = ((DatabaseSource) source).getQuery();
+    if (query == null && source instanceof DatabaseSource databaseSource) {
+      query = databaseSource.getQuery();
     }
 
     if (query == null) {
@@ -121,8 +121,8 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
   }
 
   public Set<Resource> getReferencedResources() {
-    if (source instanceof Resource) {
-      return Set.of((Resource) source);
+    if (source instanceof Resource resource) {
+      return Set.of(resource);
     } else {
       return Set.of();
     }
@@ -133,8 +133,8 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
     modelBuilder.subject(getAsResource())
         .add(RDF.TYPE, Rdf.Rml.LogicalSource);
     if (source != null) {
-      if (source instanceof Resource) {
-        modelBuilder.add(Rml.source, ((Resource) source).getAsResource());
+      if (source instanceof Resource resource) {
+        modelBuilder.add(Rml.source, resource.getAsResource());
       } else {
         modelBuilder.add(Rml.source, source);
       }

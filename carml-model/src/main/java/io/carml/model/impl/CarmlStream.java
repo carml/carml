@@ -35,8 +35,7 @@ public class CarmlStream extends CarmlResource implements NameableStream {
 
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof NameableStream) {
-      NameableStream other = (NameableStream) obj;
+    if (obj instanceof NameableStream other) {
       return Objects.equals(streamName, other.getStreamName());
     }
     return false;

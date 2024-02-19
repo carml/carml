@@ -36,8 +36,7 @@ public class DatabaseSourceResolver implements SourceResolver {
   public Optional<Object> apply(Object source) {
     DatabaseSource resolvableSource;
 
-    if (source instanceof JoiningDatabaseSource) {
-      var joiningSourceSupplier = ((JoiningDatabaseSource) source);
+    if (source instanceof JoiningDatabaseSource joiningSourceSupplier) {
       resolvableSource = (DatabaseSource) joiningSourceSupplier.getChildLogicalSource()
           .getSource();
     } else {

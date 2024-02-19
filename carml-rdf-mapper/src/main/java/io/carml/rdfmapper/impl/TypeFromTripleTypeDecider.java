@@ -35,7 +35,7 @@ public class TypeFromTripleTypeDecider implements TypeDecider {
         .objects()
         .stream()
         .map(IRI.class::cast)
-        .collect(Collectors.toList());
+        .toList();
 
     // TODO what if multiple rdf:types? probably choose the only 1 that's known/registered. what if
     // multiple of those?

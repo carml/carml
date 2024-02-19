@@ -24,7 +24,6 @@ import java.util.Spliterators;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import lombok.AccessLevel;
@@ -85,10 +84,10 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
     var resolved = resolvedSource.getResolved()
         .get();
 
-    if (resolved instanceof InputStream) {
-      return getObjectFlux((InputStream) resolved, logicalSources);
-    } else if (resolved instanceof JsonNode) {
-      return getObjectFlux((JsonNode) resolved, logicalSources);
+    if (resolved instanceof InputStream resolvedInputStream) {
+      return getObjectFlux(resolvedInputStream, logicalSources);
+    } else if (resolved instanceof JsonNode resolvedJsonNode) {
+      return getObjectFlux(resolvedJsonNode, logicalSources);
     } else {
       throw new LogicalSourceResolverException(
           String.format("Unsupported source object provided for logical sources:%n%s", exception(logicalSources)));
@@ -244,7 +243,7 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
     public static Matcher getInstance(Set<IRI> customMatchingReferenceFormulations) {
       return new Matcher(Stream.concat(customMatchingReferenceFormulations.stream(), MATCHING_REF_FORMULATIONS.stream())
           .distinct()
-          .collect(Collectors.toUnmodifiableList()));
+          .toList());
     }
 
     @Override

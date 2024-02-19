@@ -69,8 +69,7 @@ public class CarmlDatabaseSource extends CarmlResource implements DatabaseSource
 
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof DatabaseSource) {
-      DatabaseSource other = (DatabaseSource) obj;
+    if (obj instanceof DatabaseSource other) {
       return Objects.equals(jdbcDsn, other.getJdbcDsn()) && Objects.equals(jdbcDriver, other.getJdbcDriver())
           && Objects.equals(username, other.getUsername()) && Objects.equals(password, other.getPassword())
           && Objects.equals(query, other.getQuery());

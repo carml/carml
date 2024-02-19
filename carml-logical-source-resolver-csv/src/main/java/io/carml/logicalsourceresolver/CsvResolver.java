@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -57,10 +56,10 @@ public class CsvResolver implements LogicalSourceResolver<Record> {
     var resolved = resolvedSource.getResolved()
         .get();
 
-    if (resolved instanceof InputStream) {
-      return getCsvRecordFlux((InputStream) resolved).map(lsRecord -> LogicalSourceRecord.of(logicalSource, lsRecord));
-    } else if (resolved instanceof Record) {
-      return Flux.just(LogicalSourceRecord.of(logicalSource, (Record) resolved));
+    if (resolved instanceof InputStream resolvedInputStream) {
+      return getCsvRecordFlux(resolvedInputStream).map(lsRecord -> LogicalSourceRecord.of(logicalSource, lsRecord));
+    } else if (resolved instanceof Record resolvedRecord) {
+      return Flux.just(LogicalSourceRecord.of(logicalSource, resolvedRecord));
     } else {
       throw new LogicalSourceResolverException(
           String.format("Unsupported source object provided for logical sources:%n%s", exception(logicalSources)));
@@ -105,7 +104,7 @@ public class CsvResolver implements LogicalSourceResolver<Record> {
     public static Matcher getInstance(Set<IRI> customMatchingReferenceFormulations) {
       return new Matcher(Stream.concat(customMatchingReferenceFormulations.stream(), MATCHING_REF_FORMULATIONS.stream())
           .distinct()
-          .collect(Collectors.toUnmodifiableList()));
+          .toList());
     }
 
     @Override

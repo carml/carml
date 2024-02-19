@@ -40,8 +40,7 @@ public class CarmlXmlSource extends CarmlResource implements XmlSource {
 
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof XmlSource) {
-      XmlSource other = (XmlSource) obj;
+    if (obj instanceof XmlSource other) {
       return Objects.equals(declaredNamespaces, other.getDeclaredNamespaces());
     }
     return false;

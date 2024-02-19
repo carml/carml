@@ -11,7 +11,6 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.vocabulary.XSD;
 import org.slf4j.Logger;
@@ -64,7 +63,7 @@ public class GetTemplateValue implements BiFunction<ExpressionEvaluation, Dataty
           .filter(Objects::nonNull)
           .map(rawValue -> createNaturalRdfLexicalForm.apply(rawValue, datatype))
           .map(transformValue)
-          .collect(Collectors.toUnmodifiableList());
+          .toList();
     } else {
       String value = createNaturalRdfLexicalForm.apply(result, datatype);
       return transformValue.apply(value);

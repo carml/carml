@@ -8,7 +8,6 @@ import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toSet;
-import static java.util.stream.Collectors.toUnmodifiableList;
 import static java.util.stream.Collectors.toUnmodifiableMap;
 import static java.util.stream.Collectors.toUnmodifiableSet;
 
@@ -236,9 +235,9 @@ public class RdfMappingPipelineFactory {
         .getSource();
     var parentSource = parent.getLogicalSource()
         .getSource();
-    if (childSource instanceof DatabaseSource && parentSource instanceof DatabaseSource) {
-      var childJdbcDsn = ((DatabaseSource) childSource).getJdbcDsn();
-      var parentJdbcDsn = ((DatabaseSource) parentSource).getJdbcDsn();
+    if (childSource instanceof DatabaseSource childDbSource && parentSource instanceof DatabaseSource parentDbSource) {
+      var childJdbcDsn = childDbSource.getJdbcDsn();
+      var parentJdbcDsn = parentDbSource.getJdbcDsn();
 
       if (childJdbcDsn != null && parentJdbcDsn != null) {
         return childJdbcDsn.equals(parentJdbcDsn);
@@ -326,7 +325,7 @@ public class RdfMappingPipelineFactory {
         .map(matcher -> matcher.apply(logicalSource))
         .filter(Optional::isPresent)
         .map(Optional::get)
-        .collect(toUnmodifiableList());
+        .toList();
 
     if (matchedLogicalSourceResolverSuppliers.size() > 1) {
       LOG.debug("Found multiple matching resolvers [{}] for logical source {}",

@@ -3,7 +3,6 @@ package io.carml.engine.rdf;
 import static io.carml.engine.rdf.RdfPredicateObjectMapper.createObjectMapGenerators;
 import static io.carml.engine.rdf.RdfPredicateObjectMapper.createPredicateGenerators;
 import static io.carml.util.Models.streamCartesianProductStatements;
-import static java.util.stream.Collectors.toUnmodifiableList;
 
 import io.carml.engine.TermGenerator;
 import io.carml.engine.TermGeneratorFactory;
@@ -123,7 +122,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
 
   private TermGenerator<? extends Value> getGenerator(ExpressionMap map, Set<TermType> allowedTermTypes,
       Set<Class<? extends Value>> allowedConstantTypes) {
-    List<TermGenerator<? extends Value>> generators = Stream.<Supplier<Optional<TermGenerator<? extends Value>>>>of(
+    var generators = Stream.<Supplier<Optional<TermGenerator<? extends Value>>>>of(
 
         // constant
         () -> getConstantGenerator(map, allowedConstantTypes),
@@ -141,7 +140,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
         .map(Supplier::get)
         .filter(Optional::isPresent)
         .map(Optional::get)
-        .collect(Collectors.toList());
+        .toList();
 
     if (generators.isEmpty()) {
       throw new TermGeneratorFactoryException(String
@@ -155,13 +154,12 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
     return generators.get(0);
   }
 
-  private TermGenerator<Value> getGenerator(ExpressionMap termMap,
+  private TermGenerator<? extends Value> getGenerator(ExpressionMap termMap,
       BiFunction<ExpressionEvaluation, DatatypeMapper, Optional<Object>> getValue,
       Function<DatatypeMapper, Optional<IRI>> getDatatype, Set<TermType> allowedTermTypes, TermType termType) {
 
-    Function<Function<String, ? extends Value>, TermGenerator<Value>> createGenerator =
-        generateTerm -> (expressionEvaluation, datatypeMapper) -> generateValues(getValue, getDatatype,
-            expressionEvaluation, datatypeMapper, generateTerm);
+    Function<Function<String, Value>, TermGenerator<Value>> createGenerator = generateTerm -> (expressionEvaluation,
+        datatypeMapper) -> generateValues(getValue, getDatatype, expressionEvaluation, datatypeMapper, generateTerm);
 
     if (!allowedTermTypes.contains(termType)) {
       throw new TermGeneratorFactoryException(
@@ -169,39 +167,27 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
               termMap, allowedTermTypes));
     }
 
-    switch (termType) {
-
-      case IRI:
-        return createGenerator.apply(this::generateIriTerm);
-
-      case BLANK_NODE:
-        return createGenerator.apply(this::generateBNodeTerm);
-
-      case LITERAL:
-
-        if (termMap instanceof ObjectMap) {
-          var objectMap = (ObjectMap) termMap;
-
+    return switch (termType) {
+      case IRI -> createGenerator.apply(this::generateIriTerm);
+      case BLANK_NODE -> createGenerator.apply(this::generateBNodeTerm);
+      case LITERAL -> {
+        if (termMap instanceof ObjectMap objectMap) {
           if (objectMap.getLanguageMap() != null) {
-            return getLanguageTaggedLiteralGenerator(objectMap, getValue, getDatatype);
+            yield getLanguageTaggedLiteralGenerator(objectMap, getValue, getDatatype);
           }
 
           if (objectMap.getDatatypeMap() != null) {
-            return getDatatypedLiteralGenerator(objectMap, getValue, getDatatype);
+            yield getDatatypedLiteralGenerator(objectMap, getValue, getDatatype);
           }
         }
-
-        return getLiteralGenerator(getValue, getDatatype);
-
-      default:
-        throw new TermGeneratorFactoryException(
-            String.format("unknown term type [%s]%nin TermMap:%s", termType, termMap));
-    }
+        yield getLiteralGenerator(getValue, getDatatype);
+      }
+    };
   }
 
   private List<Value> generateValues(BiFunction<ExpressionEvaluation, DatatypeMapper, Optional<Object>> getValue,
       Function<DatatypeMapper, Optional<IRI>> getDatatype, ExpressionEvaluation expressionEvaluation,
-      DatatypeMapper datatypeMapper, Function<String, ? extends Value> generateTerm) {
+      DatatypeMapper datatypeMapper, Function<String, Value> generateTerm) {
 
     Optional<Object> referenceValue = getValue.apply(expressionEvaluation, datatypeMapper);
     if (LOG.isTraceEnabled()) {
@@ -215,7 +201,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
         .orElse(List.of());
   }
 
-  private TermGenerator<Value> getDatatypedLiteralGenerator(ObjectMap objectMap,
+  private TermGenerator<Literal> getDatatypedLiteralGenerator(ObjectMap objectMap,
       BiFunction<ExpressionEvaluation, DatatypeMapper, Optional<Object>> getLabelValue,
       Function<DatatypeMapper, Optional<IRI>> getDatatype) {
 
@@ -225,7 +211,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
           generateValues(getLabelValue, getDatatype, expressionEvaluation, datatypeMapper, valueFactory::createLiteral)
               .stream()
               .map(Value::stringValue)
-              .collect(toUnmodifiableList());
+              .toList();
 
 
       // determine datatypes by creating a nested term generator
@@ -236,38 +222,40 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
       return values.stream()
           .flatMap(label -> datatypes.stream()
               .map(datatype -> valueFactory.createLiteral(createCanonicalRdfLexicalForm(label, datatype), datatype)))
-          .collect(toUnmodifiableList());
+          .toList();
     };
   }
 
-  private TermGenerator<Value> getLiteralGenerator(
+  private TermGenerator<Literal> getLiteralGenerator(
       BiFunction<ExpressionEvaluation, DatatypeMapper, Optional<Object>> getLabelValue,
       Function<DatatypeMapper, Optional<IRI>> getDatatype) {
 
     return (expressionEvaluation, datatypeMapper) -> {
       if (datatypeMapper == null) {
         return generateValues(getLabelValue, getDatatype, expressionEvaluation, datatypeMapper,
-            valueFactory::createLiteral);
+            valueFactory::createLiteral).stream()
+            .map(Literal.class::cast)
+            .toList();
       }
 
       var values =
           generateValues(getLabelValue, getDatatype, expressionEvaluation, datatypeMapper, valueFactory::createLiteral)
               .stream()
               .map(Value::stringValue)
-              .collect(toUnmodifiableList());
+              .toList();
 
       // https://www.w3.org/TR/r2rml/#generated-rdf-term
       return getDatatype.apply(datatypeMapper)
           .map(datatype -> values.stream()
-              .map(value -> (Value) valueFactory.createLiteral(value, datatype))
-              .collect(toUnmodifiableList()))
+              .map(value -> valueFactory.createLiteral(value, datatype))
+              .toList())
           .orElseGet(() -> values.stream()
               .map(valueFactory::createLiteral)
-              .collect(toUnmodifiableList()));
+              .toList());
     };
   }
 
-  private TermGenerator<Value> getLanguageTaggedLiteralGenerator(ObjectMap objectMap,
+  private TermGenerator<Literal> getLanguageTaggedLiteralGenerator(ObjectMap objectMap,
       BiFunction<ExpressionEvaluation, DatatypeMapper, Optional<Object>> getLabelValue,
       Function<DatatypeMapper, Optional<IRI>> getDatatype) {
 
@@ -294,7 +282,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
                 return true;
               })
               .map(language -> valueFactory.createLiteral(label, language)))
-          .collect(toUnmodifiableList());
+          .toList();
     };
   }
 
@@ -435,7 +423,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
     if (result instanceof Collection<?>) {
       return ((Collection<?>) result).stream()
           .map(this::encodeAsIri)
-          .collect(toUnmodifiableList());
+          .toList();
     } else {
       return encodeAsIri(result);
     }
@@ -444,8 +432,8 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
   private Object encodeAsIri(Object value) {
     String iriValue;
 
-    if (value instanceof Value) {
-      iriValue = ((Value) value).stringValue();
+    if (value instanceof Value rdfValue) {
+      iriValue = rdfValue.stringValue();
     } else {
       iriValue = value.toString();
     }
@@ -469,19 +457,15 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
       return TermType.IRI;
     } else if (map instanceof LanguageMap) {
       return TermType.LITERAL;
-    } else if (map instanceof TermMap) {
-      TermMap termMap = (TermMap) map;
-
+    } else if (map instanceof TermMap termMap) {
       TermType termType = termMap.getTermType();
       if (termType != null) {
         return termType;
       }
 
-      if (map instanceof ObjectMap) {
-        ObjectMap objectMap = (ObjectMap) map;
-        if (isReferenceTermMap(termMap) || objectMap.getLanguageMap() != null || objectMap.getDatatypeMap() != null) {
-          return TermType.LITERAL;
-        }
+      if (map instanceof ObjectMap objectMap && (isReferenceTermMap(termMap) || objectMap.getLanguageMap() != null
+          || objectMap.getDatatypeMap() != null)) {
+        return TermType.LITERAL;
       }
 
       return TermType.IRI;
@@ -495,13 +479,12 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
     return map.getConstant() == null && map.getReference() != null;
   }
 
-  private List<Value> unpackEvaluatedExpression(Object result, IRI datatype,
-      Function<String, ? extends Value> generateTerm) {
-    if (result instanceof Collection<?>) {
-      return ((Collection<?>) result).stream()
+  private List<Value> unpackEvaluatedExpression(Object result, IRI datatype, Function<String, Value> generateTerm) {
+    if (result instanceof Collection<?> collection) {
+      return collection.stream()
           .filter(Objects::nonNull)
           .map(value -> generateTerm.apply(createCanonicalRdfLexicalForm(value, datatype)))
-          .collect(toUnmodifiableList());
+          .toList();
     }
 
     Value value = generateTerm.apply(createCanonicalRdfLexicalForm(result, datatype));
@@ -536,10 +519,10 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
 
   private String createCanonicalRdfLexicalForm(Object value, IRI datatype) {
     // Not covered by XMLDatatypeUtil
-    if (datatype.equals(XSD.HEXBINARY) && value instanceof ByteBuffer) {
-      return DatatypeConverter.printHexBinary(((ByteBuffer) value).array());
-    } else if (value instanceof TemporalAccessor) {
-      return Values.literal((TemporalAccessor) value)
+    if (datatype.equals(XSD.HEXBINARY) && value instanceof ByteBuffer byteBuffer) {
+      return DatatypeConverter.printHexBinary(byteBuffer.array());
+    } else if (value instanceof TemporalAccessor temporalAccessor) {
+      return Values.literal(temporalAccessor)
           .stringValue();
     } else if (CoreDatatype.from(datatype)
         .isXSDDatatype()) {

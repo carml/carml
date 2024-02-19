@@ -111,8 +111,7 @@ public abstract class RmlMapper<T> {
 
   private ResolvedSource<?> resolveSource(Object source, Set<LogicalSource> inCaseOfException,
       Map<String, InputStream> namedInputStreams) {
-    if (source instanceof NameableStream) {
-      NameableStream stream = (NameableStream) source;
+    if (source instanceof NameableStream stream) {
       String unresolvedName = stream.getStreamName();
       String name = StringUtils.isBlank(unresolvedName) ? DEFAULT_STREAM_NAME : unresolvedName;
 

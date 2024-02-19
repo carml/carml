@@ -5,7 +5,6 @@ import static io.carml.rdfmapper.impl.PropertyUtils.findSetter;
 import static io.carml.rdfmapper.impl.PropertyUtils.getPropertyName;
 import static io.carml.util.ModelSerializer.formatResourceForLog;
 import static java.util.Arrays.stream;
-import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.Stream.concat;
 import static java.util.stream.Stream.empty;
@@ -106,13 +105,13 @@ public class CarmlMapper implements Mapper, MappingCache {
   private <T> T doMultipleInterfaceMapping(Model model, Resource resource, Set<Type> types) {
     List<Type> implementations = types.stream()
         .map(this::getInterfaceImplementation)
-        .collect(toList());
+        .toList();
 
     Map<Type, Object> implementationsToDelegates = implementations.stream()
         .collect(toMap(t -> t, t -> doSingleTypeConcreteClassMapping(model, resource, t)));
 
     Map<Type, List<Method>> implementationMethods = implementations.stream()
-        .collect(toMap(t -> t, t -> gatherMethods((Class<?>) t).collect(toList())));
+        .collect(toMap(t -> t, t -> gatherMethods((Class<?>) t).toList()));
 
     BiPredicate<Type, Method> implementationHasMethod = (t, m) -> implementationMethods.get(t)
         .contains(m);
@@ -126,7 +125,7 @@ public class CarmlMapper implements Mapper, MappingCache {
           List<Object> delegates = implementations.stream()
               .filter(type -> implementationHasMethod.test(type, method))
               .map(implementationsToDelegates::get) // TODO can this ever be null? this case is not checked below
-              .collect(toList());
+              .toList();
 
           if (delegates.isEmpty()) {
             throw new CarmlMapperException(String.format(
@@ -157,7 +156,7 @@ public class CarmlMapper implements Mapper, MappingCache {
     Type returnType = method.getReturnType();
     return getCombinerFromMultiDelegateCall(multiDelegateCall).map(combiner -> combiner.combine(delegates.stream()
         .map(d -> singleDelegateMethodInvocation(d, method, args))
-        .collect(toList())))
+        .toList()))
         .orElseGet(() -> {
           if (!returnType.equals(Void.TYPE)) {
             throw new IllegalStateException(
@@ -219,7 +218,7 @@ public class CarmlMapper implements Mapper, MappingCache {
         concat(stream(c.getMethods()).flatMap(m -> getRdfPropertyHandlers(m, c, model, resource)),
             stream(c.getMethods()).map(m -> getRdfResourceNameHandler(m, c))).filter(Optional::isPresent)
             .map(Optional::get)
-            .collect(toList());
+            .toList();
 
     Object instance;
     try {
@@ -276,11 +275,10 @@ public class CarmlMapper implements Mapper, MappingCache {
 
     // if property type is X<E>, where X <= Iterable, use E as property type from now on
     // XXX not sure if proper place
-    if (type instanceof ParameterizedType) {
-      ParameterizedType pt = (ParameterizedType) type;
-      Class<?> rawType = (Class<?>) pt.getRawType();
+    if (type instanceof ParameterizedType parameterizedType) {
+      Class<?> rawType = (Class<?>) parameterizedType.getRawType();
       if (Iterable.class.isAssignableFrom(rawType)) {
-        elementType = (Class<?>) pt.getActualTypeArguments()[0];
+        elementType = (Class<?>) parameterizedType.getActualTypeArguments()[0];
         iterableType = rawType;
       }
     }
@@ -436,8 +434,8 @@ public class CarmlMapper implements Mapper, MappingCache {
       valueTransformer = (model, value) -> value;
     } else if (String.class.isAssignableFrom(elementType)) {
       valueTransformer = (model, value) -> {
-        if (value instanceof Literal) {
-          return ((Literal) value).getLabel();
+        if (value instanceof Literal literal) {
+          return literal.getLabel();
         } else {
           throw new CarmlMapperException(String.format(
               "Cannot map value %s for property %s on class %s. Expecting value to be of type Literal, but was %s",

@@ -122,7 +122,7 @@ class CarmlTemplate implements Template {
       if (evalResult instanceof Collection<?>) {
         return ((Collection<?>) evalResult).stream()
             .map(String.class::cast)
-            .collect(Collectors.toUnmodifiableList());
+            .toList();
       } else {
         return List.of((String) evalResult);
       }
@@ -162,7 +162,7 @@ class CarmlTemplate implements Template {
       List<ExpressionSegment> expressionSegments = segments.stream()
           .filter(ExpressionSegment.class::isInstance)
           .map(ExpressionSegment.class::cast)
-          .collect(Collectors.toUnmodifiableList());
+          .toList();
 
       if (!expressionSegments.isEmpty()) {
 

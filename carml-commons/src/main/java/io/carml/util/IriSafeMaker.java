@@ -6,7 +6,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import lombok.NonNull;
 
@@ -79,7 +78,7 @@ public class IriSafeMaker implements UnaryOperator<String> {
               .split("-");
           return new Range(Integer.parseInt(range[0], 16), Integer.parseInt(range[1], 16));
         })
-        .collect(Collectors.toList());
+        .toList();
   }
 
   private static boolean withinRange(int codePoint, List<Range> ranges) {

@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public interface ExpressionEvaluation extends Function<String, Optional<Object>> {
 
@@ -28,7 +27,7 @@ public interface ExpressionEvaluation extends Function<String, Optional<Object>>
       return ((Collection<?>) evaluationResult).stream()
           .filter(Objects::nonNull)
           .map(Object::toString)
-          .collect(Collectors.toUnmodifiableList());
+          .toList();
     } else {
       return evaluationResult == null ? List.of() : List.of(evaluationResult.toString());
     }

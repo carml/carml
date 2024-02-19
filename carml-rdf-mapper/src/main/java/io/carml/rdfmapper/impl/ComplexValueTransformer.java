@@ -59,8 +59,8 @@ public class ComplexValueTransformer implements ValueTransformer {
   @Override
   public Object transform(Model model, Value value) {
 
-    if (value instanceof Literal) {
-      return transform((Literal) value);
+    if (value instanceof Literal literal) {
+      return transform(literal);
     }
 
     // =========== RESOURCE ===========

@@ -9,10 +9,10 @@ public interface SourceResolver extends Function<Object, Optional<Object>> {
   boolean supportsSource(Object sourceObject);
 
   default Optional<String> unpackFileSource(Object source) {
-    if (source instanceof String) { // Standard rml:source
-      return Optional.of((String) source);
-    } else if (source instanceof FileSource) { // Extended Carml source
-      return Optional.of(((FileSource) source).getUrl());
+    if (source instanceof String stringSource) { // Standard rml:source
+      return Optional.of(stringSource);
+    } else if (source instanceof FileSource fileSource) { // Extended Carml source
+      return Optional.of(fileSource.getUrl());
     } else {
       return Optional.empty();
     }

@@ -13,7 +13,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Literal;
 import org.eclipse.rdf4j.model.Model;
@@ -59,7 +58,7 @@ public class Functions {
 
     List<ExtractParameter> parameterExtractors = Arrays.stream(method.getParameters())
         .map(this::createParameterExtractor)
-        .collect(Collectors.toList());
+        .toList();
 
     LOG.debug("Creating executable FnO function {}", function);
     return Optional.of(new ExecuteFunction() {
@@ -69,7 +68,7 @@ public class Functions {
 
         List<Object> arguments = parameterExtractors.stream()
             .map(extractor -> extractor.extract(model, subject))
-            .collect(Collectors.toList());
+            .toList();
 
         try {
           if (LOG.isTraceEnabled()) {
@@ -131,7 +130,7 @@ public class Functions {
 
       List<Value> values = paramValues.stream()
           .map(Statement::getObject)
-          .collect(Collectors.toUnmodifiableList());
+          .toList();
 
       return adapter.apply(values);
     };
@@ -156,7 +155,7 @@ public class Functions {
 
     return values.stream()
         .map(Value::stringValue)
-        .collect(Collectors.toUnmodifiableList());
+        .toList();
   }
 
 
@@ -172,61 +171,59 @@ public class Functions {
   }
 
   private String literalToString(Value value) {
-    if (!(value instanceof Literal)) {
-      throw new IllegalArgumentException(
-          String.format("value [%s] was not a literal, which is expected for a parameter of type String.", value));
+    if (value instanceof Literal literal) {
+      return literal.stringValue();
     }
-    var literal = (Literal) value;
-    return literal.stringValue();
+
+    throw new IllegalArgumentException(
+        String.format("value [%s] was not a literal, which is expected for a parameter of type String.", value));
   }
 
   private int literalToInt(Value value) {
-    if (!(value instanceof Literal)) {
-      throw new IllegalArgumentException(String
-          .format("value [%s] was not a literal, which is expected for a parameter of type int or Integer.", value));
+    if (value instanceof Literal literal) {
+      return literal.intValue();
     }
-    var literal = (Literal) value;
-    return literal.intValue();
+
+    throw new IllegalArgumentException(String
+        .format("value [%s] was not a literal, which is expected for a parameter of type int or Integer.", value));
   }
 
   private double literalToDouble(Value value) {
-    if (!(value instanceof Literal)) {
-      throw new IllegalArgumentException(String
-          .format("value [%s] was not a literal, which is expected for a parameter of type double or Double.", value));
+    if (value instanceof Literal literal) {
+      return literal.doubleValue();
     }
-    var literal = (Literal) value;
 
-    return literal.doubleValue();
+    throw new IllegalArgumentException(String
+        .format("value [%s] was not a literal, which is expected for a parameter of type double or Double.", value));
+
   }
 
   private float literalToFloat(Value value) {
-    if (!(value instanceof Literal)) {
-      throw new IllegalArgumentException(String
-          .format("value [%s] was not a literal, which is expected for a parameter of type float or Float.", value));
+    if (value instanceof Literal literal) {
+      return literal.floatValue();
     }
-    var literal = (Literal) value;
 
-    return literal.floatValue();
+    throw new IllegalArgumentException(String
+        .format("value [%s] was not a literal, which is expected for a parameter of type float or Float.", value));
   }
 
   private long literalToLong(Value value) {
-    if (!(value instanceof Literal)) {
-      throw new IllegalArgumentException(String
-          .format("value [%s] was not a literal, which is expected for a parameter of type long or Long.", value));
+    if (value instanceof Literal literal) {
+      return literal.longValue();
     }
-    var literal = (Literal) value;
 
-    return literal.longValue();
+    throw new IllegalArgumentException(
+        String.format("value [%s] was not a literal, which is expected for a parameter of type long or Long.", value));
   }
 
   private boolean literalToBoolean(Value value) {
-    if (!(value instanceof Literal)) {
-      throw new IllegalArgumentException(String.format(
-          "value [%s] was not a literal, which is expected for a parameter of type boolean or Boolean.", value));
+    if (value instanceof Literal literal) {
+      return literal.booleanValue();
     }
-    var literal = (Literal) value;
 
-    return literal.booleanValue();
+
+    throw new IllegalArgumentException(String
+        .format("value [%s] was not a literal, which is expected for a parameter of type boolean or Boolean.", value));
   }
 
 }

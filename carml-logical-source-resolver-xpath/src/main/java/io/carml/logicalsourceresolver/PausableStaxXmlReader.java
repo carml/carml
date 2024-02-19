@@ -112,36 +112,20 @@ public class PausableStaxXmlReader extends AbstractXMLReader {
   private void run(int eventType) throws SAXException, XMLStreamException {
     while (true) {
       switch (eventType) {
-        case START_ELEMENT: {
-          handleStartElement();
-          break;
-        }
-        case END_ELEMENT: {
-          handleEndElement();
-          break;
-        }
-        case PROCESSING_INSTRUCTION:
-          handleProcessingInstruction();
-          break;
-        case CHARACTERS:
-        case SPACE:
-        case CDATA:
-          handleCharacters();
-          break;
-        case COMMENT:
-          handleComment();
-          break;
-        case START_DOCUMENT:
-          handleStartDocument();
-          break;
-        case END_DOCUMENT:
+        case START_ELEMENT -> handleStartElement();
+        case END_ELEMENT -> handleEndElement();
+        case PROCESSING_INSTRUCTION -> handleProcessingInstruction();
+        case CHARACTERS, SPACE, CDATA -> handleCharacters();
+        case COMMENT -> handleComment();
+        case START_DOCUMENT -> handleStartDocument();
+        case END_DOCUMENT -> {
           handleEndDocument();
           return;
-        case DTD:
-          handleDtd();
-          break;
-        default:
+        }
+        case DTD -> handleDtd();
+        default -> {
           // not interested in event type
+        }
       }
       try {
         if (readingPaused.get()) {

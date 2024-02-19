@@ -6,7 +6,6 @@ import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
@@ -75,7 +74,7 @@ public class MethodPropertyHandlerRegistry {
   Stream<Optional<PropertyHandler>> getEffectiveHandlers(Model model, Resource resource) {
     List<PropertyHandler> effectiveHandlers = handlers.stream()
         .filter(h -> h.hasEffect(model, resource))
-        .collect(Collectors.toList());
+        .toList();
 
     // Only apply one effective property handler for non-iterable property
     if (!isIterable) {

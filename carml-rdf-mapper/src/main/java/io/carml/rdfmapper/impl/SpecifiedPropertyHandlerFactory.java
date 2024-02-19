@@ -2,7 +2,6 @@ package io.carml.rdfmapper.impl;
 
 import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
-import static java.util.stream.Collectors.toList;
 
 import io.carml.rdfmapper.PropertyHandler;
 import io.carml.rdfmapper.annotations.RdfProperty;
@@ -27,7 +26,7 @@ import javax.inject.Qualifier;
  */
 public class SpecifiedPropertyHandlerFactory {
 
-  private DependencySettersCache cache;
+  private final DependencySettersCache cache;
 
   public SpecifiedPropertyHandlerFactory(DependencySettersCache cache) {
     this.cache = cache;
@@ -73,13 +72,11 @@ public class SpecifiedPropertyHandlerFactory {
 
         // find methods annotated with @Inject
         .filter(m -> m.getAnnotation(Inject.class) != null)
-
         // for each such setter, create a consumer that will take a
         // handler instance, and will resolve and set the correct
         // dependency.
         .map(m -> createDependencySetter(m, resolver, getPropertyType(m), getPropertyQualifiers(m)))
-
-        .collect(toList());
+        .toList();
 
   }
 
@@ -107,9 +104,8 @@ public class SpecifiedPropertyHandlerFactory {
   }
 
   private List<Annotation> getPropertyQualifiers(Method method) {
-    return asList(method.getAnnotations()).stream()
-        .filter(this::isQualifierInstance)
-        .collect(toList());
+    return stream(method.getAnnotations()).filter(this::isQualifierInstance)
+        .toList();
   }
 
   private Consumer<Object> createDependencySetter(Method method, DependencyResolver resolver, Type propertyType,

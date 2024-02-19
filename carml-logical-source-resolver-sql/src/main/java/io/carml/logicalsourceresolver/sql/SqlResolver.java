@@ -3,7 +3,6 @@ package io.carml.logicalsourceresolver.sql;
 import static io.carml.util.LogUtil.exception;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toSet;
-import static java.util.stream.Collectors.toUnmodifiableList;
 import static java.util.stream.Collectors.toUnmodifiableSet;
 import static org.jooq.impl.DSL.field;
 import static org.jooq.impl.DSL.name;
@@ -78,8 +77,8 @@ public abstract class SqlResolver implements LogicalSourceResolver<RowData> {
     var resolved = resolvedSource.getResolved()
         .get();
 
-    if (resolved instanceof ConnectionFactoryOptions) {
-      var connectionFactory = ConnectionFactories.get((ConnectionFactoryOptions) resolved);
+    if (resolved instanceof ConnectionFactoryOptions connectionFactoryOptions) {
+      var connectionFactory = ConnectionFactories.get(connectionFactoryOptions);
 
       return getResultFlux(connectionFactory, logicalSources);
     } else {
@@ -122,8 +121,8 @@ public abstract class SqlResolver implements LogicalSourceResolver<RowData> {
 
   private String getSelectQueryString(LogicalSource logicalSource) {
     var source = logicalSource.getSource();
-    if (source instanceof JoiningDatabaseSource) {
-      return getJointSqlQuery((JoiningDatabaseSource) source);
+    if (source instanceof JoiningDatabaseSource joiningDatabaseSource) {
+      return getJointSqlQuery(joiningDatabaseSource);
     } else if (logicalSource.getSource() instanceof DatabaseSource) {
       if (logicalSource.getQuery() != null) {
         return logicalSource.getQuery();
@@ -280,7 +279,7 @@ public abstract class SqlResolver implements LogicalSourceResolver<RowData> {
         .as(PARENT_ALIAS);
 
     var projection = Stream.concat(qualifiedChildProjection.stream(), qualifiedParentProjection.stream())
-        .collect(toUnmodifiableList());
+        .toList();
 
     return ctx.select(projection)
         .from(childTable)

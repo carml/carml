@@ -35,8 +35,7 @@ public class CarmlFileSource extends CarmlResource implements FileSource {
 
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof FileSource) {
-      FileSource other = (FileSource) obj;
+    if (obj instanceof FileSource other) {
       return Objects.equals(url, other.getUrl());
     }
     return false;
