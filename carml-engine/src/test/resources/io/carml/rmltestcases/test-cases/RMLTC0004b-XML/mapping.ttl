@@ -9,23 +9,23 @@
 
 <TriplesMap1>
   a rr:TriplesMap;
-    
-  rml:logicalSource [ 
+
+  rml:logicalSource [
     rml:source "student.xml";
     rml:referenceFormulation ql:XPath;
     rml:iterator "/students/student"
   ];
 
-  rr:subjectMap [ 
+  rr:subjectMap [
     rr:template "http://example.com/{Name}";
-    rr:termType rr:Literal 
-  ]; 
-	
-  rr:predicateObjectMap [ 
-    rr:predicate foaf:name; 
+    rr:termType rr:Literal
+  ];
+
+  rr:predicateObjectMap [
+    rr:predicate foaf:name;
     rr:objectMap [
       rml:reference "Name"
     ]
   ].
 
-										
+

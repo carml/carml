@@ -9,19 +9,19 @@
 
 <TriplesMap1>
   a rr:TriplesMap;
-        
-  rml:logicalSource [ 
+
+  rml:logicalSource [
     rml:source "student.csv";
     rml:referenceFormulation ql:CSV
   ] ;
-	
-  rr:subjectMap [ 
-    rr:template "http://example.com/{Name}" 
-  ]; 
-	
-  rr:predicateObjectMap [ 
-    rr:predicate foaf:name ; 
-    rr:objectMap [ 
-      rml:reference "Name" 
+
+  rr:subjectMap [
+    rr:template "http://example.com/{Name}"
+  ];
+
+  rr:predicateObjectMap [
+    rr:predicate foaf:name ;
+    rr:objectMap [
+      rml:reference "Name"
     ]
   ].

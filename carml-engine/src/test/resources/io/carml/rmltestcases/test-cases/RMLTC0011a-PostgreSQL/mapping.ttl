@@ -11,7 +11,7 @@
 <TriplesMap1>
     a rr:TriplesMap;
 
-    rml:logicalSource [ 
+    rml:logicalSource [
        rml:source <#DB_source>;
        rr:sqlVersion rr:SQL2008;
        rml:query """
@@ -28,28 +28,28 @@
    ];
 
     rr:subjectMap [ rr:template "http://example.com/{id}/{firstname};{lastname}" ];
-	
+
     rr:predicateObjectMap
-    [ 
-      rr:predicate	ex:id ; 
+    [
+      rr:predicate	ex:id ;
       rr:objectMap	[ rml:reference "id"; ]
     ];
 
     rr:predicateObjectMap
-    [ 
-      rr:predicate	ex:firstName ; 
+    [
+      rr:predicate	ex:firstName ;
       rr:objectMap	[ rml:reference "firstname" ]
     ];
 
     rr:predicateObjectMap
-    [ 
-      rr:predicate	ex:lastName ; 
+    [
+      rr:predicate	ex:lastName ;
       rr:objectMap	[ rml:reference "lastname" ]
     ];
 
     rr:predicateObjectMap
-    [ 
-      rr:predicate	ex:plays ; 
+    [
+      rr:predicate	ex:plays ;
       rr:objectMap	[ rr:template "http://example.com/{sport_id}/{description}" ]
     ]
     .
@@ -58,18 +58,18 @@
     a rr:TriplesMap;
 
 	rr:logicalTable [ rr:tableName  "Sport" ];
-	
+
     rr:subjectMap [ rr:template "http://example.com/{id}/{description}"; ];
 
     rr:predicateObjectMap
-    [ 
-      rr:predicate	ex:id ; 
+    [
+      rr:predicate	ex:id ;
       rr:objectMap	[ rml:reference "id"; ]
     ];
 
     rr:predicateObjectMap
-    [ 
-      rr:predicate	ex:description ; 
+    [
+      rr:predicate	ex:description ;
       rr:objectMap	[ rml:reference "description" ]
     ]
     .

@@ -21,7 +21,7 @@
 		rr:template "http://double.subject.example.com/Child/{first}";
 		rr:class ex:childsFirstName
 	];
-	
+
 	rr:subjectMap [
 		rr:template "http://doublesubjectexample.com/Child/{last}";
 		rr:class ex:childsLastName
@@ -45,7 +45,7 @@
 		rr:template "http://double.subject.example.com/Child/{first}";
 		rr:class ex:childsFirstName
 	];
-	
+
 	 rr:subjectMap [
 		rr:template "http://double.subject.example.com/Child/{last}";
 	].
@@ -68,12 +68,12 @@
 	rr:subjectMap [
 		rr:template "http://example.com/Child/{first}";
 	];
-		
+
 	rr:subjectMap [
 		rr:template "http://double.subject.example.com/Child/{last}";
 		rr:class ex:childsLastName
 	].
- 
+
 
 
 
@@ -92,7 +92,7 @@
 	rr:subjectMap [
 		rr:template "http://example.com/Child/{first}";
 	];
-		
+
 	rr:subjectMap [
 		rr:template "http://double.subject.example.com/Child/{last}";
 		rr:class ex:childsLastName
@@ -104,4 +104,3 @@
 			rml:reference "birthday"
 		]
 	].
- 

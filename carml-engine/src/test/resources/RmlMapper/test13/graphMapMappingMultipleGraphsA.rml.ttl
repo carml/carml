@@ -17,7 +17,7 @@
 		rr:graphMap [ rr:constant <http://example.dataset/test1> ];
 		rr:graphMap [ rr:constant <http://example.dataset/test2> ];
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicateMap [
 			rr:constant ex:hasBirthday;
@@ -25,5 +25,5 @@
 		rr:objectMap [
 			rml:reference "birthday";
 		];
-		
+
 	] .

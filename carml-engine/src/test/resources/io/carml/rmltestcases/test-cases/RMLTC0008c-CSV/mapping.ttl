@@ -16,8 +16,8 @@
   ];
 
   rr:subjectMap [ rr:template "http://example.com/Student/{ID}/{Name}" ];
-	
-  rr:predicateObjectMap [ 
+
+  rr:predicateObjectMap [
     rr:predicate foaf:name ;
     rr:predicate ex:name ;
     rr:objectMap [ rml:reference "Name" ]

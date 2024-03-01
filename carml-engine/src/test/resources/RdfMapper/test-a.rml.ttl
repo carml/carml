@@ -12,7 +12,7 @@
 		rml:referenceFormulation ql:JSONPath;
 		rml:iterator "$";
 	];
-	
+
 	rr:subjectMap [
 		rr:template "http://data.example.com/resource/{id}";
 		rr:class vocab:MyResource
@@ -25,19 +25,19 @@
 			rr:datatype xsd:date;
 		]
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicate vocab:description;
-		rr:objectMap [ 
+		rr:objectMap [
 			rml:reference "description";
 		]
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicate vocab:description;
 		rr:object "constant description"@en;
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicate vocab:accuracy;
 		rr:objectMap [

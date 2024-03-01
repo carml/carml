@@ -10,7 +10,7 @@
 <TriplesMap1>
   a rr:TriplesMap;
 
-  rml:logicalSource [ 
+  rml:logicalSource [
     rml:source "student.xml";
     rml:referenceFormulation ql:XPath;
     rml:iterator "/students/student"
@@ -21,16 +21,16 @@
     rr:class <http://example.com/ontology/Student>;
     rr:graph <http://example.com/graph/students> ;
   ];
-	
-  rr:predicateObjectMap [ 
+
+  rr:predicateObjectMap [
     rr:predicate foaf:name ;
     rr:objectMap [ rml:reference "Name" ];
     rr:graph <http://example.com/graph/students> ;
   ] ;
 
-  rr:predicateObjectMap [ 
+  rr:predicateObjectMap [
     rr:predicate <http://example.com/ontology/practises> ;
-    rr:objectMap [ 
+    rr:objectMap [
       a rr:RefObjectMap ;
       rr:parentTriplesMap <TriplesMap2>;
       rr:joinCondition [
@@ -43,8 +43,8 @@
 
 <TriplesMap2>
   a rr:TriplesMap;
-		
-  rml:logicalSource [ 
+
+  rml:logicalSource [
     rml:source "sport.xml";
     rml:referenceFormulation ql:XPath;
     rml:iterator "/sports/sport"
@@ -55,8 +55,8 @@
     rr:class <http://example.com/ontology/Sport>;
     rr:graph <http://example.com/graph/sports> ;
   ];
-	
-  rr:predicateObjectMap [ 
-    rr:predicate rdfs:label ; 
+
+  rr:predicateObjectMap [
+    rr:predicate rdfs:label ;
     rr:objectMap [ rml:reference "Name" ];
   ].

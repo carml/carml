@@ -13,22 +13,22 @@
 		rml:referenceFormulation ql:JSONPath;
 		rml:iterator "$"
 	];
-	
+
 	rr:subjectMap [
 		rr:template "http://faulty.termType.example.com/Child/{first}";
 		rr:class ex:FirstName;
 		rr:termType rr:Literal
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicate ex:hasParents
 		rr:objectMap [
 			rml:reference "parents"
 		]
 	].
-	
 
-	
+
+
 ####################################################################################
 # Wrong termType GraphMap Literal
 ####################################################################################
@@ -38,7 +38,7 @@
 		rml:referenceFormulation ql:JSONPath;
 		rml:iterator "$"
 	];
-	
+
 	rr:subjectMap [
 		rr:template "http://faulty.termType.example.com/Child/{first}";
 		rr:class ex:FirstName;
@@ -47,18 +47,18 @@
 			rr:termType rr:Literal
 		]
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicate ex:hasParents
 		rr:objectMap [
 			rml:reference "parents"
 		]
 	].
-	
-	
-	
-	
-	
+
+
+
+
+
 ####################################################################################
 # Wrong termType GraphMap BlankNode
 ####################################################################################
@@ -68,7 +68,7 @@
 		rml:referenceFormulation ql:JSONPath;
 		rml:iterator "$"
 	];
-	
+
 	rr:subjectMap [
 		rr:template "http://faulty.termType.example.com/Child/{first}";
 		rr:class ex:FirstName;
@@ -77,16 +77,16 @@
 			rr:termType rr:BlankNode
 		]
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicate ex:hasParents
 		rr:objectMap [
 			rml:reference "parents"
 		]
 	].
-	
-	
-	
+
+
+
 ####################################################################################
 # Wrong termType predicateMap Literal
 ####################################################################################
@@ -96,12 +96,12 @@
 		rml:referenceFormulation ql:JSONPath;
 		rml:iterator "$"
 	];
-	
+
 	rr:subjectMap [
 		rr:template "http://faulty.termType.example.com/Child/{first}";
 		rr:class ex:FirstName;
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicateMap [
 			rr:constant ex:hasParents;
@@ -111,10 +111,10 @@
 			rml:reference "parents"
 		]
 	].
-	
 
-	
-	
+
+
+
 ####################################################################################
 # Wrong termType predicateMap BlankNode
 ####################################################################################
@@ -124,12 +124,12 @@
 		rml:referenceFormulation ql:JSONPath;
 		rml:iterator "$"
 	];
-	
+
 	rr:subjectMap [
 		rr:template "http://faulty.termType.example.com/Child/{first}";
 		rr:class ex:FirstName;
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicateMap [
 			rr:constant ex:hasParents;
@@ -139,6 +139,6 @@
 			rml:reference "parents"
 		]
 	].
-	
-	
+
+
 

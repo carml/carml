@@ -35,28 +35,28 @@
 
 
   rr:subjectMap [ rr:template "http://example.com/Student/{ID}/{Name}" ];
-	
-  rr:predicateObjectMap [ 
+
+  rr:predicateObjectMap [
     rr:predicate rdf:type ;
     rr:object foaf:Person ;
   ];
-		
-  rr:predicateObjectMap [ 
+
+  rr:predicateObjectMap [
     rr:predicate ex:id ;
     rr:objectMap [ rml:reference "ID"; ]
   ];
 
-  rr:predicateObjectMap [ 
+  rr:predicateObjectMap [
     rr:predicate foaf:name ;
     rr:objectMap [ rml:reference "Name" ]
   ];
- 
-  rr:predicateObjectMap [ 
+
+  rr:predicateObjectMap [
     rr:predicate ex:Sport ;
     rr:objectMap <RefObjectMap1>
   ] .
 
- 
+
 <RefObjectMap1>
   a rr:RefObjectMap;
   rr:parentTriplesMap <TriplesMap2> .

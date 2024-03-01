@@ -1,5 +1,7 @@
-package io.carml.engine.template;
+package io.carml.model.impl.template;
 
+import io.carml.model.Template;
+import io.carml.model.impl.CarmlTemplate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.IntStream;
@@ -9,21 +11,20 @@ import org.apache.commons.lang3.mutable.MutableObject;
 
 public class TemplateParser {
 
+  private static final TemplateParser DEFAULT = TemplateParser.of();
+
   private final String escapableChars;
 
-  private final String expressionPrefix;
-
-  private TemplateParser(String escapableChars, String expressionPrefix) {
+  private TemplateParser(String escapableChars) {
     this.escapableChars = escapableChars;
-    this.expressionPrefix = expressionPrefix;
   }
 
-  public static TemplateParser build() {
-    return buildWithExpressionPrefix(null);
+  public static TemplateParser getInstance() {
+    return DEFAULT;
   }
 
-  public static TemplateParser buildWithExpressionPrefix(String expressionPrefix) {
-    return new TemplateParser("{}\\", expressionPrefix == null ? "" : expressionPrefix);
+  public static TemplateParser of() {
+    return new TemplateParser("{}\\");
   }
 
   private abstract static class Segment {
@@ -39,21 +40,39 @@ public class TemplateParser {
     }
   }
 
-  private static class Text extends Segment {
+  private static class TextSegment extends Segment {
+
   }
 
-  private static class Expression extends Segment {
+  private static class ExpressionSegment extends Segment {
+
   }
 
   public Template parse(String template) {
     MutableBoolean escaping = new MutableBoolean(false);
-    MutableObject<Segment> segmentContainer = new MutableObject<>(new Text());
+    MutableObject<Segment> segmentContainer = new MutableObject<>(new TextSegment());
 
-    List<CarmlTemplate.Segment> segments = new ArrayList<>();
+    List<Template.Segment> segments = new ArrayList<>();
 
+    Runnable storeSegment = getStoreSegmentRunnable(segmentContainer, segments);
+
+    IntStream.range(0, template.length())
+        .mapToObj(i -> template.substring(i, i + 1))
+        .forEach(character -> parseCharToSegments(template, character, segmentContainer, escaping, storeSegment));
+
+    Segment segment = segmentContainer.getValue();
+    if (segment instanceof ExpressionSegment) {
+      throw new TemplateException(String.format("unclosed expression in template [%s]", template));
+    }
+    storeSegment.run();
+
+    return CarmlTemplate.of(segments);
+  }
+
+  private Runnable getStoreSegmentRunnable(MutableObject<Segment> segmentContainer, List<Template.Segment> segments) {
     MutableInt nextId = new MutableInt();
 
-    Runnable storeSegment = () -> {
+    return () -> {
       Segment segment = segmentContainer.getValue();
       if (segment == null) {
         return;
@@ -64,26 +83,13 @@ public class TemplateParser {
         return;
       }
 
-      if (segment instanceof Text) {
-        segments.add(new CarmlTemplate.Text(value));
-      } else if (segment instanceof Expression) {
-        segments.add(new CarmlTemplate.ExpressionSegment(nextId.getAndIncrement(),
-            String.format("%s%s", expressionPrefix, value)));
+      if (segment instanceof TextSegment) {
+        segments.add(new CarmlTemplate.TextSegment(value));
+      } else if (segment instanceof ExpressionSegment) {
+        segments.add(new CarmlTemplate.ExpressionSegment(nextId.getAndIncrement(), value));
       }
       // (assuming no other segment types)
     };
-
-    IntStream.range(0, template.length())
-        .mapToObj(i -> template.substring(i, i + 1))
-        .forEach(character -> parseCharToSegments(template, character, segmentContainer, escaping, storeSegment));
-
-    Segment segment = segmentContainer.getValue();
-    if (segment instanceof Expression) {
-      throw new TemplateException(String.format("unclosed expression in template [%s]", template));
-    }
-    storeSegment.run();
-
-    return CarmlTemplate.build(segments);
   }
 
   private void parseCharToSegments(String template, String character, MutableObject<Segment> segmentContainer,
@@ -100,17 +106,17 @@ public class TemplateParser {
     } else if (character.equals("\\")) {
       escaping.setTrue();
     } else if (character.equals("{")) {
-      if (segment instanceof Expression) {
+      if (segment instanceof ExpressionSegment) {
         throw new TemplateException(
             String.format("encountered unescaped nested { character in template [%s]", template));
       }
       // (assuming segment is Text)
       storeSegment.run();
-      segmentContainer.setValue(new Expression());
+      segmentContainer.setValue(new ExpressionSegment());
     } else if (character.equals("}")) {
-      if (segment instanceof Expression) {
+      if (segment instanceof ExpressionSegment) {
         storeSegment.run();
-        segmentContainer.setValue(new Text());
+        segmentContainer.setValue(new TextSegment());
       } else { // allow adding } outside expressions to text segment
         segment.append(character);
       }

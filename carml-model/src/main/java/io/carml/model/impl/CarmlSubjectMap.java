@@ -9,6 +9,7 @@ import io.carml.rdfmapper.annotations.RdfType;
 import io.carml.vocab.Rdf;
 import io.carml.vocab.Rr;
 import java.util.Set;
+import java.util.function.UnaryOperator;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -62,5 +63,22 @@ public class CarmlSubjectMap extends CarmlTermMap implements SubjectMap {
 
     graphMaps.forEach(gm -> modelBuilder.add(Rr.graphMap, gm.getAsResource()));
     classes.forEach(cl -> modelBuilder.add(Rr.clazz, cl));
+  }
+
+  @Override
+  public SubjectMap applyExpressionAdapter(UnaryOperator<String> referenceExpressionAdapter) {
+    var subjectMapBuilder = this.toBuilder();
+    if (reference != null) {
+      adaptReference(referenceExpressionAdapter, subjectMapBuilder::reference);
+      return subjectMapBuilder.build();
+    } else if (template != null) {
+      adaptTemplate(referenceExpressionAdapter, subjectMapBuilder::template);
+      return subjectMapBuilder.build();
+    } else if (functionValue != null) {
+      adaptFunctionValue(referenceExpressionAdapter, subjectMapBuilder::functionValue);
+      return subjectMapBuilder.build();
+    } else {
+      return this;
+    }
   }
 }

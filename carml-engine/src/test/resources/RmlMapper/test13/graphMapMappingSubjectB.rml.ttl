@@ -16,7 +16,7 @@
 		rr:class ex:Child;
 		rr:graphMap [ rr:template "http://example.dataset/test/{BSN}" ];
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicateMap [
 			rr:constant ex:hasBirthday;
@@ -24,5 +24,5 @@
 		rr:objectMap [
 			rml:reference "birthday";
 		];
-		
+
 	] .

@@ -33,12 +33,12 @@ rr:predicateObjectMap [
 		rml:referenceFormulation ql:JSONPath;
 		rml:iterator "$.country"
 		];
-		
+
 		rr:subjectMap [
 			rr:template "http://country.example.com/{name}";
 			rr:class ex:Country ;
 		];
-		
+
 		rr:predicateObjectMap [
 			rr:predicate ex:hasLanguage;
 			rr:objectMap [

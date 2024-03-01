@@ -14,7 +14,7 @@
 		rr:template "http://example.com/Child/{first}/{last}";
 		rr:class ex:Child
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicate ex:loves;
 		rr:objectMap [

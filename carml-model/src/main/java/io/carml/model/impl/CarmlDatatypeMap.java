@@ -2,6 +2,7 @@ package io.carml.model.impl;
 
 import io.carml.model.DatatypeMap;
 import io.carml.model.Resource;
+import io.carml.model.Template;
 import io.carml.model.TriplesMap;
 import io.carml.vocab.Rml;
 import java.util.Set;
@@ -19,7 +20,8 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @EqualsAndHashCode(callSuper = true)
 public class CarmlDatatypeMap extends CarmlExpressionMap implements DatatypeMap {
 
-  public CarmlDatatypeMap(String id, String label, String reference, String template, Value constant,
+  // TODO still necessary?
+  public CarmlDatatypeMap(String id, String label, String reference, Template template, Value constant,
       TriplesMap functionValue) {
     super(id, label, reference, template, constant, functionValue);
   }

@@ -11,12 +11,12 @@
 		rml:referenceFormulation ql:JSONPath;
 		rml:iterator "$"
 	];
-	
+
 	rr:subjectMap [
 		rr:template "http://example.com/Child/{first}";
 		rr:class ex:childsFirstName
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicate ex:hasBirthday;
 		rr:objectMap [

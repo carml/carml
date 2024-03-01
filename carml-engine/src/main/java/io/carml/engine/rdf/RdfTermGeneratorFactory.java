@@ -8,8 +8,6 @@ import io.carml.engine.TermGenerator;
 import io.carml.engine.TermGeneratorFactory;
 import io.carml.engine.TermGeneratorFactoryException;
 import io.carml.engine.function.ExecuteFunction;
-import io.carml.engine.template.Template;
-import io.carml.engine.template.TemplateParser;
 import io.carml.logicalsourceresolver.DatatypeMapper;
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.model.DatatypeMap;
@@ -23,6 +21,7 @@ import io.carml.model.SubjectMap;
 import io.carml.model.TermMap;
 import io.carml.model.TermType;
 import io.carml.model.TriplesMap;
+import io.carml.model.impl.template.TemplateParser;
 import io.carml.util.IriSafeMaker;
 import io.carml.util.RdfValues;
 import io.carml.vocab.Rdf;
@@ -327,12 +326,10 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
   public Optional<TermGenerator<? extends Value>> getTemplateGenerator(ExpressionMap map,
       Set<TermType> allowedTermTypes) {
 
-    String templateStr = map.getTemplate();
-    if (templateStr == null) {
+    var template = map.getTemplate();
+    if (template == null) {
       return Optional.empty();
     }
-
-    Template template = templateParser.parse(templateStr);
 
     TermType termType = determineTermType(map);
 
@@ -340,8 +337,8 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
     // otherwise, do not transform template values.
     UnaryOperator<String> transformValue = termType == TermType.IRI ? makeIriSafe : v -> v;
 
-    BiFunction<ExpressionEvaluation, DatatypeMapper, Optional<Object>> getValue =
-        new GetTemplateValue(template, template.getExpressions(), transformValue, this::createCanonicalRdfLexicalForm);
+    BiFunction<ExpressionEvaluation, DatatypeMapper, Optional<Object>> getValue = new GetTemplateValue(template,
+        template.getReferenceExpressions(), transformValue, this::createCanonicalRdfLexicalForm);
 
     return Optional
         .of(getGenerator(map, getValue, expressionEvaluation -> Optional.empty(), allowedTermTypes, termType));

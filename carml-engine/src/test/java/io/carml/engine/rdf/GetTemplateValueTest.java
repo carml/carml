@@ -4,10 +4,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.when;
 
-import io.carml.engine.template.Template;
-import io.carml.engine.template.TemplateParser;
 import io.carml.logicalsourceresolver.DatatypeMapper;
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
+import io.carml.model.Template;
+import io.carml.model.impl.template.TemplateParser;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -41,26 +41,22 @@ class GetTemplateValueTest {
     when(createNaturalRdfLexicalForm.apply("evaluated", XSD.STRING)).thenReturn("natural");
     when(transformValue.apply("natural")).thenReturn("transformed");
 
-    Template template = TemplateParser.build()
+    Template template = TemplateParser.getInstance()
         .parse("abc{xyz}");
     GetTemplateValue getTemplateValue =
-        new GetTemplateValue(template, template.getExpressions(), transformValue, createNaturalRdfLexicalForm);
-    Optional<Object> templateValue = getTemplateValue.apply(expressionEvaluation, datatypeMapper);
-    String result = unpackTemplateValue(templateValue);
+        new GetTemplateValue(template, template.getReferenceExpressions(), transformValue, createNaturalRdfLexicalForm);
+    String result = getTemplateValue.apply(expressionEvaluation, datatypeMapper).map(this::unpackTemplateValue)
+        .orElseThrow(RuntimeException::new);
     assertThat(result, is("abctransformed"));
   }
 
-  private String unpackTemplateValue(Optional<Object> templateValue) {
-    return templateValue.map(v -> {
-      if (v instanceof List<?>) {
-        List<?> list = (List<?>) v;
-        assertThat(list.size(), is(1));
-        return (String) (list).get(0);
-      } else {
-        throw new RuntimeException();
-      }
-    })
-        .orElseThrow(RuntimeException::new);
+  private String unpackTemplateValue(Object templateValue) {
+    if (templateValue instanceof List<?> list) {
+      assertThat(list.size(), is(1));
+      return (String) (list).get(0);
+    } else {
+      throw new RuntimeException();
+    }
   }
 
   @Test
@@ -70,12 +66,12 @@ class GetTemplateValueTest {
     when(createNaturalRdfLexicalForm.apply("evaluated", XSD.STRING)).thenReturn("natural");
     when(transformValue.apply("natural")).thenReturn("transformed");
 
-    Template template = TemplateParser.build()
+    Template template = TemplateParser.getInstance()
         .parse("abc{xyz}{xyz}");
     GetTemplateValue getTemplateValue =
-        new GetTemplateValue(template, template.getExpressions(), transformValue, createNaturalRdfLexicalForm);
-    Optional<Object> templateValue = getTemplateValue.apply(expressionEvaluation, datatypeMapper);
-    String result = unpackTemplateValue(templateValue);
+        new GetTemplateValue(template, template.getReferenceExpressions(), transformValue, createNaturalRdfLexicalForm);
+    String result = getTemplateValue.apply(expressionEvaluation, datatypeMapper).map(this::unpackTemplateValue)
+        .orElseThrow(RuntimeException::new);
     assertThat(result, is("abctransformedtransformed"));
   }
 
@@ -84,12 +80,11 @@ class GetTemplateValueTest {
     when(expressionEvaluation.apply("xyz")).thenReturn(Optional.empty());
     when(datatypeMapper.apply("xyz")).thenReturn(Optional.of(XSD.STRING));
 
-    Template template = TemplateParser.build()
+    Template template = TemplateParser.getInstance()
         .parse("abc{xyz}");
     GetTemplateValue getTemplateValue =
-        new GetTemplateValue(template, template.getExpressions(), transformValue, createNaturalRdfLexicalForm);
+        new GetTemplateValue(template, template.getReferenceExpressions(), transformValue, createNaturalRdfLexicalForm);
     Optional<Object> templateValue = getTemplateValue.apply(expressionEvaluation, datatypeMapper);
     assertThat(templateValue, is(Optional.empty()));
   }
-
 }

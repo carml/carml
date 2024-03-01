@@ -15,7 +15,7 @@
     rml:referenceFormulation ql:XPath;
     rml:iterator "/Persons/Person"
   ];
-	
+
   rr:subjectMap [
     rr:template "{fname}{lname}";
     rr:termType rr:BlankNode ;

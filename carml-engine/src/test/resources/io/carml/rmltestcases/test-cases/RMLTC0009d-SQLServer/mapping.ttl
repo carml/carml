@@ -23,16 +23,16 @@
   ];
 
   rr:subjectMap [ rr:template "http://example.com/resource/student_{Name}"; ];
-	
+
     rr:predicateObjectMap
-    [ 
-      rr:predicate	foaf:name ; 
+    [
+      rr:predicate	foaf:name ;
       rr:objectMap	[ rml:reference "Name"; ];
     ];
 
     rr:predicateObjectMap
-    [ 
-		rr:predicate	ex:numSport ; 
+    [
+		rr:predicate	ex:numSport ;
 		rr:objectMap	[ rml:reference "SPORTCOUNT"; ];
     ].
 

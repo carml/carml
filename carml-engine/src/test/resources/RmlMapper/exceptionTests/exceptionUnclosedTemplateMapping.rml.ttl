@@ -9,11 +9,11 @@
 		rml:referenceFormulation ql:JSONPath;
 		rml:iterator "$"
 	];
-	
+
 	rr:subjectMap [
 		rr:template "http://faulty.termType.example.com/Child/{first}";
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicate ex:hasParents;
 		rr:objectMap [

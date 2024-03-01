@@ -8,31 +8,31 @@
 @base <http://example.com/base/> .
 
 <TriplesMap1> a rr:TriplesMap;
-    
-  rml:logicalSource [ 
+
+  rml:logicalSource [
     rml:source <#DB_source>;
     rr:sqlVersion rr:SQL2008;
     rr:tableName "IOUs";
   ];
 
-  rr:subjectMap [ 
+  rr:subjectMap [
     rr:template "{fname}_{lname}";
     rr:class <IOUs>;
     rr:termType rr:BlankNode
   ];
 
-  rr:predicateObjectMap [ 
-    rr:predicate <IOUs#fname>; 
+  rr:predicateObjectMap [
+    rr:predicate <IOUs#fname>;
     rr:objectMap [ rml:reference "fname"; ]
   ];
 
-  rr:predicateObjectMap [ 
-    rr:predicate <IOUs#lname>; 
+  rr:predicateObjectMap [
+    rr:predicate <IOUs#lname>;
     rr:objectMap [ rml:reference "lname"; ]
   ];
 
-  rr:predicateObjectMap [ 
-    rr:predicate <IOUs#amount>; 
+  rr:predicateObjectMap [
+    rr:predicate <IOUs#amount>;
     rr:objectMap [ rml:reference "amount"; ]
   ].
 

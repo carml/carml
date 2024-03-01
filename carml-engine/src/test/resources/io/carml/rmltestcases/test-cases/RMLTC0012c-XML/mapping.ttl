@@ -15,18 +15,18 @@
     rml:referenceFormulation ql:XPath;
     rml:iterator "/Persons/Person"
   ];
-	
+
   rr:predicateObjectMap [
-    rr:predicate foaf:name ; 
+    rr:predicate foaf:name ;
     rr:objectMap [
       rr:template "{fname} {lname}";
       rr:termType rr:Literal ;
     ]
   ];
-    
-  rr:predicateObjectMap [ 
-    rr:predicate ex:amount ; 
-    rr:objectMap    [ 
+
+  rr:predicateObjectMap [
+    rr:predicate ex:amount ;
+    rr:objectMap    [
       rml:reference "amount";
     ]
   ].

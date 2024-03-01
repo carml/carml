@@ -13,7 +13,7 @@
 <#LogicalSource> rml:source "toBoolFunctionTestInput.json";
 		rml:referenceFormulation ql:JSONPath;
 		rml:iterator "$" .
-		
+
 <#toBoolMapping> a rr:TriplesMap;
 	rml:logicalSource <#LogicalSource>;
 	rr:subjectMap [

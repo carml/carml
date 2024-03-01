@@ -16,25 +16,24 @@
 		rr:class ex:Color;
 		rr:termType rr:BlankNode
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicate ex:hasCode;
 		rr:objectMap [
 			rr:parentTriplesMap <#ColorCode>;
 		];
 	].
-	
+
 <#ColorCode> a rr:ParentTriplesMap;
 	rml:logicalSource [
 		rml:source "parentTriplesTestInput.json";
 		rml:referenceFormulation ql:JSONPath;
 		rml:iterator "$.colors[*]";
 	];
-	
+
 	rr:subjectMap [
 		rr:template "http://example.com/ColorCode/{code.rgba[0]},{code.rgba[1]},{code.rgba[2]},{code.rgba[3]}";
 		#rml:reference "hex";
 		rr:class ex:RGBA
 	].
-	
-	
+

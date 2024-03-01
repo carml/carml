@@ -9,12 +9,12 @@ import static org.hamcrest.Matchers.hasItems;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import io.carml.engine.template.TemplateParser;
 import io.carml.logicalsourceresolver.DatatypeMapper;
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.model.impl.CarmlDatatypeMap;
 import io.carml.model.impl.CarmlLanguageMap;
 import io.carml.model.impl.CarmlObjectMap;
+import io.carml.model.impl.template.TemplateParser;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,7 +44,7 @@ class RdfTermGeneratorTest {
         .valueFactory(SimpleValueFactory.getInstance())
         .normalizationForm(Normalizer.Form.NFC)
         .build();
-    rdfTermGeneratorFactory = RdfTermGeneratorFactory.of(rdfTermGeneratorConfig, TemplateParser.build());
+    rdfTermGeneratorFactory = RdfTermGeneratorFactory.of(rdfTermGeneratorConfig, TemplateParser.getInstance());
   }
 
   @Test
@@ -52,7 +52,8 @@ class RdfTermGeneratorTest {
     // Given
     var objectMap = CarmlObjectMap.builder()
         .id("obj-map-1")
-        .template("http://{foo}")
+        .template(TemplateParser.getInstance()
+            .parse("http://{foo}"))
         .build();
 
     var objectGenerator = rdfTermGeneratorFactory.getObjectGenerator(objectMap);
@@ -143,7 +144,8 @@ class RdfTermGeneratorTest {
         .id("obj-map-1")
         .reference("foo")
         .datatypeMap(CarmlDatatypeMap.builder()
-            .template("https://{foo}.com")
+            .template(TemplateParser.getInstance()
+                .parse("https://{foo}.com"))
             .build())
         .build();
 

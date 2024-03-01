@@ -24,10 +24,10 @@ import io.carml.model.Join;
 import io.carml.model.LogicalSource;
 import io.carml.model.PredicateObjectMap;
 import io.carml.model.RefObjectMap;
+import io.carml.model.SubjectMap;
 import io.carml.model.TriplesMap;
 import io.carml.model.impl.CarmlLogicalSource;
 import io.carml.model.impl.CarmlPredicateObjectMap;
-import io.carml.util.Expressions;
 import io.carml.vocab.Rdf;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -119,7 +119,7 @@ public class RdfMappingPipelineFactory {
         .stream()
         .collect(toUnmodifiableMap(Entry::getKey, entry -> entry.getValue()
             .stream()
-            .map(Expressions::getExpressions)
+            .map(TriplesMap::getReferenceExpressionSet)
             .flatMap(Set::stream)
             .collect(toUnmodifiableSet())));
 
@@ -177,13 +177,13 @@ public class RdfMappingPipelineFactory {
         .map(RefObjectMap.class::cast)
         .collect(toUnmodifiableSet());
 
-    var childExpressions = Expressions.getExpressions(triplesMap, predicateObjectMaps);
+    var childExpressions = triplesMap.getReferenceExpressionSet(predicateObjectMaps);
 
     var parentTmExpressions = refObjectMaps.stream()
         .map(RefObjectMap::getParentTriplesMap)
         .map(TriplesMap::getSubjectMaps)
         .flatMap(Set::stream)
-        .map(Expressions::getExpressions)
+        .map(SubjectMap::getReferenceExpressionSet)
         .flatMap(Set::stream);
 
     var joinParentExpressions = refObjectMaps.stream()

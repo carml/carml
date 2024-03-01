@@ -35,7 +35,7 @@
 		rr:template "http://faulty.subject.class.example.com/Child/{first}";
 		rr:class "http://faulty.subject.class.example.com/{first}"
 	].
- 
+
 
 
 

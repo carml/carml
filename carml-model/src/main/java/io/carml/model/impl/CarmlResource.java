@@ -12,6 +12,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
@@ -25,6 +26,7 @@ import org.eclipse.rdf4j.model.vocabulary.RDFS;
 @NoArgsConstructor
 @Setter
 @ToString(callSuper = true)
+@EqualsAndHashCode
 public abstract class CarmlResource implements Resource {
 
   String id;

@@ -17,7 +17,7 @@
 		rr:class ex:Person;
 		rr:graphMap [ rr:constant <http://example.dataset/test> ];
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicateMap [
 			rr:constant ex:hasBirthday;
@@ -25,5 +25,5 @@
 		rr:objectMap [
 			rml:reference "birthday";
 		];
-		
+
 	] .

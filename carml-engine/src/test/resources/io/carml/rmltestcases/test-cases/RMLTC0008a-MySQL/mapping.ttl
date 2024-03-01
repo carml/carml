@@ -10,33 +10,33 @@
 <TriplesMap1>
   a rr:TriplesMap;
 
-  rml:logicalSource [ 
+  rml:logicalSource [
     rml:source <#DB_source>;
     rr:sqlVersion rr:SQL2008;
     rr:tableName "student";
 ];
 
-  rr:subjectMap [ 
-    rr:template "http://example.com/Student/{ID}/{Name}"; 
+  rr:subjectMap [
+    rr:template "http://example.com/Student/{ID}/{Name}";
     rr:graphMap [ rr:template "http://example.com/graph/Student/{ID}/{Name}" ]
   ];
-	
-  rr:predicateObjectMap [ 
+
+  rr:predicateObjectMap [
     rr:predicate rdf:type ;
-    rr:object foaf:Person; 
+    rr:object foaf:Person;
   ];
-	
-  rr:predicateObjectMap [ 
+
+  rr:predicateObjectMap [
     rr:predicate ex:id ;
     rr:objectMap [ rml:reference "ID" ]
   ];
 
-  rr:predicateObjectMap [ 
+  rr:predicateObjectMap [
     rr:predicate foaf:name ;
     rr:objectMap [ rml:reference "Name" ]
   ];
 
-  rr:predicateObjectMap [ 
+  rr:predicateObjectMap [
     rr:predicate ex:Sport ;
     rr:objectMap [ rml:reference "Sport" ]
   ] .

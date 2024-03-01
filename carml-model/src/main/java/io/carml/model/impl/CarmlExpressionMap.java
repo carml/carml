@@ -1,7 +1,10 @@
 package io.carml.model.impl;
 
 import io.carml.model.ExpressionMap;
+import io.carml.model.ObjectMap;
+import io.carml.model.PredicateObjectMap;
 import io.carml.model.Resource;
+import io.carml.model.Template;
 import io.carml.model.TriplesMap;
 import io.carml.rdfmapper.annotations.RdfProperty;
 import io.carml.rdfmapper.annotations.RdfType;
@@ -10,6 +13,8 @@ import io.carml.vocab.Fnml;
 import io.carml.vocab.Rml;
 import io.carml.vocab.Rr;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.UnaryOperator;
 import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -27,7 +32,7 @@ import org.eclipse.rdf4j.model.util.ModelBuilder;
 @EqualsAndHashCode(callSuper = true)
 abstract class CarmlExpressionMap extends CarmlResource implements ExpressionMap {
 
-  CarmlExpressionMap(String id, String label, String reference, String template, Value constant,
+  CarmlExpressionMap(String id, String label, String reference, Template template, Value constant,
       TriplesMap functionValue) {
     super(id, label);
     this.reference = reference;
@@ -38,7 +43,7 @@ abstract class CarmlExpressionMap extends CarmlResource implements ExpressionMap
 
   String reference;
 
-  String template;
+  Template template;
 
   Value constant;
 
@@ -52,10 +57,11 @@ abstract class CarmlExpressionMap extends CarmlResource implements ExpressionMap
     return reference;
   }
 
-  @RdfProperty(Rr.template)
-  @RdfProperty(value = Carml.multiTemplate, deprecated = true)
+
+  @RdfProperty(value = Rr.template, handler = TemplatePropertyHandler.class)
+  @RdfProperty(value = Carml.multiTemplate, handler = TemplatePropertyHandler.class, deprecated = true)
   @Override
-  public String getTemplate() {
+  public Template getTemplate() {
     return template;
   }
 
@@ -82,7 +88,7 @@ abstract class CarmlExpressionMap extends CarmlResource implements ExpressionMap
       builder.add(Rml.reference, reference);
     }
     if (template != null) {
-      builder.add(Rr.template, template);
+      builder.add(Rr.template, template.toTemplateString());
     }
     if (constant != null) {
       builder.add(Rr.constant, constant);
@@ -90,5 +96,51 @@ abstract class CarmlExpressionMap extends CarmlResource implements ExpressionMap
     if (functionValue != null) {
       builder.add(Fnml.functionValue, functionValue.getAsResource());
     }
+  }
+
+  void adaptReference(UnaryOperator<String> referenceExpressionAdapter, Consumer<String> referenceApplier) {
+    var adaptedReference = referenceExpressionAdapter.apply(reference);
+    referenceApplier.accept(adaptedReference);
+  }
+
+  void adaptTemplate(UnaryOperator<String> referenceExpressionAdapter, Consumer<Template> templateApplier) {
+    var prefixedTemplate = template.adaptExpressions(referenceExpressionAdapter);
+    templateApplier.accept(prefixedTemplate);
+  }
+
+  void adaptFunctionValue(UnaryOperator<String> referenceExpressionAdapter, Consumer<TriplesMap> functionValueApplier) {
+    var fnBuilder = CarmlTriplesMap.builder();
+
+    functionValue.getSubjectMaps()
+        .stream()
+        .map(subjectMap -> subjectMap.applyExpressionAdapter(referenceExpressionAdapter))
+        .forEach(fnBuilder::subjectMap);
+
+    functionValue.getPredicateObjectMaps()
+        .stream()
+        .map(pom -> adaptPredicateObjectMap(referenceExpressionAdapter, pom))
+        .forEach(fnBuilder::predicateObjectMap);
+
+    functionValueApplier.accept(fnBuilder.build());
+  }
+
+  private PredicateObjectMap adaptPredicateObjectMap(UnaryOperator<String> referenceExpressionAdapter,
+      PredicateObjectMap predicateObjectMap) {
+    var pomBuilder = CarmlPredicateObjectMap.builder();
+
+    predicateObjectMap.getPredicateMaps()
+        .stream()
+        .map(predicateMap -> predicateMap.applyExpressionAdapter(referenceExpressionAdapter))
+        .forEach(pomBuilder::predicateMap);
+
+    // TODO refObjectMap in functionValue?
+    predicateObjectMap.getObjectMaps()
+        .stream()
+        .filter(ObjectMap.class::isInstance)
+        .map(ObjectMap.class::cast)
+        .map(objectMap -> objectMap.applyExpressionAdapter(referenceExpressionAdapter))
+        .forEach(pomBuilder::objectMap);
+
+    return pomBuilder.build();
   }
 }

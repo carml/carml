@@ -14,7 +14,6 @@ import io.carml.model.ObjectMap;
 import io.carml.model.PredicateObjectMap;
 import io.carml.model.RefObjectMap;
 import io.carml.model.TriplesMap;
-import io.carml.util.Expressions;
 import io.carml.util.Models;
 import java.util.List;
 import java.util.Map;
@@ -51,18 +50,13 @@ public class RdfPredicateObjectMapper {
 
   public static RdfPredicateObjectMapper of(@NonNull PredicateObjectMap pom, @NonNull TriplesMap triplesMap,
       Set<RdfRefObjectMapper> refObjectMappers, @NonNull RdfMapperConfig rdfMapperConfig) {
+    var rdfTermGeneratorFactory = (RdfTermGeneratorFactory) rdfMapperConfig.getTermGeneratorFactory();
+    var graphGenerators = RdfTriplesMapper.createGraphGenerators(pom.getGraphMaps(), rdfTermGeneratorFactory);
+    var predicateGenerators = createPredicateGenerators(pom, triplesMap, rdfTermGeneratorFactory);
+    var objectMaps = pom.getObjectMaps();
+    var objectGenerators = createObjectGenerators(objectMaps, triplesMap, rdfTermGeneratorFactory);
 
-    RdfTermGeneratorFactory rdfTermGeneratorFactory =
-        (RdfTermGeneratorFactory) rdfMapperConfig.getTermGeneratorFactory();
-
-    Set<TermGenerator<Resource>> graphGenerators =
-        RdfTriplesMapper.createGraphGenerators(pom.getGraphMaps(), rdfTermGeneratorFactory);
-    Set<TermGenerator<IRI>> predicateGenerators = createPredicateGenerators(pom, triplesMap, rdfTermGeneratorFactory);
-    Set<BaseObjectMap> objectMaps = pom.getObjectMaps();
-    Set<TermGenerator<? extends Value>> objectGenerators =
-        createObjectGenerators(objectMaps, triplesMap, rdfTermGeneratorFactory);
-
-    Set<RdfRefObjectMapper> filteredRefObjectMappers = refObjectMappers.stream()
+    var filteredRefObjectMappers = refObjectMappers.stream()
         .filter(rom -> pom.getObjectMaps()
             .contains(rom.getRefObjectMap()))
         .collect(toUnmodifiableSet());
@@ -74,15 +68,13 @@ public class RdfPredicateObjectMapper {
 
   public static RdfPredicateObjectMapper forTableJoining(@NonNull PredicateObjectMap pom,
       @NonNull TriplesMap triplesMap, @NonNull RdfMapperConfig rdfMapperConfig, String parentExpressionPrefix) {
-    RdfTermGeneratorFactory rdfTermGeneratorFactory =
-        (RdfTermGeneratorFactory) rdfMapperConfig.getTermGeneratorFactory();
+    var rdfTermGeneratorFactory = (RdfTermGeneratorFactory) rdfMapperConfig.getTermGeneratorFactory();
 
-    Set<TermGenerator<Resource>> graphGenerators =
-        RdfTriplesMapper.createGraphGenerators(pom.getGraphMaps(), rdfTermGeneratorFactory);
-    Set<TermGenerator<IRI>> predicateGenerators = createPredicateGenerators(pom, triplesMap, rdfTermGeneratorFactory);
-    Set<BaseObjectMap> objectMaps = pom.getObjectMaps();
-    Set<TermGenerator<? extends Value>> objectGenerators = createTableJoiningRefObjectMapGenerators(objectMaps,
-        triplesMap, rdfTermGeneratorFactory, parentExpressionPrefix);
+    var graphGenerators = RdfTriplesMapper.createGraphGenerators(pom.getGraphMaps(), rdfTermGeneratorFactory);
+    var predicateGenerators = createPredicateGenerators(pom, triplesMap, rdfTermGeneratorFactory);
+    var objectMaps = pom.getObjectMaps();
+    var objectGenerators = createTableJoiningRefObjectMapGenerators(objectMaps, triplesMap, rdfTermGeneratorFactory,
+        parentExpressionPrefix);
 
     return new RdfPredicateObjectMapper(graphGenerators, predicateGenerators, objectGenerators, Set.of(),
         rdfMapperConfig.getValueFactorySupplier()
@@ -197,7 +189,11 @@ public class RdfPredicateObjectMapper {
       return refObjectMap.getParentTriplesMap()
           .getSubjectMaps()
           .stream()
-          .map(subjectMap -> Expressions.applyExpressionPrefix(expressionPrefix, subjectMap))
+          .map(
+              parentSubjectMap -> expressionPrefix != null
+                  ? parentSubjectMap
+                      .applyExpressionAdapter(refExpression -> String.format("%s%s", expressionPrefix, refExpression))
+                  : parentSubjectMap)
           .map(termGeneratorFactory::getSubjectGenerator);
     } catch (RuntimeException ex) {
       throw new TriplesMapperException(String.format("Exception occurred for %s", exception(triplesMap, refObjectMap)),

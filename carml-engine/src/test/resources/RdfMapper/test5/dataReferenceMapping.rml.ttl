@@ -15,7 +15,7 @@
 		rr:template "http://example.com/Child/{first}/{last}";
 		rr:class ex:Child
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicate ex:birthday;
 		rr:objectMap [
@@ -23,7 +23,7 @@
 			rr:datatype xsd:date;
 		]
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicate ex:language;
 		rr:objectMap [
@@ -31,7 +31,7 @@
 			rr:language "nl";
 		]
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicate ex:age;
 		rr:objectMap [
@@ -39,7 +39,7 @@
 			rr:datatype xsd:int;
 		]
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicate ex:length;
 		rr:objectMap [
@@ -47,7 +47,7 @@
 			rr:datatype xsd:float;
 		]
 	];
-	
+
 		rr:predicateObjectMap [
 		rr:predicate ex:loves;
 		rr:objectMap [

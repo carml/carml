@@ -1,4 +1,4 @@
-#Mappings for waterdeel.json: 
+#Mappings for waterdeel.json:
 #<#WaterdeelMapping>
 
 @prefix rr: <http://www.w3.org/ns/r2rml#>.
@@ -20,14 +20,14 @@
 		rml:referenceFormulation ql:JSONPath;
 		rml:iterator "$";
     ];
-	
+
     rr:subjectMap [
 		rr:template "http://brt.basisregistraties.overheid.nl/top10nl/id/{_collection}/{lokaalid}";
 		rr:class vocab:MeerPlas;
 		rr:class vocab:Waterdeel;
 		rr:graphMap [ rr:constant <http://brt.basisregistraties.overheid.nl/id/dataset/top10nl/2017020100000000> ];
     ];
-    
+
     rr:predicateObjectMap [
 		rr:predicate rdfs:label;
 		rr:objectMap [
@@ -35,7 +35,7 @@
 			rr:language "nl";
 		]
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicate vocab:naamNL;
 		rr:objectMap [
@@ -43,7 +43,7 @@
 			rr:language "nl";
 		]
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicate vocab:bronactualiteit;
 		rr:objectMap [
@@ -51,14 +51,14 @@
 			rr:datatype xsd:date;
 		]
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicate vocab:bronbeschrijving;
-		rr:objectMap [ 
+		rr:objectMap [
 			rml:reference "bronbeschrijving";
 			]
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicate vocab:bronnauwkeurigheid;
 		rr:objectMap [
@@ -66,7 +66,7 @@
 			rr:datatype xsd:float;
 		]
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicate vocab:brontype;
 		rr:objectMap [
@@ -81,7 +81,7 @@
 			rr:datatype xsd:int
 		]
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicate vocab:objectBeginTijd;
 		rr:objectMap [
@@ -89,7 +89,7 @@
 			rr:datatype xsd:date;
 		]
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicate vocab:tdnCode;
 		rr:objectMap [
@@ -97,7 +97,7 @@
 			rr:datatype xsd:int;
 		]
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicate vocab:tijdstipRegistratie;
 		rr:objectMap [
@@ -105,7 +105,7 @@
 			rr:datatype xsd:date;
 		]
 	];
-	
+
 		rr:predicateObjectMap [
 		rr:predicate vocab:visualisatieCode;
 		rr:objectMap [
@@ -113,36 +113,36 @@
 			rr:datatype xsd:int;
 		]
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicate void:inDataset;
 		rr:objectMap [
 			rr:constant <http://brt.basisregistraties.overheid.nl/id/dataset/top10nl/2017020100000000>;
 		]
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicate vocab:geometrie;
 		rr:objectMap [
 			rr:constant <http://brt.basisregistraties.overheid.nl/top10nl/id/geometry/BB5C4BC72C4AD429503172C324047895>;
 		]
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicate vocab:functie;
 		rr:objectMap [
 			rr:constant <http://brt.basisregistraties.overheid.nl/id/begrip/Overig_functie_waterdeel>;
 		]
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicate vocab:getijdeinvloed;
 		rr:objectMap [
 			rml:reference "getijdeinvloed";
 			rr:datatype xsd:bool;
 		]
-	];	
-	
+	];
+
 	rr:predicateObjectMap [
 		rr:predicate vocab:hoofdafwatering;
 		rr:objectMap [
@@ -150,7 +150,7 @@
 			rr:datatype xsd:bool;
 		]
 	];
-	
+
 			rr:predicateObjectMap [
 		rr:predicate ogc:hasGeometry;
 		rr:objectMap [
@@ -164,13 +164,13 @@
 		rml:referenceFormulation ql:JSONPath;
 		rml:iterator "$._geometry";
     ];
-	
+
     rr:subjectMap [
 		rr:constant <http://brt.basisregistraties.overheid.nl/top10nl/id/geometry/7A4618685835036E68F3285BBC06900D>;
 		rr:class ogc:Geometry;
 		rr:graphMap [ rr:constant <http://brt.basisregistraties.overheid.nl/id/dataset/top10nl/2017020100000000> ];
     ];
-    
+
 	rr:predicateObjectMap [
 		rr:predicate ogc:asWKT;
 		rr:objectMap [
@@ -178,7 +178,7 @@
 			rr:datatype ogc:wktLiteral;
 		]
 	];
-	
+
     rr:predicateObjectMap [
     	rr:predicate pdok:asWKT-RD;
     	rr:objectMap [

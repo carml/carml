@@ -28,7 +28,7 @@
           rr:termType rr:BlankNode ;
           rr:class fno:Execution ;
         ] ;
-        rr:predicateObjectMap 
+        rr:predicateObjectMap
           [
             rr:predicate fno:executes ;
             rr:object ex:listParamFunction ;

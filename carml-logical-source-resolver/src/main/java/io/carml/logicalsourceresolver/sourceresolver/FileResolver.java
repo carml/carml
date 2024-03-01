@@ -42,6 +42,8 @@ public class FileResolver implements SourceResolver {
         }
       }
 
+      // TODO: give a proper error message when file path does not exist.
+
       return null;
     });
   }

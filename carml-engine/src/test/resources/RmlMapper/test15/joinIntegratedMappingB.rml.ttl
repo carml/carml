@@ -36,5 +36,5 @@
   rr:subjectMap [
     rr:template "http://country.example.com/{name}" ;
     rr:class ex:Country ;
-  ] ; 
+  ] ;
 .

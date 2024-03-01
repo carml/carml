@@ -18,15 +18,15 @@
   ];
 
   rr:subjectMap [ rr:template "http://example.com/resource/student_{ID}" ];
-	
-  rr:predicateObjectMap [ 
+
+  rr:predicateObjectMap [
     rr:predicate foaf:name ;
     rr:objectMap [ rml:reference "Name" ]
   ] ;
 
-  rr:predicateObjectMap [ 
+  rr:predicateObjectMap [
     rr:predicate <http://example.com/ontology/practises> ;
-    rr:objectMap [ 
+    rr:objectMap [
       a rr:RefObjectMap ;
       rr:parentTriplesMap <TriplesMap2>;
       rr:joinCondition [
@@ -38,17 +38,17 @@
 
 <TriplesMap2>
   a rr:TriplesMap;
-		
+
     rml:logicalSource [
       rml:source <#DB_source>;
       rr:sqlVersion rr:SQL2008;
       rr:tableName "sport";
     ];
 
-  rr:subjectMap [ rr:template "http://example.com/resource/sport_{ID}" ]; 
-	
-  rr:predicateObjectMap [ 
-    rr:predicate rdfs:label ; 
+  rr:subjectMap [ rr:template "http://example.com/resource/sport_{ID}" ];
+
+  rr:predicateObjectMap [
+    rr:predicate rdfs:label ;
     rr:objectMap [ rml:reference "Name" ];
   ].
 

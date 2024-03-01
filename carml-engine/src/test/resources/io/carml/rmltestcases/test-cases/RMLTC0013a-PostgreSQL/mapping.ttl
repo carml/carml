@@ -15,13 +15,13 @@
     rr:sqlVersion rr:SQL2008;
     rr:tableName "Person";
   ];
-	
+
   rr:subjectMap [
     rr:template "http://example.com/Person/{id}/{name}/{DateOfBirth}"
   ];
-	
-  rr:predicateObjectMap [ 
-    rr:predicate ex:BirthDay ; 
+
+  rr:predicateObjectMap [
+    rr:predicate ex:BirthDay ;
     rr:objectMap [
       rr:reference "DateOfBirth";
     ]

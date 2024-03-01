@@ -10,8 +10,8 @@
 
 <TriplesMap1>
   a rr:TriplesMap;
-    
-  rml:logicalSource [ 
+
+  rml:logicalSource [
     rml:source <#DB_source>;
     rr:sqlVersion rr:SQL2008;
     rml:query "SELECT Name FROM student";
@@ -29,7 +29,7 @@
     ]
   ].
 
-										
+
 <#DB_source> a d2rq:Database;
   d2rq:jdbcDSN "CONNECTIONDSN";
   d2rq:jdbcDriver "com.microsoft.sqlserver.jdbc.SQLServerDriver";

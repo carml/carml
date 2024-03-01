@@ -15,22 +15,22 @@
     rml:referenceFormulation ql:JSONPath;
     rml:iterator "$.persons[*]"
   ];
-	
+
   rr:subjectMap [ rr:template "{fname}_{lname}_{amount}"; rr:termType rr:BlankNode; ];
 
   rr:subjectMap [ rr:template "{amount}_{fname}_{lname}"; rr:termType rr:BlankNode; ];
-	
-  rr:predicateObjectMap [ 
-    rr:predicate foaf:name ; 
+
+  rr:predicateObjectMap [
+    rr:predicate foaf:name ;
     rr:objectMap [
       rr:template "{fname} {lname}";
       rr:termType rr:Literal ;
     ]
   ];
-    
-  rr:predicateObjectMap [ 
-    rr:predicate ex:amount ; 
-    rr:objectMap    [ 
+
+  rr:predicateObjectMap [
+    rr:predicate ex:amount ;
+    rr:objectMap    [
       rml:reference "amount";
     ]
   ].

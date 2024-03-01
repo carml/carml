@@ -9,26 +9,26 @@
 
 <TriplesMap1>
   a rr:TriplesMap;
-    
+
   rml:logicalSource [
     rml:source <#DB_source>;
     rr:sqlVersion rr:SQL2008;
     rr:tableName "student";
   ];
 
-  rr:subjectMap [ 
+  rr:subjectMap [
     rr:template "http://example.com/student/{id}";
-  ]; 
-	
-  rr:predicateObjectMap [ 
-    rr:predicate ex:firstName; 
+  ];
+
+  rr:predicateObjectMap [
+    rr:predicate ex:firstName;
     rr:objectMap [
       rml:reference "firstname"
     ]
-  ]; 
-	
-  rr:predicateObjectMap [ 
-    rr:predicate ex:lastName; 
+  ];
+
+  rr:predicateObjectMap [
+    rr:predicate ex:lastName;
     rr:objectMap [
       rml:reference "lastname"
     ]
@@ -36,26 +36,26 @@
 
 <TriplesMap2>
   a rr:TriplesMap;
-    
+
   rml:logicalSource [
     rml:source <#DB_source>;
     rr:sqlVersion rr:SQL2008;
     rr:tableName "sport";
   ];
 
-  rr:subjectMap [ 
+  rr:subjectMap [
     rr:template "http://example.com/sport/{id}";
-  ]; 
-	
-  rr:predicateObjectMap [ 
-    rr:predicate ex:id; 
+  ];
+
+  rr:predicateObjectMap [
+    rr:predicate ex:id;
     rr:objectMap [
       rml:reference "id"
     ]
-  ]; 
-	
-  rr:predicateObjectMap [ 
-    rr:predicate ex:description; 
+  ];
+
+  rr:predicateObjectMap [
+    rr:predicate ex:description;
     rr:objectMap [
       rml:reference "description"
     ]
@@ -63,23 +63,23 @@
 
 <LinkMap_1_2>
   a rr:TriplesMap;
-    
+
   rml:logicalSource [
     rml:source <#DB_source>;
     rr:sqlVersion rr:SQL2008;
     rr:tableName "student_sport";
   ];
 
-  rr:subjectMap [ 
+  rr:subjectMap [
     rr:template "http://example.com/student/{id_student}";
-  ]; 
-	
-  rr:predicateObjectMap [ 
-    rr:predicate ex:plays; 
+  ];
+
+  rr:predicateObjectMap [
+    rr:predicate ex:plays;
     rr:objectMap [
       rr:template "http://example.com/sport/{id_sport}"
     ]
-  ].									
+  ].
 
 <#DB_source> a d2rq:Database;
   d2rq:jdbcDSN "CONNECTIONDSN";

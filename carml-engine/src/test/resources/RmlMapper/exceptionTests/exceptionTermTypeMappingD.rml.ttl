@@ -12,12 +12,12 @@
 		rml:referenceFormulation ql:JSONPath;
 		rml:iterator "$"
 	];
-	
+
 	rr:subjectMap [
 		rr:template "http://faulty.termType.example.com/Child/{first}";
 		rr:class ex:FirstName;
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicateMap [
 			rr:template "http://predicate.example.com/{BSN}";
@@ -27,4 +27,3 @@
 			rml:reference "parents"
 		]
 	].
-	

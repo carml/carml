@@ -1,9 +1,11 @@
 package io.carml.engine.rdf;
 
-import io.carml.engine.template.Template;
-import io.carml.engine.template.Template.Expression;
+import io.carml.engine.TemplateEvaluation;
+import io.carml.engine.TemplateEvaluation.TemplateEvaluationBuilder;
 import io.carml.logicalsourceresolver.DatatypeMapper;
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
+import io.carml.model.Template;
+import io.carml.model.Template.ReferenceExpression;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
@@ -22,13 +24,13 @@ public class GetTemplateValue implements BiFunction<ExpressionEvaluation, Dataty
 
   private final Template template;
 
-  private final Set<Expression> expressions;
+  private final Set<ReferenceExpression> expressions;
 
   private final Function<String, String> transformValue;
 
   private final BiFunction<Object, IRI, String> createNaturalRdfLexicalForm;
 
-  public GetTemplateValue(Template template, Set<Expression> expressions, UnaryOperator<String> transformValue,
+  public GetTemplateValue(Template template, Set<ReferenceExpression> expressions, UnaryOperator<String> transformValue,
       BiFunction<Object, IRI, String> createNaturalRdfLexicalForm) {
     this.template = template;
     this.expressions = expressions;
@@ -41,16 +43,21 @@ public class GetTemplateValue implements BiFunction<ExpressionEvaluation, Dataty
     if (LOG.isTraceEnabled()) {
       LOG.trace("Processing template: {}", template.toTemplateString());
     }
-    Template.Builder templateBuilder = template.newBuilder();
-    expressions.forEach(e -> bindTemplateExpression(e, expressionEvaluation, datatypeMapper, templateBuilder));
-    return templateBuilder.create();
+    var templateEvaluationBuilder = TemplateEvaluation.builder()
+        .template(template);
+
+    expressions
+        .forEach(e -> bindTemplateExpression(e, expressionEvaluation, datatypeMapper, templateEvaluationBuilder));
+
+    return templateEvaluationBuilder.build()
+        .get();
   }
 
-  private void bindTemplateExpression(Expression expression, ExpressionEvaluation expressionEvaluation,
-      DatatypeMapper datatypeMapper, Template.Builder templateBuilder) {
+  private void bindTemplateExpression(ReferenceExpression expression, ExpressionEvaluation expressionEvaluation,
+      DatatypeMapper datatypeMapper, TemplateEvaluationBuilder templateEvaluatorBuilder) {
     var datatype = datatypeMapper != null ? datatypeMapper.apply(expression.getValue())
         .orElse(XSD.STRING) : XSD.STRING;
-    templateBuilder.bind(expression, expr -> expressionEvaluation.apply(expr.getValue())
+    templateEvaluatorBuilder.bind(expression, expr -> expressionEvaluation.apply(expr.getValue())
         .map(result -> prepareValueForTemplate(result, datatype)));
   }
 

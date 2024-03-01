@@ -13,18 +13,18 @@
 		rml:referenceFormulation ql:JSONPath;
 		rml:iterator "$"
 	];
-	
+
 	rr:subjectMap [
 		rr:template "http://faulty.predObj.example.com/Child/{first}";
 		rr:class ex:childsFirstName
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:objectMap [
 			rml:reference "birthday"
 		];
 	].
-	
+
 
 
 
@@ -38,12 +38,12 @@
 		rml:referenceFormulation ql:JSONPath;
 		rml:iterator "$"
 	];
-	
+
 	rr:subjectMap [
 		rr:template "http://faulty.predObj.example.com/Child/{first}";
 		rr:class ex:childsFirstName
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicate ex:hasBirthday;
 	].
@@ -58,18 +58,18 @@
 		rml:referenceFormulation ql:JSONPath;
 		rml:iterator "$"
 	];
-	
+
 	rr:subjectMap [
 		rr:template "http://faulty.predObj.example.com/Child/{first}";
 		rr:class ex:childsFirstName
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:graphMap [rr:constant <http://faultyPredicateGraph.example.com>;
 	].
-	
-	
-	
+
+
+
 
 ####################################################################################
 #GraphMap inside predicate
@@ -80,12 +80,12 @@
 		rml:referenceFormulation ql:JSONPath;
 		rml:iterator "$"
 	];
-	
+
 	rr:subjectMap [
 		rr:template "http://faulty.predObj.example.com/Child/{first}";
 		rr:class ex:childsFirstName
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicateMap [
 			rr:graphMap [rr:constant <http://faultyPredicateGraph.example.com>;
@@ -95,10 +95,10 @@
 			rml:reference "birthday"
 		];
 	].
-	
-	
-	
-	
+
+
+
+
 ####################################################################################
 #GraphMap inside objectMap
 ####################################################################################
@@ -108,12 +108,12 @@
 		rml:referenceFormulation ql:JSONPath;
 		rml:iterator "$"
 	];
-	
+
 	rr:subjectMap [
 		rr:template "http://faulty.predObj.example.com/Child/{first}";
 		rr:class ex:childsFirstName
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicateMap [
 			rr:constant <http://faulty.PredObj.example.com/hasBirthday>

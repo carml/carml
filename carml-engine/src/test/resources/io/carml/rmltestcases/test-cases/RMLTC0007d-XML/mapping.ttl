@@ -8,33 +8,33 @@
 @base <http://example.com/base/> .
 
 <TriplesMap1> a rr:TriplesMap;
-    
-  rml:logicalSource [ 
+
+  rml:logicalSource [
     rml:source "student.xml";
     rml:referenceFormulation ql:XPath;
     rml:iterator "/students/student"
   ];
 
-  rr:subjectMap [ 
+  rr:subjectMap [
     rr:template "http://example.com/Student/{ID}/{FirstName}"
   ];
 
-  rr:predicateObjectMap [ 
+  rr:predicateObjectMap [
     rr:predicate rdf:type;
-    rr:object foaf:Person; 
+    rr:object foaf:Person;
   ];
 
-  rr:predicateObjectMap [ 
+  rr:predicateObjectMap [
     rr:predicate rdf:type;
-    rr:object ex:Student; 
+    rr:object ex:Student;
   ];
 
-  rr:predicateObjectMap [ 
+  rr:predicateObjectMap [
     rr:predicate ex:id;
     rr:objectMap [rml:reference "ID"]
   ];
 
-  rr:predicateObjectMap [ 
+  rr:predicateObjectMap [
     rr:predicate foaf:name;
     rr:objectMap [ rml:reference "FirstName" ]
   ].

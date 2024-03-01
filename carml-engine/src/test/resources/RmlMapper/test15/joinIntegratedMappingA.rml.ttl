@@ -22,7 +22,7 @@ rr:predicateObjectMap [
 		rr:parentTriplesMap <#CountryMapping>;
 		rr:joinCondition [
 			rr:child "food.countryOfOrigin";
-			rr:parent "country.name" ] 
+			rr:parent "country.name" ]
 		]
 	].
 
@@ -32,12 +32,12 @@ rr:predicateObjectMap [
 		rml:referenceFormulation ql:JSONPath;
 		rml:iterator "$"
 		];
-		
+
 		rr:subjectMap [
 			rr:template "http://country.example.com/{country.name}";
 			rr:class ex:Country ;
 		];
-		
+
 		rr:predicateObjectMap [
 			rr:predicate ex:officialLanguage;
 			rr:objectMap [

@@ -1,4 +1,4 @@
-package io.carml.engine.template;
+package io.carml.model.impl.template;
 
 public class TemplateException extends RuntimeException {
 

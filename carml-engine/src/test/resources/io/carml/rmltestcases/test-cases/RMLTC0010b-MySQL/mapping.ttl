@@ -18,8 +18,8 @@
   ];
 
   rr:subjectMap [ rr:template "http://example.com/{Country Code}/{Name}" ];
-	
-  rr:predicateObjectMap [ 
+
+  rr:predicateObjectMap [
     rr:predicate ex:name ;
     rr:objectMap [ rml:reference "Name" ]
   ] .

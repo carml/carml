@@ -17,7 +17,7 @@
 		rr:class ex:Child;
 		rr:termType rr:IRI
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicateMap [
 			rr:constant ex:hasBirthday;

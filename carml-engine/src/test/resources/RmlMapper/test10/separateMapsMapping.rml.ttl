@@ -15,13 +15,12 @@
 		rr:template "http://example.com/Color/{color}";
 		rr:class ex:Color
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicate ex:hasHex;
 		rr:objectMap <ColorCode>;
 	].
-	
+
 <ColorCode> a rr:ObjectMap;
 	rml:reference "code.hex".
-	
-	
+

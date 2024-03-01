@@ -13,7 +13,7 @@
 	rr:subjectMap [
 		rr:template "http//example.com/{first}";
 		];
-	
+
 	rr:predicateObjectMap [
 		rr:predicateMap [
 			rr:constant ex:hasBirthday;

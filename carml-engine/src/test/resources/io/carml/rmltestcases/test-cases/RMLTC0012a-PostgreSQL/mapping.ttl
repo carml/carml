@@ -15,20 +15,20 @@
     rr:sqlVersion rr:SQL2008;
     rr:tableName "IOUs";
   ];
-	
+
   rr:subjectMap [ rr:template "{fname}_{lname}_{amount}"; rr:termType rr:BlankNode; ];
-	
-  rr:predicateObjectMap [ 
-    rr:predicate foaf:name ; 
+
+  rr:predicateObjectMap [
+    rr:predicate foaf:name ;
     rr:objectMap [
       rr:template "{fname} {lname}";
       rr:termType rr:Literal ;
     ]
   ];
-    
-  rr:predicateObjectMap [ 
-    rr:predicate ex:amount ; 
-    rr:objectMap    [ 
+
+  rr:predicateObjectMap [
+    rr:predicate ex:amount ;
+    rr:objectMap    [
       rml:reference "amount";
     ]
   ].

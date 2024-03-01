@@ -9,8 +9,8 @@
 
 <TriplesMap1>
   a rr:TriplesMap;
-    
-  rml:logicalSource [ 
+
+  rml:logicalSource [
     rml:source "student.json";
     rml:referenceFormulation ql:JSONPath;
     rml:iterator "$.students[*]"
@@ -18,8 +18,8 @@
 
   rr:subjectMap <#NameSubjectMap> ;
 
-  rr:predicateObjectMap [ 
-    rr:predicate foaf:name; 
+  rr:predicateObjectMap [
+    rr:predicate foaf:name;
     rr:objectMap [
       rml:reference "Name"
     ]
@@ -28,4 +28,4 @@
 <#NameSubjectMap> rr:template "http://example.com/{Name}" .
 
 
-										
+

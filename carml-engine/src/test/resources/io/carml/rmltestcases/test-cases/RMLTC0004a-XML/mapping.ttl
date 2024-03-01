@@ -7,41 +7,41 @@
 @base <http://example.com/base/> .
 
 <TriplesMap1> a rr:TriplesMap;
-    
-  rml:logicalSource [ 
+
+  rml:logicalSource [
     rml:source "student_sport.xml";
     rml:referenceFormulation ql:XPath;
     rml:iterator "/students/student"
   ];
 
-  rr:subjectMap [ 
+  rr:subjectMap [
     rr:template "http://example.com/{Student}";
     rr:class ex:Student
   ];
 
-  rr:predicateObjectMap [ 
-    rr:predicate foaf:name ; 
-    rr:objectMap [ 
+  rr:predicateObjectMap [
+    rr:predicate foaf:name ;
+    rr:objectMap [
       rml:reference "Student"
     ]
   ].
 
 <TriplesMap2> a rr:TriplesMap;
-    
-  rml:logicalSource [ 
+
+  rml:logicalSource [
     rml:source "student_sport.xml";
     rml:referenceFormulation ql:XPath;
     rml:iterator "/students/student"
   ];
 
-  rr:subjectMap [ 
+  rr:subjectMap [
     rr:template "http://example.com/{Sport}";
     rr:class ex:Sport
   ];
 
-  rr:predicateObjectMap [ 
-    rr:predicate foaf:name ; 
-    rr:objectMap [ 
+  rr:predicateObjectMap [
+    rr:predicate foaf:name ;
+    rr:objectMap [
       rml:reference "Sport"
     ]
   ].

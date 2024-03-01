@@ -9,6 +9,8 @@ import io.carml.model.SubjectMap;
 import io.carml.model.TriplesMap;
 import io.carml.model.impl.CarmlLogicalSource;
 import io.carml.model.impl.CarmlSubjectMap;
+import io.carml.model.impl.CarmlTemplate;
+import io.carml.model.impl.CarmlTemplate.TextSegment;
 import io.carml.model.impl.CarmlTriplesMap;
 import io.carml.vocab.Rdf;
 import java.util.List;
@@ -35,9 +37,10 @@ class LogUtilTest {
         .referenceFormulation(Rdf.Ql.Csv)
         .build();
 
+
     subjectMap = CarmlSubjectMap.builder()
         .id(ex("sm"))
-        .template(ex("{class}"))
+        .template(CarmlTemplate.of(List.of(new TextSegment(ex("class")))))
         .clazz(OWL.CLASS)
         .build();
 

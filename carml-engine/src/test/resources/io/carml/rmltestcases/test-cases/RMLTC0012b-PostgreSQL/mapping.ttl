@@ -15,14 +15,14 @@
     rr:sqlVersion rr:SQL2008;
     rr:tableName "persons";
   ];
-	
+
   rr:subjectMap [
     rr:template "{fname}{lname}";
     rr:termType rr:BlankNode ;
   ];
-	
-  rr:predicateObjectMap [ 
-    rr:predicate foaf:name ; 
+
+  rr:predicateObjectMap [
+    rr:predicate foaf:name ;
     rr:objectMap [
       rr:template "{fname} {lname}";
       rr:termType rr:Literal ;

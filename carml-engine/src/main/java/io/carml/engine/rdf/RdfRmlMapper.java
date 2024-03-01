@@ -11,7 +11,6 @@ import io.carml.engine.join.ChildSideJoinStoreProvider;
 import io.carml.engine.join.ParentSideJoinConditionStoreProvider;
 import io.carml.engine.join.impl.CarmlChildSideJoinStoreProvider;
 import io.carml.engine.join.impl.CarmlParentSideJoinConditionStoreProvider;
-import io.carml.engine.template.TemplateParser;
 import io.carml.logicalsourceresolver.LogicalSourceResolver;
 import io.carml.logicalsourceresolver.MatchingLogicalSourceResolverSupplier;
 import io.carml.logicalsourceresolver.sourceresolver.ClassPathResolver;
@@ -21,6 +20,7 @@ import io.carml.logicalsourceresolver.sourceresolver.SourceResolver;
 import io.carml.logicalsourceresolver.sql.sourceresolver.DatabaseConnectionOptions;
 import io.carml.logicalsourceresolver.sql.sourceresolver.DatabaseSourceResolver;
 import io.carml.model.TriplesMap;
+import io.carml.model.impl.template.TemplateParser;
 import io.carml.util.Mappings;
 import java.io.InputStream;
 import java.nio.file.Path;
@@ -212,7 +212,7 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
           .build();
 
       if (termGeneratorFactory == null) {
-        termGeneratorFactory = RdfTermGeneratorFactory.of(rdfTermGeneratorConfig, TemplateParser.build());
+        termGeneratorFactory = RdfTermGeneratorFactory.of(rdfTermGeneratorConfig, TemplateParser.getInstance());
       }
 
       if (databaseConnectionOptions != null) {

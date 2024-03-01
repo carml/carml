@@ -9,12 +9,12 @@
 		rml:referenceFormulation ql:JSONPath;
 		rml:iterator "$.colors[*]"
 	];
-	
+
 	rr:subjectMap [
 		rr:template "http://example.com/Category/{category}";
 		rr:class ex:category
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicate ex:hasColors;
 		rr:objectMap [
@@ -31,23 +31,23 @@
 		rml:referenceFormulation ql:JSONPath;
 		rml:iterator "$.colors[*]";
 	];
-	
+
 	rr:subjectMap [
 		rr:template "http://color.example.com/{code.hex}";
 	].
-	
+
 <#Colors> a rr:parentTriplesMap;
 	rml:logicalSource [
 		rml:source "predObjectMapTestInput.json";
 		rml:referenceFormulation ql:JSONPath;
 		rml:iterator "$.colors[*]";
 	];
-	
+
 	rr:subjectMap [
 		rr:template "http://color.example.com/{color}";
 		rr:class ex:Color
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicate ex:hasHex;
 		rr:objectMap [

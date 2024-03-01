@@ -25,7 +25,7 @@
 	rr:predicate ex:hasSumScore;
 	rr:objectMap <#SumFunctionMapping> .
 
-<#SumFunctionMapping> 
+<#SumFunctionMapping>
 	rr:termType rr:Literal;
 	rr:datatype xsd:int;
 	fnml:functionValue [

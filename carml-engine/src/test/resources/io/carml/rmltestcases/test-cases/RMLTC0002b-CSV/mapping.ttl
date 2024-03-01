@@ -7,19 +7,19 @@
 @base <http://example.com/base/> .
 
 <TriplesMap1> a rr:TriplesMap;
-    
+
   rml:logicalSource [
     rml:source "student.csv";
     rml:referenceFormulation ql:CSV
   ];
 
-  rr:subjectMap [ 
+  rr:subjectMap [
     rr:template "students{ID}";
     rr:termType rr:BlankNode
   ];
 
-  rr:predicateObjectMap [ 
-    rr:predicate foaf:name; 
+  rr:predicateObjectMap [
+    rr:predicate foaf:name;
     rr:objectMap [ rml:reference "Name" ]
   ].
 

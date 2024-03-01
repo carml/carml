@@ -15,24 +15,23 @@
     	rr:template "http://example.com/Color/{color}";
     	rr:class ex:Color
   	];
-  	
+
 	rr:predicateObjectMap [
 		rr:predicate ex:hasCode;
 		rr:objectMap [
 			rr:parentTriplesMap <#ColorCode>;
 		];
 	].
-	
+
 <#ColorCode> a rr:ParentTriplesMap;
 	rml:logicalSource [
 		rml:source "parentTriplesTestInput.json";
 		rml:referenceFormulation ql:JSONPath;
 		rml:iterator "$.colors.code";
 	];
-	
+
 	rr:subjectMap [
 		rr:template "http://example.com/ColorCode/{rgba[0]},{rgba[1]},{rgba[2]}, {rgba[3]}";
 		rr:class ex:RGBA
 	].
-	
-	
+

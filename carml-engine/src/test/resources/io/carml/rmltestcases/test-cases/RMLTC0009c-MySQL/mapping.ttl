@@ -23,15 +23,15 @@
   ];
 
   rr:subjectMap [ rr:template "http://example.com/resource/student_{Name}"; ];
-	
+
     rr:predicateObjectMap
-    [ 
-      rr:predicate	foaf:name ; 
+    [
+      rr:predicate	foaf:name ;
       rr:objectMap	[ rml:reference "Name"; ];
     ].
 
 <#DB_source> a d2rq:Database;
-  d2rq:jdbcDSN "CONNECTIONDSN"; 
+  d2rq:jdbcDSN "CONNECTIONDSN";
   d2rq:jdbcDriver "com.mysql.cj.jdbc.Driver";
   d2rq:username "root";
   d2rq:password "" .

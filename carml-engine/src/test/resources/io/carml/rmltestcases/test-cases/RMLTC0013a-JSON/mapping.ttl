@@ -15,11 +15,11 @@
     rml:referenceFormulation ql:JSONPath;
     rml:iterator "$.persons[*]"
   ];
-	
+
   rr:subjectMap [ rr:template "http://example.com/Person/{ID}/{Name}/{DateOfBirth}"];
-	
+
   rr:predicateObjectMap
-    [ 
+    [
       rr:predicate		ex:BirthDay ;
       rr:objectMap		[ rml:reference "DateOfBirth" ]
     ].

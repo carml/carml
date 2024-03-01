@@ -8,20 +8,20 @@
 @base <http://example.com/base/> .
 
 <TriplesMap1> a rr:TriplesMap;
-    
-  rml:logicalSource [ 
+
+  rml:logicalSource [
     rml:source <#DB_source>;
     rr:sqlVersion rr:SQL2008;
     rr:tableName "IOUs";
   ];
 
-  rr:subjectMap [ 
+  rr:subjectMap [
     rr:template "http://example.com/{fname};{lname}";
     rr:class foaf:Person;
   ];
 
-  rr:predicateObjectMap [ 
-    rr:predicate ex:owes; 
+  rr:predicateObjectMap [
+    rr:predicate ex:owes;
     rr:objectMap [ rml:reference "amount"; ]
   ].
 

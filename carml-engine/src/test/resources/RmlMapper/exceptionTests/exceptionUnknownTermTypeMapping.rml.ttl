@@ -17,7 +17,7 @@
 		rr:class ex:Child;
 		rr:termType <http://example.com/unknown>
 	];
-	
+
 	rr:predicateObjectMap [
 		rr:predicateMap [
 			rr:constant ex:hasBirthday;

@@ -24,9 +24,9 @@
     """ ;
     rml:referenceFormulation ql:CSV
    ];
-	
+
     rr:subjectMap [ rr:template "http://data.example.com/employee/{empno}" ];
-    
+
     rr:predicateObjectMap [
         rr:predicate ex:role;
         rr:objectMap [ rr:template "http://data.example.com/roles/{role}" ];

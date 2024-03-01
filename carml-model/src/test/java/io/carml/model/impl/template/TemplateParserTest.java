@@ -1,11 +1,13 @@
-package io.carml.engine.template;
+package io.carml.model.impl.template;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import io.carml.engine.template.CarmlTemplate.ExpressionSegment;
-import io.carml.engine.template.CarmlTemplate.Text;
+import io.carml.model.Template;
+import io.carml.model.impl.CarmlTemplate;
+import io.carml.model.impl.CarmlTemplate.ExpressionSegment;
+import io.carml.model.impl.CarmlTemplate.TextSegment;
 import java.util.Arrays;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,22 +18,22 @@ class TemplateParserTest {
 
   @BeforeEach
   void createParser() {
-    parser = TemplateParser.build();
+    parser = TemplateParser.getInstance();
   }
 
   @Test
   void testTrailingVariable() {
-    testTemplate("abc{xyz}", new Text("abc"), new ExpressionSegment(0, "xyz"));
+    testTemplate("abc{xyz}", new TextSegment("abc"), new ExpressionSegment(0, "xyz"));
   }
 
   @Test
-  void testTrailingText() {
-    testTemplate("abc{xyz}x", new Text("abc"), new ExpressionSegment(0, "xyz"), new Text("x"));
+  void testTrailingTextSegment() {
+    testTemplate("abc{xyz}x", new TextSegment("abc"), new ExpressionSegment(0, "xyz"), new TextSegment("x"));
   }
 
   @Test
   void testLeadingVariable() {
-    testTemplate("{xyz}x", new ExpressionSegment(0, "xyz"), new Text("x"));
+    testTemplate("{xyz}x", new ExpressionSegment(0, "xyz"), new TextSegment("x"));
   }
 
   @Test
@@ -41,17 +43,17 @@ class TemplateParserTest {
 
   @Test
   void testTextOnly() {
-    testTemplate("xyz", new Text("xyz"));
+    testTemplate("xyz", new TextSegment("xyz"));
   }
 
   @Test
   void testEscaping() {
-    testTemplate("xyz\\{", new Text("xyz{"));
+    testTemplate("xyz\\{", new TextSegment("xyz{"));
   }
 
   @Test
-  void testClosingBraceInText() {
-    testTemplate("xyz}", new Text("xyz}"));
+  void testClosingBraceInTextSegment() {
+    testTemplate("xyz}", new TextSegment("xyz}"));
   }
 
   @Test
@@ -103,7 +105,7 @@ class TemplateParserTest {
 
   private void testTemplate(String templateStr, CarmlTemplate.Segment... expectedSegments) {
     Template template = parser.parse(templateStr);
-    Template expected = CarmlTemplate.build(Arrays.asList(expectedSegments));
+    Template expected = CarmlTemplate.of(Arrays.asList(expectedSegments));
     assertThat(expected, is(template));
   }
 }

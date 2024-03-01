@@ -15,12 +15,12 @@
     rr:template "http://transport.example.com/{line}" ;
     rr:class ex:line ;
   ] ;
-  rr:predicateObjectMap 
+  rr:predicateObjectMap
     [
       rr:predicate ex:hasEndpoint ;
       rr:objectMap [
         rr:parentTriplesMap <#StationMapping> ;
-        rr:joinCondition 
+        rr:joinCondition
           [
             rr:child "endPointStation";
             rr:parent "name" ;
@@ -35,7 +35,7 @@
       rr:predicate ex:hasEndPoint ;
       rr:objectMap [
         rr:parentTriplesMap <#StationMapping> ;
-        rr:joinCondition 
+        rr:joinCondition
           [
             rr:child "endPointStation" ;
             rr:parent "name" ;
