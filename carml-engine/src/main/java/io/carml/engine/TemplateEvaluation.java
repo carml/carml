@@ -1,13 +1,12 @@
 package io.carml.engine;
 
+import com.google.common.collect.Sets;
 import io.carml.model.Template;
 import io.carml.model.Template.ReferenceExpression;
 import io.carml.model.Template.Segment;
-import io.carml.model.impl.CarmlTemplate;
 import io.carml.model.impl.CarmlTemplate.ExpressionSegment;
 import io.carml.model.impl.CarmlTemplate.TextSegment;
 import io.carml.model.impl.template.TemplateException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -15,13 +14,15 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class TemplateEvaluation implements Supplier<Optional<Object>> {
+public class TemplateEvaluation implements Supplier<Set<String>> {
 
   private final Template template;
 
@@ -32,8 +33,7 @@ public class TemplateEvaluation implements Supplier<Optional<Object>> {
   }
 
   @Override
-  public Optional<Object> get() {
-    var result = new ArrayList<String>();
+  public Set<String> get() {
     var indexedExprValues = new HashMap<Segment, List<String>>();
 
     // single out expression segments
@@ -46,8 +46,8 @@ public class TemplateEvaluation implements Supplier<Optional<Object>> {
     if (!expressionSegments.isEmpty()) {
 
       // map segment to list of its evaluation results
-      for (ExpressionSegment expressionSegment : expressionSegments) {
-        Optional<Object> evalResult = getExpressionSegmentValue(expressionSegment);
+      for (var expressionSegment : expressionSegments) {
+        var evalResult = getExpressionSegmentValue(expressionSegment);
         indexedExprValues.put(expressionSegment, evalResult.map(this::getValuesExpressionEvaluation)
             .orElse(List.of()));
       }
@@ -55,23 +55,19 @@ public class TemplateEvaluation implements Supplier<Optional<Object>> {
       // if there is an expression that doesn't result in a value,
       // the template should yield no result, following the RML rules.
       if (!exprValueResultsHasOnlyFilledLists(indexedExprValues)) {
-        return Optional.empty();
+        return Set.of();
       }
 
-      // make sure that, if there are multiple segments, that they lead
-      // an equal amount of values. If this is not the case, we cannot
-      // know which values belong together over multiple segments.
-      int indexedExprValSize = checkExprValueResultsOfEqualSizeAndReturn(indexedExprValues);
-      processFixedNumberOfSegments(indexedExprValSize, indexedExprValues, result);
-      // if there are no expression segments, continue building value
-    } else {
-      StringBuilder str = new StringBuilder();
-      template.getSegments()
-          .forEach(segment -> str.append(segment.getValue()));
-      result.add(str.toString());
+      return processSegments(indexedExprValues);
     }
 
-    return Optional.of(result);
+    // if there are no expression segments, continue building value
+    var result = template.getSegments()
+        .stream()
+        .map(Segment::getValue)
+        .collect(Collectors.joining());
+
+    return Set.of(result);
   }
 
   private Optional<Object> getExpressionSegmentValue(ExpressionSegment segment) {
@@ -113,40 +109,24 @@ public class TemplateEvaluation implements Supplier<Optional<Object>> {
     return true;
   }
 
-  private int checkExprValueResultsOfEqualSizeAndReturn(Map<Segment, List<String>> indexedExprValues) {
-    int size = -1;
-    for (List<String> list : indexedExprValues.values()) {
-      if (size == -1) {
-        size = list.size();
-      } else {
-        if (list.size() != size) {
-          throw new TemplateException(String.format("Template expressions do not lead to an equal amount of values: %s",
-              indexedExprValues.keySet()));
-        }
-      }
-    }
-    return size;
+  private Set<String> processSegments(Map<Segment, List<String>> indexedExprValues) {
+    var processedSegments = template.getSegments()
+        .stream()
+        .map(segment -> processSegment(segment, indexedExprValues))
+        .toList();
+
+    return Sets.cartesianProduct(processedSegments)
+        .stream()
+        .map(segmentValues -> String.join("", segmentValues))
+        .collect(Collectors.toUnmodifiableSet());
   }
 
-  private void processFixedNumberOfSegments(int nrOfSegments, Map<Segment, List<String>> indexedExprValues,
-      List<String> result) {
-    for (int i = 0; i < nrOfSegments; i++) {
-      StringBuilder str = new StringBuilder();
-      for (Segment segment : template.getSegments()) {
-        if (segment instanceof TextSegment) {
-          str.append(segment.getValue());
-        } else if (segment instanceof CarmlTemplate.ExpressionSegment) {
-          String exprValue = indexedExprValues.get(segment)
-              .get(i);
-          if (exprValue == null) {
-            result.add(null);
-            continue;
-          }
-          str.append(exprValue);
-        }
-      }
-      result.add(str.toString());
+  private Set<String> processSegment(Segment segment, Map<Segment, List<String>> indexedExprValues) {
+    if (segment instanceof TextSegment) {
+      return Set.of(segment.getValue());
     }
+
+    return Set.copyOf(indexedExprValues.get(segment));
   }
 
   public static final class TemplateEvaluationBuilder {

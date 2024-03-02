@@ -9,7 +9,6 @@ import io.carml.model.Template.ReferenceExpression;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
@@ -24,16 +23,13 @@ public class GetTemplateValue implements BiFunction<ExpressionEvaluation, Dataty
 
   private final Template template;
 
-  private final Set<ReferenceExpression> expressions;
-
   private final Function<String, String> transformValue;
 
   private final BiFunction<Object, IRI, String> createNaturalRdfLexicalForm;
 
-  public GetTemplateValue(Template template, Set<ReferenceExpression> expressions, UnaryOperator<String> transformValue,
+  public GetTemplateValue(Template template, UnaryOperator<String> transformValue,
       BiFunction<Object, IRI, String> createNaturalRdfLexicalForm) {
     this.template = template;
-    this.expressions = expressions;
     this.transformValue = transformValue;
     this.createNaturalRdfLexicalForm = createNaturalRdfLexicalForm;
   }
@@ -46,11 +42,14 @@ public class GetTemplateValue implements BiFunction<ExpressionEvaluation, Dataty
     var templateEvaluationBuilder = TemplateEvaluation.builder()
         .template(template);
 
-    expressions
-        .forEach(e -> bindTemplateExpression(e, expressionEvaluation, datatypeMapper, templateEvaluationBuilder));
+    template.getReferenceExpressions()
+        .forEach(expression -> bindTemplateExpression(expression, expressionEvaluation, datatypeMapper,
+            templateEvaluationBuilder));
 
-    return templateEvaluationBuilder.build()
+    var templateResult = templateEvaluationBuilder.build()
         .get();
+    // TODO change signature of class.
+    return templateResult.isEmpty() ? Optional.empty() : Optional.of(templateResult);
   }
 
   private void bindTemplateExpression(ReferenceExpression expression, ExpressionEvaluation expressionEvaluation,
@@ -76,5 +75,4 @@ public class GetTemplateValue implements BiFunction<ExpressionEvaluation, Dataty
       return transformValue.apply(value);
     }
   }
-
 }

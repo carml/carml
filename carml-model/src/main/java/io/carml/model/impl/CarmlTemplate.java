@@ -112,13 +112,13 @@ public class CarmlTemplate implements Template {
   @AllArgsConstructor(access = AccessLevel.PRIVATE)
   @EqualsAndHashCode
   @ToString
-  private static class CarmlReferenceExpression implements Template.ReferenceExpression {
+  public static class CarmlReferenceExpression implements Template.ReferenceExpression {
 
     private final int id;
 
     private final String value;
 
-    private static CarmlReferenceExpression of(int id, String value) {
+    public static CarmlReferenceExpression of(int id, String value) {
       return new CarmlReferenceExpression(id, value);
     }
 

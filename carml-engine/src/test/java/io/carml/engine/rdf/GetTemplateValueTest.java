@@ -8,8 +8,8 @@ import io.carml.logicalsourceresolver.DatatypeMapper;
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.model.Template;
 import io.carml.model.impl.template.TemplateParser;
-import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.UnaryOperator;
 import org.eclipse.rdf4j.model.IRI;
@@ -44,16 +44,16 @@ class GetTemplateValueTest {
     Template template = TemplateParser.getInstance()
         .parse("abc{xyz}");
     GetTemplateValue getTemplateValue =
-        new GetTemplateValue(template, template.getReferenceExpressions(), transformValue, createNaturalRdfLexicalForm);
-    String result = getTemplateValue.apply(expressionEvaluation, datatypeMapper).map(this::unpackTemplateValue)
+        new GetTemplateValue(template, transformValue, createNaturalRdfLexicalForm);
+    var result = getTemplateValue.apply(expressionEvaluation, datatypeMapper).map(this::unpackTemplateValue)
         .orElseThrow(RuntimeException::new);
-    assertThat(result, is("abctransformed"));
+    assertThat(result, is(Set.of("abctransformed")));
   }
 
-  private String unpackTemplateValue(Object templateValue) {
-    if (templateValue instanceof List<?> list) {
-      assertThat(list.size(), is(1));
-      return (String) (list).get(0);
+  @SuppressWarnings("unchecked")
+  private Set<String> unpackTemplateValue(Object templateValue) {
+    if (templateValue instanceof Set<?> set) {
+      return (Set<String>) set;
     } else {
       throw new RuntimeException();
     }
@@ -69,10 +69,10 @@ class GetTemplateValueTest {
     Template template = TemplateParser.getInstance()
         .parse("abc{xyz}{xyz}");
     GetTemplateValue getTemplateValue =
-        new GetTemplateValue(template, template.getReferenceExpressions(), transformValue, createNaturalRdfLexicalForm);
-    String result = getTemplateValue.apply(expressionEvaluation, datatypeMapper).map(this::unpackTemplateValue)
+        new GetTemplateValue(template, transformValue, createNaturalRdfLexicalForm);
+    var result = getTemplateValue.apply(expressionEvaluation, datatypeMapper).map(this::unpackTemplateValue)
         .orElseThrow(RuntimeException::new);
-    assertThat(result, is("abctransformedtransformed"));
+    assertThat(result, is(Set.of("abctransformedtransformed")));
   }
 
   @Test
@@ -83,7 +83,7 @@ class GetTemplateValueTest {
     Template template = TemplateParser.getInstance()
         .parse("abc{xyz}");
     GetTemplateValue getTemplateValue =
-        new GetTemplateValue(template, template.getReferenceExpressions(), transformValue, createNaturalRdfLexicalForm);
+        new GetTemplateValue(template, transformValue, createNaturalRdfLexicalForm);
     Optional<Object> templateValue = getTemplateValue.apply(expressionEvaluation, datatypeMapper);
     assertThat(templateValue, is(Optional.empty()));
   }

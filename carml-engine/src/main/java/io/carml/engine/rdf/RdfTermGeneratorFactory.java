@@ -212,7 +212,6 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
               .map(Value::stringValue)
               .toList();
 
-
       // determine datatypes by creating a nested term generator
       List<IRI> datatypes =
           getDatatypeGenerator(objectMap.getDatatypeMap()).apply(expressionEvaluation, datatypeMapper);
@@ -337,8 +336,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
     // otherwise, do not transform template values.
     UnaryOperator<String> transformValue = termType == TermType.IRI ? makeIriSafe : v -> v;
 
-    BiFunction<ExpressionEvaluation, DatatypeMapper, Optional<Object>> getValue = new GetTemplateValue(template,
-        template.getReferenceExpressions(), transformValue, this::createCanonicalRdfLexicalForm);
+    var getValue = new GetTemplateValue(template, transformValue, this::createCanonicalRdfLexicalForm);
 
     return Optional
         .of(getGenerator(map, getValue, expressionEvaluation -> Optional.empty(), allowedTermTypes, termType));
