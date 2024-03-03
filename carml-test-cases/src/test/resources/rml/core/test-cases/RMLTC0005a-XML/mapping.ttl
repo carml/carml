@@ -1,0 +1,25 @@
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix ex: <http://example.com/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rml: <http://w3id.org/rml/> .
+@prefix ql: <http://w3id.org/rml/ql/> .
+@base <http://example.com/base/> .
+
+<TriplesMap1> a rml:TriplesMap;
+    
+  rml:logicalSource [ 
+    rml:source "ious.xml";
+    rml:referenceFormulation ql:XPath;
+    rml:iterator "/persons/person"
+  ];
+
+  rml:subjectMap [ 
+    rml:template "http://example.com/{fname};{lname}";
+    rml:class foaf:Person;
+  ];
+
+  rml:predicateObjectMap [ 
+    rml:predicate ex:owes; 
+    rml:objectMap [ rml:reference "amount"; ]
+  ].
+

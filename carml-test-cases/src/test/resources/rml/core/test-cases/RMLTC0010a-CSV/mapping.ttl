@@ -1,0 +1,22 @@
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix ex: <http://example.com/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rml: <http://w3id.org/rml/> .
+@prefix ql: <http://w3id.org/rml/ql/> .
+@prefix activity: <http://example.com/activity/> .
+@base <http://example.com/base/> .
+
+<TriplesMap1>
+  a rml:TriplesMap;
+
+  rml:logicalSource [
+    rml:source "country_info.csv";
+    rml:referenceFormulation ql:CSV
+  ];
+
+  rml:subjectMap [ rml:template "http://example.com/{Country Code}" ];
+
+  rml:predicateObjectMap [
+    rml:predicate ex:name ;
+    rml:objectMap [ rml:reference "Name" ]
+  ] .

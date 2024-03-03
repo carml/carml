@@ -1,0 +1,31 @@
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix ex: <http://example.com/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rml: <http://w3id.org/rml/> .
+@prefix ql: <http://w3id.org/rml/ql/> .
+@prefix activity: <http://example.com/activity/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@base <http://example.com/base/> .
+
+<TriplesMap1>
+  a rml:TriplesMap;
+
+  rml:logicalSource [
+    rml:source "student.xml";
+    rml:referenceFormulation ql:XPath;
+    rml:iterator "/students/student"
+  ];
+
+   rml:subjectMap [ rml:template "http://example.com/Student/{ID}/{Name}" ];
+
+   rml:predicateObjectMap [
+     rml:predicate ex:sameSportAs ;
+     rml:objectMap <RefObjectMap1>
+   ] .
+
+
+ <RefObjectMap1>
+   a rml:RefObjectMap;
+   rml:parentTriplesMap <TriplesMap1> ;
+   rml:joinCondition [ rml:child "Sport" ;
+       rml:parent "Sport" ] .

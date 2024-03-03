@@ -1,0 +1,50 @@
+@prefix rml:    <http://w3id.org/rml/> .
+@prefix crml:   <http://semweb.mmlab.be/ns/crml#> .
+@prefix ql:     <http://w3id.org/rml/ql/> .
+@prefix mail:   <http://example.com/mail#>.
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#>.
+@prefix sd:     <http://www.w3.org/ns/sparql-service-description#>.
+@prefix activity: <http://example.com/activity/> .
+@prefix ex:     <http://example.com/> .
+@prefix hydra:  <http://www.w3.org/ns/hydra/core#> .
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix foaf:   <http://xmlns.com/foaf/0.1/> .
+@base <http://example.com/base> .
+
+<#InputSPARQL>
+    a sd:Service ;
+    sd:endpoint <http://localhost:PORT/ds1/sparql> ;
+    sd:supportedLanguage sd:SPARQL11Query ;
+    sd:resultFormat <http://www.w3.org/ns/formats/SPARQL_Results_JSON> .
+
+<TriplesMap1>
+  a rml:TriplesMap;
+
+    rml:logicalSource [
+        rml:source <#InputSPARQL>;
+        rml:referenceFormulation ql:JSONPath;
+        rml:iterator "$.results.bindings[*]";
+        rml:query """
+            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+            PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+            SELECT ?Name ?ID
+            WHERE {
+                ?x  foaf:name ?Name ;
+                    rdf:ID    ?ID ;
+            } """
+    ];
+
+  rml:subjectMap [ rml:template "http://example.com/Student/{ID.value}/{Name.value}" ];
+
+  rml:predicateObjectMap [
+    rml:predicate ex:sameSportAs ;
+    rml:objectMap <RefObjectMap1>
+  ] .
+
+
+<RefObjectMap1>
+  a rml:RefObjectMap;
+  rml:parentTriplesMap <TriplesMap1> ;
+  rml:joinCondition [ rml:child "Sport.value" ;
+      rml:parent "Sport.value" ] .

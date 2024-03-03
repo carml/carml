@@ -60,7 +60,8 @@
 		<module>carml-logical-source-resolver-postgresql</module>
 		<module>carml-join-storage</module>
 		<module>carml-converters-jena</module>
-	</modules>
+    <module>carml-test-cases</module>
+  </modules>
 
 	<properties>
 		<maven.compiler.source>17</maven.compiler.source>

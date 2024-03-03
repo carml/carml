@@ -1,0 +1,98 @@
+@prefix foaf:       <http://xmlns.com/foaf/0.1/> .
+@prefix ex:         <http://example.com/> .
+@prefix xsd:        <http://www.w3.org/2001/XMLSchema#> .
+@prefix rml:        <http://w3id.org/rml/> .
+@prefix ql:         <http://w3id.org/rml/ql/> .
+@prefix activity:   <http://example.com/activity/> .
+@prefix rdfs:       <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix d2rq:       <http://www.wiwiss.fu-berlin.de/suhl/bizer/D2RQ/0.1#> .
+@prefix sd:         <http://www.w3.org/ns/sparql-service-description#> .
+@base <http://example.com/base/> .
+
+<#InputSPARQL1>
+    a sd:Service ;
+    sd:endpoint <http://localhost:PORT/ds1/sparql> ;
+    sd:supportedLanguage sd:SPARQL11Query ;
+    sd:resultFormat <http://www.w3.org/ns/formats/SPARQL_Results_JSON> .
+
+<#InputSPARQL2>
+    a sd:Service ;
+    sd:endpoint <http://localhost:PORT/ds2/sparql> ;
+    sd:supportedLanguage sd:SPARQL11Query ;
+    sd:resultFormat <http://www.w3.org/ns/formats/SPARQL_Results_JSON> .
+
+<TriplesMap1>
+  a rml:TriplesMap;
+
+  rml:logicalSource [
+          rml:source <#InputSPARQL1>;
+          rml:referenceFormulation ql:JSONPath;
+          rml:iterator "$.results.bindings[*]";
+          rml:query """
+              PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+              PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+              PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+              SELECT ?Name ?ID ?Sport
+              WHERE {
+                  ?x  foaf:name ?Name ;
+                      rdf:ID    ?ID ;
+                      <http://example.com/plays> ?sportObject .
+                  OPTIONAL { ?sportObject a <http://example.com/Sport> ;
+                                            rdf:ID ?Sport . }
+              } """
+      ];
+
+
+  rml:subjectMap [
+      rml:template "http://example.com/resource/student_{ID.value}" ;
+      rml:class <http://example.com/ontology/Student>;
+      rml:graph <http://example.com/graph/students> ;
+    ];
+
+    rml:predicateObjectMap [
+      rml:predicate foaf:name ;
+      rml:objectMap [ rml:reference "Name.value" ];
+      rml:graph <http://example.com/graph/students> ;
+    ] ;
+
+    rml:predicateObjectMap [
+      rml:predicate <http://example.com/ontology/practises> ;
+      rml:objectMap [
+        a rml:RefObjectMap ;
+        rml:parentTriplesMap <TriplesMap2>;
+        rml:joinCondition [
+          rml:child "Sport.value" ;
+          rml:parent "ID.value" ;
+        ]
+      ];
+      rml:graph <http://example.com/graph/practise> ;
+    ] .
+
+<TriplesMap2>
+  a rml:TriplesMap;
+
+  rml:logicalSource [
+            rml:source <#InputSPARQL2>;
+            rml:referenceFormulation ql:JSONPath;
+            rml:iterator "$.results.bindings[*]";
+            rml:query """
+                PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+                PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+                PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+                SELECT ?ID ?Name
+                WHERE {
+                    ?x  foaf:name ?Name ;
+                        rdf:ID    ?ID ;
+                } """
+        ];
+
+  rml:subjectMap [
+      rml:template "http://example.com/resource/sport_{ID.value}";
+      rml:class <http://example.com/ontology/Sport>;
+      rml:graph <http://example.com/graph/sports> ;
+    ];
+
+    rml:predicateObjectMap [
+      rml:predicate rdfs:label ;
+      rml:objectMap [ rml:reference "Name.value" ];
+    ].

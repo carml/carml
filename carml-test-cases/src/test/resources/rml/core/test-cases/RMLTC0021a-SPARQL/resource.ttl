@@ -1,0 +1,14 @@
+[] <http://xmlns.com/foaf/0.1/name> "Venus Williams" ;
+   <http://www.w3.org/1999/02/22-rdf-syntax-ns#ID> "10" ;
+   <http://example.com/plays>  [ a <http://example.com/Sport> ;
+                                   <http://xmlns.com/foaf/0.1/name> "Tennis" ] .
+
+[] <http://xmlns.com/foaf/0.1/name> "Serena Williams" ;
+   <http://www.w3.org/1999/02/22-rdf-syntax-ns#ID> "20" ;
+   <http://example.com/plays>  [ a <http://example.com/Sport> ;
+                                   <http://xmlns.com/foaf/0.1/name> "Tennis" ] .
+
+[] <http://xmlns.com/foaf/0.1/name> "Loena Hendrickx" ;
+   <http://www.w3.org/1999/02/22-rdf-syntax-ns#ID> "30" ;
+   <http://example.com/plays>  [ a <http://example.com/Sport> ;
+                                   <http://xmlns.com/foaf/0.1/name> "Figure skating" ] .
