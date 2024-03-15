@@ -7,6 +7,7 @@ import io.carml.model.SubjectMap;
 import io.carml.rdfmapper.annotations.RdfProperty;
 import io.carml.rdfmapper.annotations.RdfType;
 import io.carml.vocab.Rdf;
+import io.carml.vocab.Rml;
 import io.carml.vocab.Rr;
 import java.util.Set;
 import java.util.function.UnaryOperator;
@@ -33,6 +34,7 @@ public class CarmlSubjectMap extends CarmlTermMap implements SubjectMap {
   @Singular
   private Set<GraphMap> graphMaps;
 
+  @RdfProperty(Rml.graphMap)
   @RdfProperty(Rr.graphMap)
   @RdfType(CarmlGraphMap.class)
   @Override
@@ -40,6 +42,7 @@ public class CarmlSubjectMap extends CarmlTermMap implements SubjectMap {
     return graphMaps;
   }
 
+  @RdfProperty(Rml.clazz)
   @RdfProperty(Rr.clazz)
   @Override
   public Set<IRI> getClasses() {
@@ -57,12 +60,12 @@ public class CarmlSubjectMap extends CarmlTermMap implements SubjectMap {
   @Override
   public void addTriples(ModelBuilder modelBuilder) {
     modelBuilder.subject(getAsResource())
-        .add(RDF.TYPE, Rdf.Rr.SubjectMap);
+        .add(RDF.TYPE, Rdf.Rml.SubjectMap);
 
     addTriplesBase(modelBuilder);
 
-    graphMaps.forEach(gm -> modelBuilder.add(Rr.graphMap, gm.getAsResource()));
-    classes.forEach(cl -> modelBuilder.add(Rr.clazz, cl));
+    graphMaps.forEach(gm -> modelBuilder.add(Rdf.Rml.graphMap, gm.getAsResource()));
+    classes.forEach(cl -> modelBuilder.add(Rdf.Rml.clazz, cl));
   }
 
   @Override

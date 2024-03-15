@@ -7,6 +7,7 @@ import io.carml.model.ObjectMap;
 import io.carml.model.Resource;
 import io.carml.rdfmapper.annotations.RdfProperty;
 import io.carml.rdfmapper.annotations.RdfType;
+import io.carml.vocab.OldRml;
 import io.carml.vocab.Rdf;
 import io.carml.vocab.Rml;
 import java.util.Set;
@@ -31,6 +32,7 @@ public class CarmlObjectMap extends CarmlTermMap implements ObjectMap {
   private LanguageMap languageMap;
 
   @RdfProperty(Rml.datatypeMap)
+  @RdfProperty(OldRml.datatypeMap)
   @RdfType(CarmlDatatypeMap.class)
   @Override
   public DatatypeMap getDatatypeMap() {
@@ -38,6 +40,7 @@ public class CarmlObjectMap extends CarmlTermMap implements ObjectMap {
   }
 
   @RdfProperty(Rml.languageMap)
+  @RdfProperty(OldRml.languageMap)
   @RdfType(CarmlLanguageMap.class)
   @Override
   public LanguageMap getLanguageMap() {
@@ -59,7 +62,7 @@ public class CarmlObjectMap extends CarmlTermMap implements ObjectMap {
   @Override
   public void addTriples(ModelBuilder modelBuilder) {
     modelBuilder.subject(getAsResource())
-        .add(RDF.TYPE, Rdf.Rr.ObjectMap);
+        .add(RDF.TYPE, Rdf.Rml.ObjectMap);
 
     addTriplesBase(modelBuilder);
 

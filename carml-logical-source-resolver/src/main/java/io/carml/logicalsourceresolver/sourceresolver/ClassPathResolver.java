@@ -1,6 +1,7 @@
 package io.carml.logicalsourceresolver.sourceresolver;
 
 import io.carml.model.FileSource;
+import io.carml.model.RelativePathSource;
 import java.util.Optional;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -36,6 +37,7 @@ public class ClassPathResolver implements SourceResolver {
 
   @Override
   public boolean supportsSource(Object sourceObject) {
-    return sourceObject instanceof String || sourceObject instanceof FileSource;
+    return sourceObject instanceof String || sourceObject instanceof FileSource
+        || sourceObject instanceof RelativePathSource;
   }
 }

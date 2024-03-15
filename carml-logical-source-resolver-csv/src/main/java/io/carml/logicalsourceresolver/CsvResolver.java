@@ -7,7 +7,8 @@ import com.univocity.parsers.common.record.Record;
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
 import io.carml.model.LogicalSource;
-import io.carml.vocab.Rdf;
+import io.carml.vocab.Rdf.Ql;
+import io.carml.vocab.Rdf.Rml;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Optional;
@@ -93,7 +94,7 @@ public class CsvResolver implements LogicalSourceResolver<Record> {
 
   @AllArgsConstructor(access = AccessLevel.PRIVATE)
   public static class Matcher implements MatchingLogicalSourceResolverSupplier {
-    private static final Set<IRI> MATCHING_REF_FORMULATIONS = java.util.Set.of(Rdf.Ql.Csv);
+    private static final Set<IRI> MATCHING_REF_FORMULATIONS = Set.of(Rml.Csv, Ql.Csv);
 
     private List<IRI> matchingReferenceFormulations;
 

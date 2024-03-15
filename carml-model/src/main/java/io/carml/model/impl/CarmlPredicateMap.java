@@ -29,7 +29,7 @@ public class CarmlPredicateMap extends CarmlTermMap implements PredicateMap {
   @Override
   public void addTriples(ModelBuilder modelBuilder) {
     modelBuilder.subject(getAsResource())
-        .add(RDF.TYPE, Rdf.Rr.PredicateMap);
+        .add(RDF.TYPE, Rdf.Rml.PredicateMap);
 
     addTriplesBase(modelBuilder);
   }

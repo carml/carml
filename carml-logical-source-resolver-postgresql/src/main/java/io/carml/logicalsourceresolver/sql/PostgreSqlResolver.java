@@ -18,7 +18,9 @@ import io.carml.logicalsourceresolver.MatchingLogicalSourceResolverSupplier;
 import io.carml.logicalsourceresolver.sql.sourceresolver.JoiningDatabaseSource;
 import io.carml.model.DatabaseSource;
 import io.carml.model.LogicalSource;
-import io.carml.vocab.Rdf;
+import io.carml.vocab.Rdf.Ql;
+import io.carml.vocab.Rdf.Rml;
+import io.carml.vocab.Rdf.Rr;
 import io.r2dbc.spi.Type;
 import java.util.List;
 import java.util.Optional;
@@ -89,7 +91,9 @@ public class PostgreSqlResolver extends SqlResolver {
 
   @AllArgsConstructor(access = AccessLevel.PRIVATE)
   public static class Matcher implements MatchingLogicalSourceResolverSupplier {
-    private static final Set<IRI> MATCHING_REF_FORMULATIONS = java.util.Set.of(Rdf.Ql.Rdb, Rdf.Rr.PostgreSQL);
+
+    private static final Set<IRI> MATCHING_REF_FORMULATIONS =
+        Set.of(Rml.SQL2008Table, Rml.SQL2008Query, Ql.Rdb, Rr.PostgreSQL);
 
     private List<IRI> matchingReferenceFormulations;
 
@@ -137,9 +141,9 @@ public class PostgreSqlResolver extends SqlResolver {
 
     private boolean referenceFormulationMatchesSql2008(LogicalSource logicalSource) {
       return logicalSource.getReferenceFormulation() != null && logicalSource.getReferenceFormulation()
-          .equals(Rdf.Rr.SQL2008) || logicalSource.getSqlVersion() != null
+          .equals(Rr.SQL2008) || logicalSource.getSqlVersion() != null
               && logicalSource.getSqlVersion()
-                  .equals(Rdf.Rr.SQL2008);
+                  .equals(Rr.SQL2008);
     }
 
     private boolean hasMySqlSource(LogicalSource logicalSource) {

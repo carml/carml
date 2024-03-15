@@ -26,6 +26,7 @@ import io.carml.model.GraphMap;
 import io.carml.model.Join;
 import io.carml.model.LogicalTable;
 import io.carml.model.ObjectMap;
+import io.carml.model.ParentMap;
 import io.carml.model.PredicateMap;
 import io.carml.model.PredicateObjectMap;
 import io.carml.model.RefObjectMap;
@@ -147,10 +148,19 @@ class RdfTriplesMapperTest {
   private Join join1;
 
   @Mock
+  private ParentMap parentMap1;
+
+  @Mock
   private Join join2;
 
   @Mock
+  private ParentMap parentMap2;
+
+  @Mock
   private Join join3;
+
+  @Mock
+  private ParentMap parentMap3;
 
   @Mock
   private LogicalSourceRecord<?> logicalSourceRecord;
@@ -423,13 +433,16 @@ class RdfTriplesMapperTest {
 
     when(rdfRefObjectMapper1.getRefObjectMap()).thenReturn(refObjectMap1);
     when(refObjectMap1.getJoinConditions()).thenReturn(Set.of(join1));
-    when(join1.getParent()).thenReturn("bar1");
+    when(join1.getParentMap()).thenReturn(parentMap1);
+    when(parentMap1.getReference()).thenReturn("bar1");
 
     when(rdfRefObjectMapper2.getRefObjectMap()).thenReturn(refObjectMap2);
 
     when(refObjectMap2.getJoinConditions()).thenReturn(Set.of(join2, join3));
-    when(join2.getParent()).thenReturn("bar2");
-    when(join3.getParent()).thenReturn("bar3");
+    when(join2.getParentMap()).thenReturn(parentMap2);
+    when(parentMap2.getReference()).thenReturn("bar2");
+    when(join3.getParentMap()).thenReturn(parentMap3);
+    when(parentMap3.getReference()).thenReturn("bar3");
 
     incomingRefObjectMappers = Set.of(rdfRefObjectMapper1, rdfRefObjectMapper2);
 
@@ -475,7 +488,8 @@ class RdfTriplesMapperTest {
 
     when(rdfRefObjectMapper1.getRefObjectMap()).thenReturn(refObjectMap1);
     when(refObjectMap1.getJoinConditions()).thenReturn(Set.of(join1));
-    when(join1.getParent()).thenReturn("bar1");
+    when(join1.getParentMap()).thenReturn(parentMap1);
+    when(parentMap1.getReference()).thenReturn("bar1");
 
     incomingRefObjectMappers = Set.of(rdfRefObjectMapper1);
 

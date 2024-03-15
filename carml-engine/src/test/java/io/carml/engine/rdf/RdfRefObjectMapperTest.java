@@ -19,7 +19,9 @@ import io.carml.engine.join.ChildSideJoinStoreProvider;
 import io.carml.engine.join.ParentSideJoinConditionStore;
 import io.carml.engine.join.ParentSideJoinKey;
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
+import io.carml.model.ChildMap;
 import io.carml.model.Join;
+import io.carml.model.ParentMap;
 import io.carml.model.RefObjectMap;
 import io.carml.model.TriplesMap;
 import java.util.ArrayList;
@@ -61,7 +63,19 @@ class RdfRefObjectMapperTest {
   private Join join1;
 
   @Mock
+  private ChildMap childMap1;
+
+  @Mock
+  private ParentMap parentMap1;
+
+  @Mock
   private Join join2;
+
+  @Mock
+  private ChildMap childMap2;
+
+  @Mock
+  private ParentMap parentMap2;
 
   @Mock
   private RdfTermGeneratorFactory rdfTermGeneratorFactory;
@@ -116,8 +130,10 @@ class RdfRefObjectMapperTest {
         .build();
 
     when(refObjectMap.getJoinConditions()).thenReturn(Set.of(join1));
-    when(join1.getChild()).thenReturn("foo");
-    when(join1.getParent()).thenReturn("bar");
+    when(join1.getChildMap()).thenReturn(childMap1);
+    when(childMap1.getReference()).thenReturn("foo");
+    when(join1.getParentMap()).thenReturn(parentMap1);
+    when(parentMap1.getReference()).thenReturn("bar");
 
     when(expressionEvaluation.apply(any())).thenReturn(Optional.of(List.of("baz")));
 
@@ -170,8 +186,10 @@ class RdfRefObjectMapperTest {
         .build();
 
     when(refObjectMap.getJoinConditions()).thenReturn(Set.of(join1));
-    when(join1.getChild()).thenReturn("foo");
-    when(join1.getParent()).thenReturn("bar");
+    when(join1.getChildMap()).thenReturn(childMap1);
+    when(childMap1.getReference()).thenReturn("foo");
+    when(join1.getParentMap()).thenReturn(parentMap1);
+    when(parentMap1.getReference()).thenReturn("bar");
 
     Resource subject1 = VALUE_FACTORY.createIRI("http://foo.bar/subject1");
     Resource subject2 = VALUE_FACTORY.createIRI("http://foo.bar/subject2");
@@ -228,11 +246,16 @@ class RdfRefObjectMapperTest {
         .build();
 
     when(refObjectMap.getJoinConditions()).thenReturn(Set.of(join1, join2));
-    when(join1.getChild()).thenReturn("foo");
-    when(join1.getParent()).thenReturn("bar");
+    when(join1.getChildMap()).thenReturn(childMap1);
+    when(childMap1.getReference()).thenReturn("foo");
 
-    when(join2.getChild()).thenReturn("Alice");
-    when(join2.getParent()).thenReturn("Bob");
+    when(join1.getParentMap()).thenReturn(parentMap1);
+    when(parentMap1.getReference()).thenReturn("bar");
+
+    when(join2.getChildMap()).thenReturn(childMap2);
+    when(childMap2.getReference()).thenReturn("Alice");
+    when(join2.getParentMap()).thenReturn(parentMap2);
+    when(parentMap2.getReference()).thenReturn("Bob");
 
     when(expressionEvaluation.apply(any())).thenReturn(Optional.of(List.of("baz")))
         .thenReturn(Optional.of(List.of("Carol")));

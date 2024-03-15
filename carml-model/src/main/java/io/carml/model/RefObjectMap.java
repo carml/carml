@@ -10,12 +10,15 @@ public interface RefObjectMap extends BaseObjectMap {
 
   default boolean isSelfJoining(TriplesMap childTriplesMap) {
     if (!childTriplesMap.getLogicalSource()
-        .equals(getParentTriplesMap().getLogicalSource())) {
+        .equals(getParentTriplesMap().getLogicalSource()) || getParentTriplesMap().equals(childTriplesMap)) {
       return false;
     }
 
+    // TODO check after childmap parentmap introduction
     return getJoinConditions().stream()
-        .allMatch(join -> join.getChild()
-            .equals(join.getParent()));
+        .allMatch(join -> join.getChildMap()
+            .getExpressionMapExpressionSet()
+            .equals(join.getParentMap()
+                .getExpressionMapExpressionSet()));
   }
 }

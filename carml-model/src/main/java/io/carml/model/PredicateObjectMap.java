@@ -28,7 +28,9 @@ public interface PredicateObjectMap extends Resource {
         .map(RefObjectMap.class::cast)
         .map(RefObjectMap::getJoinConditions)
         .flatMap(Set::stream)
-        .map(Join::getChild);
+        .map(Join::getChildMap)
+        .map(ChildMap::getExpressionMapExpressionSet)
+        .flatMap(Set::stream);
 
     var graphMapExpressions = getGraphMaps().stream()
         .map(GraphMap::getExpressionMapExpressionSet)

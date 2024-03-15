@@ -22,7 +22,7 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class TemplateEvaluation implements Supplier<Set<String>> {
+public class TemplateEvaluation implements Supplier<Set<Object>> {
 
   private final Template template;
 
@@ -33,7 +33,7 @@ public class TemplateEvaluation implements Supplier<Set<String>> {
   }
 
   @Override
-  public Set<String> get() {
+  public Set<Object> get() {
     var indexedExprValues = new HashMap<Segment, List<String>>();
 
     // single out expression segments
@@ -109,7 +109,7 @@ public class TemplateEvaluation implements Supplier<Set<String>> {
     return true;
   }
 
-  private Set<String> processSegments(Map<Segment, List<String>> indexedExprValues) {
+  private Set<Object> processSegments(Map<Segment, List<String>> indexedExprValues) {
     var processedSegments = template.getSegments()
         .stream()
         .map(segment -> processSegment(segment, indexedExprValues))

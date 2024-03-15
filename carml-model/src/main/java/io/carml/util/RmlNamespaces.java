@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableSet;
 import io.carml.vocab.Carml;
 import io.carml.vocab.Fnml;
 import io.carml.vocab.Fno;
+import io.carml.vocab.OldRml;
 import io.carml.vocab.Rml;
 import io.carml.vocab.Rr;
 import java.util.Set;
@@ -19,8 +20,9 @@ public class RmlNamespaces {
   public static final Set<Namespace> RML_NAMESPACES = new ImmutableSet.Builder<Namespace>().add(RDF.NS)
       .add(RDFS.NS)
       .add(XSD.NS)
-      .add(new SimpleNamespace(Rr.PREFIX, Rr.NAMESPACE))
       .add(new SimpleNamespace(Rml.PREFIX, Rml.NAMESPACE))
+      .add(new SimpleNamespace(Rr.PREFIX, Rr.NAMESPACE))
+      .add(new SimpleNamespace(OldRml.PREFIX, OldRml.NAMESPACE))
       .add(new SimpleNamespace(Fnml.PREFIX, Fnml.NAMESPACE))
       .add(new SimpleNamespace(Fno.PREFIX, Fno.NAMESPACE))
       .add(new SimpleNamespace(Carml.PREFIX, Carml.NAMESPACE))

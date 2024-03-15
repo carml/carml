@@ -3,7 +3,6 @@ package io.carml.engine.rdf;
 import static io.carml.logicalsourceresolver.MatchedLogicalSourceResolverSupplier.select;
 import static io.carml.util.LogUtil.exception;
 import static io.carml.util.LogUtil.log;
-import static io.carml.vocab.Rml.referenceFormulation;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.mapping;
@@ -22,6 +21,7 @@ import io.carml.logicalsourceresolver.sql.sourceresolver.JoiningDatabaseSource;
 import io.carml.model.DatabaseSource;
 import io.carml.model.Join;
 import io.carml.model.LogicalSource;
+import io.carml.model.ParentMap;
 import io.carml.model.PredicateObjectMap;
 import io.carml.model.RefObjectMap;
 import io.carml.model.SubjectMap;
@@ -189,7 +189,9 @@ public class RdfMappingPipelineFactory {
     var joinParentExpressions = refObjectMaps.stream()
         .map(RefObjectMap::getJoinConditions)
         .flatMap(Set::stream)
-        .map(Join::getParent);
+        .map(Join::getParentMap)
+        .map(ParentMap::getExpressionMapExpressionSet) // TODO
+        .flatMap(Set::stream);
 
     var parentExpressions = Stream.concat(parentTmExpressions, joinParentExpressions)
         .collect(toUnmodifiableSet());
@@ -338,7 +340,7 @@ public class RdfMappingPipelineFactory {
     return select(matchedLogicalSourceResolverSuppliers)
         .orElseThrow(() -> new RmlMapperException(String.format(
             "No logical source resolver supplier bound for reference formulation %s%nResolvers available: %s",
-            referenceFormulation, logicalSourceResolverMatchers.stream()
+            logicalSource.getReferenceFormulation(), logicalSourceResolverMatchers.stream()
                 .map(MatchingLogicalSourceResolverSupplier::getResolverName)
                 .collect(joining(", ")))))
         .get();

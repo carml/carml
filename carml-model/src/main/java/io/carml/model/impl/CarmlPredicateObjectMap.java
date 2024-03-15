@@ -10,6 +10,7 @@ import io.carml.rdfmapper.annotations.RdfProperty;
 import io.carml.rdfmapper.annotations.RdfType;
 import io.carml.rdfmapper.annotations.RdfTypeDecider;
 import io.carml.vocab.Rdf;
+import io.carml.vocab.Rml;
 import io.carml.vocab.Rr;
 import java.util.Set;
 import lombok.EqualsAndHashCode;
@@ -37,6 +38,7 @@ public class CarmlPredicateObjectMap extends CarmlResource implements PredicateO
   @Singular
   private Set<GraphMap> graphMaps;
 
+  @RdfProperty(Rml.predicateMap)
   @RdfProperty(Rr.predicateMap)
   @RdfType(CarmlPredicateMap.class)
   @Override
@@ -44,6 +46,7 @@ public class CarmlPredicateObjectMap extends CarmlResource implements PredicateO
     return predicateMaps;
   }
 
+  @RdfProperty(Rml.objectMap)
   @RdfProperty(Rr.objectMap)
   @RdfTypeDecider(ObjectMapTypeDecider.class)
   @Override
@@ -51,6 +54,7 @@ public class CarmlPredicateObjectMap extends CarmlResource implements PredicateO
     return objectMaps;
   }
 
+  @RdfProperty(Rml.graphMap)
   @RdfProperty(Rr.graphMap)
   @RdfType(CarmlGraphMap.class)
   @Override
@@ -70,10 +74,10 @@ public class CarmlPredicateObjectMap extends CarmlResource implements PredicateO
   @Override
   public void addTriples(ModelBuilder modelBuilder) {
     modelBuilder.subject(getAsResource())
-        .add(RDF.TYPE, Rdf.Rr.PredicateObjectMap);
+        .add(RDF.TYPE, Rdf.Rml.PredicateObjectMap);
 
-    predicateMaps.forEach(pm -> modelBuilder.add(Rr.predicateMap, pm.getAsResource()));
-    objectMaps.forEach(om -> modelBuilder.add(Rr.objectMap, om.getAsResource()));
-    graphMaps.forEach(gm -> modelBuilder.add(Rr.graphMap, gm.getAsResource()));
+    predicateMaps.forEach(pm -> modelBuilder.add(Rdf.Rml.predicateMap, pm.getAsResource()));
+    objectMaps.forEach(om -> modelBuilder.add(Rdf.Rml.objectMap, om.getAsResource()));
+    graphMaps.forEach(gm -> modelBuilder.add(Rdf.Rml.graphMap, gm.getAsResource()));
   }
 }

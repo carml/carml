@@ -3,17 +3,22 @@ package io.carml.util;
 import io.carml.model.DatabaseSource;
 import io.carml.model.FileSource;
 import io.carml.model.NameableStream;
+import io.carml.model.RelativePathSource;
 import io.carml.model.TermType;
 import io.carml.model.TriplesMap;
 import io.carml.model.XmlSource;
 import io.carml.model.impl.CarmlDatabaseSource;
 import io.carml.model.impl.CarmlFileSource;
+import io.carml.model.impl.CarmlRelativePathSource;
 import io.carml.model.impl.CarmlStream;
 import io.carml.model.impl.CarmlTriplesMap;
 import io.carml.model.impl.CarmlXmlSource;
 import io.carml.rdfmapper.impl.MappingCache;
 import io.carml.rdfmapper.util.RdfObjectLoader;
 import io.carml.vocab.Rdf;
+import io.carml.vocab.Rdf.OldRml;
+import io.carml.vocab.Rdf.Rml;
+import io.carml.vocab.Rdf.Rr;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -29,7 +34,7 @@ import org.eclipse.rdf4j.rio.RDFFormat;
 
 public class RmlMappingLoader {
 
-  private static final Set<IRI> BASE_SOURCES = Set.of(Rdf.Rml.logicalSource, Rdf.Rr.logicalTable);
+  private static final Set<IRI> BASE_SOURCES = Set.of(Rml.logicalSource, OldRml.logicalSource, Rr.logicalTable);
 
   public static RmlMappingLoader build() {
     return new RmlMappingLoader(new RmlConstantShorthandExpander());
@@ -81,13 +86,15 @@ public class RmlMappingLoader {
 
     return Set.copyOf(RdfObjectLoader.load(RmlMappingLoader::selectTriplesMaps, CarmlTriplesMap.class, model,
         shorthandExpander, this::addTermTypes, mapper -> mapper.addDecidableType(Rdf.Carml.Stream, NameableStream.class)
-            .addDecidableType(Rdf.Carml.XmlDocument, XmlSource.class)
-            .addDecidableType(Rdf.Carml.FileSource, FileSource.class)
-            .addDecidableType(Rdf.D2rq.Database, DatabaseSource.class)
             .bindInterfaceImplementation(NameableStream.class, CarmlStream.class)
+            .addDecidableType(Rdf.Carml.XmlDocument, XmlSource.class)
             .bindInterfaceImplementation(XmlSource.class, CarmlXmlSource.class)
+            .addDecidableType(Rdf.Carml.FileSource, FileSource.class)
             .bindInterfaceImplementation(FileSource.class, CarmlFileSource.class)
-            .bindInterfaceImplementation(DatabaseSource.class, CarmlDatabaseSource.class),
+            .addDecidableType(Rdf.D2rq.Database, DatabaseSource.class)
+            .bindInterfaceImplementation(DatabaseSource.class, CarmlDatabaseSource.class)
+            .addDecidableType(Rdf.Rml.RelativePathSource, RelativePathSource.class)
+            .bindInterfaceImplementation(RelativePathSource.class, CarmlRelativePathSource.class),
         RmlNamespaces.RML_NAMESPACES));
   }
 
@@ -107,9 +114,12 @@ public class RmlMappingLoader {
       }
 
       void run() {
-        add(Rdf.Rr.BlankNode, TermType.BLANK_NODE);
-        add(Rdf.Rr.IRI, TermType.IRI);
-        add(Rdf.Rr.Literal, TermType.LITERAL);
+        add(Rml.BlankNode, TermType.BLANK_NODE);
+        add(Rr.BlankNode, TermType.BLANK_NODE);
+        add(Rml.IRI, TermType.IRI);
+        add(Rr.IRI, TermType.IRI);
+        add(Rml.Literal, TermType.LITERAL);
+        add(Rr.Literal, TermType.LITERAL);
       }
     }
 

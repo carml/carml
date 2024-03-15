@@ -12,9 +12,11 @@ import io.carml.logicalsourceresolver.LogicalSourceResolver;
 import io.carml.logicalsourceresolver.LogicalSourceResolverException;
 import io.carml.logicalsourceresolver.ResolvedSource;
 import io.carml.logicalsourceresolver.sql.sourceresolver.JoiningDatabaseSource;
+import io.carml.model.ChildMap;
 import io.carml.model.DatabaseSource;
 import io.carml.model.Join;
 import io.carml.model.LogicalSource;
+import io.carml.model.ParentMap;
 import io.carml.model.RefObjectMap;
 import io.r2dbc.pool.ConnectionPool;
 import io.r2dbc.pool.ConnectionPoolConfiguration;
@@ -310,7 +312,9 @@ public abstract class SqlResolver implements LogicalSourceResolver<RowData> {
     var childJoinExpressions = refObjectMaps.stream()
         .map(RefObjectMap::getJoinConditions)
         .flatMap(Set::stream)
-        .map(Join::getChild)
+        .map(Join::getChildMap)
+        .map(ChildMap::getExpressionMapExpressionSet) // TODO template and functionvalue?
+        .flatMap(Set::stream)
         .collect(toSet());
 
     return toNotNullConditions(childJoinExpressions, Set.of());
@@ -320,7 +324,9 @@ public abstract class SqlResolver implements LogicalSourceResolver<RowData> {
     var parentJoinExpressions = refObjectMaps.stream()
         .map(RefObjectMap::getJoinConditions)
         .flatMap(Set::stream)
-        .map(Join::getParent)
+        .map(Join::getParentMap)
+        .map(ParentMap::getExpressionMapExpressionSet) // TODO template and functionvalue?
+        .flatMap(Set::stream)
         .collect(toSet());
 
     return toNotNullConditions(parentJoinExpressions, extraFields);
@@ -337,7 +343,10 @@ public abstract class SqlResolver implements LogicalSourceResolver<RowData> {
     return refObjectMaps.stream()
         .map(RefObjectMap::getJoinConditions)
         .flatMap(Set::stream)
-        .map(join -> field(name(CHILD_ALIAS, join.getChild())).eq(field(name(PARENT_ALIAS, join.getParent()))))
+        .map(join -> field(name(CHILD_ALIAS, join.getChildMap()
+            .getReference())).eq(field(name(PARENT_ALIAS,
+                join.getParentMap()
+                    .getReference())))) // TODO other expressions?
         .toArray(Condition[]::new);
   }
 

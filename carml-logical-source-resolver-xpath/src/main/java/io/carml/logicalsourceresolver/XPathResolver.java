@@ -4,7 +4,8 @@ import static io.carml.util.LogUtil.exception;
 
 import io.carml.model.LogicalSource;
 import io.carml.model.XmlSource;
-import io.carml.vocab.Rdf;
+import io.carml.vocab.Rdf.Ql;
+import io.carml.vocab.Rdf.Rml;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -308,7 +309,7 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
 
   @AllArgsConstructor(access = AccessLevel.PRIVATE)
   public static class Matcher implements MatchingLogicalSourceResolverSupplier {
-    private static final Set<IRI> MATCHING_REF_FORMULATIONS = java.util.Set.of(Rdf.Ql.XPath);
+    private static final Set<IRI> MATCHING_REF_FORMULATIONS = Set.of(Rml.XPath, Ql.XPath);
 
     private List<IRI> matchingReferenceFormulations;
 

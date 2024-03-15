@@ -4,6 +4,7 @@ import io.carml.model.TermMap;
 import io.carml.model.TermType;
 import io.carml.rdfmapper.annotations.RdfProperty;
 import io.carml.vocab.Rdf;
+import io.carml.vocab.Rml;
 import io.carml.vocab.Rr;
 import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
@@ -24,12 +25,15 @@ abstract class CarmlTermMap extends CarmlExpressionMap implements TermMap {
 
   TermType termType;
 
+  // TODO??
+  @RdfProperty(Rml.inverseExpression)
   @RdfProperty(Rr.inverseExpression)
   @Override
   public String getInverseExpression() {
     return inverseExpression;
   }
 
+  @RdfProperty(Rml.termType)
   @RdfProperty(Rr.termType)
   @Override
   public TermType getTermType() {
@@ -39,8 +43,9 @@ abstract class CarmlTermMap extends CarmlExpressionMap implements TermMap {
   @Override
   void addTriplesBase(ModelBuilder builder) {
     super.addTriplesBase(builder);
+
     if (inverseExpression != null) {
-      builder.add(Rr.inverseExpression, inverseExpression);
+      builder.add(Rdf.Rml.inverseExpression, inverseExpression);
     }
     if (termType != null) {
       addTermTypeTriple(builder);
@@ -50,13 +55,13 @@ abstract class CarmlTermMap extends CarmlExpressionMap implements TermMap {
   private void addTermTypeTriple(ModelBuilder builder) {
     switch (termType) {
       case IRI:
-        builder.add(Rr.termType, Rdf.Rr.IRI);
+        builder.add(Rdf.Rml.termType, Rdf.Rml.IRI);
         break;
       case LITERAL:
-        builder.add(Rr.termType, Rdf.Rr.Literal);
+        builder.add(Rdf.Rml.termType, Rdf.Rml.Literal);
         break;
       case BLANK_NODE:
-        builder.add(Rr.termType, Rdf.Rr.BlankNode);
+        builder.add(Rdf.Rml.termType, Rdf.Rml.BlankNode);
         break;
       default:
         throw new IllegalStateException(String.format("Illegal term type value '%s' encountered.", termType));

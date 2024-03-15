@@ -29,7 +29,7 @@ public class CarmlGraphMap extends CarmlTermMap implements GraphMap {
   @Override
   public void addTriples(ModelBuilder modelBuilder) {
     modelBuilder.subject(getAsResource())
-        .add(RDF.TYPE, Rdf.Rr.GraphMap);
+        .add(RDF.TYPE, Rdf.Rml.GraphMap);
 
     addTriplesBase(modelBuilder);
   }

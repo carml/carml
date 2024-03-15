@@ -1,6 +1,7 @@
 package io.carml.engine.rdf;
 
 import static io.carml.util.LogUtil.exception;
+import static io.carml.vocab.Rdf.Rr;
 
 import io.carml.engine.RefObjectMapper;
 import io.carml.engine.TermGenerator;
@@ -17,7 +18,7 @@ import io.carml.model.Join;
 import io.carml.model.LogicalSource;
 import io.carml.model.SubjectMap;
 import io.carml.model.TriplesMap;
-import io.carml.vocab.Rdf;
+import io.carml.vocab.Rdf.Rml;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -40,7 +41,8 @@ import reactor.core.publisher.Flux;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
 
-  static UnaryOperator<Resource> defaultGraphModifier = graph -> graph.equals(Rdf.Rr.defaultGraph) ? null : graph;
+  static UnaryOperator<Resource> defaultGraphModifier = graph ->
+      graph.equals(Rr.defaultGraph) || graph.equals(Rml.defaultGraph) ? null : graph;
 
   static Consumer<Statement> logAddStatements = statement -> {
     if (LOG.isTraceEnabled()) {
@@ -211,7 +213,9 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
   }
 
   private void processJoinCondition(Join join, ExpressionEvaluation expressionEvaluation, Set<Resource> subjects) {
-    String parentReference = join.getParent();
+    // TODO
+    String parentReference = join.getParentMap()
+        .getReference();
 
     expressionEvaluation.apply(parentReference)
         .ifPresent(referenceResult -> ExpressionEvaluation.extractValues(referenceResult)

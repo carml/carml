@@ -1,10 +1,14 @@
 package io.carml.model.impl;
 
+import com.google.common.collect.ImmutableSet;
+import io.carml.model.ChildMap;
 import io.carml.model.Join;
+import io.carml.model.ParentMap;
 import io.carml.model.Resource;
 import io.carml.rdfmapper.annotations.RdfProperty;
+import io.carml.rdfmapper.annotations.RdfType;
 import io.carml.vocab.Rdf;
-import io.carml.vocab.Rr;
+import io.carml.vocab.Rml;
 import java.util.Set;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -21,36 +25,50 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @EqualsAndHashCode(callSuper = false)
 public class CarmlJoin extends CarmlResource implements Join {
 
-  private String child;
+  private ChildMap childMap;
 
-  private String parent;
+  private ParentMap parentMap;
 
-  @RdfProperty(Rr.child)
+  // TODO backwards comp?
+  @RdfProperty(Rml.childMap)
+  @RdfType(CarmlChildMap.class)
   @Override
-  public String getChild() {
-    return child;
+  public ChildMap getChildMap() {
+    return childMap;
   }
 
-  @RdfProperty(Rr.parent)
+  // TODO backwards comp?
+  @RdfProperty(Rml.parentMap)
+  @RdfType(CarmlParentMap.class)
   @Override
-  public String getParent() {
-    return parent;
+  public ParentMap getParentMap() {
+    return parentMap;
   }
 
   @Override
   public Set<Resource> getReferencedResources() {
-    return Set.of();
+    var builder = ImmutableSet.<Resource>builder();
+
+    if (childMap != null) {
+      builder.add(childMap);
+    }
+    if (parentMap != null) {
+      builder.add(parentMap);
+    }
+
+    return builder.build();
   }
 
   @Override
   public void addTriples(ModelBuilder modelBuilder) {
     modelBuilder.subject(getAsResource())
-        .add(RDF.TYPE, Rdf.Rr.Join);
-    if (child != null) {
-      modelBuilder.add(Rr.child, child);
+        .add(RDF.TYPE, Rdf.Rml.Join);
+
+    if (childMap != null) {
+      modelBuilder.add(Rml.childMap, childMap.getAsResource());
     }
-    if (parent != null) {
-      modelBuilder.add(Rr.parent, parent);
+    if (parentMap != null) {
+      modelBuilder.add(Rml.parentMap, parentMap.getAsResource());
     }
   }
 }

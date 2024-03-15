@@ -4,8 +4,8 @@ import io.carml.model.DatabaseSource;
 import io.carml.model.Resource;
 import io.carml.rdfmapper.annotations.RdfProperty;
 import io.carml.vocab.D2rq;
+import io.carml.vocab.OldRml;
 import io.carml.vocab.Rdf;
-import io.carml.vocab.Rml;
 import java.util.Objects;
 import java.util.Set;
 import lombok.NoArgsConstructor;
@@ -56,7 +56,7 @@ public class CarmlDatabaseSource extends CarmlResource implements DatabaseSource
     return password;
   }
 
-  @RdfProperty(Rml.query)
+  @RdfProperty(OldRml.query)
   @Override
   public String getQuery() {
     return query;
@@ -104,7 +104,7 @@ public class CarmlDatabaseSource extends CarmlResource implements DatabaseSource
     }
 
     if (query != null) {
-      modelBuilder.add(Rml.query, query);
+      modelBuilder.add(OldRml.query, query);
     }
   }
 }

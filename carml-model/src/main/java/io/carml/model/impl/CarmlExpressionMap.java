@@ -10,6 +10,8 @@ import io.carml.rdfmapper.annotations.RdfProperty;
 import io.carml.rdfmapper.annotations.RdfType;
 import io.carml.vocab.Carml;
 import io.carml.vocab.Fnml;
+import io.carml.vocab.OldRml;
+import io.carml.vocab.Rdf;
 import io.carml.vocab.Rml;
 import io.carml.vocab.Rr;
 import java.util.Set;
@@ -29,17 +31,8 @@ import org.eclipse.rdf4j.model.util.ModelBuilder;
 @NoArgsConstructor(access = AccessLevel.PACKAGE)
 @Setter
 @ToString(callSuper = true)
-@EqualsAndHashCode(callSuper = true)
+@EqualsAndHashCode
 abstract class CarmlExpressionMap extends CarmlResource implements ExpressionMap {
-
-  CarmlExpressionMap(String id, String label, String reference, Template template, Value constant,
-      TriplesMap functionValue) {
-    super(id, label);
-    this.reference = reference;
-    this.template = template;
-    this.constant = constant;
-    this.functionValue = functionValue;
-  }
 
   String reference;
 
@@ -50,6 +43,7 @@ abstract class CarmlExpressionMap extends CarmlResource implements ExpressionMap
   TriplesMap functionValue;
 
   @RdfProperty(Rml.reference)
+  @RdfProperty(OldRml.reference)
   @RdfProperty(Rr.column)
   @RdfProperty(value = Carml.multiReference, deprecated = true)
   @Override
@@ -57,19 +51,21 @@ abstract class CarmlExpressionMap extends CarmlResource implements ExpressionMap
     return reference;
   }
 
-
+  @RdfProperty(value = Rml.template, handler = TemplatePropertyHandler.class)
   @RdfProperty(value = Rr.template, handler = TemplatePropertyHandler.class)
-  @RdfProperty(value = Carml.multiTemplate, handler = TemplatePropertyHandler.class, deprecated = true)
   @Override
   public Template getTemplate() {
     return template;
   }
 
+  @RdfProperty(Rml.constant)
   @RdfProperty(Rr.constant)
   @Override
   public Value getConstant() {
     return constant;
   }
+
+  // TODO rml-fnml
 
   @RdfProperty(Fnml.functionValue)
   @RdfProperty(value = Carml.multiFunctionValue, deprecated = true)
@@ -85,14 +81,15 @@ abstract class CarmlExpressionMap extends CarmlResource implements ExpressionMap
 
   void addTriplesBase(ModelBuilder builder) {
     if (reference != null) {
-      builder.add(Rml.reference, reference);
+      builder.add(Rdf.Rml.reference, reference);
     }
     if (template != null) {
-      builder.add(Rr.template, template.toTemplateString());
+      builder.add(Rdf.Rml.template, template.toTemplateString());
     }
     if (constant != null) {
-      builder.add(Rr.constant, constant);
+      builder.add(Rdf.Rml.constant, constant);
     }
+    // TODO fnml
     if (functionValue != null) {
       builder.add(Fnml.functionValue, functionValue.getAsResource());
     }

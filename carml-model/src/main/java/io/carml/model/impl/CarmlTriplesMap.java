@@ -9,6 +9,7 @@ import io.carml.model.SubjectMap;
 import io.carml.model.TriplesMap;
 import io.carml.rdfmapper.annotations.RdfProperty;
 import io.carml.rdfmapper.annotations.RdfType;
+import io.carml.vocab.OldRml;
 import io.carml.vocab.Rdf;
 import io.carml.vocab.Rml;
 import io.carml.vocab.Rr;
@@ -25,7 +26,7 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @SuperBuilder(toBuilder = true)
 @NoArgsConstructor
 @Setter
-@EqualsAndHashCode(callSuper = false)
+@EqualsAndHashCode
 public class CarmlTriplesMap extends CarmlResource implements TriplesMap {
 
   private LogicalSource logicalSource;
@@ -39,6 +40,7 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap {
   private Set<PredicateObjectMap> predicateObjectMaps;
 
   @RdfProperty(Rml.logicalSource)
+  @RdfProperty(OldRml.logicalSource)
   @RdfType(CarmlLogicalSource.class)
   @Override
   public LogicalSource getLogicalSource() {
@@ -52,6 +54,7 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap {
     return logicalTable;
   }
 
+  @RdfProperty(Rml.subjectMap)
   @RdfProperty(Rr.subjectMap)
   @RdfType(CarmlSubjectMap.class)
   @Override
@@ -59,6 +62,7 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap {
     return subjectMaps;
   }
 
+  @RdfProperty(Rml.predicateObjectMap)
   @RdfProperty(Rr.predicateObjectMap)
   @RdfType(CarmlPredicateObjectMap.class)
   @Override
@@ -79,7 +83,7 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap {
 
   @Override
   public Set<Resource> getReferencedResources() {
-    ImmutableSet.Builder<Resource> builder = ImmutableSet.<Resource>builder();
+    var builder = ImmutableSet.<Resource>builder();
     if (logicalSource != null) {
       builder.add(logicalSource);
     }
@@ -94,14 +98,14 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap {
   @Override
   public void addTriples(ModelBuilder modelBuilder) {
     modelBuilder.subject(getAsResource())
-        .add(RDF.TYPE, Rdf.Rr.TriplesMap);
+        .add(RDF.TYPE, Rdf.Rml.TriplesMap);
     if (logicalSource != null) {
-      modelBuilder.add(Rml.logicalSource, logicalSource.getAsResource());
+      modelBuilder.add(Rdf.Rml.logicalSource, logicalSource.getAsResource());
     }
     if (logicalTable != null) {
-      modelBuilder.add(Rr.logicalTable, logicalTable.getAsResource());
+      modelBuilder.add(Rdf.Rr.logicalTable, logicalTable.getAsResource());
     }
-    subjectMaps.forEach(sm -> modelBuilder.add(Rr.subjectMap, sm.getAsResource()));
-    predicateObjectMaps.forEach(pom -> modelBuilder.add(Rr.predicateObjectMap, pom.getAsResource()));
+    subjectMaps.forEach(sm -> modelBuilder.add(Rdf.Rml.subjectMap, sm.getAsResource()));
+    predicateObjectMaps.forEach(pom -> modelBuilder.add(Rdf.Rml.predicateObjectMap, pom.getAsResource()));
   }
 }

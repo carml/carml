@@ -2,7 +2,9 @@ package io.carml.model.impl;
 
 import io.carml.rdfmapper.Mapper;
 import io.carml.rdfmapper.TypeDecider;
-import io.carml.vocab.Rdf;
+import io.carml.vocab.Rdf.Carml;
+import io.carml.vocab.Rdf.D2rq;
+import io.carml.vocab.Rdf.Rml;
 import java.lang.reflect.Type;
 import java.util.Map;
 import java.util.Set;
@@ -20,8 +22,11 @@ public class LogicalSourceSourceTypeDecider implements TypeDecider {
     this.mapper = mapper;
   }
 
-  Map<IRI, IRI> inferenceMap = Map.of(Rdf.Carml.streamName, Rdf.Carml.Stream, Rdf.Carml.declaresNamespace,
-      Rdf.Carml.XmlDocument, Rdf.Carml.url, Rdf.Carml.FileSource, Rdf.D2rq.jdbcDriver, Rdf.D2rq.Database);
+  Map<IRI, IRI> inferenceMap = Map.of(Carml.streamName, Carml.Stream, //
+      Carml.declaresNamespace, Carml.XmlDocument, //
+      Carml.url, Carml.FileSource, //
+      D2rq.jdbcDriver, D2rq.Database, //
+      Rml.path, Rml.RelativePathSource);
 
   @Override
   public Set<Type> decide(Model model, Resource resource) {

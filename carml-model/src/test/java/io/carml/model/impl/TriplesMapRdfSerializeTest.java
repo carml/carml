@@ -42,5 +42,4 @@ class TriplesMapRdfSerializeTest {
 
     assertThat(model, is(modelReloaded));
   }
-
 }

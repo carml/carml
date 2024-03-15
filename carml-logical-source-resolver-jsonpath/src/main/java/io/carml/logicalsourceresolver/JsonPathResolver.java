@@ -10,7 +10,8 @@ import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.Option;
 import com.jayway.jsonpath.spi.json.JacksonJsonNodeJsonProvider;
 import io.carml.model.LogicalSource;
-import io.carml.vocab.Rdf;
+import io.carml.vocab.Rdf.Ql;
+import io.carml.vocab.Rdf.Rml;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -232,7 +233,7 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
 
   @AllArgsConstructor(access = AccessLevel.PRIVATE)
   public static class Matcher implements MatchingLogicalSourceResolverSupplier {
-    private static final Set<IRI> MATCHING_REF_FORMULATIONS = java.util.Set.of(Rdf.Ql.JsonPath);
+    private static final Set<IRI> MATCHING_REF_FORMULATIONS = Set.of(Rml.JsonPath, Ql.JsonPath);
 
     private List<IRI> matchingReferenceFormulations;
 

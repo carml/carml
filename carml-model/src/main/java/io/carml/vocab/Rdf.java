@@ -1,19 +1,19 @@
 package io.carml.vocab;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 
 @SuppressWarnings({"java:S115", "java:S1845"})
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class Rdf {
 
   private static final ValueFactory f = SimpleValueFactory.getInstance();
 
-  private Rdf() {}
-
+  @NoArgsConstructor(access = AccessLevel.PRIVATE)
   public static class Rml {
-
-    private Rml() {}
 
     private static IRI iri(String suffix) {
       return f.createIRI(io.carml.vocab.Rml.NAMESPACE + suffix);
@@ -26,11 +26,161 @@ public class Rdf {
     public static final IRI languageMap = iri("languageMap");
 
     public static final IRI LogicalSource = iri("LogicalSource");
+
+    public static final IRI source = iri("source");
+
+    public static final IRI iterator = iri("iterator");
+
+    public static final IRI referenceFormulation = iri("referenceFormulation");
+
+    public static final IRI JsonPath = iri("JSONPath");
+
+    public static final IRI XPath = iri("XPath");
+
+    public static final IRI Csv = iri("CSV");
+
+    public static final IRI Rdb = iri("Rdb");
+
+    public static final IRI SQL2008Table = iri("SQL2008Table");
+
+    public static final IRI SQL2008Query = iri("SQL2008Query");
+
+    public static final IRI subject = iri("subject");
+
+    public static final IRI subjectMap = iri("subjectMap");
+
+    public static final IRI predicateObjectMap = iri("predicateObjectMap");
+
+    public static final IRI predicate = iri("predicate");
+
+    public static final IRI predicateMap = iri("predicateMap");
+
+    public static final IRI object = iri("object");
+
+    public static final IRI objectMap = iri("objectMap");
+
+    public static final IRI graph = iri("graph");
+
+    public static final IRI graphMap = iri("graphMap");
+
+    public static final IRI clazz = iri("class");
+
+    public static final IRI constant = iri("constant");
+
+    public static final IRI reference = iri("reference");
+
+    public static final IRI template = iri("template");
+
+    public static final IRI defaultGraph = iri("defaultGraph");
+
+    public static final IRI parentTriplesMap = iri("parentTriplesMap");
+
+    public static final IRI joinCondition = iri("joinCondition");
+
+    public static final IRI datatype = iri("datatype");
+
+    public static final IRI language = iri("language");
+
+    public static final IRI child = iri("child");
+
+    public static final IRI childMap = iri("childMap");
+
+    public static final IRI parent = iri("parent");
+
+    public static final IRI parentMap = iri("parentMap");
+
+    public static final IRI TriplesMap = iri("TriplesMap");
+
+    public static final IRI SubjectMap = iri("SubjectMap");
+
+    public static final IRI PredicateMap = iri("PredicateMap");
+
+    public static final IRI ObjectMap = iri("ObjectMap");
+
+    public static final IRI PredicateObjectMap = iri("PredicateObjectMap");
+
+    public static final IRI RefObjectMap = iri("RefObjectMap");
+
+    public static final IRI GraphMap = iri("GraphMap");
+
+    public static final IRI Join = iri("Join");
+
+    public static final IRI DatatypeMap = iri("DatatypeMap");
+
+    public static final IRI LanguageMap = iri("LanguageMap");
+
+    public static final IRI ChildMap = iri("ChildMap");
+
+    public static final IRI ParentMap = iri("ParentMap");
+
+    public static final IRI termType = iri("termType");
+
+    public static final IRI Literal = iri("Literal");
+
+    public static final IRI BlankNode = iri("BlankNode");
+
+    public static final IRI IRI = iri("IRI");
+
+    public static final IRI inverseExpression = iri("inverseExpression");
+
+
+    public static final IRI SQL2008 = iri("SQL2008");
+
+    public static final IRI Oracle = iri("Oracle");
+
+    public static final IRI MySQL = iri("MySQL");
+
+    public static final IRI MSSQLServer = iri("MSSQLServer");
+
+    public static final IRI HSQLDB = iri("HSQLDB");
+
+    public static final IRI PostgreSQL = iri("PostgreSQL");
+
+    public static final IRI DB2 = iri("DB2");
+
+    public static final IRI Informix = iri("Informix");
+
+    public static final IRI Ingres = iri("Ingres");
+
+    public static final IRI Progress = iri("Progress");
+
+    public static final IRI SybaseASE = iri("SybaseASE");
+
+    public static final IRI SybaseSQLAnywhere = iri("SybaseSQLAnywhere");
+
+    public static final IRI Virtuoso = iri("Virtuoso");
+
+    public static final IRI Firebird = iri("Firebird");
+
+    public static final IRI RelativePathSource = iri("RelativePathSource");
+
+    public static final IRI root = iri("root");
+
+    public static final IRI path = iri("path");
+
+    public static final IRI CurrentWorkingDirectory = iri("CurrentWorkingDirectory");
+
+    public static final IRI MappingDirectory = iri("MappingDirectory");
   }
 
-  public static class Ql {
+  @NoArgsConstructor(access = AccessLevel.PRIVATE)
+  public static class OldRml {
 
-    private Ql() {}
+    private static IRI iri(String suffix) {
+      return f.createIRI(io.carml.vocab.OldRml.NAMESPACE + suffix);
+    }
+
+    public static final IRI logicalSource = iri("logicalSource");
+
+    public static final IRI datatypeMap = iri("datatypeMap");
+
+    public static final IRI languageMap = iri("languageMap");
+
+    public static final IRI LogicalSource = iri("LogicalSource");
+  }
+
+  @NoArgsConstructor(access = AccessLevel.PRIVATE)
+  public static class Ql {
 
     private static final String NAMESPACE = "http://semweb.mmlab.be/ns/ql#";
 
@@ -47,9 +197,8 @@ public class Rdf {
     public static final IRI Rdb = iri("Rdb");
   }
 
+  @NoArgsConstructor(access = AccessLevel.PRIVATE)
   public static class Rr {
-
-    private Rr() {}
 
     private static IRI iri(String suffix) {
       return f.createIRI(io.carml.vocab.Rr.NAMESPACE + suffix);
@@ -142,9 +291,8 @@ public class Rdf {
     public static final IRI Firebird = iri("Firebird");
   }
 
+  @NoArgsConstructor(access = AccessLevel.PRIVATE)
   public static class Fnml {
-
-    private Fnml() {}
 
     private static IRI iri(String suffix) {
       return f.createIRI(io.carml.vocab.Fnml.NAMESPACE + suffix);
@@ -153,9 +301,8 @@ public class Rdf {
     public static final IRI functionValue = iri("functionValue");
   }
 
+  @NoArgsConstructor(access = AccessLevel.PRIVATE)
   public static class Fno {
-
-    private Fno() {}
 
     private static IRI iri(String suffix) {
       return f.createIRI(io.carml.vocab.Fno.NAMESPACE + suffix);
@@ -168,9 +315,8 @@ public class Rdf {
     public static final IRI old_executes = f.createIRI(io.carml.vocab.Fno.OLD_executes);
   }
 
+  @NoArgsConstructor(access = AccessLevel.PRIVATE)
   public static class D2rq {
-
-    private D2rq() {}
 
     private static IRI iri(String suffix) {
       return f.createIRI(io.carml.vocab.D2rq.NAMESPACE + suffix);
@@ -181,9 +327,8 @@ public class Rdf {
     public static final IRI jdbcDriver = iri("jdbcDriver");
   }
 
+  @NoArgsConstructor(access = AccessLevel.PRIVATE)
   public static class Carml {
-
-    private Carml() {}
 
     private static IRI iri(String suffix) {
       return f.createIRI(io.carml.vocab.Carml.NAMESPACE + suffix);
@@ -217,5 +362,4 @@ public class Rdf {
 
     public static final IRI multiJoinCondition = iri("multiJoinCondition");
   }
-
 }
