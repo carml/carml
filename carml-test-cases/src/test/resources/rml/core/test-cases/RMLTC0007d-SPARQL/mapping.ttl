@@ -1,27 +1,12 @@
-@prefix rml:    <http://w3id.org/rml/> .
-@prefix crml:   <http://semweb.mmlab.be/ns/crml#> .
-@prefix ql:     <http://w3id.org/rml/ql/> .
-@prefix mail:   <http://example.com/mail#>.
-@prefix xsd:    <http://www.w3.org/2001/XMLSchema#>.
-@prefix sd:     <http://www.w3.org/ns/sparql-service-description#>.
-@prefix ex:     <http://example.com/> .
-@prefix hydra:  <http://www.w3.org/ns/hydra/core#> .
-@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
-@prefix foaf:   <http://xmlns.com/foaf/0.1/> .
-@base <http://example.com/base> .
+@prefix ex: <http://example.com/> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix formats: <http://www.w3.org/ns/formats/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rml: <http://w3id.org/rml/> .
+@prefix sd: <http://www.w3.org/ns/sparql-service-description#> .
 
-<#InputSPARQL>
-    a sd:Service ;
-    sd:endpoint <http://localhost:PORT/ds1/sparql> ;
-    sd:supportedLanguage sd:SPARQL11Query ;
-    sd:resultFormat <http://www.w3.org/ns/formats/SPARQL_Results_JSON> .
-
-<#Country>
-    rml:logicalSource [
-        rml:source <#InputSPARQL>;
-        rml:referenceFormulation ql:JSONPath;
-        rml:iterator "$.results.bindings[*]";
-        rml:query """
+<http://example.com/base#Country> rml:logicalSource [
+      rml:iterator """
             PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
             PREFIX foaf: <http://xmlns.com/foaf/0.1/>
             PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
@@ -30,24 +15,26 @@
                 ?x  foaf:firstName ?FirstName ;
                     foaf:lastName  ?LastName ;
                     rdf:ID         ?ID .
-            } """
+            } """;
+      rml:referenceFormulation formats:SPARQL_Results_JSON;
+      rml:source <http://example.com/base#InputSPARQL>
     ];
+  rml:predicateObjectMap [
+      rml:object foaf:Person;
+      rml:predicate rdf:type
+    ], [
+      rml:object ex:Student;
+      rml:predicate rdf:type
+    ], [
+      rml:objectMap [
+          rml:reference "FirstName.value"
+        ];
+      rml:predicate foaf:name
+    ];
+  rml:subjectMap [
+      rml:template "http://example.com/Student/{ID.value}/{FirstName.value}"
+    ] .
 
-    rml:subjectMap [
-        rml:template "http://example.com/Student/{ID.value}/{FirstName.value}"
-      ];
-
-      rml:predicateObjectMap [
-        rml:predicate rdf:type;
-        rml:object foaf:Person;
-      ];
-
-      rml:predicateObjectMap [
-        rml:predicate rdf:type;
-        rml:object ex:Student;
-      ];
-
-      rml:predicateObjectMap [
-        rml:predicate foaf:name;
-        rml:objectMap [ rml:reference "FirstName.value" ]
-      ].
+<http://example.com/base#InputSPARQL> a sd:Service;
+  sd:endpoint <http://HOST:PORT/ds1/sparql>;
+  sd:supportedLanguage sd:SPARQL11Query .

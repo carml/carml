@@ -1,38 +1,31 @@
-@prefix foaf: <http://xmlns.com/foaf/0.1/> .
-@prefix ex: <http://example.com/ns#> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
-@prefix rml: <http://w3id.org/rml/> .
-@prefix ql: <http://w3id.org/rml/ql/> .
 @prefix d2rq: <http://www.wiwiss.fu-berlin.de/suhl/bizer/D2RQ/0.1#> .
+@prefix ex: <http://example.com/ns#> .
+@prefix rml: <http://w3id.org/rml/> .
 
-@base <http://example.com/base/> .
-
-<TriplesMap1>
-  a rml:TriplesMap;
-
-  rml:logicalSource [
-    rml:source <#DB_source>;
-    rml:sqlVersion rml:SQL2008;
-    rml:query  """
+<http://example.com/base/TriplesMap1> a rml:TriplesMap;
+  rml:logicalSource [ a rml:LogicalSource;
+      rml:iterator """
       SELECT EMP.*, (CASE job
         WHEN 'CLERK' THEN 'general-office'
         WHEN 'NIGHTGUARD' THEN 'security'
         WHEN 'ENGINEER' THEN 'engineering'
       END) AS ROLE FROM EMP
-    """ ;
-    rml:referenceFormulation ql:CSV
-   ];
-	
-    rml:subjectMap [ rml:template "http://data.example.com/employee/{empno}" ];
-    
-    rml:predicateObjectMap [
-        rml:predicate ex:role;
-        rml:objectMap [ rml:template "http://data.example.com/roles/{role}" ];
-    ].
+    """;
+      rml:source <http://example.com/base/#DB_source>;
+      rml:referenceFormulation rml:SQL2008Query
+    ];
+  rml:predicateObjectMap [
+      rml:objectMap [
+          rml:template "http://data.example.com/roles/{role}"
+        ];
+      rml:predicate ex:role
+    ];
+  rml:subjectMap [
+      rml:template "http://data.example.com/employee/{empno}"
+    ] .
 
-<#DB_source> a d2rq:Database;
+<http://example.com/base/#DB_source> a d2rq:Database;
   d2rq:jdbcDSN "CONNECTIONDSN";
   d2rq:jdbcDriver "org.postgresql.Driver";
-  d2rq:username "postgres";
-  d2rq:password "" .
+  d2rq:password "";
+  d2rq:username "postgres" .

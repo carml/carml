@@ -41,8 +41,8 @@ import reactor.core.publisher.Flux;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
 
-  static UnaryOperator<Resource> defaultGraphModifier = graph ->
-      graph.equals(Rr.defaultGraph) || graph.equals(Rml.defaultGraph) ? null : graph;
+  static UnaryOperator<Resource> defaultGraphModifier =
+      graph -> graph.equals(Rr.defaultGraph) || graph.equals(Rml.defaultGraph) ? null : graph;
 
   static Consumer<Statement> logAddStatements = statement -> {
     if (LOG.isTraceEnabled()) {

@@ -1,1 +1,4 @@
-[] <http://xmlns.com/foaf/0.1/name> "Venus" .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+
+[] foaf:name "Venus" .
+

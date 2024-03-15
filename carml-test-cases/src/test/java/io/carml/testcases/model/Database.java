@@ -39,7 +39,7 @@ public class Database extends CarmlResource {
   public void addTriples(ModelBuilder modelBuilder) {
     modelBuilder.subject(getAsResource());
 
-    sqlScriptFiles.forEach(sqlScriptFile -> modelBuilder
-        .add(iri("http://w3id.org/rml/test/sqlScriptFile"), sqlScriptFile));
+    sqlScriptFiles
+        .forEach(sqlScriptFile -> modelBuilder.add(iri("http://w3id.org/rml/test/sqlScriptFile"), sqlScriptFile));
   }
 }

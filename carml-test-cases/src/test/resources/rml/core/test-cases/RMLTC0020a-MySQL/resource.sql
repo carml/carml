@@ -1,4 +1,5 @@
 USE test;
+DROP TABLE IF EXISTS test.Student_Sport;
 DROP TABLE IF EXISTS test.Student;
 
 CREATE TABLE Student (

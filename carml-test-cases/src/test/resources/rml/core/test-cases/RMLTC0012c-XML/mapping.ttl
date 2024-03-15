@@ -1,31 +1,25 @@
-@prefix foaf: <http://xmlns.com/foaf/0.1/> .
 @prefix ex: <http://example.com/> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
 @prefix rml: <http://w3id.org/rml/> .
-@prefix ql: <http://w3id.org/rml/ql/> .
 
-@base <http://example.com/base/> .
-
-<TriplesMap1>
-  a rml:TriplesMap;
-
-  rml:logicalSource [
-    rml:source "persons.json";
-    rml:referenceFormulation ql:XPath;
-    rml:iterator "/Persons/Person"
-  ];
-	
+<http://example.com/base/TriplesMap1> a rml:TriplesMap;
+  rml:logicalSource [ a rml:LogicalSource;
+      rml:iterator "/Persons/Person";
+      rml:referenceFormulation rml:XPath;
+      rml:source [ a rml:RelativePathSource;
+          rml:root rml:MappingDirectory;
+          rml:path "persons.json"
+        ]
+    ];
   rml:predicateObjectMap [
-    rml:predicate foaf:name ; 
-    rml:objectMap [
-      rml:template "{fname} {lname}";
-      rml:termType rml:Literal ;
-    ]
-  ];
-    
-  rml:predicateObjectMap [ 
-    rml:predicate ex:amount ; 
-    rml:objectMap    [ 
-      rml:reference "amount";
-    ]
-  ].
+      rml:objectMap [
+          rml:template "{fname} {lname}";
+          rml:termType rml:Literal
+        ];
+      rml:predicate foaf:name
+    ], [
+      rml:objectMap [
+          rml:reference "amount"
+        ];
+      rml:predicate ex:amount
+    ] .

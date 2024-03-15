@@ -91,7 +91,7 @@ public class CarmlRefObjectMap extends CarmlResource implements RefObjectMap {
   @Override
   public String toString() {
     return "CarmlRefObjectMap(super=" + super.toString() + ", parentTriplesMap=" + this.getParentTriplesMap()
-        .getAsResource().stringValue()
-        + ", joinConditions=" + this.getJoinConditions() + ")";
+        .getAsResource()
+        .stringValue() + ", joinConditions=" + this.getJoinConditions() + ")";
   }
 }

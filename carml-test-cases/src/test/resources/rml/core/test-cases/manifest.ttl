@@ -380,66 +380,38 @@
 
 <RMLTC0002c-CSV> a test:TestCase;
   dcterms:identifier "RMLTC0002c-CSV";
-  rmltest:hasExpectedOutput true;
   rmltest:input [
       rmltest:inputFile "student.csv";
       rmltest:inputType "CSV"
     ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0002c-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0002c-JSON";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.json";
-      rmltest:inputType "JSON"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:mappingDocument "mapping.ttl" .
 
 <RMLTC0002c-MySQL> a test:TestCase;
   dcterms:identifier "RMLTC0002c-MySQL";
-  rmltest:hasExpectedOutput true;
   rmltest:input [
       rmltest:database [
           rmltest:sqlScriptFile "resource.sql"
         ];
       rmltest:inputType "MySQL"
     ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:mappingDocument "mapping.ttl" .
 
 <RMLTC0002c-PostgreSQL> a test:TestCase;
   dcterms:identifier "RMLTC0002c-PostgreSQL";
-  rmltest:hasExpectedOutput true;
   rmltest:input [
       rmltest:database [
           rmltest:sqlScriptFile "resource.sql"
         ];
       rmltest:inputType "PostgreSQL"
     ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:mappingDocument "mapping.ttl" .
 
 <RMLTC0002c-SQLServer> a test:TestCase;
   dcterms:identifier "RMLTC0002c-SQLServer";
-  rmltest:hasExpectedOutput true;
   rmltest:input [
       rmltest:inputType "SQLServer"
     ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0002c-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0002c-XML";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:mappingDocument "mapping.ttl" .
 
 <RMLTC0002d-MySQL> a test:TestCase;
   dcterms:identifier "RMLTC0002d-MySQL";
@@ -599,147 +571,121 @@
 
 <RMLTC0002h-MySQL> a test:TestCase;
   dcterms:identifier "RMLTC0002h-MySQL";
-  rmltest:hasExpectedOutput true;
   rmltest:input [
       rmltest:database [
           rmltest:sqlScriptFile "resource.sql"
         ];
       rmltest:inputType "MySQL"
     ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:mappingDocument "mapping.ttl" .
 
 <RMLTC0002h-PostgreSQL> a test:TestCase;
   dcterms:identifier "RMLTC0002h-PostgreSQL";
-  rmltest:hasExpectedOutput true;
   rmltest:input [
       rmltest:database [
           rmltest:sqlScriptFile "resource.sql"
         ];
       rmltest:inputType "PostgreSQL"
     ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:mappingDocument "mapping.ttl" .
 
 <RMLTC0002h-SPARQL> a test:TestCase;
   dcterms:identifier "RMLTC0002h-SPARQL";
-  rmltest:hasExpectedOutput true;
   rmltest:input [
       rmltest:inputType "SPARQL";
       rmltest:tripleStore [
           rmltest:rdfFile "resource.ttl"
         ]
     ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:mappingDocument "mapping.ttl" .
 
 <RMLTC0002h-SQLServer> a test:TestCase;
   dcterms:identifier "RMLTC0002h-SQLServer";
-  rmltest:hasExpectedOutput true;
   rmltest:input [
       rmltest:inputType "SQLServer"
     ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:mappingDocument "mapping.ttl" .
 
 <RMLTC0002i-MySQL> a test:TestCase;
   dcterms:identifier "RMLTC0002i-MySQL";
-  rmltest:hasExpectedOutput true;
   rmltest:input [
       rmltest:database [
           rmltest:sqlScriptFile "resource.sql"
         ];
       rmltest:inputType "MySQL"
     ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:mappingDocument "mapping.ttl" .
 
 <RMLTC0002i-PostgreSQL> a test:TestCase;
   dcterms:identifier "RMLTC0002i-PostgreSQL";
-  rmltest:hasExpectedOutput true;
   rmltest:input [
       rmltest:database [
           rmltest:sqlScriptFile "resource.sql"
         ];
       rmltest:inputType "PostgreSQL"
     ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:mappingDocument "mapping.ttl" .
 
 <RMLTC0002i-SQLServer> a test:TestCase;
   dcterms:identifier "RMLTC0002i-SQLServer";
-  rmltest:hasExpectedOutput true;
   rmltest:input [
       rmltest:inputType "SQLServer"
     ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:mappingDocument "mapping.ttl" .
 
 <RMLTC0002j-MySQL> a test:TestCase;
   dcterms:identifier "RMLTC0002j-MySQL";
-  rmltest:hasExpectedOutput true;
   rmltest:input [
       rmltest:database [
           rmltest:sqlScriptFile "resource.sql"
         ];
       rmltest:inputType "MySQL"
     ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:mappingDocument "mapping.ttl" .
 
 <RMLTC0002j-PostgreSQL> a test:TestCase;
   dcterms:identifier "RMLTC0002j-PostgreSQL";
-  rmltest:hasExpectedOutput true;
   rmltest:input [
       rmltest:database [
           rmltest:sqlScriptFile "resource.sql"
         ];
       rmltest:inputType "PostgreSQL"
     ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:mappingDocument "mapping.ttl" .
 
 <RMLTC0002j-SQLServer> a test:TestCase;
   dcterms:identifier "RMLTC0002j-SQLServer";
-  rmltest:hasExpectedOutput true;
   rmltest:input [
       rmltest:inputType "SQLServer"
     ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:mappingDocument "mapping.ttl" .
 
 <RMLTC0003a-MySQL> a test:TestCase;
   dcterms:identifier "RMLTC0003a-MySQL";
-  rmltest:hasExpectedOutput true;
   rmltest:input [
       rmltest:database [
           rmltest:sqlScriptFile "resource.sql"
         ];
       rmltest:inputType "MySQL"
     ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:mappingDocument "mapping.ttl" .
 
 <RMLTC0003a-PostgreSQL> a test:TestCase;
   dcterms:identifier "RMLTC0003a-PostgreSQL";
-  rmltest:hasExpectedOutput true;
   rmltest:input [
       rmltest:database [
           rmltest:sqlScriptFile "resource.sql"
         ];
       rmltest:inputType "PostgreSQL"
     ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:mappingDocument "mapping.ttl" .
 
 <RMLTC0003a-SQLServer> a test:TestCase;
   dcterms:identifier "RMLTC0003a-SQLServer";
-  rmltest:hasExpectedOutput true;
   rmltest:input [
       rmltest:inputType "SQLServer"
     ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:mappingDocument "mapping.ttl" .
 
 <RMLTC0003b-MySQL> a test:TestCase;
   dcterms:identifier "RMLTC0003b-MySQL";
@@ -2028,7 +1974,6 @@
   dcterms:identifier "RMLTC0009a-SQLServer";
   rmltest:hasExpectedOutput true;
   rmltest:input [
-      rmltest:inputFile "sport.csv";
       rmltest:inputType "SQLServer"
     ];
   rmltest:mappingDocument "mapping.ttl";
@@ -2104,7 +2049,6 @@
   dcterms:identifier "RMLTC0009b-SQLServer";
   rmltest:hasExpectedOutput true;
   rmltest:input [
-      rmltest:inputFile "sport.csv";
       rmltest:inputType "SQLServer"
     ];
   rmltest:mappingDocument "mapping.ttl";
@@ -2446,7 +2390,6 @@
   dcterms:identifier "RMLTC0011b-SQLServer";
   rmltest:hasExpectedOutput true;
   rmltest:input [
-      rmltest:inputFile "sport.csv", "student_sport.csv";
       rmltest:inputType "SQLServer"
     ];
   rmltest:mappingDocument "mapping.ttl";
@@ -2522,7 +2465,6 @@
   dcterms:identifier "RMLTC0012a-SQLServer";
   rmltest:hasExpectedOutput true;
   rmltest:input [
-      rmltest:inputFile "persons.csv";
       rmltest:inputType "SQLServer"
     ];
   rmltest:mappingDocument "mapping.ttl";
@@ -3103,39 +3045,6 @@
   rmltest:mappingDocument "mapping.ttl";
   rmltest:output "output.nq" .
 
-<RMLTC0018a-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0018a-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0018a-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0018a-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0018a-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0018a-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
 <RMLTC0019a-CSV> a test:TestCase;
   dcterms:identifier "RMLTC0019a-CSV";
   rmltest:hasExpectedOutput true;
@@ -3414,6 +3323,16 @@
   rmltest:input [
       rmltest:inputFile "data.csv";
       rmltest:inputType "CSV"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "output.nq" .
+
+<RMLTC0023a-XML> a test:TestCase;
+  dcterms:identifier "RMLTC0023a-XML";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "ious.xml";
+      rmltest:inputType "XML"
     ];
   rmltest:mappingDocument "mapping.ttl";
   rmltest:output "output.nq" .

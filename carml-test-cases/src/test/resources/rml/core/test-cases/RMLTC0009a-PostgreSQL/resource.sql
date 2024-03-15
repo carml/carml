@@ -11,7 +11,7 @@ INSERT INTO student values ('20', NULL , 'Demi Moore');
 DROP TABLE IF EXISTS sport;
 
 CREATE TABLE sport (
-  "ID" INTEGER,
+  "ID" VARCHAR(50),
   "Name" VARCHAR(50)
 );
 INSERT INTO sport values ('100', 'Tennis');

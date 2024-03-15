@@ -3,17 +3,17 @@
 <Persons>
   <Person>
     <fname>Bob</fname>
-    <lname>Smith></lname>
+    <lname>Smith</lname>
     <amount>30</amount>
   </Person>
   <Person>
     <fname>Sue</fname>
-    <lname>Jones></lname>
+    <lname>Jones</lname>
     <amount>20</amount>
   </Person>
   <Person>
     <fname>Bob</fname>
-    <lname>Smith></lname>
+    <lname>Smith</lname>
     <amount>30</amount>
   </Person>
 </Persons>

@@ -1,60 +1,55 @@
-@prefix foaf: <http://xmlns.com/foaf/0.1/> .
-@prefix ex: <http://example.com/> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-@prefix rml: <http://w3id.org/rml/> .
-@prefix ql: <http://w3id.org/rml/ql/> .
 @prefix activity: <http://example.com/activity/> .
+@prefix ex: <http://example.com/> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
-@base <http://example.com/base/> .
+@prefix rml: <http://w3id.org/rml/> .
 
-<TriplesMap2>
-  a rml:TriplesMap;
-  rml:logicalSource [ 
-    rml:source "student.json";
-    rml:referenceFormulation ql:JSONPath;
-    rml:iterator "$.students[*]"
-  ];
-
-  rml:subjectMap [ rml:template "http://example.com/{Sport}" ];
-
+<http://example.com/base/TriplesMap1> a rml:TriplesMap;
+  rml:logicalSource [ a rml:LogicalSource;
+      rml:iterator "$.students[*]";
+      rml:referenceFormulation rml:JSONPath;
+      rml:source [ a rml:RelativePathSource;
+          rml:root rml:MappingDirectory;
+          rml:path "student.json"
+        ]
+    ];
   rml:predicateObjectMap [
-    rml:predicate rdf:type ;
-    rml:object activity:Sport ;
-  ] .
+      rml:objectMap <http://example.com/base/RefObjectMap1>;
+      rml:predicate ex:Sport
+    ], [
+      rml:object foaf:Person;
+      rml:predicate rdf:type
+    ], [
+      rml:objectMap [
+          rml:reference "ID"
+        ];
+      rml:predicate ex:id
+    ], [
+      rml:objectMap [
+          rml:reference "Name"
+        ];
+      rml:predicate foaf:name
+    ];
+  rml:subjectMap [
+      rml:template "http://example.com/Student/{ID}/{Name}"
+    ] .
 
-<TriplesMap1>
-  a rml:TriplesMap;
+<http://example.com/base/RefObjectMap1> a rml:RefObjectMap;
+  rml:parentTriplesMap <http://example.com/base/TriplesMap2> .
 
-  rml:logicalSource [ 
-    rml:source "student.json";
-    rml:referenceFormulation ql:JSONPath;
-    rml:iterator "$.students[*]"
-  ];
-
-  rml:subjectMap [ rml:template "http://example.com/Student/{ID}/{Name}" ];
-	
-  rml:predicateObjectMap [ 
-    rml:predicate rdf:type ;
-    rml:object foaf:Person ;
-  ];
-		
-  rml:predicateObjectMap [ 
-    rml:predicate ex:id ;
-    rml:objectMap [ rml:reference "ID"; ]
-  ];
-
-  rml:predicateObjectMap [ 
-    rml:predicate foaf:name ;
-    rml:objectMap [ rml:reference "Name" ]
-  ];
- 
-  rml:predicateObjectMap [ 
-    rml:predicate ex:Sport ;
-    rml:objectMap <RefObjectMap1>
-  ] .
-
- 
-<RefObjectMap1>
-  a rml:RefObjectMap;
-  rml:parentTriplesMap <TriplesMap2> .
-
+<http://example.com/base/TriplesMap2> a rml:TriplesMap;
+  rml:logicalSource [ a rml:LogicalSource;
+      rml:iterator "$.students[*]";
+      rml:referenceFormulation rml:JSONPath;
+      rml:source [ a rml:RelativePathSource;
+          rml:root rml:MappingDirectory;
+          rml:path "student.json"
+        ]
+    ];
+  rml:predicateObjectMap [
+      rml:object activity:Sport;
+      rml:predicate rdf:type
+    ];
+  rml:subjectMap [
+      rml:template "http://example.com/{Sport}"
+    ] .

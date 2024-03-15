@@ -1,31 +1,26 @@
-@prefix foaf: <http://xmlns.com/foaf/0.1/> .
-@prefix ex: <http://example.com/> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-@prefix rml: <http://w3id.org/rml/> .
-@prefix ql: <http://w3id.org/rml/ql/> .
-@base <http://example.com/base/> .
 @prefix d2rq: <http://www.wiwiss.fu-berlin.de/suhl/bizer/D2RQ/0.1#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix rml: <http://w3id.org/rml/> .
 
-<TriplesMap1> a rml:TriplesMap;
-    
+<http://example.com/base/TriplesMap1> a rml:TriplesMap;
   rml:logicalSource [
-    rml:source <#DB_source>;
-    rml:sqlVersion rml:SQL2008;
-    rml:tableName "student";
-  ];
-
-  rml:subjectMap [
-    rml:template "students{ID}";
-    rml:termType rml:BlankNode
-  ];
-
+      rml:referenceFormulation rml:SQL2008Table;
+      rml:source <http://example.com/base/#DB_source>;
+      rml:iterator "student"
+    ];
   rml:predicateObjectMap [
-    rml:predicate foaf:name;
-    rml:objectMap [ rml:reference "Name" ]
-  ].
+      rml:objectMap [
+          rml:reference "Name"
+        ];
+      rml:predicate foaf:name
+    ];
+  rml:subjectMap [
+      rml:template "students{ID}";
+      rml:termType rml:BlankNode
+    ] .
 
-<#DB_source> a d2rq:Database;
-  d2rq:jdbcDSN "CONNECTIONDSN"; # the "jbdc:mysql:// part is ignored
-  d2rq:jdbcDriver "com.mysql.cj.jdbc.Driver"; # this is ignored
-  d2rq:username "root";
-  d2rq:password "" .
+<http://example.com/base/#DB_source> a d2rq:Database;
+  d2rq:jdbcDSN "CONNECTIONDSN";
+  d2rq:jdbcDriver "com.mysql.cj.jdbc.Driver";
+  d2rq:password "";
+  d2rq:username "root" .

@@ -39,7 +39,6 @@ public class TripleStore extends CarmlResource {
   public void addTriples(ModelBuilder modelBuilder) {
     modelBuilder.subject(getAsResource());
 
-    rdfFiles.forEach(rdfFile -> modelBuilder
-        .add(iri("http://w3id.org/rml/test/rdfFile"), rdfFile));
+    rdfFiles.forEach(rdfFile -> modelBuilder.add(iri("http://w3id.org/rml/test/rdfFile"), rdfFile));
   }
 }

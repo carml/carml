@@ -1,59 +1,45 @@
-@prefix foaf: <http://xmlns.com/foaf/0.1/> .
-@prefix ex: <http://example.com/> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-@prefix rml: <http://w3id.org/rml/> .
-@prefix ql: <http://w3id.org/rml/ql/> .
 @prefix d2rq: <http://www.wiwiss.fu-berlin.de/suhl/bizer/D2RQ/0.1#> .
-@base <http://example.com/base/> .
+@prefix ex: <http://example.com/> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix rml: <http://w3id.org/rml/> .
 
-<TriplesMap1>
-  a rml:TriplesMap;
-
+<http://example.com/base/TriplesMap1> a rml:TriplesMap;
   rml:logicalSource [
-    rml:source <#DB_source>;
-    rml:sqlVersion rml:SQL2008;
-    rml:tableName "persons";
-  ];
-	
+      rml:source <http://example.com/base/#DB_source>;
+      rml:referenceFormulation rml:SQL2008Table;
+      rml:iterator "persons"
+    ];
+  rml:predicateObjectMap [
+      rml:objectMap [
+          rml:template "{fname} {lname}";
+          rml:termType rml:Literal
+        ];
+      rml:predicate foaf:name
+    ];
   rml:subjectMap [
-    rml:template "{fname}{lname}";
-    rml:termType rml:BlankNode ;
-  ];
-	
-  rml:predicateObjectMap [ 
-    rml:predicate foaf:name ; 
-    rml:objectMap [
-      rml:template "{fname} {lname}";
-      rml:termType rml:Literal ;
-    ]
-  ];
-  .
+      rml:template "{fname}{lname}";
+      rml:termType rml:BlankNode
+    ] .
 
-<TriplesMap2>
-  a rml:TriplesMap;
-
+<http://example.com/base/TriplesMap2> a rml:TriplesMap;
   rml:logicalSource [
-    rml:source <#DB_source>;
-    rml:sqlVersion rml:SQL2008;
-    rml:tableName "lives";
-  ];
-
+      rml:source <http://example.com/base/#DB_source>;
+      rml:referenceFormulation rml:SQL2008Table;
+      rml:iterator "lives"
+    ];
+  rml:predicateObjectMap [
+      rml:objectMap [
+          rml:reference "city"
+        ];
+      rml:predicate ex:city
+    ];
   rml:subjectMap [
-    rml:template "{fname}{lname}";
-    rml:termType rml:BlankNode;
-  ];
+      rml:template "{fname}{lname}";
+      rml:termType rml:BlankNode
+    ] .
 
-  rml:predicateObjectMap
-  [
-    rml:predicate	ex:city ;
-    rml:objectMap    [
-      rml:reference "city";
-    ]
-];
-.
-
-<#DB_source> a d2rq:Database;
+<http://example.com/base/#DB_source> a d2rq:Database;
   d2rq:jdbcDSN "CONNECTIONDSN";
   d2rq:jdbcDriver "org.postgresql.Driver";
-  d2rq:username "postgres";
-  d2rq:password "password" .
+  d2rq:password "password";
+  d2rq:username "postgres" .

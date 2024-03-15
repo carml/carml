@@ -1,29 +1,23 @@
 @prefix ex: <http://example.com/> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix rml: <http://w3id.org/rml/> .
-@prefix ql: <http://w3id.org/rml/ql/> .
 
-@base <http://example.com/base/> .
-
-<TriplesMap1>
-  a rml:TriplesMap;
-    
-  rml:logicalSource [ 
-    rml:source "data.csv";
-    rml:referenceFormulation ql:CSV 
-  ];
-
-  rml:subjectMap [ 
-    rml:template "http://example.com/{FOO}" 
-  ]; 
-	
-  rml:predicateObjectMap [ 
-    rml:predicate ex:x; 
-    rml:objectMap [
-      rml:reference "FOO";
-      rml:datatypeMap [
-        rml:template "http://www.w3.org/2001/XMLSchema#{BAR}";
-      ];    
+<http://example.com/base/TriplesMap1> a rml:TriplesMap;
+  rml:logicalSource [ a rml:LogicalSource;
+      rml:referenceFormulation rml:CSV;
+      rml:source [ a rml:RelativePathSource;
+          rml:root rml:MappingDirectory;
+          rml:path "data.csv"
+        ]
     ];
-  ];
-.
+  rml:predicateObjectMap [
+      rml:objectMap [
+          rml:datatypeMap [
+              rml:template "http://www.w3.org/2001/XMLSchema#{BAR}"
+            ];
+          rml:reference "FOO"
+        ];
+      rml:predicate ex:x
+    ];
+  rml:subjectMap [
+      rml:template "http://example.com/{FOO}"
+    ] .

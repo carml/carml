@@ -36,7 +36,8 @@ public class ManifestGenerator {
   }
 
   public static void generateManifest(String resource) throws URISyntaxException {
-    var path = Paths.get(ClassLoader.getSystemResource(resource).toURI());
+    var path = Paths.get(ClassLoader.getSystemResource(resource)
+        .toURI());
 
     try (var testCasesDir = Files.walk(path, 1)) {
       var manifestModel = testCasesDir.filter(Files::isDirectory)
@@ -44,22 +45,22 @@ public class ManifestGenerator {
           .flatMap(ManifestGenerator::processTestCase)
           .collect(ModelCollector.toTreeModel());
 
-      var manifestPath = path.resolve("manifest.ttl");
-
       manifestModel.setNamespace(DCTERMS.NS);
       manifestModel.setNamespace("test", "http://www.w3.org/2006/03/test-description#");
       manifestModel.setNamespace("rmltest", "http://w3id.org/rml/test/");
 
+      var manifestPath = path.resolve("manifest.ttl");
+
       Rio.write(manifestModel, Files.newOutputStream(manifestPath), "http://w3id.org/rml/core/test-cases/id/",
-          RDFFormat.TURTLE,
-          SIMPLE_WRITER_CONFIG.apply(new WriterConfig()));
+          RDFFormat.TURTLE, SIMPLE_WRITER_CONFIG.apply(new WriterConfig()));
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
   }
 
   private static Stream<Statement> processTestCase(Path testcasePath) {
-    var testCaseName = testcasePath.getFileName().toString();
+    var testCaseName = testcasePath.getFileName()
+        .toString();
     var testCaseBuilder = TestCase.builder()
         .id(String.format("http://w3id.org/rml/core/test-cases/id/%s", testCaseName))
         .identifier(testCaseName);
@@ -79,31 +80,32 @@ public class ManifestGenerator {
     }
 
     var mapping = files.stream()
-        .map(path -> path.getFileName().toString())
+        .map(path -> path.getFileName()
+            .toString())
         .filter(fileName -> fileName.equals("mapping.ttl"))
         .findFirst()
         .orElseThrow();
 
     var output = files.stream()
-        .map(path -> path.getFileName().toString())
+        .map(path -> path.getFileName()
+            .toString())
         .filter(fileName -> fileName.equals("output.nq"))
         .findFirst()
         .orElse(null);
 
-    var testCase = testCaseBuilder
-        .input(inputBuilder.build())
+    var testCase = testCaseBuilder.input(inputBuilder.build())
         .mappingDocument(mapping)
         .output(output)
         .hasExpectedOutput(output != null)
         .build();
 
-    return testCase.asRdf().stream();
+    return testCase.asRdf()
+        .stream();
   }
 
   private static List<Path> getFiles(Path testcasePath) {
     try (var testCaseFiles = Files.walk(testcasePath)) {
-      return testCaseFiles
-          .filter(Files::isRegularFile)
+      return testCaseFiles.filter(Files::isRegularFile)
           .toList();
     } catch (IOException e) {
       throw new RuntimeException(e);
@@ -115,7 +117,8 @@ public class ManifestGenerator {
         .id(String.format("database-%s", testCaseName));
 
     files.stream()
-        .map(path -> path.getFileName().toString())
+        .map(path -> path.getFileName()
+            .toString())
         .filter(fileName -> fileName.endsWith(".sql"))
         .forEach(databaseBuilder::sqlScriptFile);
 
@@ -128,7 +131,8 @@ public class ManifestGenerator {
         .id(String.format("triplestore-%s", testCaseName));
 
     files.stream()
-        .map(path -> path.getFileName().toString())
+        .map(path -> path.getFileName()
+            .toString())
         .filter(fileName -> fileName.endsWith(".ttl"))
         .filter(not(fileName -> fileName.equals("mapping.ttl")))
         .forEach(tripleStoreBuilder::rdfFile);
@@ -138,7 +142,8 @@ public class ManifestGenerator {
 
   private static void processOtherTestCase(Input.InputBuilder<?, ?> inputBuilder, List<Path> files) {
     files.stream()
-        .map(path -> path.getFileName().toString())
+        .map(path -> path.getFileName()
+            .toString())
         .filter(not(fileName -> fileName.endsWith(".sql")))
         .filter(not(fileName -> fileName.endsWith(".ttl")))
         .filter(not(fileName -> fileName.equals("output.nq")))

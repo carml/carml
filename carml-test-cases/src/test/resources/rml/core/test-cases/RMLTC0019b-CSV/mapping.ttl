@@ -1,25 +1,20 @@
 @prefix foaf: <http://xmlns.com/foaf/0.1/> .
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix ex: <http://example.com/> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix rml: <http://w3id.org/rml/> .
-@prefix ql: <http://w3id.org/rml/ql/> .
 
-@base <http://example.com/base/> .
-
-<TriplesMap1>
-  a rml:TriplesMap;
-
-  rml:logicalSource [
-    rml:source "persons.csv";
-    rml:referenceFormulation ql:CSV
-  ];
-
-  rml:subjectMap [ rml:reference "FirstName" ];
-
+<http://example.com/base/TriplesMap1> a rml:TriplesMap;
+  rml:logicalSource [ a rml:LogicalSource;
+      rml:referenceFormulation rml:CSV;
+      rml:source [ a rml:RelativePathSource;
+          rml:root rml:MappingDirectory;
+          rml:path "persons.csv"
+        ]
+    ];
   rml:predicateObjectMap [
-    rml:predicate foaf:name;
-    rml:objectMap [
+      rml:objectMap [
+          rml:reference "FirstName"
+        ];
+      rml:predicate foaf:name
+    ];
+  rml:subjectMap [
       rml:reference "FirstName"
-    ]
-  ] .
+    ] .

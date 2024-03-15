@@ -1,2 +1,6 @@
-[] <http://xmlns.com/foaf/0.1/name> "Venus" ;
-   <http://www.w3.org/1999/02/22-rdf-syntax-ns#ID> "10" .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+[] rdf:ID "10" ;
+    foaf:name "Venus" .
+

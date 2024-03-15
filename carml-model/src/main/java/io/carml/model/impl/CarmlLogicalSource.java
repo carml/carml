@@ -109,8 +109,8 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
       query = sqlQuery;
     }
 
-    if (query == null && source instanceof DatabaseSource databaseSource
-        && referenceFormulation != null && !referenceFormulation.equals(Rdf.Rml.SQL2008Table)) {
+    if (query == null && source instanceof DatabaseSource databaseSource && referenceFormulation != null
+        && !referenceFormulation.equals(Rdf.Rml.SQL2008Table)) {
       query = databaseSource.getQuery();
     }
 

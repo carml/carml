@@ -1,25 +1,26 @@
-@prefix foaf: <http://xmlns.com/foaf/0.1/> .
 @prefix ex: <http://example.com/> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix rml: <http://w3id.org/rml/> .
-@prefix ql: <http://w3id.org/rml/ql/> .
-@base <http://example.com/base/> .
 
-<TriplesMap1> a rml:TriplesMap;
-    
-  rml:logicalSource [ 
-    rml:source "student.json";
-    rml:referenceFormulation ql:JSONPath;
-    rml:iterator "$.students[*]"
-  ];
-
-  rml:subjectMap [ 
-    rml:constant ex:BadStudent;  
-    rml:graphMap [ rml:constant <http://example.com/graph/student> ];
-  ];
-
-  rml:predicateObjectMap [ 
-    rml:predicateMap [ rml:constant ex:description ]; 
-    rml:objectMap [ rml:constant "Bad Student"; ]
-  ].
-
+<http://example.com/base/TriplesMap1> a rml:TriplesMap;
+  rml:logicalSource [ a rml:LogicalSource;
+      rml:iterator "$.students[*]";
+      rml:referenceFormulation rml:JSONPath;
+      rml:source [ a rml:RelativePathSource;
+          rml:root rml:MappingDirectory;
+          rml:path "student.json"
+        ]
+    ];
+  rml:predicateObjectMap [
+      rml:objectMap [
+          rml:constant "Bad Student"
+        ];
+      rml:predicateMap [
+          rml:constant ex:description
+        ]
+    ];
+  rml:subjectMap [
+      rml:constant ex:BadStudent;
+      rml:graphMap [
+          rml:constant <http://example.com/graph/student>
+        ]
+    ] .

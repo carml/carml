@@ -1,46 +1,42 @@
-@prefix foaf: <http://xmlns.com/foaf/0.1/> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix ex: <http://example.com/> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix rml: <http://w3id.org/rml/> .
-@prefix ql: <http://w3id.org/rml/ql/> .
 
-@base <http://example.com/base/> .
-
-<TriplesMap1>
-  a rml:TriplesMap;
-
-  rml:logicalSource [
-    rml:source "country_en.json";
-    rml:referenceFormulation ql:JSONPath;
-    rml:iterator "$.countries[*]"
-  ];
-
-  rml:subjectMap [ rml:template "http://example.com/{Code}" ];
-
+<http://example.com/base/TriplesMap1> a rml:TriplesMap;
+  rml:logicalSource [ a rml:LogicalSource;
+      rml:iterator "$.countries[*]";
+      rml:referenceFormulation rml:JSONPath;
+      rml:source [ a rml:RelativePathSource;
+          rml:root rml:MappingDirectory;
+          rml:path "country_en.json"
+        ]
+    ];
   rml:predicateObjectMap [
-    rml:predicate rdfs:label;
-    rml:objectMap [
-      rml:reference "Name";
-      rml:language "english"
-    ]
-  ] .
+      rml:objectMap [
+          rml:language "a-english";
+          rml:reference "Name"
+        ];
+      rml:predicate rdfs:label
+    ];
+  rml:subjectMap [
+      rml:template "http://example.com/{Code}"
+    ] .
 
-<TriplesMap2>
-  a rml:TriplesMap;
-
-  rml:logicalSource [
-    rml:source "country_en.json";
-    rml:referenceFormulation ql:JSONPath;
-    rml:iterator "$.countries[*]"
-  ];
-
-  rml:subjectMap [ rml:template "http://example.com/{Code}" ];
-
+<http://example.com/base/TriplesMap2> a rml:TriplesMap;
+  rml:logicalSource [ a rml:LogicalSource;
+      rml:iterator "$.countries[*]";
+      rml:referenceFormulation rml:JSONPath;
+      rml:source [ a rml:RelativePathSource;
+          rml:root rml:MappingDirectory;
+          rml:path "country_en.json"
+        ]
+    ];
   rml:predicateObjectMap [
-    rml:predicate rdfs:label;
-    rml:objectMap [
-      rml:reference "Name";
-      rml:language "spanish"
-    ]
-  ].
+      rml:objectMap [
+          rml:language "a-spanish";
+          rml:reference "Name"
+        ];
+      rml:predicate rdfs:label
+    ];
+  rml:subjectMap [
+      rml:template "http://example.com/{Code}"
+    ] .

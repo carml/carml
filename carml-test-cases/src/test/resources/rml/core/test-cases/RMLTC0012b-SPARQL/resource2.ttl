@@ -1,11 +1,15 @@
-[] <http://xmlns.com/foaf/0.1/firstName> "Bob" ;
-   <http://xmlns.com/foaf/0.1/lastName> "Smith" ;
-   <http://example.com/city> "London" .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix ns1: <http://example.com/> .
 
-[] <http://xmlns.com/foaf/0.1/firstName> "Sue" ;
-   <http://xmlns.com/foaf/0.1/lastName> "Jones" ;
-   <http://example.com/city> "Madrid" .
+[] ns1:city "London" ;
+    foaf:firstName "Bob" ;
+    foaf:lastName "Smith" .
 
-[] <http://xmlns.com/foaf/0.1/firstName> "Bob" ;
-   <http://xmlns.com/foaf/0.1/lastName> "Smith" ;
-   <http://example.com/city> "London" .
+[] ns1:city "Madrid" ;
+    foaf:firstName "Sue" ;
+    foaf:lastName "Jones" .
+
+[] ns1:city "London" ;
+    foaf:firstName "Bob" ;
+    foaf:lastName "Smith" .
+
