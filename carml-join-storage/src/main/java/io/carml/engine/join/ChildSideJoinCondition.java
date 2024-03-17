@@ -13,19 +13,19 @@ import lombok.NonNull;
 @EqualsAndHashCode
 public class ChildSideJoinCondition implements Serializable {
 
-  private static final long serialVersionUID = -3366382556631470961L;
+    private static final long serialVersionUID = -3366382556631470961L;
 
-  @NonNull
-  String childReference;
+    @NonNull
+    String childReference;
 
-  ArrayList<String> childValues;
+    ArrayList<String> childValues;
 
-  @NonNull
-  String parentReference;
+    @NonNull
+    String parentReference;
 
-  @SuppressWarnings("java:S1319")
-  public static ChildSideJoinCondition of(String childReference, ArrayList<String> childValues,
-      String parentReference) {
-    return new ChildSideJoinCondition(childReference, childValues, parentReference);
-  }
+    @SuppressWarnings("java:S1319")
+    public static ChildSideJoinCondition of(
+            String childReference, ArrayList<String> childValues, String parentReference) {
+        return new ChildSideJoinCondition(childReference, childValues, parentReference);
+    }
 }

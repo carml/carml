@@ -23,46 +23,45 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @EqualsAndHashCode(callSuper = true)
 public class CarmlPredicateMap extends CarmlTermMap implements PredicateMap {
 
-  @Override
-  public Set<Resource> getReferencedResources() {
-    return ImmutableSet.<Resource>builder()
-        .addAll(getReferencedResourcesBase())
-        .build();
-  }
-
-  @Override
-  public void addTriples(ModelBuilder modelBuilder) {
-    modelBuilder.subject(getAsResource())
-        .add(RDF.TYPE, Rdf.Rml.PredicateMap);
-
-    addTriplesBase(modelBuilder);
-  }
-
-  @RdfProperty(Rml.termType)
-  @RdfProperty(Rr.termType)
-  @Override
-  public TermType getTermType() {
-    if (termType != null) {
-      return termType;
+    @Override
+    public Set<Resource> getReferencedResources() {
+        return ImmutableSet.<Resource>builder()
+                .addAll(getReferencedResourcesBase())
+                .build();
     }
 
-    return TermType.IRI;
-  }
+    @Override
+    public void addTriples(ModelBuilder modelBuilder) {
+        modelBuilder.subject(getAsResource()).add(RDF.TYPE, Rdf.Rml.PredicateMap);
 
-  @Override
-  public PredicateMap applyExpressionAdapter(UnaryOperator<String> referenceExpressionAdapter) {
-    var predicateMapBuilder = this.toBuilder();
-    if (reference != null) {
-      adaptReference(referenceExpressionAdapter, predicateMapBuilder::reference);
-      return predicateMapBuilder.build();
-    } else if (template != null) {
-      adaptTemplate(referenceExpressionAdapter, predicateMapBuilder::template);
-      return predicateMapBuilder.build();
-    } else if (functionValue != null) {
-      adaptFunctionValue(referenceExpressionAdapter, predicateMapBuilder::functionValue);
-      return predicateMapBuilder.build();
-    } else {
-      return this;
+        addTriplesBase(modelBuilder);
     }
-  }
+
+    @RdfProperty(Rml.termType)
+    @RdfProperty(Rr.termType)
+    @Override
+    public TermType getTermType() {
+        if (termType != null) {
+            return termType;
+        }
+
+        return TermType.IRI;
+    }
+
+    @Override
+    public PredicateMap applyExpressionAdapter(UnaryOperator<String> referenceExpressionAdapter) {
+        var predicateMapBuilder = this.toBuilder();
+        if (reference != null) {
+            adaptReference(referenceExpressionAdapter, predicateMapBuilder::reference);
+            return predicateMapBuilder.build();
+        } else if (template != null) {
+            adaptTemplate(referenceExpressionAdapter, predicateMapBuilder::template);
+            return predicateMapBuilder.build();
+        } else if (functionValue != null) {
+            adaptFunctionValue(referenceExpressionAdapter, predicateMapBuilder::functionValue);
+            return predicateMapBuilder.build();
+        } else {
+            return this;
+        }
+    }
 }

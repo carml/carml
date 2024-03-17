@@ -29,105 +29,117 @@ import reactor.core.publisher.Flux;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class RdfSubjectMapper {
 
-  @NonNull
-  private final TermGenerator<Resource> subjectGenerator;
+    @NonNull
+    private final TermGenerator<Resource> subjectGenerator;
 
-  private final Set<TermGenerator<Resource>> graphGenerators;
+    private final Set<TermGenerator<Resource>> graphGenerators;
 
-  private final Set<IRI> classes;
+    private final Set<IRI> classes;
 
-  @NonNull
-  private final ValueFactory valueFactory;
+    @NonNull
+    private final ValueFactory valueFactory;
 
-  public static RdfSubjectMapper of(@NonNull SubjectMap subjectMap, @NonNull TriplesMap triplesMap,
-      @NonNull RdfMapperConfig rdfMapperConfig) {
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Creating mapper for SubjectMap {}", log(triplesMap, subjectMap));
+    public static RdfSubjectMapper of(
+            @NonNull SubjectMap subjectMap, @NonNull TriplesMap triplesMap, @NonNull RdfMapperConfig rdfMapperConfig) {
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Creating mapper for SubjectMap {}", log(triplesMap, subjectMap));
+        }
+
+        RdfTermGeneratorFactory rdfTermGeneratorFactory =
+                (RdfTermGeneratorFactory) rdfMapperConfig.getTermGeneratorFactory();
+
+        TermGenerator<Resource> subjectGenerator;
+        try {
+            subjectGenerator = rdfTermGeneratorFactory.getSubjectGenerator(subjectMap);
+        } catch (RuntimeException ex) {
+            throw new TriplesMapperException(
+                    String.format(
+                            "Exception occurred while creating subject generator for %s",
+                            exception(triplesMap, subjectMap)),
+                    ex);
+        }
+
+        return new RdfSubjectMapper(
+                subjectGenerator,
+                RdfTriplesMapper.createGraphGenerators(subjectMap.getGraphMaps(), rdfTermGeneratorFactory),
+                subjectMap.getClasses(),
+                rdfMapperConfig.getValueFactorySupplier().get());
     }
 
-    RdfTermGeneratorFactory rdfTermGeneratorFactory =
-        (RdfTermGeneratorFactory) rdfMapperConfig.getTermGeneratorFactory();
+    public static RdfSubjectMapper ofJoining(
+            @NonNull SubjectMap subjectMap, @NonNull TriplesMap triplesMap, @NonNull RdfMapperConfig rdfMapperConfig) {
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Creating mapper for SubjectMap {}", log(triplesMap, subjectMap));
+        }
 
-    TermGenerator<Resource> subjectGenerator;
-    try {
-      subjectGenerator = rdfTermGeneratorFactory.getSubjectGenerator(subjectMap);
-    } catch (RuntimeException ex) {
-      throw new TriplesMapperException(String.format("Exception occurred while creating subject generator for %s",
-          exception(triplesMap, subjectMap)), ex);
+        RdfTermGeneratorFactory rdfTermGeneratorFactory =
+                (RdfTermGeneratorFactory) rdfMapperConfig.getTermGeneratorFactory();
+
+        TermGenerator<Resource> subjectGenerator;
+        try {
+            subjectGenerator = rdfTermGeneratorFactory.getSubjectGenerator(subjectMap);
+        } catch (RuntimeException ex) {
+            throw new TriplesMapperException(
+                    String.format(
+                            "Exception occurred while creating subject generator for %s",
+                            exception(triplesMap, subjectMap)),
+                    ex);
+        }
+
+        return new RdfSubjectMapper(
+                subjectGenerator,
+                RdfTriplesMapper.createGraphGenerators(subjectMap.getGraphMaps(), rdfTermGeneratorFactory),
+                Set.of(),
+                rdfMapperConfig.getValueFactorySupplier().get());
     }
 
-    return new RdfSubjectMapper(subjectGenerator,
-        RdfTriplesMapper.createGraphGenerators(subjectMap.getGraphMaps(), rdfTermGeneratorFactory),
-        subjectMap.getClasses(), rdfMapperConfig.getValueFactorySupplier()
-            .get());
-  }
+    public Result map(ExpressionEvaluation expressionEvaluation, DatatypeMapper datatypeMapper) {
+        LOG.debug("Determining subjects ...");
+        Set<Resource> subjects = subjectGenerator.apply(expressionEvaluation, datatypeMapper).stream()
+                .collect(toUnmodifiableSet());
 
-  public static RdfSubjectMapper ofJoining(@NonNull SubjectMap subjectMap, @NonNull TriplesMap triplesMap,
-      @NonNull RdfMapperConfig rdfMapperConfig) {
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Creating mapper for SubjectMap {}", log(triplesMap, subjectMap));
+        LOG.debug("Determined subjects {}", subjects);
+
+        if (subjects.isEmpty()) {
+            return resultOf(subjects, Set.of(), Flux.empty());
+        }
+
+        // graphs to be used when generating statements in predicate object mapper
+        Set<Resource> graphs = graphGenerators.stream()
+                .flatMap(graph -> graph.apply(expressionEvaluation, datatypeMapper).stream())
+                .collect(toUnmodifiableSet());
+
+        Flux<Statement> typeStatements = classes.isEmpty() ? Flux.empty() : mapTypeStatements(subjects, graphs);
+
+        return resultOf(subjects, graphs, typeStatements);
     }
 
-    RdfTermGeneratorFactory rdfTermGeneratorFactory =
-        (RdfTermGeneratorFactory) rdfMapperConfig.getTermGeneratorFactory();
+    private Flux<Statement> mapTypeStatements(Set<Resource> subjects, Set<Resource> graphs) {
+        LOG.debug("Generating triples for subjects: {}", subjects);
 
-    TermGenerator<Resource> subjectGenerator;
-    try {
-      subjectGenerator = rdfTermGeneratorFactory.getSubjectGenerator(subjectMap);
-    } catch (RuntimeException ex) {
-      throw new TriplesMapperException(String.format("Exception occurred while creating subject generator for %s",
-          exception(triplesMap, subjectMap)), ex);
+        Stream<Statement> typeStatementStream = Models.streamCartesianProductStatements(
+                subjects,
+                Set.of(RDF.TYPE),
+                classes,
+                graphs,
+                RdfTriplesMapper.defaultGraphModifier,
+                valueFactory,
+                RdfTriplesMapper.logAddStatements);
+
+        return Flux.fromStream(typeStatementStream);
     }
 
-    return new RdfSubjectMapper(subjectGenerator,
-        RdfTriplesMapper.createGraphGenerators(subjectMap.getGraphMaps(), rdfTermGeneratorFactory), Set.of(),
-        rdfMapperConfig.getValueFactorySupplier()
-            .get());
-  }
-
-  public Result map(ExpressionEvaluation expressionEvaluation, DatatypeMapper datatypeMapper) {
-    LOG.debug("Determining subjects ...");
-    Set<Resource> subjects = subjectGenerator.apply(expressionEvaluation, datatypeMapper)
-        .stream()
-        .collect(toUnmodifiableSet());
-
-    LOG.debug("Determined subjects {}", subjects);
-
-    if (subjects.isEmpty()) {
-      return resultOf(subjects, Set.of(), Flux.empty());
+    private static Result resultOf(Set<Resource> subjects, Set<Resource> graphs, Flux<Statement> typeStatements) {
+        return new Result(subjects, graphs, typeStatements);
     }
 
-    // graphs to be used when generating statements in predicate object mapper
-    Set<Resource> graphs = graphGenerators.stream()
-        .flatMap(graph -> graph.apply(expressionEvaluation, datatypeMapper)
-            .stream())
-        .collect(toUnmodifiableSet());
+    @Getter
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    static class Result {
+        Set<Resource> subjects;
 
-    Flux<Statement> typeStatements = classes.isEmpty() ? Flux.empty() : mapTypeStatements(subjects, graphs);
+        Set<Resource> graphs;
 
-    return resultOf(subjects, graphs, typeStatements);
-  }
-
-  private Flux<Statement> mapTypeStatements(Set<Resource> subjects, Set<Resource> graphs) {
-    LOG.debug("Generating triples for subjects: {}", subjects);
-
-    Stream<Statement> typeStatementStream = Models.streamCartesianProductStatements(subjects, Set.of(RDF.TYPE), classes,
-        graphs, RdfTriplesMapper.defaultGraphModifier, valueFactory, RdfTriplesMapper.logAddStatements);
-
-    return Flux.fromStream(typeStatementStream);
-  }
-
-  private static Result resultOf(Set<Resource> subjects, Set<Resource> graphs, Flux<Statement> typeStatements) {
-    return new Result(subjects, graphs, typeStatements);
-  }
-
-  @Getter
-  @AllArgsConstructor(access = AccessLevel.PRIVATE)
-  static class Result {
-    Set<Resource> subjects;
-
-    Set<Resource> graphs;
-
-    Flux<Statement> typeStatements;
-  }
+        Flux<Statement> typeStatements;
+    }
 }

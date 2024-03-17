@@ -5,7 +5,7 @@ import java.util.Optional;
 import java.util.function.Function;
 
 public interface MatchingLogicalSourceResolverSupplier
-    extends Function<LogicalSource, Optional<MatchedLogicalSourceResolverSupplier>> {
+        extends Function<LogicalSource, Optional<MatchedLogicalSourceResolverSupplier>> {
 
-  String getResolverName();
+    String getResolverName();
 }

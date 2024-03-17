@@ -20,76 +20,70 @@ import org.eclipse.rdf4j.model.Value;
 @SuppressWarnings("java:S1135")
 public class LogicalSourceSourcePropertyHandler implements PropertyHandler {
 
-  private IRI predicate;
+    private IRI predicate;
 
-  private BiConsumer<Object, Object> setter;
+    private BiConsumer<Object, Object> setter;
 
-  private Mapper mapper;
+    private Mapper mapper;
 
-  private MappingCache mappingCache;
+    private MappingCache mappingCache;
 
-  private Optional<Object> determineValue(Model model, Resource resource) {
+    private Optional<Object> determineValue(Model model, Resource resource) {
 
-    Set<Value> objects = model.filter(resource, predicate, null)
-        .objects();
-    if (objects.size() > 1) {
-      throw new CarmlMapperException(
-          String.format("more than 1 object for the predicate [%s] for a logical source", predicate));
+        Set<Value> objects = model.filter(resource, predicate, null).objects();
+        if (objects.size() > 1) {
+            throw new CarmlMapperException(
+                    String.format("more than 1 object for the predicate [%s] for a logical source", predicate));
+        }
+
+        if (objects.isEmpty()) {
+            return Optional.empty();
+        }
+
+        Value object = objects.iterator().next();
+
+        if (object instanceof Literal) {
+            return Optional.of(object.stringValue());
+        }
+
+        // map 'object' to some complex type
+        // TODO quite nasty to create the transformer here
+        ComplexValueTransformer transformer =
+                new ComplexValueTransformer(new LogicalSourceSourceTypeDecider(mapper), mappingCache, mapper, o -> o);
+        Object value = transformer.transform(model, object);
+        return Optional.of(value);
     }
 
-    if (objects.isEmpty()) {
-      return Optional.empty();
+    @Override
+    public void handle(Model model, Resource resource, Object instance) {
+
+        determineValue(model, resource).ifPresent(value -> setter.accept(instance, value));
     }
 
-    Value object = objects.iterator()
-        .next();
-
-    if (object instanceof Literal) {
-      return Optional.of(object.stringValue());
+    @Override
+    public boolean hasEffect(Model model, Resource resource) {
+        return !model.filter(resource, predicate, null).isEmpty();
     }
 
-    // map 'object' to some complex type
-    // TODO quite nasty to create the transformer here
-    ComplexValueTransformer transformer =
-        new ComplexValueTransformer(new LogicalSourceSourceTypeDecider(mapper), mappingCache, mapper, o -> o);
-    Object value = transformer.transform(model, object);
-    return Optional.of(value);
-  }
+    @Inject
+    @PropertyPredicate
+    public void setPredicate(IRI predicate) {
+        this.predicate = predicate;
+    }
 
-  @Override
-  public void handle(Model model, Resource resource, Object instance) {
+    @Inject
+    @PropertySetter
+    public void setSetter(BiConsumer<Object, Object> setter) {
+        this.setter = setter;
+    }
 
-    determineValue(model, resource)
+    @Inject
+    public void setMapper(Mapper mapper) {
+        this.mapper = mapper;
+    }
 
-        .ifPresent(value -> setter.accept(instance, value));
-  }
-
-  @Override
-  public boolean hasEffect(Model model, Resource resource) {
-    return !model.filter(resource, predicate, null)
-        .isEmpty();
-  }
-
-  @Inject
-  @PropertyPredicate
-  public void setPredicate(IRI predicate) {
-    this.predicate = predicate;
-  }
-
-  @Inject
-  @PropertySetter
-  public void setSetter(BiConsumer<Object, Object> setter) {
-    this.setter = setter;
-  }
-
-  @Inject
-  public void setMapper(Mapper mapper) {
-    this.mapper = mapper;
-  }
-
-  @Inject
-  public void setMappingCache(MappingCache mappingCache) {
-    this.mappingCache = mappingCache;
-  }
-
+    @Inject
+    public void setMappingCache(MappingCache mappingCache) {
+        this.mappingCache = mappingCache;
+    }
 }

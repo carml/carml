@@ -15,16 +15,16 @@ import org.eclipse.rdf4j.model.ValueFactory;
 @Getter
 public class RdfTermGeneratorConfig {
 
-  @NonNull
-  private IRI baseIri;
+    @NonNull
+    private IRI baseIri;
 
-  @NonNull
-  ValueFactory valueFactory;
+    @NonNull
+    ValueFactory valueFactory;
 
-  @NonNull
-  private final Normalizer.Form normalizationForm;
+    @NonNull
+    private final Normalizer.Form normalizationForm;
 
-  private final boolean iriUpperCasePercentEncoding;
+    private final boolean iriUpperCasePercentEncoding;
 
-  private final Functions functions;
+    private final Functions functions;
 }

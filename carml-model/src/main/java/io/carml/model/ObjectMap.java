@@ -1,13 +1,12 @@
 package io.carml.model;
 
-
 import java.util.function.UnaryOperator;
 
 public interface ObjectMap extends TermMap, BaseObjectMap {
 
-  DatatypeMap getDatatypeMap();
+    DatatypeMap getDatatypeMap();
 
-  LanguageMap getLanguageMap();
+    LanguageMap getLanguageMap();
 
-  ObjectMap applyExpressionAdapter(UnaryOperator<String> referenceExpressionAdapter);
+    ObjectMap applyExpressionAdapter(UnaryOperator<String> referenceExpressionAdapter);
 }

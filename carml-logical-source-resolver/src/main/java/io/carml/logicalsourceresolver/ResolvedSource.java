@@ -11,20 +11,20 @@ import lombok.NonNull;
 @Data
 public class ResolvedSource<V> {
 
-  @Getter
-  @NonNull
-  private Object rmlSource;
+    @Getter
+    @NonNull
+    private Object rmlSource;
 
-  private V resolved;
+    private V resolved;
 
-  @Getter
-  private Class<V> resolvedClass;
+    @Getter
+    private Class<V> resolvedClass;
 
-  public static <V> ResolvedSource<V> of(Object rmlSource, V resolved, Class<V> resolvedClass) {
-    return new ResolvedSource<>(rmlSource, resolved, resolvedClass);
-  }
+    public static <V> ResolvedSource<V> of(Object rmlSource, V resolved, Class<V> resolvedClass) {
+        return new ResolvedSource<>(rmlSource, resolved, resolvedClass);
+    }
 
-  public Optional<V> getResolved() {
-    return Optional.ofNullable(resolved);
-  }
+    public Optional<V> getResolved() {
+        return Optional.ofNullable(resolved);
+    }
 }

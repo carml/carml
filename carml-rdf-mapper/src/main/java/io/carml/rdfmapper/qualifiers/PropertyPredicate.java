@@ -6,6 +6,4 @@ import javax.inject.Qualifier;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Qualifier
-public @interface PropertyPredicate {
-
-}
+public @interface PropertyPredicate {}

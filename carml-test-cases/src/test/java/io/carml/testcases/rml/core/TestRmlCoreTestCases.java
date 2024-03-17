@@ -57,148 +57,140 @@ import org.testcontainers.shaded.org.apache.commons.io.IOUtils;
 @Testcontainers
 class TestRmlCoreTestCases {
 
-  private static final String BASE_PATH = "/rml/core/test-cases";
+    private static final String BASE_PATH = "/rml/core/test-cases";
 
-  private static final ValueFactory VF = SimpleValueFactory.getInstance();
+    private static final ValueFactory VF = SimpleValueFactory.getInstance();
 
-  private static final IRI TESTCASE = VF.createIRI("http://www.w3.org/2006/03/test-description#TestCase");
+    private static final IRI TESTCASE = VF.createIRI("http://www.w3.org/2006/03/test-description#TestCase");
 
-  private static final List<String> SUPPORTED_SOURCE_TYPES =
-      ImmutableList.of("CSV", "JSON", "XML", "MySQL", "PostgreSQL");
+    private static final List<String> SUPPORTED_SOURCE_TYPES =
+            ImmutableList.of("CSV", "JSON", "XML", "MySQL", "PostgreSQL");
 
-  private static final List<String> SKIP_TESTS = new ImmutableList.Builder<String>() //
-      .add("RMLTC0012d") // CARML supports multiplevalued subject maps
-      .add("RMLTC0016c") // Canonical mapping leads to correct date time, but not the same as expected in test.
-      .build();
+    private static final List<String> SKIP_TESTS = new ImmutableList.Builder<String>() //
+            .add("RMLTC0012d") // CARML supports multiplevalued subject maps
+            .add("RMLTC0016c") // Canonical mapping leads to correct date time, but not the same as expected in test.
+            .build();
 
-  private static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:latest").withUsername("root")
-      .withUrlParam("allowMultiQueries", "true");
+    private static final MySQLContainer<?> MYSQL =
+            new MySQLContainer<>("mysql:latest").withUsername("root").withUrlParam("allowMultiQueries", "true");
 
-  private static final PostgreSQLContainer<?> POSTGRESQL =
-      new PostgreSQLContainer<>("postgres:latest").withUsername("root")
-          .withUrlParam("allowMultiQueries", "true");
+    private static final PostgreSQLContainer<?> POSTGRESQL =
+            new PostgreSQLContainer<>("postgres:latest").withUsername("root").withUrlParam("allowMultiQueries", "true");
 
-
-  @BeforeAll
-  static void beforeAll() {
-    MYSQL.start();
-    POSTGRESQL.start();
-  }
-
-  @AfterAll
-  static void afterAll() {
-    MYSQL.stop();
-    POSTGRESQL.stop();
-  }
-
-  private RdfRmlMapper.Builder mapperBuilder;
-
-  static Stream<Arguments> populateTestCases() {
-    var manifest = TestRmlCoreTestCases.class.getResourceAsStream(String.format("%s/manifest.ttl", BASE_PATH));
-    return RdfObjectLoader.load(selectTestCases, TestCase.class, Models.parse(manifest, RDFFormat.TURTLE))
-        .stream()
-        .filter(TestRmlCoreTestCases::shouldBeTested)
-        .sorted(Comparator.comparing(TestCase::getIdentifier))
-        .map(testCase -> Arguments.of(testCase, testCase.getIdentifier()));
-  }
-
-  private static final Function<Model, Set<Resource>> selectTestCases = model -> model.filter(null, RDF.TYPE, TESTCASE)
-      .subjects()
-      .stream()
-      .collect(Collectors.toUnmodifiableSet());
-
-  private static boolean isSupported(TestCase testCase) {
-    return SUPPORTED_SOURCE_TYPES.contains(testCase.getInput()
-        .getInputType());
-  }
-
-  private static boolean shouldBeTested(TestCase testCase) {
-    return isSupported(testCase) && SKIP_TESTS.stream()
-        .noneMatch(skipTest -> testCase.getIdentifier()
-            .startsWith(skipTest));
-  }
-
-  @ParameterizedTest(name = "{1}")
-  @MethodSource("populateTestCases")
-  void runTestCase(TestCase testCase, String testCaseIdentifier) {
-    if (!testCase.hasExpectedOutput()) {
-      // expect error
-      assertThrows(RuntimeException.class, () -> executeMapping(testCase, testCaseIdentifier));
-    } else {
-      var result = executeMapping(testCase, testCaseIdentifier);
-
-      InputStream expectedOutputStream =
-          getTestCaseFileInputStream(BASE_PATH, testCaseIdentifier, testCase.getOutput());
-
-      Model expected = Models.parse(expectedOutputStream, RDFFormat.NQUADS)
-          .stream()
-          .collect(ModelCollector.toTreeModel());
-
-      // TODO Create isomorphic hamcrest matcher
-      assertThat(isomorphic(result, expected), is(true));
-    }
-  }
-
-  private void prepareForDatabaseTest(TestCase testCase, String testCaseIdentifier, JdbcDatabaseContainer<?> container,
-      Function<JdbcDatabaseContainer<?>, ConnectionFactoryOptions> optionsGetter) {
-    testCase.getInput()
-        .getDatabase()
-        .getSqlScriptFiles()
-        .stream()
-        .map(sqlScript -> getTestCaseFileInputStream(BASE_PATH, testCaseIdentifier, sqlScript))
-        .forEach(inputStream -> {
-          try (Connection conn =
-              DriverManager.getConnection(container.getJdbcUrl(), container.getUsername(), container.getPassword())) {
-            var sql = IOUtils.toString(inputStream, StandardCharsets.UTF_8);
-            conn.createStatement()
-                .execute(sql);
-          } catch (SQLException | IOException e) {
-            throw new RuntimeException(e);
-          }
-        });
-
-    mapperBuilder.databaseConnectionOptions(DatabaseConnectionOptions.of(optionsGetter.apply(container)));
-  }
-
-  private Model executeMapping(TestCase testCase, String testCaseIdentifier) {
-    mapperBuilder = RdfRmlMapper.builder()
-        .valueFactorySupplier(ValidatingValueFactory::new)
-        .logicalSourceResolverMatcher(CsvResolver.Matcher.getInstance())
-        .logicalSourceResolverMatcher(JsonPathResolver.Matcher.getInstance())
-        .logicalSourceResolverMatcher(XPathResolver.Matcher.getInstance());
-
-    var mappingStream = getTestCaseFileInputStream(BASE_PATH, testCaseIdentifier, testCase.getMappingDocument());
-    Set<TriplesMap> mapping = RmlMappingLoader.build()
-        .load(RDFFormat.TURTLE, mappingStream);
-
-    if (testCase.getInput()
-        .getInputType()
-        .equals("MySQL")) {
-      mapperBuilder.logicalSourceResolverMatcher(MySqlResolver.Matcher.getInstance());
-      prepareForDatabaseTest(testCase, testCaseIdentifier, MYSQL,
-          mysql -> MySQLR2DBCDatabaseContainer.getOptions((MySQLContainer<?>) mysql));
+    @BeforeAll
+    static void beforeAll() {
+        MYSQL.start();
+        POSTGRESQL.start();
     }
 
-    if (testCase.getInput()
-        .getInputType()
-        .equals("PostgreSQL")) {
-      mapperBuilder.logicalSourceResolverMatcher(PostgreSqlResolver.Matcher.getInstance());
-      prepareForDatabaseTest(testCase, testCaseIdentifier, POSTGRESQL,
-          postgresql -> PostgreSQLR2DBCDatabaseContainer.getOptions((PostgreSQLContainer<?>) postgresql));
+    @AfterAll
+    static void afterAll() {
+        MYSQL.stop();
+        POSTGRESQL.stop();
     }
 
-    RdfRmlMapper mapper = mapperBuilder.triplesMaps(mapping)
-        .classPathResolver(ClassPathResolver.of(String.format("%s/%s", BASE_PATH, testCase.getIdentifier()),
-            TestRmlCoreTestCases.class))
-        .build();
+    private RdfRmlMapper.Builder mapperBuilder;
 
-    return mapper.map()
-        .collect(ModelCollector.toTreeModel())
-        .block();
-  }
+    static Stream<Arguments> populateTestCases() {
+        var manifest = TestRmlCoreTestCases.class.getResourceAsStream(String.format("%s/manifest.ttl", BASE_PATH));
+        return RdfObjectLoader.load(selectTestCases, TestCase.class, Models.parse(manifest, RDFFormat.TURTLE)).stream()
+                .filter(TestRmlCoreTestCases::shouldBeTested)
+                .sorted(Comparator.comparing(TestCase::getIdentifier))
+                .map(testCase -> Arguments.of(testCase, testCase.getIdentifier()));
+    }
 
-  private static InputStream getTestCaseFileInputStream(String basePath, String testCaseIdentifier, String fileName) {
-    return TestRmlCoreTestCases.class
-        .getResourceAsStream(String.format("%s/%s/%s", basePath, testCaseIdentifier, fileName));
-  }
+    private static final Function<Model, Set<Resource>> selectTestCases =
+            model -> model.filter(null, RDF.TYPE, TESTCASE).subjects().stream().collect(Collectors.toUnmodifiableSet());
+
+    private static boolean isSupported(TestCase testCase) {
+        return SUPPORTED_SOURCE_TYPES.contains(testCase.getInput().getInputType());
+    }
+
+    private static boolean shouldBeTested(TestCase testCase) {
+        return isSupported(testCase)
+                && SKIP_TESTS.stream()
+                        .noneMatch(skipTest -> testCase.getIdentifier().startsWith(skipTest));
+    }
+
+    @ParameterizedTest(name = "{1}")
+    @MethodSource("populateTestCases")
+    void runTestCase(TestCase testCase, String testCaseIdentifier) {
+        if (!testCase.hasExpectedOutput()) {
+            // expect error
+            assertThrows(RuntimeException.class, () -> executeMapping(testCase, testCaseIdentifier));
+        } else {
+            var result = executeMapping(testCase, testCaseIdentifier);
+
+            InputStream expectedOutputStream =
+                    getTestCaseFileInputStream(BASE_PATH, testCaseIdentifier, testCase.getOutput());
+
+            Model expected = Models.parse(expectedOutputStream, RDFFormat.NQUADS).stream()
+                    .collect(ModelCollector.toTreeModel());
+
+            // TODO Create isomorphic hamcrest matcher
+            assertThat(isomorphic(result, expected), is(true));
+        }
+    }
+
+    private void prepareForDatabaseTest(
+            TestCase testCase,
+            String testCaseIdentifier,
+            JdbcDatabaseContainer<?> container,
+            Function<JdbcDatabaseContainer<?>, ConnectionFactoryOptions> optionsGetter) {
+        testCase.getInput().getDatabase().getSqlScriptFiles().stream()
+                .map(sqlScript -> getTestCaseFileInputStream(BASE_PATH, testCaseIdentifier, sqlScript))
+                .forEach(inputStream -> {
+                    try (Connection conn = DriverManager.getConnection(
+                            container.getJdbcUrl(), container.getUsername(), container.getPassword())) {
+                        var sql = IOUtils.toString(inputStream, StandardCharsets.UTF_8);
+                        conn.createStatement().execute(sql);
+                    } catch (SQLException | IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+
+        mapperBuilder.databaseConnectionOptions(DatabaseConnectionOptions.of(optionsGetter.apply(container)));
+    }
+
+    private Model executeMapping(TestCase testCase, String testCaseIdentifier) {
+        mapperBuilder = RdfRmlMapper.builder()
+                .valueFactorySupplier(ValidatingValueFactory::new)
+                .logicalSourceResolverMatcher(CsvResolver.Matcher.getInstance())
+                .logicalSourceResolverMatcher(JsonPathResolver.Matcher.getInstance())
+                .logicalSourceResolverMatcher(XPathResolver.Matcher.getInstance());
+
+        var mappingStream = getTestCaseFileInputStream(BASE_PATH, testCaseIdentifier, testCase.getMappingDocument());
+        Set<TriplesMap> mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingStream);
+
+        if (testCase.getInput().getInputType().equals("MySQL")) {
+            mapperBuilder.logicalSourceResolverMatcher(MySqlResolver.Matcher.getInstance());
+            prepareForDatabaseTest(
+                    testCase,
+                    testCaseIdentifier,
+                    MYSQL,
+                    mysql -> MySQLR2DBCDatabaseContainer.getOptions((MySQLContainer<?>) mysql));
+        }
+
+        if (testCase.getInput().getInputType().equals("PostgreSQL")) {
+            mapperBuilder.logicalSourceResolverMatcher(PostgreSqlResolver.Matcher.getInstance());
+            prepareForDatabaseTest(
+                    testCase,
+                    testCaseIdentifier,
+                    POSTGRESQL,
+                    postgresql -> PostgreSQLR2DBCDatabaseContainer.getOptions((PostgreSQLContainer<?>) postgresql));
+        }
+
+        RdfRmlMapper mapper = mapperBuilder
+                .triplesMaps(mapping)
+                .classPathResolver(ClassPathResolver.of(
+                        String.format("%s/%s", BASE_PATH, testCase.getIdentifier()), TestRmlCoreTestCases.class))
+                .build();
+
+        return mapper.map().collect(ModelCollector.toTreeModel()).block();
+    }
+
+    private static InputStream getTestCaseFileInputStream(String basePath, String testCaseIdentifier, String fileName) {
+        return TestRmlCoreTestCases.class.getResourceAsStream(
+                String.format("%s/%s/%s", basePath, testCaseIdentifier, fileName));
+    }
 }

@@ -8,13 +8,13 @@ import org.eclipse.rdf4j.model.Resource;
 
 public interface Mapper {
 
-  <T> T map(Model model, Resource resource, Set<Type> types);
+    <T> T map(Model model, Resource resource, Set<Type> types);
 
-  Type getDecidableType(IRI rdfType);
+    Type getDecidableType(IRI rdfType);
 
-  Mapper addDecidableType(IRI rdfType, Type type);
+    Mapper addDecidableType(IRI rdfType, Type type);
 
-  Mapper bindInterfaceImplementation(Type interfaze, Type implementation);
+    Mapper bindInterfaceImplementation(Type interfaze, Type implementation);
 
-  Type getInterfaceImplementation(Type interfaze);
+    Type getInterfaceImplementation(Type interfaze);
 }

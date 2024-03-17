@@ -26,86 +26,83 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @SuperBuilder(toBuilder = true)
 @NoArgsConstructor
 @Setter
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = false)
 public class CarmlTriplesMap extends CarmlResource implements TriplesMap {
 
-  private LogicalSource logicalSource;
+    private LogicalSource logicalSource;
 
-  private LogicalTable logicalTable;
+    private LogicalTable logicalTable;
 
-  @Singular
-  private Set<SubjectMap> subjectMaps;
+    @Singular
+    private Set<SubjectMap> subjectMaps;
 
-  @Singular
-  private Set<PredicateObjectMap> predicateObjectMaps;
+    @Singular
+    private Set<PredicateObjectMap> predicateObjectMaps;
 
-  @RdfProperty(Rml.logicalSource)
-  @RdfProperty(OldRml.logicalSource)
-  @RdfType(CarmlLogicalSource.class)
-  @Override
-  public LogicalSource getLogicalSource() {
-    return logicalTable != null ? logicalTable : logicalSource;
-  }
-
-  @RdfProperty(Rr.logicalTable)
-  @RdfType(CarmlLogicalTable.class)
-  @Override
-  public LogicalTable getLogicalTable() {
-    return logicalTable;
-  }
-
-  @RdfProperty(Rml.subjectMap)
-  @RdfProperty(Rr.subjectMap)
-  @RdfType(CarmlSubjectMap.class)
-  @Override
-  public Set<SubjectMap> getSubjectMaps() {
-    return subjectMaps;
-  }
-
-  @RdfProperty(Rml.predicateObjectMap)
-  @RdfProperty(Rr.predicateObjectMap)
-  @RdfType(CarmlPredicateObjectMap.class)
-  @Override
-  public Set<PredicateObjectMap> getPredicateObjectMaps() {
-    return predicateObjectMaps;
-  }
-
-  @Override
-  public String toString() {
-    return new StringJoiner(String.format(",%s", System.lineSeparator()), "CarmlTriplesMap(", ")")
-        .add(String.format("super=%s", super.toString()))
-        .add(String.format("logicalSource=%s", logicalSource))
-        .add(String.format("logicalTable=%s", logicalTable))
-        .add(String.format("subjectMaps=%s", subjectMaps))
-        .add(String.format("predicateObjectMaps=%s", predicateObjectMaps))
-        .toString();
-  }
-
-  @Override
-  public Set<Resource> getReferencedResources() {
-    var builder = ImmutableSet.<Resource>builder();
-    if (logicalSource != null) {
-      builder.add(logicalSource);
+    @RdfProperty(Rml.logicalSource)
+    @RdfProperty(OldRml.logicalSource)
+    @RdfType(CarmlLogicalSource.class)
+    @Override
+    public LogicalSource getLogicalSource() {
+        return logicalTable != null ? logicalTable : logicalSource;
     }
-    if (logicalTable != null) {
-      builder.add(logicalTable);
-    }
-    return builder.addAll(subjectMaps)
-        .addAll(predicateObjectMaps)
-        .build();
-  }
 
-  @Override
-  public void addTriples(ModelBuilder modelBuilder) {
-    modelBuilder.subject(getAsResource())
-        .add(RDF.TYPE, Rdf.Rml.TriplesMap);
-    if (logicalSource != null) {
-      modelBuilder.add(Rdf.Rml.logicalSource, logicalSource.getAsResource());
+    @RdfProperty(Rr.logicalTable)
+    @RdfType(CarmlLogicalTable.class)
+    @Override
+    public LogicalTable getLogicalTable() {
+        return logicalTable;
     }
-    if (logicalTable != null) {
-      modelBuilder.add(Rdf.Rr.logicalTable, logicalTable.getAsResource());
+
+    @RdfProperty(Rml.subjectMap)
+    @RdfProperty(Rr.subjectMap)
+    @RdfType(CarmlSubjectMap.class)
+    @Override
+    public Set<SubjectMap> getSubjectMaps() {
+        return subjectMaps;
     }
-    subjectMaps.forEach(sm -> modelBuilder.add(Rdf.Rml.subjectMap, sm.getAsResource()));
-    predicateObjectMaps.forEach(pom -> modelBuilder.add(Rdf.Rml.predicateObjectMap, pom.getAsResource()));
-  }
+
+    @RdfProperty(Rml.predicateObjectMap)
+    @RdfProperty(Rr.predicateObjectMap)
+    @RdfType(CarmlPredicateObjectMap.class)
+    @Override
+    public Set<PredicateObjectMap> getPredicateObjectMaps() {
+        return predicateObjectMaps;
+    }
+
+    @Override
+    public String toString() {
+        return new StringJoiner(String.format(",%s", System.lineSeparator()), "CarmlTriplesMap(", ")")
+                .add(String.format("super=%s", super.toString()))
+                .add(String.format("logicalSource=%s", logicalSource))
+                .add(String.format("logicalTable=%s", logicalTable))
+                .add(String.format("subjectMaps=%s", subjectMaps))
+                .add(String.format("predicateObjectMaps=%s", predicateObjectMaps))
+                .toString();
+    }
+
+    @Override
+    public Set<Resource> getReferencedResources() {
+        var builder = ImmutableSet.<Resource>builder();
+        if (logicalSource != null) {
+            builder.add(logicalSource);
+        }
+        if (logicalTable != null) {
+            builder.add(logicalTable);
+        }
+        return builder.addAll(subjectMaps).addAll(predicateObjectMaps).build();
+    }
+
+    @Override
+    public void addTriples(ModelBuilder modelBuilder) {
+        modelBuilder.subject(getAsResource()).add(RDF.TYPE, Rdf.Rml.TriplesMap);
+        if (logicalSource != null) {
+            modelBuilder.add(Rdf.Rml.logicalSource, logicalSource.getAsResource());
+        }
+        if (logicalTable != null) {
+            modelBuilder.add(Rdf.Rr.logicalTable, logicalTable.getAsResource());
+        }
+        subjectMaps.forEach(sm -> modelBuilder.add(Rdf.Rml.subjectMap, sm.getAsResource()));
+        predicateObjectMaps.forEach(pom -> modelBuilder.add(Rdf.Rml.predicateObjectMap, pom.getAsResource()));
+    }
 }

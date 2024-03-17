@@ -21,37 +21,35 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @EqualsAndHashCode(callSuper = false)
 public class CarmlNamespace extends CarmlResource implements Namespace {
 
-  private String prefix;
+    private String prefix;
 
-  private String name;
+    private String name;
 
-  @RdfProperty(Carml.namespacePrefix)
-  @Override
-  public String getPrefix() {
-    return prefix;
-  }
-
-  @RdfProperty(Carml.namespaceName)
-  @Override
-  public String getName() {
-    return name;
-  }
-
-  @Override
-  public Set<Resource> getReferencedResources() {
-    return Set.of();
-  }
-
-  @Override
-  public void addTriples(ModelBuilder modelBuilder) {
-    modelBuilder.subject(getAsResource())
-        .add(RDF.TYPE, Rdf.Carml.Namespace);
-    if (prefix != null) {
-      modelBuilder.add(Carml.namespacePrefix, prefix);
+    @RdfProperty(Carml.namespacePrefix)
+    @Override
+    public String getPrefix() {
+        return prefix;
     }
-    if (name != null) {
-      modelBuilder.add(Carml.namespaceName, name);
-    }
-  }
 
+    @RdfProperty(Carml.namespaceName)
+    @Override
+    public String getName() {
+        return name;
+    }
+
+    @Override
+    public Set<Resource> getReferencedResources() {
+        return Set.of();
+    }
+
+    @Override
+    public void addTriples(ModelBuilder modelBuilder) {
+        modelBuilder.subject(getAsResource()).add(RDF.TYPE, Rdf.Carml.Namespace);
+        if (prefix != null) {
+            modelBuilder.add(Carml.namespacePrefix, prefix);
+        }
+        if (name != null) {
+            modelBuilder.add(Carml.namespaceName, name);
+        }
+    }
 }

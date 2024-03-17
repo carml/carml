@@ -8,9 +8,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class Expressions {
 
-  private static void processReference(String expressionPrefix, ExpressionMap expressionMap,
-      Consumer<String> referenceApplier) {
-    referenceApplier.accept(String.format("%s%s", expressionPrefix, expressionMap.getReference()));
-  }
-
+    private static void processReference(
+            String expressionPrefix, ExpressionMap expressionMap, Consumer<String> referenceApplier) {
+        referenceApplier.accept(String.format("%s%s", expressionPrefix, expressionMap.getReference()));
+    }
 }

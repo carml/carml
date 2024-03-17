@@ -25,73 +25,71 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @Setter
 public class CarmlRefObjectMap extends CarmlResource implements RefObjectMap {
 
-  private TriplesMap parentTriplesMap;
+    private TriplesMap parentTriplesMap;
 
-  @Singular
-  private Set<Join> joinConditions;
+    @Singular
+    private Set<Join> joinConditions;
 
-  @RdfProperty(Rml.parentTriplesMap)
-  @RdfProperty(Rr.parentTriplesMap)
-  @RdfType(CarmlTriplesMap.class)
-  @Override
-  public TriplesMap getParentTriplesMap() {
-    return parentTriplesMap;
-  }
-
-  @RdfProperty(Rml.joinCondition)
-  @RdfProperty(Rr.joinCondition)
-  @RdfProperty(value = Carml.multiJoinCondition, deprecated = true)
-  @RdfType(CarmlJoin.class)
-  @Override
-  public Set<Join> getJoinConditions() {
-    return joinConditions;
-  }
-
-  @Override
-  public Set<Resource> getReferencedResources() {
-    ImmutableSet.Builder<Resource> builder = ImmutableSet.<Resource>builder();
-    if (parentTriplesMap != null) {
-      builder.add(parentTriplesMap);
+    @RdfProperty(Rml.parentTriplesMap)
+    @RdfProperty(Rr.parentTriplesMap)
+    @RdfType(CarmlTriplesMap.class)
+    @Override
+    public TriplesMap getParentTriplesMap() {
+        return parentTriplesMap;
     }
-    return builder.addAll(joinConditions)
-        .build();
-  }
 
-  @Override
-  public void addTriples(ModelBuilder modelBuilder) {
-    modelBuilder.subject(getAsResource())
-        .add(RDF.TYPE, Rdf.Rml.RefObjectMap);
-    if (parentTriplesMap != null) {
-      modelBuilder.add(Rdf.Rml.parentTriplesMap, parentTriplesMap.getAsResource());
+    @RdfProperty(Rml.joinCondition)
+    @RdfProperty(Rr.joinCondition)
+    @RdfProperty(value = Carml.multiJoinCondition, deprecated = true)
+    @RdfType(CarmlJoin.class)
+    @Override
+    public Set<Join> getJoinConditions() {
+        return joinConditions;
     }
-    joinConditions.forEach(jc -> modelBuilder.add(Rdf.Rml.joinCondition, jc.getAsResource()));
-  }
 
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
+    @Override
+    public Set<Resource> getReferencedResources() {
+        ImmutableSet.Builder<Resource> builder = ImmutableSet.<Resource>builder();
+        if (parentTriplesMap != null) {
+            builder.add(parentTriplesMap);
+        }
+        return builder.addAll(joinConditions).build();
     }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    if (!super.equals(o)) {
-      return false;
-    }
-    CarmlRefObjectMap that = (CarmlRefObjectMap) o;
-    return Objects.equal(parentTriplesMap.getId(), that.parentTriplesMap.getId())
-        && Objects.equal(joinConditions, that.joinConditions);
-  }
 
-  @Override
-  public int hashCode() {
-    return Objects.hashCode(parentTriplesMap.getId(), joinConditions);
-  }
+    @Override
+    public void addTriples(ModelBuilder modelBuilder) {
+        modelBuilder.subject(getAsResource()).add(RDF.TYPE, Rdf.Rml.RefObjectMap);
+        if (parentTriplesMap != null) {
+            modelBuilder.add(Rdf.Rml.parentTriplesMap, parentTriplesMap.getAsResource());
+        }
+        joinConditions.forEach(jc -> modelBuilder.add(Rdf.Rml.joinCondition, jc.getAsResource()));
+    }
 
-  @Override
-  public String toString() {
-    return "CarmlRefObjectMap(super=" + super.toString() + ", parentTriplesMap=" + this.getParentTriplesMap()
-        .getAsResource()
-        .stringValue() + ", joinConditions=" + this.getJoinConditions() + ")";
-  }
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
+        CarmlRefObjectMap that = (CarmlRefObjectMap) o;
+        return Objects.equal(parentTriplesMap.getId(), that.parentTriplesMap.getId())
+                && Objects.equal(joinConditions, that.joinConditions);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(parentTriplesMap.getId(), joinConditions);
+    }
+
+    @Override
+    public String toString() {
+        return "CarmlRefObjectMap(super=" + super.toString() + ", parentTriplesMap="
+                + this.getParentTriplesMap().getAsResource().stringValue() + ", joinConditions="
+                + this.getJoinConditions() + ")";
+    }
 }

@@ -16,30 +16,28 @@ import org.junit.jupiter.api.Test;
 
 class TriplesMapRdfSerializeTest {
 
-  private RmlMappingLoader mappingLoader;
+    private RmlMappingLoader mappingLoader;
 
-  @BeforeEach
-  public void init() {
-    mappingLoader = RmlMappingLoader.build();
-  }
+    @BeforeEach
+    public void init() {
+        mappingLoader = RmlMappingLoader.build();
+    }
 
-  @Test
-  void triplesMapAsRdfRoundTripTest() {
-    InputStream mappingSource = TriplesMapRdfSerializeTest.class.getResourceAsStream("Mapping.rml.ttl");
-    Set<TriplesMap> mapping = mappingLoader.load(RDFFormat.TURTLE, mappingSource);
+    @Test
+    void triplesMapAsRdfRoundTripTest() {
+        InputStream mappingSource = TriplesMapRdfSerializeTest.class.getResourceAsStream("Mapping.rml.ttl");
+        Set<TriplesMap> mapping = mappingLoader.load(RDFFormat.TURTLE, mappingSource);
 
-    Model model = mapping.stream()
-        .map(Resource::asRdf)
-        .flatMap(Model::stream)
-        .collect(ModelCollector.toModel());
+        Model model =
+                mapping.stream().map(Resource::asRdf).flatMap(Model::stream).collect(ModelCollector.toModel());
 
-    Set<TriplesMap> mappingReloaded = mappingLoader.load(model);
+        Set<TriplesMap> mappingReloaded = mappingLoader.load(model);
 
-    Model modelReloaded = mappingReloaded.stream()
-        .map(Resource::asRdf)
-        .flatMap(Model::stream)
-        .collect(ModelCollector.toModel());
+        Model modelReloaded = mappingReloaded.stream()
+                .map(Resource::asRdf)
+                .flatMap(Model::stream)
+                .collect(ModelCollector.toModel());
 
-    assertThat(model, is(modelReloaded));
-  }
+        assertThat(model, is(modelReloaded));
+    }
 }

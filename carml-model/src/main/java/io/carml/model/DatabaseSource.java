@@ -2,13 +2,13 @@ package io.carml.model;
 
 public interface DatabaseSource extends Resource {
 
-  String getJdbcDsn();
+    String getJdbcDsn();
 
-  String getJdbcDriver();
+    String getJdbcDriver();
 
-  String getUsername();
+    String getUsername();
 
-  CharSequence getPassword();
+    CharSequence getPassword();
 
-  String getQuery();
+    String getQuery();
 }

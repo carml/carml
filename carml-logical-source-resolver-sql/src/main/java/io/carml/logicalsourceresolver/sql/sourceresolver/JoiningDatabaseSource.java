@@ -14,18 +14,18 @@ import lombok.NonNull;
 @Getter
 public class JoiningDatabaseSource {
 
-  @NonNull
-  private LogicalSource childLogicalSource;
+    @NonNull
+    private LogicalSource childLogicalSource;
 
-  @NonNull
-  private LogicalSource parentLogicalSource;
+    @NonNull
+    private LogicalSource parentLogicalSource;
 
-  @NonNull
-  Set<RefObjectMap> refObjectMaps;
+    @NonNull
+    Set<RefObjectMap> refObjectMaps;
 
-  @NonNull
-  Set<String> childExpressions;
+    @NonNull
+    Set<String> childExpressions;
 
-  @NonNull
-  Set<String> parentExpressions;
+    @NonNull
+    Set<String> parentExpressions;
 }

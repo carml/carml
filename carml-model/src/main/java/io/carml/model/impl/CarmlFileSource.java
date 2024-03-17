@@ -20,39 +20,38 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @ToString(callSuper = true)
 public class CarmlFileSource extends CarmlResource implements FileSource {
 
-  private String url;
+    private String url;
 
-  @RdfProperty(Carml.url)
-  @Override
-  public String getUrl() {
-    return this.url;
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(url);
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (obj instanceof FileSource other) {
-      return Objects.equals(url, other.getUrl());
+    @RdfProperty(Carml.url)
+    @Override
+    public String getUrl() {
+        return this.url;
     }
-    return false;
-  }
 
-  @Override
-  public Set<Resource> getReferencedResources() {
-    return Set.of();
-  }
-
-  @Override
-  public void addTriples(ModelBuilder modelBuilder) {
-    modelBuilder.subject(getAsResource())
-        .add(RDF.TYPE, Rdf.Carml.FileSource);
-
-    if (url != null) {
-      modelBuilder.add(Carml.url, url);
+    @Override
+    public int hashCode() {
+        return Objects.hash(url);
     }
-  }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof FileSource other) {
+            return Objects.equals(url, other.getUrl());
+        }
+        return false;
+    }
+
+    @Override
+    public Set<Resource> getReferencedResources() {
+        return Set.of();
+    }
+
+    @Override
+    public void addTriples(ModelBuilder modelBuilder) {
+        modelBuilder.subject(getAsResource()).add(RDF.TYPE, Rdf.Carml.FileSource);
+
+        if (url != null) {
+            modelBuilder.add(Carml.url, url);
+        }
+    }
 }

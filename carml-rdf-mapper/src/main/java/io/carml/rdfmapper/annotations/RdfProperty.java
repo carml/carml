@@ -9,9 +9,9 @@ import java.lang.annotation.RetentionPolicy;
 @Repeatable(RdfProperties.class)
 public @interface RdfProperty {
 
-  String value();
+    String value();
 
-  boolean deprecated() default false;
+    boolean deprecated() default false;
 
-  Class<? extends PropertyHandler> handler() default PropertyHandler.class;
+    Class<? extends PropertyHandler> handler() default PropertyHandler.class;
 }

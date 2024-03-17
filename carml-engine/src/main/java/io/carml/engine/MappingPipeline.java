@@ -11,12 +11,12 @@ import lombok.NonNull;
 @Getter
 public class MappingPipeline<T> {
 
-  @NonNull
-  private Set<TriplesMapper<T>> triplesMappers;
+    @NonNull
+    private Set<TriplesMapper<T>> triplesMappers;
 
-  @NonNull
-  private Map<RefObjectMapper<T>, TriplesMapper<T>> refObjectMapperToTriplesMapper;
+    @NonNull
+    private Map<RefObjectMapper<T>, TriplesMapper<T>> refObjectMapperToTriplesMapper;
 
-  @NonNull
-  private Map<Object, LogicalSourceResolver<?>> sourceToLogicalSourceResolver;
+    @NonNull
+    private Map<Object, LogicalSourceResolver<?>> sourceToLogicalSourceResolver;
 }

@@ -25,88 +25,93 @@ import org.junit.jupiter.api.Test;
 
 class QueryUtilsTest {
 
-  private static final ValueFactory VF = SimpleValueFactory.getInstance();
+    private static final ValueFactory VF = SimpleValueFactory.getInstance();
 
-  private static final String REPO_CONTEXTS = "Person-Split.trig";
+    private static final String REPO_CONTEXTS = "Person-Split.trig";
 
-  private static final int REPO_CONTEXTS_NR_STATEMENTS = 22;
+    private static final int REPO_CONTEXTS_NR_STATEMENTS = 22;
 
-  private static final int REPO_CONTEXT_A_NR_STATEMENTS = 8;
+    private static final int REPO_CONTEXT_A_NR_STATEMENTS = 8;
 
-  private static final int REPO_CONTEXT_C_NR_STATEMENTS = 9;
+    private static final int REPO_CONTEXT_C_NR_STATEMENTS = 9;
 
-  private static final String EX = "http://example.org/";
+    private static final String EX = "http://example.org/";
 
-  private static final String CONTEXT_A = EX + "A";
+    private static final String CONTEXT_A = EX + "A";
 
-  private static final String CONTEXT_C = EX + "C";
+    private static final String CONTEXT_C = EX + "C";
 
-  private Repository repo;
+    private Repository repo;
 
-  @BeforeEach
-  public void setupRepo() {
+    @BeforeEach
+    public void setupRepo() {
 
-    repo = new SailRepository(new MemoryStore());
-    repo.init();
+        repo = new SailRepository(new MemoryStore());
+        repo.init();
 
-    try (RepositoryConnection conn = repo.getConnection()) {
+        try (RepositoryConnection conn = repo.getConnection()) {
 
-      try (InputStream input = RdfObjectLoaderTest.class.getResourceAsStream(REPO_CONTEXTS)) {
+            try (InputStream input = RdfObjectLoaderTest.class.getResourceAsStream(REPO_CONTEXTS)) {
 
-        conn.add(input, "", RDFFormat.TRIG);
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
+                conn.add(input, "", RDFFormat.TRIG);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
 
-      try (RepositoryResult<Statement> result = conn.getStatements(null, null, null)) {
-        assertThat("The in-memory store may not be empty", result.stream()
-            .collect(toSet()), is(not(empty())));
-      } catch (Exception e) {
-        throw new RuntimeException(e);
-      }
-
+            try (RepositoryResult<Statement> result = conn.getStatements(null, null, null)) {
+                assertThat(
+                        "The in-memory store may not be empty", result.stream().collect(toSet()), is(not(empty())));
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
-  }
 
-  @AfterEach
-  public void shutdownRepo() {
-    repo.shutDown();
-  }
+    @AfterEach
+    public void shutdownRepo() {
+        repo.shutDown();
+    }
 
-  @Test
-  void modelGetter_givenSparqlQuery_ShouldReturnAllCorrespondingStatements() {
-    String sparqlQuery =
-        "" + "CONSTRUCT {" + "  ?s <http://schema.org/name> ?name . " + "  ?s <http://schema.org/gender> ?gender "
-            + "} " + "FROM NAMED <http://example.org/A>" + "WHERE { " + "  GRAPH ?g { "
-            + "    ?s <http://schema.org/name> ?name . " + "    ?s <http://schema.org/gender> ?gender " + "  } " + "}";
+    @Test
+    void modelGetter_givenSparqlQuery_ShouldReturnAllCorrespondingStatements() {
+        String sparqlQuery = "" + "CONSTRUCT {" + "  ?s <http://schema.org/name> ?name . "
+                + "  ?s <http://schema.org/gender> ?gender "
+                + "} " + "FROM NAMED <http://example.org/A>" + "WHERE { " + "  GRAPH ?g { "
+                + "    ?s <http://schema.org/name> ?name . " + "    ?s <http://schema.org/gender> ?gender " + "  } "
+                + "}";
 
-    Model model = QueryUtils.getModelFromRepo(repo, sparqlQuery);
-    assertThat("All statements corresponding to sparql query should be loaded", model, hasSize(2));
-  }
+        Model model = QueryUtils.getModelFromRepo(repo, sparqlQuery);
+        assertThat("All statements corresponding to sparql query should be loaded", model, hasSize(2));
+    }
 
-  @Test
-  void modelGetter_givenSpecifiContexts_shouldLoadAllStatementsInRepo() {
-    Model model = QueryUtils.getModelFromRepo(repo);
-    assertThat(String.format("The in-memory store should contain %s statemtents", REPO_CONTEXTS_NR_STATEMENTS), model,
-        hasSize(REPO_CONTEXTS_NR_STATEMENTS));
-  }
+    @Test
+    void modelGetter_givenSpecifiContexts_shouldLoadAllStatementsInRepo() {
+        Model model = QueryUtils.getModelFromRepo(repo);
+        assertThat(
+                String.format("The in-memory store should contain %s statemtents", REPO_CONTEXTS_NR_STATEMENTS),
+                model,
+                hasSize(REPO_CONTEXTS_NR_STATEMENTS));
+    }
 
-  @Test
-  void modelGetter_givenNoContext_shouldReturnAllStatementsInContexts() {
-    Model model = QueryUtils.getModelFromRepo(repo, VF.createIRI(CONTEXT_A), VF.createIRI(CONTEXT_C));
+    @Test
+    void modelGetter_givenNoContext_shouldReturnAllStatementsInContexts() {
+        Model model = QueryUtils.getModelFromRepo(repo, VF.createIRI(CONTEXT_A), VF.createIRI(CONTEXT_C));
 
-    assertThat(
-        String.format("The in-memory store should contain %s statemtents",
-            REPO_CONTEXT_A_NR_STATEMENTS + REPO_CONTEXT_C_NR_STATEMENTS),
-        model, hasSize(REPO_CONTEXT_A_NR_STATEMENTS + REPO_CONTEXT_C_NR_STATEMENTS));
-  }
+        assertThat(
+                String.format(
+                        "The in-memory store should contain %s statemtents",
+                        REPO_CONTEXT_A_NR_STATEMENTS + REPO_CONTEXT_C_NR_STATEMENTS),
+                model,
+                hasSize(REPO_CONTEXT_A_NR_STATEMENTS + REPO_CONTEXT_C_NR_STATEMENTS));
+    }
 
-  @Test
-  void modelGetter_givenSingleContext_shouldLoadAllStatementsOfContext() {
-    Model model = QueryUtils.getModelFromRepo(repo, VF.createIRI(CONTEXT_A));
+    @Test
+    void modelGetter_givenSingleContext_shouldLoadAllStatementsOfContext() {
+        Model model = QueryUtils.getModelFromRepo(repo, VF.createIRI(CONTEXT_A));
 
-    assertThat(String.format("The in-memory store should contain %s statemtents", REPO_CONTEXT_A_NR_STATEMENTS), model,
-        hasSize(REPO_CONTEXT_A_NR_STATEMENTS));
-  }
-
+        assertThat(
+                String.format("The in-memory store should contain %s statemtents", REPO_CONTEXT_A_NR_STATEMENTS),
+                model,
+                hasSize(REPO_CONTEXT_A_NR_STATEMENTS));
+    }
 }

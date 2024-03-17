@@ -27,64 +27,62 @@ import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
  */
 public class RmlConstantShorthandExpander implements UnaryOperator<Model> {
 
-  private static final ValueFactory VALUE_FACTORY = SimpleValueFactory.getInstance();
+    private static final ValueFactory VALUE_FACTORY = SimpleValueFactory.getInstance();
 
-  private static final Map<IRI, PredicateExpansion> EXPANDED_PREDICATES =
-      Map.ofEntries(entry(Rml.subject, new PredicateExpansion(Rml.subjectMap, Rml.constant)),
-          entry(Rr.subject, new PredicateExpansion(Rr.subjectMap, Rr.constant)),
-          entry(Rml.predicate, new PredicateExpansion(Rml.predicateMap, Rml.constant)),
-          entry(Rr.predicate, new PredicateExpansion(Rr.predicateMap, Rr.constant)),
-          entry(Rml.object, new PredicateExpansion(Rml.objectMap, Rml.constant)),
-          entry(Rr.object, new PredicateExpansion(Rr.objectMap, Rr.constant)),
-          entry(Rml.graph, new PredicateExpansion(Rml.graphMap, Rml.constant)),
-          entry(Rr.graph, new PredicateExpansion(Rr.graphMap, Rr.constant)),
-          entry(Rml.datatype, new PredicateExpansion(Rml.datatypeMap, Rml.constant)),
-          entry(Rr.datatype, new PredicateExpansion(OldRml.datatypeMap, Rr.constant)),
-          entry(Rml.language, new PredicateExpansion(Rml.languageMap, Rml.constant)),
-          entry(Rr.language, new PredicateExpansion(OldRml.languageMap, Rr.constant)),
-          entry(Rml.child, new PredicateExpansion(Rml.childMap, Rml.reference)),
-          entry(Rr.child, new PredicateExpansion(Rml.childMap, Rml.reference)),
-          entry(Rml.parent, new PredicateExpansion(Rml.parentMap, Rml.reference)),
-          entry(Rr.parent, new PredicateExpansion(Rml.parentMap, Rml.reference)));
+    private static final Map<IRI, PredicateExpansion> EXPANDED_PREDICATES = Map.ofEntries(
+            entry(Rml.subject, new PredicateExpansion(Rml.subjectMap, Rml.constant)),
+            entry(Rr.subject, new PredicateExpansion(Rr.subjectMap, Rr.constant)),
+            entry(Rml.predicate, new PredicateExpansion(Rml.predicateMap, Rml.constant)),
+            entry(Rr.predicate, new PredicateExpansion(Rr.predicateMap, Rr.constant)),
+            entry(Rml.object, new PredicateExpansion(Rml.objectMap, Rml.constant)),
+            entry(Rr.object, new PredicateExpansion(Rr.objectMap, Rr.constant)),
+            entry(Rml.graph, new PredicateExpansion(Rml.graphMap, Rml.constant)),
+            entry(Rr.graph, new PredicateExpansion(Rr.graphMap, Rr.constant)),
+            entry(Rml.datatype, new PredicateExpansion(Rml.datatypeMap, Rml.constant)),
+            entry(Rr.datatype, new PredicateExpansion(OldRml.datatypeMap, Rr.constant)),
+            entry(Rml.language, new PredicateExpansion(Rml.languageMap, Rml.constant)),
+            entry(Rr.language, new PredicateExpansion(OldRml.languageMap, Rr.constant)),
+            entry(Rml.child, new PredicateExpansion(Rml.childMap, Rml.reference)),
+            entry(Rr.child, new PredicateExpansion(Rml.childMap, Rml.reference)),
+            entry(Rml.parent, new PredicateExpansion(Rml.parentMap, Rml.reference)),
+            entry(Rr.parent, new PredicateExpansion(Rml.parentMap, Rml.reference)));
 
-  private record PredicateExpansion(IRI expandedPredicate, IRI expressionPredicate) {
+    private record PredicateExpansion(IRI expandedPredicate, IRI expressionPredicate) {}
 
-  }
+    @Override
+    public Model apply(Model input) {
 
-  @Override
-  public Model apply(Model input) {
-
-    Model model = new LinkedHashModel();
-    input.forEach(statement -> expandStatements(model, statement));
-    return model;
-  }
-
-  private void expandStatements(Model model, Statement statement) {
-    IRI shortcutPredicate = statement.getPredicate();
-
-    // add statements that are NOT shortcut properties
-    // as-is to the result model
-    if (!EXPANDED_PREDICATES.containsKey(shortcutPredicate)) {
-      model.add(statement);
-      return;
+        Model model = new LinkedHashModel();
+        input.forEach(statement -> expandStatements(model, statement));
+        return model;
     }
 
-    var expansion = getExpandedPredicate(shortcutPredicate);
-    var expandedPredicate = expansion.expandedPredicate;
-    var expressionPredicate = expansion.expressionPredicate;
+    private void expandStatements(Model model, Statement statement) {
+        IRI shortcutPredicate = statement.getPredicate();
 
-    Resource context = statement.getContext();
-    BNode blankNode = VALUE_FACTORY.createBNode();
-    model.add(statement.getSubject(), expandedPredicate, blankNode, context);
-    model.add(blankNode, expressionPredicate, statement.getObject(), context);
-  }
+        // add statements that are NOT shortcut properties
+        // as-is to the result model
+        if (!EXPANDED_PREDICATES.containsKey(shortcutPredicate)) {
+            model.add(statement);
+            return;
+        }
 
-  private PredicateExpansion getExpandedPredicate(IRI shortcutPredicate) {
-    if (!EXPANDED_PREDICATES.containsKey(shortcutPredicate)) {
-      throw new IllegalArgumentException(
-          String.format("predicate [%s] is not a valid shortcut predicate", shortcutPredicate));
+        var expansion = getExpandedPredicate(shortcutPredicate);
+        var expandedPredicate = expansion.expandedPredicate;
+        var expressionPredicate = expansion.expressionPredicate;
+
+        Resource context = statement.getContext();
+        BNode blankNode = VALUE_FACTORY.createBNode();
+        model.add(statement.getSubject(), expandedPredicate, blankNode, context);
+        model.add(blankNode, expressionPredicate, statement.getObject(), context);
     }
 
-    return EXPANDED_PREDICATES.get(shortcutPredicate);
-  }
+    private PredicateExpansion getExpandedPredicate(IRI shortcutPredicate) {
+        if (!EXPANDED_PREDICATES.containsKey(shortcutPredicate)) {
+            throw new IllegalArgumentException(
+                    String.format("predicate [%s] is not a valid shortcut predicate", shortcutPredicate));
+        }
+
+        return EXPANDED_PREDICATES.get(shortcutPredicate);
+    }
 }

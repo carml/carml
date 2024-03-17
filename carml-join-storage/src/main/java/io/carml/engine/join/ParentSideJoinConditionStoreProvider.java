@@ -5,6 +5,5 @@ import lombok.NonNull;
 
 public interface ParentSideJoinConditionStoreProvider<T extends Serializable> {
 
-  ParentSideJoinConditionStore<T> createParentSideJoinConditionStore(@NonNull String name);
-
+    ParentSideJoinConditionStore<T> createParentSideJoinConditionStore(@NonNull String name);
 }

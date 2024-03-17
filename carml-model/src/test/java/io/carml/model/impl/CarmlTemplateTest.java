@@ -4,9 +4,6 @@ import org.junit.jupiter.api.Test;
 
 public class CarmlTemplateTest {
 
-  @Test
-  void given_when_then() {
-
-  }
-
+    @Test
+    void given_when_then() {}
 }

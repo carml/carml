@@ -5,18 +5,17 @@ import org.eclipse.rdf4j.model.IRI;
 
 public interface TestCase extends Resource {
 
-  String getIdentifier();
+    String getIdentifier();
 
-  String getDescription();
+    String getDescription();
 
-  IRI getSpecificationReference();
+    IRI getSpecificationReference();
 
-  Set<Dataset> getParts();
+    Set<Dataset> getParts();
 
-  Rules getRules();
+    Rules getRules();
 
-  Set<Input> getInput();
+    Set<Input> getInput();
 
-  Output getOutput();
-
+    Output getOutput();
 }

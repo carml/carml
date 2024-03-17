@@ -9,11 +9,11 @@ import lombok.Getter;
 @Getter
 public class RowData {
 
-  public static RowData of() {
-    return of(Map.of(), Map.of());
-  }
+    public static RowData of() {
+        return of(Map.of(), Map.of());
+    }
 
-  private Map<String, Object> data;
+    private Map<String, Object> data;
 
-  private Map<String, Type> columnTypes;
+    private Map<String, Type> columnTypes;
 }

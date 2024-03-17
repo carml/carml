@@ -19,16 +19,15 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @EqualsAndHashCode(callSuper = true)
 public class CarmlChildMap extends CarmlExpressionMap implements ChildMap {
 
-  @Override
-  public Set<Resource> getReferencedResources() {
-    return Set.of();
-  }
+    @Override
+    public Set<Resource> getReferencedResources() {
+        return Set.of();
+    }
 
-  @Override
-  public void addTriples(ModelBuilder modelBuilder) {
-    modelBuilder.subject(getAsResource())
-        .add(RDF.TYPE, Rdf.Rml.ChildMap);
+    @Override
+    public void addTriples(ModelBuilder modelBuilder) {
+        modelBuilder.subject(getAsResource()).add(RDF.TYPE, Rdf.Rml.ChildMap);
 
-    addTriplesBase(modelBuilder);
-  }
+        addTriplesBase(modelBuilder);
+    }
 }

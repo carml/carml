@@ -4,21 +4,19 @@ import java.util.Set;
 
 public interface RefObjectMap extends BaseObjectMap {
 
-  TriplesMap getParentTriplesMap();
+    TriplesMap getParentTriplesMap();
 
-  Set<Join> getJoinConditions();
+    Set<Join> getJoinConditions();
 
-  default boolean isSelfJoining(TriplesMap childTriplesMap) {
-    if (!childTriplesMap.getLogicalSource()
-        .equals(getParentTriplesMap().getLogicalSource()) || getParentTriplesMap().equals(childTriplesMap)) {
-      return false;
+    default boolean isSelfJoining(TriplesMap childTriplesMap) {
+        if (!childTriplesMap.getLogicalSource().equals(getParentTriplesMap().getLogicalSource())
+                || getParentTriplesMap().equals(childTriplesMap)) {
+            return false;
+        }
+
+        // TODO check after childmap parentmap introduction
+        return getJoinConditions().stream().allMatch(join -> join.getChildMap()
+                .getExpressionMapExpressionSet()
+                .equals(join.getParentMap().getExpressionMapExpressionSet()));
     }
-
-    // TODO check after childmap parentmap introduction
-    return getJoinConditions().stream()
-        .allMatch(join -> join.getChildMap()
-            .getExpressionMapExpressionSet()
-            .equals(join.getParentMap()
-                .getExpressionMapExpressionSet()));
-  }
 }

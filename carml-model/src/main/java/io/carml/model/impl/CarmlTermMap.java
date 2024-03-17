@@ -21,48 +21,48 @@ import org.eclipse.rdf4j.model.util.ModelBuilder;
 @EqualsAndHashCode(callSuper = true)
 abstract class CarmlTermMap extends CarmlExpressionMap implements TermMap {
 
-  String inverseExpression;
+    String inverseExpression;
 
-  TermType termType;
+    TermType termType;
 
-  // TODO??
-  @RdfProperty(Rml.inverseExpression)
-  @RdfProperty(Rr.inverseExpression)
-  @Override
-  public String getInverseExpression() {
-    return inverseExpression;
-  }
-
-  @Override
-  public TermType getTermType() {
-    return termType;
-  }
-
-  @Override
-  void addTriplesBase(ModelBuilder builder) {
-    super.addTriplesBase(builder);
-
-    if (inverseExpression != null) {
-      builder.add(Rdf.Rml.inverseExpression, inverseExpression);
+    // TODO??
+    @RdfProperty(Rml.inverseExpression)
+    @RdfProperty(Rr.inverseExpression)
+    @Override
+    public String getInverseExpression() {
+        return inverseExpression;
     }
-    if (termType != null) {
-      addTermTypeTriple(builder);
-    }
-  }
 
-  private void addTermTypeTriple(ModelBuilder builder) {
-    switch (termType) {
-      case IRI:
-        builder.add(Rdf.Rml.termType, Rdf.Rml.IRI);
-        break;
-      case LITERAL:
-        builder.add(Rdf.Rml.termType, Rdf.Rml.Literal);
-        break;
-      case BLANK_NODE:
-        builder.add(Rdf.Rml.termType, Rdf.Rml.BlankNode);
-        break;
-      default:
-        throw new IllegalStateException(String.format("Illegal term type value '%s' encountered.", termType));
+    @Override
+    public TermType getTermType() {
+        return termType;
     }
-  }
+
+    @Override
+    void addTriplesBase(ModelBuilder builder) {
+        super.addTriplesBase(builder);
+
+        if (inverseExpression != null) {
+            builder.add(Rdf.Rml.inverseExpression, inverseExpression);
+        }
+        if (termType != null) {
+            addTermTypeTriple(builder);
+        }
+    }
+
+    private void addTermTypeTriple(ModelBuilder builder) {
+        switch (termType) {
+            case IRI:
+                builder.add(Rdf.Rml.termType, Rdf.Rml.IRI);
+                break;
+            case LITERAL:
+                builder.add(Rdf.Rml.termType, Rdf.Rml.Literal);
+                break;
+            case BLANK_NODE:
+                builder.add(Rdf.Rml.termType, Rdf.Rml.BlankNode);
+                break;
+            default:
+                throw new IllegalStateException(String.format("Illegal term type value '%s' encountered.", termType));
+        }
+    }
 }

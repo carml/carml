@@ -13,23 +13,22 @@ import org.junit.jupiter.api.Test;
 
 class MappingsTest {
 
-  private final RmlMappingLoader mappingLoader = RmlMappingLoader.build();
+    private final RmlMappingLoader mappingLoader = RmlMappingLoader.build();
 
-  @Test
-  void given_whenFilterMappable_then() {
-    // Given
-    InputStream mappingSource = MappingsTest.class.getResourceAsStream("Mapping.rml.ttl");
-    Set<TriplesMap> mapping = mappingLoader.load(RDFFormat.TURTLE, mappingSource);
+    @Test
+    void given_whenFilterMappable_then() {
+        // Given
+        InputStream mappingSource = MappingsTest.class.getResourceAsStream("Mapping.rml.ttl");
+        Set<TriplesMap> mapping = mappingLoader.load(RDFFormat.TURTLE, mappingSource);
 
-    // When
-    var filtered = Mappings.filterMappable(mapping);
+        // When
+        var filtered = Mappings.filterMappable(mapping);
 
-    // Then
-    var filteredResourceIds = filtered.stream()
-        .map(Resource::getId)
-        .collect(Collectors.toSet());
+        // Then
+        var filteredResourceIds = filtered.stream().map(Resource::getId).collect(Collectors.toSet());
 
-    assertThat(filteredResourceIds,
-        containsInAnyOrder("http://example.org/TriplesMap", "http://example.org/FileSourceTM"));
-  }
+        assertThat(
+                filteredResourceIds,
+                containsInAnyOrder("http://example.org/TriplesMap", "http://example.org/FileSourceTM"));
+    }
 }

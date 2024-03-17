@@ -17,22 +17,23 @@ import org.eclipse.rdf4j.model.vocabulary.XSD;
 
 public class RmlNamespaces {
 
-  public static final Set<Namespace> RML_NAMESPACES = new ImmutableSet.Builder<Namespace>().add(RDF.NS)
-      .add(RDFS.NS)
-      .add(XSD.NS)
-      .add(new SimpleNamespace(Rml.PREFIX, Rml.NAMESPACE))
-      .add(new SimpleNamespace(Rr.PREFIX, Rr.NAMESPACE))
-      .add(new SimpleNamespace(OldRml.PREFIX, OldRml.NAMESPACE))
-      .add(new SimpleNamespace(Fnml.PREFIX, Fnml.NAMESPACE))
-      .add(new SimpleNamespace(Fno.PREFIX, Fno.NAMESPACE))
-      .add(new SimpleNamespace(Carml.PREFIX, Carml.NAMESPACE))
-      .add(new SimpleNamespace("ql", "http://semweb.mmlab.be/ns/ql#"))
-      .build();
+    public static final Set<Namespace> RML_NAMESPACES = new ImmutableSet.Builder<Namespace>()
+            .add(RDF.NS)
+            .add(RDFS.NS)
+            .add(XSD.NS)
+            .add(new SimpleNamespace(Rml.PREFIX, Rml.NAMESPACE))
+            .add(new SimpleNamespace(Rr.PREFIX, Rr.NAMESPACE))
+            .add(new SimpleNamespace(OldRml.PREFIX, OldRml.NAMESPACE))
+            .add(new SimpleNamespace(Fnml.PREFIX, Fnml.NAMESPACE))
+            .add(new SimpleNamespace(Fno.PREFIX, Fno.NAMESPACE))
+            .add(new SimpleNamespace(Carml.PREFIX, Carml.NAMESPACE))
+            .add(new SimpleNamespace("ql", "http://semweb.mmlab.be/ns/ql#"))
+            .build();
 
-  private RmlNamespaces() {}
+    private RmlNamespaces() {}
 
-  public static Model applyRmlNameSpaces(Model model) {
-    RML_NAMESPACES.forEach(model::setNamespace);
-    return model;
-  }
+    public static Model applyRmlNameSpaces(Model model) {
+        RML_NAMESPACES.forEach(model::setNamespace);
+        return model;
+    }
 }

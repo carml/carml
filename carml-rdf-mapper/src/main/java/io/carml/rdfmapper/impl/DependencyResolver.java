@@ -6,6 +6,5 @@ import java.util.List;
 
 interface DependencyResolver {
 
-  Object resolve(Type type, List<Annotation> qualifiers);
-
+    Object resolve(Type type, List<Annotation> qualifiers);
 }

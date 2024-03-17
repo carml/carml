@@ -34,72 +34,69 @@ import org.eclipse.rdf4j.model.IRI;
 @SuppressWarnings("java:S1135")
 class DefaultPropertyHandlerDependencyResolver implements DependencyResolver {
 
-  private BiConsumer<Object, Object> set;
+    private BiConsumer<Object, Object> set;
 
-  private IRI predicate;
+    private IRI predicate;
 
-  private Mapper mapper;
+    private Mapper mapper;
 
-  private MappingCache mappingCache;
+    private MappingCache mappingCache;
 
-  public DefaultPropertyHandlerDependencyResolver(BiConsumer<Object, Object> set, IRI predicate, Mapper mapper,
-      MappingCache mappingCache) {
-    this.set = set;
-    this.predicate = predicate;
-    this.mapper = mapper;
-    this.mappingCache = mappingCache;
-  }
-
-  private Optional<Object> getQualifierValue(Class<? extends Annotation> qualifier) {
-    if (qualifier.equals(PropertyPredicate.class)) {
-      return Optional.of(predicate);
-    }
-    if (qualifier.equals(PropertySetter.class)) {
-      return Optional.of(set);
+    public DefaultPropertyHandlerDependencyResolver(
+            BiConsumer<Object, Object> set, IRI predicate, Mapper mapper, MappingCache mappingCache) {
+        this.set = set;
+        this.predicate = predicate;
+        this.mapper = mapper;
+        this.mappingCache = mappingCache;
     }
 
-    // TODO ..
+    private Optional<Object> getQualifierValue(Class<? extends Annotation> qualifier) {
+        if (qualifier.equals(PropertyPredicate.class)) {
+            return Optional.of(predicate);
+        }
+        if (qualifier.equals(PropertySetter.class)) {
+            return Optional.of(set);
+        }
 
-    return Optional.empty();
-  }
+        // TODO ..
 
-  private Optional<Object> getValueByType(Type type) {
-    if (type.equals(Mapper.class)) {
-      return Optional.of(mapper);
-    } else if (type.equals(MappingCache.class)) {
-      return Optional.of(mappingCache);
+        return Optional.empty();
     }
 
-    // TODO ..
+    private Optional<Object> getValueByType(Type type) {
+        if (type.equals(Mapper.class)) {
+            return Optional.of(mapper);
+        } else if (type.equals(MappingCache.class)) {
+            return Optional.of(mappingCache);
+        }
 
-    return Optional.empty();
-  }
+        // TODO ..
 
-  @Override
-  public Object resolve(Type type, List<Annotation> qualifiers) {
-
-    // try simple mapping of a present qualifier to a value
-    Optional<Object> qualifierValue = qualifiers.stream()
-        .map(Annotation::annotationType)
-        .map(this::getQualifierValue)
-        .filter(Optional::isPresent)
-        .map(Optional::get)
-        .findFirst();
-    if (qualifierValue.isPresent()) {
-      return qualifierValue.get();
+        return Optional.empty();
     }
 
-    Optional<Object> valueByType = getValueByType(type);
-    if (valueByType.isPresent()) {
-      return valueByType.get();
+    @Override
+    public Object resolve(Type type, List<Annotation> qualifiers) {
+
+        // try simple mapping of a present qualifier to a value
+        Optional<Object> qualifierValue = qualifiers.stream()
+                .map(Annotation::annotationType)
+                .map(this::getQualifierValue)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .findFirst();
+        if (qualifierValue.isPresent()) {
+            return qualifierValue.get();
+        }
+
+        Optional<Object> valueByType = getValueByType(type);
+        if (valueByType.isPresent()) {
+            return valueByType.get();
+        }
+
+        // TODO ..
+
+        throw new CarmlMapperException(
+                String.format("could not resolve dependency for type [%s] and qualifiers [%s]", type, qualifiers));
     }
-
-
-    // TODO ..
-
-
-    throw new CarmlMapperException(
-        String.format("could not resolve dependency for type [%s] and qualifiers [%s]", type, qualifiers));
-  }
-
 }

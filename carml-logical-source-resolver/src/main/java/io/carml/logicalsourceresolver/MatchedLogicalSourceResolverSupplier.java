@@ -14,46 +14,45 @@ import lombok.NoArgsConstructor;
 @Getter
 public class MatchedLogicalSourceResolverSupplier {
 
-  private MatchScore matchScore;
+    private MatchScore matchScore;
 
-  private Supplier<LogicalSourceResolver<?>> logicalSourceResolverSupplier;
+    private Supplier<LogicalSourceResolver<?>> logicalSourceResolverSupplier;
 
-  public static Optional<Supplier<LogicalSourceResolver<?>>> select(
-      List<MatchedLogicalSourceResolverSupplier> matches) {
-    return matches.stream()
-        .max(comparing(match -> match.getMatchScore()
-            .getScore()))
-        .map(MatchedLogicalSourceResolverSupplier::getLogicalSourceResolverSupplier);
-  }
-
-  @AllArgsConstructor
-  @Getter
-  public static class MatchScore {
-
-    private int score;
-
-    public static Builder builder() {
-      return new Builder();
+    public static Optional<Supplier<LogicalSourceResolver<?>>> select(
+            List<MatchedLogicalSourceResolverSupplier> matches) {
+        return matches.stream()
+                .max(comparing(match -> match.getMatchScore().getScore()))
+                .map(MatchedLogicalSourceResolverSupplier::getLogicalSourceResolverSupplier);
     }
 
-    @NoArgsConstructor(access = AccessLevel.PRIVATE)
-    public static class Builder {
+    @AllArgsConstructor
+    @Getter
+    public static class MatchScore {
 
-      private int score = 0;
+        private int score;
 
-      public Builder weakMatch() {
-        score += 1;
-        return this;
-      }
+        public static Builder builder() {
+            return new Builder();
+        }
 
-      public Builder strongMatch() {
-        score += 2;
-        return this;
-      }
+        @NoArgsConstructor(access = AccessLevel.PRIVATE)
+        public static class Builder {
 
-      public MatchScore build() {
-        return new MatchScore(score);
-      }
+            private int score = 0;
+
+            public Builder weakMatch() {
+                score += 1;
+                return this;
+            }
+
+            public Builder strongMatch() {
+                score += 2;
+                return this;
+            }
+
+            public MatchScore build() {
+                return new MatchScore(score);
+            }
+        }
     }
-  }
 }

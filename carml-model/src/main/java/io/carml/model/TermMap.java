@@ -2,8 +2,7 @@ package io.carml.model;
 
 public interface TermMap extends ExpressionMap {
 
-  String getInverseExpression();
+    String getInverseExpression();
 
-  TermType getTermType();
-
+    TermType getTermType();
 }

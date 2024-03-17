@@ -19,14 +19,13 @@ import org.eclipse.rdf4j.model.ValueFactory;
 @Getter
 public class RdfMapperConfig {
 
-  @NonNull
-  private final Supplier<ValueFactory> valueFactorySupplier;
+    @NonNull
+    private final Supplier<ValueFactory> valueFactorySupplier;
 
-  @NonNull
-  private final TermGeneratorFactory<Value> termGeneratorFactory;
+    @NonNull
+    private final TermGeneratorFactory<Value> termGeneratorFactory;
 
-  private final ChildSideJoinStoreProvider<Resource, IRI> childSideJoinStoreProvider;
+    private final ChildSideJoinStoreProvider<Resource, IRI> childSideJoinStoreProvider;
 
-  private final ParentSideJoinConditionStoreProvider<Resource> parentSideJoinConditionStoreProvider;
-
+    private final ParentSideJoinConditionStoreProvider<Resource> parentSideJoinConditionStoreProvider;
 }

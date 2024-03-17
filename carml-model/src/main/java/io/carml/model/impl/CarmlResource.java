@@ -29,85 +29,83 @@ import org.eclipse.rdf4j.model.vocabulary.RDFS;
 @EqualsAndHashCode
 public abstract class CarmlResource implements Resource {
 
-  String id;
+    String id;
 
-  String label;
+    String label;
 
-  @ToString.Exclude
-  @Builder.Default
-  private Map<Resource, Model> modelCache = new HashMap<>();
+    @ToString.Exclude
+    @Builder.Default
+    private Map<Resource, Model> modelCache = new HashMap<>();
 
-  CarmlResource(String id, String label) {
-    this.id = id;
-    this.label = label;
-  }
-
-  @Override
-  @RdfResourceName
-  public String getId() {
-    return id;
-  }
-
-  @Override
-  @RdfProperty("http://www.w3.org/2000/01/rdf-schema#label")
-  public String getLabel() {
-    return label;
-  }
-
-  @Override
-  public org.eclipse.rdf4j.model.Resource getAsResource() {
-
-    if (id == null) {
-      return bnode();
+    CarmlResource(String id, String label) {
+        this.id = id;
+        this.label = label;
     }
 
-    if (RdfValues.isValidIri(id)) {
-      return iri(id);
+    @Override
+    @RdfResourceName
+    public String getId() {
+        return id;
     }
 
-    return bnode(id);
-  }
-
-  private void cacheModel(Model model) {
-    modelCache = new HashMap<>();
-    modelCache.put(this, model);
-  }
-
-  @Override
-  public Model asRdf() {
-
-    if (modelCache.containsKey(this)) {
-      Model cachedModel = modelCache.get(this);
-      if (!cachedModel.isEmpty()) {
-        return cachedModel;
-      }
+    @Override
+    @RdfProperty("http://www.w3.org/2000/01/rdf-schema#label")
+    public String getLabel() {
+        return label;
     }
 
-    var model = asRdfInternal(this, new HashSet<>());
+    @Override
+    public org.eclipse.rdf4j.model.Resource getAsResource() {
 
-    cacheModel(model);
+        if (id == null) {
+            return bnode();
+        }
 
-    return model;
-  }
+        if (RdfValues.isValidIri(id)) {
+            return iri(id);
+        }
 
-  private Model asRdfInternal(Resource resource, Set<Resource> processed) {
-    processed.add(resource);
-    ModelBuilder builder = new ModelBuilder();
-    resource.addTriples(builder);
-    if (label != null) {
-      builder.add(RDFS.LABEL, label);
+        return bnode(id);
     }
-    Model model = builder.build();
 
-    Model nestedModel = resource.getReferencedResources()
-        .stream()
-        .filter(refResource -> !processed.contains(refResource))
-        .flatMap(refResource -> asRdfInternal(refResource, processed).stream())
-        .collect(ModelCollector.toModel());
+    private void cacheModel(Model model) {
+        modelCache = new HashMap<>();
+        modelCache.put(this, model);
+    }
 
-    model.addAll(nestedModel);
+    @Override
+    public Model asRdf() {
 
-    return model;
-  }
+        if (modelCache.containsKey(this)) {
+            Model cachedModel = modelCache.get(this);
+            if (!cachedModel.isEmpty()) {
+                return cachedModel;
+            }
+        }
 
+        var model = asRdfInternal(this, new HashSet<>());
+
+        cacheModel(model);
+
+        return model;
+    }
+
+    private Model asRdfInternal(Resource resource, Set<Resource> processed) {
+        processed.add(resource);
+        ModelBuilder builder = new ModelBuilder();
+        resource.addTriples(builder);
+        if (label != null) {
+            builder.add(RDFS.LABEL, label);
+        }
+        Model model = builder.build();
+
+        Model nestedModel = resource.getReferencedResources().stream()
+                .filter(refResource -> !processed.contains(refResource))
+                .flatMap(refResource -> asRdfInternal(refResource, processed).stream())
+                .collect(ModelCollector.toModel());
+
+        model.addAll(nestedModel);
+
+        return model;
+    }
 }

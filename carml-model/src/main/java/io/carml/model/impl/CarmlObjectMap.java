@@ -29,82 +29,81 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @EqualsAndHashCode(callSuper = true)
 public class CarmlObjectMap extends CarmlTermMap implements ObjectMap {
 
-  private DatatypeMap datatypeMap;
+    private DatatypeMap datatypeMap;
 
-  private LanguageMap languageMap;
+    private LanguageMap languageMap;
 
-  @RdfProperty(Rml.datatypeMap)
-  @RdfProperty(OldRml.datatypeMap)
-  @RdfType(CarmlDatatypeMap.class)
-  @Override
-  public DatatypeMap getDatatypeMap() {
-    return datatypeMap;
-  }
-
-  @RdfProperty(Rml.languageMap)
-  @RdfProperty(OldRml.languageMap)
-  @RdfType(CarmlLanguageMap.class)
-  @Override
-  public LanguageMap getLanguageMap() {
-    return languageMap;
-  }
-
-  @RdfProperty(Rml.termType)
-  @RdfProperty(Rr.termType)
-  @Override
-  public TermType getTermType() {
-    if (termType != null) {
-      return termType;
+    @RdfProperty(Rml.datatypeMap)
+    @RdfProperty(OldRml.datatypeMap)
+    @RdfType(CarmlDatatypeMap.class)
+    @Override
+    public DatatypeMap getDatatypeMap() {
+        return datatypeMap;
     }
 
-    if (reference != null || languageMap != null || datatypeMap != null) {
-      return TermType.LITERAL;
+    @RdfProperty(Rml.languageMap)
+    @RdfProperty(OldRml.languageMap)
+    @RdfType(CarmlLanguageMap.class)
+    @Override
+    public LanguageMap getLanguageMap() {
+        return languageMap;
     }
 
-    return TermType.IRI;
-  }
+    @RdfProperty(Rml.termType)
+    @RdfProperty(Rr.termType)
+    @Override
+    public TermType getTermType() {
+        if (termType != null) {
+            return termType;
+        }
 
-  @Override
-  public Set<Resource> getReferencedResources() {
-    ImmutableSet.Builder<Resource> builder = ImmutableSet.<Resource>builder()
-        .addAll(getReferencedResourcesBase());
+        if (reference != null || languageMap != null || datatypeMap != null) {
+            return TermType.LITERAL;
+        }
 
-    if (datatypeMap != null) {
-      builder.add(datatypeMap);
+        return TermType.IRI;
     }
 
-    return builder.build();
-  }
+    @Override
+    public Set<Resource> getReferencedResources() {
+        ImmutableSet.Builder<Resource> builder =
+                ImmutableSet.<Resource>builder().addAll(getReferencedResourcesBase());
 
-  @Override
-  public void addTriples(ModelBuilder modelBuilder) {
-    modelBuilder.subject(getAsResource())
-        .add(RDF.TYPE, Rdf.Rml.ObjectMap);
+        if (datatypeMap != null) {
+            builder.add(datatypeMap);
+        }
 
-    addTriplesBase(modelBuilder);
-
-    if (datatypeMap != null) {
-      modelBuilder.add(Rml.datatypeMap, datatypeMap.getAsResource());
+        return builder.build();
     }
-    if (languageMap != null) {
-      modelBuilder.add(Rml.languageMap, languageMap.getAsResource());
-    }
-  }
 
-  @Override
-  public ObjectMap applyExpressionAdapter(UnaryOperator<String> referenceExpressionAdapter) {
-    var objectMapBuilder = this.toBuilder();
-    if (reference != null) {
-      adaptReference(referenceExpressionAdapter, objectMapBuilder::reference);
-      return objectMapBuilder.build();
-    } else if (template != null) {
-      adaptTemplate(referenceExpressionAdapter, objectMapBuilder::template);
-      return objectMapBuilder.build();
-    } else if (functionValue != null) {
-      adaptFunctionValue(referenceExpressionAdapter, objectMapBuilder::functionValue);
-      return objectMapBuilder.build();
-    } else {
-      return this;
+    @Override
+    public void addTriples(ModelBuilder modelBuilder) {
+        modelBuilder.subject(getAsResource()).add(RDF.TYPE, Rdf.Rml.ObjectMap);
+
+        addTriplesBase(modelBuilder);
+
+        if (datatypeMap != null) {
+            modelBuilder.add(Rml.datatypeMap, datatypeMap.getAsResource());
+        }
+        if (languageMap != null) {
+            modelBuilder.add(Rml.languageMap, languageMap.getAsResource());
+        }
     }
-  }
+
+    @Override
+    public ObjectMap applyExpressionAdapter(UnaryOperator<String> referenceExpressionAdapter) {
+        var objectMapBuilder = this.toBuilder();
+        if (reference != null) {
+            adaptReference(referenceExpressionAdapter, objectMapBuilder::reference);
+            return objectMapBuilder.build();
+        } else if (template != null) {
+            adaptTemplate(referenceExpressionAdapter, objectMapBuilder::template);
+            return objectMapBuilder.build();
+        } else if (functionValue != null) {
+            adaptFunctionValue(referenceExpressionAdapter, objectMapBuilder::functionValue);
+            return objectMapBuilder.build();
+        } else {
+            return this;
+        }
+    }
 }

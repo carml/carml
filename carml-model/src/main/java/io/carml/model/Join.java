@@ -2,7 +2,7 @@ package io.carml.model;
 
 public interface Join extends Resource {
 
-  ChildMap getChildMap();
+    ChildMap getChildMap();
 
-  ParentMap getParentMap();
+    ParentMap getParentMap();
 }

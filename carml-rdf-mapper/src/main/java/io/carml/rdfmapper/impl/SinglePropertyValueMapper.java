@@ -9,30 +9,31 @@ import org.eclipse.rdf4j.model.Value;
 
 class SinglePropertyValueMapper implements PropertyValueMapper {
 
-  private IRI predicate;
+    private IRI predicate;
 
-  private ValueTransformer valueTransformer;
+    private ValueTransformer valueTransformer;
 
-  public SinglePropertyValueMapper(IRI predicate, ValueTransformer valueTransformer) {
-    this.predicate = predicate;
-    this.valueTransformer = valueTransformer;
-  }
-
-  @Override
-  public Optional<Object> map(Model model, Resource resource, Object instance, List<Value> values) {
-
-    // multiple values present - error
-    if (values.size() > 1) {
-      throw new CarmlMapperException(String.format("multiple values for property <%s> on resource <%s>, but "
-          + "corresponding java property is NOT an Iterable property", predicate, resource));
+    public SinglePropertyValueMapper(IRI predicate, ValueTransformer valueTransformer) {
+        this.predicate = predicate;
+        this.valueTransformer = valueTransformer;
     }
 
-    if (!values.isEmpty()) {
-      Object result = valueTransformer.transform(model, values.get(0));
-      return Optional.of(result);
+    @Override
+    public Optional<Object> map(Model model, Resource resource, Object instance, List<Value> values) {
+
+        // multiple values present - error
+        if (values.size() > 1) {
+            throw new CarmlMapperException(String.format(
+                    "multiple values for property <%s> on resource <%s>, but "
+                            + "corresponding java property is NOT an Iterable property",
+                    predicate, resource));
+        }
+
+        if (!values.isEmpty()) {
+            Object result = valueTransformer.transform(model, values.get(0));
+            return Optional.of(result);
+        }
+
+        return Optional.empty();
     }
-
-    return Optional.empty();
-  }
-
 }

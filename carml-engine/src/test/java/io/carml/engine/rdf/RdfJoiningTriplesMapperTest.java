@@ -48,206 +48,217 @@ import reactor.test.StepVerifier;
 @ExtendWith({MockitoExtension.class})
 class RdfJoiningTriplesMapperTest {
 
-  private static final ValueFactory VALUE_FACTORY = SimpleValueFactory.getInstance();
+    private static final ValueFactory VALUE_FACTORY = SimpleValueFactory.getInstance();
 
-  @Mock
-  private TriplesMap triplesMap;
+    @Mock
+    private TriplesMap triplesMap;
 
-  @Mock
-  private TriplesMap triplesMap2;
+    @Mock
+    private TriplesMap triplesMap2;
 
-  @Mock
-  private TermGenerator<Resource> subjectGenerator;
+    @Mock
+    private TermGenerator<Resource> subjectGenerator;
 
-  @Mock
-  private TermGenerator<Resource> subjectGenerator2;
+    @Mock
+    private TermGenerator<Resource> subjectGenerator2;
 
-  @Mock
-  private SubjectMap subjectMap;
+    @Mock
+    private SubjectMap subjectMap;
 
-  @Mock
-  private TermGenerator<IRI> predicateGenerator1;
+    @Mock
+    private TermGenerator<IRI> predicateGenerator1;
 
-  @Mock
-  private PredicateMap predicateMap1;
+    @Mock
+    private PredicateMap predicateMap1;
 
-  @Mock
-  private TermGenerator<Value> objectGenerator1;
+    @Mock
+    private TermGenerator<Value> objectGenerator1;
 
-  @Mock
-  private RefObjectMap refObjectMap1;
+    @Mock
+    private RefObjectMap refObjectMap1;
 
-  @Mock
-  private PredicateObjectMap joiningPom;
+    @Mock
+    private PredicateObjectMap joiningPom;
 
-  @Mock
-  private TermGenerator<Resource> graphGenerator1;
+    @Mock
+    private TermGenerator<Resource> graphGenerator1;
 
-  @Mock
-  private GraphMap graphMap1;
+    @Mock
+    private GraphMap graphMap1;
 
-  @Mock
-  private TermGenerator<Resource> graphGenerator2;
+    @Mock
+    private TermGenerator<Resource> graphGenerator2;
 
-  @Mock
-  private GraphMap graphMap2;
+    @Mock
+    private GraphMap graphMap2;
 
-  private Set<PredicateObjectMap> joiningPredicateObjectMaps;
+    private Set<PredicateObjectMap> joiningPredicateObjectMaps;
 
-  @Mock
-  private LogicalSource virtualJoiningLogicalSource;
+    @Mock
+    private LogicalSource virtualJoiningLogicalSource;
 
-  @Mock
-  private LogicalSourceResolver<String> logicalSourceResolver;
+    @Mock
+    private LogicalSourceResolver<String> logicalSourceResolver;
 
-  @Mock
-  private LogicalSourceResolver.ExpressionEvaluationFactory<String> expressionEvaluationFactory;
+    @Mock
+    private LogicalSourceResolver.ExpressionEvaluationFactory<String> expressionEvaluationFactory;
 
-  @Mock
-  private RdfTermGeneratorFactory rdfTermGeneratorFactory;
+    @Mock
+    private RdfTermGeneratorFactory rdfTermGeneratorFactory;
 
-  @Mock
-  private ChildSideJoinStoreProvider<Resource, IRI> childSideJoinStoreProvider;
+    @Mock
+    private ChildSideJoinStoreProvider<Resource, IRI> childSideJoinStoreProvider;
 
-  private ParentSideJoinConditionStoreProvider<Resource> parentSideJoinConditionStoreProvider;
+    private ParentSideJoinConditionStoreProvider<Resource> parentSideJoinConditionStoreProvider;
 
-  @Mock
-  private LogicalSourceRecord<?> logicalSourceRecord;
+    @Mock
+    private LogicalSourceRecord<?> logicalSourceRecord;
 
+    @BeforeEach
+    void setup() {
+        lenient().when(logicalSourceResolver.getExpressionEvaluationFactory()).thenReturn(expressionEvaluationFactory);
+        when(triplesMap.getSubjectMaps()).thenReturn(Set.of(subjectMap));
+        lenient().when(triplesMap.getId()).thenReturn("triples-map-1");
+        lenient().when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
+        // lenient().when(triplesMap.getPredicateObjectMaps())
+        // .thenReturn(Set.of(pom));
+        joiningPredicateObjectMaps = Set.of(joiningPom);
+        parentSideJoinConditionStoreProvider = CarmlParentSideJoinConditionStoreProvider.of();
+    }
 
+    @Test
+    void givenAllParams_whenOfCalled_thenReturnRdfJoiningTripleMapper() {
+        // Given
+        var rdfMapperConfig = RdfMapperConfig.builder()
+                .valueFactorySupplier(() -> VALUE_FACTORY)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .childSideJoinStoreProvider(childSideJoinStoreProvider)
+                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
+                .build();
 
-  @BeforeEach
-  void setup() {
-    lenient().when(logicalSourceResolver.getExpressionEvaluationFactory())
-        .thenReturn(expressionEvaluationFactory);
-    when(triplesMap.getSubjectMaps()).thenReturn(Set.of(subjectMap));
-    lenient().when(triplesMap.getId())
-        .thenReturn("triples-map-1");
-    lenient().when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap))
-        .thenReturn(subjectGenerator);
-    // lenient().when(triplesMap.getPredicateObjectMaps())
-    // .thenReturn(Set.of(pom));
-    joiningPredicateObjectMaps = Set.of(joiningPom);
-    parentSideJoinConditionStoreProvider = CarmlParentSideJoinConditionStoreProvider.of();
-  }
+        // When
+        var rdfJoiningTriplesMapper = RdfJoiningTriplesMapper.of(
+                triplesMap,
+                joiningPredicateObjectMaps,
+                virtualJoiningLogicalSource,
+                logicalSourceResolver,
+                rdfMapperConfig);
 
-  @Test
-  void givenAllParams_whenOfCalled_thenReturnRdfJoiningTripleMapper() {
-    // Given
-    var rdfMapperConfig = RdfMapperConfig.builder()
-        .valueFactorySupplier(() -> VALUE_FACTORY)
-        .termGeneratorFactory(rdfTermGeneratorFactory)
-        .childSideJoinStoreProvider(childSideJoinStoreProvider)
-        .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
-        .build();
+        // Then
+        assertThat(rdfJoiningTriplesMapper, is(not(nullValue())));
+        assertThat(rdfJoiningTriplesMapper.getLogicalSource(), is(virtualJoiningLogicalSource));
+    }
 
-    // When
-    var rdfJoiningTriplesMapper = RdfJoiningTriplesMapper.of(triplesMap, joiningPredicateObjectMaps,
-        virtualJoiningLogicalSource, logicalSourceResolver, rdfMapperConfig);
+    @Test
+    void givenNoSubjectMap_whenOfCalled_thenThrowException() {
+        // Given
+        when(triplesMap.getSubjectMaps()).thenReturn(Set.of());
+        when(triplesMap.asRdf()).thenReturn(new ModelBuilder().build());
+        when(triplesMap.getAsResource()).thenReturn(VALUE_FACTORY.createBNode("triplesMap"));
+        RdfMapperConfig rdfMapperConfig = mock(RdfMapperConfig.class);
 
-    // Then
-    assertThat(rdfJoiningTriplesMapper, is(not(nullValue())));
-    assertThat(rdfJoiningTriplesMapper.getLogicalSource(), is(virtualJoiningLogicalSource));
-  }
+        // When
+        Throwable exception = assertThrows(
+                TriplesMapperException.class,
+                () -> RdfJoiningTriplesMapper.of(
+                        triplesMap,
+                        joiningPredicateObjectMaps,
+                        virtualJoiningLogicalSource,
+                        logicalSourceResolver,
+                        rdfMapperConfig));
 
-  @Test
-  void givenNoSubjectMap_whenOfCalled_thenThrowException() {
-    // Given
-    when(triplesMap.getSubjectMaps()).thenReturn(Set.of());
-    when(triplesMap.asRdf()).thenReturn(new ModelBuilder().build());
-    when(triplesMap.getAsResource()).thenReturn(VALUE_FACTORY.createBNode("triplesMap"));
-    RdfMapperConfig rdfMapperConfig = mock(RdfMapperConfig.class);
+        // Then
+        assertThat(
+                exception.getMessage(),
+                startsWith("Subject map must be specified in triples map blank node resource _:triplesMap in:"));
+    }
 
-    // When
-    Throwable exception = assertThrows(TriplesMapperException.class, () -> RdfJoiningTriplesMapper.of(triplesMap,
-        joiningPredicateObjectMaps, virtualJoiningLogicalSource, logicalSourceResolver, rdfMapperConfig));
+    @Test
+    void givenSubjectMapThatReturnsNothing_whenMap_thenReturnEmptyFlux() {
+        // Given
+        when(subjectGenerator.apply(any(), any())).thenReturn(List.of());
 
-    // Then
-    assertThat(exception.getMessage(),
-        startsWith("Subject map must be specified in triples map blank node resource _:triplesMap in:"));
-  }
+        var rdfMapperConfig = RdfMapperConfig.builder()
+                .valueFactorySupplier(() -> VALUE_FACTORY)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .childSideJoinStoreProvider(childSideJoinStoreProvider)
+                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
+                .build();
 
-  @Test
-  void givenSubjectMapThatReturnsNothing_whenMap_thenReturnEmptyFlux() {
-    // Given
-    when(subjectGenerator.apply(any(), any())).thenReturn(List.of());
+        RdfJoiningTriplesMapper<String> rdfJoiningTriplesMapper = RdfJoiningTriplesMapper.of(
+                triplesMap,
+                joiningPredicateObjectMaps,
+                virtualJoiningLogicalSource,
+                logicalSourceResolver,
+                rdfMapperConfig);
 
-    var rdfMapperConfig = RdfMapperConfig.builder()
-        .valueFactorySupplier(() -> VALUE_FACTORY)
-        .termGeneratorFactory(rdfTermGeneratorFactory)
-        .childSideJoinStoreProvider(childSideJoinStoreProvider)
-        .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
-        .build();
+        // When
+        Flux<Statement> statements = rdfJoiningTriplesMapper.map(logicalSourceRecord);
 
-    RdfJoiningTriplesMapper<String> rdfJoiningTriplesMapper = RdfJoiningTriplesMapper.of(triplesMap,
-        joiningPredicateObjectMaps, virtualJoiningLogicalSource, logicalSourceResolver, rdfMapperConfig);
+        // Then
+        StepVerifier.create(statements).expectNextCount(0).verifyComplete();
+    }
 
-    // When
-    Flux<Statement> statements = rdfJoiningTriplesMapper.map(logicalSourceRecord);
+    @Test
+    void givenSubjectMapAndPom_whenMap_thenReturnStatements() {
+        // Given
+        IRI subject1 = VALUE_FACTORY.createIRI("http://foo.bar/subject1");
+        when(subjectGenerator.apply(any(), any())).thenReturn(List.of(subject1));
+        when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
 
-    // Then
-    StepVerifier.create(statements)
-        .expectNextCount(0)
-        .verifyComplete();
-  }
+        when(subjectMap.getGraphMaps()).thenReturn(Set.of(graphMap1));
+        when(rdfTermGeneratorFactory.getGraphGenerator(graphMap1)).thenReturn(graphGenerator1);
+        IRI subjectGraph1 = VALUE_FACTORY.createIRI("http://foo.bar/subjectGraph1");
+        when(graphGenerator1.apply(any(), any())).thenReturn(List.of(subjectGraph1, Rdf.Rr.defaultGraph));
 
-  @Test
-  void givenSubjectMapAndPom_whenMap_thenReturnStatements() {
-    // Given
-    IRI subject1 = VALUE_FACTORY.createIRI("http://foo.bar/subject1");
-    when(subjectGenerator.apply(any(), any())).thenReturn(List.of(subject1));
-    when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
+        when(joiningPom.getPredicateMaps()).thenReturn(Set.of(predicateMap1));
+        when(rdfTermGeneratorFactory.getPredicateGenerator(predicateMap1)).thenReturn(predicateGenerator1);
+        IRI predicate1 = VALUE_FACTORY.createIRI("http://foo.bar/predicate1");
+        when(predicateGenerator1.apply(any(), any())).thenReturn(List.of(predicate1));
 
-    when(subjectMap.getGraphMaps()).thenReturn(Set.of(graphMap1));
-    when(rdfTermGeneratorFactory.getGraphGenerator(graphMap1)).thenReturn(graphGenerator1);
-    IRI subjectGraph1 = VALUE_FACTORY.createIRI("http://foo.bar/subjectGraph1");
-    when(graphGenerator1.apply(any(), any())).thenReturn(List.of(subjectGraph1, Rdf.Rr.defaultGraph));
+        when(joiningPom.getObjectMaps()).thenReturn(Set.of(refObjectMap1));
+        when(refObjectMap1.getParentTriplesMap()).thenReturn(triplesMap2);
 
-    when(joiningPom.getPredicateMaps()).thenReturn(Set.of(predicateMap1));
-    when(rdfTermGeneratorFactory.getPredicateGenerator(predicateMap1)).thenReturn(predicateGenerator1);
-    IRI predicate1 = VALUE_FACTORY.createIRI("http://foo.bar/predicate1");
-    when(predicateGenerator1.apply(any(), any())).thenReturn(List.of(predicate1));
+        var subjectMap2 = CarmlSubjectMap.builder().build();
 
-    when(joiningPom.getObjectMaps()).thenReturn(Set.of(refObjectMap1));
-    when(refObjectMap1.getParentTriplesMap()).thenReturn(triplesMap2);
+        when(triplesMap2.getSubjectMaps()).thenReturn(Set.of(subjectMap2));
+        when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap2)).thenReturn(subjectGenerator2);
+        Resource object1 = VALUE_FACTORY.createIRI("http://foo.bar/object1");
+        when(subjectGenerator2.apply(any(), any())).thenReturn(List.of(object1));
 
-    var subjectMap2 = CarmlSubjectMap.builder()
-        .build();
+        when(joiningPom.getGraphMaps()).thenReturn(Set.of(graphMap2));
+        when(rdfTermGeneratorFactory.getGraphGenerator(graphMap2)).thenReturn(graphGenerator2);
+        IRI graph1 = VALUE_FACTORY.createIRI("http://foo.bar/graph1");
+        when(graphGenerator2.apply(any(), any())).thenReturn(List.of(graph1, Rdf.Rr.defaultGraph));
 
-    when(triplesMap2.getSubjectMaps()).thenReturn(Set.of(subjectMap2));
-    when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap2)).thenReturn(subjectGenerator2);
-    Resource object1 = VALUE_FACTORY.createIRI("http://foo.bar/object1");
-    when(subjectGenerator2.apply(any(), any())).thenReturn(List.of(object1));
+        var rdfMapperConfig = RdfMapperConfig.builder()
+                .valueFactorySupplier(() -> VALUE_FACTORY)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .childSideJoinStoreProvider(childSideJoinStoreProvider)
+                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
+                .build();
 
-    when(joiningPom.getGraphMaps()).thenReturn(Set.of(graphMap2));
-    when(rdfTermGeneratorFactory.getGraphGenerator(graphMap2)).thenReturn(graphGenerator2);
-    IRI graph1 = VALUE_FACTORY.createIRI("http://foo.bar/graph1");
-    when(graphGenerator2.apply(any(), any())).thenReturn(List.of(graph1, Rdf.Rr.defaultGraph));
+        var rdfJoiningTriplesMapper = RdfJoiningTriplesMapper.of(
+                triplesMap,
+                joiningPredicateObjectMaps,
+                virtualJoiningLogicalSource,
+                logicalSourceResolver,
+                rdfMapperConfig);
 
-    var rdfMapperConfig = RdfMapperConfig.builder()
-        .valueFactorySupplier(() -> VALUE_FACTORY)
-        .termGeneratorFactory(rdfTermGeneratorFactory)
-        .childSideJoinStoreProvider(childSideJoinStoreProvider)
-        .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
-        .build();
+        // When
+        Flux<Statement> statements = rdfJoiningTriplesMapper.map(logicalSourceRecord);
 
-    var rdfJoiningTriplesMapper = RdfJoiningTriplesMapper.of(triplesMap, joiningPredicateObjectMaps,
-        virtualJoiningLogicalSource, logicalSourceResolver, rdfMapperConfig);
+        // Then
+        Predicate<Statement> expectedStatement = statement -> Set.of(
+                        VALUE_FACTORY.createStatement(subject1, predicate1, object1, subjectGraph1),
+                        VALUE_FACTORY.createStatement(subject1, predicate1, object1, graph1),
+                        VALUE_FACTORY.createStatement(subject1, predicate1, object1))
+                .contains(statement);
 
-    // When
-    Flux<Statement> statements = rdfJoiningTriplesMapper.map(logicalSourceRecord);
-
-    // Then
-    Predicate<Statement> expectedStatement = statement -> Set
-        .of(VALUE_FACTORY.createStatement(subject1, predicate1, object1, subjectGraph1),
-            VALUE_FACTORY.createStatement(subject1, predicate1, object1, graph1),
-            VALUE_FACTORY.createStatement(subject1, predicate1, object1))
-        .contains(statement);
-
-    StepVerifier.create(statements)
-        .expectNextMatches(expectedStatement)
-        .expectNextMatches(expectedStatement)
-        .expectNextMatches(expectedStatement)
-        .verifyComplete();
-  }
+        StepVerifier.create(statements)
+                .expectNextMatches(expectedStatement)
+                .expectNextMatches(expectedStatement)
+                .expectNextMatches(expectedStatement)
+                .verifyComplete();
+    }
 }

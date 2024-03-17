@@ -39,280 +39,289 @@ import reactor.test.StepVerifier;
 @ExtendWith(MockitoExtension.class)
 class RdfSubjectMapperTest {
 
-  private static final ValueFactory VALUE_FACTORY = SimpleValueFactory.getInstance();
+    private static final ValueFactory VALUE_FACTORY = SimpleValueFactory.getInstance();
 
-  @Mock
-  private TriplesMap triplesMap;
+    @Mock
+    private TriplesMap triplesMap;
 
-  @Mock
-  private SubjectMap subjectMap;
+    @Mock
+    private SubjectMap subjectMap;
 
-  @Mock
-  private ChildSideJoinStoreProvider<Resource, IRI> childSideJoinStoreProvider;
+    @Mock
+    private ChildSideJoinStoreProvider<Resource, IRI> childSideJoinStoreProvider;
 
-  @Mock
-  private TermGenerator<Resource> subjectGenerator;
+    @Mock
+    private TermGenerator<Resource> subjectGenerator;
 
-  @Mock
-  private RdfTermGeneratorFactory rdfTermGeneratorFactory;
+    @Mock
+    private RdfTermGeneratorFactory rdfTermGeneratorFactory;
 
-  @Mock
-  private GraphMap graphMap1;
+    @Mock
+    private GraphMap graphMap1;
 
-  @Mock
-  private GraphMap graphMap2;
+    @Mock
+    private GraphMap graphMap2;
 
-  @Mock
-  private TermGenerator<Resource> graphGenerator1;
+    @Mock
+    private TermGenerator<Resource> graphGenerator1;
 
-  @Mock
-  private TermGenerator<Resource> graphGenerator2;
+    @Mock
+    private TermGenerator<Resource> graphGenerator2;
 
-  @Test
-  void givenAllParams_whenOfCalled_thenConstructRdfSubjectMapper() {
-    // Given
-    when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
-    RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
-        .valueFactorySupplier(() -> VALUE_FACTORY)
-        .termGeneratorFactory(rdfTermGeneratorFactory)
-        .childSideJoinStoreProvider(childSideJoinStoreProvider)
-        .build();
+    @Test
+    void givenAllParams_whenOfCalled_thenConstructRdfSubjectMapper() {
+        // Given
+        when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
+        RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
+                .valueFactorySupplier(() -> VALUE_FACTORY)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .childSideJoinStoreProvider(childSideJoinStoreProvider)
+                .build();
 
-    // When
-    RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingConfig);
+        // When
+        RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingConfig);
 
-    // Then
-    assertThat(rdfSubjectMapper, is(not(nullValue())));
-  }
+        // Then
+        assertThat(rdfSubjectMapper, is(not(nullValue())));
+    }
 
-  @Test
-  void givenExceptionThrowingSubjectGenerator_whenOfCalled_thenRethrowException() {
-    // Given
-    when(triplesMap.asRdf()).thenReturn(new ModelBuilder().build());
-    when(subjectMap.getAsResource()).thenReturn(VALUE_FACTORY.createBNode("subject"));
-    RdfMapperConfig rdfMappingConfig = mock(RdfMapperConfig.class);
+    @Test
+    void givenExceptionThrowingSubjectGenerator_whenOfCalled_thenRethrowException() {
+        // Given
+        when(triplesMap.asRdf()).thenReturn(new ModelBuilder().build());
+        when(subjectMap.getAsResource()).thenReturn(VALUE_FACTORY.createBNode("subject"));
+        RdfMapperConfig rdfMappingConfig = mock(RdfMapperConfig.class);
 
-    // When
-    Throwable exception =
-        assertThrows(TriplesMapperException.class, () -> RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingConfig));
+        // When
+        Throwable exception = assertThrows(
+                TriplesMapperException.class, () -> RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingConfig));
 
-    // Then
-    assertThat(exception.getMessage(),
-        startsWith("Exception occurred while creating subject generator for blank node resource _:subject in:"));
-  }
+        // Then
+        assertThat(
+                exception.getMessage(),
+                startsWith(
+                        "Exception occurred while creating subject generator for blank node resource _:subject in:"));
+    }
 
-  @Test
-  void givenAllParams_whenOfJoiningCalled_thenConstructRdfSubjectMapper() {
-    // Given
-    when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
-    RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
-        .valueFactorySupplier(() -> VALUE_FACTORY)
-        .termGeneratorFactory(rdfTermGeneratorFactory)
-        .childSideJoinStoreProvider(childSideJoinStoreProvider)
-        .build();
+    @Test
+    void givenAllParams_whenOfJoiningCalled_thenConstructRdfSubjectMapper() {
+        // Given
+        when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
+        RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
+                .valueFactorySupplier(() -> VALUE_FACTORY)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .childSideJoinStoreProvider(childSideJoinStoreProvider)
+                .build();
 
-    // When
-    RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.ofJoining(subjectMap, triplesMap, rdfMappingConfig);
+        // When
+        RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.ofJoining(subjectMap, triplesMap, rdfMappingConfig);
 
-    // Then
-    assertThat(rdfSubjectMapper, is(not(nullValue())));
-  }
+        // Then
+        assertThat(rdfSubjectMapper, is(not(nullValue())));
+    }
 
-  @Test
-  void givenExceptionThrowingSubjectGenerator_whenOfJoiningCalled_thenRethrowException() {
-    // Given
-    when(triplesMap.asRdf()).thenReturn(new ModelBuilder().build());
-    when(subjectMap.getAsResource()).thenReturn(VALUE_FACTORY.createBNode("subject"));
-    RdfMapperConfig rdfMappingConfig = mock(RdfMapperConfig.class);
+    @Test
+    void givenExceptionThrowingSubjectGenerator_whenOfJoiningCalled_thenRethrowException() {
+        // Given
+        when(triplesMap.asRdf()).thenReturn(new ModelBuilder().build());
+        when(subjectMap.getAsResource()).thenReturn(VALUE_FACTORY.createBNode("subject"));
+        RdfMapperConfig rdfMappingConfig = mock(RdfMapperConfig.class);
 
-    // When
-    Throwable exception = assertThrows(TriplesMapperException.class,
-        () -> RdfSubjectMapper.ofJoining(subjectMap, triplesMap, rdfMappingConfig));
+        // When
+        Throwable exception = assertThrows(
+                TriplesMapperException.class,
+                () -> RdfSubjectMapper.ofJoining(subjectMap, triplesMap, rdfMappingConfig));
 
-    // Then
-    assertThat(exception.getMessage(),
-        startsWith("Exception occurred while creating subject generator for blank node resource _:subject in:"));
-  }
+        // Then
+        assertThat(
+                exception.getMessage(),
+                startsWith(
+                        "Exception occurred while creating subject generator for blank node resource _:subject in:"));
+    }
 
-  @Test
-  void givenSingleSubjectGenerator_whenMap_thenReturnGeneratedSubject() {
-    // Given
-    IRI subject = VALUE_FACTORY.createIRI("http://foo.bar/subject");
-    when(subjectGenerator.apply(any(), any())).thenReturn(List.of(subject));
-    when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
+    @Test
+    void givenSingleSubjectGenerator_whenMap_thenReturnGeneratedSubject() {
+        // Given
+        IRI subject = VALUE_FACTORY.createIRI("http://foo.bar/subject");
+        when(subjectGenerator.apply(any(), any())).thenReturn(List.of(subject));
+        when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
 
-    RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
-        .valueFactorySupplier(() -> VALUE_FACTORY)
-        .termGeneratorFactory(rdfTermGeneratorFactory)
-        .childSideJoinStoreProvider(childSideJoinStoreProvider)
-        .build();
+        RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
+                .valueFactorySupplier(() -> VALUE_FACTORY)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .childSideJoinStoreProvider(childSideJoinStoreProvider)
+                .build();
 
-    RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingConfig);
+        RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingConfig);
 
-    // When
-    RdfSubjectMapper.Result rdfSubjectMapperResult = rdfSubjectMapper.map(any(), any());
+        // When
+        RdfSubjectMapper.Result rdfSubjectMapperResult = rdfSubjectMapper.map(any(), any());
 
-    // Then
-    assertThat(rdfSubjectMapperResult.getSubjects(), hasSize(1));
-    assertThat(rdfSubjectMapperResult.getSubjects(), contains(VALUE_FACTORY.createIRI("http://foo.bar/subject")));
-  }
+        // Then
+        assertThat(rdfSubjectMapperResult.getSubjects(), hasSize(1));
+        assertThat(rdfSubjectMapperResult.getSubjects(), contains(VALUE_FACTORY.createIRI("http://foo.bar/subject")));
+    }
 
-  @Test
-  void givenMultiSubjectGenerator_whenMap_thenReturnGeneratedSubjects() {
-    // Given
-    IRI subject = VALUE_FACTORY.createIRI("http://foo.bar/subject");
-    IRI subject2 = VALUE_FACTORY.createIRI("http://foo.bar/subject2");
-    when(subjectGenerator.apply(any(), any())).thenReturn(List.of(subject, subject2));
-    when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
+    @Test
+    void givenMultiSubjectGenerator_whenMap_thenReturnGeneratedSubjects() {
+        // Given
+        IRI subject = VALUE_FACTORY.createIRI("http://foo.bar/subject");
+        IRI subject2 = VALUE_FACTORY.createIRI("http://foo.bar/subject2");
+        when(subjectGenerator.apply(any(), any())).thenReturn(List.of(subject, subject2));
+        when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
 
-    RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
-        .valueFactorySupplier(() -> VALUE_FACTORY)
-        .termGeneratorFactory(rdfTermGeneratorFactory)
-        .childSideJoinStoreProvider(childSideJoinStoreProvider)
-        .build();
+        RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
+                .valueFactorySupplier(() -> VALUE_FACTORY)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .childSideJoinStoreProvider(childSideJoinStoreProvider)
+                .build();
 
-    RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingConfig);
+        RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingConfig);
 
-    // When
-    RdfSubjectMapper.Result rdfSubjectMapperResult = rdfSubjectMapper.map(any(), any());
+        // When
+        RdfSubjectMapper.Result rdfSubjectMapperResult = rdfSubjectMapper.map(any(), any());
 
-    // Then
-    assertThat(rdfSubjectMapperResult.getSubjects(), hasSize(2));
-    assertThat(rdfSubjectMapperResult.getSubjects(), hasItems(VALUE_FACTORY.createIRI("http://foo.bar/subject"),
-        VALUE_FACTORY.createIRI("http://foo.bar/subject2")));
-  }
+        // Then
+        assertThat(rdfSubjectMapperResult.getSubjects(), hasSize(2));
+        assertThat(
+                rdfSubjectMapperResult.getSubjects(),
+                hasItems(
+                        VALUE_FACTORY.createIRI("http://foo.bar/subject"),
+                        VALUE_FACTORY.createIRI("http://foo.bar/subject2")));
+    }
 
-  @Test
-  void givenClasses_whenMap_thenReturnTypeStatements() {
-    // Given
-    IRI subject = VALUE_FACTORY.createIRI("http://foo.bar/subject");
-    when(subjectGenerator.apply(any(), any())).thenReturn(List.of(subject));
-    when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
-    IRI class1 = VALUE_FACTORY.createIRI("http://foo.bar/class1");
-    IRI class2 = VALUE_FACTORY.createIRI("http://foo.bar/class2");
-    when(subjectMap.getClasses()).thenReturn(Set.of(class1, class2));
+    @Test
+    void givenClasses_whenMap_thenReturnTypeStatements() {
+        // Given
+        IRI subject = VALUE_FACTORY.createIRI("http://foo.bar/subject");
+        when(subjectGenerator.apply(any(), any())).thenReturn(List.of(subject));
+        when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
+        IRI class1 = VALUE_FACTORY.createIRI("http://foo.bar/class1");
+        IRI class2 = VALUE_FACTORY.createIRI("http://foo.bar/class2");
+        when(subjectMap.getClasses()).thenReturn(Set.of(class1, class2));
 
-    RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
-        .valueFactorySupplier(() -> VALUE_FACTORY)
-        .termGeneratorFactory(rdfTermGeneratorFactory)
-        .childSideJoinStoreProvider(childSideJoinStoreProvider)
-        .build();
+        RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
+                .valueFactorySupplier(() -> VALUE_FACTORY)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .childSideJoinStoreProvider(childSideJoinStoreProvider)
+                .build();
 
-    RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingConfig);
+        RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingConfig);
 
-    // When
-    RdfSubjectMapper.Result rdfSubjectMapperResult = rdfSubjectMapper.map(any(), any());
+        // When
+        RdfSubjectMapper.Result rdfSubjectMapperResult = rdfSubjectMapper.map(any(), any());
 
-    // Then
-    Predicate<Statement> expectedStatement = statement -> Set
-        .of(VALUE_FACTORY.createStatement(subject, RDF.TYPE, class1),
-            VALUE_FACTORY.createStatement(subject, RDF.TYPE, class2))
-        .contains(statement);
-    StepVerifier.create(rdfSubjectMapperResult.getTypeStatements())
-        .expectNextMatches(expectedStatement)
-        .expectNextMatches(expectedStatement)
-        .verifyComplete();
-  }
+        // Then
+        Predicate<Statement> expectedStatement = statement -> Set.of(
+                        VALUE_FACTORY.createStatement(subject, RDF.TYPE, class1),
+                        VALUE_FACTORY.createStatement(subject, RDF.TYPE, class2))
+                .contains(statement);
+        StepVerifier.create(rdfSubjectMapperResult.getTypeStatements())
+                .expectNextMatches(expectedStatement)
+                .expectNextMatches(expectedStatement)
+                .verifyComplete();
+    }
 
-  @Test
-  void givenClassesAndGraphs_whenMap_thenReturnTypeStatementsPerGraph() {
-    // Given
-    IRI subject = VALUE_FACTORY.createIRI("http://foo.bar/subject");
-    when(subjectGenerator.apply(any(), any())).thenReturn(List.of(subject));
-    when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
-    IRI class1 = VALUE_FACTORY.createIRI("http://foo.bar/class1");
-    IRI class2 = VALUE_FACTORY.createIRI("http://foo.bar/class2");
-    when(subjectMap.getClasses()).thenReturn(Set.of(class1, class2));
+    @Test
+    void givenClassesAndGraphs_whenMap_thenReturnTypeStatementsPerGraph() {
+        // Given
+        IRI subject = VALUE_FACTORY.createIRI("http://foo.bar/subject");
+        when(subjectGenerator.apply(any(), any())).thenReturn(List.of(subject));
+        when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
+        IRI class1 = VALUE_FACTORY.createIRI("http://foo.bar/class1");
+        IRI class2 = VALUE_FACTORY.createIRI("http://foo.bar/class2");
+        when(subjectMap.getClasses()).thenReturn(Set.of(class1, class2));
 
-    when(subjectMap.getGraphMaps()).thenReturn(Set.of(graphMap1, graphMap2));
-    when(rdfTermGeneratorFactory.getGraphGenerator(any())).thenReturn(graphGenerator1)
-        .thenReturn(graphGenerator2);
-    IRI graph11 = VALUE_FACTORY.createIRI("http://foo.bar/graph11");
-    when(graphGenerator1.apply(any(), any())).thenReturn(List.of(graph11));
-    IRI graph21 = VALUE_FACTORY.createIRI("http://foo.bar/graph21");
-    IRI graph22 = VALUE_FACTORY.createIRI("http://foo.bar/graph22");
-    when(graphGenerator2.apply(any(), any())).thenReturn(List.of(graph21, graph22));
+        when(subjectMap.getGraphMaps()).thenReturn(Set.of(graphMap1, graphMap2));
+        when(rdfTermGeneratorFactory.getGraphGenerator(any()))
+                .thenReturn(graphGenerator1)
+                .thenReturn(graphGenerator2);
+        IRI graph11 = VALUE_FACTORY.createIRI("http://foo.bar/graph11");
+        when(graphGenerator1.apply(any(), any())).thenReturn(List.of(graph11));
+        IRI graph21 = VALUE_FACTORY.createIRI("http://foo.bar/graph21");
+        IRI graph22 = VALUE_FACTORY.createIRI("http://foo.bar/graph22");
+        when(graphGenerator2.apply(any(), any())).thenReturn(List.of(graph21, graph22));
 
-    RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
-        .valueFactorySupplier(() -> VALUE_FACTORY)
-        .termGeneratorFactory(rdfTermGeneratorFactory)
-        .childSideJoinStoreProvider(childSideJoinStoreProvider)
-        .build();
+        RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
+                .valueFactorySupplier(() -> VALUE_FACTORY)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .childSideJoinStoreProvider(childSideJoinStoreProvider)
+                .build();
 
-    RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingConfig);
+        RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingConfig);
 
-    // When
-    RdfSubjectMapper.Result rdfSubjectMapperResult = rdfSubjectMapper.map(any(), any());
+        // When
+        RdfSubjectMapper.Result rdfSubjectMapperResult = rdfSubjectMapper.map(any(), any());
 
-    // Then
-    assertThat(rdfSubjectMapperResult.getGraphs(), hasItems(graph11, graph21, graph22));
+        // Then
+        assertThat(rdfSubjectMapperResult.getGraphs(), hasItems(graph11, graph21, graph22));
 
-    Predicate<Statement> expectedStatement = statement -> Set
-        .of(VALUE_FACTORY.createStatement(subject, RDF.TYPE, class1, graph11),
-            VALUE_FACTORY.createStatement(subject, RDF.TYPE, class2, graph11),
-            VALUE_FACTORY.createStatement(subject, RDF.TYPE, class1, graph21),
-            VALUE_FACTORY.createStatement(subject, RDF.TYPE, class2, graph21),
-            VALUE_FACTORY.createStatement(subject, RDF.TYPE, class1, graph22),
-            VALUE_FACTORY.createStatement(subject, RDF.TYPE, class2, graph22))
-        .contains(statement);
-    StepVerifier.create(rdfSubjectMapperResult.getTypeStatements())
-        .expectNextMatches(expectedStatement)
-        .expectNextMatches(expectedStatement)
-        .expectNextMatches(expectedStatement)
-        .expectNextMatches(expectedStatement)
-        .expectNextMatches(expectedStatement)
-        .expectNextMatches(expectedStatement)
-        .verifyComplete();
-  }
+        Predicate<Statement> expectedStatement = statement -> Set.of(
+                        VALUE_FACTORY.createStatement(subject, RDF.TYPE, class1, graph11),
+                        VALUE_FACTORY.createStatement(subject, RDF.TYPE, class2, graph11),
+                        VALUE_FACTORY.createStatement(subject, RDF.TYPE, class1, graph21),
+                        VALUE_FACTORY.createStatement(subject, RDF.TYPE, class2, graph21),
+                        VALUE_FACTORY.createStatement(subject, RDF.TYPE, class1, graph22),
+                        VALUE_FACTORY.createStatement(subject, RDF.TYPE, class2, graph22))
+                .contains(statement);
+        StepVerifier.create(rdfSubjectMapperResult.getTypeStatements())
+                .expectNextMatches(expectedStatement)
+                .expectNextMatches(expectedStatement)
+                .expectNextMatches(expectedStatement)
+                .expectNextMatches(expectedStatement)
+                .expectNextMatches(expectedStatement)
+                .expectNextMatches(expectedStatement)
+                .verifyComplete();
+    }
 
-  @Test
-  void givenClassesAndDefaultGraph_whenMap_thenReturnTypeStatementsPerGraph() {
-    // Given
-    IRI subject = VALUE_FACTORY.createIRI("http://foo.bar/subject");
-    when(subjectGenerator.apply(any(), any())).thenReturn(List.of(subject));
-    when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
-    IRI class1 = VALUE_FACTORY.createIRI("http://foo.bar/class1");
-    IRI class2 = VALUE_FACTORY.createIRI("http://foo.bar/class2");
-    when(subjectMap.getClasses()).thenReturn(Set.of(class1, class2));
+    @Test
+    void givenClassesAndDefaultGraph_whenMap_thenReturnTypeStatementsPerGraph() {
+        // Given
+        IRI subject = VALUE_FACTORY.createIRI("http://foo.bar/subject");
+        when(subjectGenerator.apply(any(), any())).thenReturn(List.of(subject));
+        when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
+        IRI class1 = VALUE_FACTORY.createIRI("http://foo.bar/class1");
+        IRI class2 = VALUE_FACTORY.createIRI("http://foo.bar/class2");
+        when(subjectMap.getClasses()).thenReturn(Set.of(class1, class2));
 
-    when(subjectMap.getGraphMaps()).thenReturn(Set.of(graphMap1, graphMap2));
-    when(rdfTermGeneratorFactory.getGraphGenerator(any())).thenReturn(graphGenerator1)
-        .thenReturn(graphGenerator2);
-    IRI graph11 = VALUE_FACTORY.createIRI("http://foo.bar/graph11");
-    when(graphGenerator1.apply(any(), any())).thenReturn(List.of(graph11));
-    IRI graph21 = VALUE_FACTORY.createIRI("http://foo.bar/graph21");
-    when(graphGenerator2.apply(any(), any())).thenReturn(List.of(graph21, Rdf.Rr.defaultGraph));
+        when(subjectMap.getGraphMaps()).thenReturn(Set.of(graphMap1, graphMap2));
+        when(rdfTermGeneratorFactory.getGraphGenerator(any()))
+                .thenReturn(graphGenerator1)
+                .thenReturn(graphGenerator2);
+        IRI graph11 = VALUE_FACTORY.createIRI("http://foo.bar/graph11");
+        when(graphGenerator1.apply(any(), any())).thenReturn(List.of(graph11));
+        IRI graph21 = VALUE_FACTORY.createIRI("http://foo.bar/graph21");
+        when(graphGenerator2.apply(any(), any())).thenReturn(List.of(graph21, Rdf.Rr.defaultGraph));
 
-    RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
-        .valueFactorySupplier(() -> VALUE_FACTORY)
-        .termGeneratorFactory(rdfTermGeneratorFactory)
-        .childSideJoinStoreProvider(childSideJoinStoreProvider)
-        .build();
+        RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
+                .valueFactorySupplier(() -> VALUE_FACTORY)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .childSideJoinStoreProvider(childSideJoinStoreProvider)
+                .build();
 
-    RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingConfig);
+        RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingConfig);
 
-    // When
-    RdfSubjectMapper.Result rdfSubjectMapperResult = rdfSubjectMapper.map(any(), any());
+        // When
+        RdfSubjectMapper.Result rdfSubjectMapperResult = rdfSubjectMapper.map(any(), any());
 
-    // Then
-    assertThat(rdfSubjectMapperResult.getGraphs(), hasItems(graph11, graph21, Rdf.Rr.defaultGraph));
+        // Then
+        assertThat(rdfSubjectMapperResult.getGraphs(), hasItems(graph11, graph21, Rdf.Rr.defaultGraph));
 
-    Predicate<Statement> expectedStatement = statement -> Set
-        .of(VALUE_FACTORY.createStatement(subject, RDF.TYPE, class1, graph11),
-            VALUE_FACTORY.createStatement(subject, RDF.TYPE, class2, graph11),
-            VALUE_FACTORY.createStatement(subject, RDF.TYPE, class1, graph21),
-            VALUE_FACTORY.createStatement(subject, RDF.TYPE, class2, graph21),
-            VALUE_FACTORY.createStatement(subject, RDF.TYPE, class1),
-            VALUE_FACTORY.createStatement(subject, RDF.TYPE, class2))
-        .contains(statement);
-    StepVerifier.create(rdfSubjectMapperResult.getTypeStatements())
-        .expectNextMatches(expectedStatement)
-        .expectNextMatches(expectedStatement)
-        .expectNextMatches(expectedStatement)
-        .expectNextMatches(expectedStatement)
-        .expectNextMatches(expectedStatement)
-        .expectNextMatches(expectedStatement)
-        .verifyComplete();
-  }
-
+        Predicate<Statement> expectedStatement = statement -> Set.of(
+                        VALUE_FACTORY.createStatement(subject, RDF.TYPE, class1, graph11),
+                        VALUE_FACTORY.createStatement(subject, RDF.TYPE, class2, graph11),
+                        VALUE_FACTORY.createStatement(subject, RDF.TYPE, class1, graph21),
+                        VALUE_FACTORY.createStatement(subject, RDF.TYPE, class2, graph21),
+                        VALUE_FACTORY.createStatement(subject, RDF.TYPE, class1),
+                        VALUE_FACTORY.createStatement(subject, RDF.TYPE, class2))
+                .contains(statement);
+        StepVerifier.create(rdfSubjectMapperResult.getTypeStatements())
+                .expectNextMatches(expectedStatement)
+                .expectNextMatches(expectedStatement)
+                .expectNextMatches(expectedStatement)
+                .expectNextMatches(expectedStatement)
+                .expectNextMatches(expectedStatement)
+                .expectNextMatches(expectedStatement)
+                .verifyComplete();
+    }
 }

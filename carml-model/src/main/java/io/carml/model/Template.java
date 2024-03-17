@@ -8,25 +8,25 @@ import java.util.function.UnaryOperator;
 
 public interface Template {
 
-  List<Segment> getSegments();
+    List<Segment> getSegments();
 
-  Set<ReferenceExpression> getReferenceExpressions();
+    Set<ReferenceExpression> getReferenceExpressions();
 
-  Map<ExpressionSegment, ReferenceExpression> getExpressionSegmentMap();
+    Map<ExpressionSegment, ReferenceExpression> getExpressionSegmentMap();
 
-  String toTemplateString();
+    String toTemplateString();
 
-  Template adaptExpressions(UnaryOperator<String> referenceExpressionAdapter);
+    Template adaptExpressions(UnaryOperator<String> referenceExpressionAdapter);
 
-  interface Segment {
+    interface Segment {
 
-    String getValue();
+        String getValue();
 
-    String getTemplateStringRepresentation();
-  }
+        String getTemplateStringRepresentation();
+    }
 
-  interface ReferenceExpression {
+    interface ReferenceExpression {
 
-    String getValue();
-  }
+        String getValue();
+    }
 }

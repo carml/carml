@@ -5,6 +5,5 @@ import org.eclipse.rdf4j.model.Value;
 
 public interface ValueTransformer {
 
-  Object transform(Model model, Value value);
-
+    Object transform(Model model, Value value);
 }

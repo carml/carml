@@ -20,116 +20,127 @@ import org.junit.jupiter.api.Test;
 
 class LogUtilTest {
 
-  private TriplesMap triplesMap;
+    private TriplesMap triplesMap;
 
-  private LogicalSource logicalSource;
+    private LogicalSource logicalSource;
 
-  private SubjectMap subjectMap;
+    private SubjectMap subjectMap;
 
-  private static String ex(String name) {
-    return String.format("http://example.org/%s", name);
-  }
+    private static String ex(String name) {
+        return String.format("http://example.org/%s", name);
+    }
 
-  @BeforeEach
-  void beforeEach() {
-    logicalSource = CarmlLogicalSource.builder()
-        .id("ls")
-        .referenceFormulation(Rdf.Ql.Csv)
-        .build();
+    @BeforeEach
+    void beforeEach() {
+        logicalSource = CarmlLogicalSource.builder()
+                .id("ls")
+                .referenceFormulation(Rdf.Ql.Csv)
+                .build();
 
+        subjectMap = CarmlSubjectMap.builder()
+                .id(ex("sm"))
+                .template(CarmlTemplate.of(List.of(new TextSegment(ex("class")))))
+                .clazz(OWL.CLASS)
+                .build();
 
-    subjectMap = CarmlSubjectMap.builder()
-        .id(ex("sm"))
-        .template(CarmlTemplate.of(List.of(new TextSegment(ex("class")))))
-        .clazz(OWL.CLASS)
-        .build();
+        triplesMap = CarmlTriplesMap.builder()
+                .id(ex("tm"))
+                .logicalSource(logicalSource)
+                .subjectMap(subjectMap)
+                .build();
+    }
 
-    triplesMap = CarmlTriplesMap.builder()
-        .id(ex("tm"))
-        .logicalSource(logicalSource)
-        .subjectMap(subjectMap)
-        .build();
-  }
+    @Test
+    void givenSingleIriResource_whenLog_thenLogIri() {
+        // Given
+        var resource = triplesMap;
 
-  @Test
-  void givenSingleIriResource_whenLog_thenLogIri() {
-    // Given
-    var resource = triplesMap;
+        // When
+        var logMsg = LogUtil.log(resource);
 
-    // When
-    var logMsg = LogUtil.log(resource);
+        // Then
+        assertThat(logMsg, is("resource <http://example.org/tm>"));
+    }
 
-    // Then
-    assertThat(logMsg, is("resource <http://example.org/tm>"));
-  }
+    @Test
+    void givenBlankNodeResource_whenLog_thenDescribeAncestor() {
+        // Given
+        var resource = logicalSource;
 
-  @Test
-  void givenBlankNodeResource_whenLog_thenDescribeAncestor() {
-    // Given
-    var resource = logicalSource;
+        // When
+        var logMsg = LogUtil.log(resource);
 
-    // When
-    var logMsg = LogUtil.log(resource);
+        // Then
+        assertThat(
+                logMsg,
+                equalToCompressingWhiteSpace(
+                        "blank node resource _:ls in:" //
+                                + " ```" //
+                                + "  [] a rml:LogicalSource;" //
+                                + "  rml:referenceFormulation ql:CSV ." //
+                                + " ```"));
+    }
 
-    // Then
-    assertThat(logMsg, equalToCompressingWhiteSpace("blank node resource _:ls in:" //
-        + " ```" //
-        + "  [] a rml:LogicalSource;" //
-        + "  rml:referenceFormulation ql:CSV ." //
-        + " ```"));
-  }
+    @Test
+    void givenIriResourceCollection_whenLog_thenLogIris() {
+        // Given
+        var resources = List.of(triplesMap, subjectMap);
 
-  @Test
-  void givenIriResourceCollection_whenLog_thenLogIris() {
-    // Given
-    var resources = List.of(triplesMap, subjectMap);
+        // When
+        var logMsg = LogUtil.log(resources);
 
-    // When
-    var logMsg = LogUtil.log(resources);
+        // Then
+        assertThat(
+                logMsg,
+                equalToCompressingWhiteSpace(
+                        "resource <http://example.org/tm>," //
+                                + " resource <http://example.org/sm>"));
+    }
 
-    // Then
-    assertThat(logMsg, equalToCompressingWhiteSpace("resource <http://example.org/tm>," //
-        + " resource <http://example.org/sm>"));
-  }
+    @Test
+    void givenIriResource_whenException_thenLogIri() {
+        // Given
+        var resource = triplesMap;
 
-  @Test
-  void givenIriResource_whenException_thenLogIri() {
-    // Given
-    var resource = triplesMap;
+        // When
+        var exceptionMsg = LogUtil.exception(resource);
 
-    // When
-    var exceptionMsg = LogUtil.exception(resource);
+        // Then
+        assertThat(exceptionMsg, is("resource <http://example.org/tm>"));
+    }
 
-    // Then
-    assertThat(exceptionMsg, is("resource <http://example.org/tm>"));
-  }
+    @Test
+    void givenBlankNodeResource_whenException_thenDescribeAncestor() {
+        // Given
+        var resource = logicalSource;
 
-  @Test
-  void givenBlankNodeResource_whenException_thenDescribeAncestor() {
-    // Given
-    var resource = logicalSource;
+        // When
+        var exceptionMsg = LogUtil.exception(resource);
 
-    // When
-    var exceptionMsg = LogUtil.exception(resource);
+        // Then
+        assertThat(
+                exceptionMsg,
+                equalToCompressingWhiteSpace(
+                        "blank node resource _:ls in:" //
+                                + " ```" //
+                                + "  [] a rml:LogicalSource;" //
+                                + "  :causedException \"<<-<<-<<-<<-<<\";" + "  rml:referenceFormulation ql:CSV ." //
+                                + " ```"));
+    }
 
-    // Then
-    assertThat(exceptionMsg, equalToCompressingWhiteSpace("blank node resource _:ls in:" //
-        + " ```" //
-        + "  [] a rml:LogicalSource;" //
-        + "  :causedException \"<<<<<<<<<<<<<\";" + "  rml:referenceFormulation ql:CSV ." //
-        + " ```"));
-  }
+    @Test
+    void givenIriResourceCollection_whenException_thenLogIris() {
+        // Given
+        var resources = List.of(triplesMap, subjectMap);
 
-  @Test
-  void givenIriResourceCollection_whenException_thenLogIris() {
-    // Given
-    var resources = List.of(triplesMap, subjectMap);
+        // When
+        var exceptionMsg = LogUtil.exception(resources);
 
-    // When
-    var exceptionMsg = LogUtil.exception(resources);
-
-    // Then
-    assertThat(exceptionMsg, equalToCompressingWhiteSpace("resource <http://example.org/tm>," //
-        + " resource <http://example.org/sm>"));
-  }
+        // Then
+        assertThat(
+                exceptionMsg,
+                equalToCompressingWhiteSpace(
+                        "resource <http://example.org/tm>," //
+                                + " resource <http://example.org/sm>"));
+    }
 }

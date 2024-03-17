@@ -31,113 +31,110 @@ import org.eclipse.rdf4j.model.util.ModelBuilder;
 @NoArgsConstructor(access = AccessLevel.PACKAGE)
 @Setter
 @ToString(callSuper = true)
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = false)
 abstract class CarmlExpressionMap extends CarmlResource implements ExpressionMap {
 
-  String reference;
+    String reference;
 
-  Template template;
+    Template template;
 
-  Value constant;
+    Value constant;
 
-  TriplesMap functionValue;
+    TriplesMap functionValue;
 
-  @RdfProperty(Rml.reference)
-  @RdfProperty(OldRml.reference)
-  @RdfProperty(Rr.column)
-  @RdfProperty(value = Carml.multiReference, deprecated = true)
-  @Override
-  public String getReference() {
-    return reference;
-  }
-
-  @RdfProperty(value = Rml.template, handler = TemplatePropertyHandler.class)
-  @RdfProperty(value = Rr.template, handler = TemplatePropertyHandler.class)
-  @Override
-  public Template getTemplate() {
-    return template;
-  }
-
-  @RdfProperty(Rml.constant)
-  @RdfProperty(Rr.constant)
-  @Override
-  public Value getConstant() {
-    return constant;
-  }
-
-  // TODO rml-fnml
-
-  @RdfProperty(Fnml.functionValue)
-  @RdfProperty(value = Carml.multiFunctionValue, deprecated = true)
-  @RdfType(CarmlTriplesMap.class)
-  @Override
-  public TriplesMap getFunctionValue() {
-    return functionValue;
-  }
-
-  Set<Resource> getReferencedResourcesBase() {
-    return functionValue != null ? Set.of(functionValue) : Set.of();
-  }
-
-  void addTriplesBase(ModelBuilder builder) {
-    if (reference != null) {
-      builder.add(Rdf.Rml.reference, reference);
+    @RdfProperty(Rml.reference)
+    @RdfProperty(OldRml.reference)
+    @RdfProperty(Rr.column)
+    @RdfProperty(value = Carml.multiReference, deprecated = true)
+    @Override
+    public String getReference() {
+        return reference;
     }
-    if (template != null) {
-      builder.add(Rdf.Rml.template, template.toTemplateString());
+
+    @RdfProperty(value = Rml.template, handler = TemplatePropertyHandler.class)
+    @RdfProperty(value = Rr.template, handler = TemplatePropertyHandler.class)
+    @Override
+    public Template getTemplate() {
+        return template;
     }
-    if (constant != null) {
-      builder.add(Rdf.Rml.constant, constant);
+
+    @RdfProperty(Rml.constant)
+    @RdfProperty(Rr.constant)
+    @Override
+    public Value getConstant() {
+        return constant;
     }
-    // TODO fnml
-    if (functionValue != null) {
-      builder.add(Fnml.functionValue, functionValue.getAsResource());
+
+    // TODO rml-fnml
+
+    @RdfProperty(Fnml.functionValue)
+    @RdfProperty(value = Carml.multiFunctionValue, deprecated = true)
+    @RdfType(CarmlTriplesMap.class)
+    @Override
+    public TriplesMap getFunctionValue() {
+        return functionValue;
     }
-  }
 
-  void adaptReference(UnaryOperator<String> referenceExpressionAdapter, Consumer<String> referenceApplier) {
-    var adaptedReference = referenceExpressionAdapter.apply(reference);
-    referenceApplier.accept(adaptedReference);
-  }
+    Set<Resource> getReferencedResourcesBase() {
+        return functionValue != null ? Set.of(functionValue) : Set.of();
+    }
 
-  void adaptTemplate(UnaryOperator<String> referenceExpressionAdapter, Consumer<Template> templateApplier) {
-    var prefixedTemplate = template.adaptExpressions(referenceExpressionAdapter);
-    templateApplier.accept(prefixedTemplate);
-  }
+    void addTriplesBase(ModelBuilder builder) {
+        if (reference != null) {
+            builder.add(Rdf.Rml.reference, reference);
+        }
+        if (template != null) {
+            builder.add(Rdf.Rml.template, template.toTemplateString());
+        }
+        if (constant != null) {
+            builder.add(Rdf.Rml.constant, constant);
+        }
+        // TODO fnml
+        if (functionValue != null) {
+            builder.add(Fnml.functionValue, functionValue.getAsResource());
+        }
+    }
 
-  void adaptFunctionValue(UnaryOperator<String> referenceExpressionAdapter, Consumer<TriplesMap> functionValueApplier) {
-    var fnBuilder = CarmlTriplesMap.builder();
+    void adaptReference(UnaryOperator<String> referenceExpressionAdapter, Consumer<String> referenceApplier) {
+        var adaptedReference = referenceExpressionAdapter.apply(reference);
+        referenceApplier.accept(adaptedReference);
+    }
 
-    functionValue.getSubjectMaps()
-        .stream()
-        .map(subjectMap -> subjectMap.applyExpressionAdapter(referenceExpressionAdapter))
-        .forEach(fnBuilder::subjectMap);
+    void adaptTemplate(UnaryOperator<String> referenceExpressionAdapter, Consumer<Template> templateApplier) {
+        var prefixedTemplate = template.adaptExpressions(referenceExpressionAdapter);
+        templateApplier.accept(prefixedTemplate);
+    }
 
-    functionValue.getPredicateObjectMaps()
-        .stream()
-        .map(pom -> adaptPredicateObjectMap(referenceExpressionAdapter, pom))
-        .forEach(fnBuilder::predicateObjectMap);
+    void adaptFunctionValue(
+            UnaryOperator<String> referenceExpressionAdapter, Consumer<TriplesMap> functionValueApplier) {
+        var fnBuilder = CarmlTriplesMap.builder();
 
-    functionValueApplier.accept(fnBuilder.build());
-  }
+        functionValue.getSubjectMaps().stream()
+                .map(subjectMap -> subjectMap.applyExpressionAdapter(referenceExpressionAdapter))
+                .forEach(fnBuilder::subjectMap);
 
-  private PredicateObjectMap adaptPredicateObjectMap(UnaryOperator<String> referenceExpressionAdapter,
-      PredicateObjectMap predicateObjectMap) {
-    var pomBuilder = CarmlPredicateObjectMap.builder();
+        functionValue.getPredicateObjectMaps().stream()
+                .map(pom -> adaptPredicateObjectMap(referenceExpressionAdapter, pom))
+                .forEach(fnBuilder::predicateObjectMap);
 
-    predicateObjectMap.getPredicateMaps()
-        .stream()
-        .map(predicateMap -> predicateMap.applyExpressionAdapter(referenceExpressionAdapter))
-        .forEach(pomBuilder::predicateMap);
+        functionValueApplier.accept(fnBuilder.build());
+    }
 
-    // TODO refObjectMap in functionValue?
-    predicateObjectMap.getObjectMaps()
-        .stream()
-        .filter(ObjectMap.class::isInstance)
-        .map(ObjectMap.class::cast)
-        .map(objectMap -> objectMap.applyExpressionAdapter(referenceExpressionAdapter))
-        .forEach(pomBuilder::objectMap);
+    private PredicateObjectMap adaptPredicateObjectMap(
+            UnaryOperator<String> referenceExpressionAdapter, PredicateObjectMap predicateObjectMap) {
+        var pomBuilder = CarmlPredicateObjectMap.builder();
 
-    return pomBuilder.build();
-  }
+        predicateObjectMap.getPredicateMaps().stream()
+                .map(predicateMap -> predicateMap.applyExpressionAdapter(referenceExpressionAdapter))
+                .forEach(pomBuilder::predicateMap);
+
+        // TODO refObjectMap in functionValue?
+        predicateObjectMap.getObjectMaps().stream()
+                .filter(ObjectMap.class::isInstance)
+                .map(ObjectMap.class::cast)
+                .map(objectMap -> objectMap.applyExpressionAdapter(referenceExpressionAdapter))
+                .forEach(pomBuilder::objectMap);
+
+        return pomBuilder.build();
+    }
 }

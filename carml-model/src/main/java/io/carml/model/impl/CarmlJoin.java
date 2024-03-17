@@ -25,50 +25,49 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @EqualsAndHashCode(callSuper = false)
 public class CarmlJoin extends CarmlResource implements Join {
 
-  private ChildMap childMap;
+    private ChildMap childMap;
 
-  private ParentMap parentMap;
+    private ParentMap parentMap;
 
-  // TODO backwards comp?
-  @RdfProperty(Rml.childMap)
-  @RdfType(CarmlChildMap.class)
-  @Override
-  public ChildMap getChildMap() {
-    return childMap;
-  }
-
-  // TODO backwards comp?
-  @RdfProperty(Rml.parentMap)
-  @RdfType(CarmlParentMap.class)
-  @Override
-  public ParentMap getParentMap() {
-    return parentMap;
-  }
-
-  @Override
-  public Set<Resource> getReferencedResources() {
-    var builder = ImmutableSet.<Resource>builder();
-
-    if (childMap != null) {
-      builder.add(childMap);
-    }
-    if (parentMap != null) {
-      builder.add(parentMap);
+    // TODO backwards comp?
+    @RdfProperty(Rml.childMap)
+    @RdfType(CarmlChildMap.class)
+    @Override
+    public ChildMap getChildMap() {
+        return childMap;
     }
 
-    return builder.build();
-  }
-
-  @Override
-  public void addTriples(ModelBuilder modelBuilder) {
-    modelBuilder.subject(getAsResource())
-        .add(RDF.TYPE, Rdf.Rml.Join);
-
-    if (childMap != null) {
-      modelBuilder.add(Rml.childMap, childMap.getAsResource());
+    // TODO backwards comp?
+    @RdfProperty(Rml.parentMap)
+    @RdfType(CarmlParentMap.class)
+    @Override
+    public ParentMap getParentMap() {
+        return parentMap;
     }
-    if (parentMap != null) {
-      modelBuilder.add(Rml.parentMap, parentMap.getAsResource());
+
+    @Override
+    public Set<Resource> getReferencedResources() {
+        var builder = ImmutableSet.<Resource>builder();
+
+        if (childMap != null) {
+            builder.add(childMap);
+        }
+        if (parentMap != null) {
+            builder.add(parentMap);
+        }
+
+        return builder.build();
     }
-  }
+
+    @Override
+    public void addTriples(ModelBuilder modelBuilder) {
+        modelBuilder.subject(getAsResource()).add(RDF.TYPE, Rdf.Rml.Join);
+
+        if (childMap != null) {
+            modelBuilder.add(Rml.childMap, childMap.getAsResource());
+        }
+        if (parentMap != null) {
+            modelBuilder.add(Rml.parentMap, parentMap.getAsResource());
+        }
+    }
 }

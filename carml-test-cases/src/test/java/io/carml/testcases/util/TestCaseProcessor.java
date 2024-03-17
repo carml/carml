@@ -30,177 +30,170 @@ import org.eclipse.rdf4j.rio.WriterConfig;
 
 public class TestCaseProcessor {
 
-  private static final Set<String> SQL_TYPE = Set.of("MySQL", "PostgreSQL");
+    private static final Set<String> SQL_TYPE = Set.of("MySQL", "PostgreSQL");
 
-
-  public static void main(String[] args) {
-    try {
-      fixSqlTestCases("rml/core/test-cases");
-    } catch (URISyntaxException | IOException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  public static void fixSqlTestCases(String resource) throws URISyntaxException, IOException {
-    var path = Paths.get(ClassLoader.getSystemResource(resource)
-        .toURI());
-
-    try (var testCasesDir = Files.walk(path, 1)) {
-      testCasesDir.filter(Files::isDirectory)
-          .filter(not(path::equals))
-          // .filter(testCasePath -> testCasePath.getFileName().toString().endsWith("SPARQL"))
-          .forEach(TestCaseProcessor::fixTestCase);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  private static void fixTestCase(Path testcasePath) {
-    var files = getFiles(testcasePath);
-    var mapping = files.stream()
-        .filter(path -> path.getFileName()
-            .toString()
-            .equals("mapping.ttl"))
-        .findFirst()
-        .orElseThrow();
-
-    try {
-      var turtle = new String(Files.readAllBytes(mapping));
-
-      var prefixes = parsePrefixes(turtle);
-
-      Model mappingModel;
-      try {
-        mappingModel = Models.parse(Files.newInputStream(mapping), RDFFormat.TURTLE);
-      } catch (RDFParseException e) {
-        System.out.println(String.format("Error parsing mapping file: %s%n%s", mapping, e));
-        return;
-      }
-
-      // fix
-      var outModel = fixMapping(mappingModel, prefixes);
-
-      Rio.write(outModel, Files.newOutputStream(mapping), RDFFormat.TURTLE,
-          SIMPLE_WRITER_CONFIG.apply(new WriterConfig()));
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  private static Model fixMapping(Model mappingModel, List<Namespace> prefixes) {
-    var fixed = mappingModel.stream()
-        .flatMap(TestCaseProcessor::statementFixes)
-        .collect(ModelCollector.toModel());
-
-    prefixes.forEach(fixed::setNamespace);
-
-    return fixed;
-  }
-
-  private static Stream<Statement> statementFixes(Statement original) {
-    // if (original.getObject()
-    // .stringValue()
-    // .equals(Rml.NAMESPACE + "SQL2008TableName")) {
-    // return Stream
-    // .of(statement(original.getSubject(), original.getPredicate(), Rdf.Rml.SQL2008Table,
-    // original.getContext()));
-    // }
-    //
-    // if (original.getPredicate()
-    // .stringValue()
-    // .equals(Rml.NAMESPACE + "sqlVersion")) {
-    // return Stream.of();
-    // }
-    //
-    // if (original.getPredicate()
-    // .stringValue()
-    // .equals(Rml.NAMESPACE + "tableName")) {
-    // return Stream.of(statement(original.getSubject(), Rdf.Rml.iterator, original.getObject(),
-    // original.getContext()));
-    // }
-
-    if (original.getPredicate()
-        .stringValue()
-        .equals(Rml.NAMESPACE + "path")) {
-      return Stream.of(statement(original.getSubject(), Rdf.Rml.root, Rdf.Rml.MappingDirectory, original.getContext()),
-          original);
+    public static void main(String[] args) {
+        try {
+            fixSqlTestCases("rml/core/test-cases");
+        } catch (URISyntaxException | IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    // if (original.getPredicate().stringValue().equals(Rml.NAMESPACE + "iterator") &&
-    // original.getObject().stringValue().equals("$.results.bindings[*]")) {
-    // return Stream.of();
-    // }
-    //
-    // if (original.getPredicate().stringValue().equals(Rml.NAMESPACE + "referenceFormulation")) {
-    // return Stream.of(statement(original.getSubject(), original.getPredicate(),
-    // iri("https://www.w3.org/ns/formats/SPARQL_Results_JSON"), original.getContext()));
-    // }
-    //
-    // if (original.getPredicate().stringValue().equals(SD.NAMESPACE + "resultFormat")){
-    // return Stream.of();
-    // }
+    public static void fixSqlTestCases(String resource) throws URISyntaxException, IOException {
+        var path = Paths.get(ClassLoader.getSystemResource(resource).toURI());
 
-    return Stream.of(original);
-  }
-
-  private static List<Namespace> parsePrefixes(String turtle) throws IOException {
-    return turtle.lines()
-        .filter(line -> line.startsWith("@prefix"))
-        .map(line -> line.substring(8, line.length() - 1))
-        .map(prefix -> prefix.split(" "))
-        .map(parts -> (Namespace) new SimpleNamespace(parts[0].replaceAll(":$", "")
-            .trim(),
-            parts[1].replace("<", "")
-                .replace(">", "")
-                .replaceAll("\\.$", "")
-                .trim()))
-        .toList();
-  }
-
-  private static List<Path> getFiles(Path testcasePath) {
-    try (var testCaseFiles = Files.walk(testcasePath)) {
-      return testCaseFiles.filter(Files::isRegularFile)
-          .toList();
-    } catch (IOException e) {
-      throw new RuntimeException(e);
+        try (var testCasesDir = Files.walk(path, 1)) {
+            testCasesDir
+                    .filter(Files::isDirectory)
+                    .filter(not(path::equals))
+                    // .filter(testCasePath -> testCasePath.getFileName().toString().endsWith("SPARQL"))
+                    .forEach(TestCaseProcessor::fixTestCase);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
-  }
 
-  private static void processSqlTestCase(Input.InputBuilder<?, ?> inputBuilder, String testCaseName, List<Path> files) {
-    var databaseBuilder = Database.builder()
-        .id(String.format("database-%s", testCaseName));
+    private static void fixTestCase(Path testcasePath) {
+        var files = getFiles(testcasePath);
+        var mapping = files.stream()
+                .filter(path -> path.getFileName().toString().equals("mapping.ttl"))
+                .findFirst()
+                .orElseThrow();
 
-    files.stream()
-        .map(path -> path.getFileName()
-            .toString())
-        .filter(fileName -> fileName.endsWith(".sql"))
-        .forEach(databaseBuilder::sqlScriptFile);
+        try {
+            var turtle = new String(Files.readAllBytes(mapping));
 
-    inputBuilder.database(databaseBuilder.build());
-  }
+            var prefixes = parsePrefixes(turtle);
 
-  private static void processSparqlTestCase(Input.InputBuilder<?, ?> inputBuilder, String testCaseName,
-      List<Path> files) {
-    var tripleStoreBuilder = TripleStore.builder()
-        .id(String.format("triplestore-%s", testCaseName));
+            Model mappingModel;
+            try {
+                mappingModel = Models.parse(Files.newInputStream(mapping), RDFFormat.TURTLE);
+            } catch (RDFParseException e) {
+                System.out.println(String.format("Error parsing mapping file: %s%n%s", mapping, e));
+                return;
+            }
 
-    files.stream()
-        .map(path -> path.getFileName()
-            .toString())
-        .filter(fileName -> fileName.endsWith(".ttl"))
-        .filter(not(fileName -> fileName.equals("mapping.ttl")))
-        .forEach(tripleStoreBuilder::rdfFile);
+            // fix
+            var outModel = fixMapping(mappingModel, prefixes);
 
-    inputBuilder.tripleStore(tripleStoreBuilder.build());
-  }
+            Rio.write(
+                    outModel,
+                    Files.newOutputStream(mapping),
+                    RDFFormat.TURTLE,
+                    SIMPLE_WRITER_CONFIG.apply(new WriterConfig()));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
-  private static void processOtherTestCase(Input.InputBuilder<?, ?> inputBuilder, List<Path> files) {
-    files.stream()
-        .map(path -> path.getFileName()
-            .toString())
-        .filter(not(fileName -> fileName.endsWith(".sql")))
-        .filter(not(fileName -> fileName.endsWith(".ttl")))
-        .filter(not(fileName -> fileName.equals("output.nq")))
-        .forEach(inputBuilder::inputFile);
-  }
+    private static Model fixMapping(Model mappingModel, List<Namespace> prefixes) {
+        var fixed =
+                mappingModel.stream().flatMap(TestCaseProcessor::statementFixes).collect(ModelCollector.toModel());
+
+        prefixes.forEach(fixed::setNamespace);
+
+        return fixed;
+    }
+
+    private static Stream<Statement> statementFixes(Statement original) {
+        // if (original.getObject()
+        // .stringValue()
+        // .equals(Rml.NAMESPACE + "SQL2008TableName")) {
+        // return Stream
+        // .of(statement(original.getSubject(), original.getPredicate(), Rdf.Rml.SQL2008Table,
+        // original.getContext()));
+        // }
+        //
+        // if (original.getPredicate()
+        // .stringValue()
+        // .equals(Rml.NAMESPACE + "sqlVersion")) {
+        // return Stream.of();
+        // }
+        //
+        // if (original.getPredicate()
+        // .stringValue()
+        // .equals(Rml.NAMESPACE + "tableName")) {
+        // return Stream.of(statement(original.getSubject(), Rdf.Rml.iterator, original.getObject(),
+        // original.getContext()));
+        // }
+
+        if (original.getPredicate().stringValue().equals(Rml.NAMESPACE + "path")) {
+            return Stream.of(
+                    statement(original.getSubject(), Rdf.Rml.root, Rdf.Rml.MappingDirectory, original.getContext()),
+                    original);
+        }
+
+        // if (original.getPredicate().stringValue().equals(Rml.NAMESPACE + "iterator") &&
+        // original.getObject().stringValue().equals("$.results.bindings[*]")) {
+        // return Stream.of();
+        // }
+        //
+        // if (original.getPredicate().stringValue().equals(Rml.NAMESPACE + "referenceFormulation")) {
+        // return Stream.of(statement(original.getSubject(), original.getPredicate(),
+        // iri("https://www.w3.org/ns/formats/SPARQL_Results_JSON"), original.getContext()));
+        // }
+        //
+        // if (original.getPredicate().stringValue().equals(SD.NAMESPACE + "resultFormat")){
+        // return Stream.of();
+        // }
+
+        return Stream.of(original);
+    }
+
+    private static List<Namespace> parsePrefixes(String turtle) throws IOException {
+        return turtle.lines()
+                .filter(line -> line.startsWith("@prefix"))
+                .map(line -> line.substring(8, line.length() - 1))
+                .map(prefix -> prefix.split(" "))
+                .map(parts -> (Namespace) new SimpleNamespace(
+                        parts[0].replaceAll(":$", "").trim(),
+                        parts[1].replace("<", "")
+                                .replace(">", "")
+                                .replaceAll("\\.$", "")
+                                .trim()))
+                .toList();
+    }
+
+    private static List<Path> getFiles(Path testcasePath) {
+        try (var testCaseFiles = Files.walk(testcasePath)) {
+            return testCaseFiles.filter(Files::isRegularFile).toList();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static void processSqlTestCase(
+            Input.InputBuilder<?, ?> inputBuilder, String testCaseName, List<Path> files) {
+        var databaseBuilder = Database.builder().id(String.format("database-%s", testCaseName));
+
+        files.stream()
+                .map(path -> path.getFileName().toString())
+                .filter(fileName -> fileName.endsWith(".sql"))
+                .forEach(databaseBuilder::sqlScriptFile);
+
+        inputBuilder.database(databaseBuilder.build());
+    }
+
+    private static void processSparqlTestCase(
+            Input.InputBuilder<?, ?> inputBuilder, String testCaseName, List<Path> files) {
+        var tripleStoreBuilder = TripleStore.builder().id(String.format("triplestore-%s", testCaseName));
+
+        files.stream()
+                .map(path -> path.getFileName().toString())
+                .filter(fileName -> fileName.endsWith(".ttl"))
+                .filter(not(fileName -> fileName.equals("mapping.ttl")))
+                .forEach(tripleStoreBuilder::rdfFile);
+
+        inputBuilder.tripleStore(tripleStoreBuilder.build());
+    }
+
+    private static void processOtherTestCase(Input.InputBuilder<?, ?> inputBuilder, List<Path> files) {
+        files.stream()
+                .map(path -> path.getFileName().toString())
+                .filter(not(fileName -> fileName.endsWith(".sql")))
+                .filter(not(fileName -> fileName.endsWith(".ttl")))
+                .filter(not(fileName -> fileName.equals("output.nq")))
+                .forEach(inputBuilder::inputFile);
+    }
 }

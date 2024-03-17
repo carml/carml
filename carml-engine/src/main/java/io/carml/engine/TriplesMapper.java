@@ -11,15 +11,15 @@ import reactor.core.publisher.Flux;
 
 public interface TriplesMapper<V> {
 
-  Flux<V> map(LogicalSourceRecord<?> logicalSourceRecord);
+    Flux<V> map(LogicalSourceRecord<?> logicalSourceRecord);
 
-  Flux<V> mapEvaluation(ExpressionEvaluation expressionEvaluation, DatatypeMapper datatypeMapper);
+    Flux<V> mapEvaluation(ExpressionEvaluation expressionEvaluation, DatatypeMapper datatypeMapper);
 
-  TriplesMap getTriplesMap();
+    TriplesMap getTriplesMap();
 
-  LogicalSource getLogicalSource();
+    LogicalSource getLogicalSource();
 
-  ParentSideJoinConditionStore<Resource> getParentSideJoinConditions();
+    ParentSideJoinConditionStore<Resource> getParentSideJoinConditions();
 
-  void cleanup();
+    void cleanup();
 }

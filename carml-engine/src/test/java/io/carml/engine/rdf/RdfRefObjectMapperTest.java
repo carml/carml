@@ -51,370 +51,371 @@ import reactor.test.StepVerifier;
 @ExtendWith(MockitoExtension.class)
 class RdfRefObjectMapperTest {
 
-  private static final ValueFactory VALUE_FACTORY = SimpleValueFactory.getInstance();
+    private static final ValueFactory VALUE_FACTORY = SimpleValueFactory.getInstance();
 
-  @Mock
-  private TriplesMap triplesMap;
+    @Mock
+    private TriplesMap triplesMap;
 
-  @Mock
-  private RefObjectMap refObjectMap;
+    @Mock
+    private RefObjectMap refObjectMap;
 
-  @Mock
-  private Join join1;
+    @Mock
+    private Join join1;
 
-  @Mock
-  private ChildMap childMap1;
+    @Mock
+    private ChildMap childMap1;
 
-  @Mock
-  private ParentMap parentMap1;
+    @Mock
+    private ParentMap parentMap1;
 
-  @Mock
-  private Join join2;
+    @Mock
+    private Join join2;
 
-  @Mock
-  private ChildMap childMap2;
+    @Mock
+    private ChildMap childMap2;
 
-  @Mock
-  private ParentMap parentMap2;
+    @Mock
+    private ParentMap parentMap2;
 
-  @Mock
-  private RdfTermGeneratorFactory rdfTermGeneratorFactory;
+    @Mock
+    private RdfTermGeneratorFactory rdfTermGeneratorFactory;
 
-  @Mock
-  private ChildSideJoinStoreProvider<Resource, IRI> childSideJoinStoreProvider;
+    @Mock
+    private ChildSideJoinStoreProvider<Resource, IRI> childSideJoinStoreProvider;
 
-  @Mock
-  private ExpressionEvaluation expressionEvaluation;
+    @Mock
+    private ExpressionEvaluation expressionEvaluation;
 
-  @Mock
-  private ChildSideJoinStore<Resource, IRI> childSideJoinStore;
+    @Mock
+    private ChildSideJoinStore<Resource, IRI> childSideJoinStore;
 
-  @Mock
-  private RdfTriplesMapper<?> parentRdfTriplesMapper;
+    @Mock
+    private RdfTriplesMapper<?> parentRdfTriplesMapper;
 
-  @Mock
-  private ParentSideJoinConditionStore<Resource> parentSideJoinConditionStore;
+    @Mock
+    private ParentSideJoinConditionStore<Resource> parentSideJoinConditionStore;
 
-  @Captor
-  private ArgumentCaptor<Set<ChildSideJoin<Resource, IRI>>> childSideJoinCaptor;
+    @Captor
+    private ArgumentCaptor<Set<ChildSideJoin<Resource, IRI>>> childSideJoinCaptor;
 
-  @BeforeEach
-  void setup() {
-    when(childSideJoinStoreProvider.createChildSideJoinStore(any())).thenReturn(childSideJoinStore);
-  }
+    @BeforeEach
+    void setup() {
+        when(childSideJoinStoreProvider.createChildSideJoinStore(any())).thenReturn(childSideJoinStore);
+    }
 
-  @Test
-  void givenAllParams_whenOfCalled_thenConstructRdfRefObjectMapper() {
-    // Given
-    RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
-        .valueFactorySupplier(() -> VALUE_FACTORY)
-        .termGeneratorFactory(rdfTermGeneratorFactory)
-        .childSideJoinStoreProvider(childSideJoinStoreProvider)
-        .build();
+    @Test
+    void givenAllParams_whenOfCalled_thenConstructRdfRefObjectMapper() {
+        // Given
+        RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
+                .valueFactorySupplier(() -> VALUE_FACTORY)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .childSideJoinStoreProvider(childSideJoinStoreProvider)
+                .build();
 
-    // When
-    RdfRefObjectMapper rdfRefObjectMapper = RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingConfig);
+        // When
+        RdfRefObjectMapper rdfRefObjectMapper = RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingConfig);
 
-    // Then
-    assertThat(rdfRefObjectMapper, is(not(nullValue())));
-    assertThat(rdfRefObjectMapper.getRefObjectMap(), is(refObjectMap));
-  }
+        // Then
+        assertThat(rdfRefObjectMapper, is(not(nullValue())));
+        assertThat(rdfRefObjectMapper.getRefObjectMap(), is(refObjectMap));
+    }
 
-  @Test
-  void givenRefObjectMapperWithAllArgsWithSingleJoinCondition_whenMap_thenChildSideJoinConditionWithConditionAdded() {
-    // Given
-    RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
-        .valueFactorySupplier(() -> VALUE_FACTORY)
-        .termGeneratorFactory(rdfTermGeneratorFactory)
-        .childSideJoinStoreProvider(childSideJoinStoreProvider)
-        .build();
+    @Test
+    void givenRefObjectMapperWithAllArgsWithSingleJoinCondition_whenMap_thenChildSideJoinConditionWithConditionAdded() {
+        // Given
+        RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
+                .valueFactorySupplier(() -> VALUE_FACTORY)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .childSideJoinStoreProvider(childSideJoinStoreProvider)
+                .build();
 
-    when(refObjectMap.getJoinConditions()).thenReturn(Set.of(join1));
-    when(join1.getChildMap()).thenReturn(childMap1);
-    when(childMap1.getReference()).thenReturn("foo");
-    when(join1.getParentMap()).thenReturn(parentMap1);
-    when(parentMap1.getReference()).thenReturn("bar");
+        when(refObjectMap.getJoinConditions()).thenReturn(Set.of(join1));
+        when(join1.getChildMap()).thenReturn(childMap1);
+        when(childMap1.getReference()).thenReturn("foo");
+        when(join1.getParentMap()).thenReturn(parentMap1);
+        when(parentMap1.getReference()).thenReturn("bar");
 
-    when(expressionEvaluation.apply(any())).thenReturn(Optional.of(List.of("baz")));
+        when(expressionEvaluation.apply(any())).thenReturn(Optional.of(List.of("baz")));
 
-    Set<Resource> subjects = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/subject1"));
-    Set<Resource> graphs = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/graph1"));
+        Set<Resource> subjects = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/subject1"));
+        Set<Resource> graphs = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/graph1"));
 
-    Map<Set<Resource>, Set<Resource>> subjectsAndAllGraphs = Map.of(subjects, graphs);
+        Map<Set<Resource>, Set<Resource>> subjectsAndAllGraphs = Map.of(subjects, graphs);
 
-    RdfRefObjectMapper rdfRefObjectMapper = RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingConfig);
+        RdfRefObjectMapper rdfRefObjectMapper = RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingConfig);
 
-    Set<IRI> predicates = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/predicate1"));
+        Set<IRI> predicates = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/predicate1"));
 
-    // When
-    Mono<Statement> refObjectMapperPromise = Mono.empty();
-    rdfRefObjectMapper.map(subjectsAndAllGraphs, predicates, expressionEvaluation);
+        // When
+        Mono<Statement> refObjectMapperPromise = Mono.empty();
+        rdfRefObjectMapper.map(subjectsAndAllGraphs, predicates, expressionEvaluation);
 
-    // Then
-    StepVerifier.create(refObjectMapperPromise)
-        .expectComplete()
-        .verify();
-
-    verify(childSideJoinStore, times(1)).addAll(childSideJoinCaptor.capture());
-
-    Set<ChildSideJoin<Resource, IRI>> childSideJoins = childSideJoinCaptor.getValue();
-
-    ChildSideJoin<Resource, IRI> childSideJoin = Iterables.getOnlyElement(childSideJoins);
-
-    assertThat(childSideJoin.getSubjects(), is(subjects));
-    assertThat(childSideJoin.getPredicates(), is(predicates));
-    assertThat(childSideJoin.getGraphs(), is(graphs));
-
-    Set<ChildSideJoinCondition> childSideJoinConditions = childSideJoin.getChildSideJoinConditions();
-
-    assertThat(childSideJoinConditions, hasSize(1));
-
-    ChildSideJoinCondition childSideJoinCondition = Iterables.getOnlyElement(childSideJoinConditions);
+        // Then
+        StepVerifier.create(refObjectMapperPromise).expectComplete().verify();
+
+        verify(childSideJoinStore, times(1)).addAll(childSideJoinCaptor.capture());
+
+        Set<ChildSideJoin<Resource, IRI>> childSideJoins = childSideJoinCaptor.getValue();
+
+        ChildSideJoin<Resource, IRI> childSideJoin = Iterables.getOnlyElement(childSideJoins);
+
+        assertThat(childSideJoin.getSubjects(), is(subjects));
+        assertThat(childSideJoin.getPredicates(), is(predicates));
+        assertThat(childSideJoin.getGraphs(), is(graphs));
+
+        Set<ChildSideJoinCondition> childSideJoinConditions = childSideJoin.getChildSideJoinConditions();
+
+        assertThat(childSideJoinConditions, hasSize(1));
+
+        ChildSideJoinCondition childSideJoinCondition = Iterables.getOnlyElement(childSideJoinConditions);
+
+        assertThat(childSideJoinCondition.getChildReference(), is("foo"));
+        assertThat(childSideJoinCondition.getChildValues(), containsInAnyOrder("baz"));
+        assertThat(childSideJoinCondition.getParentReference(), is("bar"));
+    }
+
+    @Test
+    void givenRefObjectMapperWitMultipleSubjectAndGraphCombos_whenMap_thenChildSideJoinConditionWithConditionAdded() {
+        // Given
+        RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
+                .valueFactorySupplier(() -> VALUE_FACTORY)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .childSideJoinStoreProvider(childSideJoinStoreProvider)
+                .build();
 
-    assertThat(childSideJoinCondition.getChildReference(), is("foo"));
-    assertThat(childSideJoinCondition.getChildValues(), containsInAnyOrder("baz"));
-    assertThat(childSideJoinCondition.getParentReference(), is("bar"));
-  }
+        when(refObjectMap.getJoinConditions()).thenReturn(Set.of(join1));
+        when(join1.getChildMap()).thenReturn(childMap1);
+        when(childMap1.getReference()).thenReturn("foo");
+        when(join1.getParentMap()).thenReturn(parentMap1);
+        when(parentMap1.getReference()).thenReturn("bar");
 
-  @Test
-  void givenRefObjectMapperWitMultipleSubjectAndGraphCombos_whenMap_thenChildSideJoinConditionWithConditionAdded() {
-    // Given
-    RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
-        .valueFactorySupplier(() -> VALUE_FACTORY)
-        .termGeneratorFactory(rdfTermGeneratorFactory)
-        .childSideJoinStoreProvider(childSideJoinStoreProvider)
-        .build();
+        Resource subject1 = VALUE_FACTORY.createIRI("http://foo.bar/subject1");
+        Resource subject2 = VALUE_FACTORY.createIRI("http://foo.bar/subject2");
+        IRI predicate1 = VALUE_FACTORY.createIRI("http://foo.bar/predicate1");
+        Resource graph1 = VALUE_FACTORY.createIRI("http://foo.bar/graph1");
+        Resource graph2 = VALUE_FACTORY.createIRI("http://foo.bar/graph2");
+        Set<Resource> subjects = Set.of(subject1);
+        Set<Resource> subjects2 = Set.of(subject2);
+        Set<Resource> graphs = Set.of(graph1);
+        Set<Resource> graphs2 = Set.of(graph2);
 
-    when(refObjectMap.getJoinConditions()).thenReturn(Set.of(join1));
-    when(join1.getChildMap()).thenReturn(childMap1);
-    when(childMap1.getReference()).thenReturn("foo");
-    when(join1.getParentMap()).thenReturn(parentMap1);
-    when(parentMap1.getReference()).thenReturn("bar");
+        when(expressionEvaluation.apply(any())).thenReturn(Optional.of(List.of("baz")));
 
-    Resource subject1 = VALUE_FACTORY.createIRI("http://foo.bar/subject1");
-    Resource subject2 = VALUE_FACTORY.createIRI("http://foo.bar/subject2");
-    IRI predicate1 = VALUE_FACTORY.createIRI("http://foo.bar/predicate1");
-    Resource graph1 = VALUE_FACTORY.createIRI("http://foo.bar/graph1");
-    Resource graph2 = VALUE_FACTORY.createIRI("http://foo.bar/graph2");
-    Set<Resource> subjects = Set.of(subject1);
-    Set<Resource> subjects2 = Set.of(subject2);
-    Set<Resource> graphs = Set.of(graph1);
-    Set<Resource> graphs2 = Set.of(graph2);
+        Map<Set<Resource>, Set<Resource>> subjectsAndAllGraphs = Map.of(subjects, graphs, subjects2, graphs2);
 
-    when(expressionEvaluation.apply(any())).thenReturn(Optional.of(List.of("baz")));
+        RdfRefObjectMapper rdfRefObjectMapper = RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingConfig);
 
-    Map<Set<Resource>, Set<Resource>> subjectsAndAllGraphs = Map.of(subjects, graphs, subjects2, graphs2);
+        Set<IRI> predicates = Set.of(predicate1);
 
-    RdfRefObjectMapper rdfRefObjectMapper = RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingConfig);
+        // When
+        Mono<Statement> refObjectMapperPromise = Mono.empty();
+        rdfRefObjectMapper.map(subjectsAndAllGraphs, predicates, expressionEvaluation);
+
+        // Then
+        StepVerifier.create(refObjectMapperPromise).expectComplete().verify();
+
+        verify(childSideJoinStore, times(1)).addAll(childSideJoinCaptor.capture());
 
-    Set<IRI> predicates = Set.of(predicate1);
-
-    // When
-    Mono<Statement> refObjectMapperPromise = Mono.empty();
-    rdfRefObjectMapper.map(subjectsAndAllGraphs, predicates, expressionEvaluation);
+        Set<ChildSideJoin<Resource, IRI>> childSideJoins = childSideJoinCaptor.getValue();
+
+        assertThat(
+                childSideJoins.stream()
+                        .map(ChildSideJoin::getSubjects)
+                        .flatMap(Set::stream)
+                        .collect(Collectors.toUnmodifiableSet()),
+                containsInAnyOrder(subject1, subject2));
+        assertThat(
+                childSideJoins.stream()
+                        .map(ChildSideJoin::getPredicates)
+                        .flatMap(Set::stream)
+                        .collect(Collectors.toUnmodifiableSet()),
+                containsInAnyOrder(predicate1));
+        assertThat(
+                childSideJoins.stream()
+                        .map(ChildSideJoin::getGraphs)
+                        .flatMap(Set::stream)
+                        .collect(Collectors.toUnmodifiableSet()),
+                containsInAnyOrder(graph1, graph2));
+    }
 
-    // Then
-    StepVerifier.create(refObjectMapperPromise)
-        .expectComplete()
-        .verify();
-
-    verify(childSideJoinStore, times(1)).addAll(childSideJoinCaptor.capture());
+    @Test
+    void givenRefObjectMapperWithMultipleJoinConditions_whenMap_thenChildSideJoinConditionWithAllConditionsAdded() {
+        // Given
+        RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
+                .valueFactorySupplier(() -> VALUE_FACTORY)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .childSideJoinStoreProvider(childSideJoinStoreProvider)
+                .build();
 
-    Set<ChildSideJoin<Resource, IRI>> childSideJoins = childSideJoinCaptor.getValue();
+        when(refObjectMap.getJoinConditions()).thenReturn(Set.of(join1, join2));
+        when(join1.getChildMap()).thenReturn(childMap1);
+        when(childMap1.getReference()).thenReturn("foo");
 
-    assertThat(childSideJoins.stream()
-        .map(ChildSideJoin::getSubjects)
-        .flatMap(Set::stream)
-        .collect(Collectors.toUnmodifiableSet()), containsInAnyOrder(subject1, subject2));
-    assertThat(childSideJoins.stream()
-        .map(ChildSideJoin::getPredicates)
-        .flatMap(Set::stream)
-        .collect(Collectors.toUnmodifiableSet()), containsInAnyOrder(predicate1));
-    assertThat(childSideJoins.stream()
-        .map(ChildSideJoin::getGraphs)
-        .flatMap(Set::stream)
-        .collect(Collectors.toUnmodifiableSet()), containsInAnyOrder(graph1, graph2));
-  }
-
-  @Test
-  void givenRefObjectMapperWithMultipleJoinConditions_whenMap_thenChildSideJoinConditionWithAllConditionsAdded() {
-    // Given
-    RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
-        .valueFactorySupplier(() -> VALUE_FACTORY)
-        .termGeneratorFactory(rdfTermGeneratorFactory)
-        .childSideJoinStoreProvider(childSideJoinStoreProvider)
-        .build();
-
-    when(refObjectMap.getJoinConditions()).thenReturn(Set.of(join1, join2));
-    when(join1.getChildMap()).thenReturn(childMap1);
-    when(childMap1.getReference()).thenReturn("foo");
-
-    when(join1.getParentMap()).thenReturn(parentMap1);
-    when(parentMap1.getReference()).thenReturn("bar");
-
-    when(join2.getChildMap()).thenReturn(childMap2);
-    when(childMap2.getReference()).thenReturn("Alice");
-    when(join2.getParentMap()).thenReturn(parentMap2);
-    when(parentMap2.getReference()).thenReturn("Bob");
-
-    when(expressionEvaluation.apply(any())).thenReturn(Optional.of(List.of("baz")))
-        .thenReturn(Optional.of(List.of("Carol")));
-
-    Set<Resource> subjects = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/subject1"));
-    Set<Resource> graphs = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/graph1"));
-
-    Map<Set<Resource>, Set<Resource>> subjectsAndAllGraphs = Map.of(subjects, graphs);
-
-    Set<IRI> predicates = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/predicate1"));
-
-    RdfRefObjectMapper rdfRefObjectMapper = RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingConfig);
-
-    // When
-    Mono<Statement> refObjectMapperPromise = Mono.empty();
-    rdfRefObjectMapper.map(subjectsAndAllGraphs, predicates, expressionEvaluation);
-
-    // Then
-    StepVerifier.create(refObjectMapperPromise)
-        .verifyComplete();
-
-    verify(childSideJoinStore, times(1)).addAll(childSideJoinCaptor.capture());
-
-    Set<ChildSideJoin<Resource, IRI>> childSideJoins = childSideJoinCaptor.getValue();
-
-    ChildSideJoin<Resource, IRI> childSideJoin = Iterables.getOnlyElement(childSideJoins);
-
-    assertThat(childSideJoin.getSubjects(), is(subjects));
-    assertThat(childSideJoin.getPredicates(), is(predicates));
-    assertThat(childSideJoin.getGraphs(), is(graphs));
-
-    Set<ChildSideJoinCondition> childSideJoinConditions = childSideJoin.getChildSideJoinConditions();
-
-    assertThat(childSideJoinConditions, hasSize(2));
-  }
-
-  @Test
-  void givenValidJoinWithTwoParentValues_whenResolveJoins_ThenReturnsTwoStatements() {
-    // Given
-    IRI subject1 = VALUE_FACTORY.createIRI("http://foo.bar/subject1");
-    Set<Resource> subjects = Set.of(subject1);
-    IRI predicate1 = VALUE_FACTORY.createIRI("http://foo.bar/predicate1");
-    Set<IRI> predicates = Set.of(predicate1);
-    IRI graph1 = VALUE_FACTORY.createIRI("http://foo.bar/graph1");
-    Set<Resource> graphs = Set.of(graph1);
-
-    ChildSideJoin<Resource, IRI> childSideJoin1 = ChildSideJoin.<Resource, IRI>builder()
-        .subjects(new HashSet<>(subjects))
-        .predicates(new HashSet<>(predicates))
-        .graphs(new HashSet<>(graphs))
-        .childSideJoinConditions(
-            new HashSet<>(Set.of(ChildSideJoinCondition.of("foo", new ArrayList<>(List.of("baz")), "bar"))))
-        .build();
-
-    when(childSideJoinStore.clearingFlux()).thenReturn(Flux.just(childSideJoin1));
-
-    RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
-        .valueFactorySupplier(() -> VALUE_FACTORY)
-        .termGeneratorFactory(rdfTermGeneratorFactory)
-        .childSideJoinStoreProvider(childSideJoinStoreProvider)
-        .build();
-
-    RdfRefObjectMapper rdfRefObjectMapper = RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingConfig);
-
-    IRI parentSubject1 = VALUE_FACTORY.createIRI("http://foo.bar/parentSubject1");
-    IRI parentSubject2 = VALUE_FACTORY.createIRI("http://foo.bar/parentSubject2");
-    Set<Resource> parentSubjects = Set.of(parentSubject1, parentSubject2);
-
-    ParentSideJoinKey parentSideJoinKey = ParentSideJoinKey.of("bar", "baz");
-
-    when(parentSideJoinConditionStore.containsKey(parentSideJoinKey)).thenReturn(true);
-    when(parentSideJoinConditionStore.get(parentSideJoinKey)).thenReturn(parentSubjects);
-
-    when(parentRdfTriplesMapper.getParentSideJoinConditions()).thenReturn(parentSideJoinConditionStore);
-
-    // When
-    Flux<Statement> joinedStatementFlux = rdfRefObjectMapper.resolveJoins(parentRdfTriplesMapper);
-
-    // Then
-    Predicate<Statement> expectedStatement = statement -> Set
-        .of(VALUE_FACTORY.createStatement(subject1, predicate1, parentSubject1, graph1),
-            VALUE_FACTORY.createStatement(subject1, predicate1, parentSubject2, graph1))
-        .contains(statement);
-
-    StepVerifier.create(joinedStatementFlux)
-        .expectNextMatches(expectedStatement)
-        .expectNextMatches(expectedStatement)
-        .verifyComplete();
-  }
-
-  @Test
-  void givenValidJoinWithTwoParentValuesForTwoSubjectGraphCombos_whenResolveJoins_ThenReturnsFourStatements() {
-    // Given
-    IRI subject1 = VALUE_FACTORY.createIRI("http://foo.bar/subject1");
-    Set<Resource> subjects = Set.of(subject1);
-    IRI predicate1 = VALUE_FACTORY.createIRI("http://foo.bar/predicate1");
-    Set<IRI> predicates = Set.of(predicate1);
-    IRI graph1 = VALUE_FACTORY.createIRI("http://foo.bar/graph1");
-    Set<Resource> graphs = Set.of(graph1);
-
-
-    IRI subject2 = VALUE_FACTORY.createIRI("http://foo.bar/subject1");
-    Set<Resource> subjects2 = Set.of(subject2);
-    IRI graph2 = VALUE_FACTORY.createIRI("http://foo.bar/graph2");
-    Set<Resource> graphs2 = Set.of(graph2);
-
-    ChildSideJoin<Resource, IRI> childSideJoin1 = ChildSideJoin.<Resource, IRI>builder()
-        .subjects(new HashSet<>(subjects))
-        .predicates(new HashSet<>(predicates))
-        .graphs(new HashSet<>(graphs))
-        .childSideJoinConditions(
-            new HashSet<>(Set.of(ChildSideJoinCondition.of("foo", new ArrayList<>(List.of("baz")), "bar"))))
-        .build();
-
-    ChildSideJoin<Resource, IRI> childSideJoin2 = ChildSideJoin.<Resource, IRI>builder()
-        .subjects(new HashSet<>(subjects2))
-        .predicates(new HashSet<>(predicates))
-        .graphs(new HashSet<>(graphs2))
-        .childSideJoinConditions(
-            new HashSet<>(Set.of(ChildSideJoinCondition.of("foo", new ArrayList<>(List.of("baz")), "bar"))))
-        .build();
-
-    when(childSideJoinStore.clearingFlux()).thenReturn(Flux.just(childSideJoin1, childSideJoin2));
-
-    RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
-        .valueFactorySupplier(() -> VALUE_FACTORY)
-        .termGeneratorFactory(rdfTermGeneratorFactory)
-        .childSideJoinStoreProvider(childSideJoinStoreProvider)
-        .build();
-
-    RdfRefObjectMapper rdfRefObjectMapper = RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingConfig);
-
-    IRI parentSubject1 = VALUE_FACTORY.createIRI("http://foo.bar/parentSubject1");
-    IRI parentSubject2 = VALUE_FACTORY.createIRI("http://foo.bar/parentSubject2");
-    Set<Resource> parentSubjects = Set.of(parentSubject1, parentSubject2);
-
-    ParentSideJoinKey parentSideJoinKey = ParentSideJoinKey.of("bar", "baz");
-
-    when(parentSideJoinConditionStore.containsKey(parentSideJoinKey)).thenReturn(true);
-    when(parentSideJoinConditionStore.get(parentSideJoinKey)).thenReturn(parentSubjects);
-
-    when(parentRdfTriplesMapper.getParentSideJoinConditions()).thenReturn(parentSideJoinConditionStore);
-
-    // When
-    Flux<Statement> joinedStatementFlux = rdfRefObjectMapper.resolveJoins(parentRdfTriplesMapper);
-
-    // Then
-    Predicate<Statement> expectedStatement = statement -> Set
-        .of(VALUE_FACTORY.createStatement(subject1, predicate1, parentSubject1, graph1),
-            VALUE_FACTORY.createStatement(subject1, predicate1, parentSubject2, graph1),
-            VALUE_FACTORY.createStatement(subject2, predicate1, parentSubject1, graph2),
-            VALUE_FACTORY.createStatement(subject2, predicate1, parentSubject2, graph2))
-        .contains(statement);
-
-    StepVerifier.create(joinedStatementFlux)
-        .expectNextMatches(expectedStatement)
-        .expectNextMatches(expectedStatement)
-        .expectNextMatches(expectedStatement)
-        .expectNextMatches(expectedStatement)
-        .verifyComplete();
-  }
+        when(join1.getParentMap()).thenReturn(parentMap1);
+        when(parentMap1.getReference()).thenReturn("bar");
+
+        when(join2.getChildMap()).thenReturn(childMap2);
+        when(childMap2.getReference()).thenReturn("Alice");
+        when(join2.getParentMap()).thenReturn(parentMap2);
+        when(parentMap2.getReference()).thenReturn("Bob");
+
+        when(expressionEvaluation.apply(any()))
+                .thenReturn(Optional.of(List.of("baz")))
+                .thenReturn(Optional.of(List.of("Carol")));
+
+        Set<Resource> subjects = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/subject1"));
+        Set<Resource> graphs = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/graph1"));
+
+        Map<Set<Resource>, Set<Resource>> subjectsAndAllGraphs = Map.of(subjects, graphs);
+
+        Set<IRI> predicates = Set.of(VALUE_FACTORY.createIRI("http://foo.bar/predicate1"));
+
+        RdfRefObjectMapper rdfRefObjectMapper = RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingConfig);
+
+        // When
+        Mono<Statement> refObjectMapperPromise = Mono.empty();
+        rdfRefObjectMapper.map(subjectsAndAllGraphs, predicates, expressionEvaluation);
+
+        // Then
+        StepVerifier.create(refObjectMapperPromise).verifyComplete();
+
+        verify(childSideJoinStore, times(1)).addAll(childSideJoinCaptor.capture());
+
+        Set<ChildSideJoin<Resource, IRI>> childSideJoins = childSideJoinCaptor.getValue();
+
+        ChildSideJoin<Resource, IRI> childSideJoin = Iterables.getOnlyElement(childSideJoins);
+
+        assertThat(childSideJoin.getSubjects(), is(subjects));
+        assertThat(childSideJoin.getPredicates(), is(predicates));
+        assertThat(childSideJoin.getGraphs(), is(graphs));
+
+        Set<ChildSideJoinCondition> childSideJoinConditions = childSideJoin.getChildSideJoinConditions();
+
+        assertThat(childSideJoinConditions, hasSize(2));
+    }
+
+    @Test
+    void givenValidJoinWithTwoParentValues_whenResolveJoins_ThenReturnsTwoStatements() {
+        // Given
+        IRI subject1 = VALUE_FACTORY.createIRI("http://foo.bar/subject1");
+        Set<Resource> subjects = Set.of(subject1);
+        IRI predicate1 = VALUE_FACTORY.createIRI("http://foo.bar/predicate1");
+        Set<IRI> predicates = Set.of(predicate1);
+        IRI graph1 = VALUE_FACTORY.createIRI("http://foo.bar/graph1");
+        Set<Resource> graphs = Set.of(graph1);
+
+        ChildSideJoin<Resource, IRI> childSideJoin1 = ChildSideJoin.<Resource, IRI>builder()
+                .subjects(new HashSet<>(subjects))
+                .predicates(new HashSet<>(predicates))
+                .graphs(new HashSet<>(graphs))
+                .childSideJoinConditions(
+                        new HashSet<>(Set.of(ChildSideJoinCondition.of("foo", new ArrayList<>(List.of("baz")), "bar"))))
+                .build();
+
+        when(childSideJoinStore.clearingFlux()).thenReturn(Flux.just(childSideJoin1));
+
+        RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
+                .valueFactorySupplier(() -> VALUE_FACTORY)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .childSideJoinStoreProvider(childSideJoinStoreProvider)
+                .build();
+
+        RdfRefObjectMapper rdfRefObjectMapper = RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingConfig);
+
+        IRI parentSubject1 = VALUE_FACTORY.createIRI("http://foo.bar/parentSubject1");
+        IRI parentSubject2 = VALUE_FACTORY.createIRI("http://foo.bar/parentSubject2");
+        Set<Resource> parentSubjects = Set.of(parentSubject1, parentSubject2);
+
+        ParentSideJoinKey parentSideJoinKey = ParentSideJoinKey.of("bar", "baz");
+
+        when(parentSideJoinConditionStore.containsKey(parentSideJoinKey)).thenReturn(true);
+        when(parentSideJoinConditionStore.get(parentSideJoinKey)).thenReturn(parentSubjects);
+
+        when(parentRdfTriplesMapper.getParentSideJoinConditions()).thenReturn(parentSideJoinConditionStore);
+
+        // When
+        Flux<Statement> joinedStatementFlux = rdfRefObjectMapper.resolveJoins(parentRdfTriplesMapper);
+
+        // Then
+        Predicate<Statement> expectedStatement = statement -> Set.of(
+                        VALUE_FACTORY.createStatement(subject1, predicate1, parentSubject1, graph1),
+                        VALUE_FACTORY.createStatement(subject1, predicate1, parentSubject2, graph1))
+                .contains(statement);
+
+        StepVerifier.create(joinedStatementFlux)
+                .expectNextMatches(expectedStatement)
+                .expectNextMatches(expectedStatement)
+                .verifyComplete();
+    }
+
+    @Test
+    void givenValidJoinWithTwoParentValuesForTwoSubjectGraphCombos_whenResolveJoins_ThenReturnsFourStatements() {
+        // Given
+        IRI subject1 = VALUE_FACTORY.createIRI("http://foo.bar/subject1");
+        Set<Resource> subjects = Set.of(subject1);
+        IRI predicate1 = VALUE_FACTORY.createIRI("http://foo.bar/predicate1");
+        Set<IRI> predicates = Set.of(predicate1);
+        IRI graph1 = VALUE_FACTORY.createIRI("http://foo.bar/graph1");
+        Set<Resource> graphs = Set.of(graph1);
+
+        IRI subject2 = VALUE_FACTORY.createIRI("http://foo.bar/subject1");
+        Set<Resource> subjects2 = Set.of(subject2);
+        IRI graph2 = VALUE_FACTORY.createIRI("http://foo.bar/graph2");
+        Set<Resource> graphs2 = Set.of(graph2);
+
+        ChildSideJoin<Resource, IRI> childSideJoin1 = ChildSideJoin.<Resource, IRI>builder()
+                .subjects(new HashSet<>(subjects))
+                .predicates(new HashSet<>(predicates))
+                .graphs(new HashSet<>(graphs))
+                .childSideJoinConditions(
+                        new HashSet<>(Set.of(ChildSideJoinCondition.of("foo", new ArrayList<>(List.of("baz")), "bar"))))
+                .build();
+
+        ChildSideJoin<Resource, IRI> childSideJoin2 = ChildSideJoin.<Resource, IRI>builder()
+                .subjects(new HashSet<>(subjects2))
+                .predicates(new HashSet<>(predicates))
+                .graphs(new HashSet<>(graphs2))
+                .childSideJoinConditions(
+                        new HashSet<>(Set.of(ChildSideJoinCondition.of("foo", new ArrayList<>(List.of("baz")), "bar"))))
+                .build();
+
+        when(childSideJoinStore.clearingFlux()).thenReturn(Flux.just(childSideJoin1, childSideJoin2));
+
+        RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
+                .valueFactorySupplier(() -> VALUE_FACTORY)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .childSideJoinStoreProvider(childSideJoinStoreProvider)
+                .build();
+
+        RdfRefObjectMapper rdfRefObjectMapper = RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingConfig);
+
+        IRI parentSubject1 = VALUE_FACTORY.createIRI("http://foo.bar/parentSubject1");
+        IRI parentSubject2 = VALUE_FACTORY.createIRI("http://foo.bar/parentSubject2");
+        Set<Resource> parentSubjects = Set.of(parentSubject1, parentSubject2);
+
+        ParentSideJoinKey parentSideJoinKey = ParentSideJoinKey.of("bar", "baz");
+
+        when(parentSideJoinConditionStore.containsKey(parentSideJoinKey)).thenReturn(true);
+        when(parentSideJoinConditionStore.get(parentSideJoinKey)).thenReturn(parentSubjects);
+
+        when(parentRdfTriplesMapper.getParentSideJoinConditions()).thenReturn(parentSideJoinConditionStore);
+
+        // When
+        Flux<Statement> joinedStatementFlux = rdfRefObjectMapper.resolveJoins(parentRdfTriplesMapper);
+
+        // Then
+        Predicate<Statement> expectedStatement = statement -> Set.of(
+                        VALUE_FACTORY.createStatement(subject1, predicate1, parentSubject1, graph1),
+                        VALUE_FACTORY.createStatement(subject1, predicate1, parentSubject2, graph1),
+                        VALUE_FACTORY.createStatement(subject2, predicate1, parentSubject1, graph2),
+                        VALUE_FACTORY.createStatement(subject2, predicate1, parentSubject2, graph2))
+                .contains(statement);
+
+        StepVerifier.create(joinedStatementFlux)
+                .expectNextMatches(expectedStatement)
+                .expectNextMatches(expectedStatement)
+                .expectNextMatches(expectedStatement)
+                .expectNextMatches(expectedStatement)
+                .verifyComplete();
+    }
 }

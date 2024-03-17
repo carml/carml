@@ -18,24 +18,23 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @ToString(callSuper = true)
 public class CarmlLogicalTable extends CarmlLogicalSource implements LogicalTable {
 
-  @Override
-  public Set<Resource> getReferencedResources() {
-    return Set.of();
-  }
+    @Override
+    public Set<Resource> getReferencedResources() {
+        return Set.of();
+    }
 
-  @Override
-  public void addTriples(ModelBuilder modelBuilder) {
-    modelBuilder.subject(getAsResource())
-        .add(RDF.TYPE, Rdf.Rr.LogicalTable);
+    @Override
+    public void addTriples(ModelBuilder modelBuilder) {
+        modelBuilder.subject(getAsResource()).add(RDF.TYPE, Rdf.Rr.LogicalTable);
 
-    if (tableName != null) {
-      modelBuilder.add(Rr.tableName, tableName);
+        if (tableName != null) {
+            modelBuilder.add(Rr.tableName, tableName);
+        }
+        if (sqlQuery != null) {
+            modelBuilder.add(Rr.sqlQuery, sqlQuery);
+        }
+        if (sqlVersion != null) {
+            modelBuilder.add(Rr.sqlVersion, sqlVersion);
+        }
     }
-    if (sqlQuery != null) {
-      modelBuilder.add(Rr.sqlQuery, sqlQuery);
-    }
-    if (sqlVersion != null) {
-      modelBuilder.add(Rr.sqlVersion, sqlVersion);
-    }
-  }
 }

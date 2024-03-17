@@ -8,9 +8,7 @@ import java.lang.annotation.RetentionPolicy;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface MultiDelegateCall {
 
-  Class<? extends Combiner> value() default Default.class;
+    Class<? extends Combiner> value() default Default.class;
 
-  interface Default extends Combiner {
-  }
-
+    interface Default extends Combiner {}
 }

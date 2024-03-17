@@ -5,21 +5,21 @@ import org.eclipse.rdf4j.model.IRI;
 
 public interface LogicalSource extends Resource {
 
-  Object getSource();
+    Object getSource();
 
-  String getIterator();
+    String getIterator();
 
-  IRI getReferenceFormulation();
+    IRI getReferenceFormulation();
 
-  String getTableName();
+    String getTableName();
 
-  String getSqlQuery();
+    String getSqlQuery();
 
-  IRI getSqlVersion();
+    IRI getSqlVersion();
 
-  String getQuery();
+    String getQuery();
 
-  Set<String> getExpressions();
+    Set<String> getExpressions();
 
-  void setExpressions(Set<String> expressions);
+    void setExpressions(Set<String> expressions);
 }

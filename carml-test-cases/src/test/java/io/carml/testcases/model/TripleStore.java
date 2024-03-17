@@ -22,23 +22,23 @@ import org.eclipse.rdf4j.model.util.ModelBuilder;
 @ToString(callSuper = true)
 public class TripleStore extends CarmlResource {
 
-  @Singular
-  private List<String> rdfFiles;
+    @Singular
+    private List<String> rdfFiles;
 
-  @RdfProperty("http://w3id.org/rml/test/rdfFile")
-  public List<String> getRdfFiles() {
-    return rdfFiles;
-  }
+    @RdfProperty("http://w3id.org/rml/test/rdfFile")
+    public List<String> getRdfFiles() {
+        return rdfFiles;
+    }
 
-  @Override
-  public Set<Resource> getReferencedResources() {
-    return Set.of();
-  }
+    @Override
+    public Set<Resource> getReferencedResources() {
+        return Set.of();
+    }
 
-  @Override
-  public void addTriples(ModelBuilder modelBuilder) {
-    modelBuilder.subject(getAsResource());
+    @Override
+    public void addTriples(ModelBuilder modelBuilder) {
+        modelBuilder.subject(getAsResource());
 
-    rdfFiles.forEach(rdfFile -> modelBuilder.add(iri("http://w3id.org/rml/test/rdfFile"), rdfFile));
-  }
+        rdfFiles.forEach(rdfFile -> modelBuilder.add(iri("http://w3id.org/rml/test/rdfFile"), rdfFile));
+    }
 }

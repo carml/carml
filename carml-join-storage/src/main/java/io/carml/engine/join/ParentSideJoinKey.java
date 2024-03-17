@@ -14,16 +14,15 @@ import lombok.ToString;
 @ToString
 public class ParentSideJoinKey implements Serializable {
 
-  private static final long serialVersionUID = -8655379521016481101L;
+    private static final long serialVersionUID = -8655379521016481101L;
 
-  @NonNull
-  String parentReference;
+    @NonNull
+    String parentReference;
 
-  @NonNull
-  String parentValue;
+    @NonNull
+    String parentValue;
 
-  public static ParentSideJoinKey of(@NonNull String parentReference, @NonNull String parentValue) {
-    return new ParentSideJoinKey(parentReference, parentValue);
-  }
-
+    public static ParentSideJoinKey of(@NonNull String parentReference, @NonNull String parentValue) {
+        return new ParentSideJoinKey(parentReference, parentValue);
+    }
 }

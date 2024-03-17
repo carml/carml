@@ -11,118 +11,119 @@ import org.apache.commons.lang3.mutable.MutableObject;
 
 public class TemplateParser {
 
-  private static final TemplateParser DEFAULT = TemplateParser.of();
+    private static final TemplateParser DEFAULT = TemplateParser.of();
 
-  private final String escapableChars;
+    private final String escapableChars;
 
-  private TemplateParser(String escapableChars) {
-    this.escapableChars = escapableChars;
-  }
-
-  public static TemplateParser getInstance() {
-    return DEFAULT;
-  }
-
-  public static TemplateParser of() {
-    return new TemplateParser("{}\\");
-  }
-
-  private abstract static class Segment {
-
-    StringBuilder str = new StringBuilder();
-
-    void append(String c) {
-      str.append(c);
+    private TemplateParser(String escapableChars) {
+        this.escapableChars = escapableChars;
     }
 
-    String value() {
-      return str.toString();
+    public static TemplateParser getInstance() {
+        return DEFAULT;
     }
-  }
 
-  private static class TextSegment extends Segment {
-
-  }
-
-  private static class ExpressionSegment extends Segment {
-
-  }
-
-  public Template parse(String template) {
-    MutableBoolean escaping = new MutableBoolean(false);
-    MutableObject<Segment> segmentContainer = new MutableObject<>(new TextSegment());
-
-    List<Template.Segment> segments = new ArrayList<>();
-
-    Runnable storeSegment = getStoreSegmentRunnable(segmentContainer, segments);
-
-    IntStream.range(0, template.length())
-        .mapToObj(i -> template.substring(i, i + 1))
-        .forEach(character -> parseCharToSegments(template, character, segmentContainer, escaping, storeSegment));
-
-    Segment segment = segmentContainer.getValue();
-    if (segment instanceof ExpressionSegment) {
-      throw new TemplateException(String.format("unclosed expression in template [%s]", template));
+    public static TemplateParser of() {
+        return new TemplateParser("{}\\");
     }
-    storeSegment.run();
 
-    return CarmlTemplate.of(segments);
-  }
+    private abstract static class Segment {
 
-  private Runnable getStoreSegmentRunnable(MutableObject<Segment> segmentContainer, List<Template.Segment> segments) {
-    MutableInt nextId = new MutableInt();
+        StringBuilder str = new StringBuilder();
 
-    return () -> {
-      Segment segment = segmentContainer.getValue();
-      if (segment == null) {
-        return;
-      }
+        void append(String c) {
+            str.append(c);
+        }
 
-      String value = segment.value();
-      if (value.isEmpty()) {
-        return;
-      }
+        String value() {
+            return str.toString();
+        }
+    }
 
-      if (segment instanceof TextSegment) {
-        segments.add(new CarmlTemplate.TextSegment(value));
-      } else if (segment instanceof ExpressionSegment) {
-        segments.add(new CarmlTemplate.ExpressionSegment(nextId.getAndIncrement(), value));
-      }
-      // (assuming no other segment types)
-    };
-  }
+    private static class TextSegment extends Segment {}
 
-  private void parseCharToSegments(String template, String character, MutableObject<Segment> segmentContainer,
-      MutableBoolean escaping, Runnable storeSegment) {
-    Segment segment = segmentContainer.getValue();
+    private static class ExpressionSegment extends Segment {}
 
-    if (escaping.booleanValue()) {
-      if (!escapableChars.contains(character)) {
-        throw new TemplateException(
-            String.format("invalid escape sequence in template [%s] - escaping char [%s]", template, character));
-      }
-      segment.append(character);
-      escaping.setFalse();
-    } else if (character.equals("\\")) {
-      escaping.setTrue();
-    } else if (character.equals("{")) {
-      if (segment instanceof ExpressionSegment) {
-        throw new TemplateException(
-            String.format("encountered unescaped nested { character in template [%s]", template));
-      }
-      // (assuming segment is Text)
-      storeSegment.run();
-      segmentContainer.setValue(new ExpressionSegment());
-    } else if (character.equals("}")) {
-      if (segment instanceof ExpressionSegment) {
+    public Template parse(String template) {
+        MutableBoolean escaping = new MutableBoolean(false);
+        MutableObject<Segment> segmentContainer = new MutableObject<>(new TextSegment());
+
+        List<Template.Segment> segments = new ArrayList<>();
+
+        Runnable storeSegment = getStoreSegmentRunnable(segmentContainer, segments);
+
+        IntStream.range(0, template.length())
+                .mapToObj(i -> template.substring(i, i + 1))
+                .forEach(character ->
+                        parseCharToSegments(template, character, segmentContainer, escaping, storeSegment));
+
+        Segment segment = segmentContainer.getValue();
+        if (segment instanceof ExpressionSegment) {
+            throw new TemplateException(String.format("unclosed expression in template [%s]", template));
+        }
         storeSegment.run();
-        segmentContainer.setValue(new TextSegment());
-      } else { // allow adding } outside expressions to text segment
-        segment.append(character);
-      }
-      // (assuming no other segment types)
-    } else {
-      segment.append(character);
+
+        return CarmlTemplate.of(segments);
     }
-  }
+
+    private Runnable getStoreSegmentRunnable(MutableObject<Segment> segmentContainer, List<Template.Segment> segments) {
+        MutableInt nextId = new MutableInt();
+
+        return () -> {
+            Segment segment = segmentContainer.getValue();
+            if (segment == null) {
+                return;
+            }
+
+            String value = segment.value();
+            if (value.isEmpty()) {
+                return;
+            }
+
+            if (segment instanceof TextSegment) {
+                segments.add(new CarmlTemplate.TextSegment(value));
+            } else if (segment instanceof ExpressionSegment) {
+                segments.add(new CarmlTemplate.ExpressionSegment(nextId.getAndIncrement(), value));
+            }
+            // (assuming no other segment types)
+        };
+    }
+
+    private void parseCharToSegments(
+            String template,
+            String character,
+            MutableObject<Segment> segmentContainer,
+            MutableBoolean escaping,
+            Runnable storeSegment) {
+        Segment segment = segmentContainer.getValue();
+
+        if (escaping.booleanValue()) {
+            if (!escapableChars.contains(character)) {
+                throw new TemplateException(String.format(
+                        "invalid escape sequence in template [%s] - escaping char [%s]", template, character));
+            }
+            segment.append(character);
+            escaping.setFalse();
+        } else if (character.equals("\\")) {
+            escaping.setTrue();
+        } else if (character.equals("{")) {
+            if (segment instanceof ExpressionSegment) {
+                throw new TemplateException(
+                        String.format("encountered unescaped nested { character in template [%s]", template));
+            }
+            // (assuming segment is Text)
+            storeSegment.run();
+            segmentContainer.setValue(new ExpressionSegment());
+        } else if (character.equals("}")) {
+            if (segment instanceof ExpressionSegment) {
+                storeSegment.run();
+                segmentContainer.setValue(new TextSegment());
+            } else { // allow adding } outside expressions to text segment
+                segment.append(character);
+            }
+            // (assuming no other segment types)
+        } else {
+            segment.append(character);
+        }
+    }
 }

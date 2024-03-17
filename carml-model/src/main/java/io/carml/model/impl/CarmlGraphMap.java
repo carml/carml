@@ -23,46 +23,45 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @EqualsAndHashCode(callSuper = true)
 public class CarmlGraphMap extends CarmlTermMap implements GraphMap {
 
-  @RdfProperty(Rml.termType)
-  @RdfProperty(Rr.termType)
-  @Override
-  public TermType getTermType() {
-    if (termType != null) {
-      return termType;
+    @RdfProperty(Rml.termType)
+    @RdfProperty(Rr.termType)
+    @Override
+    public TermType getTermType() {
+        if (termType != null) {
+            return termType;
+        }
+
+        return TermType.IRI;
     }
 
-    return TermType.IRI;
-  }
-
-  @Override
-  public Set<Resource> getReferencedResources() {
-    return ImmutableSet.<Resource>builder()
-        .addAll(getReferencedResourcesBase())
-        .build();
-  }
-
-  @Override
-  public void addTriples(ModelBuilder modelBuilder) {
-    modelBuilder.subject(getAsResource())
-        .add(RDF.TYPE, Rdf.Rml.GraphMap);
-
-    addTriplesBase(modelBuilder);
-  }
-
-  @Override
-  public GraphMap applyExpressionAdapter(UnaryOperator<String> referenceExpressionAdapter) {
-    var graphMapBuilder = this.toBuilder();
-    if (reference != null) {
-      adaptReference(referenceExpressionAdapter, graphMapBuilder::reference);
-      return graphMapBuilder.build();
-    } else if (template != null) {
-      adaptTemplate(referenceExpressionAdapter, graphMapBuilder::template);
-      return graphMapBuilder.build();
-    } else if (functionValue != null) {
-      adaptFunctionValue(referenceExpressionAdapter, graphMapBuilder::functionValue);
-      return graphMapBuilder.build();
-    } else {
-      return this;
+    @Override
+    public Set<Resource> getReferencedResources() {
+        return ImmutableSet.<Resource>builder()
+                .addAll(getReferencedResourcesBase())
+                .build();
     }
-  }
+
+    @Override
+    public void addTriples(ModelBuilder modelBuilder) {
+        modelBuilder.subject(getAsResource()).add(RDF.TYPE, Rdf.Rml.GraphMap);
+
+        addTriplesBase(modelBuilder);
+    }
+
+    @Override
+    public GraphMap applyExpressionAdapter(UnaryOperator<String> referenceExpressionAdapter) {
+        var graphMapBuilder = this.toBuilder();
+        if (reference != null) {
+            adaptReference(referenceExpressionAdapter, graphMapBuilder::reference);
+            return graphMapBuilder.build();
+        } else if (template != null) {
+            adaptTemplate(referenceExpressionAdapter, graphMapBuilder::template);
+            return graphMapBuilder.build();
+        } else if (functionValue != null) {
+            adaptFunctionValue(referenceExpressionAdapter, graphMapBuilder::functionValue);
+            return graphMapBuilder.build();
+        } else {
+            return this;
+        }
+    }
 }

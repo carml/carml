@@ -23,40 +23,38 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @ToString(callSuper = true)
 public class CarmlXmlSource extends CarmlResource implements XmlSource {
 
-  @Singular
-  private Set<Namespace> declaredNamespaces;
+    @Singular
+    private Set<Namespace> declaredNamespaces;
 
-  @RdfProperty(Carml.declaresNamespace)
-  @RdfType(CarmlNamespace.class)
-  @Override
-  public Set<Namespace> getDeclaredNamespaces() {
-    return declaredNamespaces;
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(declaredNamespaces);
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (obj instanceof XmlSource other) {
-      return Objects.equals(declaredNamespaces, other.getDeclaredNamespaces());
+    @RdfProperty(Carml.declaresNamespace)
+    @RdfType(CarmlNamespace.class)
+    @Override
+    public Set<Namespace> getDeclaredNamespaces() {
+        return declaredNamespaces;
     }
-    return false;
-  }
 
-  @Override
-  public Set<Resource> getReferencedResources() {
-    return Set.copyOf(declaredNamespaces);
-  }
+    @Override
+    public int hashCode() {
+        return Objects.hash(declaredNamespaces);
+    }
 
-  @Override
-  public void addTriples(ModelBuilder modelBuilder) {
-    modelBuilder.subject(getAsResource())
-        .add(RDF.TYPE, Rdf.Carml.XmlDocument);
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof XmlSource other) {
+            return Objects.equals(declaredNamespaces, other.getDeclaredNamespaces());
+        }
+        return false;
+    }
 
-    declaredNamespaces.forEach(ns -> modelBuilder.add(Carml.declaresNamespace, ns.getAsResource()));
-  }
+    @Override
+    public Set<Resource> getReferencedResources() {
+        return Set.copyOf(declaredNamespaces);
+    }
 
+    @Override
+    public void addTriples(ModelBuilder modelBuilder) {
+        modelBuilder.subject(getAsResource()).add(RDF.TYPE, Rdf.Carml.XmlDocument);
+
+        declaredNamespaces.forEach(ns -> modelBuilder.add(Carml.declaresNamespace, ns.getAsResource()));
+    }
 }

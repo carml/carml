@@ -7,8 +7,7 @@ import org.eclipse.rdf4j.model.Resource;
 
 public interface ExecuteFunction {
 
-  IRI getIri();
+    IRI getIri();
 
-  Object execute(Model model, Resource subject, UnaryOperator<Object> returnValueAdapter);
-
+    Object execute(Model model, Resource subject, UnaryOperator<Object> returnValueAdapter);
 }

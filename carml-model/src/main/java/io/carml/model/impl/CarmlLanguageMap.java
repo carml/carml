@@ -17,16 +17,15 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @EqualsAndHashCode(callSuper = true)
 public class CarmlLanguageMap extends CarmlExpressionMap implements LanguageMap {
 
-  @Override
-  public Set<Resource> getReferencedResources() {
-    return getReferencedResourcesBase();
-  }
+    @Override
+    public Set<Resource> getReferencedResources() {
+        return getReferencedResourcesBase();
+    }
 
-  @Override
-  public void addTriples(ModelBuilder modelBuilder) {
-    modelBuilder.subject(getAsResource())
-        .add(RDF.TYPE, Rdf.Rml.LanguageMap);
+    @Override
+    public void addTriples(ModelBuilder modelBuilder) {
+        modelBuilder.subject(getAsResource()).add(RDF.TYPE, Rdf.Rml.LanguageMap);
 
-    addTriplesBase(modelBuilder);
-  }
+        addTriplesBase(modelBuilder);
+    }
 }

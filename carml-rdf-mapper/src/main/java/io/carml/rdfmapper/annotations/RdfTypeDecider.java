@@ -6,5 +6,5 @@ import java.lang.annotation.RetentionPolicy;
 
 @Retention(RetentionPolicy.RUNTIME)
 public @interface RdfTypeDecider {
-  Class<? extends TypeDecider> value();
+    Class<? extends TypeDecider> value();
 }

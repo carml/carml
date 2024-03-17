@@ -22,134 +22,125 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class TemplateEvaluation implements Supplier<List<String>> {
 
-  private final Template template;
+    private final Template template;
 
-  private final Map<ReferenceExpression, Function<ReferenceExpression, List<String>>> bindings;
+    private final Map<ReferenceExpression, Function<ReferenceExpression, List<String>>> bindings;
 
-  public static TemplateEvaluationBuilder builder() {
-    return new TemplateEvaluationBuilder();
-  }
-
-  @Override
-  public List<String> get() {
-    var indexedExprValues = new HashMap<Segment, List<String>>();
-
-    // single out expression segments
-    var expressionSegments = template.getSegments()
-        .stream()
-        .filter(ExpressionSegment.class::isInstance)
-        .map(ExpressionSegment.class::cast)
-        .toList();
-
-    if (!expressionSegments.isEmpty()) {
-
-      // map segment to list of its evaluation results
-      for (var expressionSegment : expressionSegments) {
-        indexedExprValues.put(expressionSegment, getExpressionSegmentValue(expressionSegment));
-      }
-
-      // if there is an expression that doesn't result in a value,
-      // the template should yield no result, following the RML rules.
-      if (!exprValueResultsHasOnlyFilledLists(indexedExprValues)) {
-        return List.of();
-      }
-
-      return processSegments(indexedExprValues);
+    public static TemplateEvaluationBuilder builder() {
+        return new TemplateEvaluationBuilder();
     }
 
-    // if there are no expression segments, continue building value
-    var result = template.getSegments()
-        .stream()
-        .map(Segment::getValue)
-        .collect(Collectors.joining());
+    @Override
+    public List<String> get() {
+        var indexedExprValues = new HashMap<Segment, List<String>>();
 
-    return List.of(result);
-  }
+        // single out expression segments
+        var expressionSegments = template.getSegments().stream()
+                .filter(ExpressionSegment.class::isInstance)
+                .map(ExpressionSegment.class::cast)
+                .toList();
 
-  private List<String> getExpressionSegmentValue(ExpressionSegment segment) {
-    var expression = template.getExpressionSegmentMap()
-        .get(segment);
-    if (expression == null) { // Should never occur
-      throw new TemplateException(
-          String.format("no reference expression instance present corresponding to segment %s", segment));
+        if (!expressionSegments.isEmpty()) {
+
+            // map segment to list of its evaluation results
+            for (var expressionSegment : expressionSegments) {
+                indexedExprValues.put(expressionSegment, getExpressionSegmentValue(expressionSegment));
+            }
+
+            // if there is an expression that doesn't result in a value,
+            // the template should yield no result, following the RML rules.
+            if (!exprValueResultsHasOnlyFilledLists(indexedExprValues)) {
+                return List.of();
+            }
+
+            return processSegments(indexedExprValues);
+        }
+
+        // if there are no expression segments, continue building value
+        var result = template.getSegments().stream().map(Segment::getValue).collect(Collectors.joining());
+
+        return List.of(result);
     }
 
-    return getExpressionValue(expression);
-  }
+    private List<String> getExpressionSegmentValue(ExpressionSegment segment) {
+        var expression = template.getExpressionSegmentMap().get(segment);
+        if (expression == null) { // Should never occur
+            throw new TemplateException(
+                    String.format("no reference expression instance present corresponding to segment %s", segment));
+        }
 
-  private List<String> getExpressionValue(ReferenceExpression expression) {
-    if (!bindings.containsKey(expression)) {
-      throw new TemplateException(String.format("no binding present for reference expression [%s]", expression));
+        return getExpressionValue(expression);
     }
 
-    return bindings.get(expression)
-        .apply(expression);
-  }
+    private List<String> getExpressionValue(ReferenceExpression expression) {
+        if (!bindings.containsKey(expression)) {
+            throw new TemplateException(String.format("no binding present for reference expression [%s]", expression));
+        }
 
-  private boolean exprValueResultsHasOnlyFilledLists(Map<Segment, List<String>> indexedExprValues) {
-    for (List<String> list : indexedExprValues.values()) {
-      if (list.isEmpty()) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  private List<String> processSegments(Map<Segment, List<String>> indexedExprValues) {
-    var processedSegments = template.getSegments()
-        .stream()
-        .map(segment -> processSegment(segment, indexedExprValues))
-        .toList();
-
-    return Sets.cartesianProduct(processedSegments)
-        .stream()
-        .map(segmentValues -> String.join("", segmentValues))
-        .distinct()
-        .toList();
-  }
-
-  private Set<String> processSegment(Segment segment, Map<Segment, List<String>> indexedExprValues) {
-    if (segment instanceof TextSegment) {
-      return Set.of(segment.getValue());
+        return bindings.get(expression).apply(expression);
     }
 
-    return Set.copyOf(indexedExprValues.get(segment));
-  }
-
-  public static final class TemplateEvaluationBuilder {
-
-    private Template template;
-
-
-    private final Map<ReferenceExpression, Function<ReferenceExpression, List<String>>> bindings =
-        new LinkedHashMap<>();
-
-    public TemplateEvaluationBuilder template(Template template) {
-      this.template = template;
-      return this;
+    private boolean exprValueResultsHasOnlyFilledLists(Map<Segment, List<String>> indexedExprValues) {
+        for (List<String> list : indexedExprValues.values()) {
+            if (list.isEmpty()) {
+                return false;
+            }
+        }
+        return true;
     }
 
-    public TemplateEvaluationBuilder bind(ReferenceExpression expression,
-        Function<ReferenceExpression, List<String>> templateValue) {
-      bindings.put(expression, templateValue);
-      return this;
+    private List<String> processSegments(Map<Segment, List<String>> indexedExprValues) {
+        var processedSegments = template.getSegments().stream()
+                .map(segment -> processSegment(segment, indexedExprValues))
+                .toList();
+
+        return Sets.cartesianProduct(processedSegments).stream()
+                .map(segmentValues -> String.join("", segmentValues))
+                .distinct()
+                .toList();
     }
 
-    public TemplateEvaluation build() {
-      if (template == null) {
-        throw new TemplateException("template is required");
-      }
-      checkBindings();
+    private Set<String> processSegment(Segment segment, Map<Segment, List<String>> indexedExprValues) {
+        if (segment instanceof TextSegment) {
+            return Set.of(segment.getValue());
+        }
 
-      return new TemplateEvaluation(template, bindings);
+        return Set.copyOf(indexedExprValues.get(segment));
     }
 
-    private void checkBindings() {
-      if (!new LinkedHashSet<>(bindings.keySet()).equals(template.getReferenceExpressions())) {
-        throw new TemplateException(
-            String.format("set of bindings [%s] does NOT match set of reference expressions in template [%s]",
-                bindings.keySet(), template.getReferenceExpressions()));
-      }
+    public static final class TemplateEvaluationBuilder {
+
+        private Template template;
+
+        private final Map<ReferenceExpression, Function<ReferenceExpression, List<String>>> bindings =
+                new LinkedHashMap<>();
+
+        public TemplateEvaluationBuilder template(Template template) {
+            this.template = template;
+            return this;
+        }
+
+        public TemplateEvaluationBuilder bind(
+                ReferenceExpression expression, Function<ReferenceExpression, List<String>> templateValue) {
+            bindings.put(expression, templateValue);
+            return this;
+        }
+
+        public TemplateEvaluation build() {
+            if (template == null) {
+                throw new TemplateException("template is required");
+            }
+            checkBindings();
+
+            return new TemplateEvaluation(template, bindings);
+        }
+
+        private void checkBindings() {
+            if (!new LinkedHashSet<>(bindings.keySet()).equals(template.getReferenceExpressions())) {
+                throw new TemplateException(String.format(
+                        "set of bindings [%s] does NOT match set of reference expressions in template [%s]",
+                        bindings.keySet(), template.getReferenceExpressions()));
+            }
+        }
     }
-  }
 }

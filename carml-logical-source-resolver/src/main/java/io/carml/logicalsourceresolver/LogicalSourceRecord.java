@@ -9,9 +9,9 @@ import lombok.NonNull;
 @Getter
 public class LogicalSourceRecord<R> {
 
-  @NonNull
-  private LogicalSource logicalSource;
+    @NonNull
+    private LogicalSource logicalSource;
 
-  @NonNull
-  private R sourceRecord;
+    @NonNull
+    private R sourceRecord;
 }

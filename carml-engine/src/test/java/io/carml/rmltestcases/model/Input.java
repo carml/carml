@@ -1,5 +1,3 @@
 package io.carml.rmltestcases.model;
 
-public interface Input extends Dataset {
-
-}
+public interface Input extends Dataset {}

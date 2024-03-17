@@ -17,44 +17,51 @@ import org.eclipse.rdf4j.model.Value;
 
 public final class JenaConverters {
 
-  private static final TypeMapper TYPE_MAPPER = TypeMapper.getInstance();
+    private static final TypeMapper TYPE_MAPPER = TypeMapper.getInstance();
 
-  private JenaConverters() {}
+    private JenaConverters() {}
 
-  /**
-   * Transforms an RDF4J {@link Value} to an equivalent Apache Jena {@link Node}.
-   *
-   * @param value The {@link Value} to transform.
-   * @return the {@link Node}.
-   */
-  public static Node toNode(@NonNull Value value) {
-    if (value.isIRI()) {
-      return createURI(value.stringValue());
-    } else if (value.isBNode()) {
-      return createBlankNode(((BNode) value).getID());
-    } else if (value.isLiteral()) {
-      var literalValue = (Literal) value;
-      return literalValue.getLanguage()
-          .map(lang -> createLiteral(literalValue.stringValue(), lang))
-          .orElse(createLiteral(literalValue.stringValue(), TYPE_MAPPER.getSafeTypeByName(literalValue.getDatatype()
-              .stringValue())));
-    } else if (value.isTriple()) {
-      var triple = (org.eclipse.rdf4j.model.Triple) value;
-      return createTripleNode(toNode(triple.getSubject()), toNode(triple.getPredicate()), toNode(triple.getObject()));
+    /**
+     * Transforms an RDF4J {@link Value} to an equivalent Apache Jena {@link Node}.
+     *
+     * @param value The {@link Value} to transform.
+     * @return the {@link Node}.
+     */
+    public static Node toNode(@NonNull Value value) {
+        if (value.isIRI()) {
+            return createURI(value.stringValue());
+        } else if (value.isBNode()) {
+            return createBlankNode(((BNode) value).getID());
+        } else if (value.isLiteral()) {
+            var literalValue = (Literal) value;
+            return literalValue
+                    .getLanguage()
+                    .map(lang -> createLiteral(literalValue.stringValue(), lang))
+                    .orElse(createLiteral(
+                            literalValue.stringValue(),
+                            TYPE_MAPPER.getSafeTypeByName(
+                                    literalValue.getDatatype().stringValue())));
+        } else if (value.isTriple()) {
+            var triple = (org.eclipse.rdf4j.model.Triple) value;
+            return createTripleNode(
+                    toNode(triple.getSubject()), toNode(triple.getPredicate()), toNode(triple.getObject()));
+        }
+
+        throw new IllegalArgumentException(String.format("Unsupported value type %s", value.getClass()));
     }
 
-    throw new IllegalArgumentException(String.format("Unsupported value type %s", value.getClass()));
-  }
-
-  /**
-   * Transforms an RDF4J {@link Statement} to an equivalent Apache Jena {@link Quad}.
-   *
-   * @param statement The {@link Statement}.
-   * @return the {@link Quad}.
-   */
-  public static Quad toQuad(@NonNull Statement statement) {
-    var context = statement.getContext();
-    return Quad.create(context == null ? defaultGraphIRI : toNode(context), toNode(statement.getSubject()),
-        toNode(statement.getPredicate()), toNode(statement.getObject()));
-  }
+    /**
+     * Transforms an RDF4J {@link Statement} to an equivalent Apache Jena {@link Quad}.
+     *
+     * @param statement The {@link Statement}.
+     * @return the {@link Quad}.
+     */
+    public static Quad toQuad(@NonNull Statement statement) {
+        var context = statement.getContext();
+        return Quad.create(
+                context == null ? defaultGraphIRI : toNode(context),
+                toNode(statement.getSubject()),
+                toNode(statement.getPredicate()),
+                toNode(statement.getObject()));
+    }
 }

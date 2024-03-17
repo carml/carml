@@ -8,19 +8,18 @@ import org.eclipse.rdf4j.model.IRI;
 
 public interface SubjectMap extends TermMap {
 
-  Set<IRI> getClasses();
+    Set<IRI> getClasses();
 
-  Set<GraphMap> getGraphMaps();
+    Set<GraphMap> getGraphMaps();
 
-  SubjectMap applyExpressionAdapter(UnaryOperator<String> referenceExpressionAdapter);
+    SubjectMap applyExpressionAdapter(UnaryOperator<String> referenceExpressionAdapter);
 
-  default Set<String> getReferenceExpressionSet() {
-    var expressionMapExpressions = getExpressionMapExpressionSet().stream();
-    var graphMapExpressions = getGraphMaps().stream()
-        .map(GraphMap::getExpressionMapExpressionSet)
-        .flatMap(Set::stream);
+    default Set<String> getReferenceExpressionSet() {
+        var expressionMapExpressions = getExpressionMapExpressionSet().stream();
+        var graphMapExpressions = getGraphMaps().stream()
+                .map(GraphMap::getExpressionMapExpressionSet)
+                .flatMap(Set::stream);
 
-    return Stream.concat(expressionMapExpressions, graphMapExpressions)
-        .collect(Collectors.toUnmodifiableSet());
-  }
+        return Stream.concat(expressionMapExpressions, graphMapExpressions).collect(Collectors.toUnmodifiableSet());
+    }
 }

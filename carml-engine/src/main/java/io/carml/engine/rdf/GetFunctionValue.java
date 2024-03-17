@@ -1,5 +1,3 @@
 package io.carml.engine.rdf;
 
-public class GetFunctionValue {
-
-}
+public class GetFunctionValue {}

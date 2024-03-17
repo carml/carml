@@ -8,6 +8,5 @@ import org.eclipse.rdf4j.model.Value;
 
 interface PropertyValueMapper {
 
-  Optional<Object> map(Model model, Resource resource, Object instance, List<Value> values);
-
+    Optional<Object> map(Model model, Resource resource, Object instance, List<Value> values);
 }

@@ -4,5 +4,5 @@ import java.util.function.UnaryOperator;
 
 public interface GraphMap extends TermMap {
 
-  GraphMap applyExpressionAdapter(UnaryOperator<String> referenceExpressionAdapter);
+    GraphMap applyExpressionAdapter(UnaryOperator<String> referenceExpressionAdapter);
 }

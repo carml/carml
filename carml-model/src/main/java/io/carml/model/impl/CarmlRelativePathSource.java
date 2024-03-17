@@ -20,52 +20,51 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @ToString(callSuper = true)
 public class CarmlRelativePathSource extends CarmlResource implements RelativePathSource {
 
-  private Object root;
+    private Object root;
 
-  private String path;
+    private String path;
 
-  @RdfProperty(Rml.root)
-  @Override
-  public Object getRoot() {
-    return root;
-  }
-
-  @RdfProperty(Rml.path)
-  @Override
-  public String getPath() {
-    return path;
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(root, path);
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (obj instanceof RelativePathSource other) {
-      return Objects.equals(root, other.getRoot()) && Objects.equals(path, other.getPath());
+    @RdfProperty(Rml.root)
+    @Override
+    public Object getRoot() {
+        return root;
     }
 
-    return false;
-  }
-
-  @Override
-  public Set<Resource> getReferencedResources() {
-    return Set.of();
-  }
-
-  @Override
-  public void addTriples(ModelBuilder modelBuilder) {
-    modelBuilder.subject(getAsResource())
-        .add(RDF.TYPE, Rdf.Rml.RelativePathSource);
-
-    if (root != null) {
-      modelBuilder.add(Rdf.Rml.root, String.valueOf(root));
+    @RdfProperty(Rml.path)
+    @Override
+    public String getPath() {
+        return path;
     }
 
-    if (path != null) {
-      modelBuilder.add(Rdf.Rml.path, path);
+    @Override
+    public int hashCode() {
+        return Objects.hash(root, path);
     }
-  }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof RelativePathSource other) {
+            return Objects.equals(root, other.getRoot()) && Objects.equals(path, other.getPath());
+        }
+
+        return false;
+    }
+
+    @Override
+    public Set<Resource> getReferencedResources() {
+        return Set.of();
+    }
+
+    @Override
+    public void addTriples(ModelBuilder modelBuilder) {
+        modelBuilder.subject(getAsResource()).add(RDF.TYPE, Rdf.Rml.RelativePathSource);
+
+        if (root != null) {
+            modelBuilder.add(Rdf.Rml.root, String.valueOf(root));
+        }
+
+        if (path != null) {
+            modelBuilder.add(Rdf.Rml.path, path);
+        }
+    }
 }

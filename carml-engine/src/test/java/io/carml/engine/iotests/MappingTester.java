@@ -30,99 +30,99 @@ import org.hamcrest.TypeSafeMatcher;
 
 class MappingTester {
 
-  private final RmlMappingLoader loader = RmlMappingLoader.build();
+    private final RmlMappingLoader loader = RmlMappingLoader.build();
 
-  void testMapping(String contextPath, String rmlPath, String outputPath) {
-    testMapping(contextPath, rmlPath, outputPath, m -> {
-    }, Map.of());
-  }
-
-  void testMapping(String contextPath, String rmlPath, String outputPath,
-      Consumer<RdfRmlMapper.Builder> configureMapper) {
-    testMapping(contextPath, rmlPath, outputPath, configureMapper, Map.of());
-  }
-
-  void testMapping(String contextPath, String rmlPath, String outputPath,
-      Consumer<RdfRmlMapper.Builder> configureMapper, Map<String, InputStream> namedInputStreams) {
-    Set<TriplesMap> mapping = loader.load(RDFFormat.TURTLE, MappingTester.class.getResourceAsStream(rmlPath));
-
-    RdfRmlMapper.Builder builder = RdfRmlMapper.builder()
-        .setLogicalSourceResolver(Rdf.Ql.Csv, CsvResolver::getInstance)
-        .setLogicalSourceResolver(Rdf.Ql.JsonPath, JsonPathResolver::getInstance)
-        .setLogicalSourceResolver(Rdf.Ql.XPath, XPathResolver::getInstance)
-        .classPathResolver(contextPath)
-        .triplesMaps(mapping);
-    configureMapper.accept(builder);
-    RdfRmlMapper mapper = builder.build();
-
-    Model result;
-    if (namedInputStreams.isEmpty()) {
-      result = mapper.map()
-          .collect(ModelCollector.toTreeModel())
-          .block();
-    } else {
-      result = mapper.map(namedInputStreams)
-          .collect(ModelCollector.toTreeModel())
-          .block();
+    void testMapping(String contextPath, String rmlPath, String outputPath) {
+        testMapping(contextPath, rmlPath, outputPath, m -> {}, Map.of());
     }
 
-    // exit for tests without expected output, such as exception tests
-    if (outputPath == null) {
-      return;
+    void testMapping(
+            String contextPath, String rmlPath, String outputPath, Consumer<RdfRmlMapper.Builder> configureMapper) {
+        testMapping(contextPath, rmlPath, outputPath, configureMapper, Map.of());
     }
 
-    InputStream expectedModel = MappingTester.class.getResourceAsStream(outputPath);
+    void testMapping(
+            String contextPath,
+            String rmlPath,
+            String outputPath,
+            Consumer<RdfRmlMapper.Builder> configureMapper,
+            Map<String, InputStream> namedInputStreams) {
+        Set<TriplesMap> mapping = loader.load(RDFFormat.TURTLE, MappingTester.class.getResourceAsStream(rmlPath));
 
-    Model expected = Models.parse(Objects.requireNonNull(expectedModel), determineRdfFormat(outputPath))
-        .stream()
-        .collect(ModelCollector.toTreeModel());
+        RdfRmlMapper.Builder builder = RdfRmlMapper.builder()
+                .setLogicalSourceResolver(Rdf.Ql.Csv, CsvResolver::getInstance)
+                .setLogicalSourceResolver(Rdf.Ql.JsonPath, JsonPathResolver::getInstance)
+                .setLogicalSourceResolver(Rdf.Ql.XPath, XPathResolver::getInstance)
+                .classPathResolver(contextPath)
+                .triplesMaps(mapping);
+        configureMapper.accept(builder);
+        RdfRmlMapper mapper = builder.build();
 
-    assertThat(result, equalTo(expected));
-  }
+        Model result;
+        if (namedInputStreams.isEmpty()) {
+            result = mapper.map().collect(ModelCollector.toTreeModel()).block();
+        } else {
+            result = mapper.map(namedInputStreams)
+                    .collect(ModelCollector.toTreeModel())
+                    .block();
+        }
 
-  RDFFormat determineRdfFormat(String path) {
-    return Rio.getParserFormatForFileName(path)
-        .orElseThrow(() -> new RuntimeException(String.format("could not determine rdf format from file [%s]", path)));
-  }
+        // exit for tests without expected output, such as exception tests
+        if (outputPath == null) {
+            return;
+        }
 
-  static Matcher<Model> equalTo(final Model expected) {
-    return new TypeSafeMatcher<>() {
+        InputStream expectedModel = MappingTester.class.getResourceAsStream(outputPath);
 
-      @Override
-      protected boolean matchesSafely(Model actual) {
-        return expected.equals(actual);
-      }
+        Model expected = Models.parse(Objects.requireNonNull(expectedModel), determineRdfFormat(outputPath)).stream()
+                .collect(ModelCollector.toTreeModel());
 
-      @Override
-      public void describeTo(Description description) {
-        description.appendText(String.format("Model with %s statements.", expected.size()));
-      }
+        assertThat(result, equalTo(expected));
+    }
 
-      @Override
-      protected void describeMismatchSafely(final Model item, final Description mismatchDescription) {
-        mismatchDescription.appendText(String.format("Model with %s statements.%n%n", item.size()));
+    RDFFormat determineRdfFormat(String path) {
+        return Rio.getParserFormatForFileName(path)
+                .orElseThrow(() ->
+                        new RuntimeException(String.format("could not determine rdf format from file [%s]", path)));
+    }
 
-        Sets.SetView<Statement> statementsMissing = Sets.difference(expected, item);
-        mismatchDescription.appendText(String.format("Statements expected but missing:%n%n"));
-        mismatchDescription.appendText(modelToString(new LinkedHashModel(statementsMissing)));
+    static Matcher<Model> equalTo(final Model expected) {
+        return new TypeSafeMatcher<>() {
 
-        Sets.SetView<Statement> surplusStatements = Sets.difference(item, expected);
-        mismatchDescription.appendText(String.format("Statements that were not expected:%n%n"));
-        mismatchDescription.appendText(modelToString(new LinkedHashModel(surplusStatements)));
-      }
+            @Override
+            protected boolean matchesSafely(Model actual) {
+                return expected.equals(actual);
+            }
 
-      private String modelToString(final Model model) {
-        RmlNamespaces.applyRmlNameSpaces(model);
-        model.setNamespace("ex", "http://example.org/");
+            @Override
+            public void describeTo(Description description) {
+                description.appendText(String.format("Model with %s statements.", expected.size()));
+            }
 
-        StringWriter stringWriter = new StringWriter();
-        Rio.write(model, stringWriter, RDFFormat.TRIG);
-        return stringWriter.toString()
-            .replace("\r\n", System.lineSeparator())
-            .replace("\r", System.lineSeparator());
-      }
+            @Override
+            protected void describeMismatchSafely(final Model item, final Description mismatchDescription) {
+                mismatchDescription.appendText(String.format("Model with %s statements.%n%n", item.size()));
 
-    };
-  }
+                Sets.SetView<Statement> statementsMissing = Sets.difference(expected, item);
+                mismatchDescription.appendText(String.format("Statements expected but missing:%n%n"));
+                mismatchDescription.appendText(modelToString(new LinkedHashModel(statementsMissing)));
 
+                Sets.SetView<Statement> surplusStatements = Sets.difference(item, expected);
+                mismatchDescription.appendText(String.format("Statements that were not expected:%n%n"));
+                mismatchDescription.appendText(modelToString(new LinkedHashModel(surplusStatements)));
+            }
+
+            private String modelToString(final Model model) {
+                RmlNamespaces.applyRmlNameSpaces(model);
+                model.setNamespace("ex", "http://example.org/");
+
+                StringWriter stringWriter = new StringWriter();
+                Rio.write(model, stringWriter, RDFFormat.TRIG);
+                return stringWriter
+                        .toString()
+                        .replace("\r\n", System.lineSeparator())
+                        .replace("\r", System.lineSeparator());
+            }
+        };
+    }
 }

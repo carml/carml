@@ -29,71 +29,70 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @EqualsAndHashCode(callSuper = true)
 public class CarmlSubjectMap extends CarmlTermMap implements SubjectMap {
 
-  @Singular("clazz")
-  private Set<IRI> classes;
+    @Singular("clazz")
+    private Set<IRI> classes;
 
-  @Singular
-  private Set<GraphMap> graphMaps;
+    @Singular
+    private Set<GraphMap> graphMaps;
 
-  @RdfProperty(Rml.graphMap)
-  @RdfProperty(Rr.graphMap)
-  @RdfType(CarmlGraphMap.class)
-  @Override
-  public Set<GraphMap> getGraphMaps() {
-    return graphMaps;
-  }
-
-  @RdfProperty(Rml.clazz)
-  @RdfProperty(Rr.clazz)
-  @Override
-  public Set<IRI> getClasses() {
-    return classes;
-  }
-
-  @RdfProperty(Rml.termType)
-  @RdfProperty(Rr.termType)
-  @Override
-  public TermType getTermType() {
-    if (termType != null) {
-      return termType;
+    @RdfProperty(Rml.graphMap)
+    @RdfProperty(Rr.graphMap)
+    @RdfType(CarmlGraphMap.class)
+    @Override
+    public Set<GraphMap> getGraphMaps() {
+        return graphMaps;
     }
 
-    return TermType.IRI;
-  }
-
-  @Override
-  public Set<Resource> getReferencedResources() {
-    return ImmutableSet.<Resource>builder()
-        .addAll(getReferencedResourcesBase())
-        .addAll(graphMaps)
-        .build();
-  }
-
-  @Override
-  public void addTriples(ModelBuilder modelBuilder) {
-    modelBuilder.subject(getAsResource())
-        .add(RDF.TYPE, Rdf.Rml.SubjectMap);
-
-    addTriplesBase(modelBuilder);
-
-    graphMaps.forEach(gm -> modelBuilder.add(Rdf.Rml.graphMap, gm.getAsResource()));
-    classes.forEach(cl -> modelBuilder.add(Rdf.Rml.clazz, cl));
-  }
-
-  @Override
-  public SubjectMap applyExpressionAdapter(UnaryOperator<String> referenceExpressionAdapter) {
-    var subjectMapBuilder = this.toBuilder();
-    if (reference != null) {
-      adaptReference(referenceExpressionAdapter, subjectMapBuilder::reference);
-      return subjectMapBuilder.build();
-    } else if (template != null) {
-      adaptTemplate(referenceExpressionAdapter, subjectMapBuilder::template);
-      return subjectMapBuilder.build();
-    } else if (functionValue != null) {
-      adaptFunctionValue(referenceExpressionAdapter, subjectMapBuilder::functionValue);
-      return subjectMapBuilder.build();
-    } else {
-      return this;
+    @RdfProperty(Rml.clazz)
+    @RdfProperty(Rr.clazz)
+    @Override
+    public Set<IRI> getClasses() {
+        return classes;
     }
-  }
+
+    @RdfProperty(Rml.termType)
+    @RdfProperty(Rr.termType)
+    @Override
+    public TermType getTermType() {
+        if (termType != null) {
+            return termType;
+        }
+
+        return TermType.IRI;
+    }
+
+    @Override
+    public Set<Resource> getReferencedResources() {
+        return ImmutableSet.<Resource>builder()
+                .addAll(getReferencedResourcesBase())
+                .addAll(graphMaps)
+                .build();
+    }
+
+    @Override
+    public void addTriples(ModelBuilder modelBuilder) {
+        modelBuilder.subject(getAsResource()).add(RDF.TYPE, Rdf.Rml.SubjectMap);
+
+        addTriplesBase(modelBuilder);
+
+        graphMaps.forEach(gm -> modelBuilder.add(Rdf.Rml.graphMap, gm.getAsResource()));
+        classes.forEach(cl -> modelBuilder.add(Rdf.Rml.clazz, cl));
+    }
+
+    @Override
+    public SubjectMap applyExpressionAdapter(UnaryOperator<String> referenceExpressionAdapter) {
+        var subjectMapBuilder = this.toBuilder();
+        if (reference != null) {
+            adaptReference(referenceExpressionAdapter, subjectMapBuilder::reference);
+            return subjectMapBuilder.build();
+        } else if (template != null) {
+            adaptTemplate(referenceExpressionAdapter, subjectMapBuilder::template);
+            return subjectMapBuilder.build();
+        } else if (functionValue != null) {
+            adaptFunctionValue(referenceExpressionAdapter, subjectMapBuilder::functionValue);
+            return subjectMapBuilder.build();
+        } else {
+            return this;
+        }
+    }
 }

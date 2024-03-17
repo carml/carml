@@ -20,39 +20,38 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @ToString(callSuper = true)
 public class CarmlStream extends CarmlResource implements NameableStream {
 
-  private String streamName;
+    private String streamName;
 
-  @RdfProperty(Carml.streamName)
-  @Override
-  public String getStreamName() {
-    return streamName;
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(streamName);
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (obj instanceof NameableStream other) {
-      return Objects.equals(streamName, other.getStreamName());
+    @RdfProperty(Carml.streamName)
+    @Override
+    public String getStreamName() {
+        return streamName;
     }
-    return false;
-  }
 
-  @Override
-  public Set<Resource> getReferencedResources() {
-    return Set.of();
-  }
-
-  @Override
-  public void addTriples(ModelBuilder modelBuilder) {
-    modelBuilder.subject(getAsResource())
-        .add(RDF.TYPE, Rdf.Carml.Stream);
-
-    if (streamName != null) {
-      modelBuilder.add(Carml.streamName, streamName);
+    @Override
+    public int hashCode() {
+        return Objects.hash(streamName);
     }
-  }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof NameableStream other) {
+            return Objects.equals(streamName, other.getStreamName());
+        }
+        return false;
+    }
+
+    @Override
+    public Set<Resource> getReferencedResources() {
+        return Set.of();
+    }
+
+    @Override
+    public void addTriples(ModelBuilder modelBuilder) {
+        modelBuilder.subject(getAsResource()).add(RDF.TYPE, Rdf.Carml.Stream);
+
+        if (streamName != null) {
+            modelBuilder.add(Carml.streamName, streamName);
+        }
+    }
 }

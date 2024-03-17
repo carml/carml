@@ -4,8 +4,7 @@ import org.eclipse.rdf4j.model.IRI;
 
 public interface Distribution extends Resource {
 
-  IRI getDownloadUrl();
+    IRI getDownloadUrl();
 
-  String getRelativeFileLocation();
-
+    String getRelativeFileLocation();
 }

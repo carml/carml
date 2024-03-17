@@ -20,105 +20,95 @@ import lombok.NonNull;
  */
 public class IriSafeMaker implements UnaryOperator<String> {
 
-  private static final IriSafeMaker DEFAULT = create(Form.NFC, true);
+    private static final IriSafeMaker DEFAULT = create(Form.NFC, true);
 
-  static class Range {
+    record Range(int from, int to) {
 
-    final int from;
-
-    final int to;
-
-    Range(int from, int to) {
-      this.from = from;
-      this.to = to;
+        boolean includes(int value) {
+            return value >= from && value <= to;
+        }
     }
 
-    boolean includes(int value) {
-      return value >= from && value <= to;
-    }
-  }
-
-  public static IriSafeMaker getInstance() {
-    return DEFAULT;
-  }
-
-  public static IriSafeMaker create(@NonNull Form normalizationForm, boolean upperCaseHex) {
-
-    /*
-     * percent-encode any char not in the 'iunreserved' production rule: iunreserved = ALPHA / DIGIT /
-     * "-" / "." / "_" / "~" / ucschar ucschar = %xA0-D7FF / %xF900-FDCF / %xFDF0-FFEF / %x10000-1FFFD /
-     * %x20000-2FFFD / %x30000-3FFFD / %x40000-4FFFD / %x50000-5FFFD / %x60000-6FFFD / %x70000-7FFFD /
-     * %x80000-8FFFD / %x90000-9FFFD / %xA0000-AFFFD / %xB0000-BFFFD / %xC0000-CFFFD / %xD0000-DFFFD /
-     * %xE1000-EFFFD
-     */
-
-    var alphaString = "%x41-5A / %x61-7A";
-    var digitString = "%x30-39";
-    var ucscharString = "%xA0-D7FF / %xF900-FDCF / %xFDF0-FFEF " //
-        + "/ %x10000-1FFFD / %x20000-2FFFD / %x30000-3FFFD " //
-        + "/ %x40000-4FFFD / %x50000-5FFFD / %x60000-6FFFD " //
-        + "/ %x70000-7FFFD / %x80000-8FFFD / %x90000-9FFFD " //
-        + "/ %xA0000-AFFFD / %xB0000-BFFFD / %xC0000-CFFFD " //
-        + "/ %xD0000-DFFFD / %xE1000-EFFFD";
-
-    var alpha = parseAbnfRangeString(alphaString);
-    var digit = parseAbnfRangeString(digitString);
-    var ucschar = parseAbnfRangeString(ucscharString);
-
-    Predicate<Integer> isIunreserved =
-        codePoint -> withinRange(codePoint, alpha) || withinRange(codePoint, digit) || codePoint == '-'
-            || codePoint == '.' || codePoint == '_' || codePoint == '~' || withinRange(codePoint, ucschar);
-
-    return new IriSafeMaker(isIunreserved, normalizationForm, upperCaseHex);
-  }
-
-  private static List<Range> parseAbnfRangeString(String rangeString) {
-    return Arrays.stream(rangeString.split("/"))
-        .map(rangeStringPart -> {
-          String[] range = rangeStringPart.trim()
-              .substring(2)
-              .split("-");
-          return new Range(Integer.parseInt(range[0], 16), Integer.parseInt(range[1], 16));
-        })
-        .toList();
-  }
-
-  private static boolean withinRange(int codePoint, List<Range> ranges) {
-    return ranges.stream()
-        .anyMatch(range -> range.includes(codePoint));
-  }
-
-  private final Predicate<Integer> inIunreserved;
-
-  private final Form normalizationForm;
-
-  private final boolean upperCaseHex;
-
-  private IriSafeMaker(Predicate<Integer> inIunreserved, Form normalizationForm, boolean upperCaseHex) {
-    this.inIunreserved = inIunreserved;
-    this.normalizationForm = normalizationForm;
-    this.upperCaseHex = upperCaseHex;
-  }
-
-  @Override
-  public String apply(String iriString) {
-    var result = new StringBuilder();
-
-    iriString = Normalizer.normalize(iriString, normalizationForm);
-    iriString.codePoints()
-        .flatMap(this::percentEncode)
-        .forEach(c -> result.append((char) c));
-    return result.toString();
-  }
-
-  private IntStream percentEncode(int codePoint) {
-
-    if (inIunreserved.test(codePoint)) {
-      return IntStream.of(codePoint);
+    public static IriSafeMaker getInstance() {
+        return DEFAULT;
     }
 
-    var percentEncoded = upperCaseHex ? String.format("%%%02X", codePoint) : String.format("%%%02x", codePoint);
+    public static IriSafeMaker create(@NonNull Form normalizationForm, boolean upperCaseHex) {
 
-    return percentEncoded.codePoints();
-  }
+        /*
+         * percent-encode any char not in the 'iunreserved' production rule: iunreserved = ALPHA / DIGIT /
+         * "-" / "." / "_" / "~" / ucschar ucschar = %xA0-D7FF / %xF900-FDCF / %xFDF0-FFEF / %x10000-1FFFD /
+         * %x20000-2FFFD / %x30000-3FFFD / %x40000-4FFFD / %x50000-5FFFD / %x60000-6FFFD / %x70000-7FFFD /
+         * %x80000-8FFFD / %x90000-9FFFD / %xA0000-AFFFD / %xB0000-BFFFD / %xC0000-CFFFD / %xD0000-DFFFD /
+         * %xE1000-EFFFD
+         */
+
+        var alphaString = "%x41-5A / %x61-7A";
+        var digitString = "%x30-39";
+        var ucscharString = "%xA0-D7FF / %xF900-FDCF / %xFDF0-FFEF " //
+                + "/ %x10000-1FFFD / %x20000-2FFFD / %x30000-3FFFD " //
+                + "/ %x40000-4FFFD / %x50000-5FFFD / %x60000-6FFFD " //
+                + "/ %x70000-7FFFD / %x80000-8FFFD / %x90000-9FFFD " //
+                + "/ %xA0000-AFFFD / %xB0000-BFFFD / %xC0000-CFFFD " //
+                + "/ %xD0000-DFFFD / %xE1000-EFFFD";
+
+        var alpha = parseAbnfRangeString(alphaString);
+        var digit = parseAbnfRangeString(digitString);
+        var ucschar = parseAbnfRangeString(ucscharString);
+
+        Predicate<Integer> isIunreserved = codePoint -> withinRange(codePoint, alpha)
+                || withinRange(codePoint, digit)
+                || codePoint == '-'
+                || codePoint == '.'
+                || codePoint == '_'
+                || codePoint == '~'
+                || withinRange(codePoint, ucschar);
+
+        return new IriSafeMaker(isIunreserved, normalizationForm, upperCaseHex);
+    }
+
+    private static List<Range> parseAbnfRangeString(String rangeString) {
+        return Arrays.stream(rangeString.split("/"))
+                .map(rangeStringPart -> {
+                    String[] range = rangeStringPart.trim().substring(2).split("-");
+                    return new Range(Integer.parseInt(range[0], 16), Integer.parseInt(range[1], 16));
+                })
+                .toList();
+    }
+
+    private static boolean withinRange(int codePoint, List<Range> ranges) {
+        return ranges.stream().anyMatch(range -> range.includes(codePoint));
+    }
+
+    private final Predicate<Integer> inIunreserved;
+
+    private final Form normalizationForm;
+
+    private final boolean upperCaseHex;
+
+    private IriSafeMaker(Predicate<Integer> inIunreserved, Form normalizationForm, boolean upperCaseHex) {
+        this.inIunreserved = inIunreserved;
+        this.normalizationForm = normalizationForm;
+        this.upperCaseHex = upperCaseHex;
+    }
+
+    @Override
+    public String apply(String iriString) {
+        var result = new StringBuilder();
+
+        var normalizedIriString = Normalizer.normalize(iriString, normalizationForm);
+        normalizedIriString.codePoints().flatMap(this::percentEncode).forEach(c -> result.append((char) c));
+        return result.toString();
+    }
+
+    private IntStream percentEncode(int codePoint) {
+
+        if (inIunreserved.test(codePoint)) {
+            return IntStream.of(codePoint);
+        }
+
+        var percentEncoded = upperCaseHex ? String.format("%%%02X", codePoint) : String.format("%%%02x", codePoint);
+
+        return percentEncoded.codePoints();
+    }
 }

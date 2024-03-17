@@ -17,32 +17,33 @@ import org.junit.jupiter.api.Test;
 @SuppressWarnings("java:S1135")
 class CarmlMapperTest {
 
-  private static final ValueFactory VF = SimpleValueFactory.getInstance();
+    private static final ValueFactory VF = SimpleValueFactory.getInstance();
 
-  private Model model;
+    private Model model;
 
-  public void prepareTest() {
-    try (InputStream input = CarmlMapperTest.class.getResourceAsStream("Person.ld.json")) {
-      model = Rio.parse(input, "", RDFFormat.JSONLD);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
+    public void prepareTest() {
+        try (InputStream input = CarmlMapperTest.class.getResourceAsStream("Person.ld.json")) {
+            model = Rio.parse(input, "", RDFFormat.JSONLD);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
-  }
 
-  @Test
-  void mapper_havingMethodWithMultiplePropertyAnnotations_MapsCorrectly() {
-    prepareTest();
-    CarmlMapper mapper = new CarmlMapper();
-    Person manu = mapper.map(model, (Resource) VF.createIRI("http://example.org/people#manu"), Set.of(Person.class));
-    Set<Person> acquaintances = manu.getKnows();
-    assertThat(acquaintances, hasSize(6));
-  }
+    @Test
+    void mapper_havingMethodWithMultiplePropertyAnnotations_MapsCorrectly() {
+        prepareTest();
+        CarmlMapper mapper = new CarmlMapper();
+        Person manu =
+                mapper.map(model, (Resource) VF.createIRI("http://example.org/people#manu"), Set.of(Person.class));
+        Set<Person> acquaintances = manu.getKnows();
+        assertThat(acquaintances, hasSize(6));
+    }
 
-  void mapper_ifContainsCachedMappings_UsesThem() {
-    // TODO
-  }
+    void mapper_ifContainsCachedMappings_UsesThem() {
+        // TODO
+    }
 
-  // TODO: PM: test mapping of relevant RDF constructs, this should replace the RDF Mapper tests in
-  // RML Engine
+    // TODO: PM: test mapping of relevant RDF constructs, this should replace the RDF Mapper tests in
+    // RML Engine
 
 }

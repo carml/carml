@@ -22,68 +22,68 @@ import org.eclipse.rdf4j.model.util.ModelBuilder;
 @ToString(callSuper = true)
 public class Input extends CarmlResource {
 
-  private String inputType;
+    private String inputType;
 
-  @Singular
-  private List<String> inputFiles;
+    @Singular
+    private List<String> inputFiles;
 
-  private Database database;
+    private Database database;
 
-  private TripleStore tripleStore;
+    private TripleStore tripleStore;
 
-  @RdfProperty("http://w3id.org/rml/test/inputType")
-  public String getInputType() {
-    return inputType;
-  }
-
-  @RdfProperty("http://w3id.org/rml/test/inputFile")
-  public List<String> getInputFiles() {
-    return inputFiles;
-  }
-
-  @RdfProperty("http://w3id.org/rml/test/database")
-  @RdfType(Database.class)
-  public Database getDatabase() {
-    return database;
-  }
-
-  @RdfProperty("http://w3id.org/rml/test/tripleStore")
-  @RdfType(TripleStore.class)
-  public TripleStore getTripleStore() {
-    return tripleStore;
-  }
-
-  @Override
-  public Set<Resource> getReferencedResources() {
-    var builder = ImmutableSet.<Resource>builder();
-
-    if (database != null) {
-      builder.add(database);
+    @RdfProperty("http://w3id.org/rml/test/inputType")
+    public String getInputType() {
+        return inputType;
     }
 
-    if (tripleStore != null) {
-      builder.add(tripleStore);
+    @RdfProperty("http://w3id.org/rml/test/inputFile")
+    public List<String> getInputFiles() {
+        return inputFiles;
     }
 
-    return builder.build();
-  }
-
-  @Override
-  public void addTriples(ModelBuilder modelBuilder) {
-    modelBuilder.subject(getAsResource());
-
-    if (inputType != null) {
-      modelBuilder.add("http://w3id.org/rml/test/inputType", inputType);
+    @RdfProperty("http://w3id.org/rml/test/database")
+    @RdfType(Database.class)
+    public Database getDatabase() {
+        return database;
     }
 
-    inputFiles.forEach(inputFile -> modelBuilder.add("http://w3id.org/rml/test/inputFile", inputFile));
-
-    if (database != null) {
-      modelBuilder.add("http://w3id.org/rml/test/database", database.getAsResource());
+    @RdfProperty("http://w3id.org/rml/test/tripleStore")
+    @RdfType(TripleStore.class)
+    public TripleStore getTripleStore() {
+        return tripleStore;
     }
 
-    if (tripleStore != null) {
-      modelBuilder.add("http://w3id.org/rml/test/tripleStore", tripleStore.getAsResource());
+    @Override
+    public Set<Resource> getReferencedResources() {
+        var builder = ImmutableSet.<Resource>builder();
+
+        if (database != null) {
+            builder.add(database);
+        }
+
+        if (tripleStore != null) {
+            builder.add(tripleStore);
+        }
+
+        return builder.build();
     }
-  }
+
+    @Override
+    public void addTriples(ModelBuilder modelBuilder) {
+        modelBuilder.subject(getAsResource());
+
+        if (inputType != null) {
+            modelBuilder.add("http://w3id.org/rml/test/inputType", inputType);
+        }
+
+        inputFiles.forEach(inputFile -> modelBuilder.add("http://w3id.org/rml/test/inputFile", inputFile));
+
+        if (database != null) {
+            modelBuilder.add("http://w3id.org/rml/test/database", database.getAsResource());
+        }
+
+        if (tripleStore != null) {
+            modelBuilder.add("http://w3id.org/rml/test/tripleStore", tripleStore.getAsResource());
+        }
+    }
 }

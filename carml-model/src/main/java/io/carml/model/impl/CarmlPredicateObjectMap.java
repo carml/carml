@@ -29,55 +29,54 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @EqualsAndHashCode(callSuper = false)
 public class CarmlPredicateObjectMap extends CarmlResource implements PredicateObjectMap {
 
-  @Singular
-  private Set<PredicateMap> predicateMaps;
+    @Singular
+    private Set<PredicateMap> predicateMaps;
 
-  @Singular
-  private Set<BaseObjectMap> objectMaps;
+    @Singular
+    private Set<BaseObjectMap> objectMaps;
 
-  @Singular
-  private Set<GraphMap> graphMaps;
+    @Singular
+    private Set<GraphMap> graphMaps;
 
-  @RdfProperty(Rml.predicateMap)
-  @RdfProperty(Rr.predicateMap)
-  @RdfType(CarmlPredicateMap.class)
-  @Override
-  public Set<PredicateMap> getPredicateMaps() {
-    return predicateMaps;
-  }
+    @RdfProperty(Rml.predicateMap)
+    @RdfProperty(Rr.predicateMap)
+    @RdfType(CarmlPredicateMap.class)
+    @Override
+    public Set<PredicateMap> getPredicateMaps() {
+        return predicateMaps;
+    }
 
-  @RdfProperty(Rml.objectMap)
-  @RdfProperty(Rr.objectMap)
-  @RdfTypeDecider(ObjectMapTypeDecider.class)
-  @Override
-  public Set<BaseObjectMap> getObjectMaps() {
-    return objectMaps;
-  }
+    @RdfProperty(Rml.objectMap)
+    @RdfProperty(Rr.objectMap)
+    @RdfTypeDecider(ObjectMapTypeDecider.class)
+    @Override
+    public Set<BaseObjectMap> getObjectMaps() {
+        return objectMaps;
+    }
 
-  @RdfProperty(Rml.graphMap)
-  @RdfProperty(Rr.graphMap)
-  @RdfType(CarmlGraphMap.class)
-  @Override
-  public Set<GraphMap> getGraphMaps() {
-    return graphMaps;
-  }
+    @RdfProperty(Rml.graphMap)
+    @RdfProperty(Rr.graphMap)
+    @RdfType(CarmlGraphMap.class)
+    @Override
+    public Set<GraphMap> getGraphMaps() {
+        return graphMaps;
+    }
 
-  @Override
-  public Set<Resource> getReferencedResources() {
-    return ImmutableSet.<Resource>builder()
-        .addAll(predicateMaps)
-        .addAll(objectMaps)
-        .addAll(graphMaps)
-        .build();
-  }
+    @Override
+    public Set<Resource> getReferencedResources() {
+        return ImmutableSet.<Resource>builder()
+                .addAll(predicateMaps)
+                .addAll(objectMaps)
+                .addAll(graphMaps)
+                .build();
+    }
 
-  @Override
-  public void addTriples(ModelBuilder modelBuilder) {
-    modelBuilder.subject(getAsResource())
-        .add(RDF.TYPE, Rdf.Rml.PredicateObjectMap);
+    @Override
+    public void addTriples(ModelBuilder modelBuilder) {
+        modelBuilder.subject(getAsResource()).add(RDF.TYPE, Rdf.Rml.PredicateObjectMap);
 
-    predicateMaps.forEach(pm -> modelBuilder.add(Rdf.Rml.predicateMap, pm.getAsResource()));
-    objectMaps.forEach(om -> modelBuilder.add(Rdf.Rml.objectMap, om.getAsResource()));
-    graphMaps.forEach(gm -> modelBuilder.add(Rdf.Rml.graphMap, gm.getAsResource()));
-  }
+        predicateMaps.forEach(pm -> modelBuilder.add(Rdf.Rml.predicateMap, pm.getAsResource()));
+        objectMaps.forEach(om -> modelBuilder.add(Rdf.Rml.objectMap, om.getAsResource()));
+        graphMaps.forEach(gm -> modelBuilder.add(Rdf.Rml.graphMap, gm.getAsResource()));
+    }
 }

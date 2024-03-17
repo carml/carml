@@ -22,24 +22,24 @@ import org.eclipse.rdf4j.model.util.ModelBuilder;
 @ToString(callSuper = true)
 public class Database extends CarmlResource {
 
-  @Singular
-  private List<String> sqlScriptFiles;
+    @Singular
+    private List<String> sqlScriptFiles;
 
-  @RdfProperty("http://w3id.org/rml/test/sqlScriptFile")
-  public List<String> getSqlScriptFiles() {
-    return sqlScriptFiles;
-  }
+    @RdfProperty("http://w3id.org/rml/test/sqlScriptFile")
+    public List<String> getSqlScriptFiles() {
+        return sqlScriptFiles;
+    }
 
-  @Override
-  public Set<Resource> getReferencedResources() {
-    return Set.of();
-  }
+    @Override
+    public Set<Resource> getReferencedResources() {
+        return Set.of();
+    }
 
-  @Override
-  public void addTriples(ModelBuilder modelBuilder) {
-    modelBuilder.subject(getAsResource());
+    @Override
+    public void addTriples(ModelBuilder modelBuilder) {
+        modelBuilder.subject(getAsResource());
 
-    sqlScriptFiles
-        .forEach(sqlScriptFile -> modelBuilder.add(iri("http://w3id.org/rml/test/sqlScriptFile"), sqlScriptFile));
-  }
+        sqlScriptFiles.forEach(
+                sqlScriptFile -> modelBuilder.add(iri("http://w3id.org/rml/test/sqlScriptFile"), sqlScriptFile));
+    }
 }

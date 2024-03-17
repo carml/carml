@@ -14,21 +14,19 @@ import org.eclipse.rdf4j.model.vocabulary.XSD;
 @NoArgsConstructor(staticName = "get")
 public final class CanonicalRdfLexicalForm implements BiFunction<Object, IRI, String> {
 
-  @Override
-  public String apply(Object value, IRI datatype) {
-    // Not covered by XMLDatatypeUtil
-    if (datatype != null) {
-      if (datatype.equals(XSD.HEXBINARY) && value instanceof ByteBuffer byteBuffer) {
-        return DatatypeConverter.printHexBinary(byteBuffer.array());
-      } else if (value instanceof TemporalAccessor temporalAccessor) {
-        return Values.literal(temporalAccessor)
-            .stringValue();
-      } else if (CoreDatatype.from(datatype)
-          .isXSDDatatype()) {
-        return XMLDatatypeUtil.normalize(value.toString(), datatype);
-      }
-    }
+    @Override
+    public String apply(Object value, IRI datatype) {
+        // Not covered by XMLDatatypeUtil
+        if (datatype != null) {
+            if (datatype.equals(XSD.HEXBINARY) && value instanceof ByteBuffer byteBuffer) {
+                return DatatypeConverter.printHexBinary(byteBuffer.array());
+            } else if (value instanceof TemporalAccessor temporalAccessor) {
+                return Values.literal(temporalAccessor).stringValue();
+            } else if (CoreDatatype.from(datatype).isXSDDatatype()) {
+                return XMLDatatypeUtil.normalize(value.toString(), datatype);
+            }
+        }
 
-    return value.toString();
-  }
+        return value.toString();
+    }
 }

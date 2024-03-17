@@ -41,158 +41,158 @@ import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 public class PausableStaxXmlReader extends AbstractXMLReader {
-  private final XMLInputFactory factory;
+    private final XMLInputFactory factory;
 
-  private final AtomicBoolean readingPaused = new AtomicBoolean();
+    private final AtomicBoolean readingPaused = new AtomicBoolean();
 
-  private boolean readingCompleted = false;
+    private boolean readingCompleted = false;
 
-  private XMLStreamReader reader = null;
+    private XMLStreamReader reader = null;
 
-  private Attributes attrs = null;
+    private Attributes attrs = null;
 
-  public PausableStaxXmlReader(XMLInputFactory factory) {
-    this.factory = factory;
-    this.factory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
-  }
-
-  public PausableStaxXmlReader() {
-    this(XMLInputFactory.newInstance());
-  }
-
-  @Override
-  public void parse(InputSource input) throws SAXException {
-    try {
-      if (input.getByteStream() != null) {
-        reader = factory.createXMLStreamReader(input.getByteStream(), input.getEncoding());
-      } else if (input.getCharacterStream() != null) {
-        reader = factory.createXMLStreamReader(input.getCharacterStream());
-      } else {
-        reader = factory.createXMLStreamReader(input.getSystemId(), (InputStream) null);
-      }
-
-      attrs = new STAXAttributes(reader);
-      start();
-    } catch (XMLStreamException ex) {
-      throw new SAXException(ex);
+    public PausableStaxXmlReader(XMLInputFactory factory) {
+        this.factory = factory;
+        this.factory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
     }
-  }
 
-  @Override
-  public void parse(String systemId) throws SAXException {
-    parse(new InputSource(systemId));
-  }
-
-  public boolean isPaused() {
-    return readingPaused.get();
-  }
-
-  public boolean isCompleted() {
-    return readingCompleted;
-  }
-
-  public void pause() {
-    readingPaused.compareAndSet(false, true);
-  }
-
-  private void start() throws SAXException, XMLStreamException {
-    int eventType = reader.getEventType();
-    if (!(eventType == START_DOCUMENT || eventType == START_ELEMENT)) {
-      throw new IllegalStateException("XMLStreamReader not at start of document or element");
+    public PausableStaxXmlReader() {
+        this(XMLInputFactory.newInstance());
     }
-    run(eventType);
-  }
 
-  public void resume() throws SAXException, XMLStreamException {
-    readingPaused.compareAndSet(true, false);
-    int eventType = reader.next();
-    run(eventType);
-  }
+    @Override
+    public void parse(InputSource input) throws SAXException {
+        try {
+            if (input.getByteStream() != null) {
+                reader = factory.createXMLStreamReader(input.getByteStream(), input.getEncoding());
+            } else if (input.getCharacterStream() != null) {
+                reader = factory.createXMLStreamReader(input.getCharacterStream());
+            } else {
+                reader = factory.createXMLStreamReader(input.getSystemId(), (InputStream) null);
+            }
 
-  private void run(int eventType) throws SAXException, XMLStreamException {
-    while (true) {
-      switch (eventType) {
-        case START_ELEMENT -> handleStartElement();
-        case END_ELEMENT -> handleEndElement();
-        case PROCESSING_INSTRUCTION -> handleProcessingInstruction();
-        case CHARACTERS, SPACE, CDATA -> handleCharacters();
-        case COMMENT -> handleComment();
-        case START_DOCUMENT -> handleStartDocument();
-        case END_DOCUMENT -> {
-          handleEndDocument();
-          return;
+            attrs = new STAXAttributes(reader);
+            start();
+        } catch (XMLStreamException ex) {
+            throw new SAXException(ex);
         }
-        case DTD -> handleDtd();
-        default -> {
-          // not interested in event type
+    }
+
+    @Override
+    public void parse(String systemId) throws SAXException {
+        parse(new InputSource(systemId));
+    }
+
+    public boolean isPaused() {
+        return readingPaused.get();
+    }
+
+    public boolean isCompleted() {
+        return readingCompleted;
+    }
+
+    public void pause() {
+        readingPaused.compareAndSet(false, true);
+    }
+
+    private void start() throws SAXException, XMLStreamException {
+        int eventType = reader.getEventType();
+        if (!(eventType == START_DOCUMENT || eventType == START_ELEMENT)) {
+            throw new IllegalStateException("XMLStreamReader not at start of document or element");
         }
-      }
-      try {
-        if (readingPaused.get()) {
-          break;
+        run(eventType);
+    }
+
+    public void resume() throws SAXException, XMLStreamException {
+        readingPaused.compareAndSet(true, false);
+        int eventType = reader.next();
+        run(eventType);
+    }
+
+    private void run(int eventType) throws SAXException, XMLStreamException {
+        while (true) {
+            switch (eventType) {
+                case START_ELEMENT -> handleStartElement();
+                case END_ELEMENT -> handleEndElement();
+                case PROCESSING_INSTRUCTION -> handleProcessingInstruction();
+                case CHARACTERS, SPACE, CDATA -> handleCharacters();
+                case COMMENT -> handleComment();
+                case START_DOCUMENT -> handleStartDocument();
+                case END_DOCUMENT -> {
+                    handleEndDocument();
+                    return;
+                }
+                case DTD -> handleDtd();
+                default -> {
+                    // not interested in event type
+                }
+            }
+            try {
+                if (readingPaused.get()) {
+                    break;
+                }
+                eventType = reader.next();
+            } catch (XMLStreamException ex) {
+                throw new SAXException(ex);
+            }
         }
-        eventType = reader.next();
-      } catch (XMLStreamException ex) {
-        throw new SAXException(ex);
-      }
-    }
-  }
-
-  private void handleStartElement() throws SAXException {
-    int nsCount = reader.getNamespaceCount();
-    for (int i = 0; i < nsCount; i++) {
-      String prefix = reader.getNamespacePrefix(i);
-      String uri = reader.getNamespaceURI(i);
-      handler.startPrefixMapping(prefix == null ? "" : prefix, uri == null ? "" : uri);
     }
 
-    String localName = reader.getLocalName();
-    String prefix = reader.getPrefix();
-    String qname = prefix == null || prefix.length() == 0 ? localName : prefix + ':' + localName;
-    String uri = reader.getNamespaceURI();
-    handler.startElement(uri == null ? "" : uri, localName, qname, attrs);
-  }
+    private void handleStartElement() throws SAXException {
+        int nsCount = reader.getNamespaceCount();
+        for (int i = 0; i < nsCount; i++) {
+            String prefix = reader.getNamespacePrefix(i);
+            String uri = reader.getNamespaceURI(i);
+            handler.startPrefixMapping(prefix == null ? "" : prefix, uri == null ? "" : uri);
+        }
 
-  private void handleEndElement() throws SAXException {
-    String localName = reader.getLocalName();
-    String prefix = reader.getPrefix();
-    String qname = prefix == null || prefix.length() == 0 ? localName : prefix + ':' + localName;
-    String uri = reader.getNamespaceURI();
-    handler.endElement(uri == null ? "" : uri, localName, qname);
-
-    int nsCount = reader.getNamespaceCount();
-    for (int i = 0; i < nsCount; i++) {
-      prefix = reader.getNamespacePrefix(i);
-      handler.endPrefixMapping(prefix == null ? "" : prefix);
+        String localName = reader.getLocalName();
+        String prefix = reader.getPrefix();
+        String qname = prefix == null || prefix.length() == 0 ? localName : prefix + ':' + localName;
+        String uri = reader.getNamespaceURI();
+        handler.startElement(uri == null ? "" : uri, localName, qname, attrs);
     }
-  }
 
-  private void handleProcessingInstruction() throws SAXException {
-    handler.processingInstruction(reader.getPITarget(), reader.getPIData());
-  }
+    private void handleEndElement() throws SAXException {
+        String localName = reader.getLocalName();
+        String prefix = reader.getPrefix();
+        String qname = prefix == null || prefix.length() == 0 ? localName : prefix + ':' + localName;
+        String uri = reader.getNamespaceURI();
+        handler.endElement(uri == null ? "" : uri, localName, qname);
 
-  private void handleCharacters() throws SAXException {
-    handler.characters(reader.getTextCharacters(), reader.getTextStart(), reader.getTextLength());
-  }
+        int nsCount = reader.getNamespaceCount();
+        for (int i = 0; i < nsCount; i++) {
+            prefix = reader.getNamespacePrefix(i);
+            handler.endPrefixMapping(prefix == null ? "" : prefix);
+        }
+    }
 
-  private void handleComment() throws SAXException {
-    handler.comment(reader.getTextCharacters(), reader.getTextStart(), reader.getTextLength());
-  }
+    private void handleProcessingInstruction() throws SAXException {
+        handler.processingInstruction(reader.getPITarget(), reader.getPIData());
+    }
 
-  private void handleStartDocument() throws SAXException {
-    handler.setDocumentLocator(new STAXLocator(reader));
-    handler.startDocument();
-  }
+    private void handleCharacters() throws SAXException {
+        handler.characters(reader.getTextCharacters(), reader.getTextStart(), reader.getTextLength());
+    }
 
-  private void handleEndDocument() throws SAXException, XMLStreamException {
-    handler.endDocument();
-    reader.close();
-    readingCompleted = true;
-  }
+    private void handleComment() throws SAXException {
+        handler.comment(reader.getTextCharacters(), reader.getTextStart(), reader.getTextLength());
+    }
 
-  private void handleDtd() throws SAXException {
-    var location = reader.getLocation();
-    handler.startDTD(null, location.getPublicId(), location.getSystemId());
-    handler.endDTD();
-  }
+    private void handleStartDocument() throws SAXException {
+        handler.setDocumentLocator(new STAXLocator(reader));
+        handler.startDocument();
+    }
+
+    private void handleEndDocument() throws SAXException, XMLStreamException {
+        handler.endDocument();
+        reader.close();
+        readingCompleted = true;
+    }
+
+    private void handleDtd() throws SAXException {
+        var location = reader.getLocation();
+        handler.startDTD(null, location.getPublicId(), location.getSystemId());
+        handler.endDTD();
+    }
 }

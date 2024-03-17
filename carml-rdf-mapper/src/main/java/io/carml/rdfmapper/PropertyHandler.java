@@ -5,7 +5,7 @@ import org.eclipse.rdf4j.model.Resource;
 
 public interface PropertyHandler {
 
-  void handle(Model model, Resource resource, Object instance);
+    void handle(Model model, Resource resource, Object instance);
 
-  boolean hasEffect(Model model, Resource resource);
+    boolean hasEffect(Model model, Resource resource);
 }

@@ -7,10 +7,8 @@ import org.eclipse.rdf4j.model.util.ModelCollector;
 
 public class AsRdfCombiner implements Combiner<Model> {
 
-  @Override
-  public Model combine(List<Model> delegateInvocationResults) {
-    return delegateInvocationResults.stream()
-        .flatMap(Model::stream)
-        .collect(ModelCollector.toModel());
-  }
+    @Override
+    public Model combine(List<Model> delegateInvocationResults) {
+        return delegateInvocationResults.stream().flatMap(Model::stream).collect(ModelCollector.toModel());
+    }
 }

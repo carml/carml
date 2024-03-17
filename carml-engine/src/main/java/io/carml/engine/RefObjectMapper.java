@@ -6,9 +6,9 @@ import reactor.core.publisher.Flux;
 
 public interface RefObjectMapper<V> {
 
-  TriplesMap getTriplesMap();
+    TriplesMap getTriplesMap();
 
-  RefObjectMap getRefObjectMap();
+    RefObjectMap getRefObjectMap();
 
-  Flux<V> resolveJoins(TriplesMapper<V> parentTriplesMapper);
+    Flux<V> resolveJoins(TriplesMapper<V> parentTriplesMapper);
 }

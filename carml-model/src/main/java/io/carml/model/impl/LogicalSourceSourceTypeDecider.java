@@ -16,40 +16,40 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 
 public class LogicalSourceSourceTypeDecider implements TypeDecider {
 
-  private final Mapper mapper;
+    private final Mapper mapper;
 
-  public LogicalSourceSourceTypeDecider(Mapper mapper) {
-    this.mapper = mapper;
-  }
+    public LogicalSourceSourceTypeDecider(Mapper mapper) {
+        this.mapper = mapper;
+    }
 
-  Map<IRI, IRI> inferenceMap = Map.of(Carml.streamName, Carml.Stream, //
-      Carml.declaresNamespace, Carml.XmlDocument, //
-      Carml.url, Carml.FileSource, //
-      D2rq.jdbcDriver, D2rq.Database, //
-      Rml.path, Rml.RelativePathSource);
+    Map<IRI, IRI> inferenceMap = Map.of(
+            Carml.streamName,
+            Carml.Stream, //
+            Carml.declaresNamespace,
+            Carml.XmlDocument, //
+            Carml.url,
+            Carml.FileSource, //
+            D2rq.jdbcDriver,
+            D2rq.Database, //
+            Rml.path,
+            Rml.RelativePathSource);
 
-  @Override
-  public Set<Type> decide(Model model, Resource resource) {
-    Set<IRI> rdfTypes = model.filter(resource, RDF.TYPE, null)
-        .objects()
-        .stream()
-        .map(IRI.class::cast)
-        .collect(Collectors.toSet());
+    @Override
+    public Set<Type> decide(Model model, Resource resource) {
+        Set<IRI> rdfTypes = model.filter(resource, RDF.TYPE, null).objects().stream()
+                .map(IRI.class::cast)
+                .collect(Collectors.toSet());
 
-    Set<IRI> usedPredicates = model.filter(resource, null, null)
-        .predicates()
-        .stream()
-        .filter(p -> !p.equals(RDF.TYPE))
-        .collect(Collectors.toSet());
+        Set<IRI> usedPredicates = model.filter(resource, null, null).predicates().stream()
+                .filter(p -> !p.equals(RDF.TYPE))
+                .collect(Collectors.toSet());
 
-    usedPredicates.forEach(p -> {
-      if (inferenceMap.containsKey(p)) {
-        rdfTypes.add(inferenceMap.get(p));
-      }
-    });
+        usedPredicates.forEach(p -> {
+            if (inferenceMap.containsKey(p)) {
+                rdfTypes.add(inferenceMap.get(p));
+            }
+        });
 
-    return rdfTypes.stream()
-        .map(mapper::getDecidableType)
-        .collect(Collectors.toSet());
-  }
+        return rdfTypes.stream().map(mapper::getDecidableType).collect(Collectors.toSet());
+    }
 }

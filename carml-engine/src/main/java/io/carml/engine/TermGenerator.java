@@ -5,6 +5,4 @@ import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import java.util.List;
 import java.util.function.BiFunction;
 
-public interface TermGenerator<T> extends BiFunction<ExpressionEvaluation, DatatypeMapper, List<T>> {
-
-}
+public interface TermGenerator<T> extends BiFunction<ExpressionEvaluation, DatatypeMapper, List<T>> {}

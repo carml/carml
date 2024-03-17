@@ -10,14 +10,14 @@ import lombok.NonNull;
 
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class CarmlParentSideJoinConditionStoreProvider<T extends Serializable>
-    implements ParentSideJoinConditionStoreProvider<T> {
+        implements ParentSideJoinConditionStoreProvider<T> {
 
-  public static <T extends Serializable> CarmlParentSideJoinConditionStoreProvider<T> of() {
-    return new CarmlParentSideJoinConditionStoreProvider<>();
-  }
+    public static <T extends Serializable> CarmlParentSideJoinConditionStoreProvider<T> of() {
+        return new CarmlParentSideJoinConditionStoreProvider<>();
+    }
 
-  @Override
-  public ParentSideJoinConditionStore<T> createParentSideJoinConditionStore(@NonNull String name) {
-    return CarmlParentSideJoinConditionStore.of(name, new ConcurrentHashMap<>());
-  }
+    @Override
+    public ParentSideJoinConditionStore<T> createParentSideJoinConditionStore(@NonNull String name) {
+        return CarmlParentSideJoinConditionStore.of(name, new ConcurrentHashMap<>());
+    }
 }
