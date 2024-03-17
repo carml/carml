@@ -3,9 +3,12 @@ package io.carml.rdfmapper.impl;
 import io.carml.rdfmapper.annotations.RdfProperty;
 import io.carml.rdfmapper.annotations.RdfType;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import lombok.Setter;
 
+@Setter
 public class Person {
 
     private String name;
@@ -13,6 +16,8 @@ public class Person {
     private PostalAddress address;
 
     private Set<Person> knows;
+
+    private List<Person> friends;
 
     static final String SCHEMAORG = "http://schema.org/";
 
@@ -26,23 +31,17 @@ public class Person {
 
     static final String SCHEMAORG_COLLEAGUES = SCHEMAORG + "colleagues";
 
+    static final String EX_FRIENDS = "http://example.org/friends";
+
     @RdfProperty(SCHEMAORG_NAME)
     public Optional<String> getName() {
         return Optional.ofNullable(name);
-    }
-
-    public void setName(String name) {
-        this.name = name;
     }
 
     @RdfProperty(SCHEMAORG_ADDRESS)
     @RdfType(PostalAddress.class)
     public PostalAddress getAddress() {
         return address;
-    }
-
-    public void setAddress(PostalAddress address) {
-        this.address = address;
     }
 
     @RdfProperty(SCHEMAORG_KNOWS)
@@ -58,6 +57,12 @@ public class Person {
             this.knows = new HashSet<>();
         }
         this.knows.addAll(knows);
+    }
+
+    @RdfProperty(EX_FRIENDS)
+    @RdfType(Person.class)
+    public List<Person> getFriends() {
+        return friends;
     }
 
     @Override

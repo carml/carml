@@ -1,17 +1,23 @@
 package io.carml.model.impl;
 
+import io.carml.model.GatherMap;
+import io.carml.model.ObjectMap;
+import io.carml.model.Strategy;
 import io.carml.model.TermMap;
 import io.carml.model.TermType;
 import io.carml.rdfmapper.annotations.RdfProperty;
+import io.carml.rdfmapper.annotations.RdfType;
 import io.carml.vocab.Rdf;
 import io.carml.vocab.Rml;
 import io.carml.vocab.Rr;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
+import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
 
 @SuperBuilder(toBuilder = true)
@@ -19,13 +25,20 @@ import org.eclipse.rdf4j.model.util.ModelBuilder;
 @Setter
 @ToString(callSuper = true)
 @EqualsAndHashCode(callSuper = true)
-abstract class CarmlTermMap extends CarmlExpressionMap implements TermMap {
+abstract class CarmlTermMap extends CarmlExpressionMap implements TermMap, GatherMap {
 
     String inverseExpression;
 
     TermType termType;
 
-    // TODO??
+    Strategy strategy;
+
+    IRI gatherAs;
+
+    List<ObjectMap> gatheredOnes;
+
+    boolean allowEmptyListAndContainer;
+
     @RdfProperty(Rml.inverseExpression)
     @RdfProperty(Rr.inverseExpression)
     @Override
@@ -36,6 +49,30 @@ abstract class CarmlTermMap extends CarmlExpressionMap implements TermMap {
     @Override
     public TermType getTermType() {
         return termType;
+    }
+
+    @Override
+    @RdfProperty(Rml.strategy)
+    public Strategy getStrategy() {
+        return strategy;
+    }
+
+    @Override
+    @RdfProperty(Rml.gatherAs)
+    public IRI getGatherAs() {
+        return gatherAs;
+    }
+
+    @Override
+    @RdfProperty(Rml.gather)
+    @RdfType(CarmlObjectMap.class)
+    public List<ObjectMap> getGatheredOnes() {
+        return gatheredOnes;
+    }
+
+    @Override
+    public boolean getAllowEmptyListAndContainer() {
+        return allowEmptyListAndContainer;
     }
 
     @Override

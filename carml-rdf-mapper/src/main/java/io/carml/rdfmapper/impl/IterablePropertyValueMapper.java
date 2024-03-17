@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
+import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Value;
@@ -16,9 +17,9 @@ import org.eclipse.rdf4j.model.Value;
 @SuppressWarnings("java:S1135")
 class IterablePropertyValueMapper implements PropertyValueMapper {
 
-    private ValueTransformer valueTransformer;
+    private final ValueTransformer valueTransformer;
 
-    private Supplier<ImmutableCollection.Builder<Object>> createCollectionBuilder;
+    private final Supplier<ImmutableCollection.Builder<Object>> createCollectionBuilder;
 
     public IterablePropertyValueMapper(
             ValueTransformer valueTransformer, Supplier<ImmutableCollection.Builder<Object>> createCollectionBuilder) {
@@ -39,6 +40,15 @@ class IterablePropertyValueMapper implements PropertyValueMapper {
     public static IterablePropertyValueMapper createForIterableType(
             ValueTransformer valueTransformer, Class<?> iterableType) {
         requireNonNull(iterableType);
+
+        Supplier<ImmutableCollection.Builder<Object>> createCollectionBuilder =
+                createCollectionBuilderFactory(iterableType);
+
+        return new IterablePropertyValueMapper(valueTransformer, createCollectionBuilder);
+    }
+
+    public static IterablePropertyValueMapper createForRdfCollectionType(
+            ValueTransformer valueTransformer, Class<?> iterableType, IRI rdfCollectionType) {
 
         Supplier<ImmutableCollection.Builder<Object>> createCollectionBuilder =
                 createCollectionBuilderFactory(iterableType);

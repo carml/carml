@@ -4,6 +4,7 @@
         "id": "@id",
         "@vocab": "http://schema.org/",
         "schema": "http://schema.org/",
+        "ex": "http://example.org/",
         "name": {
             "@id": "schema:name"
         },
@@ -15,12 +16,15 @@
         },
         "colleagues": {
             "@id": "schema:colleagues"
+        },
+        "friends": {
+            "@id": "ex:friends"
         }
     },
     "@graph" : [
         {
             "@id": "http://example.org/people#manu",
-            "@type": "Person", 
+            "@type": "Person",
             "name": "Manu Sporny",
             "knows":
             [

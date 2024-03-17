@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Set;
 import org.eclipse.rdf4j.model.Model;
-import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.rio.RDFFormat;
@@ -21,22 +20,40 @@ class CarmlMapperTest {
 
     private Model model;
 
-    public void prepareTest() {
-        try (InputStream input = CarmlMapperTest.class.getResourceAsStream("Person.ld.json")) {
-            model = Rio.parse(input, "", RDFFormat.JSONLD);
+    public void prepareTest(String resource, RDFFormat rdfFormat) {
+        try (InputStream input = CarmlMapperTest.class.getResourceAsStream(resource)) {
+            model = Rio.parse(input, "", rdfFormat);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
     @Test
-    void mapper_havingMethodWithMultiplePropertyAnnotations_MapsCorrectly() {
-        prepareTest();
-        CarmlMapper mapper = new CarmlMapper();
-        Person manu =
-                mapper.map(model, (Resource) VF.createIRI("http://example.org/people#manu"), Set.of(Person.class));
-        Set<Person> acquaintances = manu.getKnows();
+    void givenMethodWithMultiplePropertyAnnotations_whenMap_thenReturnsExpectedObject() {
+        // Given
+        prepareTest("Person.ld.json", RDFFormat.JSONLD);
+        var mapper = new CarmlMapper();
+
+        // When
+        Person manu = mapper.map(model, VF.createIRI("http://example.org/people#manu"), Set.of(Person.class));
+
+        // Then
+        var acquaintances = manu.getKnows();
         assertThat(acquaintances, hasSize(6));
+    }
+
+    @Test
+    void givenInputWithCollectionResource_whenMap_thenReturnMappedCollection() {
+        // Given
+        prepareTest("Person.ttl", RDFFormat.TURTLE);
+        var mapper = new CarmlMapper();
+
+        // When
+        Person manu = mapper.map(model, VF.createIRI("http://example.org/people#manu"), Set.of(Person.class));
+
+        // Then
+        var friends = manu.getFriends();
+        assertThat(friends, hasSize(3));
     }
 
     void mapper_ifContainsCachedMappings_UsesThem() {

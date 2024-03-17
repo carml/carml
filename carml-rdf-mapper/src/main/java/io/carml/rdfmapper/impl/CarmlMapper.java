@@ -18,6 +18,7 @@ import io.carml.rdfmapper.annotations.MultiDelegateCall;
 import io.carml.rdfmapper.annotations.RdfProperty;
 import io.carml.rdfmapper.annotations.RdfResourceName;
 import io.carml.rdfmapper.annotations.RdfType;
+import io.carml.rdfmapper.util.Statements;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
@@ -411,20 +412,27 @@ public class CarmlMapper implements Mapper, MappingCache {
     }
 
     private Stream<Optional<PropertyHandler>> getRdfPropertyHandlers(
-            Method method, Class<?> c, Model model, Resource resource) {
+            Method method, Class<?> clazz, Model model, Resource resource) {
 
         MethodPropertyHandlerRegistry.Builder regBuilder = MethodPropertyHandlerRegistry.builder();
 
         regBuilder.method(method);
         RdfProperty[] annotations = method.getAnnotationsByType(RdfProperty.class);
 
-        Arrays.stream(annotations).forEach(a -> collectRdfPropertyHandler(a, method, c, regBuilder));
+        Arrays.stream(annotations)
+                .forEach(annotation ->
+                        collectRdfPropertyHandler(annotation, method, clazz, regBuilder, model, resource));
 
         return regBuilder.isBuildable() ? regBuilder.build().getEffectiveHandlers(model, resource) : Stream.empty();
     }
 
     private void collectRdfPropertyHandler(
-            RdfProperty annotation, Method method, Class<?> clazz, MethodPropertyHandlerRegistry.Builder regBuilder) {
+            RdfProperty annotation,
+            Method method,
+            Class<?> clazz,
+            MethodPropertyHandlerRegistry.Builder regBuilder,
+            Model model,
+            Resource resource) {
         String name = method.getName();
         String property = getPropertyName(name);
 
@@ -443,9 +451,9 @@ public class CarmlMapper implements Mapper, MappingCache {
 
         // if property type is a sub-type of Value, no transform is needed
         if (Value.class.isAssignableFrom(elementType)) {
-            valueTransformer = (model, value) -> value;
+            valueTransformer = (inputModel, value) -> value;
         } else if (String.class.isAssignableFrom(elementType)) {
-            valueTransformer = (model, value) -> {
+            valueTransformer = (inputModel, value) -> {
                 if (value instanceof Literal literal) {
                     return literal.getLabel();
                 } else {
@@ -478,7 +486,20 @@ public class CarmlMapper implements Mapper, MappingCache {
         regBuilder.isIterable(iterableProperty);
         // iterable property - set collection value
         if (iterableProperty) {
-            propertyValueMapper = IterablePropertyValueMapper.createForIterableType(valueTransformer, iterableType);
+            var values = model.filter(resource, predicate, null).objects();
+            if (values.size() == 1 && List.copyOf(values).get(0) instanceof Resource potentialHead) {
+                var collectionType =
+                        Statements.getCollectionTypeFor(potentialHead, model.filter(potentialHead, null, null));
+                if (collectionType.isPresent()) {
+                    propertyValueMapper =
+                            RdfCollectionPropertyValueMapper.of(valueTransformer, collectionType.get(), iterableType);
+                } else {
+                    propertyValueMapper =
+                            IterablePropertyValueMapper.createForIterableType(valueTransformer, iterableType);
+                }
+            } else {
+                propertyValueMapper = IterablePropertyValueMapper.createForIterableType(valueTransformer, iterableType);
+            }
         } else { // single value property
             propertyValueMapper = new SinglePropertyValueMapper(predicate, valueTransformer);
         }

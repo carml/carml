@@ -138,4 +138,15 @@ public class Rml {
     public static final String root = NAMESPACE + "root";
 
     public static final String path = NAMESPACE + "path";
+
+    public static final String gatherMap = NAMESPACE + "gatherMap";
+    public static final String GatherMap = NAMESPACE + "GatherMap";
+
+    public static final String strategy = NAMESPACE + "strategy";
+
+    public static final String gatherAs = NAMESPACE + "gatherAs";
+
+    public static final String gather = NAMESPACE + "gather";
+
+    public static final String allowEmptyListAndContainer = NAMESPACE + "allowEmptyListAndContainer";
 }
