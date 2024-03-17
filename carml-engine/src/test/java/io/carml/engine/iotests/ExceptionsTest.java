@@ -49,14 +49,15 @@ class ExceptionsTest extends MappingTester {
   void testTermTypeExceptionB() {
     RuntimeException exception = assertThrows(RuntimeException.class,
         () -> testMapping("RmlMapper", "/RmlMapper/exceptionTests/exceptionTermTypeMappingB.rml.ttl", null));
-    assertThat(exception.getMessage(), startsWith("encountered disallowed term type"));
+    assertThat(exception.getMessage(), startsWith("encountered term type LITERAL, which is not allowed for term map"));
   }
 
   @Test
   void testTermTypeExceptionC() {
     RuntimeException exception = assertThrows(RuntimeException.class,
         () -> testMapping("RmlMapper", "/RmlMapper/exceptionTests/exceptionTermTypeMappingC.rml.ttl", null));
-    assertThat(exception.getMessage(), startsWith("encountered disallowed term type"));
+    assertThat(exception.getMessage(),
+        startsWith("encountered term type BLANK_NODE, which is not allowed for term map"));
   }
 
   @Test

@@ -362,7 +362,7 @@ class JsonPathResolverTest {
     var evaluationResult = expressionEvaluation.apply("$.food[*].name");
 
     // Then
-    var results = evaluationResult.map(ExpressionEvaluation::extractValues)
+    var results = evaluationResult.map(ExpressionEvaluation::extractStringValues)
         .orElse(List.of());
 
     assertThat(results, hasSize(3));

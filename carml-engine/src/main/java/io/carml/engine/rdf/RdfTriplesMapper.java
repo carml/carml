@@ -218,7 +218,7 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
         .getReference();
 
     expressionEvaluation.apply(parentReference)
-        .ifPresent(referenceResult -> ExpressionEvaluation.extractValues(referenceResult)
+        .ifPresent(referenceResult -> ExpressionEvaluation.extractStringValues(referenceResult)
             .forEach(parentValue -> processJoinConditionParentValue(subjects, parentReference, parentValue)));
   }
 

@@ -30,4 +30,6 @@ public interface LogicalSourceResolver<R> {
   default void logEvaluateExpression(String expression, Logger logger) {
     logger.trace("Evaluating expression: {}", expression);
   }
+
+  DatatypeMapperFactory<?> DEFAULT_DATATYPE_MAPPER_FACTORY = r -> value -> Optional.empty();
 }

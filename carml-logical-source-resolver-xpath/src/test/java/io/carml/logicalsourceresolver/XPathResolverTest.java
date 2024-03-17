@@ -288,7 +288,7 @@ class XPathResolverTest {
 
     // When
     var values = expressionEvaluation.apply(expression)
-        .map(ExpressionEvaluation::extractValues)
+        .map(ExpressionEvaluation::extractStringValues)
         .orElse(List.of());
 
     // Then
@@ -311,7 +311,7 @@ class XPathResolverTest {
 
     // When
     var values = expressionEvaluation.apply(expression)
-        .map(ExpressionEvaluation::extractValues)
+        .map(ExpressionEvaluation::extractStringValues)
         .orElse(List.of());
 
     // Then

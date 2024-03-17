@@ -5,11 +5,13 @@ import io.carml.model.DatatypeMap;
 import io.carml.model.LanguageMap;
 import io.carml.model.ObjectMap;
 import io.carml.model.Resource;
+import io.carml.model.TermType;
 import io.carml.rdfmapper.annotations.RdfProperty;
 import io.carml.rdfmapper.annotations.RdfType;
 import io.carml.vocab.OldRml;
 import io.carml.vocab.Rdf;
 import io.carml.vocab.Rml;
+import io.carml.vocab.Rr;
 import java.util.Set;
 import java.util.function.UnaryOperator;
 import lombok.EqualsAndHashCode;
@@ -45,6 +47,21 @@ public class CarmlObjectMap extends CarmlTermMap implements ObjectMap {
   @Override
   public LanguageMap getLanguageMap() {
     return languageMap;
+  }
+
+  @RdfProperty(Rml.termType)
+  @RdfProperty(Rr.termType)
+  @Override
+  public TermType getTermType() {
+    if (termType != null) {
+      return termType;
+    }
+
+    if (reference != null || languageMap != null || datatypeMap != null) {
+      return TermType.LITERAL;
+    }
+
+    return TermType.IRI;
   }
 
   @Override

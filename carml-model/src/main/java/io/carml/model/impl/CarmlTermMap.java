@@ -33,8 +33,6 @@ abstract class CarmlTermMap extends CarmlExpressionMap implements TermMap {
     return inverseExpression;
   }
 
-  @RdfProperty(Rml.termType)
-  @RdfProperty(Rr.termType)
   @Override
   public TermType getTermType() {
     return termType;

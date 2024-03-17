@@ -20,6 +20,8 @@ import lombok.NonNull;
  */
 public class IriSafeMaker implements UnaryOperator<String> {
 
+  private static final IriSafeMaker DEFAULT = create(Form.NFC, true);
+
   static class Range {
 
     final int from;
@@ -36,8 +38,8 @@ public class IriSafeMaker implements UnaryOperator<String> {
     }
   }
 
-  public static IriSafeMaker create() {
-    return create(Form.NFC, true);
+  public static IriSafeMaker getInstance() {
+    return DEFAULT;
   }
 
   public static IriSafeMaker create(@NonNull Form normalizationForm, boolean upperCaseHex) {

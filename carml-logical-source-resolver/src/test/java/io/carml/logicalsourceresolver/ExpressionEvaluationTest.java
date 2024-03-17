@@ -14,7 +14,7 @@ class ExpressionEvaluationTest {
     List<Integer> evaluationResult = List.of(1, 2, 3);
 
     // When
-    List<String> extractedValues = ExpressionEvaluation.extractValues(evaluationResult);
+    List<String> extractedValues = ExpressionEvaluation.extractStringValues(evaluationResult);
 
     // Then
     assertThat(extractedValues, is(List.of("1", "2", "3")));
@@ -26,7 +26,7 @@ class ExpressionEvaluationTest {
     Object evaluationResult = null;
 
     // When
-    List<String> extractedValues = ExpressionEvaluation.extractValues(evaluationResult);
+    List<String> extractedValues = ExpressionEvaluation.extractStringValues(evaluationResult);
 
     // Then
     assertThat(extractedValues, is(List.of()));
@@ -38,7 +38,7 @@ class ExpressionEvaluationTest {
     boolean evaluationResult = true;
 
     // When
-    List<String> extractedValues = ExpressionEvaluation.extractValues(evaluationResult);
+    List<String> extractedValues = ExpressionEvaluation.extractStringValues(evaluationResult);
 
     // Then
     assertThat(extractedValues, is(List.of("true")));

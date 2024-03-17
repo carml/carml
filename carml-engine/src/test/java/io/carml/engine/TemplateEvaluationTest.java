@@ -9,8 +9,6 @@ import io.carml.model.impl.CarmlTemplate;
 import io.carml.model.impl.template.TemplateParser;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -19,29 +17,21 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class TemplateEvaluationTest {
 
-
   static Stream<Arguments> templateSource() {
-    return Stream
-        .of(Arguments.of("foo-bar", List.of(), Set.of("foo-bar")),
-            Arguments
-                .of("{foo}-{bar}",
-                    List.of(
-                        entry("foo", (Function<ReferenceExpression, Optional<Object>>) expr -> Optional.of(List.of())),
-                        entry("bar",
-                            (Function<ReferenceExpression, Optional<Object>>) expr -> Optional
-                                .of(List.of("bar1", "bar2")))),
-                    Set.of()),
-            Arguments.of("{foo}-{bar}", List.of(
-                entry("foo", (Function<ReferenceExpression, Optional<Object>>) expr -> Optional.of(List.of("foo1"))),
-                entry("bar",
-                    (Function<ReferenceExpression, Optional<Object>>) expr -> Optional.of(List.of("bar1", "bar2")))),
-                Set.of("foo1-bar1", "foo1-bar2")));
+    return Stream.of(Arguments.of("foo-bar", List.of(), List.of("foo-bar")), Arguments.of("{foo}-{bar}",
+        List.of(entry("foo", (Function<ReferenceExpression, List<String>>) expr -> List.of()),
+            entry("bar", (Function<ReferenceExpression, List<String>>) expr -> List.of("bar1", "bar2"))),
+        List.of()),
+        Arguments.of("{foo}-{bar}",
+            List.of(entry("foo", (Function<ReferenceExpression, List<String>>) expr -> List.of("foo1")),
+                entry("bar", (Function<ReferenceExpression, List<String>>) expr -> List.of("bar1", "bar2"))),
+            List.of("foo1-bar1", "foo1-bar2")));
   }
 
   @ParameterizedTest
   @MethodSource("templateSource")
   void givenTemplateAndBindings_whenGetTemplateEvaluation_thenReturnExpectedResults(String template,
-      List<Entry<String, Function<ReferenceExpression, Optional<Object>>>> bindings, Set<String> expected) {
+      List<Entry<String, Function<ReferenceExpression, List<String>>>> bindings, List<String> expected) {
     // Given
     var templateEvaluationBuilder = TemplateEvaluation.builder()
         .template(TemplateParser.getInstance()

@@ -7,13 +7,11 @@ import io.carml.model.Template.Segment;
 import io.carml.model.impl.CarmlTemplate.ExpressionSegment;
 import io.carml.model.impl.CarmlTemplate.TextSegment;
 import io.carml.model.impl.template.TemplateException;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -22,18 +20,18 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class TemplateEvaluation implements Supplier<Set<Object>> {
+public class TemplateEvaluation implements Supplier<List<String>> {
 
   private final Template template;
 
-  private final Map<ReferenceExpression, Function<ReferenceExpression, Optional<Object>>> bindings;
+  private final Map<ReferenceExpression, Function<ReferenceExpression, List<String>>> bindings;
 
   public static TemplateEvaluationBuilder builder() {
     return new TemplateEvaluationBuilder();
   }
 
   @Override
-  public Set<Object> get() {
+  public List<String> get() {
     var indexedExprValues = new HashMap<Segment, List<String>>();
 
     // single out expression segments
@@ -47,15 +45,13 @@ public class TemplateEvaluation implements Supplier<Set<Object>> {
 
       // map segment to list of its evaluation results
       for (var expressionSegment : expressionSegments) {
-        var evalResult = getExpressionSegmentValue(expressionSegment);
-        indexedExprValues.put(expressionSegment, evalResult.map(this::getValuesExpressionEvaluation)
-            .orElse(List.of()));
+        indexedExprValues.put(expressionSegment, getExpressionSegmentValue(expressionSegment));
       }
 
       // if there is an expression that doesn't result in a value,
       // the template should yield no result, following the RML rules.
       if (!exprValueResultsHasOnlyFilledLists(indexedExprValues)) {
-        return Set.of();
+        return List.of();
       }
 
       return processSegments(indexedExprValues);
@@ -67,10 +63,10 @@ public class TemplateEvaluation implements Supplier<Set<Object>> {
         .map(Segment::getValue)
         .collect(Collectors.joining());
 
-    return Set.of(result);
+    return List.of(result);
   }
 
-  private Optional<Object> getExpressionSegmentValue(ExpressionSegment segment) {
+  private List<String> getExpressionSegmentValue(ExpressionSegment segment) {
     var expression = template.getExpressionSegmentMap()
         .get(segment);
     if (expression == null) { // Should never occur
@@ -81,23 +77,13 @@ public class TemplateEvaluation implements Supplier<Set<Object>> {
     return getExpressionValue(expression);
   }
 
-  private Optional<Object> getExpressionValue(ReferenceExpression expression) {
+  private List<String> getExpressionValue(ReferenceExpression expression) {
     if (!bindings.containsKey(expression)) {
       throw new TemplateException(String.format("no binding present for reference expression [%s]", expression));
     }
 
     return bindings.get(expression)
         .apply(expression);
-  }
-
-  private List<String> getValuesExpressionEvaluation(Object evalResult) {
-    if (evalResult instanceof Collection<?>) {
-      return ((Collection<?>) evalResult).stream()
-          .map(String.class::cast)
-          .toList();
-    } else {
-      return List.of((String) evalResult);
-    }
   }
 
   private boolean exprValueResultsHasOnlyFilledLists(Map<Segment, List<String>> indexedExprValues) {
@@ -109,7 +95,7 @@ public class TemplateEvaluation implements Supplier<Set<Object>> {
     return true;
   }
 
-  private Set<Object> processSegments(Map<Segment, List<String>> indexedExprValues) {
+  private List<String> processSegments(Map<Segment, List<String>> indexedExprValues) {
     var processedSegments = template.getSegments()
         .stream()
         .map(segment -> processSegment(segment, indexedExprValues))
@@ -118,7 +104,8 @@ public class TemplateEvaluation implements Supplier<Set<Object>> {
     return Sets.cartesianProduct(processedSegments)
         .stream()
         .map(segmentValues -> String.join("", segmentValues))
-        .collect(Collectors.toUnmodifiableSet());
+        .distinct()
+        .toList();
   }
 
   private Set<String> processSegment(Segment segment, Map<Segment, List<String>> indexedExprValues) {
@@ -133,7 +120,8 @@ public class TemplateEvaluation implements Supplier<Set<Object>> {
 
     private Template template;
 
-    private final Map<ReferenceExpression, Function<ReferenceExpression, Optional<Object>>> bindings =
+
+    private final Map<ReferenceExpression, Function<ReferenceExpression, List<String>>> bindings =
         new LinkedHashMap<>();
 
     public TemplateEvaluationBuilder template(Template template) {
@@ -142,7 +130,7 @@ public class TemplateEvaluation implements Supplier<Set<Object>> {
     }
 
     public TemplateEvaluationBuilder bind(ReferenceExpression expression,
-        Function<ReferenceExpression, Optional<Object>> templateValue) {
+        Function<ReferenceExpression, List<String>> templateValue) {
       bindings.put(expression, templateValue);
       return this;
     }

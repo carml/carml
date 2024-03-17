@@ -19,5 +19,4 @@ class RdfValuesTest {
     // Then
     assertThat(isValid, is(expected));
   }
-
 }

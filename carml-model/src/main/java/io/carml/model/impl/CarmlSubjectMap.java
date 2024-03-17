@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableSet;
 import io.carml.model.GraphMap;
 import io.carml.model.Resource;
 import io.carml.model.SubjectMap;
+import io.carml.model.TermType;
 import io.carml.rdfmapper.annotations.RdfProperty;
 import io.carml.rdfmapper.annotations.RdfType;
 import io.carml.vocab.Rdf;
@@ -47,6 +48,17 @@ public class CarmlSubjectMap extends CarmlTermMap implements SubjectMap {
   @Override
   public Set<IRI> getClasses() {
     return classes;
+  }
+
+  @RdfProperty(Rml.termType)
+  @RdfProperty(Rr.termType)
+  @Override
+  public TermType getTermType() {
+    if (termType != null) {
+      return termType;
+    }
+
+    return TermType.IRI;
   }
 
   @Override

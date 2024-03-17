@@ -20,7 +20,6 @@ import io.carml.logicalsourceresolver.sourceresolver.SourceResolver;
 import io.carml.logicalsourceresolver.sql.sourceresolver.DatabaseConnectionOptions;
 import io.carml.logicalsourceresolver.sql.sourceresolver.DatabaseSourceResolver;
 import io.carml.model.TriplesMap;
-import io.carml.model.impl.template.TemplateParser;
 import io.carml.util.Mappings;
 import java.io.InputStream;
 import java.nio.file.Path;
@@ -212,7 +211,7 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
           .build();
 
       if (termGeneratorFactory == null) {
-        termGeneratorFactory = RdfTermGeneratorFactory.of(rdfTermGeneratorConfig, TemplateParser.getInstance());
+        termGeneratorFactory = RdfTermGeneratorFactory.of(rdfTermGeneratorConfig);
       }
 
       if (databaseConnectionOptions != null) {

@@ -84,7 +84,7 @@ public class RdfRefObjectMapper implements RefObjectMapper<Statement> {
               .getReference();
 
           var childValues = expressionEvaluation.apply(childReference)
-              .map(expressionResult -> new ArrayList<>(ExpressionEvaluation.extractValues(expressionResult)))
+              .map(expressionResult -> new ArrayList<>(ExpressionEvaluation.extractStringValues(expressionResult)))
               .orElse(new ArrayList<>());
 
           return ChildSideJoinCondition.of(childReference, childValues, joinCondition.getParentMap()

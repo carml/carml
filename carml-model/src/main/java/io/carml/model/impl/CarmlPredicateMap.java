@@ -3,7 +3,11 @@ package io.carml.model.impl;
 import com.google.common.collect.ImmutableSet;
 import io.carml.model.PredicateMap;
 import io.carml.model.Resource;
+import io.carml.model.TermType;
+import io.carml.rdfmapper.annotations.RdfProperty;
 import io.carml.vocab.Rdf;
+import io.carml.vocab.Rml;
+import io.carml.vocab.Rr;
 import java.util.Set;
 import java.util.function.UnaryOperator;
 import lombok.EqualsAndHashCode;
@@ -32,6 +36,17 @@ public class CarmlPredicateMap extends CarmlTermMap implements PredicateMap {
         .add(RDF.TYPE, Rdf.Rml.PredicateMap);
 
     addTriplesBase(modelBuilder);
+  }
+
+  @RdfProperty(Rml.termType)
+  @RdfProperty(Rr.termType)
+  @Override
+  public TermType getTermType() {
+    if (termType != null) {
+      return termType;
+    }
+
+    return TermType.IRI;
   }
 
   @Override

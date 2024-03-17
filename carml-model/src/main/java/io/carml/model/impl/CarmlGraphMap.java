@@ -3,7 +3,11 @@ package io.carml.model.impl;
 import com.google.common.collect.ImmutableSet;
 import io.carml.model.GraphMap;
 import io.carml.model.Resource;
+import io.carml.model.TermType;
+import io.carml.rdfmapper.annotations.RdfProperty;
 import io.carml.vocab.Rdf;
+import io.carml.vocab.Rml;
+import io.carml.vocab.Rr;
 import java.util.Set;
 import java.util.function.UnaryOperator;
 import lombok.EqualsAndHashCode;
@@ -18,6 +22,17 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @ToString(callSuper = true)
 @EqualsAndHashCode(callSuper = true)
 public class CarmlGraphMap extends CarmlTermMap implements GraphMap {
+
+  @RdfProperty(Rml.termType)
+  @RdfProperty(Rr.termType)
+  @Override
+  public TermType getTermType() {
+    if (termType != null) {
+      return termType;
+    }
+
+    return TermType.IRI;
+  }
 
   @Override
   public Set<Resource> getReferencedResources() {

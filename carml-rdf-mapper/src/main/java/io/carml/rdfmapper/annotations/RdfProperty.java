@@ -14,5 +14,4 @@ public @interface RdfProperty {
   boolean deprecated() default false;
 
   Class<? extends PropertyHandler> handler() default PropertyHandler.class;
-
 }

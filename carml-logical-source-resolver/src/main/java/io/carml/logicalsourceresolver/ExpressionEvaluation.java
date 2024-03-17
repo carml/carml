@@ -22,7 +22,7 @@ public interface ExpressionEvaluation extends Function<String, Optional<Object>>
    * @param evaluationResult The result of the {@link ExpressionEvaluation}
    * @return A {@link List} of {@link String} expression result values
    */
-  static List<String> extractValues(Object evaluationResult) {
+  static List<String> extractStringValues(Object evaluationResult) {
     if (evaluationResult instanceof Collection<?>) {
       return ((Collection<?>) evaluationResult).stream()
           .filter(Objects::nonNull)
@@ -30,6 +30,18 @@ public interface ExpressionEvaluation extends Function<String, Optional<Object>>
           .toList();
     } else {
       return evaluationResult == null ? List.of() : List.of(evaluationResult.toString());
+    }
+  }
+
+
+  static List<Object> extractValues(Object evaluationResult) {
+    if (evaluationResult instanceof Collection<?> evaluationResultCollection) {
+      return evaluationResultCollection.stream()
+          .filter(Objects::nonNull)
+          .map(Object.class::cast)
+          .toList();
+    } else {
+      return evaluationResult == null ? List.of() : List.of(evaluationResult);
     }
   }
 
