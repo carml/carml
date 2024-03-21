@@ -1,6 +1,6 @@
 package io.carml.model;
 
-public interface DatabaseSource extends Resource {
+public interface DatabaseSource extends Source {
 
     String getJdbcDsn();
 

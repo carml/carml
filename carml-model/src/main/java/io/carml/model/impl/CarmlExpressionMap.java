@@ -34,13 +34,13 @@ import org.eclipse.rdf4j.model.util.ModelBuilder;
 @EqualsAndHashCode(callSuper = false)
 abstract class CarmlExpressionMap extends CarmlResource implements ExpressionMap {
 
-    String reference;
+    private String reference;
 
-    Template template;
+    private Template template;
 
-    Value constant;
+    private Value constant;
 
-    TriplesMap functionValue;
+    private TriplesMap functionValue;
 
     @RdfProperty(Rml.reference)
     @RdfProperty(OldRml.reference)

@@ -21,11 +21,11 @@ public class JoiningDatabaseSource {
     private LogicalSource parentLogicalSource;
 
     @NonNull
-    Set<RefObjectMap> refObjectMaps;
+    private Set<RefObjectMap> refObjectMaps;
 
     @NonNull
-    Set<String> childExpressions;
+    private Set<String> childExpressions;
 
     @NonNull
-    Set<String> parentExpressions;
+    private Set<String> parentExpressions;
 }

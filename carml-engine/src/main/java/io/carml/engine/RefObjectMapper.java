@@ -10,5 +10,5 @@ public interface RefObjectMapper<V> {
 
     RefObjectMap getRefObjectMap();
 
-    Flux<V> resolveJoins(TriplesMapper<V> parentTriplesMapper);
+    Flux<MappingResult<V>> resolveJoins(TriplesMapper<V> parentTriplesMapper);
 }

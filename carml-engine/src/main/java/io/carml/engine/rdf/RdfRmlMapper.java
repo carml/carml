@@ -2,6 +2,7 @@ package io.carml.engine.rdf;
 
 import static org.eclipse.rdf4j.model.util.Values.iri;
 
+import io.carml.engine.MappedValue;
 import io.carml.engine.MappingPipeline;
 import io.carml.engine.RmlMapper;
 import io.carml.engine.RmlMapperException;
@@ -89,10 +90,10 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
 
         private TermGeneratorFactory<Value> termGeneratorFactory;
 
-        private ChildSideJoinStoreProvider<Resource, IRI> childSideJoinCacheProvider =
+        private ChildSideJoinStoreProvider<MappedValue<Resource>, MappedValue<IRI>> childSideJoinCacheProvider =
                 CarmlChildSideJoinStoreProvider.of();
 
-        private ParentSideJoinConditionStoreProvider<Resource> parentSideJoinConditionStoreProvider =
+        private ParentSideJoinConditionStoreProvider<MappedValue<Resource>> parentSideJoinConditionStoreProvider =
                 CarmlParentSideJoinConditionStoreProvider.of();
 
         private DatabaseConnectionOptions databaseConnectionOptions;
@@ -184,13 +185,13 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
         }
 
         public Builder childSideJoinStoreProvider(
-                ChildSideJoinStoreProvider<Resource, IRI> childSideJoinCacheProvider) {
+                ChildSideJoinStoreProvider<MappedValue<Resource>, MappedValue<IRI>> childSideJoinCacheProvider) {
             this.childSideJoinCacheProvider = childSideJoinCacheProvider;
             return this;
         }
 
         public Builder parentSideJoinConditionStoreProvider(
-                ParentSideJoinConditionStoreProvider<Resource> parentSideJoinConditionStoreProvider) {
+                ParentSideJoinConditionStoreProvider<MappedValue<Resource>> parentSideJoinConditionStoreProvider) {
             this.parentSideJoinConditionStoreProvider = parentSideJoinConditionStoreProvider;
             return this;
         }

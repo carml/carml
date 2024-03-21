@@ -43,7 +43,7 @@ public abstract class RmlMapper<T> {
     }
 
     public <R> Flux<T> mapRecord(R providedRecord, Class<R> providedRecordClass, Set<TriplesMap> triplesMapFilter) {
-        return map(null, providedRecord, providedRecordClass, triplesMapFilter);
+        return map(null, providedRecord, providedRecordClass, triplesMapFilter).flatMap(MappingResult::getResults);
     }
 
     public Flux<T> map() {
@@ -67,10 +67,10 @@ public abstract class RmlMapper<T> {
     }
 
     public Flux<T> map(Map<String, InputStream> namedInputStreams, Set<TriplesMap> triplesMapFilter) {
-        return map(namedInputStreams, null, null, triplesMapFilter);
+        return map(namedInputStreams, null, null, triplesMapFilter).flatMap(MappingResult::getResults);
     }
 
-    private <V> Flux<T> map(
+    private <V> Flux<MappingResult<T>> map(
             Map<String, InputStream> namedInputStreams,
             V providedRecord,
             Class<V> providedRecordClass,
@@ -136,7 +136,7 @@ public abstract class RmlMapper<T> {
         return ResolvedSource.of(source, resolved, Object.class);
     }
 
-    private Flux<T> mapSource(MappingContext<T> mappingContext, ResolvedSource<?> resolvedSource) {
+    private Flux<MappingResult<T>> mapSource(MappingContext<T> mappingContext, ResolvedSource<?> resolvedSource) {
         return Flux.just(mappingPipeline.getSourceToLogicalSourceResolver().get(resolvedSource.getRmlSource()))
                 .flatMap(resolver -> resolver.getLogicalSourceRecords(
                                 mappingContext.logicalSourcesPerSource.get(resolvedSource.getRmlSource()))
@@ -144,13 +144,14 @@ public abstract class RmlMapper<T> {
                 .flatMap(logicalSourceRecord -> mapTriples(mappingContext, logicalSourceRecord));
     }
 
-    private Flux<T> mapTriples(MappingContext<T> mappingContext, LogicalSourceRecord<?> logicalSourceRecord) {
+    private Flux<MappingResult<T>> mapTriples(
+            MappingContext<T> mappingContext, LogicalSourceRecord<?> logicalSourceRecord) {
         return Flux.fromIterable(
                         mappingContext.getTriplesMappersForLogicalSource(logicalSourceRecord.getLogicalSource()))
                 .flatMap(triplesMapper -> triplesMapper.map(logicalSourceRecord));
     }
 
-    private Flux<T> resolveJoins(MappingContext<T> mappingContext) {
+    private Flux<MappingResult<T>> resolveJoins(MappingContext<T> mappingContext) {
         return Flux.fromIterable(
                         mappingContext.getRefObjectMapperToParentTriplesMapper().entrySet())
                 .flatMap(romMapperPtMapper -> romMapperPtMapper.getKey().resolveJoins(romMapperPtMapper.getValue()));

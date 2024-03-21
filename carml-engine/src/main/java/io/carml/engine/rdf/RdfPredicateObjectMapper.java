@@ -1,9 +1,12 @@
 package io.carml.engine.rdf;
 
+import static io.carml.engine.rdf.util.MappedStatements.streamCartesianProductMappedStatements;
 import static io.carml.util.LogUtil.exception;
 import static io.carml.util.LogUtil.log;
 import static java.util.stream.Collectors.toUnmodifiableSet;
 
+import io.carml.engine.MappedValue;
+import io.carml.engine.MappingResult;
 import io.carml.engine.TermGenerator;
 import io.carml.engine.TriplesMapperException;
 import io.carml.logicalsourceresolver.DatatypeMapper;
@@ -14,7 +17,6 @@ import io.carml.model.ObjectMap;
 import io.carml.model.PredicateObjectMap;
 import io.carml.model.RefObjectMap;
 import io.carml.model.TriplesMap;
-import io.carml.util.Models;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -120,7 +122,7 @@ public class RdfPredicateObjectMapper {
     }
 
     @SuppressWarnings("java:S3864")
-    static Stream<TermGenerator<? extends Value>> createObjectMapGenerators(
+    static Stream<TermGenerator<Value>> createObjectMapGenerators(
             Set<BaseObjectMap> objectMaps, TriplesMap triplesMap, RdfTermGeneratorFactory termGeneratorFactory) {
         return objectMaps.stream()
                 .filter(ObjectMap.class::isInstance)
@@ -150,15 +152,15 @@ public class RdfPredicateObjectMapper {
 
         if (parentLogicalSource == null) {
             throw new TriplesMapperException(String.format(
-                    "Could not determine logical source of parent TriplesMap on RefObjectMap %s%nPossibly the parent triples "
-                            + "map does not exist, or the reference to it is misspelled?",
+                    "Could not determine logical source of parent TriplesMap on RefObjectMap %s%nPossibly the parent "
+                            + "triples map does not exist, or the reference to it is misspelled?",
                     exception(triplesMap, refObjectMap)));
         }
 
         if (!logicalSource.equals(parentLogicalSource)) {
             throw new TriplesMapperException(String.format(
-                    "Logical sources are not equal.%n%nParent logical source: %s%n%nChild logical source: %s%n%nNot equal in "
-                            + "RefObjectMap %s",
+                    "Logical sources are not equal.%n%nParent logical source: %s%n%nChild logical source: %s%n%nNot "
+                            + "equal in RefObjectMap %s",
                     log(refObjectMap.getParentTriplesMap(), parentLogicalSource),
                     log(triplesMap, logicalSource),
                     exception(triplesMap, refObjectMap)));
@@ -199,7 +201,7 @@ public class RdfPredicateObjectMapper {
                 .collect(toUnmodifiableSet());
     }
 
-    private static Stream<TermGenerator<Resource>> createRefObjectJoinlessMapper(
+    private static Stream<TermGenerator<? extends Value>> createRefObjectJoinlessMapper(
             RefObjectMap refObjectMap,
             TriplesMap triplesMap,
             RdfTermGeneratorFactory termGeneratorFactory,
@@ -217,11 +219,11 @@ public class RdfPredicateObjectMapper {
         }
     }
 
-    public Flux<Statement> map(
+    public Flux<MappingResult<Statement>> map(
             ExpressionEvaluation expressionEvaluation,
             DatatypeMapper datatypeMapper,
-            Map<Set<Resource>, Set<Resource>> subjectsAndSubjectGraphs) {
-        Set<IRI> predicates = predicateGenerators.stream()
+            Map<Set<MappedValue<Resource>>, Set<MappedValue<Resource>>> subjectsAndSubjectGraphs) {
+        Set<MappedValue<IRI>> predicates = predicateGenerators.stream()
                 .map(g -> g.apply(expressionEvaluation, datatypeMapper))
                 .flatMap(List::stream)
                 .collect(toUnmodifiableSet());
@@ -230,16 +232,16 @@ public class RdfPredicateObjectMapper {
             return Flux.empty();
         }
 
-        Set<Value> objects = objectGenerators.stream()
+        Set<MappedValue<? extends Value>> objects = objectGenerators.stream()
                 .map(g -> g.apply(expressionEvaluation, datatypeMapper))
                 .flatMap(List::stream)
                 .collect(toUnmodifiableSet());
 
-        Set<Resource> pomGraphs = graphGenerators.stream()
+        Set<MappedValue<Resource>> pomGraphs = graphGenerators.stream()
                 .flatMap(graphGenerator -> graphGenerator.apply(expressionEvaluation, datatypeMapper).stream())
                 .collect(toUnmodifiableSet());
 
-        Map<Set<Resource>, Set<Resource>> subjectsAndAllGraphs =
+        Map<Set<MappedValue<Resource>>, Set<MappedValue<Resource>>> subjectsAndAllGraphs =
                 addPomGraphsToSubjectsAndSubjectGraphs(subjectsAndSubjectGraphs, pomGraphs);
 
         // process RefObjectMaps for resolving later
@@ -250,8 +252,8 @@ public class RdfPredicateObjectMapper {
             return Flux.empty();
         }
 
-        Set<Flux<Statement>> statementsPerGraphSet = subjectsAndAllGraphs.entrySet().stream()
-                .map(subjectsAndAllGraphsEntry -> Flux.fromStream(Models.streamCartesianProductStatements(
+        Set<Flux<MappingResult<Statement>>> statementsPerGraphSet = subjectsAndAllGraphs.entrySet().stream()
+                .map(subjectsAndAllGraphsEntry -> Flux.fromStream(streamCartesianProductMappedStatements(
                         subjectsAndAllGraphsEntry.getKey(),
                         predicates,
                         objects,
@@ -264,8 +266,9 @@ public class RdfPredicateObjectMapper {
         return Flux.merge(statementsPerGraphSet);
     }
 
-    private Map<Set<Resource>, Set<Resource>> addPomGraphsToSubjectsAndSubjectGraphs(
-            Map<Set<Resource>, Set<Resource>> subjectsAndSubjectGraphs, Set<Resource> pomGraphs) {
+    private Map<Set<MappedValue<Resource>>, Set<MappedValue<Resource>>> addPomGraphsToSubjectsAndSubjectGraphs(
+            Map<Set<MappedValue<Resource>>, Set<MappedValue<Resource>>> subjectsAndSubjectGraphs,
+            Set<MappedValue<Resource>> pomGraphs) {
         return subjectsAndSubjectGraphs.entrySet().stream()
                 .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, subjectsAndSubjectGraphsEntry -> Stream.concat(
                                 subjectsAndSubjectGraphsEntry.getValue().stream(), pomGraphs.stream())

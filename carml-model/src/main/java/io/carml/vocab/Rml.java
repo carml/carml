@@ -138,4 +138,14 @@ public class Rml {
     public static final String root = NAMESPACE + "root";
 
     public static final String path = NAMESPACE + "path";
+
+    public static final String logicalTarget = NAMESPACE + "logicalTarget";
+
+    public static final String target = NAMESPACE + "target";
+
+    public static final String serialization = NAMESPACE + "serialization";
+
+    public static final String encoding = NAMESPACE + "encoding";
+
+    public static final String compression = NAMESPACE + "compression";
 }

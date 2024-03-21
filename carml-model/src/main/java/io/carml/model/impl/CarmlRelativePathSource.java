@@ -18,7 +18,7 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @NoArgsConstructor
 @Setter
 @ToString(callSuper = true)
-public class CarmlRelativePathSource extends CarmlResource implements RelativePathSource {
+public class CarmlRelativePathSource extends CarmlSource implements RelativePathSource {
 
     private Object root;
 

@@ -1,9 +1,8 @@
 package io.carml.engine.join;
 
-import java.io.Serializable;
 import lombok.NonNull;
 
-public interface ParentSideJoinConditionStoreProvider<T extends Serializable> {
+public interface ParentSideJoinConditionStoreProvider<T> {
 
     ParentSideJoinConditionStore<T> createParentSideJoinConditionStore(@NonNull String name);
 }

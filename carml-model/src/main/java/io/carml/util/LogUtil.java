@@ -3,10 +3,9 @@ package io.carml.util;
 import io.carml.model.Resource;
 import java.util.Collection;
 import java.util.stream.Collectors;
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
+import lombok.experimental.UtilityClass;
 
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
+@UtilityClass
 public class LogUtil {
 
     public static String log(Resource resource) {

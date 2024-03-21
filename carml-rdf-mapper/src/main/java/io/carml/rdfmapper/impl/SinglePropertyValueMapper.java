@@ -9,11 +9,11 @@ import org.eclipse.rdf4j.model.Value;
 
 class SinglePropertyValueMapper implements PropertyValueMapper {
 
-    private IRI predicate;
+    private final IRI predicate;
 
-    private ValueTransformer valueTransformer;
+    private final ValueTransformer valueTransformer;
 
-    public SinglePropertyValueMapper(IRI predicate, ValueTransformer valueTransformer) {
+    SinglePropertyValueMapper(IRI predicate, ValueTransformer valueTransformer) {
         this.predicate = predicate;
         this.valueTransformer = valueTransformer;
     }

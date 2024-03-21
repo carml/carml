@@ -3,6 +3,7 @@ package io.carml.model.impl;
 import io.carml.model.DatabaseSource;
 import io.carml.model.LogicalSource;
 import io.carml.model.Resource;
+import io.carml.model.Source;
 import io.carml.rdfmapper.annotations.RdfProperty;
 import io.carml.vocab.OldRml;
 import io.carml.vocab.Rdf;
@@ -25,17 +26,17 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @EqualsAndHashCode(callSuper = false)
 public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
 
-    protected Object source;
+    private Object source;
 
-    protected String iterator;
+    private String iterator;
 
-    protected IRI referenceFormulation;
+    private IRI referenceFormulation;
 
-    protected String tableName;
+    private String tableName;
 
-    protected String sqlQuery;
+    private String sqlQuery;
 
-    protected IRI sqlVersion;
+    private IRI sqlVersion;
 
     private Set<String> expressions;
 
@@ -136,8 +137,8 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
     }
 
     public Set<Resource> getReferencedResources() {
-        if (source instanceof Resource resource) {
-            return Set.of(resource);
+        if (source instanceof Source src) {
+            return Set.of(src);
         } else {
             return Set.of();
         }
@@ -147,8 +148,8 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
     public void addTriples(ModelBuilder modelBuilder) {
         modelBuilder.subject(getAsResource()).add(RDF.TYPE, Rdf.Rml.LogicalSource);
         if (source != null) {
-            if (source instanceof Resource resource) {
-                modelBuilder.add(Rdf.Rml.source, resource.getAsResource());
+            if (source instanceof Source src) {
+                modelBuilder.add(Rdf.Rml.source, src.getAsResource());
             } else {
                 modelBuilder.add(Rdf.Rml.source, source);
             }

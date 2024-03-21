@@ -1,5 +1,7 @@
 package io.carml.engine.function;
 
+import static org.eclipse.rdf4j.model.util.Values.iri;
+
 import io.carml.engine.RmlMapperException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -19,8 +21,6 @@ import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.Value;
-import org.eclipse.rdf4j.model.ValueFactory;
-import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,8 +28,6 @@ import org.slf4j.LoggerFactory;
 public class Functions {
 
     private static final Logger LOG = LoggerFactory.getLogger(Functions.class);
-
-    private static final ValueFactory VF = SimpleValueFactory.getInstance();
 
     private final Map<IRI, ExecuteFunction> fns = new LinkedHashMap<>();
 
@@ -53,7 +51,7 @@ public class Functions {
         if (function == null) {
             return Optional.empty();
         }
-        var iri = VF.createIRI(function.value());
+        var iri = iri(function.value());
 
         List<ExtractParameter> parameterExtractors = Arrays.stream(method.getParameters())
                 .map(this::createParameterExtractor)
@@ -93,6 +91,7 @@ public class Functions {
         });
     }
 
+    @SuppressWarnings("checkstyle:CyclomaticComplexity")
     private ExtractParameter createParameterExtractor(Parameter parameter) {
 
         FnoParam param = parameter.getAnnotation(FnoParam.class);
@@ -100,7 +99,7 @@ public class Functions {
             throw new RmlMapperException(
                     String.format("no @%s annotation present on parameter", FnoParam.class.getName()));
         }
-        var iri = VF.createIRI(param.value());
+        var iri = iri(param.value());
 
         Type type = parameter.getType();
 

@@ -1,13 +1,20 @@
 package io.carml.model.impl;
 
+import static java.util.stream.Collectors.toUnmodifiableSet;
+
+import io.carml.model.LogicalTarget;
+import io.carml.model.Target;
 import io.carml.model.TermMap;
 import io.carml.model.TermType;
 import io.carml.rdfmapper.annotations.RdfProperty;
 import io.carml.vocab.Rdf;
 import io.carml.vocab.Rml;
 import io.carml.vocab.Rr;
+import java.util.Set;
 import lombok.AccessLevel;
+import lombok.Builder.Default;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
@@ -21,9 +28,13 @@ import org.eclipse.rdf4j.model.util.ModelBuilder;
 @EqualsAndHashCode(callSuper = true)
 abstract class CarmlTermMap extends CarmlExpressionMap implements TermMap {
 
-    String inverseExpression;
+    private String inverseExpression;
 
-    TermType termType;
+    @Getter
+    private TermType termType;
+
+    @Default
+    private Set<LogicalTarget> logicalTargets = Set.of();
 
     // TODO??
     @RdfProperty(Rml.inverseExpression)
@@ -33,9 +44,16 @@ abstract class CarmlTermMap extends CarmlExpressionMap implements TermMap {
         return inverseExpression;
     }
 
+    @RdfProperty(Rml.logicalTarget)
     @Override
-    public TermType getTermType() {
-        return termType;
+    public Set<LogicalTarget> getLogicalTargets() {
+        return logicalTargets;
+    }
+
+    public Set<Target> getTargets() {
+        return logicalTargets.stream() //
+                .map(LogicalTarget::getTarget)
+                .collect(toUnmodifiableSet());
     }
 
     @Override

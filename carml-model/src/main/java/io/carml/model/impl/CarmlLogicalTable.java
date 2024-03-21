@@ -27,14 +27,14 @@ public class CarmlLogicalTable extends CarmlLogicalSource implements LogicalTabl
     public void addTriples(ModelBuilder modelBuilder) {
         modelBuilder.subject(getAsResource()).add(RDF.TYPE, Rdf.Rr.LogicalTable);
 
-        if (tableName != null) {
-            modelBuilder.add(Rr.tableName, tableName);
+        if (getTableName() != null) {
+            modelBuilder.add(Rr.tableName, getTableName());
         }
-        if (sqlQuery != null) {
-            modelBuilder.add(Rr.sqlQuery, sqlQuery);
+        if (getSqlQuery() != null) {
+            modelBuilder.add(Rr.sqlQuery, getSqlQuery());
         }
-        if (sqlVersion != null) {
-            modelBuilder.add(Rr.sqlVersion, sqlVersion);
+        if (getSqlQuery() != null) {
+            modelBuilder.add(Rr.sqlVersion, getSqlVersion());
         }
     }
 }

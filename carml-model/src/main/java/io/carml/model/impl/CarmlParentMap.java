@@ -17,7 +17,7 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @Setter
 @ToString(callSuper = true)
 @EqualsAndHashCode(callSuper = true)
-public class CarmlParentMap extends CarmlTermMap implements ParentMap {
+public class CarmlParentMap extends CarmlExpressionMap implements ParentMap {
 
     @Override
     public Set<Resource> getReferencedResources() {

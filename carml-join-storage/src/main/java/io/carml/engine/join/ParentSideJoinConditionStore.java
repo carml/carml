@@ -1,9 +1,8 @@
 package io.carml.engine.join;
 
-import java.io.Serializable;
 import java.util.Set;
 
-public interface ParentSideJoinConditionStore<T extends Serializable> {
+public interface ParentSideJoinConditionStore<T> {
 
     void put(ParentSideJoinKey parentSideJoinKey, Set<T> values);
 

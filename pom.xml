@@ -489,11 +489,9 @@
 							<phase>validate</phase>
 							<configuration>
 								<configLocation>.style/checkstyle.xml</configLocation>
-								<suppressionsLocation>.style/checkstyle-suppressions.xml</suppressionsLocation>
 								<consoleOutput>true</consoleOutput>
-								<failOnViolation>true</failOnViolation>
+								<failOnViolation>false</failOnViolation>
 								<violationSeverity>warning</violationSeverity>
-								<includeTestSourceDirectory>true</includeTestSourceDirectory>
 								<propertyExpansion>config_loc=.style</propertyExpansion>
 							</configuration>
 							<goals>
@@ -680,11 +678,10 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-release-plugin</artifactId>
 			</plugin>
-<!--			TODO: apply palantir checkstyle -->
-<!--			<plugin>-->
-<!--				<groupId>org.apache.maven.plugins</groupId>-->
-<!--				<artifactId>maven-checkstyle-plugin</artifactId>-->
-<!--			</plugin>-->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-checkstyle-plugin</artifactId>
+			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-enforcer-plugin</artifactId>

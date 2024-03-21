@@ -56,6 +56,7 @@ public class PostgreSqlResolver extends SqlResolver {
         return SqlResolver.getJointSqlQuery(SQLDialect.POSTGRES, joiningDatabaseSourceSupplier);
     }
 
+    @SuppressWarnings("checkstyle:CyclomaticComplexity")
     @Override
     public IRI getDatatypeIri(Type sqlDataType) {
         var postgreSqlType = sqlDataType.getName();

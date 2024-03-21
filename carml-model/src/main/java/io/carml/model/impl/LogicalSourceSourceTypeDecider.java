@@ -22,7 +22,7 @@ public class LogicalSourceSourceTypeDecider implements TypeDecider {
         this.mapper = mapper;
     }
 
-    Map<IRI, IRI> inferenceMap = Map.of(
+    private static final Map<IRI, IRI> INFERENCE_MAP = Map.of(
             Carml.streamName,
             Carml.Stream, //
             Carml.declaresNamespace,
@@ -45,8 +45,8 @@ public class LogicalSourceSourceTypeDecider implements TypeDecider {
                 .collect(Collectors.toSet());
 
         usedPredicates.forEach(p -> {
-            if (inferenceMap.containsKey(p)) {
-                rdfTypes.add(inferenceMap.get(p));
+            if (INFERENCE_MAP.containsKey(p)) {
+                rdfTypes.add(INFERENCE_MAP.get(p));
             }
         });
 

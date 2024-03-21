@@ -66,17 +66,17 @@ public class CarmlRefObjectMap extends CarmlResource implements RefObjectMap {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
+    public boolean equals(Object object) {
+        if (this == object) {
             return true;
         }
-        if (o == null || getClass() != o.getClass()) {
+        if (object == null || getClass() != object.getClass()) {
             return false;
         }
-        if (!super.equals(o)) {
+        if (!super.equals(object)) {
             return false;
         }
-        CarmlRefObjectMap that = (CarmlRefObjectMap) o;
+        CarmlRefObjectMap that = (CarmlRefObjectMap) object;
         return Objects.equal(parentTriplesMap.getId(), that.parentTriplesMap.getId())
                 && Objects.equal(joinConditions, that.joinConditions);
     }

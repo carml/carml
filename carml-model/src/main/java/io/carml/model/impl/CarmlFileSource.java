@@ -18,7 +18,7 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @NoArgsConstructor
 @Setter
 @ToString(callSuper = true)
-public class CarmlFileSource extends CarmlResource implements FileSource {
+public class CarmlFileSource extends CarmlSource implements FileSource {
 
     private String url;
 

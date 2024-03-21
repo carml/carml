@@ -54,8 +54,8 @@ public class CarmlSubjectMap extends CarmlTermMap implements SubjectMap {
     @RdfProperty(Rr.termType)
     @Override
     public TermType getTermType() {
-        if (termType != null) {
-            return termType;
+        if (super.getTermType() != null) {
+            return super.getTermType();
         }
 
         return TermType.IRI;
@@ -82,13 +82,13 @@ public class CarmlSubjectMap extends CarmlTermMap implements SubjectMap {
     @Override
     public SubjectMap applyExpressionAdapter(UnaryOperator<String> referenceExpressionAdapter) {
         var subjectMapBuilder = this.toBuilder();
-        if (reference != null) {
+        if (getReference() != null) {
             adaptReference(referenceExpressionAdapter, subjectMapBuilder::reference);
             return subjectMapBuilder.build();
-        } else if (template != null) {
+        } else if (getTemplate() != null) {
             adaptTemplate(referenceExpressionAdapter, subjectMapBuilder::template);
             return subjectMapBuilder.build();
-        } else if (functionValue != null) {
+        } else if (getFunctionValue() != null) {
             adaptFunctionValue(referenceExpressionAdapter, subjectMapBuilder::functionValue);
             return subjectMapBuilder.build();
         } else {

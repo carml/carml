@@ -1,6 +1,6 @@
 package io.carml.model;
 
-public interface RelativePathSource extends Resource {
+public interface RelativePathSource extends Source {
 
     Object getRoot();
 

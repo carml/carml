@@ -1,6 +1,5 @@
 package io.carml.engine.join;
 
-import java.io.Serializable;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
@@ -12,15 +11,13 @@ import lombok.ToString;
 @Getter
 @EqualsAndHashCode
 @ToString
-public class ParentSideJoinKey implements Serializable {
-
-    private static final long serialVersionUID = -8655379521016481101L;
+public class ParentSideJoinKey {
 
     @NonNull
-    String parentReference;
+    private String parentReference;
 
     @NonNull
-    String parentValue;
+    private String parentValue;
 
     public static ParentSideJoinKey of(@NonNull String parentReference, @NonNull String parentValue) {
         return new ParentSideJoinKey(parentReference, parentValue);

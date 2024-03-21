@@ -18,7 +18,7 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @NoArgsConstructor
 @Setter
 @ToString(callSuper = true)
-public class CarmlStream extends CarmlResource implements NameableStream {
+public class CarmlStream extends CarmlSource implements NameableStream {
 
     private String streamName;
 

@@ -2,6 +2,8 @@ package io.carml.engine.rdf;
 
 import static io.carml.util.LogUtil.exception;
 
+import io.carml.engine.MappedValue;
+import io.carml.engine.MappingResult;
 import io.carml.engine.TriplesMapper;
 import io.carml.engine.TriplesMapperException;
 import io.carml.engine.join.ParentSideJoinConditionStore;
@@ -103,7 +105,7 @@ public class RdfJoiningTriplesMapper<R> implements TriplesMapper<Statement> {
 
     @Override
     @SuppressWarnings("unchecked")
-    public Flux<Statement> map(LogicalSourceRecord<?> logicalSourceRecord) {
+    public Flux<MappingResult<Statement>> map(LogicalSourceRecord<?> logicalSourceRecord) {
         var sourceRecord = (R) logicalSourceRecord.getSourceRecord();
         LOG.trace("Mapping joining triples for record {}", logicalSourceRecord);
         var expressionEvaluation = expressionEvaluationFactory.apply(sourceRecord);
@@ -113,12 +115,13 @@ public class RdfJoiningTriplesMapper<R> implements TriplesMapper<Statement> {
     }
 
     @Override
-    public Flux<Statement> mapEvaluation(ExpressionEvaluation expressionEvaluation, DatatypeMapper datatypeMapper) {
-        Set<RdfSubjectMapper.Result> subjectMapperResults = subjectMappers.stream()
+    public Flux<MappingResult<Statement>> mapEvaluation(
+            ExpressionEvaluation expressionEvaluation, DatatypeMapper datatypeMapper) {
+        var subjectMapperResults = subjectMappers.stream()
                 .map(subjectMapper -> subjectMapper.map(expressionEvaluation, datatypeMapper))
                 .collect(Collectors.toUnmodifiableSet());
 
-        Set<Resource> subjects = subjectMapperResults.stream()
+        var subjects = subjectMapperResults.stream()
                 .map(RdfSubjectMapper.Result::getSubjects)
                 .flatMap(Set::stream)
                 .collect(Collectors.toUnmodifiableSet());
@@ -127,19 +130,19 @@ public class RdfJoiningTriplesMapper<R> implements TriplesMapper<Statement> {
             return Flux.empty();
         }
 
-        Map<Set<Resource>, Set<Resource>> subjectsAndSubjectGraphs = new HashMap<>();
-        List<Flux<Statement>> subjectStatementFluxes = new ArrayList<>();
+        Map<Set<MappedValue<Resource>>, Set<MappedValue<Resource>>> subjectsAndSubjectGraphs = new HashMap<>();
+        List<Flux<MappingResult<Statement>>> subjectStatementFluxes = new ArrayList<>();
 
         for (RdfSubjectMapper.Result subjectMapperResult : subjectMapperResults) {
-            Set<Resource> resultSubjects = subjectMapperResult.getSubjects();
+            Set<MappedValue<Resource>> resultSubjects = subjectMapperResult.getSubjects();
             if (!resultSubjects.isEmpty()) {
                 subjectsAndSubjectGraphs.put(resultSubjects, subjectMapperResult.getGraphs());
                 subjectStatementFluxes.add(subjectMapperResult.getTypeStatements());
             }
         }
 
-        Flux<Statement> subjectStatements = Flux.merge(subjectStatementFluxes);
-        Flux<Statement> pomStatements = Flux.fromIterable(predicateObjectMappers)
+        var subjectStatements = Flux.merge(subjectStatementFluxes);
+        var pomStatements = Flux.fromIterable(predicateObjectMappers)
                 .flatMap(predicateObjectMapper ->
                         predicateObjectMapper.map(expressionEvaluation, datatypeMapper, subjectsAndSubjectGraphs));
 
@@ -157,7 +160,7 @@ public class RdfJoiningTriplesMapper<R> implements TriplesMapper<Statement> {
     }
 
     @Override
-    public ParentSideJoinConditionStore<Resource> getParentSideJoinConditions() {
+    public ParentSideJoinConditionStore<MappedValue<Resource>> getParentSideJoinConditions() {
         throw new UnsupportedOperationException("This method should never be called for this type.");
     }
 

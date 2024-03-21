@@ -29,14 +29,14 @@ public class TemplateParser {
 
     private abstract static class Segment {
 
-        StringBuilder str = new StringBuilder();
+        private final StringBuilder stringBuilder = new StringBuilder();
 
-        void append(String c) {
-            str.append(c);
+        void append(String character) {
+            stringBuilder.append(character);
         }
 
         String value() {
-            return str.toString();
+            return stringBuilder.toString();
         }
     }
 

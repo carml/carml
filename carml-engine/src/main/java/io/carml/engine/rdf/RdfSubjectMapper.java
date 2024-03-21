@@ -1,16 +1,18 @@
 package io.carml.engine.rdf;
 
+import static io.carml.engine.rdf.util.MappedStatements.streamCartesianProductMappedStatements;
 import static io.carml.util.LogUtil.exception;
 import static io.carml.util.LogUtil.log;
 import static java.util.stream.Collectors.toUnmodifiableSet;
 
+import io.carml.engine.MappedValue;
+import io.carml.engine.MappingResult;
 import io.carml.engine.TermGenerator;
 import io.carml.engine.TriplesMapperException;
 import io.carml.logicalsourceresolver.DatatypeMapper;
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.model.SubjectMap;
 import io.carml.model.TriplesMap;
-import io.carml.util.Models;
 import java.util.Set;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
@@ -18,9 +20,9 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Statement;
+import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 import reactor.core.publisher.Flux;
@@ -34,7 +36,7 @@ public class RdfSubjectMapper {
 
     private final Set<TermGenerator<Resource>> graphGenerators;
 
-    private final Set<IRI> classes;
+    private final Set<MappedValue<? extends Value>> classes;
 
     @NonNull
     private final ValueFactory valueFactory;
@@ -59,10 +61,13 @@ public class RdfSubjectMapper {
                     ex);
         }
 
+        Set<MappedValue<? extends Value>> classes =
+                subjectMap.getClasses().stream().map(MappedValue::of).collect(toUnmodifiableSet());
+
         return new RdfSubjectMapper(
                 subjectGenerator,
                 RdfTriplesMapper.createGraphGenerators(subjectMap.getGraphMaps(), rdfTermGeneratorFactory),
-                subjectMap.getClasses(),
+                classes,
                 rdfMapperConfig.getValueFactorySupplier().get());
     }
 
@@ -95,7 +100,7 @@ public class RdfSubjectMapper {
 
     public Result map(ExpressionEvaluation expressionEvaluation, DatatypeMapper datatypeMapper) {
         LOG.debug("Determining subjects ...");
-        Set<Resource> subjects = subjectGenerator.apply(expressionEvaluation, datatypeMapper).stream()
+        var subjects = subjectGenerator.apply(expressionEvaluation, datatypeMapper).stream()
                 .collect(toUnmodifiableSet());
 
         LOG.debug("Determined subjects {}", subjects);
@@ -105,21 +110,25 @@ public class RdfSubjectMapper {
         }
 
         // graphs to be used when generating statements in predicate object mapper
-        Set<Resource> graphs = graphGenerators.stream()
+        Set<MappedValue<Resource>> graphs = graphGenerators.stream()
                 .flatMap(graph -> graph.apply(expressionEvaluation, datatypeMapper).stream())
                 .collect(toUnmodifiableSet());
 
-        Flux<Statement> typeStatements = classes.isEmpty() ? Flux.empty() : mapTypeStatements(subjects, graphs);
+        Flux<MappingResult<Statement>> typeStatements =
+                classes.isEmpty() ? Flux.empty() : mapTypeStatements(subjects, graphs);
 
         return resultOf(subjects, graphs, typeStatements);
     }
 
-    private Flux<Statement> mapTypeStatements(Set<Resource> subjects, Set<Resource> graphs) {
-        LOG.debug("Generating triples for subjects: {}", subjects);
+    private Flux<MappingResult<Statement>> mapTypeStatements(
+            Set<MappedValue<Resource>> subjects, Set<MappedValue<Resource>> graphs) {
+        LOG.debug(
+                "Generating triples for subjects: {}",
+                subjects.stream().map(MappedValue::getValue).toList());
 
-        Stream<Statement> typeStatementStream = Models.streamCartesianProductStatements(
+        Stream<MappingResult<Statement>> typeStatementStream = streamCartesianProductMappedStatements(
                 subjects,
-                Set.of(RDF.TYPE),
+                Set.of(MappedValue.of(RDF.TYPE)),
                 classes,
                 graphs,
                 RdfTriplesMapper.defaultGraphModifier,
@@ -129,17 +138,20 @@ public class RdfSubjectMapper {
         return Flux.fromStream(typeStatementStream);
     }
 
-    private static Result resultOf(Set<Resource> subjects, Set<Resource> graphs, Flux<Statement> typeStatements) {
+    private static Result resultOf(
+            Set<MappedValue<Resource>> subjects,
+            Set<MappedValue<Resource>> graphs,
+            Flux<MappingResult<Statement>> typeStatements) {
         return new Result(subjects, graphs, typeStatements);
     }
 
     @Getter
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
-    static class Result {
-        Set<Resource> subjects;
+    public static class Result {
+        private Set<MappedValue<Resource>> subjects;
 
-        Set<Resource> graphs;
+        private Set<MappedValue<Resource>> graphs;
 
-        Flux<Statement> typeStatements;
+        private Flux<MappingResult<Statement>> typeStatements;
     }
 }

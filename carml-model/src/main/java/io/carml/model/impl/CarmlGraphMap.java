@@ -27,8 +27,8 @@ public class CarmlGraphMap extends CarmlTermMap implements GraphMap {
     @RdfProperty(Rr.termType)
     @Override
     public TermType getTermType() {
-        if (termType != null) {
-            return termType;
+        if (super.getTermType() != null) {
+            return super.getTermType();
         }
 
         return TermType.IRI;
@@ -51,13 +51,13 @@ public class CarmlGraphMap extends CarmlTermMap implements GraphMap {
     @Override
     public GraphMap applyExpressionAdapter(UnaryOperator<String> referenceExpressionAdapter) {
         var graphMapBuilder = this.toBuilder();
-        if (reference != null) {
+        if (getReference() != null) {
             adaptReference(referenceExpressionAdapter, graphMapBuilder::reference);
             return graphMapBuilder.build();
-        } else if (template != null) {
+        } else if (getTemplate() != null) {
             adaptTemplate(referenceExpressionAdapter, graphMapBuilder::template);
             return graphMapBuilder.build();
-        } else if (functionValue != null) {
+        } else if (getFunctionValue() != null) {
             adaptFunctionValue(referenceExpressionAdapter, graphMapBuilder::functionValue);
             return graphMapBuilder.build();
         } else {

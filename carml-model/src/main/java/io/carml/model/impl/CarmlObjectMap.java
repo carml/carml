@@ -53,11 +53,11 @@ public class CarmlObjectMap extends CarmlTermMap implements ObjectMap {
     @RdfProperty(Rr.termType)
     @Override
     public TermType getTermType() {
-        if (termType != null) {
-            return termType;
+        if (super.getTermType() != null) {
+            return super.getTermType();
         }
 
-        if (reference != null || languageMap != null || datatypeMap != null) {
+        if (getReference() != null || getLanguageMap() != null || getDatatypeMap() != null) {
             return TermType.LITERAL;
         }
 
@@ -93,13 +93,13 @@ public class CarmlObjectMap extends CarmlTermMap implements ObjectMap {
     @Override
     public ObjectMap applyExpressionAdapter(UnaryOperator<String> referenceExpressionAdapter) {
         var objectMapBuilder = this.toBuilder();
-        if (reference != null) {
+        if (getReference() != null) {
             adaptReference(referenceExpressionAdapter, objectMapBuilder::reference);
             return objectMapBuilder.build();
-        } else if (template != null) {
+        } else if (getTemplate() != null) {
             adaptTemplate(referenceExpressionAdapter, objectMapBuilder::template);
             return objectMapBuilder.build();
-        } else if (functionValue != null) {
+        } else if (getFunctionValue() != null) {
             adaptFunctionValue(referenceExpressionAdapter, objectMapBuilder::functionValue);
             return objectMapBuilder.build();
         } else {

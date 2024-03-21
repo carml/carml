@@ -1,6 +1,6 @@
 package io.carml.model;
 
-public interface NameableStream extends Resource {
+public interface NameableStream extends Source {
 
     String getStreamName();
 }

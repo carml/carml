@@ -1,5 +1,6 @@
 package io.carml.engine.rdf;
 
+import io.carml.engine.MappedValue;
 import io.carml.engine.TermGeneratorFactory;
 import io.carml.engine.join.ChildSideJoinStoreProvider;
 import io.carml.engine.join.ParentSideJoinConditionStoreProvider;
@@ -25,7 +26,7 @@ public class RdfMapperConfig {
     @NonNull
     private final TermGeneratorFactory<Value> termGeneratorFactory;
 
-    private final ChildSideJoinStoreProvider<Resource, IRI> childSideJoinStoreProvider;
+    private final ChildSideJoinStoreProvider<MappedValue<Resource>, MappedValue<IRI>> childSideJoinStoreProvider;
 
-    private final ParentSideJoinConditionStoreProvider<Resource> parentSideJoinConditionStoreProvider;
+    private final ParentSideJoinConditionStoreProvider<MappedValue<Resource>> parentSideJoinConditionStoreProvider;
 }

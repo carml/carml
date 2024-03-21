@@ -25,7 +25,7 @@ public final class JenaConverters {
      * Transforms an RDF4J {@link Value} to an equivalent Apache Jena {@link Node}.
      *
      * @param value The {@link Value} to transform.
-     * @return the {@link Node}.
+     * @return the {@link Node}
      */
     public static Node toNode(@NonNull Value value) {
         if (value.isIRI()) {
@@ -54,7 +54,7 @@ public final class JenaConverters {
      * Transforms an RDF4J {@link Statement} to an equivalent Apache Jena {@link Quad}.
      *
      * @param statement The {@link Statement}.
-     * @return the {@link Quad}.
+     * @return the {@link Quad}
      */
     public static Quad toQuad(@NonNull Statement statement) {
         var context = statement.getContext();

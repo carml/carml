@@ -313,7 +313,8 @@ public class RdfMappingPipelineFactory {
         if (logicalSourceResolverSupplier == null) {
             if (logicalSourceResolverMatchers.isEmpty()) {
                 throw new RmlMapperException(String.format(
-                        "No logical source resolver supplier bound for reference formulation %s%nResolvers available: %s",
+                        "No logical source resolver supplier bound for reference formulation %s%nResolvers "
+                                + "available: %s",
                         referenceFormulation,
                         logicalSourceResolverSuppliers.keySet().stream()
                                 .map(IRI::stringValue)
@@ -346,7 +347,8 @@ public class RdfMappingPipelineFactory {
 
         return select(matchedLogicalSourceResolverSuppliers)
                 .orElseThrow(() -> new RmlMapperException(String.format(
-                        "No logical source resolver supplier bound for reference formulation %s%nResolvers available: %s",
+                        "No logical source resolver supplier bound for reference formulation %s%nResolvers "
+                                + "available: %s",
                         logicalSource.getReferenceFormulation(),
                         logicalSourceResolverMatchers.stream()
                                 .map(MatchingLogicalSourceResolverSupplier::getResolverName)

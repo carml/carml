@@ -21,7 +21,7 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @NoArgsConstructor
 @Setter
 @ToString(callSuper = true)
-public class CarmlXmlSource extends CarmlResource implements XmlSource {
+public class CarmlXmlSource extends CarmlSource implements XmlSource {
 
     @Singular
     private Set<Namespace> declaredNamespaces;
