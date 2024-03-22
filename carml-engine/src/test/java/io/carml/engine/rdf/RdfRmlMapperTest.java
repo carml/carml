@@ -13,6 +13,7 @@ import io.carml.logicalsourceresolver.XPathResolver;
 import io.carml.logicalsourceresolver.sourceresolver.ClassPathResolver;
 import io.carml.logicalsourceresolver.sourceresolver.SourceResolver;
 import io.carml.logicalsourceresolver.sql.sourceresolver.DatabaseConnectionOptions;
+import io.carml.model.Source;
 import io.carml.model.TriplesMap;
 import io.carml.util.RmlMappingLoader;
 import io.carml.vocab.Rdf;
@@ -99,12 +100,12 @@ class RdfRmlMapperTest {
                 .addFunctions(new Object())
                 .sourceResolver(new SourceResolver() {
                     @Override
-                    public boolean supportsSource(Object sourceObject) {
+                    public boolean supportsSource(Source source) {
                         return true;
                     }
 
                     @Override
-                    public Optional<Object> apply(Object o) {
+                    public Optional<Object> apply(Source source) {
                         return Optional.empty();
                     }
                 })

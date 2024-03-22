@@ -1,5 +1,6 @@
 package io.carml.logicalsourceresolver;
 
+import io.carml.model.Source;
 import java.util.Optional;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -13,14 +14,14 @@ public class ResolvedSource<V> {
 
     @Getter
     @NonNull
-    private Object rmlSource;
+    private Source rmlSource;
 
     private V resolved;
 
     @Getter
     private Class<V> resolvedClass;
 
-    public static <V> ResolvedSource<V> of(Object rmlSource, V resolved, Class<V> resolvedClass) {
+    public static <V> ResolvedSource<V> of(Source rmlSource, V resolved, Class<V> resolvedClass) {
         return new ResolvedSource<>(rmlSource, resolved, resolvedClass);
     }
 

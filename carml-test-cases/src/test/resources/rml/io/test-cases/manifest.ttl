@@ -1,0 +1,44 @@
+@base <http://w3id.org/rml/io/test-cases/id/> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix rmltest: <http://w3id.org/rml/test/> .
+@prefix test: <http://www.w3.org/2006/03/test-description#> .
+
+<RMLSTC0001a> a test:TestCase;
+  dcterms:identifier "RMLSTC0001a";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "Friends.json";
+      rmltest:inputType "JSON"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLSTC0001b> a test:TestCase;
+  dcterms:identifier "RMLSTC0001b";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "Friends-UTF16.json";
+      rmltest:inputType "JSON"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLSTC0002a> a test:TestCase;
+  dcterms:identifier "RMLSTC0002a";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "Friends.json";
+      rmltest:inputType "JSON"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLSTC0002b> a test:TestCase;
+  dcterms:identifier "RMLSTC0002b";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "Friends.json.gz";
+      rmltest:inputType "JSON"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .

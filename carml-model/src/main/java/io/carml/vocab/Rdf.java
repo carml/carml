@@ -29,6 +29,8 @@ public class Rdf {
 
         public static final IRI source = iri("source");
 
+        public static final IRI Source = iri("Source");
+
         public static final IRI iterator = iri("iterator");
 
         public static final IRI referenceFormulation = iri("referenceFormulation");
@@ -160,6 +162,20 @@ public class Rdf {
         public static final IRI CurrentWorkingDirectory = iri("CurrentWorkingDirectory");
 
         public static final IRI MappingDirectory = iri("MappingDirectory");
+
+        public static final IRI LogicalTarget = iri("LogicalTarget");
+
+        public static final IRI target = iri("target");
+
+        public static final IRI Target = iri("Target");
+
+        public static final IRI serialization = iri("serialization");
+
+        public static final IRI encoding = iri("encoding");
+
+        public static final IRI compression = iri("compression");
+
+        public static final IRI nullPattern = iri("nullPattern");
     }
 
     @NoArgsConstructor(access = AccessLevel.PRIVATE)

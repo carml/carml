@@ -28,7 +28,7 @@ public class ManifestGenerator {
 
     public static void main(String[] args) {
         try {
-            generateManifest("rml/core/test-cases");
+            generateManifest("rml/io/test-cases");
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }

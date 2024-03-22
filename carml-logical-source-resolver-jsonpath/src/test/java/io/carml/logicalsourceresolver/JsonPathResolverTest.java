@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.carml.model.LogicalSource;
 import io.carml.model.impl.CarmlLogicalSource;
+import io.carml.model.impl.CarmlRelativePathSource;
 import io.carml.vocab.Rdf;
 import java.io.IOException;
 import java.io.InputStream;
@@ -41,14 +42,14 @@ class JsonPathResolverTest {
         // Given
         var foodSource = CarmlLogicalSource.builder()
                 .id("food")
-                .source("")
+                .source(CarmlRelativePathSource.of("food.json"))
                 .iterator("$.food[*]")
                 .referenceFormulation(Rdf.Ql.JsonPath)
                 .build();
 
         var countrySource = CarmlLogicalSource.builder()
                 .id("country")
-                .source("")
+                .source(CarmlRelativePathSource.of("food.json"))
                 .iterator("$.food[*].countryOfOrigin")
                 .referenceFormulation(Rdf.Ql.JsonPath)
                 .build();
@@ -68,13 +69,13 @@ class JsonPathResolverTest {
     void givenRecordResolverAndLogicalSources_whenGetRecordResolver_thenReturnSourceFluxWithMatchingObjects() {
         // Given
         var foodSource = CarmlLogicalSource.builder()
-                .source("")
+                .source(CarmlRelativePathSource.of("food.json"))
                 .iterator("$.food[*]")
                 .referenceFormulation(Rdf.Ql.JsonPath)
                 .build();
 
         var countrySource = CarmlLogicalSource.builder()
-                .source("")
+                .source(CarmlRelativePathSource.of("food.json"))
                 .iterator("$.food[*].countryOfOrigin")
                 .referenceFormulation(Rdf.Ql.JsonPath)
                 .build();
@@ -96,13 +97,13 @@ class JsonPathResolverTest {
     void givenRecordResolverAndLogicalSources_whenGetRecordResolverTwice_thenReturnSourceFluxWithMatchingObjects() {
         // Given
         var foodSource = CarmlLogicalSource.builder()
-                .source("")
+                .source(CarmlRelativePathSource.of("food.json"))
                 .iterator("$.food[*]")
                 .referenceFormulation(Rdf.Ql.JsonPath)
                 .build();
 
         var countrySource = CarmlLogicalSource.builder()
-                .source("")
+                .source(CarmlRelativePathSource.of("food.json"))
                 .iterator("$.food[*].countryOfOrigin")
                 .referenceFormulation(Rdf.Ql.JsonPath)
                 .build();
@@ -121,13 +122,13 @@ class JsonPathResolverTest {
 
         // Given
         var foodSource2 = CarmlLogicalSource.builder()
-                .source("")
+                .source(CarmlRelativePathSource.of("food.json"))
                 .iterator("$.food[*]")
                 .referenceFormulation(Rdf.Ql.JsonPath)
                 .build();
 
         var countrySource2 = CarmlLogicalSource.builder()
-                .source("")
+                .source(CarmlRelativePathSource.of("food.json"))
                 .iterator("$.food[*].countryOfOrigin")
                 .referenceFormulation(Rdf.Ql.JsonPath)
                 .build();
@@ -153,13 +154,13 @@ class JsonPathResolverTest {
     void givenCompletedLogicalSourceRecordResolver_whenRequest_thenComplete() {
         // Given
         var foodSource = CarmlLogicalSource.builder()
-                .source("")
+                .source(CarmlRelativePathSource.of("food.json"))
                 .iterator("$.food[*]")
                 .referenceFormulation(Rdf.Ql.JsonPath)
                 .build();
 
         var countrySource = CarmlLogicalSource.builder()
-                .source("")
+                .source(CarmlRelativePathSource.of("food.json"))
                 .iterator("$.food[*].countryOfOrigin")
                 .referenceFormulation(Rdf.Ql.JsonPath)
                 .build();
@@ -181,13 +182,13 @@ class JsonPathResolverTest {
     void givenJsonPathResolverWithSmallBufferSize_whenGetRecordResolver_thenReturnSourceFluxWithMatchingObjects() {
         // Given
         var foodSource = CarmlLogicalSource.builder()
-                .source("")
+                .source(CarmlRelativePathSource.of("food.json"))
                 .iterator("$.food[*]")
                 .referenceFormulation(Rdf.Ql.JsonPath)
                 .build();
 
         var countrySource = CarmlLogicalSource.builder()
-                .source("")
+                .source(CarmlRelativePathSource.of("food.json"))
                 .iterator("$.food[*].countryOfOrigin")
                 .referenceFormulation(Rdf.Ql.JsonPath)
                 .build();
@@ -227,13 +228,13 @@ class JsonPathResolverTest {
             throws IOException {
         // Given
         var foodSource = CarmlLogicalSource.builder()
-                .source("")
+                .source(CarmlRelativePathSource.of("food.json"))
                 .iterator("$.food[*]")
                 .referenceFormulation(Rdf.Ql.JsonPath)
                 .build();
 
         var countrySource = CarmlLogicalSource.builder()
-                .source("")
+                .source(CarmlRelativePathSource.of("food.json"))
                 .iterator("$.food[*].countryOfOrigin")
                 .referenceFormulation(Rdf.Ql.JsonPath)
                 .build();
@@ -272,7 +273,7 @@ class JsonPathResolverTest {
     void givenRecordResolverWithProvidedRecord_whenGetRecordResolver_thenReturnSourceFluxWithRecord() {
         // Given
         var foodSource = CarmlLogicalSource.builder()
-                .source("")
+                .source(CarmlRelativePathSource.of("food.json"))
                 .iterator("$")
                 .referenceFormulation(Rdf.Ql.JsonPath)
                 .build();
@@ -297,7 +298,7 @@ class JsonPathResolverTest {
     void givenProvidedRecordAndSingleValueIterator_whenGetRecordResolver_thenReturnSourceFluxWithRecord() {
         // Given
         var foodSource = CarmlLogicalSource.builder()
-                .source("")
+                .source(CarmlRelativePathSource.of("food.json"))
                 .iterator("$.name")
                 .referenceFormulation(Rdf.Ql.JsonPath)
                 .build();
@@ -322,7 +323,7 @@ class JsonPathResolverTest {
     void givenProvidedRecordAndNonResolvingIterator_whenGetRecordResolver_thenReturnSourceFluxWithRecord() {
         // Given
         var nonResolvingSource = CarmlLogicalSource.builder()
-                .source("")
+                .source(CarmlRelativePathSource.of("food.json"))
                 .iterator("$.foo")
                 .referenceFormulation(Rdf.Ql.JsonPath)
                 .build();
@@ -366,7 +367,7 @@ class JsonPathResolverTest {
     void givenUnresolvableJsonPath_whenSourceFluxApplied_shouldReturnEmptyFlux() {
         // Given
         var foodSource = CarmlLogicalSource.builder()
-                .source("")
+                .source(CarmlRelativePathSource.of("food.json"))
                 .iterator("$.foo")
                 .referenceFormulation(Rdf.Ql.JsonPath)
                 .build();
@@ -386,7 +387,7 @@ class JsonPathResolverTest {
     void givenInvalidJsonPath_whenSourceFluxApplied_shouldThrowException() {
         // Given
         LogicalSource foodSource = CarmlLogicalSource.builder()
-                .source("")
+                .source(CarmlRelativePathSource.of("food.json"))
                 .iterator("$.foo[invalid]")
                 .referenceFormulation(Rdf.Ql.JsonPath)
                 .build();

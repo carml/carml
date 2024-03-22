@@ -1,6 +1,7 @@
 package io.carml.util;
 
 import io.carml.model.DatabaseSource;
+import io.carml.model.DcatDistribution;
 import io.carml.model.FileSource;
 import io.carml.model.NameableStream;
 import io.carml.model.RelativePathSource;
@@ -8,6 +9,7 @@ import io.carml.model.TermType;
 import io.carml.model.TriplesMap;
 import io.carml.model.XmlSource;
 import io.carml.model.impl.CarmlDatabaseSource;
+import io.carml.model.impl.CarmlDcatDistribution;
 import io.carml.model.impl.CarmlFileSource;
 import io.carml.model.impl.CarmlRelativePathSource;
 import io.carml.model.impl.CarmlStream;
@@ -30,6 +32,7 @@ import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.util.ModelCollector;
+import org.eclipse.rdf4j.model.vocabulary.DCAT;
 import org.eclipse.rdf4j.rio.RDFFormat;
 
 public class RmlMappingLoader {
@@ -97,7 +100,9 @@ public class RmlMappingLoader {
                         .addDecidableType(Rdf.D2rq.Database, DatabaseSource.class)
                         .bindInterfaceImplementation(DatabaseSource.class, CarmlDatabaseSource.class)
                         .addDecidableType(Rdf.Rml.RelativePathSource, RelativePathSource.class)
-                        .bindInterfaceImplementation(RelativePathSource.class, CarmlRelativePathSource.class),
+                        .bindInterfaceImplementation(RelativePathSource.class, CarmlRelativePathSource.class)
+                        .addDecidableType(DCAT.DISTRIBUTION, DcatDistribution.class)
+                        .bindInterfaceImplementation(DcatDistribution.class, CarmlDcatDistribution.class),
                 RmlNamespaces.RML_NAMESPACES));
     }
 

@@ -88,6 +88,9 @@
 		<r2dbc-pool.version>1.0.1.RELEASE</r2dbc-pool.version>
 		<r2dbc-mysql.version>1.1.1</r2dbc-mysql.version>
 		<r2dbc-postgresql.version>1.0.4.RELEASE</r2dbc-postgresql.version>
+		<okhttp.version>4.12.0</okhttp.version>
+		<apache.httpclient5.version>5.3.1</apache.httpclient5.version>
+		<zip4j.version>2.11.5</zip4j.version>
 		<mockito.version>5.10.0</mockito.version>
 		<junit.version>5.10.2</junit.version>
 		<hamcrest.version>2.2</hamcrest.version>
@@ -307,6 +310,18 @@
 				<groupId>org.postgresql</groupId>
 				<artifactId>r2dbc-postgresql</artifactId>
 				<version>${r2dbc-postgresql.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>com.squareup.okhttp3</groupId>
+				<artifactId>okhttp</artifactId>
+				<version>${okhttp.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.apache.httpcomponents.client5</groupId>
+				<artifactId>httpclient5</artifactId>
+				<version>${apache.httpclient5.version}</version>
 			</dependency>
 
 			<dependency>

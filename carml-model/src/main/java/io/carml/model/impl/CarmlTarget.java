@@ -3,6 +3,7 @@ package io.carml.model.impl;
 import io.carml.model.Resource;
 import io.carml.model.Target;
 import io.carml.rdfmapper.annotations.RdfProperty;
+import io.carml.vocab.Rdf;
 import io.carml.vocab.Rml;
 import java.util.Set;
 import lombok.EqualsAndHashCode;
@@ -12,6 +13,7 @@ import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
+import org.eclipse.rdf4j.model.vocabulary.RDF;
 
 @SuperBuilder(toBuilder = true)
 @NoArgsConstructor
@@ -50,5 +52,17 @@ public class CarmlTarget extends CarmlResource implements Target {
     }
 
     @Override
-    public void addTriples(ModelBuilder modelBuilder) {}
+    public void addTriples(ModelBuilder modelBuilder) {
+        modelBuilder.subject(getAsResource()).add(RDF.TYPE, Rdf.Rml.Target);
+
+        if (serialization != null) {
+            modelBuilder.add(Rdf.Rml.serialization, serialization);
+        }
+        if (encoding != null) {
+            modelBuilder.add(Rdf.Rml.encoding, encoding);
+        }
+        if (compression != null) {
+            modelBuilder.add(Rdf.Rml.compression, compression);
+        }
+    }
 }

@@ -7,15 +7,15 @@ import static java.util.stream.Collectors.toSet;
 import com.google.common.collect.Iterables;
 import io.carml.logicalsourceresolver.LogicalSourceRecord;
 import io.carml.logicalsourceresolver.ResolvedSource;
+import io.carml.logicalsourceresolver.sourceresolver.SourceResolver;
 import io.carml.model.LogicalSource;
 import io.carml.model.NameableStream;
+import io.carml.model.Source;
 import io.carml.model.TriplesMap;
 import io.carml.util.Mappings;
 import java.io.InputStream;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -34,7 +34,7 @@ public abstract class RmlMapper<T> {
     @Getter
     private Set<TriplesMap> triplesMaps;
 
-    private Function<Object, Optional<Object>> sourceResolver;
+    private SourceResolver sourceResolver;
 
     private MappingPipeline<T> mappingPipeline;
 
@@ -113,7 +113,7 @@ public abstract class RmlMapper<T> {
     }
 
     private ResolvedSource<?> resolveSource(
-            Object source, Set<LogicalSource> inCaseOfException, Map<String, InputStream> namedInputStreams) {
+            Source source, Set<LogicalSource> inCaseOfException, Map<String, InputStream> namedInputStreams) {
         if (source instanceof NameableStream stream) {
             String unresolvedName = stream.getStreamName();
             String name = StringUtils.isBlank(unresolvedName) ? DEFAULT_STREAM_NAME : unresolvedName;
@@ -164,7 +164,7 @@ public abstract class RmlMapper<T> {
 
         private Map<LogicalSource, Set<TriplesMapper<T>>> triplesMapperPerLogicalSource;
 
-        private Map<Object, Set<LogicalSource>> logicalSourcesPerSource;
+        private Map<Source, Set<LogicalSource>> logicalSourcesPerSource;
 
         private Map<RefObjectMapper<T>, TriplesMapper<T>> refObjectMapperToParentTriplesMapper;
 

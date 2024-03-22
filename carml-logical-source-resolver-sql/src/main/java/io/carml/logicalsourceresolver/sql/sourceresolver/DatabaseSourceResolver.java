@@ -7,6 +7,7 @@ import static io.r2dbc.spi.ConnectionFactoryOptions.USER;
 import io.carml.logicalsourceresolver.sourceresolver.SourceResolver;
 import io.carml.logicalsourceresolver.sourceresolver.SourceResolverException;
 import io.carml.model.DatabaseSource;
+import io.carml.model.Source;
 import io.r2dbc.spi.ConnectionFactoryOptions;
 import java.util.Optional;
 import lombok.AccessLevel;
@@ -28,12 +29,12 @@ public class DatabaseSourceResolver implements SourceResolver {
     }
 
     @Override
-    public boolean supportsSource(Object sourceObject) {
-        return sourceObject instanceof DatabaseSource || sourceObject instanceof JoiningDatabaseSource;
+    public boolean supportsSource(Source source) {
+        return source instanceof DatabaseSource;
     }
 
     @Override
-    public Optional<Object> apply(Object source) {
+    public Optional<Object> apply(Source source) {
         DatabaseSource resolvableSource;
 
         if (source instanceof JoiningDatabaseSource joiningSourceSupplier) {

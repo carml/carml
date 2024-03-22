@@ -2,6 +2,7 @@ package io.carml.logicalsourceresolver.sourceresolver;
 
 import io.carml.model.FileSource;
 import io.carml.model.RelativePathSource;
+import io.carml.model.Source;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -15,6 +16,12 @@ public class FileResolver implements SourceResolver {
 
     private final Path basePath;
 
+    private static final FileResolver DEFAULT = new FileResolver(null);
+
+    public static FileResolver getInstance() {
+        return DEFAULT;
+    }
+
     public static FileResolver of() {
         return of(null);
     }
@@ -24,7 +31,7 @@ public class FileResolver implements SourceResolver {
     }
 
     @Override
-    public Optional<Object> apply(Object source) {
+    public Optional<Object> apply(Source source) {
         return unpackFileSource(source).map(pathToResolve -> {
             Path path;
 
@@ -50,9 +57,7 @@ public class FileResolver implements SourceResolver {
     }
 
     @Override
-    public boolean supportsSource(Object sourceObject) {
-        return sourceObject instanceof String
-                || sourceObject instanceof FileSource
-                || sourceObject instanceof RelativePathSource;
+    public boolean supportsSource(Source source) {
+        return source instanceof FileSource || source instanceof RelativePathSource;
     }
 }

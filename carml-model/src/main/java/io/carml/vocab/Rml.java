@@ -145,7 +145,13 @@ public class Rml {
 
     public static final String serialization = NAMESPACE + "serialization";
 
+    public static final String compression = NAMESPACE + "compression";
+
     public static final String encoding = NAMESPACE + "encoding";
 
-    public static final String compression = NAMESPACE + "compression";
+    public static final String NULL = NAMESPACE + "null";
+
+    public static final String UTF_8 = NAMESPACE + "UTF-8";
+
+    public static final String UTF_16 = NAMESPACE + "UTF-16";
 }

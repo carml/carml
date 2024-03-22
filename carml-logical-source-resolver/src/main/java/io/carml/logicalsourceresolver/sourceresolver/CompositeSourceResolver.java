@@ -1,6 +1,7 @@
 package io.carml.logicalsourceresolver.sourceresolver;
 
 import com.google.common.collect.ImmutableSet;
+import io.carml.model.Source;
 import java.util.Optional;
 import java.util.Set;
 import lombok.AccessLevel;
@@ -20,7 +21,7 @@ public class CompositeSourceResolver implements SourceResolver {
     }
 
     @Override
-    public Optional<Object> apply(Object source) {
+    public Optional<Object> apply(Source source) {
         return resolvers.stream()
                 .filter(resolver -> resolver.supportsSource(source))
                 .map(resolver -> resolver.apply(source))
@@ -30,7 +31,7 @@ public class CompositeSourceResolver implements SourceResolver {
     }
 
     @Override
-    public boolean supportsSource(Object sourceObject) {
+    public boolean supportsSource(Source source) {
         return false;
     }
 }

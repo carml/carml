@@ -1,6 +1,7 @@
 package io.carml.logicalsourceresolver;
 
 import static io.carml.util.LogUtil.exception;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -9,6 +10,7 @@ import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.Option;
 import com.jayway.jsonpath.spi.json.JacksonJsonNodeJsonProvider;
+import io.carml.logicalsourceresolver.sourceresolver.Encodings;
 import io.carml.model.LogicalSource;
 import io.carml.vocab.Rdf.Ql;
 import io.carml.vocab.Rdf.Rml;
@@ -16,6 +18,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
+import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -30,6 +33,7 @@ import java.util.stream.StreamSupport;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.IOUtils;
 import org.eclipse.rdf4j.model.IRI;
 import org.jsfr.json.JsonSurfer;
 import org.jsfr.json.JsonSurferJackson;
@@ -84,12 +88,46 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
         var resolved = resolvedSource.getResolved().get();
 
         if (resolved instanceof InputStream resolvedInputStream) {
-            return getObjectFlux(resolvedInputStream, logicalSources);
+            var charset = Encodings.resolveCharset(resolvedSource.getRmlSource().getEncoding())
+                    .orElse(UTF_8);
+
+            if (charset == UTF_8) {
+                return getObjectFlux(resolvedInputStream, logicalSources);
+            } else {
+                return getObjectFlux(resolvedInputStream, charset, logicalSources);
+            }
         } else if (resolved instanceof JsonNode resolvedJsonNode) {
             return getObjectFlux(resolvedJsonNode, logicalSources);
         } else {
             throw new LogicalSourceResolverException(String.format(
                     "Unsupported source object provided for logical sources:%n%s", exception(logicalSources)));
+        }
+    }
+
+    private Flux<LogicalSourceRecord<JsonNode>> getObjectFlux(
+            InputStream inputStream, Charset charset, Set<LogicalSource> logicalSources) {
+        try {
+            var tmp = IOUtils.toString(inputStream, charset);
+            return Flux.fromIterable(logicalSources).flatMap(logicalSource -> {
+                var resultNode =
+                        JsonPath.using(JSONPATH_CONF).parse(tmp).read(logicalSource.getIterator(), JsonNode.class);
+
+                if (resultNode == null || resultNode.isNull()) {
+                    return Flux.empty();
+                }
+                if (resultNode.isArray()) {
+                    return Flux.fromStream(StreamSupport.stream(
+                                    Spliterators.spliteratorUnknownSize(resultNode.elements(), Spliterator.ORDERED),
+                                    false))
+                            .map(lsRecord -> LogicalSourceRecord.of(logicalSource, lsRecord));
+                } else if (resultNode.isObject() || resultNode.isValueNode()) {
+                    return Flux.just(LogicalSourceRecord.of(logicalSource, resultNode));
+                }
+                throw new LogicalSourceResolverException(
+                        String.format("Error interpreting expression result %s", resultNode));
+            });
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 

@@ -43,11 +43,11 @@ public class LogicalSourceSourcePropertyHandler implements PropertyHandler {
         Value object = objects.iterator().next();
 
         if (object instanceof Literal) {
-            return Optional.of(object.stringValue());
+            return Optional.of(CarmlRelativePathSource.of(object.stringValue()));
         }
 
         // map 'object' to some complex type
-        // TODO quite nasty to create the transformer here
+        // TODO quite nasty to create the transformer here.
         ComplexValueTransformer transformer =
                 new ComplexValueTransformer(new LogicalSourceSourceTypeDecider(mapper), mappingCache, mapper, o -> o);
         Object value = transformer.transform(model, object);

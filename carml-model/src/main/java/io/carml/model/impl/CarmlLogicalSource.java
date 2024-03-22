@@ -26,7 +26,7 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @EqualsAndHashCode(callSuper = false)
 public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
 
-    private Object source;
+    private Source source;
 
     private String iterator;
 
@@ -43,7 +43,7 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
     @RdfProperty(value = Rml.source, handler = LogicalSourceSourcePropertyHandler.class)
     @RdfProperty(value = OldRml.source, handler = LogicalSourceSourcePropertyHandler.class)
     @Override
-    public Object getSource() {
+    public Source getSource() {
         if (source == null && hasTableNameOrSqlQuery()) {
             return CarmlDatabaseSource.builder()
                     .query(tableName != null ? String.format("SELECT * FROM %s", tableName) : sqlQuery)
@@ -137,22 +137,17 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
     }
 
     public Set<Resource> getReferencedResources() {
-        if (source instanceof Source src) {
-            return Set.of(src);
-        } else {
-            return Set.of();
+        if (source != null) {
+            return Set.of(source);
         }
+        return Set.of();
     }
 
     @Override
     public void addTriples(ModelBuilder modelBuilder) {
         modelBuilder.subject(getAsResource()).add(RDF.TYPE, Rdf.Rml.LogicalSource);
         if (source != null) {
-            if (source instanceof Source src) {
-                modelBuilder.add(Rdf.Rml.source, src.getAsResource());
-            } else {
-                modelBuilder.add(Rdf.Rml.source, source);
-            }
+            modelBuilder.add(Rdf.Rml.source, source.getAsResource());
         }
         if (iterator != null) {
             modelBuilder.add(Rdf.Rml.iterator, iterator);
