@@ -41,8 +41,8 @@ public class CarmlPredicateMap extends CarmlTermMap implements PredicateMap {
     @RdfProperty(Rr.termType)
     @Override
     public TermType getTermType() {
-        if (termType != null) {
-            return termType;
+        if (super.getTermType() != null) {
+            return super.getTermType();
         }
 
         return TermType.IRI;
@@ -51,13 +51,13 @@ public class CarmlPredicateMap extends CarmlTermMap implements PredicateMap {
     @Override
     public PredicateMap applyExpressionAdapter(UnaryOperator<String> referenceExpressionAdapter) {
         var predicateMapBuilder = this.toBuilder();
-        if (reference != null) {
+        if (getReference() != null) {
             adaptReference(referenceExpressionAdapter, predicateMapBuilder::reference);
             return predicateMapBuilder.build();
-        } else if (template != null) {
+        } else if (getTemplate() != null) {
             adaptTemplate(referenceExpressionAdapter, predicateMapBuilder::template);
             return predicateMapBuilder.build();
-        } else if (functionValue != null) {
+        } else if (getFunctionValue() != null) {
             adaptFunctionValue(referenceExpressionAdapter, predicateMapBuilder::functionValue);
             return predicateMapBuilder.build();
         } else {

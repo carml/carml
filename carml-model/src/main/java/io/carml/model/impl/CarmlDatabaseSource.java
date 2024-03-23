@@ -19,7 +19,7 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @NoArgsConstructor
 @Setter
 @ToString(callSuper = true)
-public class CarmlDatabaseSource extends CarmlResource implements DatabaseSource {
+public class CarmlDatabaseSource extends CarmlSource implements DatabaseSource {
 
     private String jdbcDsn;
 

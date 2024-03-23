@@ -29,18 +29,13 @@ import org.eclipse.rdf4j.model.vocabulary.RDFS;
 @EqualsAndHashCode
 public abstract class CarmlResource implements Resource {
 
-    String id;
+    private String id;
 
-    String label;
+    private String label;
 
     @ToString.Exclude
     @Builder.Default
     private Map<Resource, Model> modelCache = new HashMap<>();
-
-    CarmlResource(String id, String label) {
-        this.id = id;
-        this.label = label;
-    }
 
     @Override
     @RdfResourceName

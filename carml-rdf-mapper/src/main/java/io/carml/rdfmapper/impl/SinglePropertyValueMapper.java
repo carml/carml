@@ -13,7 +13,7 @@ class SinglePropertyValueMapper implements PropertyValueMapper {
 
     private final ValueTransformer valueTransformer;
 
-    public SinglePropertyValueMapper(IRI predicate, ValueTransformer valueTransformer) {
+    SinglePropertyValueMapper(IRI predicate, ValueTransformer valueTransformer) {
         this.predicate = predicate;
         this.valueTransformer = valueTransformer;
     }

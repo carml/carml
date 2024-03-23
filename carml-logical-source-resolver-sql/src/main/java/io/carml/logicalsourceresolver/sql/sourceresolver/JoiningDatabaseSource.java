@@ -2,17 +2,20 @@ package io.carml.logicalsourceresolver.sql.sourceresolver;
 
 import io.carml.model.LogicalSource;
 import io.carml.model.RefObjectMap;
+import io.carml.model.impl.CarmlDatabaseSource;
 import java.util.Set;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.experimental.SuperBuilder;
 
-@Builder
+@SuperBuilder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Getter
-public class JoiningDatabaseSource {
+@EqualsAndHashCode(callSuper = false)
+public class JoiningDatabaseSource extends CarmlDatabaseSource {
 
     @NonNull
     private LogicalSource childLogicalSource;
@@ -21,11 +24,11 @@ public class JoiningDatabaseSource {
     private LogicalSource parentLogicalSource;
 
     @NonNull
-    Set<RefObjectMap> refObjectMaps;
+    private Set<RefObjectMap> refObjectMaps;
 
     @NonNull
-    Set<String> childExpressions;
+    private Set<String> childExpressions;
 
     @NonNull
-    Set<String> parentExpressions;
+    private Set<String> parentExpressions;
 }

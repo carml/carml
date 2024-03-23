@@ -81,13 +81,13 @@ class PropertyUtils {
         return transformFirst(str, String::toUpperCase);
     }
 
-    private static String transformFirst(String str, UnaryOperator<String> f) {
+    private static String transformFirst(String str, UnaryOperator<String> transformer) {
         if (str.isEmpty()) {
             return str;
         }
         String first = str.substring(0, 1);
 
-        return f.apply(first) + str.substring(1);
+        return transformer.apply(first) + str.substring(1);
     }
 
     public static String createSetterName(String property) {

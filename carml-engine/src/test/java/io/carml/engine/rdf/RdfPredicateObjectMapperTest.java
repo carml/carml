@@ -1,5 +1,9 @@
 package io.carml.engine.rdf;
 
+import static org.eclipse.rdf4j.model.util.Statements.statement;
+import static org.eclipse.rdf4j.model.util.Values.bnode;
+import static org.eclipse.rdf4j.model.util.Values.iri;
+import static org.eclipse.rdf4j.model.util.Values.literal;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
@@ -13,6 +17,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.carml.engine.MappedValue;
+import io.carml.engine.MappingResult;
 import io.carml.engine.TermGenerator;
 import io.carml.engine.TriplesMapperException;
 import io.carml.engine.join.ChildSideJoinStoreProvider;
@@ -26,31 +32,29 @@ import io.carml.model.PredicateObjectMap;
 import io.carml.model.RefObjectMap;
 import io.carml.model.SubjectMap;
 import io.carml.model.TriplesMap;
-import io.carml.vocab.Rdf;
+import io.carml.vocab.Rdf.Rml;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.Value;
-import org.eclipse.rdf4j.model.ValueFactory;
-import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
+import org.eclipse.rdf4j.model.util.Values;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 @ExtendWith(MockitoExtension.class)
 class RdfPredicateObjectMapperTest {
-
-    private static final ValueFactory VALUE_FACTORY = SimpleValueFactory.getInstance();
 
     @Mock
     private PredicateObjectMap pom;
@@ -62,16 +66,16 @@ class RdfPredicateObjectMapperTest {
     private LogicalSource logicalSource;
 
     @Mock
-    private ChildSideJoinStoreProvider<Resource, IRI> childSideJoinStoreProvider;
+    private ChildSideJoinStoreProvider<MappedValue<Resource>, MappedValue<IRI>> childSideJoinStoreProvider;
 
     @Mock
     private RdfTermGeneratorFactory rdfTermGeneratorFactory;
 
     @Mock
-    private Set<Resource> subjects;
+    private Set<MappedValue<Resource>> subjects;
 
     @Mock
-    private Set<Resource> subjectGraphs;
+    private Set<MappedValue<Resource>> subjectGraphs;
 
     @Mock
     private TermGenerator<IRI> predicateGenerator1;
@@ -123,7 +127,7 @@ class RdfPredicateObjectMapperTest {
     void givenAllParams_whenOfCalled_thenConstructRdfPredicateObjectMapper() {
         // Given
         RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
-                .valueFactorySupplier(() -> VALUE_FACTORY)
+                .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
                 .childSideJoinStoreProvider(childSideJoinStoreProvider)
                 .build();
@@ -141,7 +145,7 @@ class RdfPredicateObjectMapperTest {
     void givenAllParams_whenForTableJoiningCalled_thenConstructRdfPredicateObjectMapper() {
         // Given
         RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
-                .valueFactorySupplier(() -> VALUE_FACTORY)
+                .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
                 .childSideJoinStoreProvider(childSideJoinStoreProvider)
                 .build();
@@ -160,10 +164,10 @@ class RdfPredicateObjectMapperTest {
         // Given
         when(triplesMap.getLogicalSource()).thenReturn(logicalSource);
         when(triplesMap.asRdf()).thenReturn(new ModelBuilder().build());
-        when(logicalSource.getAsResource()).thenReturn(VALUE_FACTORY.createBNode("logicalSource"));
+        when(logicalSource.getAsResource()).thenReturn(bnode("logicalSource"));
 
-        IRI subject1 = VALUE_FACTORY.createIRI("http://foo.bar/subject1");
-        subjects = Set.of(subject1);
+        IRI subject1 = iri("http://foo.bar/subject1");
+        subjects = Set.of(MappedValue.of(subject1));
 
         when(pom.getPredicateMaps()).thenReturn(Set.of(predicateMap1));
         when(rdfTermGeneratorFactory.getPredicateGenerator(predicateMap1)).thenReturn(predicateGenerator1);
@@ -171,17 +175,17 @@ class RdfPredicateObjectMapperTest {
         when(pom.getObjectMaps()).thenReturn(Set.of(refObjectMap1));
         when(refObjectMap1.getJoinConditions()).thenReturn(Set.of());
         when(refObjectMap1.getParentTriplesMap()).thenReturn(triplesMap2);
-        when(refObjectMap1.getAsResource()).thenReturn(VALUE_FACTORY.createBNode("refObjectMap1"));
+        when(refObjectMap1.getAsResource()).thenReturn(bnode("refObjectMap1"));
 
         when(triplesMap2.getLogicalSource()).thenReturn(logicalSource2);
         when(triplesMap2.asRdf()).thenReturn(new ModelBuilder().build());
-        when(logicalSource2.getAsResource()).thenReturn(VALUE_FACTORY.createBNode("logicalSource2"));
+        when(logicalSource2.getAsResource()).thenReturn(bnode("logicalSource2"));
 
-        IRI subjectGraph1 = VALUE_FACTORY.createIRI("http://foo.bar/subjectGraph1");
-        subjectGraphs = Set.of(subjectGraph1);
+        IRI subjectGraph1 = iri("http://foo.bar/subjectGraph1");
+        subjectGraphs = Set.of(MappedValue.of(subjectGraph1));
 
         RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
-                .valueFactorySupplier(() -> VALUE_FACTORY)
+                .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
                 .childSideJoinStoreProvider(childSideJoinStoreProvider)
                 .build();
@@ -203,7 +207,7 @@ class RdfPredicateObjectMapperTest {
         when(predicateGenerator1.apply(any(), any())).thenReturn(List.of());
 
         RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
-                .valueFactorySupplier(() -> VALUE_FACTORY)
+                .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
                 .childSideJoinStoreProvider(childSideJoinStoreProvider)
                 .build();
@@ -211,10 +215,10 @@ class RdfPredicateObjectMapperTest {
         RdfPredicateObjectMapper rdfPredicateObjectMapper =
                 RdfPredicateObjectMapper.of(pom, triplesMap, rdfRefObjectMappers, rdfMappingConfig);
 
-        Map<Set<Resource>, Set<Resource>> subjectsAndSubjectGraphs = Map.of(subjects, subjectGraphs);
+        var subjectsAndSubjectGraphs = Map.of(subjects, subjectGraphs);
 
         // When
-        Flux<Statement> pomStatements = rdfPredicateObjectMapper.map(any(), any(), subjectsAndSubjectGraphs);
+        var pomStatements = rdfPredicateObjectMapper.map(any(), any(), subjectsAndSubjectGraphs);
 
         // Then
         StepVerifier.create(pomStatements).verifyComplete();
@@ -223,21 +227,21 @@ class RdfPredicateObjectMapperTest {
     @Test
     void givenSingleValuedSubPredObjGenerators_whenMap_thenGenerateSingleStatement() {
         // Given
-        IRI subject1 = VALUE_FACTORY.createIRI("http://foo.bar/subject1");
-        subjects = Set.of(subject1);
+        IRI subject1 = iri("http://foo.bar/subject1");
+        subjects = Set.of(MappedValue.of(subject1));
 
         when(pom.getPredicateMaps()).thenReturn(Set.of(predicateMap1));
         when(rdfTermGeneratorFactory.getPredicateGenerator(predicateMap1)).thenReturn(predicateGenerator1);
-        IRI predicate1 = VALUE_FACTORY.createIRI("http://foo.bar/predicate1");
-        when(predicateGenerator1.apply(any(), any())).thenReturn(List.of(predicate1));
+        IRI predicate1 = iri("http://foo.bar/predicate1");
+        when(predicateGenerator1.apply(any(), any())).thenReturn(List.of(MappedValue.of(predicate1)));
 
         when(pom.getObjectMaps()).thenReturn(Set.of(objectMap1));
         when(rdfTermGeneratorFactory.getObjectGenerator(objectMap1)).thenReturn(objectGenerator1);
-        Value object1 = VALUE_FACTORY.createLiteral("object1");
-        when(objectGenerator1.apply(any(), any())).thenReturn(List.of(object1));
+        Value object1 = literal("object1");
+        when(objectGenerator1.apply(any(), any())).thenReturn(List.of(MappedValue.of(object1)));
 
         RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
-                .valueFactorySupplier(() -> VALUE_FACTORY)
+                .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
                 .childSideJoinStoreProvider(childSideJoinStoreProvider)
                 .build();
@@ -245,43 +249,45 @@ class RdfPredicateObjectMapperTest {
         RdfPredicateObjectMapper rdfPredicateObjectMapper =
                 RdfPredicateObjectMapper.of(pom, triplesMap, rdfRefObjectMappers, rdfMappingConfig);
 
-        Map<Set<Resource>, Set<Resource>> subjectsAndSubjectGraphs = Map.of(subjects, subjectGraphs);
+        var subjectsAndSubjectGraphs = Map.of(subjects, subjectGraphs);
 
         // When
-        Flux<Statement> pomStatements = rdfPredicateObjectMapper.map(any(), any(), subjectsAndSubjectGraphs);
+        var pomStatements = rdfPredicateObjectMapper.map(any(), any(), subjectsAndSubjectGraphs);
 
         // Then
-        StepVerifier.create(pomStatements)
-                .expectNext(VALUE_FACTORY.createStatement(subject1, predicate1, object1))
-                .verifyComplete();
+        Predicate<MappingResult<Statement>> expectedStatement = mappedTriple -> Objects.equals(
+                statement(subject1, predicate1, object1, null),
+                Mono.from(mappedTriple.getResults()).block());
+
+        StepVerifier.create(pomStatements).expectNextMatches(expectedStatement).verifyComplete();
     }
 
     @Test
     void givenSubjectGraphsAndGraphGenerators_whenMap_generatesStatementsForAllGraphs() {
         // Given
-        IRI subject1 = VALUE_FACTORY.createIRI("http://foo.bar/subject1");
-        subjects = Set.of(subject1);
+        IRI subject1 = iri("http://foo.bar/subject1");
+        subjects = Set.of(MappedValue.of(subject1));
 
         when(pom.getPredicateMaps()).thenReturn(Set.of(predicateMap1));
         when(rdfTermGeneratorFactory.getPredicateGenerator(predicateMap1)).thenReturn(predicateGenerator1);
-        IRI predicate1 = VALUE_FACTORY.createIRI("http://foo.bar/predicate1");
-        when(predicateGenerator1.apply(any(), any())).thenReturn(List.of(predicate1));
+        IRI predicate1 = iri("http://foo.bar/predicate1");
+        when(predicateGenerator1.apply(any(), any())).thenReturn(List.of(MappedValue.of(predicate1)));
 
         when(pom.getObjectMaps()).thenReturn(Set.of(objectMap1));
         when(rdfTermGeneratorFactory.getObjectGenerator(objectMap1)).thenReturn(objectGenerator1);
-        Value object1 = VALUE_FACTORY.createLiteral("object1");
-        when(objectGenerator1.apply(any(), any())).thenReturn(List.of(object1));
+        Value object1 = literal("object1");
+        when(objectGenerator1.apply(any(), any())).thenReturn(List.of(MappedValue.of(object1)));
 
-        IRI subjectGraph1 = VALUE_FACTORY.createIRI("http://foo.bar/subjectGraph1");
-        subjectGraphs = Set.of(subjectGraph1);
+        IRI subjectGraph1 = iri("http://foo.bar/subjectGraph1");
+        subjectGraphs = Set.of(MappedValue.of(subjectGraph1));
 
         when(pom.getGraphMaps()).thenReturn(Set.of(graphMap1));
         when(rdfTermGeneratorFactory.getGraphGenerator(graphMap1)).thenReturn(graphGenerator1);
-        IRI graph1 = VALUE_FACTORY.createIRI("http://foo.bar/graph");
-        when(graphGenerator1.apply(any(), any())).thenReturn(List.of(graph1));
+        IRI graph1 = iri("http://foo.bar/graph");
+        when(graphGenerator1.apply(any(), any())).thenReturn(List.of(MappedValue.of(graph1)));
 
         RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
-                .valueFactorySupplier(() -> VALUE_FACTORY)
+                .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
                 .childSideJoinStoreProvider(childSideJoinStoreProvider)
                 .build();
@@ -289,16 +295,17 @@ class RdfPredicateObjectMapperTest {
         RdfPredicateObjectMapper rdfPredicateObjectMapper =
                 RdfPredicateObjectMapper.of(pom, triplesMap, rdfRefObjectMappers, rdfMappingConfig);
 
-        Map<Set<Resource>, Set<Resource>> subjectsAndSubjectGraphs = Map.of(subjects, subjectGraphs);
+        var subjectsAndSubjectGraphs = Map.of(subjects, subjectGraphs);
 
         // When
-        Flux<Statement> pomStatements = rdfPredicateObjectMapper.map(any(), any(), subjectsAndSubjectGraphs);
+        var pomStatements = rdfPredicateObjectMapper.map(any(), any(), subjectsAndSubjectGraphs);
 
         // Then
-        Predicate<Statement> expectedStatement = statement -> Set.of(
-                        VALUE_FACTORY.createStatement(subject1, predicate1, object1, subjectGraph1),
-                        VALUE_FACTORY.createStatement(subject1, predicate1, object1, graph1))
-                .contains(statement);
+        Predicate<MappingResult<Statement>> expectedStatement = mappedTriple -> Set.of(
+                        statement(subject1, predicate1, object1, subjectGraph1),
+                        statement(subject1, predicate1, object1, graph1))
+                .contains(Mono.from(mappedTriple.getResults()).block());
+
         StepVerifier.create(pomStatements)
                 .expectNextMatches(expectedStatement)
                 .expectNextMatches(expectedStatement)
@@ -309,29 +316,30 @@ class RdfPredicateObjectMapperTest {
     void
             givenSubjectGraphsWithDefaultGraphAndGraphGeneratorsWithDefaultGraph_whenMap_generatesStatementsForAllGraphs() {
         // Given
-        IRI subject1 = VALUE_FACTORY.createIRI("http://foo.bar/subject1");
-        subjects = Set.of(subject1);
+        IRI subject1 = iri("http://foo.bar/subject1");
+        subjects = Set.of(MappedValue.of(subject1));
 
         when(pom.getPredicateMaps()).thenReturn(Set.of(predicateMap1));
         when(rdfTermGeneratorFactory.getPredicateGenerator(predicateMap1)).thenReturn(predicateGenerator1);
-        IRI predicate1 = VALUE_FACTORY.createIRI("http://foo.bar/predicate1");
-        when(predicateGenerator1.apply(any(), any())).thenReturn(List.of(predicate1));
+        IRI predicate1 = iri("http://foo.bar/predicate1");
+        when(predicateGenerator1.apply(any(), any())).thenReturn(List.of(MappedValue.of(predicate1)));
 
         when(pom.getObjectMaps()).thenReturn(Set.of(objectMap1));
         when(rdfTermGeneratorFactory.getObjectGenerator(objectMap1)).thenReturn(objectGenerator1);
-        Value object1 = VALUE_FACTORY.createLiteral("object1");
-        when(objectGenerator1.apply(any(), any())).thenReturn(List.of(object1));
+        Value object1 = literal("object1");
+        when(objectGenerator1.apply(any(), any())).thenReturn(List.of(MappedValue.of(object1)));
 
-        IRI subjectGraph1 = VALUE_FACTORY.createIRI("http://foo.bar/subjectGraph1");
-        subjectGraphs = Set.of(subjectGraph1, Rdf.Rr.defaultGraph);
+        IRI subjectGraph1 = iri("http://foo.bar/subjectGraph1");
+        subjectGraphs = Set.of(MappedValue.of(subjectGraph1), MappedValue.of(Rml.defaultGraph));
 
         when(pom.getGraphMaps()).thenReturn(Set.of(graphMap1));
         when(rdfTermGeneratorFactory.getGraphGenerator(graphMap1)).thenReturn(graphGenerator1);
-        IRI graph1 = VALUE_FACTORY.createIRI("http://foo.bar/graph1");
-        when(graphGenerator1.apply(any(), any())).thenReturn(List.of(graph1, Rdf.Rr.defaultGraph));
+        IRI graph1 = iri("http://foo.bar/graph1");
+        when(graphGenerator1.apply(any(), any()))
+                .thenReturn(List.of(MappedValue.of(graph1), MappedValue.of(Rml.defaultGraph)));
 
         RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
-                .valueFactorySupplier(() -> VALUE_FACTORY)
+                .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
                 .childSideJoinStoreProvider(childSideJoinStoreProvider)
                 .build();
@@ -339,17 +347,18 @@ class RdfPredicateObjectMapperTest {
         RdfPredicateObjectMapper rdfPredicateObjectMapper =
                 RdfPredicateObjectMapper.of(pom, triplesMap, rdfRefObjectMappers, rdfMappingConfig);
 
-        Map<Set<Resource>, Set<Resource>> subjectsAndSubjectGraphs = Map.of(subjects, subjectGraphs);
+        var subjectsAndSubjectGraphs = Map.of(subjects, subjectGraphs);
 
         // When
-        Flux<Statement> pomStatements = rdfPredicateObjectMapper.map(any(), any(), subjectsAndSubjectGraphs);
+        var pomStatements = rdfPredicateObjectMapper.map(any(), any(), subjectsAndSubjectGraphs);
 
         // Then
-        Predicate<Statement> expectedStatement = statement -> Set.of(
-                        VALUE_FACTORY.createStatement(subject1, predicate1, object1, subjectGraph1),
-                        VALUE_FACTORY.createStatement(subject1, predicate1, object1, graph1),
-                        VALUE_FACTORY.createStatement(subject1, predicate1, object1))
-                .contains(statement);
+        Predicate<MappingResult<Statement>> expectedStatement = mappedTriple -> Set.of(
+                        statement(subject1, predicate1, object1, subjectGraph1),
+                        statement(subject1, predicate1, object1, graph1),
+                        statement(subject1, predicate1, object1, null))
+                .contains(Mono.from(mappedTriple.getResults()).block());
+
         StepVerifier.create(pomStatements)
                 .expectNextMatches(expectedStatement)
                 .expectNextMatches(expectedStatement)
@@ -362,13 +371,13 @@ class RdfPredicateObjectMapperTest {
         // Given
         when(triplesMap.getLogicalSource()).thenReturn(logicalSource);
 
-        IRI subject1 = VALUE_FACTORY.createIRI("http://foo.bar/subject1");
-        subjects = Set.of(subject1);
+        IRI subject1 = iri("http://foo.bar/subject1");
+        subjects = Set.of(MappedValue.of(subject1));
 
         when(pom.getPredicateMaps()).thenReturn(Set.of(predicateMap1));
         when(rdfTermGeneratorFactory.getPredicateGenerator(predicateMap1)).thenReturn(predicateGenerator1);
-        IRI predicate1 = VALUE_FACTORY.createIRI("http://foo.bar/predicate1");
-        when(predicateGenerator1.apply(any(), any())).thenReturn(List.of(predicate1));
+        IRI predicate1 = iri("http://foo.bar/predicate1");
+        when(predicateGenerator1.apply(any(), any())).thenReturn(List.of(MappedValue.of(predicate1)));
 
         when(pom.getObjectMaps()).thenReturn(Set.of(refObjectMap1));
         when(refObjectMap1.getJoinConditions()).thenReturn(Set.of());
@@ -379,14 +388,14 @@ class RdfPredicateObjectMapperTest {
 
         when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap2)).thenReturn(subjectGenerator2);
 
-        IRI subject2 = VALUE_FACTORY.createIRI("http://foo.bar/subject2");
-        when(subjectGenerator2.apply(any(), any())).thenReturn(List.of(subject2));
+        IRI subject2 = iri("http://foo.bar/subject2");
+        when(subjectGenerator2.apply(any(), any())).thenReturn(List.of(MappedValue.of(subject2)));
 
-        IRI subjectGraph1 = VALUE_FACTORY.createIRI("http://foo.bar/subjectGraph1");
-        subjectGraphs = Set.of(subjectGraph1);
+        IRI subjectGraph1 = iri("http://foo.bar/subjectGraph1");
+        subjectGraphs = Set.of(MappedValue.of(subjectGraph1));
 
         RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
-                .valueFactorySupplier(() -> VALUE_FACTORY)
+                .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
                 .childSideJoinStoreProvider(childSideJoinStoreProvider)
                 .build();
@@ -394,15 +403,18 @@ class RdfPredicateObjectMapperTest {
         RdfPredicateObjectMapper rdfPredicateObjectMapper =
                 RdfPredicateObjectMapper.of(pom, triplesMap, rdfRefObjectMappers, rdfMappingConfig);
 
-        Map<Set<Resource>, Set<Resource>> subjectsAndSubjectGraphs = Map.of(subjects, subjectGraphs);
+        var subjectsAndSubjectGraphs = Map.of(subjects, subjectGraphs);
 
         // When
-        Flux<Statement> pomStatements = rdfPredicateObjectMapper.map(any(), any(), subjectsAndSubjectGraphs);
+        var pomStatements = rdfPredicateObjectMapper.map(any(), any(), subjectsAndSubjectGraphs);
 
         // Then
-        StepVerifier.create(pomStatements)
-                .expectNext(VALUE_FACTORY.createStatement(subject1, predicate1, subject2, subjectGraph1))
-                .verifyComplete();
+
+        Predicate<MappingResult<Statement>> expectedStatement = mappedTriple -> Objects.equals(
+                statement(subject1, predicate1, subject2, subjectGraph1),
+                Mono.from(mappedTriple.getResults()).block());
+
+        StepVerifier.create(pomStatements).expectNextMatches(expectedStatement).verifyComplete();
     }
 
     @Test
@@ -410,26 +422,26 @@ class RdfPredicateObjectMapperTest {
         // Given
         when(triplesMap.getLogicalSource()).thenReturn(logicalSource);
 
-        IRI subject1 = VALUE_FACTORY.createIRI("http://foo.bar/subject1");
-        subjects = Set.of(subject1);
+        IRI subject1 = iri("http://foo.bar/subject1");
+        subjects = Set.of(MappedValue.of(subject1));
 
         when(pom.getPredicateMaps()).thenReturn(Set.of(predicateMap1));
         when(pom.getObjectMaps()).thenReturn(Set.of(refObjectMap1));
 
         when(rdfTermGeneratorFactory.getPredicateGenerator(predicateMap1)).thenReturn(predicateGenerator1);
-        IRI predicate1 = VALUE_FACTORY.createIRI("http://foo.bar/predicate1");
-        when(predicateGenerator1.apply(any(), any())).thenReturn(List.of(predicate1));
+        IRI predicate1 = iri("http://foo.bar/predicate1");
+        when(predicateGenerator1.apply(any(), any())).thenReturn(List.of(MappedValue.of(predicate1)));
 
         when(refObjectMap1.getJoinConditions()).thenReturn(Set.of(join1));
 
-        IRI subjectGraph1 = VALUE_FACTORY.createIRI("http://foo.bar/subjectGraph1");
-        subjectGraphs = Set.of(subjectGraph1);
+        IRI subjectGraph1 = iri("http://foo.bar/subjectGraph1");
+        subjectGraphs = Set.of(MappedValue.of(subjectGraph1));
 
         rdfRefObjectMappers = Set.of(rdfRefObjectMapper1);
         when(rdfRefObjectMapper1.getRefObjectMap()).thenReturn(refObjectMap1);
 
         RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
-                .valueFactorySupplier(() -> VALUE_FACTORY)
+                .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
                 .childSideJoinStoreProvider(childSideJoinStoreProvider)
                 .build();
@@ -439,14 +451,14 @@ class RdfPredicateObjectMapperTest {
 
         ExpressionEvaluation expressionEvaluation = mock(ExpressionEvaluation.class);
 
-        Map<Set<Resource>, Set<Resource>> subjectsAndSubjectGraphs = Map.of(subjects, subjectGraphs);
+        var subjectsAndSubjectGraphs = Map.of(subjects, subjectGraphs);
 
         // When
-        Flux<Statement> pomStatements =
-                rdfPredicateObjectMapper.map(expressionEvaluation, null, subjectsAndSubjectGraphs);
+        var pomStatements = rdfPredicateObjectMapper.map(expressionEvaluation, null, subjectsAndSubjectGraphs);
 
         // Then
-        verify(rdfRefObjectMapper1, times(1)).map(subjectsAndSubjectGraphs, Set.of(predicate1), expressionEvaluation);
+        verify(rdfRefObjectMapper1, times(1))
+                .map(subjectsAndSubjectGraphs, Set.of(MappedValue.of(predicate1)), expressionEvaluation);
 
         StepVerifier.create(pomStatements).verifyComplete();
     }

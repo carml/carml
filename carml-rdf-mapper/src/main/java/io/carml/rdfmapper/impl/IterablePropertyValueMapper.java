@@ -21,7 +21,7 @@ class IterablePropertyValueMapper implements PropertyValueMapper {
 
     private final Supplier<ImmutableCollection.Builder<Object>> createCollectionBuilder;
 
-    public IterablePropertyValueMapper(
+    IterablePropertyValueMapper(
             ValueTransformer valueTransformer, Supplier<ImmutableCollection.Builder<Object>> createCollectionBuilder) {
         this.valueTransformer = valueTransformer;
         this.createCollectionBuilder = createCollectionBuilder;

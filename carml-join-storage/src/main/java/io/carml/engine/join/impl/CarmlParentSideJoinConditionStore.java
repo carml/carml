@@ -2,20 +2,19 @@ package io.carml.engine.join.impl;
 
 import io.carml.engine.join.ParentSideJoinConditionStore;
 import io.carml.engine.join.ParentSideJoinKey;
-import java.io.Serializable;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class CarmlParentSideJoinConditionStore<T extends Serializable> implements ParentSideJoinConditionStore<T> {
+public class CarmlParentSideJoinConditionStore<T> implements ParentSideJoinConditionStore<T> {
 
     private final String name;
 
     private final ConcurrentMap<ParentSideJoinKey, Set<T>> parentSideJoinConditionStore;
 
-    static <T extends Serializable> CarmlParentSideJoinConditionStore<T> of(
+    static <T> CarmlParentSideJoinConditionStore<T> of(
             String name, ConcurrentMap<ParentSideJoinKey, Set<T>> parentSideJoinConditionStore) {
         return new CarmlParentSideJoinConditionStore<>(name, parentSideJoinConditionStore);
     }

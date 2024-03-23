@@ -1,5 +1,7 @@
 package io.carml.model.impl;
 
+import static java.util.function.Predicate.not;
+
 import io.carml.rdfmapper.Mapper;
 import io.carml.rdfmapper.TypeDecider;
 import io.carml.vocab.Rdf.Carml;
@@ -7,11 +9,13 @@ import io.carml.vocab.Rdf.D2rq;
 import io.carml.vocab.Rdf.Rml;
 import java.lang.reflect.Type;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
+import org.eclipse.rdf4j.model.vocabulary.DCAT;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 
 public class LogicalSourceSourceTypeDecider implements TypeDecider {
@@ -22,21 +26,19 @@ public class LogicalSourceSourceTypeDecider implements TypeDecider {
         this.mapper = mapper;
     }
 
-    Map<IRI, IRI> inferenceMap = Map.of(
-            Carml.streamName,
-            Carml.Stream, //
-            Carml.declaresNamespace,
-            Carml.XmlDocument, //
-            Carml.url,
-            Carml.FileSource, //
-            D2rq.jdbcDriver,
-            D2rq.Database, //
-            Rml.path,
-            Rml.RelativePathSource);
+    private static final Map<IRI, IRI> INFERENCE_MAP = Map.of(
+            Carml.streamName, Carml.Stream,
+            Carml.declaresNamespace, Carml.XmlDocument,
+            Carml.url, Carml.FileSource,
+            D2rq.jdbcDriver, D2rq.Database,
+            Rml.path, Rml.RelativePathSource,
+            DCAT.ACCESS_URL, DCAT.DISTRIBUTION,
+            DCAT.DOWNLOAD_URL, DCAT.DISTRIBUTION);
 
     @Override
     public Set<Type> decide(Model model, Resource resource) {
         Set<IRI> rdfTypes = model.filter(resource, RDF.TYPE, null).objects().stream()
+                .filter(not(type -> Objects.equals(type, Rml.Source)))
                 .map(IRI.class::cast)
                 .collect(Collectors.toSet());
 
@@ -45,8 +47,8 @@ public class LogicalSourceSourceTypeDecider implements TypeDecider {
                 .collect(Collectors.toSet());
 
         usedPredicates.forEach(p -> {
-            if (inferenceMap.containsKey(p)) {
-                rdfTypes.add(inferenceMap.get(p));
+            if (INFERENCE_MAP.containsKey(p)) {
+                rdfTypes.add(INFERENCE_MAP.get(p));
             }
         });
 

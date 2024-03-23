@@ -8,6 +8,7 @@ import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.Stream.concat;
 import static java.util.stream.Stream.empty;
+import static org.eclipse.rdf4j.model.util.Values.iri;
 
 import com.google.common.collect.Iterables;
 import io.carml.rdfmapper.Combiner;
@@ -46,8 +47,6 @@ import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Namespace;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Value;
-import org.eclipse.rdf4j.model.ValueFactory;
-import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -127,7 +126,8 @@ public class CarmlMapper implements Mapper, MappingCache {
 
                     if (delegates.isEmpty()) {
                         throw new CarmlMapperException(String.format(
-                                "Error processing %s%nCould not determine type. (No implementation present with specified method [%s])",
+                                "Error processing %s%nCould not determine type. (No implementation present with "
+                                        + "specified method [%s])",
                                 formatResourceForLog(model, resource, namespaces, true), method));
                     }
 
@@ -211,27 +211,28 @@ public class CarmlMapper implements Mapper, MappingCache {
 
     private <T> T doSingleTypeConcreteClassMapping(Model model, Resource resource, Type type) {
 
-        Class<?> c = (Class<?>) type;
+        Class<?> clazz = (Class<?>) type;
 
-        if (c.isEnum()) {
-            throw new CarmlMapperException(
-                    "cannot create an instance of " + "enum type [" + c.getCanonicalName() + "]. you should probably "
-                            + "place an instance of the enum type in the MappingCache " + "prior to mapping.");
+        if (clazz.isEnum()) {
+            throw new CarmlMapperException(String.format(
+                    "cannot create an instance of enum type [%s]. you should probably place an instance of the enum"
+                            + " type in the MappingCache prior to mapping.",
+                    clazz.getCanonicalName()));
         }
 
         // build meta-model
         // TODO cache
 
         List<PropertyHandler> propertyHandlers = concat(
-                        stream(c.getMethods()).flatMap(m -> getRdfPropertyHandlers(m, c, model, resource)),
-                        stream(c.getMethods()).map(m -> getRdfResourceNameHandler(m, c)))
+                        stream(clazz.getMethods()).flatMap(m -> getRdfPropertyHandlers(m, clazz, model, resource)),
+                        stream(clazz.getMethods()).map(m -> getRdfResourceNameHandler(m, clazz)))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .toList();
 
         Object instance;
         try {
-            instance = c.getConstructor().newInstance();
+            instance = clazz.getConstructor().newInstance();
         } catch (InstantiationException
                 | IllegalAccessException
                 | IllegalArgumentException
@@ -241,7 +242,7 @@ public class CarmlMapper implements Mapper, MappingCache {
             throw new CarmlMapperException(
                     String.format(
                             "Error processing %s%n  failed to instantiate [%s]",
-                            formatResourceForLog(model, resource, namespaces, true), c.getCanonicalName()),
+                            formatResourceForLog(model, resource, namespaces, true), clazz.getCanonicalName()),
                     e);
         }
 
@@ -361,16 +362,17 @@ public class CarmlMapper implements Mapper, MappingCache {
         return new TypeFromTripleTypeDecider(this, Optional.of(propertyTypeDecider));
     }
 
-    private Optional<PropertyHandler> getRdfResourceNameHandler(Method method, Class<?> c) {
+    private Optional<PropertyHandler> getRdfResourceNameHandler(Method method, Class<?> clazz) {
         return Optional.ofNullable(method.getAnnotation(RdfResourceName.class)).map(a -> {
             String name = method.getName();
             String property = getPropertyName(name);
 
             String setterName = createSetterName(property);
-            Method setter =
-                    findSetter(c, setterName).orElseThrow(() -> createCouldNotFindSetterException(c, setterName));
+            Method setter = findSetter(clazz, setterName)
+                    .orElseThrow(() -> createCouldNotFindSetterException(clazz, setterName));
 
-            BiConsumer<Object, Object> set = getSetterInvoker(setter, createSetterInvocationErrorFactory(c, setter));
+            BiConsumer<Object, Object> set =
+                    getSetterInvoker(setter, createSetterInvocationErrorFactory(clazz, setter));
 
             return new PropertyHandler() {
                 @Override
@@ -386,14 +388,14 @@ public class CarmlMapper implements Mapper, MappingCache {
         });
     }
 
-    private RuntimeException createCouldNotFindSetterException(Class<?> c, String setterName) {
+    private RuntimeException createCouldNotFindSetterException(Class<?> clazz, String setterName) {
         return new RuntimeException(String.format(
-                "in class %s, could not find setter [%s] with 1 parameter", c.getCanonicalName(), setterName));
+                "in class %s, could not find setter [%s] with 1 parameter", clazz.getCanonicalName(), setterName));
     }
 
-    private Function<Exception, RuntimeException> createSetterInvocationErrorFactory(Class<?> c, Method setter) {
+    private Function<Exception, RuntimeException> createSetterInvocationErrorFactory(Class<?> clazz, Method setter) {
         return e -> new RuntimeException(
-                String.format("could not invoke setter [%s.%s]", c.getSimpleName(), setter.getName()), e);
+                String.format("could not invoke setter [%s.%s]", clazz.getSimpleName(), setter.getName()), e);
     }
 
     private BiConsumer<Object, Object> getSetterInvoker(
@@ -458,7 +460,8 @@ public class CarmlMapper implements Mapper, MappingCache {
                     return literal.getLabel();
                 } else {
                     throw new CarmlMapperException(String.format(
-                            "Cannot map value %s for property %s on class %s. Expecting value to be of type Literal, but was %s",
+                            "Cannot map value %s for property %s on class %s. Expecting value to be of type Literal, "
+                                    + "but was %s",
                             value,
                             annotation.value(),
                             clazz.getSimpleName(),
@@ -475,8 +478,7 @@ public class CarmlMapper implements Mapper, MappingCache {
             valueTransformer = new ComplexValueTransformer(typeDecider, this, this, typeAdapter);
         }
 
-        ValueFactory f = SimpleValueFactory.getInstance();
-        IRI predicate = f.createIRI(annotation.value());
+        var predicate = iri(annotation.value());
 
         Class<?> iterableType = propertyType.getIterableType();
 
@@ -538,8 +540,8 @@ public class CarmlMapper implements Mapper, MappingCache {
 
                     if (!values.isEmpty() && annotation.deprecated()) {
                         LOG.warn(
-                                "Usage of deprecated predicate {} encountered. Support in next release is not guaranteed. "
-                                        + "Upgrade to {}.",
+                                "Usage of deprecated predicate {} encountered. Support in next release is not "
+                                        + "guaranteed. Upgrade to {}.",
                                 annotation.value(),
                                 getActiveAnnotations(annotation, method));
                     }

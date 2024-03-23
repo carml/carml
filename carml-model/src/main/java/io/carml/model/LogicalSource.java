@@ -5,7 +5,7 @@ import org.eclipse.rdf4j.model.IRI;
 
 public interface LogicalSource extends Resource {
 
-    Object getSource();
+    Source getSource();
 
     String getIterator();
 

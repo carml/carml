@@ -223,9 +223,9 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
             }
 
             @Override
-            public void onResult(Expression expression, Object o) {
+            public void onResult(Expression expression, Object object) {
                 var logicalSource = logicalSourceByExpression.get(expression.getXPath());
-                sink.next(LogicalSourceRecord.of(logicalSource, docBuilder.wrap(o)));
+                sink.next(LogicalSourceRecord.of(logicalSource, docBuilder.wrap(object)));
                 var outstanding = outstandingRequests.decrementAndGet();
                 checkReaderToPause(outstanding, pausableReader);
             }

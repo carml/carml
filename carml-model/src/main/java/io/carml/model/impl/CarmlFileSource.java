@@ -18,7 +18,7 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @NoArgsConstructor
 @Setter
 @ToString(callSuper = true)
-public class CarmlFileSource extends CarmlResource implements FileSource {
+public class CarmlFileSource extends CarmlSource implements FileSource {
 
     private String url;
 
@@ -30,13 +30,13 @@ public class CarmlFileSource extends CarmlResource implements FileSource {
 
     @Override
     public int hashCode() {
-        return Objects.hash(url);
+        return Objects.hash(super.hashCode(), url);
     }
 
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof FileSource other) {
-            return Objects.equals(url, other.getUrl());
+            return super.equalsSource(other) && Objects.equals(url, other.getUrl());
         }
         return false;
     }
@@ -49,6 +49,7 @@ public class CarmlFileSource extends CarmlResource implements FileSource {
     @Override
     public void addTriples(ModelBuilder modelBuilder) {
         modelBuilder.subject(getAsResource()).add(RDF.TYPE, Rdf.Carml.FileSource);
+        super.addTriplesBase(modelBuilder);
 
         if (url != null) {
             modelBuilder.add(Carml.url, url);

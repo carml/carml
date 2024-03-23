@@ -2,6 +2,7 @@ package io.carml.engine.rdf;
 
 import static org.eclipse.rdf4j.model.util.Values.iri;
 
+import io.carml.engine.MappedValue;
 import io.carml.engine.MappingPipeline;
 import io.carml.engine.RmlMapper;
 import io.carml.engine.RmlMapperException;
@@ -15,6 +16,7 @@ import io.carml.logicalsourceresolver.LogicalSourceResolver;
 import io.carml.logicalsourceresolver.MatchingLogicalSourceResolverSupplier;
 import io.carml.logicalsourceresolver.sourceresolver.ClassPathResolver;
 import io.carml.logicalsourceresolver.sourceresolver.CompositeSourceResolver;
+import io.carml.logicalsourceresolver.sourceresolver.DcatDistributionResolver;
 import io.carml.logicalsourceresolver.sourceresolver.FileResolver;
 import io.carml.logicalsourceresolver.sourceresolver.SourceResolver;
 import io.carml.logicalsourceresolver.sql.sourceresolver.DatabaseConnectionOptions;
@@ -29,9 +31,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -55,9 +55,7 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
     private static final long SECONDS_TO_TIMEOUT = 30;
 
     private RdfRmlMapper(
-            Set<TriplesMap> triplesMaps,
-            Function<Object, Optional<Object>> sourceResolver,
-            MappingPipeline<Statement> mappingPipeline) {
+            Set<TriplesMap> triplesMaps, SourceResolver sourceResolver, MappingPipeline<Statement> mappingPipeline) {
         super(triplesMaps, sourceResolver, mappingPipeline);
     }
 
@@ -89,10 +87,10 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
 
         private TermGeneratorFactory<Value> termGeneratorFactory;
 
-        private ChildSideJoinStoreProvider<Resource, IRI> childSideJoinCacheProvider =
+        private ChildSideJoinStoreProvider<MappedValue<Resource>, MappedValue<IRI>> childSideJoinCacheProvider =
                 CarmlChildSideJoinStoreProvider.of();
 
-        private ParentSideJoinConditionStoreProvider<Resource> parentSideJoinConditionStoreProvider =
+        private ParentSideJoinConditionStoreProvider<MappedValue<Resource>> parentSideJoinConditionStoreProvider =
                 CarmlParentSideJoinConditionStoreProvider.of();
 
         private DatabaseConnectionOptions databaseConnectionOptions;
@@ -184,13 +182,13 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
         }
 
         public Builder childSideJoinStoreProvider(
-                ChildSideJoinStoreProvider<Resource, IRI> childSideJoinCacheProvider) {
+                ChildSideJoinStoreProvider<MappedValue<Resource>, MappedValue<IRI>> childSideJoinCacheProvider) {
             this.childSideJoinCacheProvider = childSideJoinCacheProvider;
             return this;
         }
 
         public Builder parentSideJoinConditionStoreProvider(
-                ParentSideJoinConditionStoreProvider<Resource> parentSideJoinConditionStoreProvider) {
+                ParentSideJoinConditionStoreProvider<MappedValue<Resource>> parentSideJoinConditionStoreProvider) {
             this.parentSideJoinConditionStoreProvider = parentSideJoinConditionStoreProvider;
             return this;
         }
@@ -227,6 +225,10 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
             if (sourceResolvers.stream().noneMatch(FileResolver.class::isInstance)) {
                 // Add default file resolver
                 sourceResolvers.add(FileResolver.of());
+            }
+            if (sourceResolvers.stream().noneMatch(DcatDistributionResolver.class::isInstance)) {
+                // Add default DCAT distribution resolver
+                sourceResolvers.add(DcatDistributionResolver.of());
             }
 
             var compositeResolver = CompositeSourceResolver.of(sourceResolvers);

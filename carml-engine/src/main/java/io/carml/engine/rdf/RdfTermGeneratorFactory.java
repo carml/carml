@@ -4,13 +4,13 @@ import static io.carml.model.TermType.BLANK_NODE;
 import static io.carml.model.TermType.LITERAL;
 import static io.carml.util.LogUtil.exception;
 
+import io.carml.engine.MappedValue;
 import io.carml.engine.TermGenerator;
 import io.carml.engine.TermGeneratorFactory;
 import io.carml.engine.TermGeneratorFactoryException;
 import io.carml.logicalsourceresolver.DatatypeMapper;
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.model.DatatypeMap;
-import io.carml.model.ExpressionMap;
 import io.carml.model.GraphMap;
 import io.carml.model.LanguageMap;
 import io.carml.model.ObjectMap;
@@ -64,14 +64,14 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
     @SuppressWarnings("unchecked")
     public TermGenerator<Resource> getSubjectGenerator(SubjectMap subjectMap) {
         validateTermType(subjectMap, Set.of(BLANK_NODE, TermType.IRI));
-        return (TermGenerator<Resource>) createTermGenerator(subjectMap, subjectMap.getTermType(), Set.of(IRI.class));
+        return (TermGenerator<Resource>) createTermGenerator(subjectMap, Set.of(IRI.class));
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public TermGenerator<IRI> getPredicateGenerator(PredicateMap predicateMap) {
         validateTermType(predicateMap, Set.of(TermType.IRI));
-        return (TermGenerator<IRI>) createTermGenerator(predicateMap, predicateMap.getTermType(), Set.of(IRI.class));
+        return (TermGenerator<IRI>) createTermGenerator(predicateMap, Set.of(IRI.class));
     }
 
     @Override
@@ -83,75 +83,73 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
                 objectMap.getDatatypeMap() == null ? null : getDatatypeGenerator(objectMap.getDatatypeMap());
 
         return (TermGenerator<Value>) createTermGenerator(
-                objectMap,
-                objectMap.getTermType(),
-                Set.of(IRI.class, Literal.class),
-                generateOverrideDatatypes,
-                objectMap.getLanguageMap());
+                objectMap, Set.of(IRI.class, Literal.class), generateOverrideDatatypes, objectMap.getLanguageMap());
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public TermGenerator<Resource> getGraphGenerator(GraphMap graphMap) {
         validateTermType(graphMap, Set.of(TermType.IRI));
-        return (TermGenerator<Resource>) createTermGenerator(graphMap, graphMap.getTermType(), Set.of(IRI.class));
+        return (TermGenerator<Resource>) createTermGenerator(graphMap, Set.of(IRI.class));
     }
 
     @SuppressWarnings("unchecked")
     private TermGenerator<IRI> getDatatypeGenerator(DatatypeMap map) {
-        return (TermGenerator<IRI>) createTermGenerator(map, TermType.IRI, Set.of(IRI.class));
+        return (TermGenerator<IRI>) createTermGenerator(map, Set.of(IRI.class));
     }
 
     private TermGenerator<? extends Value> createTermGenerator(
-            ExpressionMap expressionMap, TermType termType, Set<Class<? extends Value>> allowedConstantTypes) {
-        return createTermGenerator(expressionMap, termType, allowedConstantTypes, null, null);
+            TermMap termMap, Set<Class<? extends Value>> allowedConstantTypes) {
+        return createTermGenerator(termMap, allowedConstantTypes, null, null);
     }
 
     private TermGenerator<? extends Value> createTermGenerator(
-            ExpressionMap expressionMap,
-            TermType termType,
+            TermMap termMap,
             Set<Class<? extends Value>> allowedConstantTypes,
-            TermGenerator<IRI> generateOverrideDatatypes,
+            TermGenerator<? extends Value> generateOverrideDatatypes,
             LanguageMap languageMap) {
-        if (expressionMap.getConstant() != null) {
-            return getConstantGenerator(expressionMap, allowedConstantTypes);
-        } else if (expressionMap.getReference() != null) {
-            return getReferenceGenerator(expressionMap, termType, generateOverrideDatatypes, languageMap);
-        } else if (expressionMap.getTemplate() != null) {
-            return getTemplateGenerator(expressionMap, termType, generateOverrideDatatypes, languageMap);
-        } else if (expressionMap.getFunctionValue() != null) {
-            return getFunctionValueGenerator(expressionMap, termType, generateOverrideDatatypes, languageMap);
+        if (termMap.getConstant() != null) {
+            return getConstantGenerator(termMap, allowedConstantTypes);
+        } else if (termMap.getReference() != null) {
+            return getReferenceGenerator(termMap, generateOverrideDatatypes, languageMap);
+        } else if (termMap.getTemplate() != null) {
+            return getTemplateGenerator(termMap, generateOverrideDatatypes, languageMap);
+        } else if (termMap.getFunctionValue() != null) {
+            return getFunctionValueGenerator(termMap, generateOverrideDatatypes, languageMap);
         } else {
             throw new TermGeneratorFactoryException(
-                    String.format("No valid expression found in %s", exception(expressionMap)));
+                    String.format("No valid expression found in %s", exception(termMap)));
         }
     }
 
     private TermGenerator<? extends Value> getConstantGenerator(
-            ExpressionMap expressionMap, Set<Class<? extends Value>> allowedConstantTypes) {
-        Value constant = expressionMap.getConstant();
+            TermMap termMap, Set<Class<? extends Value>> allowedConstantTypes) {
+        Value constant = termMap.getConstant();
         if (allowedConstantTypes.stream().noneMatch(allowed -> allowed.isInstance(constant))) {
             throw new TermGeneratorFactoryException(String.format(
                     "encountered constant value of type %s, which is not allowed for this term map",
                     constant.getClass().getSimpleName()));
         }
 
-        return (expressionEvaluation, datatypeMapper) -> RdfExpressionMapEvaluation.builder()
-                .expressionMap(expressionMap)
-                .build()
-                .evaluate(Value.class);
+        return (expressionEvaluation, datatypeMapper) -> {
+            var values = RdfExpressionMapEvaluation.builder()
+                    .expressionMap(termMap)
+                    .build()
+                    .evaluate(Value.class);
+
+            return values.stream()
+                    .map(value -> MappedValue.of(value, termMap.getTargets()))
+                    .toList();
+        };
     }
 
     private TermGenerator<? extends Value> getReferenceGenerator(
-            ExpressionMap expressionMap,
-            TermType termType,
-            TermGenerator<IRI> generateOverrideDatatypes,
-            LanguageMap languageMap) {
-        var reference = expressionMap.getReference();
+            TermMap termMap, TermGenerator<? extends Value> generateOverrideDatatypes, LanguageMap languageMap) {
+        var reference = termMap.getReference();
 
         return (expressionEvaluation, datatypeMapper) -> {
             var referenceValues = RdfExpressionMapEvaluation.builder()
-                    .expressionMap(expressionMap)
+                    .expressionMap(termMap)
                     .expressionEvaluation(expressionEvaluation)
                     .build()
                     .evaluate(Object.class);
@@ -163,8 +161,49 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
                     getOverrideDatatypes(generateOverrideDatatypes, expressionEvaluation, datatypeMapper);
             var languageTags = getLanguageTags(languageMap, expressionEvaluation, datatypeMapper);
 
-            return generateTerms(referenceValues, termType, mappedDatatype, overrideDatatypes, languageTags);
+            return generateTerms(referenceValues, termMap, mappedDatatype, overrideDatatypes, languageTags);
         };
+    }
+
+    private TermGenerator<? extends Value> getTemplateGenerator(
+            TermMap termMap, TermGenerator<? extends Value> generateOverrideDatatypes, LanguageMap languageMap) {
+        UnaryOperator<String> valueTransformingFunction =
+                termMap.getTermType() == TermType.IRI ? makeIriSafe : UnaryOperator.identity();
+
+        return (expressionEvaluation, datatypeMapper) -> {
+            var templateValues = RdfExpressionMapEvaluation.builder()
+                    .expressionMap(termMap)
+                    .expressionEvaluation(expressionEvaluation)
+                    .datatypeMapper(datatypeMapper)
+                    .templateReferenceValueTransformingFunction(valueTransformingFunction)
+                    .build()
+                    .evaluate(Object.class);
+
+            var overrideDatatypes =
+                    getOverrideDatatypes(generateOverrideDatatypes, expressionEvaluation, datatypeMapper);
+            var languageTags = getLanguageTags(languageMap, expressionEvaluation, datatypeMapper);
+
+            return generateTerms(templateValues, termMap, null, overrideDatatypes, languageTags);
+        };
+    }
+
+    private TermGenerator<? extends Value> getFunctionValueGenerator(
+            TermMap termMap, TermGenerator<? extends Value> generateOverrideDatatypes, LanguageMap languageMap) {
+        return (expressionEvaluation, datatypeMapper) -> {
+            throw new TermGeneratorFactoryException("FunctionValue is not supported yet");
+        };
+    }
+
+    private List<IRI> getOverrideDatatypes(
+            TermGenerator<? extends Value> generateOverrideDatatypes,
+            ExpressionEvaluation expressionEvaluation,
+            DatatypeMapper datatypeMapper) {
+        return generateOverrideDatatypes != null
+                ? generateOverrideDatatypes.apply(expressionEvaluation, datatypeMapper).stream()
+                        .map(MappedValue::getValue)
+                        .map(IRI.class::cast)
+                        .toList()
+                : List.of();
     }
 
     private List<String> getLanguageTags(
@@ -181,77 +220,33 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
                 .evaluate(String.class);
     }
 
-    private TermGenerator<? extends Value> getTemplateGenerator(
-            ExpressionMap expressionMap,
-            TermType termType,
-            TermGenerator<IRI> generateOverrideDatatypes,
-            LanguageMap languageMap) {
-        UnaryOperator<String> valueTransformingFunction =
-                termType == TermType.IRI ? makeIriSafe : UnaryOperator.identity();
-
-        return (expressionEvaluation, datatypeMapper) -> {
-            var templateValues = RdfExpressionMapEvaluation.builder()
-                    .expressionMap(expressionMap)
-                    .expressionEvaluation(expressionEvaluation)
-                    .datatypeMapper(datatypeMapper)
-                    .templateReferenceValueTransformingFunction(valueTransformingFunction)
-                    .build()
-                    .evaluate(Object.class);
-
-            var overrideDatatypes =
-                    getOverrideDatatypes(generateOverrideDatatypes, expressionEvaluation, datatypeMapper);
-            var languageTags = getLanguageTags(languageMap, expressionEvaluation, datatypeMapper);
-
-            return generateTerms(templateValues, termType, null, overrideDatatypes, languageTags);
-        };
-    }
-
-    private TermGenerator<? extends Value> getFunctionValueGenerator(
-            ExpressionMap expressionMap,
-            TermType termType,
-            TermGenerator<IRI> generateOverrideDatatypes,
-            LanguageMap languageMap) {
-        return (expressionEvaluation, datatypeMapper) -> {
-            throw new TermGeneratorFactoryException("FunctionValue is not supported yet");
-        };
-    }
-
-    private List<IRI> getOverrideDatatypes(
-            TermGenerator<IRI> generateOverrideDatatypes,
-            ExpressionEvaluation expressionEvaluation,
-            DatatypeMapper datatypeMapper) {
-        return generateOverrideDatatypes != null
-                ? generateOverrideDatatypes.apply(expressionEvaluation, datatypeMapper)
-                : List.of();
-    }
-
-    private List<Value> generateTerms(
+    private List<MappedValue<Value>> generateTerms(
             List<Object> values,
-            TermType termType,
+            TermMap termMap,
             IRI mappedDatatype,
             List<IRI> overrideDatatypes,
             List<String> languageTags) {
-        return switch (termType) {
+        return switch (termMap.getTermType()) {
             case IRI -> values.stream()
                     .map(value -> CanonicalRdfLexicalForm.get().apply(value, mappedDatatype))
-                    .map(this::generateIriTerm)
+                    .map(lexicalForm -> generateIriTerm(lexicalForm, termMap))
                     .toList();
             case BLANK_NODE -> values.stream()
                     .map(value -> CanonicalRdfLexicalForm.get().apply(value, mappedDatatype))
-                    .map(this::generateBNodeTerm)
+                    .map(lexicalForm -> generateBNodeTerm(lexicalForm, termMap))
                     .toList();
-            case LITERAL -> generateLiteralTerms(values, mappedDatatype, overrideDatatypes, languageTags);
+            case LITERAL -> generateLiteralTerms(values, termMap, mappedDatatype, overrideDatatypes, languageTags);
         };
     }
 
-    private Value generateIriTerm(String lexicalForm) {
+    private MappedValue<Value> generateIriTerm(String lexicalForm, TermMap termMap) {
         if (RdfValues.isValidIri(lexicalForm)) {
-            return valueFactory.createIRI(lexicalForm);
+            return MappedValue.of(valueFactory.createIRI(lexicalForm), termMap.getTargets());
         }
 
         String iri = rdfTermGeneratorConfig.getBaseIri().stringValue() + lexicalForm;
         if (RdfValues.isValidIri(iri)) {
-            return valueFactory.createIRI(iri);
+            return MappedValue.of(valueFactory.createIRI(iri), termMap.getTargets());
         }
 
         throw new TermGeneratorFactoryException(String.format(
@@ -259,46 +254,54 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
                 lexicalForm, rdfTermGeneratorConfig.getBaseIri()));
     }
 
-    private Value generateBNodeTerm(String lexicalForm) {
+    private MappedValue<Value> generateBNodeTerm(String lexicalForm, TermMap termMap) {
         String id = createValidBNodeId(lexicalForm);
-        return valueFactory.createBNode(id);
+        return MappedValue.of(valueFactory.createBNode(id), termMap.getTargets());
     }
 
     private String createValidBNodeId(String lexicalForm) {
         return lexicalForm.replaceAll("[^a-zA-Z_0-9-]+", "");
     }
 
-    private List<Value> generateLiteralTerms(
-            List<Object> values, IRI mappedDatatype, List<IRI> overrideDatatypes, List<String> languageTags) {
+    private List<MappedValue<Value>> generateLiteralTerms(
+            List<Object> values,
+            TermMap termMap,
+            IRI mappedDatatype,
+            List<IRI> overrideDatatypes,
+            List<String> languageTags) {
         if (!languageTags.isEmpty()) {
             return languageTags.stream()
                     .flatMap(languageTag -> values.stream()
                             .map(value -> CanonicalRdfLexicalForm.get().apply(value, mappedDatatype))
                             .map(lexicalForm -> valueFactory.createLiteral(lexicalForm, languageTag))
                             .map(Value.class::cast))
+                    .map(value -> MappedValue.of(value, termMap.getTargets()))
                     .toList();
         }
 
         if (!overrideDatatypes.isEmpty()) {
-            return generateDatatypedLiterals(values, overrideDatatypes);
+            return generateDatatypedLiterals(values, termMap, overrideDatatypes);
         }
 
         if (mappedDatatype != null) {
-            return generateDatatypedLiterals(values, List.of(mappedDatatype));
+            return generateDatatypedLiterals(values, termMap, List.of(mappedDatatype));
         }
 
         return values.stream()
                 .map(Objects::toString)
                 .map(valueFactory::createLiteral)
                 .map(Value.class::cast)
+                .map(value -> MappedValue.of(value, termMap.getTargets()))
                 .toList();
     }
 
-    private List<Value> generateDatatypedLiterals(List<Object> values, List<IRI> datatypes) {
+    private List<MappedValue<Value>> generateDatatypedLiterals(
+            List<Object> values, TermMap termMap, List<IRI> datatypes) {
         return datatypes.stream()
                 .flatMap(datatype -> values.stream()
                         .map(value -> CanonicalRdfLexicalForm.get().apply(value, datatype))
                         .map(lexicalForm -> (Value) valueFactory.createLiteral(lexicalForm, datatype)))
+                .map(value -> MappedValue.of(value, termMap.getTargets()))
                 .toList();
     }
 }

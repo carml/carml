@@ -18,7 +18,11 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @NoArgsConstructor
 @Setter
 @ToString(callSuper = true)
-public class CarmlRelativePathSource extends CarmlResource implements RelativePathSource {
+public class CarmlRelativePathSource extends CarmlSource implements RelativePathSource {
+
+    public static CarmlRelativePathSource of(String path) {
+        return CarmlRelativePathSource.builder().path(path).build();
+    }
 
     private Object root;
 
@@ -38,13 +42,15 @@ public class CarmlRelativePathSource extends CarmlResource implements RelativePa
 
     @Override
     public int hashCode() {
-        return Objects.hash(root, path);
+        return Objects.hash(super.hashCode(), root, path);
     }
 
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof RelativePathSource other) {
-            return Objects.equals(root, other.getRoot()) && Objects.equals(path, other.getPath());
+            return super.equalsSource(other)
+                    && Objects.equals(root, other.getRoot())
+                    && Objects.equals(path, other.getPath());
         }
 
         return false;
@@ -58,6 +64,7 @@ public class CarmlRelativePathSource extends CarmlResource implements RelativePa
     @Override
     public void addTriples(ModelBuilder modelBuilder) {
         modelBuilder.subject(getAsResource()).add(RDF.TYPE, Rdf.Rml.RelativePathSource);
+        super.addTriplesBase(modelBuilder);
 
         if (root != null) {
             modelBuilder.add(Rdf.Rml.root, String.valueOf(root));

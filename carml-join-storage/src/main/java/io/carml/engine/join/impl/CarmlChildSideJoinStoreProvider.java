@@ -2,17 +2,15 @@ package io.carml.engine.join.impl;
 
 import io.carml.engine.join.ChildSideJoinStore;
 import io.carml.engine.join.ChildSideJoinStoreProvider;
-import java.io.Serializable;
 import java.util.HashSet;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
 
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class CarmlChildSideJoinStoreProvider<T1 extends Serializable, T2 extends Serializable>
-        implements ChildSideJoinStoreProvider<T1, T2> {
+public class CarmlChildSideJoinStoreProvider<T1, T2> implements ChildSideJoinStoreProvider<T1, T2> {
 
-    public static <T1 extends Serializable, T2 extends Serializable> CarmlChildSideJoinStoreProvider<T1, T2> of() {
+    public static <T1, T2> CarmlChildSideJoinStoreProvider<T1, T2> of() {
         return new CarmlChildSideJoinStoreProvider<>();
     }
 

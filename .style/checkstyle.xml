@@ -76,9 +76,10 @@
       <property name="allowInSwitchCase" value="true"/>
     </module>
     <module name="AvoidStarImport"/> <!-- Java Style Guide: No wildcard imports -->
-    <module name="AvoidStaticImport"> <!-- Java Style Guide: No static imports -->
-      <property name="excludes" value="com.google.common.base.Preconditions.*, com.palantir.logsafe.Preconditions.*, java.util.Collections.*, java.util.stream.Collectors.*, org.apache.commons.lang3.Validate.*, org.assertj.core.api.Assertions.*, org.mockito.Mockito.*"/>
-    </module>
+<!-- Disabled: Too strict -->
+<!--    <module name="AvoidStaticImport"> &lt;!&ndash; Java Style Guide: No static imports &ndash;&gt;-->
+<!--      <property name="excludes" value="com.google.common.base.Preconditions.*, com.palantir.logsafe.Preconditions.*, java.util.Collections.*, java.util.stream.Collectors.*, org.apache.commons.lang3.Validate.*, org.assertj.core.api.Assertions.*, org.mockito.Mockito.*"/>-->
+<!--    </module>-->
     <module name="ClassTypeParameterName"> <!-- Java Style Guide: Type variable names -->
       <property name="format" value="(^[A-Z][0-9]?)$|([A-Z][a-zA-Z0-9]*[T]$)"/>
       <message key="name.invalidPattern" value="Class type name ''{0}'' must match pattern ''{1}''."/>
@@ -105,12 +106,14 @@
       <message key="ws.illegalFollow" value="GenericWhitespace ''{0}'' should followed by whitespace."/>
       <message key="ws.notPreceded" value="GenericWhitespace ''{0}'' is not preceded with whitespace."/>
     </module>
-    <module name="HiddenField"> <!-- Java Coding Guide: Avoid shadowing -->
-      <property name="ignoreConstructorParameter" value="true"/>
-      <property name="ignoreSetter" value="true"/>
-      <property name="setterCanReturnItsClass" value="true"/>
-    </module>
-    <module name="HideUtilityClassConstructor"/> <!-- Java Coding Guidelines: Private constructors -->
+<!-- CARML: turned off, since this gets annoying with builders -->
+<!--    <module name="HiddenField"> &lt;!&ndash; Java Coding Guide: Avoid shadowing &ndash;&gt;-->
+<!--      <property name="ignoreConstructorParameter" value="true"/>-->
+<!--      <property name="ignoreSetter" value="true"/>-->
+<!--      <property name="setterCanReturnItsClass" value="true"/>-->
+<!--    </module>-->
+<!-- CARML: turned off, doesn't play nice with lombok -->
+<!--    <module name="HideUtilityClassConstructor"/> &lt;!&ndash; Java Coding Guidelines: Private constructors &ndash;&gt;-->
     <module name="IllegalImport"> <!-- Java Coding Guidelines: Use JUnit 4-style test classes and assertions -->
       <property name="illegalPkgs" value="junit.framework"/>
       <message key="import.illegal" value="Use JUnit 4-style (org.junit.*) test classes and assertions instead of JUnit 3 (junit.framework.*)."/>
@@ -405,9 +408,9 @@
     <module name="CyclomaticComplexity"> <!-- Java Coding Guidelines: Reduce Cyclomatic Complexity -->
       <property name="switchBlockAsSingleDecisionPoint" value="true"/>
     </module>
-    <module name="DesignForExtension"> <!-- Java Coding Guidelines: Design for extension -->
-      <property name="ignoredAnnotations" value="ParameterizedTest, Test, Before, BeforeEach, After, AfterEach, BeforeClass, BeforeAll, AfterClass, AfterAll"/>
-    </module>
+<!--    <module name="DesignForExtension"> &lt;!&ndash; Java Coding Guidelines: Design for extension &ndash;&gt;-->
+<!--      <property name="ignoredAnnotations" value="ParameterizedTest, Test, Before, BeforeEach, After, AfterEach, BeforeClass, BeforeAll, AfterClass, AfterAll"/>-->
+<!--    </module>-->
     <module name="JavadocMethod"> <!-- Java Style Guide: Where Javadoc is used -->
       <property name="accessModifiers" value="public"/>
       <property name="allowMissingParamTags" value="true"/>

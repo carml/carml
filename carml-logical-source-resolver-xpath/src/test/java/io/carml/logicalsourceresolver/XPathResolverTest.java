@@ -9,7 +9,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.google.common.collect.Iterables;
 import io.carml.model.LogicalSource;
+import io.carml.model.Source;
 import io.carml.model.impl.CarmlLogicalSource;
+import io.carml.model.impl.CarmlRelativePathSource;
 import io.carml.model.impl.CarmlStream;
 import io.carml.util.RmlMappingLoader;
 import io.carml.vocab.Rdf.Ql;
@@ -31,6 +33,8 @@ import org.junit.jupiter.api.Test;
 import reactor.test.StepVerifier;
 
 class XPathResolverTest {
+
+    private static final Source RML_SOURCE = CarmlRelativePathSource.of("foo");
 
     private static final String BOOK_ONE = //
             "<book category=\"cooking &amp; food\">" //
@@ -62,25 +66,25 @@ class XPathResolverTest {
             + "</bookstore>";
 
     private static final LogicalSource LSOURCE = CarmlLogicalSource.builder()
-            .source(SOURCE)
+            .source(RML_SOURCE)
             .iterator("/bookstore/*")
             .referenceFormulation(Ql.XPath)
             .build();
 
     private static final LogicalSource LSOURCE2 = CarmlLogicalSource.builder()
-            .source(SOURCE)
+            .source(RML_SOURCE)
             .iterator("/bookstore/*/author")
             .referenceFormulation(Ql.XPath)
             .build();
 
     private static final LogicalSource LSOURCE_ROOT = CarmlLogicalSource.builder()
-            .source(SOURCE)
+            .source(RML_SOURCE)
             .iterator("/bookstore")
             .referenceFormulation(Ql.XPath)
             .build();
 
     private static final LogicalSource LSOURCE_INVALID = CarmlLogicalSource.builder()
-            .source(SOURCE)
+            .source(RML_SOURCE)
             .iterator("/bookstore/\\\\")
             .referenceFormulation(Ql.XPath)
             .build();
@@ -214,7 +218,6 @@ class XPathResolverTest {
         DocumentBuilder docBuilder = processor.newDocumentBuilder();
 
         var unresolvable = CarmlLogicalSource.builder()
-                .source(SOURCE)
                 .iterator("/foo")
                 .referenceFormulation(Ql.XPath)
                 .build();
@@ -236,7 +239,7 @@ class XPathResolverTest {
         // Given
         var inputStream = IOUtils.toInputStream(SOURCE, StandardCharsets.UTF_8);
 
-        var resolvedSource = ResolvedSource.of(SOURCE, inputStream, InputStream.class);
+        var resolvedSource = ResolvedSource.of(RML_SOURCE, inputStream, InputStream.class);
         var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(LSOURCE_INVALID));
 
         // When
@@ -253,7 +256,7 @@ class XPathResolverTest {
         // Given
         var inputStream = IOUtils.toInputStream(SOURCE, StandardCharsets.UTF_8);
 
-        var resolvedSource = ResolvedSource.of(SOURCE, inputStream, InputStream.class);
+        var resolvedSource = ResolvedSource.of(RML_SOURCE, inputStream, InputStream.class);
         var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of());
 
         // When

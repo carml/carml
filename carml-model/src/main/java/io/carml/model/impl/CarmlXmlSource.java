@@ -21,7 +21,7 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @NoArgsConstructor
 @Setter
 @ToString(callSuper = true)
-public class CarmlXmlSource extends CarmlResource implements XmlSource {
+public class CarmlXmlSource extends CarmlSource implements XmlSource {
 
     @Singular
     private Set<Namespace> declaredNamespaces;
@@ -35,13 +35,13 @@ public class CarmlXmlSource extends CarmlResource implements XmlSource {
 
     @Override
     public int hashCode() {
-        return Objects.hash(declaredNamespaces);
+        return Objects.hash(super.hashCode(), declaredNamespaces);
     }
 
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof XmlSource other) {
-            return Objects.equals(declaredNamespaces, other.getDeclaredNamespaces());
+            return super.equalsSource(other) && Objects.equals(declaredNamespaces, other.getDeclaredNamespaces());
         }
         return false;
     }
@@ -54,6 +54,7 @@ public class CarmlXmlSource extends CarmlResource implements XmlSource {
     @Override
     public void addTriples(ModelBuilder modelBuilder) {
         modelBuilder.subject(getAsResource()).add(RDF.TYPE, Rdf.Carml.XmlDocument);
+        super.addTriplesBase(modelBuilder);
 
         declaredNamespaces.forEach(ns -> modelBuilder.add(Carml.declaresNamespace, ns.getAsResource()));
     }

@@ -34,7 +34,7 @@ public class TestCaseProcessor {
 
     public static void main(String[] args) {
         try {
-            fixSqlTestCases("rml/core/test-cases");
+            fixSqlTestCases("rml/io/test-cases");
         } catch (URISyntaxException | IOException e) {
             throw new RuntimeException(e);
         }

@@ -34,15 +34,15 @@ import org.eclipse.rdf4j.model.IRI;
 @SuppressWarnings("java:S1135")
 class DefaultPropertyHandlerDependencyResolver implements DependencyResolver {
 
-    private BiConsumer<Object, Object> set;
+    private final BiConsumer<Object, Object> set;
 
-    private IRI predicate;
+    private final IRI predicate;
 
-    private Mapper mapper;
+    private final Mapper mapper;
 
-    private MappingCache mappingCache;
+    private final MappingCache mappingCache;
 
-    public DefaultPropertyHandlerDependencyResolver(
+    DefaultPropertyHandlerDependencyResolver(
             BiConsumer<Object, Object> set, IRI predicate, Mapper mapper, MappingCache mappingCache) {
         this.set = set;
         this.predicate = predicate;

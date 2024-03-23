@@ -19,7 +19,7 @@ public class RdfTermGeneratorConfig {
     private IRI baseIri;
 
     @NonNull
-    ValueFactory valueFactory;
+    private ValueFactory valueFactory;
 
     @NonNull
     private final Normalizer.Form normalizationForm;

@@ -2,6 +2,7 @@ package io.carml.logicalsourceresolver.sourceresolver;
 
 import io.carml.model.FileSource;
 import io.carml.model.RelativePathSource;
+import io.carml.model.Source;
 import java.util.Optional;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -26,9 +27,9 @@ public class ClassPathResolver implements SourceResolver {
     }
 
     @Override
-    public Optional<Object> apply(Object source) {
+    public Optional<Object> apply(Source source) {
         return unpackFileSource(source).map(relativePath -> {
-            String sourceName = basePath.equals("") ? relativePath : String.format("%s/%s", basePath, relativePath);
+            String sourceName = basePath.isEmpty() ? relativePath : String.format("%s/%s", basePath, relativePath);
 
             return loadingClass == null
                     ? ClassPathResolver.class.getClassLoader().getResourceAsStream(sourceName)
@@ -37,9 +38,7 @@ public class ClassPathResolver implements SourceResolver {
     }
 
     @Override
-    public boolean supportsSource(Object sourceObject) {
-        return sourceObject instanceof String
-                || sourceObject instanceof FileSource
-                || sourceObject instanceof RelativePathSource;
+    public boolean supportsSource(Source source) {
+        return source instanceof FileSource || source instanceof RelativePathSource;
     }
 }

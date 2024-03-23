@@ -18,7 +18,7 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @NoArgsConstructor
 @Setter
 @ToString(callSuper = true)
-public class CarmlStream extends CarmlResource implements NameableStream {
+public class CarmlStream extends CarmlSource implements NameableStream {
 
     private String streamName;
 
@@ -30,13 +30,13 @@ public class CarmlStream extends CarmlResource implements NameableStream {
 
     @Override
     public int hashCode() {
-        return Objects.hash(streamName);
+        return Objects.hash(super.hashCode(), streamName);
     }
 
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof NameableStream other) {
-            return Objects.equals(streamName, other.getStreamName());
+            return super.equalsSource(other) && Objects.equals(streamName, other.getStreamName());
         }
         return false;
     }
@@ -49,6 +49,7 @@ public class CarmlStream extends CarmlResource implements NameableStream {
     @Override
     public void addTriples(ModelBuilder modelBuilder) {
         modelBuilder.subject(getAsResource()).add(RDF.TYPE, Rdf.Carml.Stream);
+        super.addTriplesBase(modelBuilder);
 
         if (streamName != null) {
             modelBuilder.add(Carml.streamName, streamName);

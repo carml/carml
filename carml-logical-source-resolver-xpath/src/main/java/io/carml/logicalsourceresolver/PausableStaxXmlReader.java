@@ -109,6 +109,7 @@ public class PausableStaxXmlReader extends AbstractXMLReader {
         run(eventType);
     }
 
+    @SuppressWarnings("checkstyle:ParameterAssignment")
     private void run(int eventType) throws SAXException, XMLStreamException {
         while (true) {
             switch (eventType) {

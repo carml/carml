@@ -1,5 +1,9 @@
 package io.carml.util;
 
+import static org.eclipse.rdf4j.model.util.Statements.statement;
+import static org.eclipse.rdf4j.model.util.Values.getValueFactory;
+import static org.eclipse.rdf4j.model.util.Values.iri;
+import static org.eclipse.rdf4j.model.util.Values.literal;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -19,9 +23,7 @@ import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.Value;
-import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
-import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
 import org.eclipse.rdf4j.model.util.ModelCollector;
 import org.eclipse.rdf4j.rio.RDFFormat;
@@ -37,9 +39,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ModelsTest {
 
-    private static final ValueFactory VALUE_FACTORY = SimpleValueFactory.getInstance();
-
-    private static final IRI DEFAULT_IRI = VALUE_FACTORY.createIRI("http://example.com/default");
+    private static final IRI DEFAULT_IRI = iri("http://example.com/default");
 
     private static final UnaryOperator<Resource> DEFAULT_GRAPH_MODIFIER =
             graph -> graph.equals(DEFAULT_IRI) ? null : graph;
@@ -55,7 +55,7 @@ class ModelsTest {
         // Given
         Model model = Models.parse(
                 Objects.requireNonNull(ModelsTest.class.getResourceAsStream("toDescribeDeep.ttl")), RDFFormat.TURTLE);
-        IRI resource = VALUE_FACTORY.createIRI("http://example.com/Fourth");
+        IRI resource = iri("http://example.com/Fourth");
 
         // When
         Model described = Models.describeResource(model, resource);
@@ -74,7 +74,7 @@ class ModelsTest {
         Model model = Models.parse(
                 Objects.requireNonNull(ModelsTest.class.getResourceAsStream("toDescribeShallow.ttl")),
                 RDFFormat.TURTLE);
-        IRI resource = VALUE_FACTORY.createIRI("http://example.com/Fourth");
+        IRI resource = iri("http://example.com/Fourth");
 
         // When
         Model described = Models.describeResource(model, resource);
@@ -92,7 +92,7 @@ class ModelsTest {
         // Given
         Model model = Models.parse(
                 Objects.requireNonNull(ModelsTest.class.getResourceAsStream("toDescribeDeep.ttl")), RDFFormat.TURTLE);
-        IRI resource = VALUE_FACTORY.createIRI("http://example.com/Fourth");
+        IRI resource = iri("http://example.com/Fourth");
 
         // When
         Model described = Models.reverseDescribeResource(model, resource);
@@ -111,7 +111,7 @@ class ModelsTest {
         Model model = Models.parse(
                 Objects.requireNonNull(ModelsTest.class.getResourceAsStream("toDescribeShallow.ttl")),
                 RDFFormat.TURTLE);
-        IRI resource = VALUE_FACTORY.createIRI("http://example.com/Fourth");
+        IRI resource = iri("http://example.com/Fourth");
 
         // When
         Model described = Models.reverseDescribeResource(model, resource);
@@ -129,7 +129,7 @@ class ModelsTest {
         // Given
         Model model = Models.parse(
                 Objects.requireNonNull(ModelsTest.class.getResourceAsStream("toDescribeDeep.ttl")), RDFFormat.TURTLE);
-        IRI resource = VALUE_FACTORY.createIRI("http://example.com/Fourth");
+        IRI resource = iri("http://example.com/Fourth");
 
         // When
         Model described = Models.symmetricDescribeResource(model, resource);
@@ -148,7 +148,7 @@ class ModelsTest {
         Model model = Models.parse(
                 Objects.requireNonNull(ModelsTest.class.getResourceAsStream("toDescribeShallow.ttl")),
                 RDFFormat.TURTLE);
-        IRI resource = VALUE_FACTORY.createIRI("http://example.com/Fourth");
+        IRI resource = iri("http://example.com/Fourth");
 
         // When
         Model described = Models.symmetricDescribeResource(model, resource);
@@ -164,10 +164,10 @@ class ModelsTest {
     @Test
     void givenValues_whenAllArgsCreateStatement_thenReturnStatement() {
         // Given
-        Value subjectValue = VALUE_FACTORY.createIRI("http://example.com/subject");
-        Value predicateValue = VALUE_FACTORY.createIRI("http://example.com/predicate");
-        Value objectValue = VALUE_FACTORY.createLiteral("object");
-        Value graphValue = VALUE_FACTORY.createIRI("http://example.com/graph");
+        Value subjectValue = iri("http://example.com/subject");
+        Value predicateValue = iri("http://example.com/predicate");
+        Value objectValue = literal("object");
+        Value graphValue = iri("http://example.com/graph");
 
         // When
         Statement statement = Models.createStatement(
@@ -176,16 +176,16 @@ class ModelsTest {
                 objectValue,
                 graphValue,
                 DEFAULT_GRAPH_MODIFIER,
-                VALUE_FACTORY,
+                getValueFactory(),
                 statementConsumer1,
                 statementConsumer2);
 
         // Then
-        Statement expected = VALUE_FACTORY.createStatement(
-                VALUE_FACTORY.createIRI("http://example.com/subject"),
-                VALUE_FACTORY.createIRI("http://example.com/predicate"),
-                VALUE_FACTORY.createLiteral("object"),
-                VALUE_FACTORY.createIRI("http://example.com/graph"));
+        Statement expected = statement(
+                iri("http://example.com/subject"),
+                iri("http://example.com/predicate"),
+                literal("object"),
+                iri("http://example.com/graph"));
         assertThat(statement, is(expected));
         verify(statementConsumer1).accept(any());
         verify(statementConsumer2).accept(any());
@@ -194,10 +194,10 @@ class ModelsTest {
     @Test
     void givenValuesWithGraphMatchingModifier_whenAllArgsCreateStatement_thenReturnStatement() {
         // Given
-        Value subjectValue = VALUE_FACTORY.createIRI("http://example.com/subject");
-        Value predicateValue = VALUE_FACTORY.createIRI("http://example.com/predicate");
-        Value objectValue = VALUE_FACTORY.createLiteral("object");
-        Value graphValue = VALUE_FACTORY.createIRI("http://example.com/default");
+        Value subjectValue = iri("http://example.com/subject");
+        Value predicateValue = iri("http://example.com/predicate");
+        Value objectValue = literal("object");
+        Value graphValue = iri("http://example.com/default");
 
         // When
         Statement statement = Models.createStatement(
@@ -206,15 +206,13 @@ class ModelsTest {
                 objectValue,
                 graphValue,
                 DEFAULT_GRAPH_MODIFIER,
-                VALUE_FACTORY,
+                getValueFactory(),
                 statementConsumer1,
                 statementConsumer2);
 
         // Then
-        Statement expected = VALUE_FACTORY.createStatement(
-                VALUE_FACTORY.createIRI("http://example.com/subject"),
-                VALUE_FACTORY.createIRI("http://example.com/predicate"),
-                VALUE_FACTORY.createLiteral("object"));
+        Statement expected = statement(
+                iri("http://example.com/subject"), iri("http://example.com/predicate"), literal("object"), null);
         assertThat(statement, is(expected));
         verify(statementConsumer1).accept(any());
         verify(statementConsumer2).accept(any());
@@ -223,48 +221,46 @@ class ModelsTest {
     @Test
     void givenValues_whenCreateStatement_thenReturnStatement() {
         // Given
-        Value subjectValue = VALUE_FACTORY.createIRI("http://example.com/subject");
-        Value predicateValue = VALUE_FACTORY.createIRI("http://example.com/predicate");
-        Value objectValue = VALUE_FACTORY.createLiteral("object");
-        Value graphValue = VALUE_FACTORY.createIRI("http://example.com/graph");
+        Value subjectValue = iri("http://example.com/subject");
+        Value predicateValue = iri("http://example.com/predicate");
+        Value objectValue = literal("object");
+        Value graphValue = iri("http://example.com/graph");
 
         // When
         Statement statement = Models.createStatement(subjectValue, predicateValue, objectValue, graphValue);
 
         // Then
-        Statement expected = VALUE_FACTORY.createStatement(
-                VALUE_FACTORY.createIRI("http://example.com/subject"),
-                VALUE_FACTORY.createIRI("http://example.com/predicate"),
-                VALUE_FACTORY.createLiteral("object"),
-                VALUE_FACTORY.createIRI("http://example.com/graph"));
+        Statement expected = statement(
+                iri("http://example.com/subject"),
+                iri("http://example.com/predicate"),
+                literal("object"),
+                iri("http://example.com/graph"));
         assertThat(statement, is(expected));
     }
 
     @Test
     void givenValuesWithoutGraph_whenCreateStatement_thenReturnStatement() {
         // Given
-        Value subjectValue = VALUE_FACTORY.createIRI("http://example.com/subject");
-        Value predicateValue = VALUE_FACTORY.createIRI("http://example.com/predicate");
-        Value objectValue = VALUE_FACTORY.createLiteral("object");
+        Value subjectValue = iri("http://example.com/subject");
+        Value predicateValue = iri("http://example.com/predicate");
+        Value objectValue = literal("object");
 
         // When
         Statement statement = Models.createStatement(subjectValue, predicateValue, objectValue, null);
 
         // Then
-        Statement expected = VALUE_FACTORY.createStatement(
-                VALUE_FACTORY.createIRI("http://example.com/subject"),
-                VALUE_FACTORY.createIRI("http://example.com/predicate"),
-                VALUE_FACTORY.createLiteral("object"));
+        Statement expected = statement(
+                iri("http://example.com/subject"), iri("http://example.com/predicate"), literal("object"), null);
         assertThat(statement, is(expected));
     }
 
     @Test
     void givenIncorrectSubject_whenCreateStatement_thenThrowException() {
         // Given
-        Value subjectValue = VALUE_FACTORY.createLiteral("subject");
-        Value predicateValue = VALUE_FACTORY.createIRI("http://example.com/predicate");
-        Value objectValue = VALUE_FACTORY.createLiteral("object");
-        Value graphValue = VALUE_FACTORY.createIRI("http://example.com/graph");
+        Value subjectValue = literal("subject");
+        Value predicateValue = iri("http://example.com/predicate");
+        Value objectValue = literal("object");
+        Value graphValue = iri("http://example.com/graph");
 
         // When
         Throwable modelsException = assertThrows(
@@ -281,10 +277,10 @@ class ModelsTest {
     @Test
     void givenIncorrectPredicate_whenCreateStatement_thenThrowException() {
         // Given
-        Value subjectValue = VALUE_FACTORY.createIRI("http://example.com/subject");
-        Value predicateValue = VALUE_FACTORY.createLiteral("predicate");
-        Value objectValue = VALUE_FACTORY.createLiteral("object");
-        Value graphValue = VALUE_FACTORY.createIRI("http://example.com/graph");
+        Value subjectValue = iri("http://example.com/subject");
+        Value predicateValue = literal("predicate");
+        Value objectValue = literal("object");
+        Value graphValue = iri("http://example.com/graph");
 
         // When
         Throwable modelsException = assertThrows(
@@ -301,10 +297,10 @@ class ModelsTest {
     @Test
     void givenIncorrectGraph_whenCreateStatement_thenThrowException() {
         // Given
-        Value subjectValue = VALUE_FACTORY.createIRI("http://example.com/subject");
-        Value predicateValue = VALUE_FACTORY.createIRI("http://example.com/predicate");
-        Value objectValue = VALUE_FACTORY.createLiteral("object");
-        Value graphValue = VALUE_FACTORY.createLiteral("graph");
+        Value subjectValue = iri("http://example.com/subject");
+        Value predicateValue = iri("http://example.com/predicate");
+        Value objectValue = literal("object");
+        Value graphValue = literal("graph");
 
         // When
         Throwable modelsException = assertThrows(
@@ -321,19 +317,10 @@ class ModelsTest {
     @Test
     void givenValueSets_whenAllArgsStreamCartesianProductStatements_thenReturnStatementStream() {
         // Given
-        Set<Resource> subjects = Set.of(
-                VALUE_FACTORY.createIRI("http://example.com/subject1"),
-                VALUE_FACTORY.createIRI("http://example.com/subject2"));
-        Set<IRI> predicates = Set.of(
-                VALUE_FACTORY.createIRI("http://example.com/predicate1"),
-                VALUE_FACTORY.createIRI("http://example.com/predicate2"));
-        Set<? extends Value> objects = Set.of(
-                VALUE_FACTORY.createLiteral("object1"),
-                VALUE_FACTORY.createLiteral("object2"),
-                VALUE_FACTORY.createLiteral("object3"));
-        Set<Resource> graphs = Set.of(
-                VALUE_FACTORY.createIRI("http://example.com/graph1"),
-                VALUE_FACTORY.createIRI("http://example.com/graph2"));
+        Set<Resource> subjects = Set.of(iri("http://example.com/subject1"), iri("http://example.com/subject2"));
+        Set<IRI> predicates = Set.of(iri("http://example.com/predicate1"), iri("http://example.com/predicate2"));
+        Set<? extends Value> objects = Set.of(literal("object1"), literal("object2"), literal("object3"));
+        Set<Resource> graphs = Set.of(iri("http://example.com/graph1"), iri("http://example.com/graph2"));
 
         // When
         Stream<Statement> statementStream = Models.streamCartesianProductStatements(
@@ -342,42 +329,42 @@ class ModelsTest {
                 objects,
                 graphs,
                 DEFAULT_GRAPH_MODIFIER,
-                VALUE_FACTORY,
+                getValueFactory(),
                 statementConsumer1,
                 statementConsumer2);
 
         // Then
         Model expected = new ModelBuilder()
-                .namedGraph(VALUE_FACTORY.createIRI("http://example.com/graph1"))
-                .subject(VALUE_FACTORY.createIRI("http://example.com/subject1"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate1"), VALUE_FACTORY.createLiteral("object1"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate1"), VALUE_FACTORY.createLiteral("object2"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate1"), VALUE_FACTORY.createLiteral("object3"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate2"), VALUE_FACTORY.createLiteral("object1"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate2"), VALUE_FACTORY.createLiteral("object2"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate2"), VALUE_FACTORY.createLiteral("object3"))
-                .subject(VALUE_FACTORY.createIRI("http://example.com/subject2"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate1"), VALUE_FACTORY.createLiteral("object1"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate1"), VALUE_FACTORY.createLiteral("object2"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate1"), VALUE_FACTORY.createLiteral("object3"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate2"), VALUE_FACTORY.createLiteral("object1"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate2"), VALUE_FACTORY.createLiteral("object2"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate2"), VALUE_FACTORY.createLiteral("object3"))
-                .namedGraph(VALUE_FACTORY.createIRI("http://example.com/graph2"))
-                .subject(VALUE_FACTORY.createIRI("http://example.com/subject1"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate1"), VALUE_FACTORY.createLiteral("object1"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate1"), VALUE_FACTORY.createLiteral("object2"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate1"), VALUE_FACTORY.createLiteral("object3"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate2"), VALUE_FACTORY.createLiteral("object1"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate2"), VALUE_FACTORY.createLiteral("object2"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate2"), VALUE_FACTORY.createLiteral("object3"))
-                .subject(VALUE_FACTORY.createIRI("http://example.com/subject2"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate1"), VALUE_FACTORY.createLiteral("object1"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate1"), VALUE_FACTORY.createLiteral("object2"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate1"), VALUE_FACTORY.createLiteral("object3"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate2"), VALUE_FACTORY.createLiteral("object1"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate2"), VALUE_FACTORY.createLiteral("object2"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate2"), VALUE_FACTORY.createLiteral("object3"))
+                .namedGraph(iri("http://example.com/graph1"))
+                .subject(iri("http://example.com/subject1"))
+                .add(iri("http://example.com/predicate1"), literal("object1"))
+                .add(iri("http://example.com/predicate1"), literal("object2"))
+                .add(iri("http://example.com/predicate1"), literal("object3"))
+                .add(iri("http://example.com/predicate2"), literal("object1"))
+                .add(iri("http://example.com/predicate2"), literal("object2"))
+                .add(iri("http://example.com/predicate2"), literal("object3"))
+                .subject(iri("http://example.com/subject2"))
+                .add(iri("http://example.com/predicate1"), literal("object1"))
+                .add(iri("http://example.com/predicate1"), literal("object2"))
+                .add(iri("http://example.com/predicate1"), literal("object3"))
+                .add(iri("http://example.com/predicate2"), literal("object1"))
+                .add(iri("http://example.com/predicate2"), literal("object2"))
+                .add(iri("http://example.com/predicate2"), literal("object3"))
+                .namedGraph(iri("http://example.com/graph2"))
+                .subject(iri("http://example.com/subject1"))
+                .add(iri("http://example.com/predicate1"), literal("object1"))
+                .add(iri("http://example.com/predicate1"), literal("object2"))
+                .add(iri("http://example.com/predicate1"), literal("object3"))
+                .add(iri("http://example.com/predicate2"), literal("object1"))
+                .add(iri("http://example.com/predicate2"), literal("object2"))
+                .add(iri("http://example.com/predicate2"), literal("object3"))
+                .subject(iri("http://example.com/subject2"))
+                .add(iri("http://example.com/predicate1"), literal("object1"))
+                .add(iri("http://example.com/predicate1"), literal("object2"))
+                .add(iri("http://example.com/predicate1"), literal("object3"))
+                .add(iri("http://example.com/predicate2"), literal("object1"))
+                .add(iri("http://example.com/predicate2"), literal("object2"))
+                .add(iri("http://example.com/predicate2"), literal("object3"))
                 .build();
 
         assertThat(statementStream.collect(ModelCollector.toModel()), is(expected));
@@ -388,16 +375,9 @@ class ModelsTest {
     @Test
     void givenValueSetsWithoutGraphs_whenAllArgsStreamCartesianProductStatements_thenReturnStatementStream() {
         // Given
-        Set<Resource> subjects = Set.of(
-                VALUE_FACTORY.createIRI("http://example.com/subject1"),
-                VALUE_FACTORY.createIRI("http://example.com/subject2"));
-        Set<IRI> predicates = Set.of(
-                VALUE_FACTORY.createIRI("http://example.com/predicate1"),
-                VALUE_FACTORY.createIRI("http://example.com/predicate2"));
-        Set<? extends Value> objects = Set.of(
-                VALUE_FACTORY.createLiteral("object1"),
-                VALUE_FACTORY.createLiteral("object2"),
-                VALUE_FACTORY.createLiteral("object3"));
+        Set<Resource> subjects = Set.of(iri("http://example.com/subject1"), iri("http://example.com/subject2"));
+        Set<IRI> predicates = Set.of(iri("http://example.com/predicate1"), iri("http://example.com/predicate2"));
+        Set<? extends Value> objects = Set.of(literal("object1"), literal("object2"), literal("object3"));
         Set<Resource> graphs = Set.of();
 
         // When
@@ -407,26 +387,26 @@ class ModelsTest {
                 objects,
                 graphs,
                 DEFAULT_GRAPH_MODIFIER,
-                VALUE_FACTORY,
+                getValueFactory(),
                 statementConsumer1,
                 statementConsumer2);
 
         // Then
         Model expected = new ModelBuilder()
-                .subject(VALUE_FACTORY.createIRI("http://example.com/subject1"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate1"), VALUE_FACTORY.createLiteral("object1"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate1"), VALUE_FACTORY.createLiteral("object2"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate1"), VALUE_FACTORY.createLiteral("object3"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate2"), VALUE_FACTORY.createLiteral("object1"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate2"), VALUE_FACTORY.createLiteral("object2"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate2"), VALUE_FACTORY.createLiteral("object3"))
-                .subject(VALUE_FACTORY.createIRI("http://example.com/subject2"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate1"), VALUE_FACTORY.createLiteral("object1"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate1"), VALUE_FACTORY.createLiteral("object2"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate1"), VALUE_FACTORY.createLiteral("object3"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate2"), VALUE_FACTORY.createLiteral("object1"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate2"), VALUE_FACTORY.createLiteral("object2"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate2"), VALUE_FACTORY.createLiteral("object3"))
+                .subject(iri("http://example.com/subject1"))
+                .add(iri("http://example.com/predicate1"), literal("object1"))
+                .add(iri("http://example.com/predicate1"), literal("object2"))
+                .add(iri("http://example.com/predicate1"), literal("object3"))
+                .add(iri("http://example.com/predicate2"), literal("object1"))
+                .add(iri("http://example.com/predicate2"), literal("object2"))
+                .add(iri("http://example.com/predicate2"), literal("object3"))
+                .subject(iri("http://example.com/subject2"))
+                .add(iri("http://example.com/predicate1"), literal("object1"))
+                .add(iri("http://example.com/predicate1"), literal("object2"))
+                .add(iri("http://example.com/predicate1"), literal("object3"))
+                .add(iri("http://example.com/predicate2"), literal("object1"))
+                .add(iri("http://example.com/predicate2"), literal("object2"))
+                .add(iri("http://example.com/predicate2"), literal("object3"))
                 .build();
 
         assertThat(statementStream.collect(ModelCollector.toModel()), is(expected));
@@ -437,19 +417,10 @@ class ModelsTest {
     @Test
     void givenValueSets_whenStreamCartesianProductStatements_thenReturnStatementStream() {
         // Given
-        Set<Resource> subjects = Set.of(
-                VALUE_FACTORY.createIRI("http://example.com/subject1"),
-                VALUE_FACTORY.createIRI("http://example.com/subject2"));
-        Set<IRI> predicates = Set.of(
-                VALUE_FACTORY.createIRI("http://example.com/predicate1"),
-                VALUE_FACTORY.createIRI("http://example.com/predicate2"));
-        Set<? extends Value> objects = Set.of(
-                VALUE_FACTORY.createLiteral("object1"),
-                VALUE_FACTORY.createLiteral("object2"),
-                VALUE_FACTORY.createLiteral("object3"));
-        Set<Resource> graphs = Set.of(
-                VALUE_FACTORY.createIRI("http://example.com/graph1"),
-                VALUE_FACTORY.createIRI("http://example.com/graph2"));
+        Set<Resource> subjects = Set.of(iri("http://example.com/subject1"), iri("http://example.com/subject2"));
+        Set<IRI> predicates = Set.of(iri("http://example.com/predicate1"), iri("http://example.com/predicate2"));
+        Set<? extends Value> objects = Set.of(literal("object1"), literal("object2"), literal("object3"));
+        Set<Resource> graphs = Set.of(iri("http://example.com/graph1"), iri("http://example.com/graph2"));
 
         // When
         Stream<Statement> statementStream =
@@ -457,36 +428,36 @@ class ModelsTest {
 
         // Then
         Model expected = new ModelBuilder()
-                .namedGraph(VALUE_FACTORY.createIRI("http://example.com/graph1"))
-                .subject(VALUE_FACTORY.createIRI("http://example.com/subject1"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate1"), VALUE_FACTORY.createLiteral("object1"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate1"), VALUE_FACTORY.createLiteral("object2"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate1"), VALUE_FACTORY.createLiteral("object3"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate2"), VALUE_FACTORY.createLiteral("object1"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate2"), VALUE_FACTORY.createLiteral("object2"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate2"), VALUE_FACTORY.createLiteral("object3"))
-                .subject(VALUE_FACTORY.createIRI("http://example.com/subject2"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate1"), VALUE_FACTORY.createLiteral("object1"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate1"), VALUE_FACTORY.createLiteral("object2"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate1"), VALUE_FACTORY.createLiteral("object3"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate2"), VALUE_FACTORY.createLiteral("object1"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate2"), VALUE_FACTORY.createLiteral("object2"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate2"), VALUE_FACTORY.createLiteral("object3"))
-                .namedGraph(VALUE_FACTORY.createIRI("http://example.com/graph2"))
-                .subject(VALUE_FACTORY.createIRI("http://example.com/subject1"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate1"), VALUE_FACTORY.createLiteral("object1"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate1"), VALUE_FACTORY.createLiteral("object2"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate1"), VALUE_FACTORY.createLiteral("object3"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate2"), VALUE_FACTORY.createLiteral("object1"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate2"), VALUE_FACTORY.createLiteral("object2"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate2"), VALUE_FACTORY.createLiteral("object3"))
-                .subject(VALUE_FACTORY.createIRI("http://example.com/subject2"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate1"), VALUE_FACTORY.createLiteral("object1"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate1"), VALUE_FACTORY.createLiteral("object2"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate1"), VALUE_FACTORY.createLiteral("object3"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate2"), VALUE_FACTORY.createLiteral("object1"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate2"), VALUE_FACTORY.createLiteral("object2"))
-                .add(VALUE_FACTORY.createIRI("http://example.com/predicate2"), VALUE_FACTORY.createLiteral("object3"))
+                .namedGraph(iri("http://example.com/graph1"))
+                .subject(iri("http://example.com/subject1"))
+                .add(iri("http://example.com/predicate1"), literal("object1"))
+                .add(iri("http://example.com/predicate1"), literal("object2"))
+                .add(iri("http://example.com/predicate1"), literal("object3"))
+                .add(iri("http://example.com/predicate2"), literal("object1"))
+                .add(iri("http://example.com/predicate2"), literal("object2"))
+                .add(iri("http://example.com/predicate2"), literal("object3"))
+                .subject(iri("http://example.com/subject2"))
+                .add(iri("http://example.com/predicate1"), literal("object1"))
+                .add(iri("http://example.com/predicate1"), literal("object2"))
+                .add(iri("http://example.com/predicate1"), literal("object3"))
+                .add(iri("http://example.com/predicate2"), literal("object1"))
+                .add(iri("http://example.com/predicate2"), literal("object2"))
+                .add(iri("http://example.com/predicate2"), literal("object3"))
+                .namedGraph(iri("http://example.com/graph2"))
+                .subject(iri("http://example.com/subject1"))
+                .add(iri("http://example.com/predicate1"), literal("object1"))
+                .add(iri("http://example.com/predicate1"), literal("object2"))
+                .add(iri("http://example.com/predicate1"), literal("object3"))
+                .add(iri("http://example.com/predicate2"), literal("object1"))
+                .add(iri("http://example.com/predicate2"), literal("object2"))
+                .add(iri("http://example.com/predicate2"), literal("object3"))
+                .subject(iri("http://example.com/subject2"))
+                .add(iri("http://example.com/predicate1"), literal("object1"))
+                .add(iri("http://example.com/predicate1"), literal("object2"))
+                .add(iri("http://example.com/predicate1"), literal("object3"))
+                .add(iri("http://example.com/predicate2"), literal("object1"))
+                .add(iri("http://example.com/predicate2"), literal("object2"))
+                .add(iri("http://example.com/predicate2"), literal("object3"))
                 .build();
 
         assertThat(statementStream.collect(ModelCollector.toModel()), is(expected));
@@ -496,13 +467,8 @@ class ModelsTest {
     void givenEmptyTripleValueSet_whenCreateStatement_thenThrowException() {
         // Given
         Set<Resource> subjects = Set.of();
-        Set<IRI> predicates = Set.of(
-                VALUE_FACTORY.createIRI("http://example.com/predicate1"),
-                VALUE_FACTORY.createIRI("http://example.com/predicate2"));
-        Set<? extends Value> objects = Set.of(
-                VALUE_FACTORY.createLiteral("object1"),
-                VALUE_FACTORY.createLiteral("object2"),
-                VALUE_FACTORY.createLiteral("object3"));
+        Set<IRI> predicates = Set.of(iri("http://example.com/predicate1"), iri("http://example.com/predicate2"));
+        Set<? extends Value> objects = Set.of(literal("object1"), literal("object2"), literal("object3"));
         Set<Resource> graphs = Set.of();
 
         // When
@@ -514,7 +480,7 @@ class ModelsTest {
                         objects,
                         graphs,
                         DEFAULT_GRAPH_MODIFIER,
-                        VALUE_FACTORY,
+                        getValueFactory(),
                         statementConsumer1,
                         statementConsumer2));
 

@@ -149,4 +149,20 @@ public class Rml {
     public static final String gather = NAMESPACE + "gather";
 
     public static final String allowEmptyListAndContainer = NAMESPACE + "allowEmptyListAndContainer";
+
+    public static final String logicalTarget = NAMESPACE + "logicalTarget";
+
+    public static final String target = NAMESPACE + "target";
+
+    public static final String serialization = NAMESPACE + "serialization";
+
+    public static final String compression = NAMESPACE + "compression";
+
+    public static final String encoding = NAMESPACE + "encoding";
+
+    public static final String NULL = NAMESPACE + "null";
+
+    public static final String UTF_8 = NAMESPACE + "UTF-8";
+
+    public static final String UTF_16 = NAMESPACE + "UTF-16";
 }
