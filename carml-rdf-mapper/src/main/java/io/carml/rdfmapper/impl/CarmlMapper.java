@@ -421,7 +421,7 @@ public class CarmlMapper implements Mapper, MappingCache {
                     .orElseThrow(() -> createCouldNotFindSetterException(clazz, setterName));
 
             BiConsumer<Object, Object> set =
-                    getSetterInvoker(setter, createSetterInvocationErrorFactory(clazz, setter));
+                    getSetterInvoker(setter, createSetterInvocationErrorFactory(clazz, property));
 
             return new PropertyHandler() {
                 @Override
@@ -442,9 +442,9 @@ public class CarmlMapper implements Mapper, MappingCache {
                 "in class %s, could not find setter [%s] with 1 parameter", clazz.getCanonicalName(), setterName));
     }
 
-    private Function<Exception, RuntimeException> createSetterInvocationErrorFactory(Class<?> clazz, Method setter) {
+    private Function<Exception, RuntimeException> createSetterInvocationErrorFactory(Class<?> clazz, String property) {
         return e -> new RuntimeException(
-                String.format("could not invoke setter [%s.%s]", clazz.getSimpleName(), setter.getName()), e);
+                String.format("Unexpected value type for property %s on %s", property, clazz.getSimpleName()), e);
     }
 
     private BiConsumer<Object, Object> getSetterInvoker(
@@ -555,7 +555,7 @@ public class CarmlMapper implements Mapper, MappingCache {
             propertyValueMapper = new SinglePropertyValueMapper(predicate, valueTransformer);
         }
 
-        BiConsumer<Object, Object> set = getSetterInvoker(setter, createSetterInvocationErrorFactory(clazz, setter));
+        BiConsumer<Object, Object> set = getSetterInvoker(setter, createSetterInvocationErrorFactory(clazz, property));
 
         // get handler from @RdfProperty.handler, if any
         // TODO cache these per type/property
