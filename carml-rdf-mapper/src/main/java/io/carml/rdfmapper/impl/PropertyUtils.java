@@ -1,8 +1,7 @@
 package io.carml.rdfmapper.impl;
 
-import static java.util.Arrays.stream;
-
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.UnaryOperator;
@@ -23,10 +22,11 @@ class PropertyUtils {
      * @return an optional setter method
      */
     public static Optional<Method> findSetter(Class<?> clazz, String setterName) {
-        List<Method> setters = stream(clazz.getMethods())
+        List<Method> setters = Arrays.stream(clazz.getMethods())
                 .filter(method -> method.getName().equals(setterName))
                 .filter(method -> method.getParameterCount() == 1)
                 .toList();
+
         if (setters.isEmpty()) {
             return Optional.empty();
         }
@@ -36,6 +36,24 @@ class PropertyUtils {
                     clazz.getCanonicalName(), setterName));
         }
         return Optional.of(setters.get(0));
+    }
+
+    // Recursively walk the class hierarchy to find the method in the super class for parameterized type details of
+    // method parameters
+    public static Method resolveBaseMethod(Class<?> clazz, Method method) {
+        var superClass = clazz.getSuperclass();
+        if (superClass == null) {
+            return method;
+        }
+
+        Method superMethod;
+        try {
+            superMethod = superClass.getMethod(method.getName(), method.getParameterTypes());
+        } catch (NoSuchMethodException e) {
+            return method;
+        }
+
+        return resolveBaseMethod(superClass, superMethod);
     }
 
     /**

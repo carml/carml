@@ -13,6 +13,7 @@ import io.carml.logicalsourceresolver.DatatypeMapper;
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.model.SubjectMap;
 import io.carml.model.TriplesMap;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
@@ -61,8 +62,11 @@ public class RdfSubjectMapper {
                     ex);
         }
 
-        Set<MappedValue<? extends Value>> classes =
-                subjectMap.getClasses().stream().map(MappedValue::of).collect(toUnmodifiableSet());
+        Set<MappedValue<? extends Value>> classes = subjectMap //
+                .getClasses()
+                .stream()
+                .map(RdfMappedValue::of)
+                .collect(toUnmodifiableSet());
 
         return new RdfSubjectMapper(
                 subjectGenerator,
@@ -100,8 +104,7 @@ public class RdfSubjectMapper {
 
     public Result map(ExpressionEvaluation expressionEvaluation, DatatypeMapper datatypeMapper) {
         LOG.debug("Determining subjects ...");
-        var subjects = subjectGenerator.apply(expressionEvaluation, datatypeMapper).stream()
-                .collect(toUnmodifiableSet());
+        var subjects = subjectGenerator.apply(expressionEvaluation, datatypeMapper);
 
         LOG.debug("Determined subjects {}", subjects);
 
@@ -117,7 +120,21 @@ public class RdfSubjectMapper {
         Flux<MappingResult<Statement>> typeStatements =
                 classes.isEmpty() ? Flux.empty() : mapTypeStatements(subjects, graphs);
 
-        return resultOf(subjects, graphs, typeStatements);
+        var collectionResults = Flux.fromStream(Stream.concat(subjects.stream(), graphs.stream())
+                .map(this::getCollectionResults)
+                .filter(Objects::nonNull));
+
+        return resultOf(subjects, graphs, Flux.merge(typeStatements, collectionResults));
+    }
+
+    private MappingResult<Statement> getCollectionResults(MappedValue<? extends Value> mappedValue) {
+        if (mappedValue instanceof RdfList<? extends Value> rdfList) {
+            return rdfList;
+        } else if (mappedValue instanceof RdfContainer<? extends Value> rdfContainer) {
+            return rdfContainer;
+        } else {
+            return null;
+        }
     }
 
     private Flux<MappingResult<Statement>> mapTypeStatements(
@@ -128,7 +145,7 @@ public class RdfSubjectMapper {
 
         Stream<MappingResult<Statement>> typeStatementStream = streamCartesianProductMappedStatements(
                 subjects,
-                Set.of(MappedValue.of(RDF.TYPE)),
+                Set.of(RdfMappedValue.of(RDF.TYPE)),
                 classes,
                 graphs,
                 RdfTriplesMapper.defaultGraphModifier,

@@ -21,7 +21,7 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @NoArgsConstructor
 @ToString(callSuper = true)
 @EqualsAndHashCode(callSuper = true)
-public class CarmlPredicateMap extends CarmlTermMap implements PredicateMap {
+public class CarmlPredicateMap extends CarmlGatherMap implements PredicateMap {
 
     @Override
     public Set<Resource> getReferencedResources() {

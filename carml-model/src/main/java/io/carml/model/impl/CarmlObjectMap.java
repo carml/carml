@@ -27,7 +27,7 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @Setter
 @ToString(callSuper = true)
 @EqualsAndHashCode(callSuper = true)
-public class CarmlObjectMap extends CarmlTermMap implements ObjectMap {
+public class CarmlObjectMap extends CarmlGatherMap implements ObjectMap {
 
     private DatatypeMap datatypeMap;
 
@@ -106,4 +106,15 @@ public class CarmlObjectMap extends CarmlTermMap implements ObjectMap {
             return this;
         }
     }
+
+    // // TODO this shouldnt be necessary, maybe we need something like https://github.com/xvik/generics-resolver
+    // @Override
+    // public void setGathers(List<ObjectMap> gathers) {
+    //     super.setGathers(gathers);
+    // }
+    //
+    // @Override
+    // public void setAllowEmptyListAndContainer(boolean allowEmptyListAndContainer) {
+    //     super.setAllowEmptyListAndContainer(allowEmptyListAndContainer);
+    // }
 }

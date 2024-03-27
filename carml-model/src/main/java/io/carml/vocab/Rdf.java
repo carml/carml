@@ -176,6 +176,20 @@ public class Rdf {
         public static final IRI compression = iri("compression");
 
         public static final IRI nullPattern = iri("nullPattern");
+
+        public static final IRI strategy = iri("strategy");
+
+        public static final IRI gatherAs = iri("gatherAs");
+
+        public static final IRI gather = iri("gather");
+
+        public static final IRI allowEmptyListAndContainer = iri("allowEmptyListAndContainer");
+
+        public static final IRI Strategy = iri("Strategy");
+
+        public static final IRI append = iri("append");
+
+        public static final IRI cartesianProduct = iri("cartesianProduct");
     }
 
     @NoArgsConstructor(access = AccessLevel.PRIVATE)

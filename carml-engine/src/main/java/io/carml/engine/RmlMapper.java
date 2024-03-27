@@ -14,7 +14,9 @@ import io.carml.model.Source;
 import io.carml.model.TriplesMap;
 import io.carml.util.Mappings;
 import java.io.InputStream;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.AccessLevel;
@@ -28,15 +30,17 @@ import reactor.core.publisher.Flux;
 
 @Slf4j
 @AllArgsConstructor
-public abstract class RmlMapper<T> {
+public abstract class RmlMapper<T, K> {
     public static final String DEFAULT_STREAM_NAME = "DEFAULT";
 
     @Getter
-    private Set<TriplesMap> triplesMaps;
+    private final Set<TriplesMap> triplesMaps;
 
-    private SourceResolver sourceResolver;
+    private final SourceResolver sourceResolver;
 
-    private MappingPipeline<T> mappingPipeline;
+    private final MappingPipeline<T> mappingPipeline;
+
+    private final Map<K, Set<MergeableMappingResult<K, T>>> mergeables;
 
     public <R> Flux<T> mapRecord(R providedRecord, Class<R> providedRecordClass) {
         return mapRecord(providedRecord, providedRecordClass, Set.of());
@@ -82,8 +86,26 @@ public abstract class RmlMapper<T> {
 
         return Flux.fromIterable(getSources(mappingContext, namedInputStreams, providedRecord, providedRecordClass))
                 .flatMap(resolvedSourceEntry -> mapSource(mappingContext, resolvedSourceEntry))
-                .concatWith(resolveJoins(mappingContext))
+                .mapNotNull(this::handleCompletable)
+                .filter(Objects::nonNull)
+                .concatWith(resolveFinishers(mappingContext))
                 .doOnTerminate(() -> mappingPipeline.getTriplesMappers().forEach(TriplesMapper::cleanup));
+    }
+
+    @SuppressWarnings("unchecked")
+    private MappingResult<T> handleCompletable(MappingResult<T> mappingResult) {
+        if (mappingResult instanceof MergeableMappingResult<?, ?> completable) {
+            var completableToMerge = (MergeableMappingResult<K, T>) completable;
+            var completableSet = new LinkedHashSet<MergeableMappingResult<K, T>>();
+            completableSet.add(completableToMerge);
+            mergeables.merge(completableToMerge.getKey(), completableSet, (c1, c2) -> {
+                c1.addAll(c2);
+                return c1;
+            });
+            return null;
+        }
+
+        return mappingResult;
     }
 
     private <V> Set<ResolvedSource<?>> getSources(
@@ -151,10 +173,21 @@ public abstract class RmlMapper<T> {
                 .flatMap(triplesMapper -> triplesMapper.map(logicalSourceRecord));
     }
 
+    private Flux<MappingResult<T>> resolveFinishers(MappingContext<T> mappingContext) {
+        return Flux.merge(resolveJoins(mappingContext), mergeMergeables());
+    }
+
     private Flux<MappingResult<T>> resolveJoins(MappingContext<T> mappingContext) {
         return Flux.fromIterable(
                         mappingContext.getRefObjectMapperToParentTriplesMapper().entrySet())
                 .flatMap(romMapperPtMapper -> romMapperPtMapper.getKey().resolveJoins(romMapperPtMapper.getValue()));
+    }
+
+    private Flux<MappingResult<T>> mergeMergeables() {
+        return Flux.fromIterable(mergeables.values()).flatMap(values -> values.stream()
+                .reduce(MergeableMappingResult::merge)
+                .map(Flux::just)
+                .orElse(Flux.empty()));
     }
 
     @AllArgsConstructor(access = AccessLevel.PRIVATE)

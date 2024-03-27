@@ -50,11 +50,13 @@ public class Statements {
     }
 
     public static Optional<IRI> getCollectionTypeFor(Resource collectionResource, Model model) {
-        var statement = model.iterator().next();
-        if (isListStatement(statement)) {
-            return Optional.of(RDF.LIST);
-        } else if (isContainerStatement(statement)) {
-            return getContainerTypeFor(collectionResource, model);
+        if (model.iterator().hasNext()) {
+            var statement = model.iterator().next();
+            if (isListStatement(statement)) {
+                return Optional.of(RDF.LIST);
+            } else if (isContainerStatement(statement)) {
+                return getContainerTypeFor(collectionResource, model);
+            }
         }
 
         return Optional.empty();

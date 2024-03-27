@@ -282,8 +282,9 @@ public class CarmlMapper implements Mapper, MappingCache {
     }
 
     private PropertyType determinePropertyType(Method setter) {
+        var baseSetter = PropertyUtils.resolveBaseMethod(setter.getDeclaringClass(), setter);
 
-        Type type = setter.getGenericParameterTypes()[0];
+        Type type = baseSetter.getGenericParameterTypes()[0];
         Class<?> elementType = null; // XXX assuming Class<?> for now
         Class<?> iterableType = null;
 
@@ -304,6 +305,54 @@ public class CarmlMapper implements Mapper, MappingCache {
 
         return new PropertyType(elementType, iterableType);
     }
+
+    // private PropertyType determinePropertyType(Method setter) {
+    //
+    //     Type type = setter.getGenericParameterTypes()[0];
+    //     Class<?> elementType = null; // XXX assuming Class<?> for now
+    //     Class<?> iterableType = null;
+    //
+    //     var parameterType = GenericsResolver.resolve(setter.getDeclaringClass())
+    //             .method(setter)
+    //             .resolveParametersTypes()
+    //             .get(0);
+    //
+    //     // if property type is X<E>, where X <= Iterable, use E as property type from now on
+    //     // XXX not sure if proper place
+    //     if (parameterType instanceof ParameterizedType parameterizedType) {
+    //         Class<?> rawType = (Class<?>) parameterizedType.getRawType();
+    //         if (Iterable.class.isAssignableFrom(rawType)) {
+    //             elementType = (Class<?>) parameterizedType.getActualTypeArguments()[0];
+    //             iterableType = rawType;
+    //         }
+    //     } else if (Iterable.class.isAssignableFrom((Class<?>) parameterType)) {
+    //         var superClass = setter.getDeclaringClass().getSuperclass();
+    //         if (superClass != null) {
+    //             var superSetterOptional = PropertyUtils.findSetter(superClass, setter.getName());
+    //             if (superSetterOptional.isPresent()) {
+    //                 var superSetter = superSetterOptional.get();
+    //                 var superParameterType = GenericsResolver.resolve(superClass)
+    //                         .method(superSetter)
+    //                         .resolveParametersTypes()
+    //                         .get(0);
+    //                 if (superParameterType instanceof ParameterizedType superParameterizedType) {
+    //                     Class<?> rawType = (Class<?>) superParameterizedType.getRawType();
+    //                     if (Iterable.class.isAssignableFrom(rawType)) {
+    //                         elementType = (Class<?>) superParameterizedType.getActualTypeArguments()[0];
+    //                         iterableType = rawType;
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //     }
+    //
+    //     // otherwise, use property type as-is
+    //     if (elementType == null) {
+    //         elementType = (Class<?>) parameterType;
+    //     }
+    //
+    //     return new PropertyType(elementType, iterableType);
+    // }
 
     private Class<?> getTypeFromRdfTypeAnnotation(Method method) {
         RdfType annotation = method.getAnnotation(RdfType.class);

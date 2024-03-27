@@ -6,7 +6,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.eclipse.rdf4j.model.IRI;
 
-public interface SubjectMap extends TermMap {
+public interface SubjectMap extends TermMap, GatherMap {
 
     Set<IRI> getClasses();
 

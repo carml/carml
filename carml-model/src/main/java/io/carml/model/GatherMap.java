@@ -5,11 +5,13 @@ import org.eclipse.rdf4j.model.IRI;
 
 public interface GatherMap extends TermMap {
 
-    Strategy getStrategy();
+    IRI getStrategy();
 
     IRI getGatherAs();
 
-    List<ObjectMap> getGatheredOnes();
+    List<ObjectMap> getGathers();
 
     boolean getAllowEmptyListAndContainer();
+
+    SubjectMap asSubjectMap();
 }

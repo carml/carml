@@ -1,0 +1,15 @@
+<http://example.com/base/e/a> <http://example.com/ns#with> <http://example.com/base/c/a> .
+<http://example.com/base/c/a> <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> "1" .
+<http://example.com/base/c/a> <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:nab8f496caee443c5ac19ce3a109f4b22b1 .
+_:nab8f496caee443c5ac19ce3a109f4b22b1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> "2" .
+_:nab8f496caee443c5ac19ce3a109f4b22b1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:nab8f496caee443c5ac19ce3a109f4b22b2 .
+_:nab8f496caee443c5ac19ce3a109f4b22b2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> "5" .
+_:nab8f496caee443c5ac19ce3a109f4b22b2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:nab8f496caee443c5ac19ce3a109f4b22b3 .
+_:nab8f496caee443c5ac19ce3a109f4b22b3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> "6" .
+_:nab8f496caee443c5ac19ce3a109f4b22b3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> <http://www.w3.org/1999/02/22-rdf-syntax-ns#nil> .
+
+<http://example.com/base/e/b> <http://example.com/ns#with> <http://example.com/base/c/b> .
+<http://example.com/base/c/b> <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> "3" .
+<http://example.com/base/c/b> <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:nab8f496caee443c5ac19ce3a109f4b22b4 .
+_:nab8f496caee443c5ac19ce3a109f4b22b4 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> "4" .
+_:nab8f496caee443c5ac19ce3a109f4b22b4 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> <http://www.w3.org/1999/02/22-rdf-syntax-ns#nil> .

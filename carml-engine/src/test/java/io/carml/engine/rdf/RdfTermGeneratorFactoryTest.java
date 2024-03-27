@@ -13,7 +13,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
-import io.carml.engine.MappedValue;
 import io.carml.engine.TermGenerator;
 import io.carml.logicalsourceresolver.DatatypeMapper;
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
@@ -125,7 +124,7 @@ class RdfTermGeneratorFactoryTest {
         var objects = objectGenerator.apply(expressionEvaluation, datatypeMapper);
 
         // Then
-        assertThat(objects, hasItems(MappedValue.of(literal("bar"))));
+        assertThat(objects, hasItems(RdfMappedValue.of(literal("bar"))));
     }
 
     @Test
@@ -146,7 +145,7 @@ class RdfTermGeneratorFactoryTest {
         var objects = objectGenerator.apply(expressionEvaluation, datatypeMapper);
 
         // Then
-        assertThat(objects, hasItems(MappedValue.of(literal("bar", "bar"))));
+        assertThat(objects, hasItems(RdfMappedValue.of(literal("bar", "bar"))));
     }
 
     @Test
@@ -169,7 +168,7 @@ class RdfTermGeneratorFactoryTest {
         var objects = objectGenerator.apply(expressionEvaluation, datatypeMapper);
 
         // Then
-        assertThat(objects, hasItems(MappedValue.of(literal("bar", iri("https://bar.com")))));
+        assertThat(objects, hasItems(RdfMappedValue.of(literal("bar", iri("https://bar.com")))));
     }
 
     static Stream<Arguments> termGeneratorTestInput() {
@@ -179,7 +178,7 @@ class RdfTermGeneratorFactoryTest {
                         "foo",
                         List.of("bar"),
                         null,
-                        List.of(MappedValue.of(iri("http://example.com/base/bar")))),
+                        List.of(RdfMappedValue.of(iri("http://example.com/base/bar")))),
                 Arguments.of(
                         CarmlSubjectMap.builder()
                                 .reference("foo")
@@ -188,7 +187,7 @@ class RdfTermGeneratorFactoryTest {
                         "foo",
                         List.of("bar"),
                         null,
-                        List.of(MappedValue.of(bnode("bar")))),
+                        List.of(RdfMappedValue.of(bnode("bar")))),
                 Arguments.of(
                         CarmlPredicateMap.builder()
                                 .template(TemplateParser.getInstance().parse("http://example.org/{foo}"))
@@ -196,7 +195,7 @@ class RdfTermGeneratorFactoryTest {
                         "foo",
                         List.of(0),
                         XSD.BOOLEAN,
-                        List.of(MappedValue.of(iri("http://example.org/false")))),
+                        List.of(RdfMappedValue.of(iri("http://example.org/false")))),
                 Arguments.of(
                         CarmlPredicateMap.builder()
                                 .constant(iri("http://example.org/constant"))
@@ -204,7 +203,7 @@ class RdfTermGeneratorFactoryTest {
                         "foo",
                         List.of(),
                         null,
-                        List.of(MappedValue.of(iri("http://example.org/constant")))),
+                        List.of(RdfMappedValue.of(iri("http://example.org/constant")))),
                 Arguments.of(
                         CarmlObjectMap.builder()
                                 .reference("foo")
@@ -216,10 +215,10 @@ class RdfTermGeneratorFactoryTest {
                         List.of("bar", "baz"),
                         XSD.STRING,
                         List.of(
-                                MappedValue.of(literal("bar", "bar")),
-                                MappedValue.of(literal("baz", "baz")),
-                                MappedValue.of(literal("bar", "baz")),
-                                MappedValue.of(literal("baz", "bar")))),
+                                RdfMappedValue.of(literal("bar", "bar")),
+                                RdfMappedValue.of(literal("baz", "baz")),
+                                RdfMappedValue.of(literal("bar", "baz")),
+                                RdfMappedValue.of(literal("baz", "bar")))),
                 Arguments.of(
                         CarmlObjectMap.builder()
                                 .reference("foo")
@@ -231,26 +230,26 @@ class RdfTermGeneratorFactoryTest {
                         List.of("bar", "baz"),
                         XSD.STRING,
                         List.of(
-                                MappedValue.of(literal("bar", iri("http://foo.org/bar-bar"))),
-                                MappedValue.of(literal("bar", iri("http://foo.org/baz-bar"))),
-                                MappedValue.of(literal("bar", iri("http://foo.org/bar-baz"))),
-                                MappedValue.of(literal("bar", iri("http://foo.org/baz-baz"))),
-                                MappedValue.of(literal("baz", iri("http://foo.org/bar-bar"))),
-                                MappedValue.of(literal("baz", iri("http://foo.org/baz-bar"))),
-                                MappedValue.of(literal("baz", iri("http://foo.org/bar-baz"))),
-                                MappedValue.of(literal("baz", iri("http://foo.org/baz-baz"))))),
+                                RdfMappedValue.of(literal("bar", iri("http://foo.org/bar-bar"))),
+                                RdfMappedValue.of(literal("bar", iri("http://foo.org/baz-bar"))),
+                                RdfMappedValue.of(literal("bar", iri("http://foo.org/bar-baz"))),
+                                RdfMappedValue.of(literal("bar", iri("http://foo.org/baz-baz"))),
+                                RdfMappedValue.of(literal("baz", iri("http://foo.org/bar-bar"))),
+                                RdfMappedValue.of(literal("baz", iri("http://foo.org/baz-bar"))),
+                                RdfMappedValue.of(literal("baz", iri("http://foo.org/bar-baz"))),
+                                RdfMappedValue.of(literal("baz", iri("http://foo.org/baz-baz"))))),
                 Arguments.of(
                         CarmlObjectMap.builder().reference("foo").build(),
                         "foo",
                         List.of("2011-08-23T22:17:00.000+00:00"),
                         XSD.DATETIME,
-                        List.of(MappedValue.of(literal("2011-08-23T22:17:00Z", XSD.DATETIME)))),
+                        List.of(RdfMappedValue.of(literal("2011-08-23T22:17:00Z", XSD.DATETIME)))),
                 Arguments.of(
                         CarmlGraphMap.builder().reference("foo").build(),
                         "foo",
                         List.of("bar"),
                         null,
-                        List.of(MappedValue.of(iri("http://example.com/base/bar")))));
+                        List.of(RdfMappedValue.of(iri("http://example.com/base/bar")))));
     }
 
     @ParameterizedTest
@@ -260,7 +259,7 @@ class RdfTermGeneratorFactoryTest {
             String expressionIn,
             List<Object> expressionOut,
             IRI datatypeOut,
-            List<MappedValue<Value>> expectedTerms) {
+            List<RdfMappedValue<Value>> expectedTerms) {
         // Given
         TermGenerator<? extends Value> termGenerator;
         if (termMap instanceof SubjectMap subjectMap) {

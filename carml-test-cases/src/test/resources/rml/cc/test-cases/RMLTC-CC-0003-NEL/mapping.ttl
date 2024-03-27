@@ -1,0 +1,27 @@
+@prefix rml: <http://w3id.org/rml/>.
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
+@prefix ex:  <http://example.com/ns#>.
+@base        <http://example.com/>.
+
+<#TM> a rml:TriplesMap;
+    rml:logicalSource [
+        rml:source _:b738439 ;
+        rml:referenceFormulation rml:JSONPath ;
+        rml:iterator "$.*" ;
+    ] ;
+
+    rml:subjectMap [
+        rml:template "e/{$.id}" ;
+    ] ;
+
+    rml:predicateObjectMap [
+        rml:predicate ex:with ;
+        rml:objectMap [
+            rml:gather ( [ rml:reference "$.values.*" ; ] ) ;
+            rml:gatherAs rdf:List ;
+        ] ;
+    ] ;
+.
+
+_:b738439 a rml:RelativePathSource ;
+    rml:path "data.json" .

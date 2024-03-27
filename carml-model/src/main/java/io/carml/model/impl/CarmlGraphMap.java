@@ -21,7 +21,7 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @NoArgsConstructor
 @ToString(callSuper = true)
 @EqualsAndHashCode(callSuper = true)
-public class CarmlGraphMap extends CarmlTermMap implements GraphMap {
+public class CarmlGraphMap extends CarmlGatherMap implements GraphMap {
 
     @RdfProperty(Rml.termType)
     @RdfProperty(Rr.termType)

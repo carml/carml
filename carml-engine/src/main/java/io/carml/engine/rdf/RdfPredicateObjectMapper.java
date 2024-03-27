@@ -17,8 +17,8 @@ import io.carml.model.ObjectMap;
 import io.carml.model.PredicateObjectMap;
 import io.carml.model.RefObjectMap;
 import io.carml.model.TriplesMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -225,7 +225,7 @@ public class RdfPredicateObjectMapper {
             Map<Set<MappedValue<Resource>>, Set<MappedValue<Resource>>> subjectsAndSubjectGraphs) {
         Set<MappedValue<IRI>> predicates = predicateGenerators.stream()
                 .map(g -> g.apply(expressionEvaluation, datatypeMapper))
-                .flatMap(List::stream)
+                .flatMap(Set::stream)
                 .collect(toUnmodifiableSet());
 
         if (predicates.isEmpty()) {
@@ -234,7 +234,7 @@ public class RdfPredicateObjectMapper {
 
         Set<MappedValue<? extends Value>> objects = objectGenerators.stream()
                 .map(g -> g.apply(expressionEvaluation, datatypeMapper))
-                .flatMap(List::stream)
+                .flatMap(Set::stream)
                 .collect(toUnmodifiableSet());
 
         Set<MappedValue<Resource>> pomGraphs = graphGenerators.stream()
@@ -261,9 +261,26 @@ public class RdfPredicateObjectMapper {
                         RdfTriplesMapper.defaultGraphModifier,
                         valueFactory,
                         RdfTriplesMapper.logAddStatements)))
-                .collect(toUnmodifiableSet());
+                .collect(Collectors.toSet());
+
+        var collectionResults = Flux.fromStream(Stream.of(predicates, objects, pomGraphs)
+                .flatMap(Set::stream)
+                .map(this::getCollectionResults)
+                .filter(Objects::nonNull));
+
+        statementsPerGraphSet.add(collectionResults);
 
         return Flux.merge(statementsPerGraphSet);
+    }
+
+    private MappingResult<Statement> getCollectionResults(MappedValue<? extends Value> mappedValue) {
+        if (mappedValue instanceof RdfList<? extends Value> rdfList) {
+            return rdfList;
+        } else if (mappedValue instanceof RdfContainer<? extends Value> rdfContainer) {
+            return rdfContainer;
+        } else {
+            return null;
+        }
     }
 
     private Map<Set<MappedValue<Resource>>, Set<MappedValue<Resource>>> addPomGraphsToSubjectsAndSubjectGraphs(

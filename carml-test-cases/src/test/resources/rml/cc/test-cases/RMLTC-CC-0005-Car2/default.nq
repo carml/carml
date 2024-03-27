@@ -1,0 +1,23 @@
+<http://example.com/base/e/a> <http://example.com/ns#with> _:nfc398e5692654ca98dfb3fb5432d277cb1 .
+_:nfc398e5692654ca98dfb3fb5432d277cb1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> "1" .
+_:nfc398e5692654ca98dfb3fb5432d277cb1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:nfc398e5692654ca98dfb3fb5432d277cb2 .
+_:nfc398e5692654ca98dfb3fb5432d277cb2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> <http://www.w3.org/1999/02/22-rdf-syntax-ns#nil> .
+_:nfc398e5692654ca98dfb3fb5432d277cb2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> "a" .
+
+<http://example.com/base/e/a> <http://example.com/ns#with> _:nfc398e5692654ca98dfb3fb5432d277cb3 .
+_:nfc398e5692654ca98dfb3fb5432d277cb3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> "1" .
+_:nfc398e5692654ca98dfb3fb5432d277cb3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:nfc398e5692654ca98dfb3fb5432d277cb4 .
+_:nfc398e5692654ca98dfb3fb5432d277cb4 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> "b" .
+_:nfc398e5692654ca98dfb3fb5432d277cb4 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> <http://www.w3.org/1999/02/22-rdf-syntax-ns#nil> .
+
+<http://example.com/base/e/a> <http://example.com/ns#with> _:nfc398e5692654ca98dfb3fb5432d277cb5 .
+_:nfc398e5692654ca98dfb3fb5432d277cb5 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> "2" .
+_:nfc398e5692654ca98dfb3fb5432d277cb5 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:nfc398e5692654ca98dfb3fb5432d277cb6 .
+_:nfc398e5692654ca98dfb3fb5432d277cb6 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> "a" .
+_:nfc398e5692654ca98dfb3fb5432d277cb6 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> <http://www.w3.org/1999/02/22-rdf-syntax-ns#nil> .
+
+<http://example.com/base/e/a> <http://example.com/ns#with> _:nfc398e5692654ca98dfb3fb5432d277cb7 .
+_:nfc398e5692654ca98dfb3fb5432d277cb7 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> "2" .
+_:nfc398e5692654ca98dfb3fb5432d277cb7 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:nfc398e5692654ca98dfb3fb5432d277cb8 .
+_:nfc398e5692654ca98dfb3fb5432d277cb8 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> "b" .
+_:nfc398e5692654ca98dfb3fb5432d277cb8 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> <http://www.w3.org/1999/02/22-rdf-syntax-ns#nil> .

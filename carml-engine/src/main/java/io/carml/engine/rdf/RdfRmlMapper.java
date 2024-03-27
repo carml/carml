@@ -48,7 +48,7 @@ import org.eclipse.rdf4j.model.util.ModelCollector;
 import reactor.core.publisher.Flux;
 
 @Slf4j
-public class RdfRmlMapper extends RmlMapper<Statement> {
+public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
 
     private static final IRI RML_BASE_IRI = iri("http://example.com/base/");
 
@@ -56,7 +56,7 @@ public class RdfRmlMapper extends RmlMapper<Statement> {
 
     private RdfRmlMapper(
             Set<TriplesMap> triplesMaps, SourceResolver sourceResolver, MappingPipeline<Statement> mappingPipeline) {
-        super(triplesMaps, sourceResolver, mappingPipeline);
+        super(triplesMaps, sourceResolver, mappingPipeline, new HashMap<>());
     }
 
     public static Builder builder() {

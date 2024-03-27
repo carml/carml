@@ -1,0 +1,254 @@
+@base <http://w3id.org/rml/cc/test-cases/id/> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix rmltest: <http://w3id.org/rml/test/> .
+@prefix test: <http://www.w3.org/2006/03/test-description#> .
+
+<RMLTC-CC-0001-Alt> a test:TestCase;
+  dcterms:identifier "RMLTC-CC-0001-Alt";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "data.json";
+      rmltest:inputType "JSON"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLTC-CC-0001-Bag> a test:TestCase;
+  dcterms:identifier "RMLTC-CC-0001-Bag";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "data.json";
+      rmltest:inputType "JSON"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLTC-CC-0001-Seq> a test:TestCase;
+  dcterms:identifier "RMLTC-CC-0001-Seq";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "data.json";
+      rmltest:inputType "JSON"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLTC-CC-0001-List> a test:TestCase;
+  dcterms:identifier "RMLTC-CC-0001-List";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "data.json";
+      rmltest:inputType "JSON"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLTC-CC-0002-Bag> a test:TestCase;
+  dcterms:identifier "RMLTC-CC-0002-Bag";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "data.json";
+      rmltest:inputType "JSON"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLTC-CC-0002-List> a test:TestCase;
+  dcterms:identifier "RMLTC-CC-0002-List";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "data.json";
+      rmltest:inputType "JSON"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLTC-CC-0003-EL> a test:TestCase;
+  dcterms:identifier "RMLTC-CC-0003-EL";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "data.json";
+      rmltest:inputType "JSON"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLTC-CC-0003-NEB> a test:TestCase;
+  dcterms:identifier "RMLTC-CC-0003-NEB";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "data.json";
+      rmltest:inputType "JSON"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLTC-CC-0003-NEL> a test:TestCase;
+  dcterms:identifier "RMLTC-CC-0003-NEL";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "data.json";
+      rmltest:inputType "JSON"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLTC-CC-0003-NELb> a test:TestCase;
+  dcterms:identifier "RMLTC-CC-0003-NELb";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "data.json";
+      rmltest:inputType "JSON"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLTC-CC-0004-SM1> a test:TestCase;
+  dcterms:identifier "RMLTC-CC-0004-SM1";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "data.json";
+      rmltest:inputType "JSON"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLTC-CC-0004-SM2> a test:TestCase;
+  dcterms:identifier "RMLTC-CC-0004-SM2";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "data.json";
+      rmltest:inputType "JSON"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLTC-CC-0004-SM3> a test:TestCase;
+  dcterms:identifier "RMLTC-CC-0004-SM3";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "data.json";
+      rmltest:inputType "JSON"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLTC-CC-0004-SM4> a test:TestCase;
+  dcterms:identifier "RMLTC-CC-0004-SM4";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "data.json";
+      rmltest:inputType "JSON"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLTC-CC-0004-SM5> a test:TestCase;
+  dcterms:identifier "RMLTC-CC-0004-SM5";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "data.json";
+      rmltest:inputType "JSON"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLTC-CC-0005-App1> a test:TestCase;
+  dcterms:identifier "RMLTC-CC-0005-App1";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "data.json";
+      rmltest:inputType "JSON"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLTC-CC-0005-App2> a test:TestCase;
+  dcterms:identifier "RMLTC-CC-0005-App2";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "data.json";
+      rmltest:inputType "JSON"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLTC-CC-0005-Car1> a test:TestCase;
+  dcterms:identifier "RMLTC-CC-0005-Car1";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "data.json";
+      rmltest:inputType "JSON"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLTC-CC-0005-Car2> a test:TestCase;
+  dcterms:identifier "RMLTC-CC-0005-Car2";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "data.json";
+      rmltest:inputType "JSON"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLTC-CC-0006-IT0> a test:TestCase;
+  dcterms:identifier "RMLTC-CC-0006-IT0";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "data.json";
+      rmltest:inputType "JSON"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLTC-CC-0006-IT1> a test:TestCase;
+  dcterms:identifier "RMLTC-CC-0006-IT1";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "data.json";
+      rmltest:inputType "JSON"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLTC-CC-0006-IT2> a test:TestCase;
+  dcterms:identifier "RMLTC-CC-0006-IT2";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "data.json";
+      rmltest:inputType "JSON"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLTC-CC-0007-NES> a test:TestCase;
+  dcterms:identifier "RMLTC-CC-0007-NES";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "data.json";
+      rmltest:inputType "JSON"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLTC-CC-0008-ROMa> a test:TestCase;
+  dcterms:identifier "RMLTC-CC-0008-ROMa";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "student.csv";
+      rmltest:inputType "CSV"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLTC-CC-0008-ROMb> a test:TestCase;
+  dcterms:identifier "RMLTC-CC-0008-ROMb";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "student.csv";
+      rmltest:inputType "CSV"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .

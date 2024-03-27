@@ -57,10 +57,7 @@ class TestRmlIoTestCases {
     private static final List<String> SUPPORTED_SOURCE_TYPES =
             ImmutableList.of("CSV", "JSON", "XML", "MySQL", "PostgreSQL");
 
-    private static final List<String> SKIP_TESTS = new ImmutableList.Builder<String>() //
-            .add("RMLTC0012d") // CARML supports multiplevalued subject maps
-            .add("RMLTC0016c") // Canonical mapping leads to correct date time, but not the same as expected in test.
-            .build();
+    private static final List<String> SKIP_TESTS = List.of();
 
     // private static final MySQLContainer<?> MYSQL =
     //         new MySQLContainer<>("mysql:latest").withUsername("root").withUrlParam("allowMultiQueries", "true");

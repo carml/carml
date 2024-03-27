@@ -1,0 +1,6 @@
+_:n648f8cf4c58149e8a0feea26fb2a5b5bb1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> "1" .
+_:n648f8cf4c58149e8a0feea26fb2a5b5bb1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:n648f8cf4c58149e8a0feea26fb2a5b5bb2 .
+_:n648f8cf4c58149e8a0feea26fb2a5b5bb3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> "3" .
+_:n648f8cf4c58149e8a0feea26fb2a5b5bb2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:n648f8cf4c58149e8a0feea26fb2a5b5bb3 .
+_:n648f8cf4c58149e8a0feea26fb2a5b5bb2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> "2" .
+_:n648f8cf4c58149e8a0feea26fb2a5b5bb3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> <http://www.w3.org/1999/02/22-rdf-syntax-ns#nil> .

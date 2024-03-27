@@ -27,7 +27,7 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @Setter
 @ToString(callSuper = true)
 @EqualsAndHashCode(callSuper = true)
-public class CarmlSubjectMap extends CarmlTermMap implements SubjectMap {
+public class CarmlSubjectMap extends CarmlGatherMap implements SubjectMap {
 
     @Singular("clazz")
     private Set<IRI> classes;

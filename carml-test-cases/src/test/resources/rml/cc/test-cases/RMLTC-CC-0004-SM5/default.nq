@@ -1,0 +1,4 @@
+_:ne32066984b71404a953025d001cd3cdfb1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/1999/02/22-rdf-syntax-ns#Bag> .
+_:ne32066984b71404a953025d001cd3cdfb1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#_2> "2" .
+_:ne32066984b71404a953025d001cd3cdfb1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#_1> "1" .
+_:ne32066984b71404a953025d001cd3cdfb1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#_3> "3" .

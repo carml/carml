@@ -1,0 +1,29 @@
+_:nab9af1206e584ab2afd457e8a605872cb1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/1999/02/22-rdf-syntax-ns#Bag> .
+_:nab9af1206e584ab2afd457e8a605872cb1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#_1> "1" .
+_:nab9af1206e584ab2afd457e8a605872cb1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#_2> "2" .
+
+_:nab9af1206e584ab2afd457e8a605872cb2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/1999/02/22-rdf-syntax-ns#Bag> .
+_:nab9af1206e584ab2afd457e8a605872cb2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#_1> "a" .
+_:nab9af1206e584ab2afd457e8a605872cb2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#_2> "b" .
+
+_:nab9af1206e584ab2afd457e8a605872cb5 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/1999/02/22-rdf-syntax-ns#Bag> .
+_:nab9af1206e584ab2afd457e8a605872cb5 <http://www.w3.org/1999/02/22-rdf-syntax-ns#_1> "3" .
+_:nab9af1206e584ab2afd457e8a605872cb5 <http://www.w3.org/1999/02/22-rdf-syntax-ns#_2> "4" .
+
+_:nab9af1206e584ab2afd457e8a605872cb6 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/1999/02/22-rdf-syntax-ns#Bag> .
+_:nab9af1206e584ab2afd457e8a605872cb6 <http://www.w3.org/1999/02/22-rdf-syntax-ns#_1> "c" .
+
+<http://example.com/base/e/a> <http://example.com/ns#with> _:nab9af1206e584ab2afd457e8a605872cb3 .
+_:nab9af1206e584ab2afd457e8a605872cb3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> _:nab9af1206e584ab2afd457e8a605872cb1 .
+_:nab9af1206e584ab2afd457e8a605872cb3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:nab9af1206e584ab2afd457e8a605872cb4 .
+
+_:nab9af1206e584ab2afd457e8a605872cb4 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> _:nab9af1206e584ab2afd457e8a605872cb2 .
+_:nab9af1206e584ab2afd457e8a605872cb4 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> <http://www.w3.org/1999/02/22-rdf-syntax-ns#nil> .
+
+<http://example.com/base/e/b> <http://example.com/ns#with> _:nab9af1206e584ab2afd457e8a605872cb7 .
+_:nab9af1206e584ab2afd457e8a605872cb7 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> _:nab9af1206e584ab2afd457e8a605872cb5 .
+_:nab9af1206e584ab2afd457e8a605872cb7 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:nab9af1206e584ab2afd457e8a605872cb8 .
+
+_:nab9af1206e584ab2afd457e8a605872cb8 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> _:nab9af1206e584ab2afd457e8a605872cb6 .
+_:nab9af1206e584ab2afd457e8a605872cb8 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> <http://www.w3.org/1999/02/22-rdf-syntax-ns#nil> .
+
