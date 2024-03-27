@@ -32,8 +32,9 @@ public class LogicalSourceSourcePropertyHandler implements PropertyHandler {
 
         Set<Value> objects = model.filter(resource, predicate, null).objects();
         if (objects.size() > 1) {
-            throw new CarmlMapperException(
-                    String.format("more than 1 object for the predicate [%s] for a logical source", predicate));
+            throw new CarmlMapperException(String.format(
+                    "more than 1 object %s for the predicate [%s] for logical source %s",
+                    objects, predicate, resource));
         }
 
         if (objects.isEmpty()) {

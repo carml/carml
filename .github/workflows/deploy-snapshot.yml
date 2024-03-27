@@ -1,19 +1,8 @@
-# Perform a manual release from the main branch
-name: Release
+# Perform a snapshot release from the current branch
+name: Deploy snapshot
 
 # Controls when the workflow will run
-on:
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
-    inputs:
-      releaseVersion:
-        description: "Default version to use when preparing a release."
-        required: true
-        default: "X.Y.Z"
-      developmentVersion:
-        description: "Default version to use for new local working copy."
-        required: true
-        default: "X.Y.Z-SNAPSHOT"
+on: workflow_dispatch
 
 jobs:
   release:
@@ -22,7 +11,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
         with:
-          ref: main
+          ref: rml-cg
 
       - name: Setup JDK 17
         uses: actions/setup-java@v2
@@ -41,8 +30,8 @@ jobs:
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
 
-      - name: Maven Release
-        run: mvn release:clean release:prepare release:perform -B -Dgpg.passphrase=${{ secrets.GPG_PASSPHRASE }} -DreleaseVersion=${{ github.event.inputs.releaseVersion }} -DdevelopmentVersion=${{ github.event.inputs.developmentVersion }}
+      - name: Maven Snapshot Deploy
+        run: mvn clean deploy
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ github.token }}

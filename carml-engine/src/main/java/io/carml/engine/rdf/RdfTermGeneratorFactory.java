@@ -76,7 +76,8 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
 
     private boolean isBlankSubjectMap(SubjectMap subjectMap) {
         return subjectMap == null
-                || (subjectMap.getReferenceExpressionSet().isEmpty()
+                || (subjectMap.getConstant() == null
+                        && subjectMap.getReferenceExpressionSet().isEmpty()
                         && subjectMap.getGathers().isEmpty());
     }
 
