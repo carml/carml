@@ -96,10 +96,11 @@ public class TemplateEvaluation implements Supplier<List<String>> {
 
         return Sets.cartesianProduct(processedSegments).stream()
                 .map(segmentValues -> String.join("", segmentValues))
-                .distinct()
+                .distinct() // TODO https://github.com/kg-construct/rml-core/issues/121
                 .toList();
     }
 
+    // TODO https://github.com/kg-construct/rml-core/issues/121
     private Set<String> processSegment(Segment segment, Map<Segment, List<String>> indexedExprValues) {
         if (segment instanceof TextSegment) {
             return Set.of(segment.getValue());

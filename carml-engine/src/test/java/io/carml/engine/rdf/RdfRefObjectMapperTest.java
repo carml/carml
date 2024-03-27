@@ -198,10 +198,10 @@ class RdfRefObjectMapperTest {
         MappedValue<Resource> mappedGraph1 = RdfMappedValue.of(graph1);
         Resource graph2 = iri("http://foo.bar/graph2");
         MappedValue<Resource> mappedGraph2 = RdfMappedValue.of(graph2);
-        Set<MappedValue<Resource>> subjects = Set.of(mappedSubject1);
-        Set<MappedValue<Resource>> subjects2 = Set.of(mappedSubject2);
-        Set<MappedValue<Resource>> graphs = Set.of(mappedGraph1);
-        Set<MappedValue<Resource>> graphs2 = Set.of(mappedGraph2);
+        var subjects = Set.of(mappedSubject1);
+        var subjects2 = Set.of(mappedSubject2);
+        var graphs = Set.of(mappedGraph1);
+        var graphs2 = Set.of(mappedGraph2);
 
         when(expressionEvaluation.apply(any())).thenReturn(Optional.of(List.of("baz")));
 
@@ -212,7 +212,7 @@ class RdfRefObjectMapperTest {
         IRI predicate1 = iri("http://foo.bar/predicate1");
         var mappedPredicate1 = RdfMappedValue.of(predicate1);
 
-        Set<MappedValue<IRI>> predicates = Set.of(mappedPredicate1);
+        var predicates = Set.of(mappedPredicate1);
 
         // When
         var refObjectMapperPromise = Mono.empty();
@@ -275,9 +275,9 @@ class RdfRefObjectMapperTest {
 
         Map<Set<MappedValue<Resource>>, Set<MappedValue<Resource>>> subjectsAndAllGraphs = Map.of(subjects, graphs);
 
-        Set<MappedValue<IRI>> predicates = Set.of(RdfMappedValue.of(iri("http://foo.bar/predicate1")));
+        var predicates = Set.of(RdfMappedValue.of(iri("http://foo.bar/predicate1")));
 
-        RdfRefObjectMapper rdfRefObjectMapper = RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingConfig);
+        var rdfRefObjectMapper = RdfRefObjectMapper.of(refObjectMap, triplesMap, rdfMappingConfig);
 
         // When
         Mono<Statement> refObjectMapperPromise = Mono.empty();
@@ -305,11 +305,11 @@ class RdfRefObjectMapperTest {
     void givenValidJoinWithTwoParentValues_whenResolveJoins_ThenReturnsTwoStatements() {
         // Given
         IRI subject1 = iri("http://foo.bar/subject1");
-        Set<MappedValue<Resource>> subjects = Set.of(RdfMappedValue.of(subject1));
+        List<MappedValue<Resource>> subjects = List.of(RdfMappedValue.of(subject1));
         IRI predicate1 = iri("http://foo.bar/predicate1");
-        Set<MappedValue<IRI>> predicates = Set.of(RdfMappedValue.of(predicate1));
+        List<MappedValue<IRI>> predicates = List.of(RdfMappedValue.of(predicate1));
         IRI graph1 = iri("http://foo.bar/graph1");
-        Set<MappedValue<Resource>> graphs = Set.of(RdfMappedValue.of(graph1));
+        List<MappedValue<Resource>> graphs = List.of(RdfMappedValue.of(graph1));
 
         var childSideJoin1 = ChildSideJoin.<MappedValue<Resource>, MappedValue<IRI>>builder()
                 .subjects(new HashSet<>(subjects))
@@ -360,16 +360,16 @@ class RdfRefObjectMapperTest {
     void givenValidJoinWithTwoParentValuesForTwoSubjectGraphCombos_whenResolveJoins_ThenReturnsFourStatements() {
         // Given
         IRI subject1 = iri("http://foo.bar/subject1");
-        Set<MappedValue<Resource>> subjects = Set.of(RdfMappedValue.of(subject1));
+        List<MappedValue<Resource>> subjects = List.of(RdfMappedValue.of(subject1));
         IRI predicate1 = iri("http://foo.bar/predicate1");
-        Set<MappedValue<IRI>> predicates = Set.of(RdfMappedValue.of(predicate1));
+        List<MappedValue<IRI>> predicates = List.of(RdfMappedValue.of(predicate1));
         IRI graph1 = iri("http://foo.bar/graph1");
-        Set<MappedValue<Resource>> graphs = Set.of(RdfMappedValue.of(graph1));
+        List<MappedValue<Resource>> graphs = List.of(RdfMappedValue.of(graph1));
 
         IRI subject2 = iri("http://foo.bar/subject1");
-        Set<MappedValue<Resource>> subjects2 = Set.of(RdfMappedValue.of(subject2));
+        List<MappedValue<Resource>> subjects2 = List.of(RdfMappedValue.of(subject2));
         IRI graph2 = iri("http://foo.bar/graph2");
-        Set<MappedValue<Resource>> graphs2 = Set.of(RdfMappedValue.of(graph2));
+        List<MappedValue<Resource>> graphs2 = List.of(RdfMappedValue.of(graph2));
 
         var childSideJoin1 = ChildSideJoin.<MappedValue<Resource>, MappedValue<IRI>>builder()
                 .subjects(new HashSet<>(subjects))

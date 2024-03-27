@@ -21,12 +21,10 @@ import io.carml.model.TermMap;
 import io.carml.model.TermType;
 import io.carml.util.IriSafeMaker;
 import io.carml.util.RdfValues;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -67,7 +65,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
     @SuppressWarnings("unchecked")
     public TermGenerator<Resource> getSubjectGenerator(SubjectMap subjectMap) {
         if (isBlankSubjectMap(subjectMap)) {
-            return (expressionEvaluation, datatypeMapper) -> Set.of(RdfMappedValue.of(valueFactory.createBNode()));
+            return (expressionEvaluation, datatypeMapper) -> List.of(RdfMappedValue.of(valueFactory.createBNode()));
         }
 
         validateTermType(subjectMap, Set.of(BLANK_NODE, TermType.IRI));
@@ -160,7 +158,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
 
             return values.stream()
                     .map(value -> RdfMappedValue.of(value, termMap.getTargets()))
-                    .collect(Collectors.toCollection(LinkedHashSet::new));
+                    .toList();
         };
     }
 
@@ -241,7 +239,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
                 .evaluate(String.class);
     }
 
-    private Set<MappedValue<Value>> generateTerms(
+    private List<MappedValue<Value>> generateTerms(
             List<Object> values,
             TermMap termMap,
             IRI mappedDatatype,
@@ -251,11 +249,11 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
             case IRI -> values.stream()
                     .map(value -> CanonicalRdfLexicalForm.get().apply(value, mappedDatatype))
                     .map(lexicalForm -> generateIriTerm(lexicalForm, termMap))
-                    .collect(Collectors.toCollection(LinkedHashSet::new));
+                    .toList();
             case BLANK_NODE -> values.stream()
                     .map(value -> CanonicalRdfLexicalForm.get().apply(value, mappedDatatype))
                     .map(lexicalForm -> generateBNodeTerm(lexicalForm, termMap))
-                    .collect(Collectors.toCollection(LinkedHashSet::new));
+                    .toList();
             case LITERAL -> generateLiteralTerms(values, termMap, mappedDatatype, overrideDatatypes, languageTags);
         };
     }
@@ -284,7 +282,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
         return lexicalForm.replaceAll("[^a-zA-Z_0-9-]+", "");
     }
 
-    private Set<MappedValue<Value>> generateLiteralTerms(
+    private List<MappedValue<Value>> generateLiteralTerms(
             List<Object> values,
             TermMap termMap,
             IRI mappedDatatype,
@@ -297,7 +295,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
                             .map(lexicalForm -> valueFactory.createLiteral(lexicalForm, languageTag))
                             .map(Value.class::cast))
                     .map(value -> RdfMappedValue.of(value, termMap.getTargets()))
-                    .collect(Collectors.toCollection(LinkedHashSet::new));
+                    .toList();
         }
 
         if (!overrideDatatypes.isEmpty()) {
@@ -313,16 +311,16 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
                 .map(valueFactory::createLiteral)
                 .map(Value.class::cast)
                 .map(value -> RdfMappedValue.of(value, termMap.getTargets()))
-                .collect(Collectors.toCollection(LinkedHashSet::new));
+                .toList();
     }
 
-    private Set<MappedValue<Value>> generateDatatypedLiterals(
+    private List<MappedValue<Value>> generateDatatypedLiterals(
             List<Object> values, TermMap termMap, List<IRI> datatypes) {
         return datatypes.stream()
                 .flatMap(datatype -> values.stream()
                         .map(value -> CanonicalRdfLexicalForm.get().apply(value, datatype))
                         .map(lexicalForm -> (Value) valueFactory.createLiteral(lexicalForm, datatype)))
                 .map(value -> RdfMappedValue.of(value, termMap.getTargets()))
-                .collect(Collectors.toCollection(LinkedHashSet::new));
+                .toList();
     }
 }

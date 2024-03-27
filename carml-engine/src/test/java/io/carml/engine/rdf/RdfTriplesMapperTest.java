@@ -259,7 +259,7 @@ class RdfTriplesMapperTest {
         // Given
         var subject = iri("http://foo.bar/subject");
         MappedValue<Resource> mappedSubject = RdfMappedValue.of(subject);
-        when(subjectGenerator.apply(any(), any())).thenReturn(Set.of(mappedSubject));
+        when(subjectGenerator.apply(any(), any())).thenReturn(List.of(mappedSubject));
         when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
         IRI class1 = iri("http://foo.bar/class1");
         when(subjectMap.getClasses()).thenReturn(Set.of(class1));
@@ -288,7 +288,7 @@ class RdfTriplesMapperTest {
     @Test
     void givenSubjectMapThatReturnsNothing_whenMap_thenReturnEmptyFlux() {
         // Given
-        when(subjectGenerator.apply(any(), any())).thenReturn(Set.of());
+        when(subjectGenerator.apply(any(), any())).thenReturn(List.of());
 
         var rdfMapperConfig = RdfMapperConfig.builder()
                 .valueFactorySupplier(Values::getValueFactory)
@@ -311,30 +311,30 @@ class RdfTriplesMapperTest {
     void givenSubjectMapAndPom_whenMap_thenReturnStatements() {
         // Given
         IRI subject1 = iri("http://foo.bar/subject1");
-        when(subjectGenerator.apply(any(), any())).thenReturn(Set.of(RdfMappedValue.of(subject1)));
+        when(subjectGenerator.apply(any(), any())).thenReturn(List.of(RdfMappedValue.of(subject1)));
         when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
 
         when(subjectMap.getGraphMaps()).thenReturn(Set.of(graphMap1));
         when(rdfTermGeneratorFactory.getGraphGenerator(graphMap1)).thenReturn(graphGenerator1);
         IRI subjectGraph1 = iri("http://foo.bar/subjectGraph1");
         when(graphGenerator1.apply(any(), any()))
-                .thenReturn(Set.of(RdfMappedValue.of(subjectGraph1), RdfMappedValue.of(Rml.defaultGraph)));
+                .thenReturn(List.of(RdfMappedValue.of(subjectGraph1), RdfMappedValue.of(Rml.defaultGraph)));
 
         when(pom.getPredicateMaps()).thenReturn(Set.of(predicateMap1));
         when(rdfTermGeneratorFactory.getPredicateGenerator(predicateMap1)).thenReturn(predicateGenerator1);
         IRI predicate1 = iri("http://foo.bar/predicate1");
-        when(predicateGenerator1.apply(any(), any())).thenReturn(Set.of(RdfMappedValue.of(predicate1)));
+        when(predicateGenerator1.apply(any(), any())).thenReturn(List.of(RdfMappedValue.of(predicate1)));
 
         when(pom.getObjectMaps()).thenReturn(Set.of(objectMap1));
         when(rdfTermGeneratorFactory.getObjectGenerator(objectMap1)).thenReturn(objectGenerator1);
         Value object1 = getValueFactory().createLiteral("object1");
-        when(objectGenerator1.apply(any(), any())).thenReturn(Set.of(RdfMappedValue.of(object1)));
+        when(objectGenerator1.apply(any(), any())).thenReturn(List.of(RdfMappedValue.of(object1)));
 
         when(pom.getGraphMaps()).thenReturn(Set.of(graphMap2));
         when(rdfTermGeneratorFactory.getGraphGenerator(graphMap2)).thenReturn(graphGenerator2);
         IRI graph1 = iri("http://foo.bar/graph1");
         when(graphGenerator2.apply(any(), any()))
-                .thenReturn(Set.of(RdfMappedValue.of(graph1), RdfMappedValue.of(Rml.defaultGraph)));
+                .thenReturn(List.of(RdfMappedValue.of(graph1), RdfMappedValue.of(Rml.defaultGraph)));
 
         var rdfMapperConfig = RdfMapperConfig.builder()
                 .valueFactorySupplier(Values::getValueFactory)
@@ -370,38 +370,38 @@ class RdfTriplesMapperTest {
         when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap2)).thenReturn(subjectGenerator2);
 
         IRI subject1 = iri("http://foo.bar/subject1");
-        when(subjectGenerator.apply(any(), any())).thenReturn(Set.of(RdfMappedValue.of(subject1)));
+        when(subjectGenerator.apply(any(), any())).thenReturn(List.of(RdfMappedValue.of(subject1)));
         when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
 
         IRI subject2 = iri("http://foo.bar/subject2");
-        when(subjectGenerator2.apply(any(), any())).thenReturn(Set.of(RdfMappedValue.of(subject2)));
+        when(subjectGenerator2.apply(any(), any())).thenReturn(List.of(RdfMappedValue.of(subject2)));
         when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap2)).thenReturn(subjectGenerator2);
 
         when(subjectMap.getGraphMaps()).thenReturn(Set.of(graphMap1));
         when(rdfTermGeneratorFactory.getGraphGenerator(graphMap1)).thenReturn(graphGenerator1);
         IRI subjectGraph1 = iri("http://foo.bar/subjectGraph1");
         when(graphGenerator1.apply(any(), any()))
-                .thenReturn(Set.of(RdfMappedValue.of(subjectGraph1), RdfMappedValue.of(Rml.defaultGraph)));
+                .thenReturn(List.of(RdfMappedValue.of(subjectGraph1), RdfMappedValue.of(Rml.defaultGraph)));
 
         when(subjectMap2.getGraphMaps()).thenReturn(Set.of(graphMap2));
         when(rdfTermGeneratorFactory.getGraphGenerator(graphMap2)).thenReturn(graphGenerator2);
         IRI subjectGraph2 = iri("http://foo.bar/subjectGraph2");
-        when(graphGenerator2.apply(any(), any())).thenReturn(Set.of(RdfMappedValue.of(subjectGraph2)));
+        when(graphGenerator2.apply(any(), any())).thenReturn(List.of(RdfMappedValue.of(subjectGraph2)));
 
         when(pom.getPredicateMaps()).thenReturn(Set.of(predicateMap1));
         when(rdfTermGeneratorFactory.getPredicateGenerator(predicateMap1)).thenReturn(predicateGenerator1);
         IRI predicate1 = iri("http://foo.bar/predicate1");
-        when(predicateGenerator1.apply(any(), any())).thenReturn(Set.of(RdfMappedValue.of(predicate1)));
+        when(predicateGenerator1.apply(any(), any())).thenReturn(List.of(RdfMappedValue.of(predicate1)));
 
         when(pom.getObjectMaps()).thenReturn(Set.of(objectMap1));
         when(rdfTermGeneratorFactory.getObjectGenerator(objectMap1)).thenReturn(objectGenerator1);
         Value object1 = getValueFactory().createLiteral("object1");
-        when(objectGenerator1.apply(any(), any())).thenReturn(Set.of(RdfMappedValue.of(object1)));
+        when(objectGenerator1.apply(any(), any())).thenReturn(List.of(RdfMappedValue.of(object1)));
 
         when(pom.getGraphMaps()).thenReturn(Set.of(graphMap3));
         when(rdfTermGeneratorFactory.getGraphGenerator(graphMap3)).thenReturn(graphGenerator3);
         IRI graph1 = iri("http://foo.bar/graph1");
-        when(graphGenerator3.apply(any(), any())).thenReturn(Set.of(RdfMappedValue.of(graph1)));
+        when(graphGenerator3.apply(any(), any())).thenReturn(List.of(RdfMappedValue.of(graph1)));
 
         var rdfMapperConfig = RdfMapperConfig.builder()
                 .valueFactorySupplier(Values::getValueFactory)
@@ -439,7 +439,7 @@ class RdfTriplesMapperTest {
         // Given
         var subject1 = iri("http://foo.bar/subject1");
         MappedValue<Resource> mappedSubject1 = RdfMappedValue.of(subject1);
-        when(subjectGenerator.apply(any(), any())).thenReturn(Set.of(mappedSubject1));
+        when(subjectGenerator.apply(any(), any())).thenReturn(List.of(mappedSubject1));
         when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
 
         when(rdfRefObjectMapper1.getRefObjectMap()).thenReturn(refObjectMap1);
@@ -496,9 +496,9 @@ class RdfTriplesMapperTest {
         MappedValue<Resource> mappedSubject3 = RdfMappedValue.of(subject3);
 
         when(subjectGenerator.apply(any(), any()))
-                .thenReturn(Set.of(mappedSubject1))
-                .thenReturn(Set.of(mappedSubject2))
-                .thenReturn(Set.of(mappedSubject3));
+                .thenReturn(List.of(mappedSubject1))
+                .thenReturn(List.of(mappedSubject2))
+                .thenReturn(List.of(mappedSubject3));
         when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
 
         when(rdfRefObjectMapper1.getRefObjectMap()).thenReturn(refObjectMap1);

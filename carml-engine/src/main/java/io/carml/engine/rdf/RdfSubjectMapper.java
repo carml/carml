@@ -3,7 +3,6 @@ package io.carml.engine.rdf;
 import static io.carml.engine.rdf.util.MappedStatements.streamCartesianProductMappedStatements;
 import static io.carml.util.LogUtil.exception;
 import static io.carml.util.LogUtil.log;
-import static java.util.stream.Collectors.toUnmodifiableSet;
 
 import io.carml.engine.MappedValue;
 import io.carml.engine.MappingResult;
@@ -15,6 +14,7 @@ import io.carml.model.SubjectMap;
 import io.carml.model.TriplesMap;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -66,7 +66,7 @@ public class RdfSubjectMapper {
                 .getClasses()
                 .stream()
                 .map(RdfMappedValue::of)
-                .collect(toUnmodifiableSet());
+                .collect(Collectors.toUnmodifiableSet());
 
         return new RdfSubjectMapper(
                 subjectGenerator,
@@ -104,7 +104,13 @@ public class RdfSubjectMapper {
 
     public Result map(ExpressionEvaluation expressionEvaluation, DatatypeMapper datatypeMapper) {
         LOG.debug("Determining subjects ...");
-        var subjects = subjectGenerator.apply(expressionEvaluation, datatypeMapper);
+
+        // graphs to be used when generating statements in predicate object mapper
+        Set<MappedValue<Resource>> graphs = graphGenerators.stream()
+                .flatMap(graph -> graph.apply(expressionEvaluation, datatypeMapper).stream())
+                .collect(Collectors.toUnmodifiableSet());
+
+        var subjects = Set.copyOf(subjectGenerator.apply(expressionEvaluation, datatypeMapper));
 
         LOG.debug("Determined subjects {}", subjects);
 
@@ -112,26 +118,22 @@ public class RdfSubjectMapper {
             return resultOf(subjects, Set.of(), Flux.empty());
         }
 
-        // graphs to be used when generating statements in predicate object mapper
-        Set<MappedValue<Resource>> graphs = graphGenerators.stream()
-                .flatMap(graph -> graph.apply(expressionEvaluation, datatypeMapper).stream())
-                .collect(toUnmodifiableSet());
-
         Flux<MappingResult<Statement>> typeStatements =
                 classes.isEmpty() ? Flux.empty() : mapTypeStatements(subjects, graphs);
 
         var collectionResults = Flux.fromStream(Stream.concat(subjects.stream(), graphs.stream())
-                .map(this::getCollectionResults)
+                .map(result -> getCollectionResults(result, graphs))
                 .filter(Objects::nonNull));
 
         return resultOf(subjects, graphs, Flux.merge(typeStatements, collectionResults));
     }
 
-    private MappingResult<Statement> getCollectionResults(MappedValue<? extends Value> mappedValue) {
+    private MappingResult<Statement> getCollectionResults(
+            MappedValue<? extends Value> mappedValue, Set<MappedValue<Resource>> graphs) {
         if (mappedValue instanceof RdfList<? extends Value> rdfList) {
-            return rdfList;
+            return graphs.isEmpty() ? rdfList : rdfList.withGraphs(graphs);
         } else if (mappedValue instanceof RdfContainer<? extends Value> rdfContainer) {
-            return rdfContainer;
+            return graphs.isEmpty() ? rdfContainer : rdfContainer.withGraphs(graphs);
         } else {
             return null;
         }

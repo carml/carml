@@ -2,6 +2,7 @@ package io.carml.engine.rdf;
 
 import static io.carml.util.LogUtil.exception;
 import static io.carml.vocab.Rdf.Rr;
+import static java.util.stream.Collectors.toUnmodifiableSet;
 
 import io.carml.engine.MappedValue;
 import io.carml.engine.MappingResult;
@@ -29,7 +30,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -93,7 +93,7 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
         if (triplesMap.getLogicalTable() != null) {
             actionableIncomingRefObjectMappers = incomingRefObjectMappers.stream()
                     .filter(rom -> rom.getTriplesMap().getLogicalTable() != null)
-                    .collect(Collectors.toUnmodifiableSet());
+                    .collect(toUnmodifiableSet());
         } else {
             actionableIncomingRefObjectMappers = incomingRefObjectMappers;
         }
@@ -112,7 +112,7 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
 
     static Set<TermGenerator<Resource>> createGraphGenerators(
             Set<GraphMap> graphMaps, RdfTermGeneratorFactory termGeneratorFactory) {
-        return graphMaps.stream().map(termGeneratorFactory::getGraphGenerator).collect(Collectors.toUnmodifiableSet());
+        return graphMaps.stream().map(termGeneratorFactory::getGraphGenerator).collect(toUnmodifiableSet());
     }
 
     @SuppressWarnings("java:S3864")
@@ -127,7 +127,7 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
         return subjectMaps.stream()
                 .peek(sm -> LOG.debug("Creating mapper for SubjectMap {}", sm.getResourceName()))
                 .map(sm -> RdfSubjectMapper.of(sm, triplesMap, rdfMapperConfig))
-                .collect(Collectors.toUnmodifiableSet());
+                .collect(toUnmodifiableSet());
     }
 
     @SuppressWarnings("java:S3864")
@@ -136,7 +136,7 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
         return triplesMap.getPredicateObjectMaps().stream()
                 .peek(pom -> LOG.debug("Creating mapper for PredicateObjectMap {}", pom.getResourceName()))
                 .map(pom -> RdfPredicateObjectMapper.of(pom, triplesMap, refObjectMappers, rdfMapperConfig))
-                .collect(Collectors.toUnmodifiableSet());
+                .collect(toUnmodifiableSet());
     }
 
     @Override
@@ -152,12 +152,12 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
     Set<RefObjectMapper<Statement>> getRefObjectMappers() {
         return predicateObjectMappers.stream()
                 .flatMap(pom -> pom.getRdfRefObjectMappers().stream())
-                .collect(Collectors.toUnmodifiableSet());
+                .collect(toUnmodifiableSet());
     }
 
     Set<RefObjectMapper<Statement>> getConnectedRefObjectMappers() {
         return Stream.concat(getRefObjectMappers().stream(), incomingRefObjectMappers.stream())
-                .collect(Collectors.toUnmodifiableSet());
+                .collect(toUnmodifiableSet());
     }
 
     @Override
@@ -182,12 +182,12 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
 
         var subjectMapperResults = subjectMappers.stream()
                 .map(subjectMapper -> subjectMapper.map(expressionEvaluation, datatypeMapper))
-                .collect(Collectors.toUnmodifiableSet());
+                .collect(toUnmodifiableSet());
 
         var subjects = subjectMapperResults.stream()
                 .map(RdfSubjectMapper.Result::getSubjects)
                 .flatMap(Set::stream)
-                .collect(Collectors.toUnmodifiableSet());
+                .collect(toUnmodifiableSet());
 
         if (subjects.isEmpty()) {
             return Flux.empty();
@@ -197,7 +197,7 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
         List<Flux<MappingResult<Statement>>> subjectStatementFluxes = new ArrayList<>();
 
         for (RdfSubjectMapper.Result subjectMapperResult : subjectMapperResults) {
-            Set<MappedValue<Resource>> resultSubjects = subjectMapperResult.getSubjects();
+            var resultSubjects = subjectMapperResult.getSubjects();
             if (!resultSubjects.isEmpty()) {
                 subjectsAndSubjectGraphs.put(resultSubjects, subjectMapperResult.getGraphs());
                 subjectStatementFluxes.add(subjectMapperResult.getTypeStatements());

@@ -35,6 +35,7 @@ public class MappedStatements {
             throw new ModelsException("Could not create cartesian product statements because at least one of subjects,"
                     + " predicates or objects was empty.");
         }
+
         if (mappedGraphs.isEmpty()) {
             return Sets.cartesianProduct(mappedSubjects, mappedPredicates, mappedObjects).stream()
                     .map(element -> createMappedStatement(

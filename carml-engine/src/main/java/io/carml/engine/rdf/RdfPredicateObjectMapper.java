@@ -17,6 +17,7 @@ import io.carml.model.ObjectMap;
 import io.carml.model.PredicateObjectMap;
 import io.carml.model.RefObjectMap;
 import io.carml.model.TriplesMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -225,7 +226,7 @@ public class RdfPredicateObjectMapper {
             Map<Set<MappedValue<Resource>>, Set<MappedValue<Resource>>> subjectsAndSubjectGraphs) {
         Set<MappedValue<IRI>> predicates = predicateGenerators.stream()
                 .map(g -> g.apply(expressionEvaluation, datatypeMapper))
-                .flatMap(Set::stream)
+                .flatMap(List::stream)
                 .collect(toUnmodifiableSet());
 
         if (predicates.isEmpty()) {
@@ -234,15 +235,14 @@ public class RdfPredicateObjectMapper {
 
         Set<MappedValue<? extends Value>> objects = objectGenerators.stream()
                 .map(g -> g.apply(expressionEvaluation, datatypeMapper))
-                .flatMap(Set::stream)
+                .flatMap(List::stream)
                 .collect(toUnmodifiableSet());
 
         Set<MappedValue<Resource>> pomGraphs = graphGenerators.stream()
                 .flatMap(graphGenerator -> graphGenerator.apply(expressionEvaluation, datatypeMapper).stream())
                 .collect(toUnmodifiableSet());
 
-        Map<Set<MappedValue<Resource>>, Set<MappedValue<Resource>>> subjectsAndAllGraphs =
-                addPomGraphsToSubjectsAndSubjectGraphs(subjectsAndSubjectGraphs, pomGraphs);
+        var subjectsAndAllGraphs = addPomGraphsToSubjectsAndSubjectGraphs(subjectsAndSubjectGraphs, pomGraphs);
 
         // process RefObjectMaps for resolving later
         rdfRefObjectMappers.forEach(
@@ -265,7 +265,7 @@ public class RdfPredicateObjectMapper {
 
         var collectionResults = Flux.fromStream(Stream.of(predicates, objects, pomGraphs)
                 .flatMap(Set::stream)
-                .map(this::getCollectionResults)
+                .map(mappedValue -> getCollectionResults(mappedValue, pomGraphs))
                 .filter(Objects::nonNull));
 
         statementsPerGraphSet.add(collectionResults);
@@ -273,11 +273,12 @@ public class RdfPredicateObjectMapper {
         return Flux.merge(statementsPerGraphSet);
     }
 
-    private MappingResult<Statement> getCollectionResults(MappedValue<? extends Value> mappedValue) {
+    private MappingResult<Statement> getCollectionResults(
+            MappedValue<? extends Value> mappedValue, Set<MappedValue<Resource>> graphs) {
         if (mappedValue instanceof RdfList<? extends Value> rdfList) {
-            return rdfList;
+            return graphs.isEmpty() ? rdfList : rdfList.withGraphs(graphs);
         } else if (mappedValue instanceof RdfContainer<? extends Value> rdfContainer) {
-            return rdfContainer;
+            return graphs.isEmpty() ? rdfContainer : rdfContainer.withGraphs(graphs);
         } else {
             return null;
         }

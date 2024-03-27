@@ -1,5 +1,8 @@
 package io.carml.util;
 
+import static org.eclipse.rdf4j.model.util.Statements.statement;
+import static org.eclipse.rdf4j.model.util.Values.getValueFactory;
+
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,8 +27,6 @@ import org.eclipse.rdf4j.rio.helpers.BasicParserSettings;
 import org.eclipse.rdf4j.rio.helpers.ParseErrorLogger;
 
 public final class Models {
-
-    private static final ValueFactory VALUE_FACTORY = SimpleValueFactory.getInstance();
 
     private Models() {}
 
@@ -71,7 +72,8 @@ public final class Models {
 
     public static Stream<Statement> streamCartesianProductStatements(
             Set<Resource> subjects, Set<IRI> predicates, Set<? extends Value> objects, Set<Resource> graphs) {
-        return streamCartesianProductStatements(subjects, predicates, objects, graphs, graph -> graph, VALUE_FACTORY);
+        return streamCartesianProductStatements(
+                subjects, predicates, objects, graphs, graph -> graph, getValueFactory());
     }
 
     @SafeVarargs
@@ -112,7 +114,7 @@ public final class Models {
 
     public static Statement createStatement(
             @NonNull Value subjectValue, @NonNull Value predicateValue, @NonNull Value object, Value graphValue) {
-        return createStatement(subjectValue, predicateValue, object, graphValue, context -> context, VALUE_FACTORY);
+        return createStatement(subjectValue, predicateValue, object, graphValue, context -> context, getValueFactory());
     }
 
     @SafeVarargs
@@ -162,5 +164,13 @@ public final class Models {
         }
 
         return valueFactory.createStatement(subject, predicate, object, graph);
+    }
+
+    public static Model addGraphs(Model model, Set<Resource> graphs) {
+        return graphs.stream()
+                .flatMap(graph -> model.stream()
+                        .map(statement -> statement(
+                                statement.getSubject(), statement.getPredicate(), statement.getObject(), graph)))
+                .collect(ModelCollector.toModel());
     }
 }

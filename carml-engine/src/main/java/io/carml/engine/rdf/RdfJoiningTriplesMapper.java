@@ -1,6 +1,7 @@
 package io.carml.engine.rdf;
 
 import static io.carml.util.LogUtil.exception;
+import static java.util.stream.Collectors.toUnmodifiableSet;
 
 import io.carml.engine.MappedValue;
 import io.carml.engine.MappingResult;
@@ -119,12 +120,12 @@ public class RdfJoiningTriplesMapper<R> implements TriplesMapper<Statement> {
             ExpressionEvaluation expressionEvaluation, DatatypeMapper datatypeMapper) {
         var subjectMapperResults = subjectMappers.stream()
                 .map(subjectMapper -> subjectMapper.map(expressionEvaluation, datatypeMapper))
-                .collect(Collectors.toUnmodifiableSet());
+                .collect(toUnmodifiableSet());
 
         var subjects = subjectMapperResults.stream()
                 .map(RdfSubjectMapper.Result::getSubjects)
                 .flatMap(Set::stream)
-                .collect(Collectors.toUnmodifiableSet());
+                .collect(toUnmodifiableSet());
 
         if (subjects.isEmpty()) {
             return Flux.empty();
@@ -134,7 +135,7 @@ public class RdfJoiningTriplesMapper<R> implements TriplesMapper<Statement> {
         List<Flux<MappingResult<Statement>>> subjectStatementFluxes = new ArrayList<>();
 
         for (RdfSubjectMapper.Result subjectMapperResult : subjectMapperResults) {
-            Set<MappedValue<Resource>> resultSubjects = subjectMapperResult.getSubjects();
+            var resultSubjects = subjectMapperResult.getSubjects();
             if (!resultSubjects.isEmpty()) {
                 subjectsAndSubjectGraphs.put(resultSubjects, subjectMapperResult.getGraphs());
                 subjectStatementFluxes.add(subjectMapperResult.getTypeStatements());

@@ -11,11 +11,10 @@ import io.carml.model.GatherMap;
 import io.carml.vocab.Rdf.Rml;
 import java.util.Collection;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
@@ -26,7 +25,7 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 
 @AllArgsConstructor(staticName = "of")
 public class RdfListOrContainerGenerator
-        implements BiFunction<ExpressionEvaluation, DatatypeMapper, Set<MappedValue<Value>>> {
+        implements BiFunction<ExpressionEvaluation, DatatypeMapper, List<MappedValue<Value>>> {
 
     private GatherMap gatherMap;
 
@@ -35,7 +34,7 @@ public class RdfListOrContainerGenerator
     private RdfTermGeneratorFactory rdfTermGeneratorFactory;
 
     @Override
-    public Set<MappedValue<Value>> apply(ExpressionEvaluation expressionEvaluation, DatatypeMapper datatypeMapper) {
+    public List<MappedValue<Value>> apply(ExpressionEvaluation expressionEvaluation, DatatypeMapper datatypeMapper) {
         var headGenerator = rdfTermGeneratorFactory.getSubjectGenerator(gatherMap.asSubjectMap());
         var strategy = gatherMap.getStrategy();
 
@@ -43,8 +42,8 @@ public class RdfListOrContainerGenerator
             var appendedGatheredTerms = gatherMap.getGathers().stream()
                     .map(termMap -> rdfTermGeneratorFactory.getObjectGenerator(termMap))
                     .map(termGenerator -> termGenerator.apply(expressionEvaluation, datatypeMapper))
-                    .flatMap(Set::stream)
-                    .collect(Collectors.toCollection(LinkedHashSet::new));
+                    .flatMap(List::stream)
+                    .toList();
 
             if (appendedGatheredTerms.isEmpty()) {
                 return handleEmpty();
@@ -53,12 +52,13 @@ public class RdfListOrContainerGenerator
             return headGenerator.apply(expressionEvaluation, datatypeMapper).stream()
                     .map(head -> createRdfListOrContainer(head, appendedGatheredTerms))
                     .filter(Objects::nonNull)
-                    .collect(Collectors.toCollection(LinkedHashSet::new));
+                    .toList();
         }
 
         var gatheredTerms = gatherMap.getGathers().stream()
                 .map(termMap -> rdfTermGeneratorFactory.getObjectGenerator(termMap))
                 .map(termGenerator -> termGenerator.apply(expressionEvaluation, datatypeMapper))
+                .map(LinkedHashSet::new) // TODO https://github.com/kg-construct/rml-core/issues/121
                 .toList();
 
         if (gatheredTerms.isEmpty()) {
@@ -68,14 +68,14 @@ public class RdfListOrContainerGenerator
         return Sets.cartesianProduct(gatheredTerms).stream()
                 .flatMap(cartesianProductItem -> headGenerator.apply(expressionEvaluation, datatypeMapper).stream()
                         .map(head -> createRdfListOrContainer(head, cartesianProductItem)))
-                .collect(Collectors.toCollection(LinkedHashSet::new));
+                .toList();
     }
 
-    private Set<MappedValue<Value>> handleEmpty() {
+    private List<MappedValue<Value>> handleEmpty() {
         if (gatherMap.getAllowEmptyListAndContainer()) {
-            return Set.of(RdfMappedValue.of(RDF.NIL, gatherMap.getTargets()));
+            return List.of(RdfMappedValue.of(RDF.NIL, gatherMap.getTargets()));
         } else {
-            return Set.of();
+            return List.of();
         }
     }
 
