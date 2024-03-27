@@ -2,7 +2,10 @@
 name: Deploy snapshot
 
 # Controls when the workflow will run
-on: workflow_dispatch
+on:
+  push:
+    branches:
+      - rml-cg
 
 jobs:
   release:
