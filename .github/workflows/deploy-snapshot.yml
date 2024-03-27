@@ -8,7 +8,7 @@ on:
       - rml-cg
 
 jobs:
-  release:
+  deploy-snapshot:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
