@@ -209,7 +209,21 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
     private TermGenerator<? extends Value> getFunctionValueGenerator(
             TermMap termMap, TermGenerator<? extends Value> generateOverrideDatatypes, LanguageMap languageMap) {
         return (expressionEvaluation, datatypeMapper) -> {
-            throw new TermGeneratorFactoryException("FunctionValue is not supported yet");
+            var functionExecutionValues = RdfExpressionMapEvaluation.builder()
+                    .expressionMap(termMap)
+                    .expressionEvaluation(expressionEvaluation)
+                    .datatypeMapper(datatypeMapper)
+                    .functions(rdfTermGeneratorConfig.getFunctions())
+                    .normalizationForm(rdfTermGeneratorConfig.getNormalizationForm())
+                    .rdfTermGeneratorFactory(this)
+                    .build()
+                    .evaluate(Object.class);
+
+            var overrideDatatypes =
+                    getOverrideDatatypes(generateOverrideDatatypes, expressionEvaluation, datatypeMapper);
+            var languageTags = getLanguageTags(languageMap, expressionEvaluation, datatypeMapper);
+
+            return generateTerms(functionExecutionValues, termMap, null, overrideDatatypes, languageTags);
         };
     }
 

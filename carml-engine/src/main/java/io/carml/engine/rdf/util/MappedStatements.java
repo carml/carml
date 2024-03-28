@@ -1,5 +1,7 @@
 package io.carml.engine.rdf.util;
 
+import static org.eclipse.rdf4j.model.util.Values.getValueFactory;
+
 import com.google.common.collect.Sets;
 import io.carml.engine.MappedValue;
 import io.carml.engine.MappingResult;
@@ -21,6 +23,15 @@ import org.eclipse.rdf4j.model.ValueFactory;
 
 @UtilityClass
 public class MappedStatements {
+
+    public static Stream<MappingResult<Statement>> streamCartesianProductMappedStatements(
+            Set<MappedValue<Resource>> mappedSubjects,
+            Set<MappedValue<IRI>> mappedPredicates,
+            Set<MappedValue<? extends Value>> mappedObjects,
+            Set<MappedValue<Resource>> mappedGraphs) {
+        return streamCartesianProductMappedStatements(
+                mappedSubjects, mappedPredicates, mappedObjects, mappedGraphs, graph -> graph, getValueFactory());
+    }
 
     @SafeVarargs
     public static Stream<MappingResult<Statement>> streamCartesianProductMappedStatements(

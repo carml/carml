@@ -5,12 +5,14 @@ import io.carml.model.Target;
 import java.util.Set;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.Singular;
 import lombok.ToString;
 import org.eclipse.rdf4j.model.Statement;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
+@Getter
 @Builder
 @EqualsAndHashCode
 @ToString
