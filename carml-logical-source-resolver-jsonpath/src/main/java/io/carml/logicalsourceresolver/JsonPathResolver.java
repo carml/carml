@@ -41,6 +41,7 @@ import org.jsfr.json.NonBlockingParser;
 import org.jsfr.json.SurfingConfiguration;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -96,6 +97,23 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
             } else {
                 return getObjectFlux(resolvedInputStream, charset, logicalSources);
             }
+        } else if (resolved instanceof Mono<?> mono) {
+            return mono.flatMapMany(resolvedMono -> {
+                if (resolvedMono instanceof InputStream resolvedInputStreamMono) {
+                    var charset = Encodings.resolveCharset(
+                                    resolvedSource.getRmlSource().getEncoding())
+                            .orElse(UTF_8);
+
+                    if (charset == UTF_8) {
+                        return getObjectFlux(resolvedInputStreamMono, logicalSources);
+                    } else {
+                        return getObjectFlux(resolvedInputStreamMono, charset, logicalSources);
+                    }
+                } else {
+                    throw new LogicalSourceResolverException(String.format(
+                            "Unsupported source object provided for logical sources:%n%s", exception(logicalSources)));
+                }
+            });
         } else if (resolved instanceof JsonNode resolvedJsonNode) {
             return getObjectFlux(resolvedJsonNode, logicalSources);
         } else {

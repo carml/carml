@@ -1,27 +1,22 @@
 package io.carml.logicalsourceresolver.sourceresolver;
 
 import static io.carml.util.LogUtil.exception;
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 import io.carml.model.DcatDistribution;
 import io.carml.model.Source;
 import io.carml.model.impl.CarmlRelativePathSource;
-import java.io.IOException;
+import io.netty.handler.codec.http.HttpMethod;
+import java.io.SequenceInputStream;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Paths;
 import java.util.Optional;
 import lombok.AllArgsConstructor;
-import org.apache.commons.io.IOUtils;
-import org.apache.hc.client5.http.classic.methods.HttpGet;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.client5.http.impl.classic.HttpClients;
+import reactor.netty.http.client.HttpClient;
 
 @AllArgsConstructor(staticName = "of")
 public class DcatDistributionResolver implements SourceResolver {
-
-    private final CloseableHttpClient httpClient = HttpClients.createDefault();
 
     @Override
     public boolean supportsSource(Source source) {
@@ -49,20 +44,18 @@ public class DcatDistributionResolver implements SourceResolver {
                 return FileResolver.getInstance()
                         .apply(CarmlRelativePathSource.of(Paths.get(url.toURI()).toString()));
             } else if (url.getProtocol().equals("http") || url.getProtocol().equals("https")) {
-                return httpClient.execute(new HttpGet(downloadUrl), response -> {
-                    if (isSuccessful(response.getCode())) {
-                        var inputStream = response.getEntity().getContent();
-                        // TODO: temporary hack. We need to redesign source resolver.
-                        var charset = Encodings.resolveCharset(dcatDistribution.getEncoding())
-                                .orElse(UTF_8);
-                        var tmpString = IOUtils.toString(inputStream, charset);
-                        var copyStream = IOUtils.toInputStream(tmpString, charset);
-                        return Optional.of(copyStream);
-                    } else {
-                        throw new SourceResolverException(
-                                String.format("Failed to download source%n%s", exception(dcatDistribution)));
-                    }
-                });
+                return Optional.of(HttpClient.create()
+                        .followRedirect(true)
+                        .request(HttpMethod.GET)
+                        .uri(url.toURI())
+                        .responseContent()
+                        .asInputStream()
+                        .reduce(SequenceInputStream::new)
+                        .doOnError(throwable -> {
+                            throw new SourceResolverException(
+                                    String.format("Failed to download source%n%s", exception(dcatDistribution)),
+                                    throwable);
+                        }));
             } else {
                 throw new SourceResolverException(String.format(
                         "Unsupported protocol %s for source%n%s", url.getProtocol(), exception(dcatDistribution)));
@@ -72,13 +65,6 @@ public class DcatDistributionResolver implements SourceResolver {
                     String.format(
                             "Encountered malformed URL %s for source%n%s", downloadUrl, exception(dcatDistribution)),
                     urlException);
-        } catch (IOException ioException) {
-            throw new SourceResolverException(
-                    String.format("Failed to download source%n%s", exception(dcatDistribution)), ioException);
         }
-    }
-
-    private boolean isSuccessful(int statusCode) {
-        return statusCode >= 200 && statusCode < 300;
     }
 }
