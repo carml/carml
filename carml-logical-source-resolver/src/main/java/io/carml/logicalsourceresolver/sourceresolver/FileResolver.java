@@ -16,12 +16,6 @@ public class FileResolver implements SourceResolver {
 
     private final Path basePath;
 
-    private static final FileResolver DEFAULT = new FileResolver(null);
-
-    public static FileResolver getInstance() {
-        return DEFAULT;
-    }
-
     public static FileResolver of() {
         return of(null);
     }
@@ -44,7 +38,12 @@ public class FileResolver implements SourceResolver {
 
             if (Files.exists(path)) {
                 try {
-                    return Files.newInputStream(path);
+                    var inputStream = Files.newInputStream(path);
+                    if (source.getCompression() != null) {
+                        return Decompressor.getInstance().apply(inputStream, source.getCompression());
+                    } else {
+                        return inputStream;
+                    }
                 } catch (IOException e) {
                     throw new SourceResolverException(String.format("Could not resolve file path %s", path));
                 }

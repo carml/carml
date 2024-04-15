@@ -4,7 +4,7 @@
 @base <http://example.com/rules/> .
 
 <#DCATSourceAccess> a rml:Source, dcat:Distribution;
-  dcat:downloadURL <http://w3id.org/rml/resources/Friends.xml>;
+  dcat:downloadURL <http://w3id.org/rml/resources/rml-io/RMLSTC0007d/Friends.xml>;
 .
 
 <#TriplesMap> a rml:TriplesMap;

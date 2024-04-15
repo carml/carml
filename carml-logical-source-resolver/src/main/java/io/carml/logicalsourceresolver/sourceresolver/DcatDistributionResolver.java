@@ -41,7 +41,7 @@ public class DcatDistributionResolver implements SourceResolver {
         try {
             var url = new URL(downloadUrl);
             if (url.getProtocol().equals("file")) {
-                return FileResolver.getInstance()
+                return FileResolver.of()
                         .apply(CarmlRelativePathSource.of(Paths.get(url.toURI()).toString()));
             } else if (url.getProtocol().equals("http") || url.getProtocol().equals("https")) {
                 return Optional.of(HttpClient.create()
@@ -51,6 +51,8 @@ public class DcatDistributionResolver implements SourceResolver {
                         .responseContent()
                         .asInputStream()
                         .reduce(SequenceInputStream::new)
+                        .map(inputStream ->
+                                Decompressor.getInstance().apply(inputStream, dcatDistribution.getCompression()))
                         .doOnError(throwable -> {
                             throw new SourceResolverException(
                                     String.format("Failed to download source%n%s", exception(dcatDistribution)),

@@ -175,6 +175,16 @@ public class Rdf {
 
         public static final IRI compression = iri("compression");
 
+        public static final IRI none = iri("none");
+
+        public static final IRI gzip = iri("gzip");
+
+        public static final IRI zip = iri("zip");
+
+        public static final IRI tarxz = iri("tarxz");
+
+        public static final IRI targz = iri("targz");
+
         public static final IRI nullPattern = iri("nullPattern");
 
         public static final IRI strategy = iri("strategy");

@@ -158,6 +158,16 @@ public class Rml {
 
     public static final String compression = NAMESPACE + "compression";
 
+    public static final String none = NAMESPACE + "none";
+
+    public static final String gzip = NAMESPACE + "gzip";
+
+    public static final String zip = NAMESPACE + "zip";
+
+    public static final String tarxz = NAMESPACE + "tarxz";
+
+    public static final String targz = NAMESPACE + "targz";
+
     public static final String encoding = NAMESPACE + "encoding";
 
     public static final String NULL = NAMESPACE + "null";

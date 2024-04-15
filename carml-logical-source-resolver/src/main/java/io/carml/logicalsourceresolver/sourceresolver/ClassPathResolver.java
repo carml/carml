@@ -31,9 +31,15 @@ public class ClassPathResolver implements SourceResolver {
         return unpackFileSource(source).map(relativePath -> {
             String sourceName = basePath.isEmpty() ? relativePath : String.format("%s/%s", basePath, relativePath);
 
-            return loadingClass == null
+            var inputStream = loadingClass == null
                     ? ClassPathResolver.class.getClassLoader().getResourceAsStream(sourceName)
                     : loadingClass.getResourceAsStream(sourceName);
+
+            if (source.getCompression() != null) {
+                return Decompressor.getInstance().apply(inputStream, source.getCompression());
+            } else {
+                return inputStream;
+            }
         });
     }
 

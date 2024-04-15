@@ -42,3 +42,33 @@
     ];
   rmltest:mappingDocument "mapping.ttl";
   rmltest:output "default.nq" .
+
+<RMLSTC0002c> a test:TestCase;
+  dcterms:identifier "RMLSTC0002c";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "Friends.json.zip";
+      rmltest:inputType "JSON"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLSTC0002d> a test:TestCase;
+  dcterms:identifier "RMLSTC0002d";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "Friends.tar.xz";
+      rmltest:inputType "JSON"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLSTC0002e> a test:TestCase;
+  dcterms:identifier "RMLSTC0002e";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "Friends.tar.gz";
+      rmltest:inputType "JSON"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .

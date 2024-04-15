@@ -4,7 +4,7 @@
 @base <http://example.com/rules/> .
 
 <#DCATSourceAccess> a rml:Source, dcat:Distribution;
-  dcat:downloadURL <http://w3id.org/rml/resources/Friends-UTF16.json>;
+  dcat:downloadURL <http://w3id.org/rml/resources/rml-io/RMLSTC0001b/Friends-UTF16.json>;
   rml:encoding rml:UTF-16;
 .
 
