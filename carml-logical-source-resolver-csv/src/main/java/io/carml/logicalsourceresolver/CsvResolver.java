@@ -68,8 +68,7 @@ public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
 
         var resolved = resolvedSource.getResolved().get();
 
-        var charset = Encodings.resolveCharset(
-                        resolvedSource.getRmlSource().getEncoding())
+        var charset = Encodings.resolveCharset(resolvedSource.getRmlSource().getEncoding())
                 .orElse(UTF_8);
 
         if (resolved instanceof InputStream resolvedInputStream) {
@@ -88,8 +87,7 @@ public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
 
     private Flux<NamedCsvRecord> getCsvwTableRecordFlux(CsvwTable csvwTable, Charset charset) {
         var csvwDialect = csvwTable.getDialect();
-        var csvReaderBuilder = CsvReader.builder()
-                .detectBomHeader(true);
+        var csvReaderBuilder = CsvReader.builder().detectBomHeader(true);
 
         applyCsvwDialect(csvwDialect, csvReaderBuilder);
 
@@ -105,13 +103,11 @@ public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
     }
 
     private void applyDelimiter(CsvwDialect csvwDialect, CsvReaderBuilder csvReaderBuilder) {
-        toChar(csvwDialect.getDelimiter(), "CSVW delimiter")
-                .ifPresent(csvReaderBuilder::fieldSeparator);
+        toChar(csvwDialect.getDelimiter(), "CSVW delimiter").ifPresent(csvReaderBuilder::fieldSeparator);
     }
 
     private void applyQuoteCharacter(CsvwDialect csvwDialect, CsvReaderBuilder csvReaderBuilder) {
-        toChar(csvwDialect.getQuoteChar(), "CSVW quote character")
-                .ifPresent(csvReaderBuilder::quoteCharacter);
+        toChar(csvwDialect.getQuoteChar(), "CSVW quote character").ifPresent(csvReaderBuilder::quoteCharacter);
     }
 
     private void applyCommentStrategy(CsvwDialect csvwDialect, CsvReaderBuilder csvReaderBuilder) {
@@ -128,26 +124,22 @@ public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
             return Optional.empty();
         }
         if (string.length() > 1) {
-            throw new LogicalSourceResolverException(String.format("%s must be a single character, but was %s",
-                    errorSubject, string));
+            throw new LogicalSourceResolverException(
+                    String.format("%s must be a single character, but was %s", errorSubject, string));
         }
 
         return Optional.of(string.charAt(0));
     }
 
     private Flux<NamedCsvRecord> getCsvRecordFlux(InputStream inputStream, Charset charset) {
-        var csvReaderBuilder = CsvReader.builder()
-                .detectBomHeader(true);
+        var csvReaderBuilder = CsvReader.builder().detectBomHeader(true);
 
         return getCsvRecordFlux(csvReaderBuilder, inputStream, charset);
     }
 
     private Flux<NamedCsvRecord> getCsvRecordFlux(
-            CsvReaderBuilder csvReaderBuilder, InputStream inputStream,
-            Charset charset) {
-        return Flux.fromStream(csvReaderBuilder
-                .ofNamedCsvRecord(new InputStreamReader(inputStream, charset))
-                .stream());
+            CsvReaderBuilder csvReaderBuilder, InputStream inputStream, Charset charset) {
+        return Flux.fromStream(csvReaderBuilder.ofNamedCsvRecord(new InputStreamReader(inputStream, charset)).stream());
     }
 
     @Override
@@ -158,8 +150,7 @@ public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
             if (result == null || result.isEmpty()) {
                 return Optional.empty();
             }
-            return Optional.ofNullable(
-                    namedCsvRecord.getField(headerName));
+            return Optional.ofNullable(namedCsvRecord.getField(headerName));
         };
     }
 

@@ -50,9 +50,9 @@ class MappingTester {
         Set<TriplesMap> mapping = loader.load(RDFFormat.TURTLE, MappingTester.class.getResourceAsStream(rmlPath));
 
         RdfRmlMapper.Builder builder = RdfRmlMapper.builder()
-                .setLogicalSourceResolver(Rdf.Ql.Csv, CsvResolver::getInstance)
-                .setLogicalSourceResolver(Rdf.Ql.JsonPath, JsonPathResolver::getInstance)
-                .setLogicalSourceResolver(Rdf.Ql.XPath, XPathResolver::getInstance)
+                .setLogicalSourceResolverFactory(Rdf.Ql.Csv, CsvResolver.factory())
+                .setLogicalSourceResolverFactory(Rdf.Ql.JsonPath, JsonPathResolver.factory())
+                .setLogicalSourceResolverFactory(Rdf.Ql.XPath, XPathResolver.factory())
                 .classPathResolver(contextPath)
                 .triplesMaps(mapping);
         configureMapper.accept(builder);
@@ -83,7 +83,7 @@ class MappingTester {
     RDFFormat determineRdfFormat(String path) {
         return Rio.getParserFormatForFileName(path)
                 .orElseThrow(() ->
-                        new RuntimeException(String.format("could not determine rdf format from file [%s]", path)));
+                        new RuntimeException(String.format("could not determine RDF format from file [%s]", path)));
     }
 
     static Matcher<Model> equalTo(final Model expected) {

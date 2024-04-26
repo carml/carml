@@ -12,6 +12,7 @@ import com.jayway.jsonpath.Option;
 import com.jayway.jsonpath.spi.json.JacksonJsonNodeJsonProvider;
 import io.carml.logicalsourceresolver.sourceresolver.Encodings;
 import io.carml.model.LogicalSource;
+import io.carml.model.Source;
 import io.carml.vocab.Rdf.Ql;
 import io.carml.vocab.Rdf.Rml;
 import java.io.IOException;
@@ -32,6 +33,7 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.eclipse.rdf4j.model.IRI;
@@ -57,17 +59,19 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
             .options(Option.SUPPRESS_EXCEPTIONS)
             .build();
 
+    public static LogicalSourceResolverFactory<JsonNode> factory() {
+        return factory(DEFAULT_BUFFER_SIZE);
+    }
+
+    public static LogicalSourceResolverFactory<JsonNode> factory(int bufferSize) {
+        return source -> new JsonPathResolver(source, JsonSurferJackson.INSTANCE, bufferSize);
+    }
+
+    private final Source source;
+
     private final JsonSurfer jsonSurfer;
 
     private final int bufferSize;
-
-    public static JsonPathResolver getInstance() {
-        return getInstance(DEFAULT_BUFFER_SIZE);
-    }
-
-    public static JsonPathResolver getInstance(int bufferSize) {
-        return new JsonPathResolver(JsonSurferJackson.INSTANCE, bufferSize);
-    }
 
     @Override
     public Function<ResolvedSource<?>, Flux<LogicalSourceRecord<JsonNode>>> getLogicalSourceRecords(
@@ -290,8 +294,9 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
         return Optional.empty();
     }
 
+    @ToString
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
-    public static class Matcher implements MatchingLogicalSourceResolverSupplier {
+    public static class Matcher implements MatchingLogicalSourceResolverFactory {
         private static final Set<IRI> MATCHING_REF_FORMULATIONS = Set.of(Rml.JsonPath, Ql.JsonPath);
 
         private List<IRI> matchingReferenceFormulations;
@@ -308,8 +313,8 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
         }
 
         @Override
-        public Optional<MatchedLogicalSourceResolverSupplier> apply(LogicalSource logicalSource) {
-            var scoreBuilder = MatchedLogicalSourceResolverSupplier.MatchScore.builder();
+        public Optional<MatchedLogicalSourceResolverFactory> apply(LogicalSource logicalSource) {
+            var scoreBuilder = MatchedLogicalSourceResolverFactory.MatchScore.builder();
 
             if (matchesReferenceFormulation(logicalSource)) {
                 scoreBuilder.strongMatch();
@@ -321,7 +326,7 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
                 return Optional.empty();
             }
 
-            return Optional.of(MatchedLogicalSourceResolverSupplier.of(matchScore, JsonPathResolver::getInstance));
+            return Optional.of(MatchedLogicalSourceResolverFactory.of(matchScore, JsonPathResolver.factory()));
         }
 
         private boolean matchesReferenceFormulation(LogicalSource logicalSource) {

@@ -13,11 +13,12 @@ import static io.r2dbc.postgresql.codec.PostgresqlObjectId.TIME;
 import static io.r2dbc.postgresql.codec.PostgresqlObjectId.TIMESTAMP;
 import static io.r2dbc.postgresql.codec.PostgresqlObjectId.TIMESTAMPTZ;
 
-import io.carml.logicalsourceresolver.MatchedLogicalSourceResolverSupplier;
-import io.carml.logicalsourceresolver.MatchingLogicalSourceResolverSupplier;
+import io.carml.logicalsourceresolver.MatchedLogicalSourceResolverFactory;
+import io.carml.logicalsourceresolver.MatchingLogicalSourceResolverFactory;
 import io.carml.logicalsourceresolver.sql.sourceresolver.JoiningDatabaseSource;
 import io.carml.model.DatabaseSource;
 import io.carml.model.LogicalSource;
+import io.carml.model.Source;
 import io.carml.vocab.Rdf.Ql;
 import io.carml.vocab.Rdf.Rml;
 import io.carml.vocab.Rdf.Rr;
@@ -28,22 +29,23 @@ import java.util.Set;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.ToString;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.vocabulary.XSD;
 import org.jooq.SQLDialect;
 
 public class PostgreSqlResolver extends SqlResolver {
 
-    private PostgreSqlResolver(boolean strictness) {
-        super(strictness);
+    private PostgreSqlResolver(Source source, boolean strictness) {
+        super(source, strictness);
     }
 
-    public static PostgreSqlResolver getInstance() {
-        return getInstance(true);
+    public static LogicalSourceResolverFactory<RowData> factory() {
+        return factory(true);
     }
 
-    public static PostgreSqlResolver getInstance(boolean strictness) {
-        return new PostgreSqlResolver(strictness);
+    public static LogicalSourceResolverFactory<RowData> factory(boolean isStrict) {
+        return source -> new PostgreSqlResolver(source, isStrict);
     }
 
     @Override
@@ -91,8 +93,9 @@ public class PostgreSqlResolver extends SqlResolver {
         return XSD.STRING;
     }
 
+    @ToString
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
-    public static class Matcher implements MatchingLogicalSourceResolverSupplier {
+    public static class Matcher implements MatchingLogicalSourceResolverFactory {
 
         private static final Set<IRI> MATCHING_REF_FORMULATIONS =
                 Set.of(Rml.SQL2008Table, Rml.SQL2008Query, Ql.Rdb, Rr.PostgreSQL);
@@ -111,8 +114,8 @@ public class PostgreSqlResolver extends SqlResolver {
         }
 
         @Override
-        public Optional<MatchedLogicalSourceResolverSupplier> apply(LogicalSource logicalSource) {
-            var scoreBuilder = MatchedLogicalSourceResolverSupplier.MatchScore.builder();
+        public Optional<MatchedLogicalSourceResolverFactory> apply(LogicalSource logicalSource) {
+            var scoreBuilder = MatchedLogicalSourceResolverFactory.MatchScore.builder();
 
             if (matchesReferenceFormulation(logicalSource)) {
                 scoreBuilder.strongMatch();
@@ -132,7 +135,7 @@ public class PostgreSqlResolver extends SqlResolver {
                 return Optional.empty();
             }
 
-            return Optional.of(MatchedLogicalSourceResolverSupplier.of(matchScore, PostgreSqlResolver::getInstance));
+            return Optional.of(MatchedLogicalSourceResolverFactory.of(matchScore, PostgreSqlResolver.factory()));
         }
 
         private boolean matchesReferenceFormulation(LogicalSource logicalSource) {

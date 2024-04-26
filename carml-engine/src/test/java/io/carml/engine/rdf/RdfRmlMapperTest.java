@@ -53,7 +53,7 @@ class RdfRmlMapperTest {
     void givenBuilderWithNoMapping_whenBuild_thenThrowException() {
         // Given
         RdfRmlMapper.Builder builder =
-                RdfRmlMapper.builder().setLogicalSourceResolver(Rdf.Ql.XPath, XPathResolver::getInstance);
+                RdfRmlMapper.builder().setLogicalSourceResolverFactory(Rdf.Ql.XPath, XPathResolver.factory());
 
         // When
         RmlMapperException rmlMapperException = assertThrows(RmlMapperException.class, builder::build);
@@ -68,7 +68,7 @@ class RdfRmlMapperTest {
         InputStream mappingSource = RdfRmlMapperTest.class.getResourceAsStream("mapping.rml.ttl");
         Set<TriplesMap> mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
         RdfRmlMapper.Builder builder = RdfRmlMapper.builder()
-                .setLogicalSourceResolver(Rdf.Ql.JsonPath, XPathResolver::getInstance)
+                .setLogicalSourceResolverFactory(Rdf.Ql.JsonPath, XPathResolver.factory())
                 .triplesMaps(mapping);
 
         // When
@@ -88,7 +88,7 @@ class RdfRmlMapperTest {
         InputStream mappingSource = RdfRmlMapperTest.class.getResourceAsStream("mapping.rml.ttl");
         Set<TriplesMap> mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
         RdfRmlMapper.Builder builder = RdfRmlMapper.builder()
-                .setLogicalSourceResolver(Rdf.Ql.XPath, XPathResolver::getInstance)
+                .setLogicalSourceResolverFactory(Rdf.Ql.XPath, XPathResolver.factory())
                 .triplesMaps(mapping)
                 .valueFactorySupplier(ValidatingValueFactory::new)
                 .classPathResolver("classpath")
@@ -130,7 +130,7 @@ class RdfRmlMapperTest {
         InputStream mappingSource = RdfRmlMapperTest.class.getResourceAsStream("cars.rml.ttl");
         Set<TriplesMap> mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
         RdfRmlMapper rmlMapper = RdfRmlMapper.builder()
-                .setLogicalSourceResolver(Rdf.Ql.Csv, CsvResolver::getInstance)
+                .setLogicalSourceResolverFactory(Rdf.Ql.Csv, CsvResolver.factory())
                 .triplesMaps(mapping)
                 .build();
 
@@ -150,7 +150,7 @@ class RdfRmlMapperTest {
         InputStream mappingSource = RdfRmlMapperTest.class.getResourceAsStream("cars.rml.ttl");
         Set<TriplesMap> mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
         RdfRmlMapper rmlMapper = RdfRmlMapper.builder()
-                .setLogicalSourceResolver(Rdf.Ql.Csv, CsvResolver::getInstance)
+                .setLogicalSourceResolverFactory(Rdf.Ql.Csv, CsvResolver.factory())
                 .triplesMaps(mapping)
                 .build();
 
@@ -169,7 +169,7 @@ class RdfRmlMapperTest {
         InputStream mappingSource = RdfRmlMapperTest.class.getResourceAsStream("cars.rml.ttl");
         Set<TriplesMap> mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
         RdfRmlMapper rmlMapper = RdfRmlMapper.builder()
-                .setLogicalSourceResolver(Rdf.Ql.Csv, CsvResolver::getInstance)
+                .setLogicalSourceResolverFactory(Rdf.Ql.Csv, CsvResolver.factory())
                 .triplesMaps(mapping)
                 .build();
 
@@ -194,7 +194,7 @@ class RdfRmlMapperTest {
                 .orElseThrow(IllegalStateException::new);
 
         RdfRmlMapper rmlMapper = RdfRmlMapper.builder()
-                .setLogicalSourceResolver(Rdf.Ql.Csv, CsvResolver::getInstance)
+                .setLogicalSourceResolverFactory(Rdf.Ql.Csv, CsvResolver.factory())
                 .triplesMaps(mapping)
                 .build();
 
@@ -213,7 +213,7 @@ class RdfRmlMapperTest {
         InputStream mappingSource = RdfRmlMapperTest.class.getResourceAsStream("cars.rml.ttl");
         Set<TriplesMap> mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
         RdfRmlMapper rmlMapper = RdfRmlMapper.builder()
-                .setLogicalSourceResolver(Rdf.Ql.Csv, CsvResolver::getInstance)
+                .setLogicalSourceResolverFactory(Rdf.Ql.Csv, CsvResolver.factory())
                 .triplesMaps(mapping)
                 .build();
 
@@ -235,7 +235,7 @@ class RdfRmlMapperTest {
         TriplesMap makeMapping = getTriplesMapByName("http://example.com/mapping/MakeMapping", mapping);
 
         RdfRmlMapper rmlMapper = RdfRmlMapper.builder()
-                .setLogicalSourceResolver(Rdf.Ql.Csv, CsvResolver::getInstance)
+                .setLogicalSourceResolverFactory(Rdf.Ql.Csv, CsvResolver.factory())
                 .triplesMaps(mapping)
                 .build();
 
@@ -254,7 +254,7 @@ class RdfRmlMapperTest {
         InputStream mappingSource = RdfRmlMapperTest.class.getResourceAsStream("cars-stream-name.rml.ttl");
         Set<TriplesMap> mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
         RdfRmlMapper rmlMapper = RdfRmlMapper.builder()
-                .setLogicalSourceResolver(Rdf.Ql.Csv, CsvResolver::getInstance)
+                .setLogicalSourceResolverFactory(Rdf.Ql.Csv, CsvResolver.factory())
                 .triplesMaps(mapping)
                 .build();
 
@@ -274,7 +274,7 @@ class RdfRmlMapperTest {
         InputStream mappingSource = RdfRmlMapperTest.class.getResourceAsStream("cars-stream-name.rml.ttl");
         Set<TriplesMap> mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
         RdfRmlMapper rmlMapper = RdfRmlMapper.builder()
-                .setLogicalSourceResolver(Rdf.Ql.Csv, CsvResolver::getInstance)
+                .setLogicalSourceResolverFactory(Rdf.Ql.Csv, CsvResolver.factory())
                 .triplesMaps(mapping)
                 .build();
 
@@ -302,7 +302,7 @@ class RdfRmlMapperTest {
         TriplesMap makeMapping = getTriplesMapByName("http://example.com/mapping/MakeMapping", mapping);
 
         RdfRmlMapper rmlMapper = RdfRmlMapper.builder()
-                .setLogicalSourceResolver(Rdf.Ql.Csv, CsvResolver::getInstance)
+                .setLogicalSourceResolverFactory(Rdf.Ql.Csv, CsvResolver.factory())
                 .triplesMaps(mapping)
                 .build();
 
@@ -322,7 +322,7 @@ class RdfRmlMapperTest {
         InputStream mappingSource = RdfRmlMapperTest.class.getResourceAsStream("cars-file-input.rml.ttl");
         Set<TriplesMap> mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
         RdfRmlMapper rmlMapper = RdfRmlMapper.builder()
-                .setLogicalSourceResolver(Rdf.Ql.Csv, CsvResolver::getInstance)
+                .setLogicalSourceResolverFactory(Rdf.Ql.Csv, CsvResolver.factory())
                 .triplesMaps(mapping)
                 .classPathResolver(ClassPathResolver.of(RdfRmlMapperTest.class))
                 .build();
@@ -343,7 +343,7 @@ class RdfRmlMapperTest {
         TriplesMap makeMapping = getTriplesMapByName("http://example.com/mapping/MakeMapping", mapping);
 
         RdfRmlMapper rmlMapper = RdfRmlMapper.builder()
-                .setLogicalSourceResolver(Rdf.Ql.Csv, CsvResolver::getInstance)
+                .setLogicalSourceResolverFactory(Rdf.Ql.Csv, CsvResolver.factory())
                 .triplesMaps(mapping)
                 .classPathResolver(ClassPathResolver.of(RdfRmlMapperTest.class))
                 .build();
@@ -361,7 +361,7 @@ class RdfRmlMapperTest {
         InputStream mappingSource = RdfRmlMapperTest.class.getResourceAsStream("cars-file-input.rml.ttl");
         Set<TriplesMap> mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
         RdfRmlMapper rmlMapper = RdfRmlMapper.builder()
-                .setLogicalSourceResolver(Rdf.Ql.Csv, CsvResolver::getInstance)
+                .setLogicalSourceResolverFactory(Rdf.Ql.Csv, CsvResolver.factory())
                 .triplesMaps(mapping)
                 .classPathResolver("foo")
                 .fileResolver(Paths.get("bar"))

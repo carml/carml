@@ -3,6 +3,7 @@ package io.carml.logicalsourceresolver;
 import static io.carml.util.LogUtil.exception;
 
 import io.carml.model.LogicalSource;
+import io.carml.model.Source;
 import io.carml.model.XmlSource;
 import io.carml.vocab.Rdf.Ql;
 import io.carml.vocab.Rdf.Rml;
@@ -29,6 +30,7 @@ import jlibs.xml.sax.dog.sniff.DOMBuilder;
 import jlibs.xml.sax.dog.sniff.Event;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import net.sf.saxon.s9api.DocumentBuilder;
 import net.sf.saxon.s9api.Processor;
@@ -47,6 +49,30 @@ import reactor.core.publisher.FluxSink;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class XPathResolver implements LogicalSourceResolver<XdmItem> {
 
+    public static LogicalSourceResolverFactory<XdmItem> factory() {
+        return factory(true);
+    }
+
+    public static LogicalSourceResolverFactory<XdmItem> factory(boolean autoNodeTextExtraction) {
+        var processor = new Processor(false);
+        var compiler = processor.newXPathCompiler();
+        compiler.setCaching(true);
+        return factory(processor, compiler, autoNodeTextExtraction);
+    }
+
+    public static LogicalSourceResolverFactory<XdmItem> factory(
+            Processor xpathProcessor, XPathCompiler xpathCompiler, boolean autoNodeTextExtraction) {
+        return source -> new XPathResolver(
+                source,
+                new DefaultNamespaceContext(),
+                xpathProcessor,
+                xpathCompiler,
+                autoNodeTextExtraction,
+                new HashMap<>());
+    }
+
+    private final Source source;
+
     private final DefaultNamespaceContext nsContext;
 
     private final Processor xpathProcessor;
@@ -56,23 +82,6 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
     private final boolean autoNodeTextExtraction;
 
     private final Map<Set<LogicalSource>, XMLDog> xmlDogCache;
-
-    public static XPathResolver getInstance() {
-        return getInstance(true);
-    }
-
-    public static XPathResolver getInstance(boolean autoNodeTextExtraction) {
-        var processor = new Processor(false);
-        var compiler = processor.newXPathCompiler();
-        compiler.setCaching(true);
-        return getInstance(processor, compiler, autoNodeTextExtraction);
-    }
-
-    public static XPathResolver getInstance(
-            Processor xpathProcessor, XPathCompiler xpathCompiler, boolean autoNodeTextExtraction) {
-        return new XPathResolver(
-                new DefaultNamespaceContext(), xpathProcessor, xpathCompiler, autoNodeTextExtraction, new HashMap<>());
-    }
 
     private void setNamespaces(LogicalSource logicalSource) {
         var source = logicalSource.getSource();
@@ -285,7 +294,7 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
                         }
                     });
                     return Optional.of(results);
-                } else if (value.size() == 0) {
+                } else if (value.isEmpty()) {
                     return Optional.empty();
                 }
 
@@ -299,7 +308,7 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
     }
 
     private String getItemStringValue(XdmItem item, XdmValue value) {
-        if (item.getStringValue().length() == 0) {
+        if (item.getStringValue().isEmpty()) {
             return null;
         }
 
@@ -311,8 +320,9 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
         return Optional.empty();
     }
 
+    @ToString
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
-    public static class Matcher implements MatchingLogicalSourceResolverSupplier {
+    public static class Matcher implements MatchingLogicalSourceResolverFactory {
         private static final Set<IRI> MATCHING_REF_FORMULATIONS = Set.of(Rml.XPath, Ql.XPath);
 
         private List<IRI> matchingReferenceFormulations;
@@ -329,8 +339,8 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
         }
 
         @Override
-        public Optional<MatchedLogicalSourceResolverSupplier> apply(LogicalSource logicalSource) {
-            var scoreBuilder = MatchedLogicalSourceResolverSupplier.MatchScore.builder();
+        public Optional<MatchedLogicalSourceResolverFactory> apply(LogicalSource logicalSource) {
+            var scoreBuilder = MatchedLogicalSourceResolverFactory.MatchScore.builder();
 
             if (matchesReferenceFormulation(logicalSource)) {
                 scoreBuilder.strongMatch();
@@ -342,7 +352,7 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
                 return Optional.empty();
             }
 
-            return Optional.of(MatchedLogicalSourceResolverSupplier.of(matchScore, XPathResolver::getInstance));
+            return Optional.of(MatchedLogicalSourceResolverFactory.of(matchScore, XPathResolver.factory()));
         }
 
         private boolean matchesReferenceFormulation(LogicalSource logicalSource) {

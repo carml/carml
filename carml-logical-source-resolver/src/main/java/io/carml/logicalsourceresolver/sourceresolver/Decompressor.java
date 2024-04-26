@@ -6,21 +6,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.function.BiFunction;
 import java.util.zip.GZIPInputStream;
-import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream;
 import org.apache.commons.compress.compressors.xz.XZCompressorInputStream;
 import org.eclipse.rdf4j.model.IRI;
 
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
+@NoArgsConstructor(staticName = "getInstance")
 public class Decompressor implements BiFunction<InputStream, IRI, InputStream> {
-
-    private static final Decompressor INSTANCE = new Decompressor();
-
-    public static Decompressor getInstance() {
-        return INSTANCE;
-    }
 
     @Override
     public InputStream apply(InputStream inputStream, IRI compression) {

@@ -18,6 +18,7 @@ import io.carml.model.Join;
 import io.carml.model.LogicalSource;
 import io.carml.model.ParentMap;
 import io.carml.model.RefObjectMap;
+import io.carml.model.Source;
 import io.r2dbc.pool.ConnectionPool;
 import io.r2dbc.pool.ConnectionPoolConfiguration;
 import io.r2dbc.spi.Connection;
@@ -51,9 +52,12 @@ public abstract class SqlResolver implements LogicalSourceResolver<RowData> {
 
     public static final String PARENT_ALIAS = "parent";
 
-    private boolean isStrict;
+    private final Source source;
 
-    SqlResolver(boolean isStrict) {
+    private final boolean isStrict;
+
+    SqlResolver(Source source, boolean isStrict) {
+        this.source = source;
         this.isStrict = isStrict;
     }
 

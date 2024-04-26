@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.carml.logicalsourceresolver.LogicalSourceResolver.LogicalSourceResolverFactory;
 import io.carml.model.LogicalSource;
 import io.carml.model.impl.CarmlLogicalSource;
 import io.carml.model.impl.CarmlRelativePathSource;
@@ -30,11 +31,11 @@ class JsonPathResolverTest {
 
     InputStream inputStream;
 
-    private JsonPathResolver jsonPathResolver;
+    private LogicalSourceResolverFactory<JsonNode> jsonPathResolverFactory;
 
     @BeforeEach
     public void init() {
-        jsonPathResolver = JsonPathResolver.getInstance();
+        jsonPathResolverFactory = JsonPathResolver.factory();
     }
 
     @Test
@@ -55,7 +56,7 @@ class JsonPathResolverTest {
                 .build();
 
         var resolvedSource = ResolvedSource.of(foodSource.getSource(), "food.json", String.class);
-
+        var jsonPathResolver = jsonPathResolverFactory.apply(foodSource.getSource());
         var recordResolver = jsonPathResolver.getLogicalSourceRecords(Set.of(foodSource, countrySource));
 
         // When
@@ -82,6 +83,7 @@ class JsonPathResolverTest {
 
         inputStream = JsonPathResolverTest.class.getResourceAsStream("food.json");
         var resolvedSource = ResolvedSource.of(foodSource.getSource(), inputStream, InputStream.class);
+        var jsonPathResolver = jsonPathResolverFactory.apply(foodSource.getSource());
 
         // When
         var recordResolver = jsonPathResolver.getLogicalSourceRecords(Set.of(foodSource, countrySource));
@@ -110,6 +112,7 @@ class JsonPathResolverTest {
 
         inputStream = JsonPathResolverTest.class.getResourceAsStream("food.json");
         var resolvedSource = ResolvedSource.of(foodSource.getSource(), inputStream, InputStream.class);
+        var jsonPathResolver = jsonPathResolverFactory.apply(foodSource.getSource());
 
         // When
         var recordResolver = jsonPathResolver.getLogicalSourceRecords(Set.of(foodSource, countrySource));
@@ -168,6 +171,7 @@ class JsonPathResolverTest {
         inputStream = JsonPathResolverTest.class.getResourceAsStream("food.json");
         var resolvedSource = ResolvedSource.of(foodSource.getSource(), inputStream, InputStream.class);
 
+        var jsonPathResolver = jsonPathResolverFactory.apply(foodSource.getSource());
         var recordResolver = jsonPathResolver.getLogicalSourceRecords(Set.of(foodSource, countrySource));
         var items = recordResolver.apply(resolvedSource);
 
@@ -195,8 +199,9 @@ class JsonPathResolverTest {
 
         inputStream = JsonPathResolverTest.class.getResourceAsStream("food.json");
         var resolvedSource = ResolvedSource.of(foodSource.getSource(), inputStream, InputStream.class);
-        var jsonPathResolver = JsonPathResolver.getInstance(200);
 
+        var factory = JsonPathResolver.factory(200);
+        var jsonPathResolver = factory.apply(foodSource.getSource());
         var recordResolver = jsonPathResolver.getLogicalSourceRecords(Set.of(foodSource, countrySource));
 
         // When
@@ -241,7 +246,8 @@ class JsonPathResolverTest {
 
         var record = new ObjectMapper().readTree(JsonPathResolverTest.class.getResourceAsStream("food.json"));
         var resolvedSource = ResolvedSource.of(foodSource.getSource(), record, JsonNode.class);
-        var jsonPathResolver = JsonPathResolver.getInstance();
+
+        var jsonPathResolver = jsonPathResolverFactory.apply(foodSource.getSource());
 
         var recordResolver = jsonPathResolver.getLogicalSourceRecords(Set.of(foodSource, countrySource));
 
@@ -283,6 +289,8 @@ class JsonPathResolverTest {
         var record = new ObjectMapper().valueToTree(waffles);
         var resolvedSource = ResolvedSource.of(foodSource.getSource(), record, JsonNode.class);
 
+        var jsonPathResolver = jsonPathResolverFactory.apply(foodSource.getSource());
+
         // When
         var recordResolver = jsonPathResolver.getLogicalSourceRecords(Set.of(foodSource));
         var records = recordResolver.apply(resolvedSource);
@@ -307,6 +315,8 @@ class JsonPathResolverTest {
 
         var record = new ObjectMapper().valueToTree(waffles);
         var resolvedSource = ResolvedSource.of(foodSource.getSource(), record, JsonNode.class);
+
+        var jsonPathResolver = jsonPathResolverFactory.apply(foodSource.getSource());
 
         // When
         var recordResolver = jsonPathResolver.getLogicalSourceRecords(Set.of(foodSource));
@@ -333,6 +343,8 @@ class JsonPathResolverTest {
         var record = new ObjectMapper().valueToTree(waffles);
         var resolvedSource = ResolvedSource.of(nonResolvingSource.getSource(), record, JsonNode.class);
 
+        var jsonPathResolver = jsonPathResolverFactory.apply(nonResolvingSource.getSource());
+
         // When
         var recordResolver = jsonPathResolver.getLogicalSourceRecords(Set.of(nonResolvingSource));
         var records = recordResolver.apply(resolvedSource);
@@ -344,10 +356,18 @@ class JsonPathResolverTest {
     @Test
     void givenInputAndJsonPathExpression_whenEvaluateExpressionApply_executesJsonPathCorrectly() throws IOException {
         // Given
+        var foodSource = CarmlLogicalSource.builder()
+                .source(CarmlRelativePathSource.of("food.json"))
+                .iterator("$.foo")
+                .referenceFormulation(Rdf.Ql.JsonPath)
+                .build();
+
         var food = IOUtils.toString(
                 Objects.requireNonNull(JsonPathResolverTest.class.getResourceAsStream("food.json")),
                 StandardCharsets.UTF_8);
         var objectMapper = new ObjectMapper();
+
+        var jsonPathResolver = jsonPathResolverFactory.apply(foodSource.getSource());
 
         var expressionEvaluationFactory = jsonPathResolver.getExpressionEvaluationFactory();
         var expressionEvaluation = expressionEvaluationFactory.apply(objectMapper.readTree(food));
@@ -372,6 +392,8 @@ class JsonPathResolverTest {
                 .referenceFormulation(Rdf.Ql.JsonPath)
                 .build();
 
+        var jsonPathResolver = jsonPathResolverFactory.apply(foodSource.getSource());
+
         var recordResolver = jsonPathResolver.getLogicalSourceRecords(Set.of(foodSource));
         inputStream = JsonPathResolverTest.class.getResourceAsStream("food.json");
         var resolvedSource = ResolvedSource.of(foodSource.getSource(), inputStream, InputStream.class);
@@ -391,6 +413,8 @@ class JsonPathResolverTest {
                 .iterator("$.foo[invalid]")
                 .referenceFormulation(Rdf.Ql.JsonPath)
                 .build();
+
+        var jsonPathResolver = jsonPathResolverFactory.apply(foodSource.getSource());
 
         var recordResolver = jsonPathResolver.getLogicalSourceRecords(Set.of(foodSource));
         inputStream = JsonPathResolverTest.class.getResourceAsStream("food.json");

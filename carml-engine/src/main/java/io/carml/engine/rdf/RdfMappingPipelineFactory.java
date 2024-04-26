@@ -1,6 +1,5 @@
 package io.carml.engine.rdf;
 
-import static io.carml.logicalsourceresolver.MatchedLogicalSourceResolverSupplier.select;
 import static io.carml.util.LogUtil.exception;
 import static io.carml.util.LogUtil.log;
 import static java.util.stream.Collectors.groupingBy;
@@ -16,7 +15,9 @@ import io.carml.engine.RefObjectMapper;
 import io.carml.engine.RmlMapperException;
 import io.carml.engine.TriplesMapper;
 import io.carml.logicalsourceresolver.LogicalSourceResolver;
-import io.carml.logicalsourceresolver.MatchingLogicalSourceResolverSupplier;
+import io.carml.logicalsourceresolver.LogicalSourceResolver.LogicalSourceResolverFactory;
+import io.carml.logicalsourceresolver.MatchedLogicalSourceResolverFactory;
+import io.carml.logicalsourceresolver.MatchingLogicalSourceResolverFactory;
 import io.carml.logicalsourceresolver.sql.sourceresolver.JoiningDatabaseSource;
 import io.carml.model.DatabaseSource;
 import io.carml.model.Join;
@@ -24,6 +25,7 @@ import io.carml.model.LogicalSource;
 import io.carml.model.ParentMap;
 import io.carml.model.PredicateObjectMap;
 import io.carml.model.RefObjectMap;
+import io.carml.model.Source;
 import io.carml.model.SubjectMap;
 import io.carml.model.TriplesMap;
 import io.carml.model.impl.CarmlLogicalSource;
@@ -53,8 +55,8 @@ public class RdfMappingPipelineFactory {
     public MappingPipeline<Statement> getMappingPipeline(
             Set<TriplesMap> triplesMaps,
             RdfMapperConfig rdfMapperConfig,
-            Map<IRI, Supplier<LogicalSourceResolver<?>>> logicalSourceResolverSuppliers,
-            Set<MatchingLogicalSourceResolverSupplier> matchingLogicalSourceResolverSuppliers) {
+            Map<IRI, LogicalSourceResolverFactory<?>> logicalSourceResolverFactories,
+            Set<MatchingLogicalSourceResolverFactory> matchingLogicalSourceResolverFactories) {
 
         var tmToRoMappers = new HashMap<TriplesMap, Set<RdfRefObjectMapper>>();
         var roMapperToParentTm = new HashMap<RdfRefObjectMapper, TriplesMap>();
@@ -85,8 +87,8 @@ public class RdfMappingPipelineFactory {
         var sourceToLogicalSourceResolver = buildLogicalSourceResolvers(
                 triplesMaps,
                 tableJoiningGroups,
-                logicalSourceResolverSuppliers,
-                matchingLogicalSourceResolverSuppliers);
+                logicalSourceResolverFactories,
+                matchingLogicalSourceResolverFactories);
 
         var triplesMapperStream = triplesMaps.stream()
                 .map(triplesMap -> RdfTriplesMapper.of(
@@ -254,8 +256,8 @@ public class RdfMappingPipelineFactory {
     private Map<Object, LogicalSourceResolver<?>> buildLogicalSourceResolvers(
             Set<TriplesMap> triplesMaps,
             Set<TableJoiningGroup> tableJoiningGroups,
-            Map<IRI, Supplier<LogicalSourceResolver<?>>> logicalSourceResolverSuppliers,
-            Set<MatchingLogicalSourceResolverSupplier> logicalSourceResolverMatchers) {
+            Map<IRI, LogicalSourceResolverFactory<?>> logicalSourceResolverFactories,
+            Set<MatchingLogicalSourceResolverFactory> matchingLogicalSourceResolverFactories) {
 
         if (triplesMaps.isEmpty()) {
             throw new RmlMapperException("No executable triples maps found.");
@@ -272,24 +274,26 @@ public class RdfMappingPipelineFactory {
                 .collect(Collectors.toUnmodifiableMap(
                         Entry::getKey,
                         entry -> buildLogicalSourceResolver(
+                                entry.getKey(),
                                 entry.getValue(),
                                 triplesMaps,
-                                logicalSourceResolverSuppliers,
-                                logicalSourceResolverMatchers)));
+                                logicalSourceResolverFactories,
+                                matchingLogicalSourceResolverFactories)));
     }
 
     private LogicalSourceResolver<?> buildLogicalSourceResolver(
+            Source source,
             Set<LogicalSource> logicalSources,
             Set<TriplesMap> triplesMaps,
-            Map<IRI, Supplier<LogicalSourceResolver<?>>> logicalSourceResolverSuppliers,
-            Set<MatchingLogicalSourceResolverSupplier> logicalSourceResolverMatchers) {
+            Map<IRI, LogicalSourceResolverFactory<?>> logicalSourceResolverFactories,
+            Set<MatchingLogicalSourceResolverFactory> matchingLogicalSourceResolverFactories) {
 
-        if (!logicalSourceResolverSuppliers.isEmpty()) {
+        if (!logicalSourceResolverFactories.isEmpty()) {
             var resolver = logicalSources.stream()
                     .map(LogicalSource::getReferenceFormulation)
                     .findFirst()
-                    .map(referenceFormulation -> getLogicalSourceResolver(
-                            referenceFormulation, logicalSourceResolverSuppliers, logicalSourceResolverMatchers))
+                    .map(logicalSourceResolverFactories::get)
+                    .map(factory -> factory.apply(source))
                     .orElse(null);
 
             if (resolver != null) {
@@ -299,7 +303,7 @@ public class RdfMappingPipelineFactory {
 
         return logicalSources.stream()
                 .findFirst()
-                .map(logicalSource -> getLogicalSourceResolver(logicalSource, logicalSourceResolverMatchers))
+                .map(logicalSource -> getLogicalSourceResolver(logicalSource, matchingLogicalSourceResolverFactories))
                 .orElseThrow(() -> new RmlMapperException(
                         String.format("No logical sources found in triplesMaps:%n%s", exception(triplesMaps))));
     }
@@ -307,13 +311,13 @@ public class RdfMappingPipelineFactory {
     private LogicalSourceResolver<?> getLogicalSourceResolver(
             IRI referenceFormulation,
             Map<IRI, Supplier<LogicalSourceResolver<?>>> logicalSourceResolverSuppliers,
-            Set<MatchingLogicalSourceResolverSupplier> logicalSourceResolverMatchers) {
+            Set<MatchingLogicalSourceResolverFactory> matchingLogicalSourceResolverFactories) {
         var logicalSourceResolverSupplier = logicalSourceResolverSuppliers.get(referenceFormulation);
 
         if (logicalSourceResolverSupplier == null) {
-            if (logicalSourceResolverMatchers.isEmpty()) {
+            if (matchingLogicalSourceResolverFactories.isEmpty()) {
                 throw new RmlMapperException(String.format(
-                        "No logical source resolver supplier bound for reference formulation %s%nResolvers "
+                        "No matching logical source resolver factory bound for reference formulation %s%nResolvers "
                                 + "available: %s",
                         referenceFormulation,
                         logicalSourceResolverSuppliers.keySet().stream()
@@ -328,9 +332,10 @@ public class RdfMappingPipelineFactory {
     }
 
     private LogicalSourceResolver<?> getLogicalSourceResolver(
-            LogicalSource logicalSource, Set<MatchingLogicalSourceResolverSupplier> logicalSourceResolverMatchers) {
+            LogicalSource logicalSource,
+            Set<MatchingLogicalSourceResolverFactory> matchingLogicalSourceResolverFactories) {
 
-        var matchedLogicalSourceResolverSuppliers = logicalSourceResolverMatchers.stream()
+        var matchedLogicalSourceResolverSuppliers = matchingLogicalSourceResolverFactories.stream()
                 .map(matcher -> matcher.apply(logicalSource))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
@@ -345,15 +350,15 @@ public class RdfMappingPipelineFactory {
                     log(logicalSource));
         }
 
-        return select(matchedLogicalSourceResolverSuppliers)
+        return MatchedLogicalSourceResolverFactory.select(matchedLogicalSourceResolverSuppliers)
                 .orElseThrow(() -> new RmlMapperException(String.format(
                         "No logical source resolver supplier bound for reference formulation %s%nResolvers "
                                 + "available: %s",
                         logicalSource.getReferenceFormulation(),
-                        logicalSourceResolverMatchers.stream()
-                                .map(MatchingLogicalSourceResolverSupplier::getResolverName)
+                        matchingLogicalSourceResolverFactories.stream()
+                                .map(MatchingLogicalSourceResolverFactory::getResolverName)
                                 .collect(joining(", ")))))
-                .get();
+                .apply(logicalSource.getSource());
     }
 
     private LogicalSourceResolver<?> getTriplesMapLogicalSourceResolver(
