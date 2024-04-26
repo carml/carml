@@ -12,17 +12,17 @@ import lombok.NoArgsConstructor;
 
 @AllArgsConstructor(staticName = "of")
 @Getter
-public class MatchedLogicalSourceResolverSupplier {
+public class MatchedLogicalSourceFactory {
 
     private MatchScore matchScore;
 
-    private Supplier<LogicalSourceResolver<?>> logicalSourceResolverSupplier;
+    private Supplier<LogicalSourceResolver<?>> logicalSourceFactorySupplier;
 
     public static Optional<Supplier<LogicalSourceResolver<?>>> select(
-            List<MatchedLogicalSourceResolverSupplier> matches) {
+            List<MatchedLogicalSourceFactory> matches) {
         return matches.stream()
                 .max(comparing(match -> match.getMatchScore().getScore()))
-                .map(MatchedLogicalSourceResolverSupplier::getLogicalSourceResolverSupplier);
+                .map(MatchedLogicalSourceFactory::getLogicalSourceFactorySupplier);
     }
 
     @AllArgsConstructor

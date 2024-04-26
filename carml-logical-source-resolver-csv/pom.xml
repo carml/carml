@@ -15,8 +15,8 @@
 	<dependencies>
 
 		<dependency>
-			<groupId>com.univocity</groupId>
-			<artifactId>univocity-parsers</artifactId>
+			<groupId>de.siegmar</groupId>
+			<artifactId>fastcsv</artifactId>
 		</dependency>
 
 		<dependency>

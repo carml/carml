@@ -77,7 +77,7 @@
 		<reactor.version>2023.0.3</reactor.version>
 		<jaxb-api.version>2.3.0</jaxb-api.version>
 		<lombok.version>1.18.30</lombok.version>
-		<univocity.version>2.9.0</univocity.version>
+		<fastcsv.version>3.1.0</fastcsv.version>
 		<jayway.version>2.9.0</jayway.version>
 		<jsurfer.version>1.6.5</jsurfer.version>
 		<saxon.version>12.4</saxon.version>
@@ -240,10 +240,11 @@
 			</dependency>
 
 			<dependency>
-				<groupId>com.univocity</groupId>
-				<artifactId>univocity-parsers</artifactId>
-				<version>${univocity.version}</version>
+				<groupId>de.siegmar</groupId>
+				<artifactId>fastcsv</artifactId>
+				<version>${fastcsv.version}</version>
 			</dependency>
+
 
 			<dependency>
 				<groupId>com.jayway.jsonpath</groupId>
