@@ -81,7 +81,7 @@
 		<hamcrest.version>2.2</hamcrest.version>
 		<blockhound.version>1.0.9.RELEASE</blockhound.version>
 		<auto-service.version>1.1.1</auto-service.version>
-		<commons-csv.version>1.10.0</commons-csv.version>
+		<commons-csv.version>1.11.0</commons-csv.version>
 		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
 		<sonar.organization>carml</sonar.organization>
 	</properties>
