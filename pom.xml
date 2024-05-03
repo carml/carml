@@ -75,7 +75,7 @@
 		<jsurfer.version>1.6.5</jsurfer.version>
 		<saxon.version>12.4</saxon.version>
 		<xmldog.version>3.0.1</xmldog.version>
-		<jena.version>4.10.0</jena.version>
+		<jena.version>5.0.0</jena.version>
 		<mockito.version>5.11.0</mockito.version>
 		<junit.version>5.10.2</junit.version>
 		<hamcrest.version>2.2</hamcrest.version>
