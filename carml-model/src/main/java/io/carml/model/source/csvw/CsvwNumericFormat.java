@@ -1,3 +1,5 @@
 package io.carml.model.source.csvw;
 
-public interface CsvwNumericFormat {}
+import io.carml.model.Resource;
+
+public interface CsvwNumericFormat extends Resource {}

@@ -1,8 +1,9 @@
 package io.carml.model.source.csvw;
 
+import io.carml.model.Source;
 import java.util.List;
 
-public interface CsvwTable {
+public interface CsvwTable extends Source {
 
     String getUrl();
 

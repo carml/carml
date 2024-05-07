@@ -1,3 +1,5 @@
 package io.carml.model.source.csvw;
 
-public interface CsvwForeignKey {}
+import io.carml.model.Resource;
+
+public interface CsvwForeignKey extends Resource {}

@@ -15,7 +15,7 @@ import org.eclipse.rdf4j.model.util.ModelBuilder;
 @SuperBuilder(toBuilder = true)
 @NoArgsConstructor
 @ToString(callSuper = true)
-abstract class CarmlSource extends CarmlResource implements Source {
+public abstract class CarmlSource extends CarmlResource implements Source {
 
     @Setter
     private IRI encoding;

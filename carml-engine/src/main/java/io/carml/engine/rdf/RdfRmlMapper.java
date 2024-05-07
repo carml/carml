@@ -16,6 +16,7 @@ import io.carml.logicalsourceresolver.LogicalSourceResolver.LogicalSourceResolve
 import io.carml.logicalsourceresolver.MatchingLogicalSourceResolverFactory;
 import io.carml.logicalsourceresolver.sourceresolver.ClassPathResolver;
 import io.carml.logicalsourceresolver.sourceresolver.CompositeSourceResolver;
+import io.carml.logicalsourceresolver.sourceresolver.CsvwSourceResolver;
 import io.carml.logicalsourceresolver.sourceresolver.DcatDistributionResolver;
 import io.carml.logicalsourceresolver.sourceresolver.FileResolver;
 import io.carml.logicalsourceresolver.sourceresolver.SourceResolver;
@@ -228,6 +229,10 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
             if (sourceResolvers.stream().noneMatch(DcatDistributionResolver.class::isInstance)) {
                 // Add default DCAT distribution resolver
                 sourceResolvers.add(DcatDistributionResolver.of());
+            }
+            if (sourceResolvers.stream().noneMatch(CsvwSourceResolver.class::isInstance)) {
+                // Add default CSVW resolver
+                sourceResolvers.add(CsvwSourceResolver.of());
             }
 
             var compositeResolver = CompositeSourceResolver.of(sourceResolvers);

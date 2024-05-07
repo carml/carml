@@ -85,6 +85,17 @@ public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
         }
     }
 
+    private Flux<NamedCsvRecord> getCsvRecordFlux(InputStream inputStream, Charset charset) {
+        var csvReaderBuilder = CsvReader.builder().detectBomHeader(true);
+
+        return getCsvRecordFlux(csvReaderBuilder, inputStream, charset);
+    }
+
+    private Flux<NamedCsvRecord> getCsvRecordFlux(
+            CsvReaderBuilder csvReaderBuilder, InputStream inputStream, Charset charset) {
+        return Flux.fromStream(csvReaderBuilder.ofNamedCsvRecord(new InputStreamReader(inputStream, charset)).stream());
+    }
+
     private Flux<NamedCsvRecord> getCsvwTableRecordFlux(CsvwTable csvwTable, Charset charset) {
         var csvwDialect = csvwTable.getDialect();
         var csvReaderBuilder = CsvReader.builder().detectBomHeader(true);
@@ -99,6 +110,7 @@ public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
 
     private void applyCsvwDialect(CsvwDialect csvwDialect, CsvReaderBuilder csvReaderBuilder) {
         applyDelimiter(csvwDialect, csvReaderBuilder);
+        applyQuoteCharacter(csvwDialect, csvReaderBuilder);
         applyCommentStrategy(csvwDialect, csvReaderBuilder);
     }
 
@@ -129,17 +141,6 @@ public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
         }
 
         return Optional.of(string.charAt(0));
-    }
-
-    private Flux<NamedCsvRecord> getCsvRecordFlux(InputStream inputStream, Charset charset) {
-        var csvReaderBuilder = CsvReader.builder().detectBomHeader(true);
-
-        return getCsvRecordFlux(csvReaderBuilder, inputStream, charset);
-    }
-
-    private Flux<NamedCsvRecord> getCsvRecordFlux(
-            CsvReaderBuilder csvReaderBuilder, InputStream inputStream, Charset charset) {
-        return Flux.fromStream(csvReaderBuilder.ofNamedCsvRecord(new InputStreamReader(inputStream, charset)).stream());
     }
 
     @Override

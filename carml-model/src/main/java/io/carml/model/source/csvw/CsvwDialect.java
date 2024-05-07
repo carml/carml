@@ -1,8 +1,9 @@
 package io.carml.model.source.csvw;
 
+import io.carml.model.Resource;
 import java.util.List;
 
-public interface CsvwDialect {
+public interface CsvwDialect extends Resource {
 
     String getCommentPrefix();
 

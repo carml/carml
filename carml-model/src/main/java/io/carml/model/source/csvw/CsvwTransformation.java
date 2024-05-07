@@ -1,3 +1,5 @@
 package io.carml.model.source.csvw;
 
-public interface CsvwTransformation {}
+import io.carml.model.Resource;
+
+public interface CsvwTransformation extends Resource {}

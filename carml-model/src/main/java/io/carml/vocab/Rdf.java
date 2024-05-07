@@ -367,6 +367,28 @@ public class Rdf {
     }
 
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class Csvw {
+
+        private static IRI iri(String suffix) {
+            return f.createIRI(io.carml.vocab.Csvw.NAMESPACE + suffix);
+        }
+
+        public static final IRI Table = iri("Table");
+
+        public static final IRI Dialect = iri("Dialect");
+
+        public static final IRI rtl = iri("rtl");
+
+        public static final IRI ltr = iri("ltr");
+
+        public static final IRI auto = iri("auto");
+
+        public static final IRI url = iri("url");
+
+        public static final IRI dialect = iri("dialect");
+    }
+
+    @NoArgsConstructor(access = AccessLevel.PRIVATE)
     public static class Carml {
 
         private static IRI iri(String suffix) {

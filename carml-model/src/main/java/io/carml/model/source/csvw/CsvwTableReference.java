@@ -1,3 +1,5 @@
 package io.carml.model.source.csvw;
 
-public interface CsvwTableReference {}
+import io.carml.model.Resource;
+
+public interface CsvwTableReference extends Resource {}
