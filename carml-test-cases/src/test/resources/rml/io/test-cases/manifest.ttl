@@ -72,3 +72,43 @@
     ];
   rmltest:mappingDocument "mapping.ttl";
   rmltest:output "default.nq" .
+
+<RMLSTC0003> a test:TestCase;
+  dcterms:identifier "RMLSTC0003";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "Friends.nt";
+      rmltest:inputType "RDF"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLSTC0004a> a test:TestCase;
+  dcterms:identifier "RMLSTC0004a";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "Friends-NULL.csv";
+      rmltest:inputType "CSV"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLSTC0004b> a test:TestCase;
+  dcterms:identifier "RMLSTC0004b";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "Friends-NULL.csv";
+      rmltest:inputType "CSV"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLSTC0004c> a test:TestCase;
+  dcterms:identifier "RMLSTC0004c";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "Friends-NULL.csv";
+      rmltest:inputType "CSV"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .

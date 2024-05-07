@@ -148,7 +148,8 @@ public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
         return namedCsvRecord -> headerName -> {
             logEvaluateExpression(headerName, LOG);
             var result = namedCsvRecord.getField(headerName);
-            if (result == null || result.isEmpty()) {
+
+            if (result == null || source.getNulls().contains(result)) {
                 return Optional.empty();
             }
             return Optional.ofNullable(namedCsvRecord.getField(headerName));

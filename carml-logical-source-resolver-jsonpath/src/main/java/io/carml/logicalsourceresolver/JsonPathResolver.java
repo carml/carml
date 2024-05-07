@@ -277,7 +277,12 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
                 } else if (resultNode.isObject()) {
                     return Optional.of(OBJECT_MAPPER.treeToValue(resultNode, Map.class));
                 } else if (resultNode.isValueNode()) {
-                    return Optional.of(resultNode.asText());
+                    var textResult = resultNode.asText();
+                    if (source.getNulls().contains(textResult)) {
+                        return Optional.empty();
+                    }
+
+                    return Optional.of(textResult);
                 }
 
                 throw new LogicalSourceResolverException(

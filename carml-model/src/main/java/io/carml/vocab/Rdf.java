@@ -185,7 +185,7 @@ public class Rdf {
 
         public static final IRI targz = iri("targz");
 
-        public static final IRI nullPattern = iri("nullPattern");
+        public static final IRI NULL = iri("null");
 
         public static final IRI strategy = iri("strategy");
 

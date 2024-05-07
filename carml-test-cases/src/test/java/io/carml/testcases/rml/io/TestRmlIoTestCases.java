@@ -57,7 +57,7 @@ class TestRmlIoTestCases {
     private static final List<String> SUPPORTED_SOURCE_TYPES =
             ImmutableList.of("CSV", "JSON", "XML", "MySQL", "PostgreSQL");
 
-    private static final List<String> SKIP_TESTS = List.of();
+    private static final List<String> SKIP_TESTS = List.of("RMLSTC0003");
 
     // private static final MySQLContainer<?> MYSQL =
     //         new MySQLContainer<>("mysql:latest").withUsername("root").withUrlParam("allowMultiQueries", "true");

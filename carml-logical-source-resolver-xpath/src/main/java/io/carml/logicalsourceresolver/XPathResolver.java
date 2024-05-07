@@ -308,11 +308,12 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
     }
 
     private String getItemStringValue(XdmItem item, XdmValue value) {
-        if (item.getStringValue().isEmpty()) {
+        var stringValue = item.getStringValue();
+        if (source.getNulls().contains(stringValue)) {
             return null;
         }
 
-        return autoNodeTextExtraction ? item.getStringValue() : value.toString();
+        return autoNodeTextExtraction ? stringValue : value.toString();
     }
 
     @Override

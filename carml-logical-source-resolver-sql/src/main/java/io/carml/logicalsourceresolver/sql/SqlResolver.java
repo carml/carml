@@ -357,7 +357,7 @@ public abstract class SqlResolver implements LogicalSourceResolver<RowData> {
 
             var result = data.get(expression);
 
-            return result == null ? Optional.empty() : Optional.of(result);
+            return result == null || source.getNulls().contains(result) ? Optional.empty() : Optional.of(result);
         };
     }
 
