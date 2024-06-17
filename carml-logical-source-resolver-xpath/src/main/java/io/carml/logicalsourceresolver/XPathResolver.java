@@ -44,6 +44,7 @@ import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -114,6 +115,15 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
 
         if (resolved instanceof InputStream resolvedInputStream) {
             return getXpathResultFlux(resolvedInputStream, logicalSources);
+        } else if (resolved instanceof Mono<?> mono) {
+            return mono.flatMapMany(resolvedMono -> {
+                if (resolvedMono instanceof InputStream resolvedInputStreamMono) {
+                    return getXpathResultFlux(resolvedInputStreamMono, logicalSources);
+                } else {
+                    throw new LogicalSourceResolverException(String.format(
+                            "Unsupported source object provided for logical sources:%n%s", exception(logicalSources)));
+                }
+            });
         } else if (resolved instanceof XdmItem resolvedXdmItem) {
             return getXpathResultFlux(resolvedXdmItem, logicalSources);
         } else {

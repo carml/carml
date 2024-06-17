@@ -6,11 +6,13 @@
 
 <http://foo.bar/base/car/Chevy-Venture%20%22Extended%20Edition%22> a <http://example.com/car/Car> ;
 	<http://example.com/car/make> <http://foo.bar/base/make/Chevy> ;
+	<http://purl.org/dc/terms/description> "" ;
 	<http://example.com/car/year> <http://foo.bar/base/year/1999> ;
 	<http://example.com/car/price> "4900.00" .
 
 <http://foo.bar/base/car/Chevy-Venture%20%22Extended%20Edition%2C%20Very%20Large%22> a <http://example.com/car/Car> ;
 	<http://example.com/car/make> <http://foo.bar/base/make/Chevy> ;
+	<http://purl.org/dc/terms/description> "" ;
 	<http://example.com/car/year> <http://foo.bar/base/year/1999> ;
 	<http://example.com/car/price> "5000.00" .
 

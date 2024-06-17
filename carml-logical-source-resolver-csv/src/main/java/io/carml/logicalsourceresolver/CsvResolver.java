@@ -68,14 +68,14 @@ public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
 
         var resolved = resolvedSource.getResolved().get();
 
-        var charset = Encodings.resolveCharset(resolvedSource.getRmlSource().getEncoding())
-                .orElse(UTF_8);
+        var encoding = resolvedSource.getRmlSource().getEncoding();
 
         if (resolved instanceof InputStream resolvedInputStream) {
+            var charset = Encodings.resolveCharset(encoding).orElse(UTF_8);
             return getCsvRecordFlux(resolvedInputStream, charset)
                     .map(lsRecord -> LogicalSourceRecord.of(logicalSource, lsRecord));
         } else if (resolved instanceof CsvwTable csvwTable) {
-            return getCsvwTableRecordFlux(csvwTable, charset)
+            return getCsvwTableRecordFlux(csvwTable, encoding)
                     .map(lsRecord -> LogicalSourceRecord.of(logicalSource, lsRecord));
         } else if (resolved instanceof NamedCsvRecord resolvedRecord) {
             return Flux.just(LogicalSourceRecord.of(logicalSource, resolvedRecord));
@@ -96,13 +96,23 @@ public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
         return Flux.fromStream(csvReaderBuilder.ofNamedCsvRecord(new InputStreamReader(inputStream, charset)).stream());
     }
 
-    private Flux<NamedCsvRecord> getCsvwTableRecordFlux(CsvwTable csvwTable, Charset charset) {
+    private Flux<NamedCsvRecord> getCsvwTableRecordFlux(CsvwTable csvwTable, IRI encoding) {
         var csvwDialect = csvwTable.getDialect();
         var csvReaderBuilder = CsvReader.builder().detectBomHeader(true);
 
         applyCsvwDialect(csvwDialect, csvReaderBuilder);
 
-        var charsetToUse = csvwDialect.getEncoding() != null ? Charset.forName(csvwDialect.getEncoding()) : charset;
+        Charset charsetToUse;
+        if (encoding != null) {
+            charsetToUse = Encodings.resolveCharset(encoding)
+                    .orElseThrow(() -> new LogicalSourceResolverException(
+                            String.format("Unsupported encoding provided: %s", encoding)));
+        } else if (csvwDialect.getEncoding() != null) {
+            charsetToUse = Charset.forName(csvwDialect.getEncoding());
+        } else {
+            charsetToUse = UTF_8;
+        }
+
         return GetHttpUrl.getInstance()
                 .apply(GetHttpUrl.toUrl(csvwTable.getUrl()))
                 .flatMapMany(inputStream -> getCsvRecordFlux(csvReaderBuilder, inputStream, charsetToUse));

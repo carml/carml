@@ -37,7 +37,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
@@ -303,37 +302,16 @@ public class RdfMappingPipelineFactory {
 
         return logicalSources.stream()
                 .findFirst()
-                .map(logicalSource -> getLogicalSourceResolver(logicalSource, matchingLogicalSourceResolverFactories))
+                .map(logicalSource -> getLogicalSourceResolver(
+                        logicalSource, matchingLogicalSourceResolverFactories, logicalSourceResolverFactories))
                 .orElseThrow(() -> new RmlMapperException(
                         String.format("No logical sources found in triplesMaps:%n%s", exception(triplesMaps))));
     }
 
     private LogicalSourceResolver<?> getLogicalSourceResolver(
-            IRI referenceFormulation,
-            Map<IRI, Supplier<LogicalSourceResolver<?>>> logicalSourceResolverSuppliers,
-            Set<MatchingLogicalSourceResolverFactory> matchingLogicalSourceResolverFactories) {
-        var logicalSourceResolverSupplier = logicalSourceResolverSuppliers.get(referenceFormulation);
-
-        if (logicalSourceResolverSupplier == null) {
-            if (matchingLogicalSourceResolverFactories.isEmpty()) {
-                throw new RmlMapperException(String.format(
-                        "No matching logical source resolver factory bound for reference formulation %s%nResolvers "
-                                + "available: %s",
-                        referenceFormulation,
-                        logicalSourceResolverSuppliers.keySet().stream()
-                                .map(IRI::stringValue)
-                                .collect(joining(", "))));
-            }
-
-            return null;
-        }
-
-        return logicalSourceResolverSupplier.get();
-    }
-
-    private LogicalSourceResolver<?> getLogicalSourceResolver(
             LogicalSource logicalSource,
-            Set<MatchingLogicalSourceResolverFactory> matchingLogicalSourceResolverFactories) {
+            Set<MatchingLogicalSourceResolverFactory> matchingLogicalSourceResolverFactories,
+            Map<IRI, LogicalSourceResolverFactory<?>> logicalSourceResolverFactories) {
 
         var matchedLogicalSourceResolverSuppliers = matchingLogicalSourceResolverFactories.stream()
                 .map(matcher -> matcher.apply(logicalSource))
@@ -355,8 +333,8 @@ public class RdfMappingPipelineFactory {
                         "No logical source resolver supplier bound for reference formulation %s%nResolvers "
                                 + "available: %s",
                         logicalSource.getReferenceFormulation(),
-                        matchingLogicalSourceResolverFactories.stream()
-                                .map(MatchingLogicalSourceResolverFactory::getResolverName)
+                        logicalSourceResolverFactories.keySet().stream()
+                                .map(IRI::stringValue)
                                 .collect(joining(", ")))))
                 .apply(logicalSource.getSource());
     }
