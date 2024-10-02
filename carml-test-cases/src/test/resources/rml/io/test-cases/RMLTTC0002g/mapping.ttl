@@ -7,17 +7,17 @@
 @base <http://example.com/rules/> .
 
 <#DCATSourceAccess> a rml:Source, dcat:Distribution;
-    dcat:downloadURL <http://w3id.org/rml/resources/Friends.json>;
+    dcat:downloadURL <http://w3id.org/rml/resources/rml-io/RMLTTC0002g/Friends.json>;
 .
 
 <#TriplesMap> a rml:TriplesMap;
   rml:logicalSource [ a rml:LogicalSource;
     rml:source <#DCATSourceAccess>;
     rml:referenceFormulation rml:JSONPath;
-    rml:iterator "$.[*]";
+    rml:iterator "$[*]";
   ];
   rml:subjectMap [ a rml:SubjectMap;
-    rml:template "http://example.org/{id}";
+    rml:template "http://example.org/{$.id}";
   ];
   rml:predicateObjectMap [ a rml:PredicateObjectMap;
     rml:graphMap [ a rml:GraphMap;
@@ -28,7 +28,7 @@
       rml:constant foaf:name;
     ];
     rml:objectMap [ a rml:ObjectMap;
-      rml:reference "name";
+      rml:reference "$.name";
     ];
   ];
   rml:predicateObjectMap [ a rml:PredicateObjectMap;
@@ -37,7 +37,7 @@
       rml:logicalTarget <#TargetDump1>;
     ];
     rml:objectMap [ a rml:ObjectMap;
-      rml:reference "age";
+      rml:reference "$.age";
     ];
   ];
 .

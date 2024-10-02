@@ -82,9 +82,9 @@ public class RmlImplementationReport {
 
     public static TestCaseResult runTestCase(TestCase testCase) {
         RdfRmlMapper.Builder mapperBuilder = RdfRmlMapper.builder()
-                .setLogicalSourceResolver(Rdf.Ql.JsonPath, JsonPathResolver::getInstance)
-                .setLogicalSourceResolver(Rdf.Ql.XPath, XPathResolver::getInstance)
-                .setLogicalSourceResolver(Rdf.Ql.Csv, CsvResolver::getInstance)
+                .setLogicalSourceResolverFactory(Rdf.Ql.JsonPath, JsonPathResolver.factory())
+                .setLogicalSourceResolverFactory(Rdf.Ql.XPath, XPathResolver.factory())
+                .setLogicalSourceResolverFactory(Rdf.Ql.Csv, CsvResolver.factory())
                 .classPathResolver(ClassPathResolver.of(
                         String.format("test-cases/%s", testCase.getIdentifier()), RmlImplementationReport.class));
 

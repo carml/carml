@@ -5,7 +5,7 @@
 @base <http://example.com/rules/> .
 
 <#VoIDSourceAccess> a rml:Source, void:Dataset;
-  void:dataDump <file://./Friends.nt>;
+  void:dataDump <http://w3id.org/rml/resources/rml-io/RMLSTC0006b/Friends.nt>;
 .
 
 <#TriplesMap> a rml:TriplesMap;

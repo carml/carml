@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
+import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 
@@ -24,13 +25,13 @@ public class CarmlRelativePathSource extends CarmlSource implements RelativePath
         return CarmlRelativePathSource.builder().path(path).build();
     }
 
-    private Object root;
+    private Value root;
 
     private String path;
 
     @RdfProperty(Rml.root)
     @Override
-    public Object getRoot() {
+    public Value getRoot() {
         return root;
     }
 

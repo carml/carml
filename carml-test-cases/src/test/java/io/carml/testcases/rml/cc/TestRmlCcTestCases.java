@@ -13,10 +13,8 @@ import io.carml.logicalsourceresolver.sourceresolver.ClassPathResolver;
 import io.carml.model.TriplesMap;
 import io.carml.rdfmapper.util.RdfObjectLoader;
 import io.carml.testcases.model.TestCase;
-import io.carml.util.ModelSerializer;
 import io.carml.util.Models;
 import io.carml.util.RmlMappingLoader;
-import io.carml.util.RmlNamespaces;
 import java.io.InputStream;
 import java.util.Comparator;
 import java.util.List;
@@ -90,10 +88,6 @@ class TestRmlCcTestCases {
             Model expected = Models.parse(expectedOutputStream, RDFFormat.NQUADS).stream()
                     .collect(ModelCollector.toTreeModel());
 
-            String resultTtl =
-                    ModelSerializer.serializeAsRdf(result, RDFFormat.TURTLE, RmlNamespaces::applyRmlNameSpaces);
-            String expectedTtl =
-                    ModelSerializer.serializeAsRdf(expected, RDFFormat.TURTLE, RmlNamespaces::applyRmlNameSpaces);
             assertThat(isomorphic(result, expected), is(true));
         }
     }

@@ -2,9 +2,9 @@ package io.carml.logicalsourceresolver;
 
 import static java.util.Comparator.comparing;
 
+import io.carml.logicalsourceresolver.LogicalSourceResolver.LogicalSourceResolverFactory;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Supplier;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -12,17 +12,16 @@ import lombok.NoArgsConstructor;
 
 @AllArgsConstructor(staticName = "of")
 @Getter
-public class MatchedLogicalSourceResolverSupplier {
+public class MatchedLogicalSourceResolverFactory {
 
     private MatchScore matchScore;
 
-    private Supplier<LogicalSourceResolver<?>> logicalSourceResolverSupplier;
+    private LogicalSourceResolverFactory<?> logicalSourceResolverFactory;
 
-    public static Optional<Supplier<LogicalSourceResolver<?>>> select(
-            List<MatchedLogicalSourceResolverSupplier> matches) {
+    public static Optional<LogicalSourceResolverFactory<?>> select(List<MatchedLogicalSourceResolverFactory> matches) {
         return matches.stream()
                 .max(comparing(match -> match.getMatchScore().getScore()))
-                .map(MatchedLogicalSourceResolverSupplier::getLogicalSourceResolverSupplier);
+                .map(MatchedLogicalSourceResolverFactory::getLogicalSourceResolverFactory);
     }
 
     @AllArgsConstructor

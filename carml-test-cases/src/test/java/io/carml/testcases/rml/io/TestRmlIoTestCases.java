@@ -1,5 +1,6 @@
 package io.carml.testcases.rml.io;
 
+import static org.eclipse.rdf4j.model.util.Models.isomorphic;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -38,7 +39,6 @@ import org.eclipse.rdf4j.model.impl.ValidatingValueFactory;
 import org.eclipse.rdf4j.model.util.ModelCollector;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 import org.eclipse.rdf4j.rio.RDFFormat;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -46,7 +46,6 @@ import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.shaded.org.apache.commons.io.IOUtils;
 
-@Disabled
 @Testcontainers
 class TestRmlIoTestCases {
 
@@ -59,7 +58,14 @@ class TestRmlIoTestCases {
     private static final List<String> SUPPORTED_SOURCE_TYPES =
             ImmutableList.of("CSV", "JSON", "XML", "MySQL", "PostgreSQL");
 
-    private static final List<String> SKIP_TESTS = List.of();
+    private static final List<String> SKIP_TESTS = List.of(
+            "RMLSTC0006e", // TODO: support https://www.w3.org/2019/wot/
+            "RMLSTC0006f", // https://github.com/kg-construct/rml-io/issues/78
+            "RMLSTC0007b", // TODO: raise issue, delimiter in mapping incorrect
+            "RMLSTC0007c", // TODO: raise issue, iterator has trailing slash and subject map missing @ for attribute
+            "RMLSTC0007d" // TODO: add support for new XPath reference formulation, TODO: raise issue, iterator has
+            // trailing slash and subject map missing @ for attribute
+            );
 
     // private static final MySQLContainer<?> MYSQL =
     //         new MySQLContainer<>("mysql:latest").withUsername("root").withUrlParam("allowMultiQueries", "true");
@@ -119,8 +125,8 @@ class TestRmlIoTestCases {
                     .collect(ModelCollector.toTreeModel());
 
             // TODO Create isomorphic hamcrest matcher
-            assertThat(result, is(expected));
-            // assertThat(isomorphic(result, expected), is(true));
+            // assertThat(result, is(expected));
+            assertThat(isomorphic(result, expected), is(true));
         }
     }
 

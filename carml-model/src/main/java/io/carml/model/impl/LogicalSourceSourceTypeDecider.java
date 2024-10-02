@@ -5,6 +5,7 @@ import static java.util.function.Predicate.not;
 import io.carml.rdfmapper.Mapper;
 import io.carml.rdfmapper.TypeDecider;
 import io.carml.vocab.Rdf.Carml;
+import io.carml.vocab.Rdf.Csvw;
 import io.carml.vocab.Rdf.D2rq;
 import io.carml.vocab.Rdf.Rml;
 import java.lang.reflect.Type;
@@ -33,7 +34,9 @@ public class LogicalSourceSourceTypeDecider implements TypeDecider {
             D2rq.jdbcDriver, D2rq.Database,
             Rml.path, Rml.RelativePathSource,
             DCAT.ACCESS_URL, DCAT.DISTRIBUTION,
-            DCAT.DOWNLOAD_URL, DCAT.DISTRIBUTION);
+            DCAT.DOWNLOAD_URL, DCAT.DISTRIBUTION,
+            Csvw.url, Csvw.Table,
+            Csvw.dialect, Csvw.Table);
 
     @Override
     public Set<Type> decide(Model model, Resource resource) {

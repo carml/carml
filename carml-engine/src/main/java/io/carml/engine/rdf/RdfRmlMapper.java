@@ -12,17 +12,17 @@ import io.carml.engine.join.ChildSideJoinStoreProvider;
 import io.carml.engine.join.ParentSideJoinConditionStoreProvider;
 import io.carml.engine.join.impl.CarmlChildSideJoinStoreProvider;
 import io.carml.engine.join.impl.CarmlParentSideJoinConditionStoreProvider;
-import io.carml.logicalsourceresolver.LogicalSourceResolver;
-import io.carml.logicalsourceresolver.MatchingLogicalSourceResolverSupplier;
+import io.carml.logicalsourceresolver.LogicalSourceResolver.LogicalSourceResolverFactory;
+import io.carml.logicalsourceresolver.MatchingLogicalSourceResolverFactory;
 import io.carml.logicalsourceresolver.sourceresolver.ClassPathResolver;
-import io.carml.logicalsourceresolver.sourceresolver.CompositeSourceResolver;
-import io.carml.logicalsourceresolver.sourceresolver.DcatDistributionResolver;
 import io.carml.logicalsourceresolver.sourceresolver.FileResolver;
 import io.carml.logicalsourceresolver.sourceresolver.SourceResolver;
 import io.carml.logicalsourceresolver.sql.sourceresolver.DatabaseConnectionOptions;
 import io.carml.logicalsourceresolver.sql.sourceresolver.DatabaseSourceResolver;
+import io.carml.model.Mapping;
 import io.carml.model.TriplesMap;
 import io.carml.util.Mappings;
+import io.carml.util.TypeRef;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.text.Normalizer;
@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.function.Supplier;
 import lombok.AccessLevel;
@@ -55,8 +56,10 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
     private static final long SECONDS_TO_TIMEOUT = 30;
 
     private RdfRmlMapper(
-            Set<TriplesMap> triplesMaps, SourceResolver sourceResolver, MappingPipeline<Statement> mappingPipeline) {
-        super(triplesMaps, sourceResolver, mappingPipeline, new HashMap<>());
+            Set<TriplesMap> triplesMaps,
+            MappingPipeline<Statement> mappingPipeline,
+            Set<SourceResolver<?>> sourceResolvers) {
+        super(triplesMaps, mappingPipeline, sourceResolvers);
     }
 
     public static Builder builder() {
@@ -68,16 +71,20 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
 
         private IRI baseIri = RML_BASE_IRI;
 
-        private final Map<IRI, Supplier<LogicalSourceResolver<?>>> logicalSourceResolverSuppliers = new HashMap<>();
+        private final Map<IRI, LogicalSourceResolverFactory<?>> logicalSourceResolverFactories = new HashMap<>();
 
-        private final Set<MatchingLogicalSourceResolverSupplier> matchingLogicalSourceResolverSuppliers =
+        private final Set<MatchingLogicalSourceResolverFactory> matchingLogicalSourceResolverFactories =
                 new LinkedHashSet<>();
 
-        private Set<TriplesMap> triplesMaps = new HashSet<>();
+        private Mapping mapping;
+
+        private Set<TriplesMap> providedTriplesMaps = new HashSet<>();
 
         private final Functions functions = new Functions();
 
-        private final Set<SourceResolver> sourceResolvers = new LinkedHashSet<>();
+        private final Set<SourceResolver<?>> sourceResolvers = new HashSet<>();
+
+        private final FileResolver.FileResolverBuilder fileResolverBuilder = FileResolver.builder();
 
         private Supplier<ValueFactory> valueFactorySupplier = SimpleValueFactory::getInstance;
 
@@ -123,34 +130,34 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
             return this;
         }
 
-        public Builder sourceResolver(SourceResolver sourceResolver) {
+        public Builder sourceResolver(SourceResolver<?> sourceResolver) {
             sourceResolvers.add(sourceResolver);
             return this;
         }
 
         public Builder fileResolver(Path basePath) {
-            sourceResolvers.add(FileResolver.of(basePath));
+            fileResolverBuilder.basePath(basePath);
             return this;
         }
 
-        public Builder classPathResolver(String basePath) {
-            sourceResolvers.add(ClassPathResolver.of(basePath));
+        public Builder classPathResolver(String classPathBasePath) {
+            fileResolverBuilder.classPathBase(classPathBasePath);
             return this;
         }
 
         public Builder classPathResolver(ClassPathResolver classPathResolver) {
-            sourceResolvers.add(classPathResolver);
+            fileResolverBuilder.classPathBase(classPathResolver.getClassPathBase());
+            fileResolverBuilder.loadingClass(classPathResolver.getLoadingClass());
             return this;
         }
 
-        // TODO: deprecate
-        public Builder setLogicalSourceResolver(IRI iri, Supplier<LogicalSourceResolver<?>> resolverSupplier) {
-            logicalSourceResolverSuppliers.put(iri, resolverSupplier);
+        public Builder setLogicalSourceResolverFactory(IRI iri, LogicalSourceResolverFactory<?> factory) {
+            logicalSourceResolverFactories.put(iri, factory);
             return this;
         }
 
-        public Builder logicalSourceResolverMatcher(MatchingLogicalSourceResolverSupplier matchingResolverSupplier) {
-            matchingLogicalSourceResolverSuppliers.add(matchingResolverSupplier);
+        public Builder logicalSourceResolverMatcher(MatchingLogicalSourceResolverFactory matchingResolverSupplier) {
+            matchingLogicalSourceResolverFactories.add(matchingResolverSupplier);
             return this;
         }
 
@@ -176,8 +183,14 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
             return this;
         }
 
+        public Builder mapping(Mapping mapping) {
+            this.mapping = mapping;
+            fileResolverBuilder.mapping(mapping);
+            return this;
+        }
+
         public Builder triplesMaps(Set<TriplesMap> triplesMaps) {
-            this.triplesMaps = triplesMaps;
+            this.providedTriplesMaps = triplesMaps;
             return this;
         }
 
@@ -200,8 +213,13 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
         }
 
         public RdfRmlMapper build() {
-            if (matchingLogicalSourceResolverSuppliers.isEmpty() && logicalSourceResolverSuppliers.isEmpty()) {
+            if (matchingLogicalSourceResolverFactories.isEmpty() && logicalSourceResolverFactories.isEmpty()) {
                 throw new RmlMapperException("No logical source resolver suppliers specified.");
+            }
+
+            var triplesMaps = mapping != null ? mapping.getTriplesMaps() : providedTriplesMaps;
+            if (triplesMaps == null) {
+                throw new RmlMapperException("No mappings provided.");
             }
 
             RdfTermGeneratorConfig rdfTermGeneratorConfig = RdfTermGeneratorConfig.builder()
@@ -215,27 +233,6 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
             if (termGeneratorFactory == null) {
                 termGeneratorFactory = RdfTermGeneratorFactory.of(rdfTermGeneratorConfig);
             }
-
-            if (databaseConnectionOptions != null) {
-                sourceResolvers.add(DatabaseSourceResolver.of(databaseConnectionOptions));
-            } else {
-                sourceResolvers.add(DatabaseSourceResolver.of());
-            }
-
-            if (sourceResolvers.stream().noneMatch(FileResolver.class::isInstance)) {
-                // Add default file resolver
-                sourceResolvers.add(FileResolver.of());
-            }
-            if (sourceResolvers.stream().noneMatch(DcatDistributionResolver.class::isInstance)) {
-                // Add default DCAT distribution resolver
-                sourceResolvers.add(DcatDistributionResolver.of());
-            }
-
-            var compositeResolver = CompositeSourceResolver.of(sourceResolvers);
-
-            System.getProperties().setProperty("org.jooq.no-logo", "true");
-
-            System.getProperties().setProperty("org.jooq.no-tips", "true");
 
             var rdfMapperConfig = RdfMapperConfig.builder()
                     .valueFactorySupplier(valueFactorySupplier)
@@ -251,10 +248,22 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
             var mappingPipeline = pipelineFactory.getMappingPipeline(
                     mappableTriplesMaps,
                     rdfMapperConfig,
-                    logicalSourceResolverSuppliers,
-                    matchingLogicalSourceResolverSuppliers);
+                    logicalSourceResolverFactories,
+                    matchingLogicalSourceResolverFactories);
 
-            return new RdfRmlMapper(triplesMaps, compositeResolver, mappingPipeline);
+            sourceResolvers.add(fileResolverBuilder.build());
+
+            if (databaseConnectionOptions != null) {
+                sourceResolvers.add(DatabaseSourceResolver.of(databaseConnectionOptions));
+            } else {
+                sourceResolvers.add(DatabaseSourceResolver.of());
+            }
+
+            ServiceLoader.load(SourceResolver.class).stream()
+                    .<SourceResolver<?>>map(ServiceLoader.Provider::get)
+                    .forEach(sourceResolvers::add);
+
+            return new RdfRmlMapper(triplesMaps, mappingPipeline, sourceResolvers);
         }
     }
 
@@ -289,6 +298,14 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
     public <R> Model mapRecordToModel(
             R providedRecord, Class<R> providedRecordClass, Set<TriplesMap> triplesMapFilter) {
         return toModel(mapRecord(providedRecord, providedRecordClass, triplesMapFilter));
+    }
+
+    public <R> Model mapRecordToModel(R providedRecord, TypeRef<R> providedTypeRef) {
+        return toModel(mapRecord(providedRecord, providedTypeRef));
+    }
+
+    public <R> Model mapRecordToModel(R providedRecord, TypeRef<R> providedTypeRef, Set<TriplesMap> triplesMapFilter) {
+        return toModel(mapRecord(providedRecord, providedTypeRef, triplesMapFilter));
     }
 
     private Model toModel(Flux<Statement> statementFlux) {

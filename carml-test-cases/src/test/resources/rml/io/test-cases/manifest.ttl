@@ -42,3 +42,185 @@
     ];
   rmltest:mappingDocument "mapping.ttl";
   rmltest:output "default.nq" .
+
+<RMLSTC0002c> a test:TestCase;
+  dcterms:identifier "RMLSTC0002c";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "Friends.json.zip";
+      rmltest:inputType "JSON"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLSTC0002d> a test:TestCase;
+  dcterms:identifier "RMLSTC0002d";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "Friends.tar.xz";
+      rmltest:inputType "JSON"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLSTC0002e> a test:TestCase;
+  dcterms:identifier "RMLSTC0002e";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "Friends.tar.gz";
+      rmltest:inputType "JSON"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLSTC0003> a test:TestCase;
+  dcterms:identifier "RMLSTC0003";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "Friends.nt";
+      rmltest:inputType "RDF"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLSTC0004a> a test:TestCase;
+  dcterms:identifier "RMLSTC0004a";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "Friends-NULL.csv";
+      rmltest:inputType "CSV"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLSTC0004b> a test:TestCase;
+  dcterms:identifier "RMLSTC0004b";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "Friends-NULL.csv";
+      rmltest:inputType "CSV"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLSTC0004c> a test:TestCase;
+  dcterms:identifier "RMLSTC0004c";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "Friends-NULL.csv";
+      rmltest:inputType "CSV"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLSTC0005a> a test:TestCase;
+  dcterms:identifier "RMLSTC0005a";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "Friends-NULL.csv";
+      rmltest:inputType "CSV"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLSTC0005b> a test:TestCase;
+  dcterms:identifier "RMLSTC0005b";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "Friends.csv";
+      rmltest:inputType "CSV"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLSTC0006a> a test:TestCase;
+  dcterms:identifier "RMLSTC0006a";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "Friends.json";
+      rmltest:inputType "JSON"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLSTC0006b> a test:TestCase;
+  dcterms:identifier "RMLSTC0006b";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "Friends.nt";
+      rmltest:inputType "RDF"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLSTC0006c> a test:TestCase;
+  dcterms:identifier "RMLSTC0006c";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "Friends.nt";
+      rmltest:inputType "RDF"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLSTC0006d> a test:TestCase;
+  dcterms:identifier "RMLSTC0006d";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "Friends.csv";
+      rmltest:inputType "CSV"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLSTC0006e> a test:TestCase;
+  dcterms:identifier "RMLSTC0006e";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "Friends.json";
+      rmltest:inputType "JSON"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+# TODO  <RMLSTC0006f>
+
+<RMLSTC0007a> a test:TestCase;
+  dcterms:identifier "RMLSTC0007a";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "Friends.json";
+      rmltest:inputType "JSON"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLSTC0007b> a test:TestCase;
+  dcterms:identifier "RMLSTC0007b";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "Friends.csv";
+      rmltest:inputType "CSV"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLSTC0007c> a test:TestCase;
+  dcterms:identifier "RMLSTC0007c";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "Friends.xml";
+      rmltest:inputType "XML"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .
+
+<RMLSTC0007d> a test:TestCase;
+  dcterms:identifier "RMLSTC0007d";
+  rmltest:hasExpectedOutput true;
+  rmltest:input [
+      rmltest:inputFile "Friends.xml";
+      rmltest:inputType "XML"
+    ];
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output "default.nq" .

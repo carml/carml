@@ -13,7 +13,9 @@ import io.carml.model.NameableStream;
 import io.carml.model.Source;
 import io.carml.model.TriplesMap;
 import io.carml.util.Mappings;
+import io.carml.util.TypeRef;
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -26,28 +28,49 @@ import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Slf4j
-@AllArgsConstructor
 public abstract class RmlMapper<T, K> {
     public static final String DEFAULT_STREAM_NAME = "DEFAULT";
 
     @Getter
     private final Set<TriplesMap> triplesMaps;
 
-    private final SourceResolver sourceResolver;
+    private final Set<SourceResolver<?>> sourceResolvers;
 
     private final MappingPipeline<T> mappingPipeline;
 
     private final Map<K, Set<MergeableMappingResult<K, T>>> mergeables;
+
+    protected RmlMapper(
+            @NonNull Set<TriplesMap> triplesMaps,
+            @NonNull MappingPipeline<T> mappingPipeline,
+            @NonNull Set<SourceResolver<?>> sourceResolvers) {
+        this.triplesMaps = triplesMaps;
+        this.sourceResolvers = sourceResolvers;
+        this.mappingPipeline = mappingPipeline;
+        this.mergeables = new HashMap<>();
+    }
 
     public <R> Flux<T> mapRecord(R providedRecord, Class<R> providedRecordClass) {
         return mapRecord(providedRecord, providedRecordClass, Set.of());
     }
 
     public <R> Flux<T> mapRecord(R providedRecord, Class<R> providedRecordClass, Set<TriplesMap> triplesMapFilter) {
-        return map(null, providedRecord, providedRecordClass, triplesMapFilter).flatMap(MappingResult::getResults);
+        var typeRef = TypeRef.forClass(providedRecordClass);
+        return map(null, providedRecord, typeRef, triplesMapFilter).flatMap(MappingResult::getResults);
+    }
+
+    public <R> Flux<T> mapRecord(R providedRecord, TypeRef<R> providedRecordTypeRef) {
+        return mapRecord(providedRecord, providedRecordTypeRef, Set.of());
+    }
+
+    public <R> Flux<T> mapRecord(R providedRecord, TypeRef<R> providedRecordTypeRef, Set<TriplesMap> triplesMapFilter) {
+        return map(null, providedRecord, providedRecordTypeRef, triplesMapFilter)
+                .flatMap(MappingResult::getResults);
     }
 
     public Flux<T> map() {
@@ -77,15 +100,16 @@ public abstract class RmlMapper<T, K> {
     private <V> Flux<MappingResult<T>> map(
             Map<String, InputStream> namedInputStreams,
             V providedRecord,
-            Class<V> providedRecordClass,
+            TypeRef<V> providedRecordTypeRef,
             Set<TriplesMap> triplesMapFilter) {
         var mappingContext = MappingContext.<T>builder()
                 .triplesMapFilter(triplesMapFilter)
                 .mappingPipeline(mappingPipeline)
                 .build();
 
-        return Flux.fromIterable(getSources(mappingContext, namedInputStreams, providedRecord, providedRecordClass))
-                .flatMap(resolvedSourceEntry -> mapSource(mappingContext, resolvedSourceEntry))
+        return Flux.fromIterable(getSources(mappingContext, namedInputStreams, providedRecord, providedRecordTypeRef))
+                .flatMap(resolvedSourceEntry ->
+                        mapSource(resolvedSourceEntry.getLeft(), mappingContext, resolvedSourceEntry.getRight()))
                 .mapNotNull(this::handleCompletable)
                 .filter(Objects::nonNull)
                 .concatWith(resolveFinishers(mappingContext))
@@ -108,11 +132,11 @@ public abstract class RmlMapper<T, K> {
         return mappingResult;
     }
 
-    private <V> Set<ResolvedSource<?>> getSources(
+    private <V> Set<Pair<Source, ResolvedSource<?>>> getSources(
             MappingContext<T> mappingContext,
             Map<String, InputStream> namedInputStreams,
             V providedRecord,
-            Class<V> providedRecordClass) {
+            TypeRef<V> providedRecordTypeRef) {
 
         var logicalSourcesPerSource = mappingContext.getLogicalSourcesPerSource();
 
@@ -125,8 +149,9 @@ public abstract class RmlMapper<T, K> {
                                 .collect(toSet()))));
             }
 
-            return Set.of(ResolvedSource.of(
-                    Iterables.getFirst(logicalSourcesPerSource.keySet(), null), providedRecord, providedRecordClass));
+            return Set.of(Pair.of(
+                    Iterables.getFirst(logicalSourcesPerSource.keySet(), null),
+                    ResolvedSource.of(providedRecord, providedRecordTypeRef)));
         }
 
         return logicalSourcesPerSource.entrySet().stream()
@@ -134,7 +159,7 @@ public abstract class RmlMapper<T, K> {
                 .collect(Collectors.toUnmodifiableSet());
     }
 
-    private ResolvedSource<?> resolveSource(
+    private Pair<Source, ResolvedSource<?>> resolveSource(
             Source source, Set<LogicalSource> inCaseOfException, Map<String, InputStream> namedInputStreams) {
         if (source instanceof NameableStream stream) {
             String unresolvedName = stream.getStreamName();
@@ -146,23 +171,29 @@ public abstract class RmlMapper<T, K> {
                         name, exception(Iterables.getFirst(inCaseOfException, null))));
             }
 
-            return ResolvedSource.of(source, namedInputStreams.get(name), InputStream.class);
+            return Pair.of(source, ResolvedSource.of(Mono.just(namedInputStreams.get(name)), new TypeRef<>() {}));
         }
 
-        var resolved = sourceResolver
-                .apply(source)
+        var resolvedSource = sourceResolvers.stream()
+                .filter(resolver -> resolver.supportsSource(source))
+                .findFirst()
+                .map(resolver -> resolver.apply(source)
+                        .orElseThrow(() -> new RmlMapperException(String.format(
+                                "Could not resolve source: %s",
+                                exception(Iterables.getFirst(inCaseOfException, null))))))
                 .orElseThrow(() -> new RmlMapperException(String.format(
-                        "Could not resolve source for logical source: %s",
+                        "No source resolver found for source: %s",
                         exception(Iterables.getFirst(inCaseOfException, null)))));
 
-        return ResolvedSource.of(source, resolved, Object.class);
+        return Pair.of(source, resolvedSource);
     }
 
-    private Flux<MappingResult<T>> mapSource(MappingContext<T> mappingContext, ResolvedSource<?> resolvedSource) {
-        return Flux.just(mappingPipeline.getSourceToLogicalSourceResolver().get(resolvedSource.getRmlSource()))
-                .flatMap(resolver -> resolver.getLogicalSourceRecords(
-                                mappingContext.logicalSourcesPerSource.get(resolvedSource.getRmlSource()))
-                        .apply(resolvedSource))
+    private Flux<MappingResult<T>> mapSource(
+            Source source, MappingContext<T> mappingContext, ResolvedSource<?> resolvedSource) {
+        return Flux.just(mappingPipeline.getSourceToLogicalSourceResolver().get(source))
+                .flatMap(
+                        resolver -> resolver.getLogicalSourceRecords(mappingContext.logicalSourcesPerSource.get(source))
+                                .apply(resolvedSource))
                 .flatMap(logicalSourceRecord -> mapTriples(mappingContext, logicalSourceRecord));
     }
 

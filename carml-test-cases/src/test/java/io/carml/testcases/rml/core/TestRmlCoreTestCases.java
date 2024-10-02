@@ -63,8 +63,7 @@ class TestRmlCoreTestCases {
 
     private static final IRI TESTCASE = VF.createIRI("http://www.w3.org/2006/03/test-description#TestCase");
 
-    private static final List<String> SUPPORTED_SOURCE_TYPES =
-            ImmutableList.of("CSV", "JSON", "XML", "MySQL", "PostgreSQL");
+    private static final List<String> SUPPORTED_SOURCE_TYPES = List.of("CSV", "JSON", "XML", "MySQL", "PostgreSQL");
 
     private static final List<String> SKIP_TESTS = new ImmutableList.Builder<String>() //
             .add("RMLTC0012d") // CARML supports multiplevalued subject maps
@@ -128,6 +127,7 @@ class TestRmlCoreTestCases {
                     .collect(ModelCollector.toTreeModel());
 
             // TODO Create isomorphic hamcrest matcher
+            // assertThat(result, is(expected));
             assertThat(isomorphic(result, expected), is(true));
         }
     }
