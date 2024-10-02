@@ -1,5 +1,6 @@
 package io.carml.testcases.rml.io;
 
+import static org.eclipse.rdf4j.model.util.Models.isomorphic;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -124,8 +125,8 @@ class TestRmlIoTestCases {
                     .collect(ModelCollector.toTreeModel());
 
             // TODO Create isomorphic hamcrest matcher
-            assertThat(result, is(expected));
-            // assertThat(isomorphic(result, expected), is(true));
+            // assertThat(result, is(expected));
+            assertThat(isomorphic(result, expected), is(true));
         }
     }
 

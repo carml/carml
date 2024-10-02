@@ -90,7 +90,7 @@
 		<r2dbc-postgresql.version>1.0.4.RELEASE</r2dbc-postgresql.version>
 		<commons-compress.version>1.26.1</commons-compress.version>
 		<xz.version>1.9</xz.version>
-		<mockito.version>5.10.0</mockito.version>
+		<mockito.version>5.12.0</mockito.version>
 		<junit.version>5.10.2</junit.version>
 		<hamcrest.version>2.2</hamcrest.version>
 		<blockhound.version>1.0.8.RELEASE</blockhound.version>
@@ -385,7 +385,7 @@
 				<groupId>com.google.auto.service</groupId>
 				<artifactId>auto-service</artifactId>
 				<version>${auto-service.version}</version>
-				<scope>test</scope>
+				<optional>true</optional>
 			</dependency>
 
 			<dependency>
@@ -448,7 +448,7 @@
 				<artifactId>postgresql</artifactId>
 				<version>${testcontainers.version}</version>
 				<scope>test</scope>
-			</dependency>
+            </dependency>
 
 		</dependencies>
 	</dependencyManagement>
@@ -480,6 +480,18 @@
 							<!-- Suppress unknown annotation processing warnings -->
 							<arg>-Xlint:-processing</arg>
 						</compilerArgs>
+						<annotationProcessorPaths>
+							<path>
+								<groupId>org.projectlombok</groupId>
+								<artifactId>lombok</artifactId>
+								<version>${lombok.version}</version>
+							</path>
+							<path>
+								<groupId>com.google.auto.service</groupId>
+								<artifactId>auto-service</artifactId>
+								<version>${auto-service.version}</version>
+							</path>
+						</annotationProcessorPaths>
 					</configuration>
 				</plugin>
 				<plugin>

@@ -1,62 +1,148 @@
 package io.carml.logicalsourceresolver.sourceresolver;
 
-import io.carml.model.FileSource;
-import io.carml.model.RelativePathSource;
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.toList;
+
+import io.carml.logicalsourceresolver.ResolvedSource;
+import io.carml.logicalsourceresolver.sourceresolver.aspects.FileSourceAspects;
+import io.carml.model.Mapping;
 import io.carml.model.Source;
-import java.io.IOException;
-import java.nio.file.Files;
+import io.carml.util.TypeRef;
+import java.io.InputStream;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.util.List;
 import java.util.Optional;
+import java.util.ServiceLoader;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import reactor.core.publisher.Mono;
 
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class FileResolver implements SourceResolver {
+public class FileResolver implements SourceResolver<Mono<InputStream>> {
+
+    private final Mapping mapping;
 
     private final Path basePath;
 
-    public static FileResolver of() {
-        return of(null);
-    }
+    private final String classPathBase;
 
-    public static FileResolver of(Path basePath) {
-        return new FileResolver(basePath);
-    }
+    private final Class<?> loadingClass;
 
-    @Override
-    public Optional<Object> apply(Source source) {
-        return unpackFileSource(source).map(pathToResolve -> {
-            Path path;
+    private final List<FileSourceAspects> fileSourceAspects;
 
-            if (basePath == null) {
-                path = Paths.get(pathToResolve);
-            } else {
-                var relativePath = pathToResolve.startsWith("/") ? pathToResolve.replaceFirst("/", "") : pathToResolve;
-                path = basePath.resolve(relativePath);
-            }
-
-            if (Files.exists(path)) {
-                try {
-                    var inputStream = Files.newInputStream(path);
-                    if (source.getCompression() != null) {
-                        return Decompressor.getInstance().apply(inputStream, source.getCompression());
-                    } else {
-                        return inputStream;
-                    }
-                } catch (IOException e) {
-                    throw new SourceResolverException(String.format("Could not resolve file path %s", path));
-                }
-            }
-
-            // TODO: give a proper error message when file path does not exist.
-
-            return null;
-        });
+    public static FileResolverBuilder builder() {
+        return new FileResolverBuilder();
     }
 
     @Override
     public boolean supportsSource(Source source) {
-        return source instanceof FileSource || source instanceof RelativePathSource;
+        return fileSourceAspects.stream().anyMatch(aspect -> aspect.supportsSource(source));
+    }
+
+    @Override
+    public Optional<ResolvedSource<Mono<InputStream>>> apply(Source source) {
+        var actionableAspects = fileSourceAspects.stream()
+                .filter(aspects -> aspects.supportsSource(source))
+                .toList();
+
+        if (actionableAspects.isEmpty()) {
+            return Optional.empty();
+        }
+
+        var resolverBuilder = InternalFileResolver.builder();
+
+        handleAspect(source, actionableAspects, FileSourceAspects::getUrl, resolverBuilder::url, "URL");
+        handleAspect(source, actionableAspects, FileSourceAspects::getBasePath, resolverBuilder::basePath, "base path");
+        handleAspect(
+                source,
+                actionableAspects,
+                FileSourceAspects::getPathString,
+                resolverBuilder::pathString,
+                "path string");
+        handleAspect(
+                source,
+                actionableAspects,
+                FileSourceAspects::getPathRelativeTo,
+                resolverBuilder::pathRelativeTo,
+                "path relative to");
+        handleAspect(
+                source,
+                actionableAspects,
+                FileSourceAspects::getCompression,
+                resolverBuilder::compression,
+                "compression");
+
+        var resolved = resolverBuilder
+                .basePath(basePath)
+                .classPathBase(classPathBase)
+                .loadingClass(loadingClass)
+                .build()
+                .resolve(source, mapping);
+
+        return Optional.of(ResolvedSource.of(resolved, new TypeRef<>() {}));
+    }
+
+    private <T> void handleAspect(
+            Source source,
+            List<FileSourceAspects> aspectsList,
+            Function<FileSourceAspects, Optional<Function<Source, Optional<T>>>> aspectGetter,
+            Consumer<T> builderConsumer,
+            String aspectName) {
+        var aspectsByPriority = aspectsList.stream()
+                .filter(aspect -> aspectGetter.apply(aspect).isPresent())
+                .collect(groupingBy(FileSourceAspects::getPriority, toList()));
+
+        aspectsByPriority.keySet().stream()
+                .min(Integer::compare)
+                .map(aspectsByPriority::get)
+                .ifPresent(aspects -> {
+                    if (aspects.size() > 1) {
+                        throw new SourceResolverException(String.format(
+                                "Multiple aspect resolvers for '%s' with the same priority.", aspectName));
+                    }
+                    aspectGetter
+                            .apply(aspects.get(0))
+                            .flatMap(urlFunction -> urlFunction.apply(source))
+                            .ifPresent(builderConsumer);
+                });
+    }
+
+    public static class FileResolverBuilder {
+        private Mapping mapping;
+        private Path basePath;
+        private String classPathBase;
+        private Class<?> loadingClass;
+
+        FileResolverBuilder() {}
+
+        public FileResolverBuilder mapping(Mapping mapping) {
+            this.mapping = mapping;
+            return this;
+        }
+
+        public FileResolverBuilder basePath(Path basePath) {
+            this.basePath = basePath;
+            return this;
+        }
+
+        public FileResolverBuilder classPathBase(String classPathBase) {
+            this.classPathBase = classPathBase;
+            return this;
+        }
+
+        public FileResolverBuilder loadingClass(Class<?> loadingClass) {
+            this.loadingClass = loadingClass;
+            return this;
+        }
+
+        public FileResolver build() {
+            var fileSourceAspects = ServiceLoader.load(FileSourceAspects.class).stream()
+                    .map(ServiceLoader.Provider::get)
+                    .toList();
+
+            return new FileResolver(mapping, basePath, classPathBase, loadingClass, fileSourceAspects);
+        }
     }
 }

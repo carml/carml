@@ -13,10 +13,9 @@ import io.carml.model.LogicalSource;
 import io.carml.model.Source;
 import io.carml.model.impl.CarmlLogicalSource;
 import io.carml.model.impl.CarmlRelativePathSource;
-import io.carml.model.impl.CarmlStream;
 import io.carml.util.RmlMappingLoader;
+import io.carml.util.TypeRef;
 import io.carml.vocab.Rdf.Ql;
-import java.io.InputStream;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -117,7 +116,7 @@ class XPathResolverTest {
         // Given
         var inputStream = IOUtils.toInputStream(SOURCE, StandardCharsets.UTF_8);
 
-        var resolvedSource = ResolvedSource.of(new CarmlStream(), inputStream, InputStream.class);
+        var resolvedSource = ResolvedSource.of(inputStream, new TypeRef<>() {});
         var xpathResolver = xpathResolverFactory.apply(LSOURCE.getSource());
         var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(LSOURCE, LSOURCE2));
 
@@ -133,7 +132,7 @@ class XPathResolverTest {
         // Given
         var inputStream = IOUtils.toInputStream(SOURCE, StandardCharsets.UTF_8);
 
-        var resolvedSource = ResolvedSource.of(new CarmlStream(), inputStream, InputStream.class);
+        var resolvedSource = ResolvedSource.of(inputStream, new TypeRef<>() {});
         var xpathResolver = xpathResolverFactory.apply(LSOURCE.getSource());
         var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(LSOURCE, LSOURCE2));
 
@@ -146,7 +145,7 @@ class XPathResolverTest {
         // Given
         var inputStream2 = IOUtils.toInputStream(SOURCE, StandardCharsets.UTF_8);
 
-        var resolvedSource2 = ResolvedSource.of(new CarmlStream(), inputStream2, InputStream.class);
+        var resolvedSource2 = ResolvedSource.of(inputStream2, new TypeRef<>() {});
         var recordResolver2 = xpathResolver.getLogicalSourceRecords(Set.of(LSOURCE, LSOURCE2));
 
         // When
@@ -161,7 +160,7 @@ class XPathResolverTest {
         // Given
         var inputStream = IOUtils.toInputStream(SOURCE, StandardCharsets.UTF_8);
 
-        var resolvedSource = ResolvedSource.of(new CarmlStream(), inputStream, InputStream.class);
+        var resolvedSource = ResolvedSource.of(inputStream, new TypeRef<>() {});
         var xpathResolver = xpathResolverFactory.apply(LSOURCE.getSource());
         var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(LSOURCE, LSOURCE_ROOT));
 
@@ -177,7 +176,7 @@ class XPathResolverTest {
         // Given
         var inputStream = IOUtils.toInputStream(SOURCE, StandardCharsets.UTF_8);
 
-        var resolvedSource = ResolvedSource.of(new CarmlStream(), inputStream, InputStream.class);
+        var resolvedSource = ResolvedSource.of(inputStream, new TypeRef<>() {});
         var xpathResolver = xpathResolverFactory.apply(LSOURCE.getSource());
         var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(LSOURCE, LSOURCE2));
 
@@ -206,7 +205,7 @@ class XPathResolverTest {
         DocumentBuilder docBuilder = processor.newDocumentBuilder();
         var record = docBuilder.build(new StreamSource(new StringReader(SOURCE)));
 
-        var resolvedSource = ResolvedSource.of(new CarmlStream(), record, XdmItem.class);
+        var resolvedSource = ResolvedSource.of(record, new TypeRef<>() {});
         var xpathResolver = xpathResolverFactory.apply(LSOURCE.getSource());
         var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(LSOURCE, LSOURCE2));
 
@@ -230,7 +229,7 @@ class XPathResolverTest {
 
         var record = docBuilder.build(new StreamSource(new StringReader(BOOK_ONE)));
 
-        var resolvedSource = ResolvedSource.of(new CarmlStream(), record, XdmItem.class);
+        var resolvedSource = ResolvedSource.of(record, new TypeRef<>() {});
         var xpathResolver = xpathResolverFactory.apply(unresolvable.getSource());
         var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(unresolvable));
 
@@ -246,7 +245,7 @@ class XPathResolverTest {
         // Given
         var inputStream = IOUtils.toInputStream(SOURCE, StandardCharsets.UTF_8);
 
-        var resolvedSource = ResolvedSource.of(RML_SOURCE, inputStream, InputStream.class);
+        var resolvedSource = ResolvedSource.of(inputStream, new TypeRef<>() {});
         var xpathResolver = xpathResolverFactory.apply(RML_SOURCE);
         var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(LSOURCE_INVALID));
 
@@ -264,7 +263,7 @@ class XPathResolverTest {
         // Given
         var inputStream = IOUtils.toInputStream(SOURCE, StandardCharsets.UTF_8);
 
-        var resolvedSource = ResolvedSource.of(RML_SOURCE, inputStream, InputStream.class);
+        var resolvedSource = ResolvedSource.of(inputStream, new TypeRef<>() {});
         var xpathResolver = xpathResolverFactory.apply(RML_SOURCE);
         var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of());
 
@@ -329,7 +328,7 @@ class XPathResolverTest {
     void givenExpression_whenExpressionEvaluationWithoutAutoTextExtractionApplied_thenReturnCorrectValue() {
         var inputStream = IOUtils.toInputStream(SOURCE, StandardCharsets.UTF_8);
 
-        var resolvedSource = ResolvedSource.of(LSOURCE.getSource(), inputStream, InputStream.class);
+        var resolvedSource = ResolvedSource.of(inputStream, new TypeRef<>() {});
         var xpathResolver = xpathResolverFactory.apply(LSOURCE.getSource());
         var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(LSOURCE));
 
@@ -355,7 +354,7 @@ class XPathResolverTest {
 
         inputStream = IOUtils.toInputStream(SOURCE, StandardCharsets.UTF_8);
 
-        resolvedSource = ResolvedSource.of(LSOURCE.getSource(), inputStream, InputStream.class);
+        resolvedSource = ResolvedSource.of(inputStream, new TypeRef<>() {});
         recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(LSOURCE));
 
         recordFlux = recordResolver.apply(resolvedSource);
@@ -381,8 +380,8 @@ class XPathResolverTest {
         var triplesMap = Iterables.getOnlyElement(mapping);
         var logicalSource = triplesMap.getLogicalSource();
 
-        var resolvedSource = ResolvedSource.of(
-                logicalSource.getSource(), IOUtils.toInputStream(SOURCE_NS, StandardCharsets.UTF_8), InputStream.class);
+        var resolvedSource =
+                ResolvedSource.of(IOUtils.toInputStream(SOURCE_NS, StandardCharsets.UTF_8), new TypeRef<>() {});
         var xpathResolver = xpathResolverFactory.apply(logicalSource.getSource());
         var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(logicalSource));
 

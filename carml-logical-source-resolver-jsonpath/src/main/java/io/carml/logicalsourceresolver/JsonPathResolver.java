@@ -93,8 +93,7 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
         var resolved = resolvedSource.getResolved().get();
 
         if (resolved instanceof InputStream resolvedInputStream) {
-            var charset = Encodings.resolveCharset(resolvedSource.getRmlSource().getEncoding())
-                    .orElse(UTF_8);
+            var charset = Encodings.resolveCharset(source.getEncoding()).orElse(UTF_8);
 
             if (charset == UTF_8) {
                 return getObjectFlux(resolvedInputStream, logicalSources);
@@ -104,9 +103,7 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
         } else if (resolved instanceof Mono<?> mono) {
             return mono.flatMapMany(resolvedMono -> {
                 if (resolvedMono instanceof InputStream resolvedInputStreamMono) {
-                    var charset = Encodings.resolveCharset(
-                                    resolvedSource.getRmlSource().getEncoding())
-                            .orElse(UTF_8);
+                    var charset = Encodings.resolveCharset(source.getEncoding()).orElse(UTF_8);
 
                     if (charset == UTF_8) {
                         return getObjectFlux(resolvedInputStreamMono, logicalSources);

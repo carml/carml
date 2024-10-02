@@ -4,10 +4,12 @@ import static io.r2dbc.spi.ConnectionFactoryOptions.DRIVER;
 import static io.r2dbc.spi.ConnectionFactoryOptions.PASSWORD;
 import static io.r2dbc.spi.ConnectionFactoryOptions.USER;
 
+import io.carml.logicalsourceresolver.ResolvedSource;
 import io.carml.logicalsourceresolver.sourceresolver.SourceResolver;
 import io.carml.logicalsourceresolver.sourceresolver.SourceResolverException;
 import io.carml.model.DatabaseSource;
 import io.carml.model.Source;
+import io.carml.util.TypeRef;
 import io.r2dbc.spi.ConnectionFactoryOptions;
 import java.util.Optional;
 import lombok.AccessLevel;
@@ -16,9 +18,7 @@ import lombok.Getter;
 
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Getter
-public class DatabaseSourceResolver implements SourceResolver {
-
-    private DatabaseConnectionOptions providedDatabaseConnectionOptions;
+public class DatabaseSourceResolver implements SourceResolver<ConnectionFactoryOptions> {
 
     public static DatabaseSourceResolver of() {
         return new DatabaseSourceResolver(null);
@@ -28,13 +28,15 @@ public class DatabaseSourceResolver implements SourceResolver {
         return new DatabaseSourceResolver(databaseConnectionOptions);
     }
 
+    private DatabaseConnectionOptions providedDatabaseConnectionOptions;
+
     @Override
     public boolean supportsSource(Source source) {
         return source instanceof DatabaseSource;
     }
 
     @Override
-    public Optional<Object> apply(Source source) {
+    public Optional<ResolvedSource<ConnectionFactoryOptions>> apply(Source source) {
         DatabaseSource resolvableSource;
 
         if (source instanceof JoiningDatabaseSource joiningSourceSupplier) {
@@ -49,7 +51,7 @@ public class DatabaseSourceResolver implements SourceResolver {
 
         checkConnectionOptions(connectionFactoryOptions);
 
-        return Optional.of(connectionFactoryOptions);
+        return Optional.of(ResolvedSource.of(connectionFactoryOptions, new TypeRef<>() {}));
     }
 
     private void checkConnectionOptions(ConnectionFactoryOptions opts) {

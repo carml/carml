@@ -52,6 +52,11 @@ public abstract class SqlResolver implements LogicalSourceResolver<RowData> {
 
     public static final String PARENT_ALIAS = "parent";
 
+    static {
+        System.getProperties().setProperty("org.jooq.no-logo", "true");
+        System.getProperties().setProperty("org.jooq.no-tips", "true");
+    }
+
     private final Source source;
 
     private final boolean isStrict;

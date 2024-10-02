@@ -10,9 +10,11 @@
 exm:LogicalSource a rml:LogicalSource ;
   rml:source [
     a rml:RelativePathSource ;
-    rml:root rml:MappingDirectory ;
-    rml:path "cars-eu.csv" ;
-    rml:delimiter ";" ;
+    rml:path "csv/cars-eu.csv" ;
+    rml:null "" ;
+    csvw:dialect [
+      csvw:delimiter ";" ;
+    ] ;
   ] ;
   rml:referenceFormulation ql:CSV ;
 .

@@ -1,6 +1,7 @@
 package io.carml.engine;
 
 import io.carml.logicalsourceresolver.LogicalSourceResolver;
+import io.carml.model.Source;
 import java.util.Map;
 import java.util.Set;
 import lombok.AllArgsConstructor;
@@ -18,5 +19,5 @@ public class MappingPipeline<T> {
     private Map<RefObjectMapper<T>, TriplesMapper<T>> refObjectMapperToTriplesMapper;
 
     @NonNull
-    private Map<Object, LogicalSourceResolver<?>> sourceToLogicalSourceResolver;
+    private Map<Source, LogicalSourceResolver<?>> sourceToLogicalSourceResolver;
 }

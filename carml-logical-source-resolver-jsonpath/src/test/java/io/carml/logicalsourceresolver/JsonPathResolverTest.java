@@ -12,6 +12,7 @@ import io.carml.logicalsourceresolver.LogicalSourceResolver.LogicalSourceResolve
 import io.carml.model.LogicalSource;
 import io.carml.model.impl.CarmlLogicalSource;
 import io.carml.model.impl.CarmlRelativePathSource;
+import io.carml.util.TypeRef;
 import io.carml.vocab.Rdf;
 import java.io.IOException;
 import java.io.InputStream;
@@ -55,7 +56,7 @@ class JsonPathResolverTest {
                 .referenceFormulation(Rdf.Ql.JsonPath)
                 .build();
 
-        var resolvedSource = ResolvedSource.of(foodSource.getSource(), "food.json", String.class);
+        var resolvedSource = ResolvedSource.of("food.json", new TypeRef<>() {});
         var jsonPathResolver = jsonPathResolverFactory.apply(foodSource.getSource());
         var recordResolver = jsonPathResolver.getLogicalSourceRecords(Set.of(foodSource, countrySource));
 
@@ -82,7 +83,7 @@ class JsonPathResolverTest {
                 .build();
 
         inputStream = JsonPathResolverTest.class.getResourceAsStream("food.json");
-        var resolvedSource = ResolvedSource.of(foodSource.getSource(), inputStream, InputStream.class);
+        var resolvedSource = ResolvedSource.of(inputStream, new TypeRef<>() {});
         var jsonPathResolver = jsonPathResolverFactory.apply(foodSource.getSource());
 
         // When
@@ -111,7 +112,7 @@ class JsonPathResolverTest {
                 .build();
 
         inputStream = JsonPathResolverTest.class.getResourceAsStream("food.json");
-        var resolvedSource = ResolvedSource.of(foodSource.getSource(), inputStream, InputStream.class);
+        var resolvedSource = ResolvedSource.of(inputStream, new TypeRef<>() {});
         var jsonPathResolver = jsonPathResolverFactory.apply(foodSource.getSource());
 
         // When
@@ -137,7 +138,7 @@ class JsonPathResolverTest {
                 .build();
 
         inputStream = JsonPathResolverTest.class.getResourceAsStream("food.json");
-        var resolvedSource2 = ResolvedSource.of(foodSource2.getSource(), inputStream, InputStream.class);
+        var resolvedSource2 = ResolvedSource.of(inputStream, new TypeRef<>() {});
 
         // When
         var recordResolver2 = jsonPathResolver.getLogicalSourceRecords(Set.of(foodSource2, countrySource2));
@@ -169,7 +170,7 @@ class JsonPathResolverTest {
                 .build();
 
         inputStream = JsonPathResolverTest.class.getResourceAsStream("food.json");
-        var resolvedSource = ResolvedSource.of(foodSource.getSource(), inputStream, InputStream.class);
+        var resolvedSource = ResolvedSource.of(inputStream, new TypeRef<>() {});
 
         var jsonPathResolver = jsonPathResolverFactory.apply(foodSource.getSource());
         var recordResolver = jsonPathResolver.getLogicalSourceRecords(Set.of(foodSource, countrySource));
@@ -198,7 +199,7 @@ class JsonPathResolverTest {
                 .build();
 
         inputStream = JsonPathResolverTest.class.getResourceAsStream("food.json");
-        var resolvedSource = ResolvedSource.of(foodSource.getSource(), inputStream, InputStream.class);
+        var resolvedSource = ResolvedSource.of(inputStream, new TypeRef<>() {});
 
         var factory = JsonPathResolver.factory(200);
         var jsonPathResolver = factory.apply(foodSource.getSource());
@@ -245,7 +246,7 @@ class JsonPathResolverTest {
                 .build();
 
         var record = new ObjectMapper().readTree(JsonPathResolverTest.class.getResourceAsStream("food.json"));
-        var resolvedSource = ResolvedSource.of(foodSource.getSource(), record, JsonNode.class);
+        var resolvedSource = ResolvedSource.of(record, new TypeRef<>() {});
 
         var jsonPathResolver = jsonPathResolverFactory.apply(foodSource.getSource());
 
@@ -287,7 +288,7 @@ class JsonPathResolverTest {
         Map<String, Object> waffles = Map.of("name", "Belgian Waffles", "countryOfOrigin", "Belgium");
 
         var record = new ObjectMapper().valueToTree(waffles);
-        var resolvedSource = ResolvedSource.of(foodSource.getSource(), record, JsonNode.class);
+        var resolvedSource = ResolvedSource.of(record, new TypeRef<>() {});
 
         var jsonPathResolver = jsonPathResolverFactory.apply(foodSource.getSource());
 
@@ -314,7 +315,7 @@ class JsonPathResolverTest {
         Map<String, Object> waffles = Map.of("name", "Belgian Waffles", "countryOfOrigin", "Belgium");
 
         var record = new ObjectMapper().valueToTree(waffles);
-        var resolvedSource = ResolvedSource.of(foodSource.getSource(), record, JsonNode.class);
+        var resolvedSource = ResolvedSource.of(record, new TypeRef<>() {});
 
         var jsonPathResolver = jsonPathResolverFactory.apply(foodSource.getSource());
 
@@ -341,7 +342,7 @@ class JsonPathResolverTest {
         Map<String, Object> waffles = Map.of("name", "Belgian Waffles", "countryOfOrigin", "Belgium");
 
         var record = new ObjectMapper().valueToTree(waffles);
-        var resolvedSource = ResolvedSource.of(nonResolvingSource.getSource(), record, JsonNode.class);
+        var resolvedSource = ResolvedSource.of(record, new TypeRef<>() {});
 
         var jsonPathResolver = jsonPathResolverFactory.apply(nonResolvingSource.getSource());
 
@@ -396,7 +397,7 @@ class JsonPathResolverTest {
 
         var recordResolver = jsonPathResolver.getLogicalSourceRecords(Set.of(foodSource));
         inputStream = JsonPathResolverTest.class.getResourceAsStream("food.json");
-        var resolvedSource = ResolvedSource.of(foodSource.getSource(), inputStream, InputStream.class);
+        var resolvedSource = ResolvedSource.of(inputStream, new TypeRef<>() {});
 
         // When
         var items = recordResolver.apply(resolvedSource);
@@ -418,7 +419,7 @@ class JsonPathResolverTest {
 
         var recordResolver = jsonPathResolver.getLogicalSourceRecords(Set.of(foodSource));
         inputStream = JsonPathResolverTest.class.getResourceAsStream("food.json");
-        var resolvedSource = ResolvedSource.of(foodSource.getSource(), inputStream, InputStream.class);
+        var resolvedSource = ResolvedSource.of(inputStream, new TypeRef<>() {});
 
         // When
         var items = recordResolver.apply(resolvedSource);

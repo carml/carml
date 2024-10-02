@@ -7,7 +7,7 @@ import io.carml.engine.rdf.RdfRmlMapper;
 import io.carml.logicalsourceresolver.CsvResolver;
 import io.carml.logicalsourceresolver.JsonPathResolver;
 import io.carml.logicalsourceresolver.XPathResolver;
-import io.carml.model.TriplesMap;
+import io.carml.model.Mapping;
 import io.carml.util.Models;
 import io.carml.util.RmlMappingLoader;
 import io.carml.util.RmlNamespaces;
@@ -16,7 +16,6 @@ import java.io.InputStream;
 import java.io.StringWriter;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Consumer;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Statement;
@@ -47,14 +46,14 @@ class MappingTester {
             String outputPath,
             Consumer<RdfRmlMapper.Builder> configureMapper,
             Map<String, InputStream> namedInputStreams) {
-        Set<TriplesMap> mapping = loader.load(RDFFormat.TURTLE, MappingTester.class.getResourceAsStream(rmlPath));
+        var mapping = Mapping.of(RDFFormat.TURTLE, MappingTester.class.getResourceAsStream(rmlPath));
 
         RdfRmlMapper.Builder builder = RdfRmlMapper.builder()
                 .setLogicalSourceResolverFactory(Rdf.Ql.Csv, CsvResolver.factory())
                 .setLogicalSourceResolverFactory(Rdf.Ql.JsonPath, JsonPathResolver.factory())
                 .setLogicalSourceResolverFactory(Rdf.Ql.XPath, XPathResolver.factory())
                 .classPathResolver(contextPath)
-                .triplesMaps(mapping);
+                .mapping(mapping);
         configureMapper.accept(builder);
         RdfRmlMapper mapper = builder.build();
 

@@ -1,16 +1,13 @@
 package io.carml.logicalsourceresolver.sourceresolver;
 
-import io.carml.model.FileSource;
-import io.carml.model.RelativePathSource;
-import io.carml.model.Source;
-import java.util.Optional;
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class ClassPathResolver implements SourceResolver {
+@Getter
+@AllArgsConstructor(staticName = "of")
+public class ClassPathResolver {
 
-    private final String basePath;
+    private final String classPathBase;
 
     private final Class<?> loadingClass;
 
@@ -20,31 +17,5 @@ public class ClassPathResolver implements SourceResolver {
 
     public static ClassPathResolver of(Class<?> loadingClass) {
         return of("", loadingClass);
-    }
-
-    public static ClassPathResolver of(String basePath, Class<?> loadingClass) {
-        return new ClassPathResolver(basePath, loadingClass);
-    }
-
-    @Override
-    public Optional<Object> apply(Source source) {
-        return unpackFileSource(source).map(relativePath -> {
-            String sourceName = basePath.isEmpty() ? relativePath : String.format("%s/%s", basePath, relativePath);
-
-            var inputStream = loadingClass == null
-                    ? ClassPathResolver.class.getClassLoader().getResourceAsStream(sourceName)
-                    : loadingClass.getResourceAsStream(sourceName);
-
-            if (source.getCompression() != null) {
-                return Decompressor.getInstance().apply(inputStream, source.getCompression());
-            } else {
-                return inputStream;
-            }
-        });
-    }
-
-    @Override
-    public boolean supportsSource(Source source) {
-        return source instanceof FileSource || source instanceof RelativePathSource;
     }
 }

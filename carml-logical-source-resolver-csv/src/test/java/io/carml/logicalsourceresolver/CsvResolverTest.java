@@ -9,6 +9,7 @@ import io.carml.model.LogicalSource;
 import io.carml.model.Source;
 import io.carml.model.impl.CarmlLogicalSource;
 import io.carml.model.impl.CarmlRelativePathSource;
+import io.carml.util.TypeRef;
 import io.carml.vocab.Rdf.Ql;
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,6 +20,7 @@ import java.util.function.Function;
 import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 class CsvResolverTest {
@@ -47,8 +49,8 @@ class CsvResolverTest {
             .referenceFormulation(Ql.Csv)
             .build();
 
-    private final Function<Object, InputStream> sourceResolver =
-            s -> IOUtils.toInputStream((String) s, StandardCharsets.UTF_8);
+    private final Function<Object, Mono<InputStream>> sourceResolver =
+            s -> Mono.just(IOUtils.toInputStream((String) s, StandardCharsets.UTF_8));
 
     private LogicalSourceResolverFactory<NamedCsvRecord> csvResolverFactory;
 
@@ -62,7 +64,7 @@ class CsvResolverTest {
         // Given
         var csvResolver = csvResolverFactory.apply(LSOURCE.getSource());
         var recordResolver = csvResolver.getLogicalSourceRecords(Set.of(LSOURCE));
-        var resolvedSource = ResolvedSource.of(RML_SOURCE, sourceResolver.apply(SOURCE), InputStream.class);
+        var resolvedSource = ResolvedSource.of(sourceResolver.apply(SOURCE), new TypeRef<>() {});
 
         // When
         var recordFlux = recordResolver.apply(resolvedSource);
@@ -76,7 +78,7 @@ class CsvResolverTest {
         // Given
         var csvResolver = csvResolverFactory.apply(LSOURCE.getSource());
         var recordResolver = csvResolver.getLogicalSourceRecords(Set.of(LSOURCE));
-        var resolvedSource = ResolvedSource.of(RML_SOURCE, sourceResolver.apply(SOURCE), InputStream.class);
+        var resolvedSource = ResolvedSource.of(sourceResolver.apply(SOURCE), new TypeRef<>() {});
 
         // When
         var recordFlux = recordResolver.apply(resolvedSource);
@@ -86,7 +88,7 @@ class CsvResolverTest {
 
         // Given
         var recordResolver2 = csvResolver.getLogicalSourceRecords(Set.of(LSOURCE));
-        var resolvedSource2 = ResolvedSource.of(RML_SOURCE, sourceResolver.apply(SOURCE), InputStream.class);
+        var resolvedSource2 = ResolvedSource.of(sourceResolver.apply(SOURCE), new TypeRef<>() {});
 
         // When
         var recordFlux2 = recordResolver2.apply(resolvedSource2);
@@ -100,7 +102,7 @@ class CsvResolverTest {
         // Given
         var csvResolver = csvResolverFactory.apply(LSOURCE_DELIM.getSource());
         var recordResolver = csvResolver.getLogicalSourceRecords(Set.of(LSOURCE_DELIM));
-        var resolvedSource = ResolvedSource.of(RML_SOURCE, sourceResolver.apply(SOURCE), InputStream.class);
+        var resolvedSource = ResolvedSource.of(sourceResolver.apply(SOURCE), new TypeRef<>() {});
 
         // When
         var recordFlux = recordResolver.apply(resolvedSource);
@@ -137,7 +139,7 @@ class CsvResolverTest {
         var expression = "Year";
         var csvResolver = csvResolverFactory.apply(LSOURCE.getSource());
         var sourceFlux = csvResolver.getLogicalSourceRecords(Set.of(LSOURCE));
-        var resolvedSource = ResolvedSource.of(RML_SOURCE, sourceResolver.apply(SOURCE), InputStream.class);
+        var resolvedSource = ResolvedSource.of(sourceResolver.apply(SOURCE), new TypeRef<>() {});
         var recordFlux = sourceFlux.apply(resolvedSource);
         var record = recordFlux.blockFirst().getSourceRecord();
         var evaluationFactory = csvResolver.getExpressionEvaluationFactory();
@@ -160,7 +162,7 @@ class CsvResolverTest {
                 .source(RML_SOURCE)
                 .referenceFormulation(Ql.Csv)
                 .build();
-        var resolvedSource = ResolvedSource.of(logicalSource.getSource(), sourceResolver.apply(csv), InputStream.class);
+        var resolvedSource = ResolvedSource.of(sourceResolver.apply(csv), new TypeRef<>() {});
         var csvResolver = csvResolverFactory.apply(RML_SOURCE);
         var recordResolver = csvResolver.getLogicalSourceRecords(Set.of(logicalSource));
 

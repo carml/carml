@@ -8,7 +8,11 @@
 @prefix dct: <http://purl.org/dc/terms/> .
 
 exm:LogicalSource a rml:LogicalSource ;
-  rml:source "csv/cars.csv" ;
+  rml:source [
+    a rml:RelativePathSource ;
+    rml:path "csv/cars.csv" ;
+    rml:null "" ;
+  ] ;
   rml:referenceFormulation ql:CSV ;
 .
 

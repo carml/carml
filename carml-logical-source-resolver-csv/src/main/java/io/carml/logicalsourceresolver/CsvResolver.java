@@ -9,11 +9,11 @@ import de.siegmar.fastcsv.reader.CsvReader;
 import de.siegmar.fastcsv.reader.CsvReader.CsvReaderBuilder;
 import de.siegmar.fastcsv.reader.NamedCsvRecord;
 import io.carml.logicalsourceresolver.sourceresolver.Encodings;
-import io.carml.logicalsourceresolver.sourceresolver.GetHttpUrl;
 import io.carml.model.LogicalSource;
 import io.carml.model.Source;
 import io.carml.model.source.csvw.CsvwDialect;
 import io.carml.model.source.csvw.CsvwTable;
+import io.carml.util.TypeRef;
 import io.carml.vocab.Rdf.Ql;
 import io.carml.vocab.Rdf.Rml;
 import java.io.InputStream;
@@ -30,6 +30,7 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.rdf4j.model.IRI;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -47,6 +48,7 @@ public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
         return resolvedSource -> getCsvRecordFlux(resolvedSource, logicalSourceFilter);
     }
 
+    @SuppressWarnings("unchecked")
     private Flux<LogicalSourceRecord<NamedCsvRecord>> getCsvRecordFlux(
             ResolvedSource<?> resolvedSource, Set<LogicalSource> logicalSources) {
         if (logicalSources.size() > 1) {
@@ -68,15 +70,11 @@ public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
 
         var resolved = resolvedSource.getResolved().get();
 
-        var encoding = resolvedSource.getRmlSource().getEncoding();
+        var encoding = source.getEncoding();
 
-        if (resolved instanceof InputStream resolvedInputStream) {
-            var charset = Encodings.resolveCharset(encoding).orElse(UTF_8);
-            return getCsvRecordFlux(resolvedInputStream, charset)
-                    .map(lsRecord -> LogicalSourceRecord.of(logicalSource, lsRecord));
-        } else if (resolved instanceof CsvwTable csvwTable) {
-            return getCsvwTableRecordFlux(csvwTable, encoding)
-                    .map(lsRecord -> LogicalSourceRecord.of(logicalSource, lsRecord));
+        if (resolvedSource.getResolvedTypeRef().equals(new TypeRef<Mono<InputStream>>() {})) {
+            return ((Mono<InputStream>) resolved).flatMapMany(inputStream -> getCsvRecordFlux(inputStream, encoding)
+                    .map(lsRecord -> LogicalSourceRecord.of(logicalSource, lsRecord)));
         } else if (resolved instanceof NamedCsvRecord resolvedRecord) {
             return Flux.just(LogicalSourceRecord.of(logicalSource, resolvedRecord));
         } else {
@@ -85,8 +83,26 @@ public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
         }
     }
 
-    private Flux<NamedCsvRecord> getCsvRecordFlux(InputStream inputStream, Charset charset) {
+    private Flux<NamedCsvRecord> getCsvRecordFlux(InputStream inputStream, IRI encoding) {
         var csvReaderBuilder = CsvReader.builder().detectBomHeader(true);
+
+        Charset charset;
+        if (source instanceof CsvwTable csvwTable) {
+            var csvwDialect = csvwTable.getDialect();
+
+            applyCsvwDialect(csvwDialect, csvReaderBuilder);
+            if (encoding != null) {
+                charset = Encodings.resolveCharset(encoding)
+                        .orElseThrow(() -> new LogicalSourceResolverException(
+                                String.format("Unsupported encoding provided: %s", encoding)));
+            } else if (csvwDialect.getEncoding() != null) {
+                charset = Charset.forName(csvwDialect.getEncoding());
+            } else {
+                charset = UTF_8;
+            }
+        } else {
+            charset = Encodings.resolveCharset(encoding).orElse(UTF_8);
+        }
 
         return getCsvRecordFlux(csvReaderBuilder, inputStream, charset);
     }
@@ -94,28 +110,6 @@ public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
     private Flux<NamedCsvRecord> getCsvRecordFlux(
             CsvReaderBuilder csvReaderBuilder, InputStream inputStream, Charset charset) {
         return Flux.fromStream(csvReaderBuilder.ofNamedCsvRecord(new InputStreamReader(inputStream, charset)).stream());
-    }
-
-    private Flux<NamedCsvRecord> getCsvwTableRecordFlux(CsvwTable csvwTable, IRI encoding) {
-        var csvwDialect = csvwTable.getDialect();
-        var csvReaderBuilder = CsvReader.builder().detectBomHeader(true);
-
-        applyCsvwDialect(csvwDialect, csvReaderBuilder);
-
-        Charset charsetToUse;
-        if (encoding != null) {
-            charsetToUse = Encodings.resolveCharset(encoding)
-                    .orElseThrow(() -> new LogicalSourceResolverException(
-                            String.format("Unsupported encoding provided: %s", encoding)));
-        } else if (csvwDialect.getEncoding() != null) {
-            charsetToUse = Charset.forName(csvwDialect.getEncoding());
-        } else {
-            charsetToUse = UTF_8;
-        }
-
-        return GetHttpUrl.getInstance()
-                .apply(GetHttpUrl.toUrl(csvwTable.getUrl()))
-                .flatMapMany(inputStream -> getCsvRecordFlux(csvReaderBuilder, inputStream, charsetToUse));
     }
 
     private void applyCsvwDialect(CsvwDialect csvwDialect, CsvReaderBuilder csvReaderBuilder) {

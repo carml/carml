@@ -252,7 +252,7 @@ public class RdfMappingPipelineFactory {
         return false;
     }
 
-    private Map<Object, LogicalSourceResolver<?>> buildLogicalSourceResolvers(
+    private Map<Source, LogicalSourceResolver<?>> buildLogicalSourceResolvers(
             Set<TriplesMap> triplesMaps,
             Set<TableJoiningGroup> tableJoiningGroups,
             Map<IRI, LogicalSourceResolverFactory<?>> logicalSourceResolverFactories,
@@ -340,7 +340,7 @@ public class RdfMappingPipelineFactory {
     }
 
     private LogicalSourceResolver<?> getTriplesMapLogicalSourceResolver(
-            TriplesMap triplesMap, Map<Object, LogicalSourceResolver<?>> sourceToLogicalSourceResolver) {
+            TriplesMap triplesMap, Map<Source, LogicalSourceResolver<?>> sourceToLogicalSourceResolver) {
         return sourceToLogicalSourceResolver.entrySet().stream()
                 .filter(entry ->
                         entry.getKey().equals(triplesMap.getLogicalSource().getSource()))
