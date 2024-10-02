@@ -40,7 +40,9 @@ public class CsvResolver implements LogicalSourceResolver<Record> {
       throw new IllegalStateException("No logical sources registered");
     }
 
-    var logicalSource = logicalSources.stream().findFirst().orElseThrow();
+    var logicalSource = logicalSources.stream()
+        .findFirst()
+        .orElseThrow();
 
     if (resolvedSource == null || resolvedSource.getResolved()
         .isEmpty()) {
