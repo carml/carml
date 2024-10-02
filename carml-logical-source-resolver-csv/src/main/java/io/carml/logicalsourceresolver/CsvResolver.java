@@ -2,7 +2,6 @@ package io.carml.logicalsourceresolver;
 
 import static io.carml.util.LogUtil.exception;
 
-import com.google.common.collect.Iterables;
 import com.univocity.parsers.common.record.Record;
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
@@ -41,7 +40,7 @@ public class CsvResolver implements LogicalSourceResolver<Record> {
       throw new IllegalStateException("No logical sources registered");
     }
 
-    var logicalSource = Iterables.getOnlyElement(logicalSources);
+    var logicalSource = logicalSources.stream().findFirst().orElseThrow();
 
     if (resolvedSource == null || resolvedSource.getResolved()
         .isEmpty()) {
