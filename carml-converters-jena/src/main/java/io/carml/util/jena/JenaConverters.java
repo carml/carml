@@ -1,7 +1,8 @@
 package io.carml.util.jena;
 
 import static org.apache.jena.graph.NodeFactory.createBlankNode;
-import static org.apache.jena.graph.NodeFactory.createLiteral;
+import static org.apache.jena.graph.NodeFactory.createLiteralDT;
+import static org.apache.jena.graph.NodeFactory.createLiteralLang;
 import static org.apache.jena.graph.NodeFactory.createTripleNode;
 import static org.apache.jena.graph.NodeFactory.createURI;
 import static org.apache.jena.sparql.core.Quad.defaultGraphIRI;
@@ -36,8 +37,8 @@ public final class JenaConverters {
             var literalValue = (Literal) value;
             return literalValue
                     .getLanguage()
-                    .map(lang -> createLiteral(literalValue.stringValue(), lang))
-                    .orElse(createLiteral(
+                    .map(lang -> createLiteralLang(literalValue.stringValue(), lang))
+                    .orElse(createLiteralDT(
                             literalValue.stringValue(),
                             TYPE_MAPPER.getSafeTypeByName(
                                     literalValue.getDatatype().stringValue())));
