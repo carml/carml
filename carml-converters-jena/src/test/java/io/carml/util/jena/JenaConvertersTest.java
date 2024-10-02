@@ -29,8 +29,7 @@ class JenaConvertersTest {
         Arguments.of(iri("http://example.org/resource"), (Predicate<Node>) Node::isURI,
             Map.of(((Function<Node, String>) Node::toString), "http://example.org/resource")),
         Arguments.of(bnode("123"), (Predicate<Node>) Node::isBlank,
-            Map.of((Function<Node, String>) node -> node.getBlankNodeId()
-                .getLabelString(), "123")),
+            Map.of((Function<Node, String>) Node::getBlankNodeLabel, "123")),
         Arguments.of(literal("foo"), (Predicate<Node>) Node::isLiteral,
             Map.of((Function<Node, String>) Node::getLiteralLexicalForm, "foo")),
         Arguments.of(literal("bar", "en"), (Predicate<Node>) Node::isLiteral,

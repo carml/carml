@@ -2,7 +2,7 @@ package io.carml.util.jena;
 
 import static io.carml.util.jena.JenaCollectors.toDataset;
 import static io.carml.util.jena.JenaCollectors.toDatasetGraph;
-import static org.apache.jena.graph.NodeFactory.createLiteral;
+import static org.apache.jena.graph.NodeFactory.createLiteralString;
 import static org.apache.jena.graph.NodeFactory.createURI;
 import static org.apache.jena.rdf.model.ResourceFactory.createPlainLiteral;
 import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
@@ -41,7 +41,7 @@ class JenaCollectorsTest {
     assertThat(graph1.contains(createURI("http://example.org/subject1"), createURI(RDF.TYPE.stringValue()),
         createURI(RDFS.RESOURCE.stringValue())), is(true));
     assertThat(graph1.contains(createURI("http://example.org/subject1"), createURI(RDFS.LABEL.stringValue()),
-        createLiteral("subject1")), is(true));
+        createLiteralString("subject1")), is(true));
 
     var graph2 = datasetGraph.getGraph(createURI("http://example.org/graph2"));
     assertThat(graph2.stream()
@@ -49,7 +49,7 @@ class JenaCollectorsTest {
     assertThat(graph2.contains(createURI("http://example.org/subject2"), createURI(RDF.TYPE.stringValue()),
         createURI(RDFS.RESOURCE.stringValue())), is(true));
     assertThat(graph2.contains(createURI("http://example.org/subject2"), createURI(RDFS.LABEL.stringValue()),
-        createLiteral("subject2")), is(true));
+        createLiteralString("subject2")), is(true));
 
     var defaultGraph = datasetGraph.getDefaultGraph();
     assertThat(defaultGraph.stream()
@@ -57,7 +57,7 @@ class JenaCollectorsTest {
     assertThat(defaultGraph.contains(createURI("http://example.org/subject"), createURI(RDF.TYPE.stringValue()),
         createURI(RDFS.RESOURCE.stringValue())), is(true));
     assertThat(defaultGraph.contains(createURI("http://example.org/subject"), createURI(RDFS.LABEL.stringValue()),
-        createLiteral("subject")), is(true));
+        createLiteralString("subject")), is(true));
   }
 
   @Test
