@@ -79,7 +79,7 @@
 		<mockito.version>5.14.2</mockito.version>
 		<junit.version>5.11.2</junit.version>
 		<hamcrest.version>3.0</hamcrest.version>
-		<blockhound.version>1.0.9.RELEASE</blockhound.version>
+		<blockhound.version>1.0.10.RELEASE</blockhound.version>
 		<auto-service.version>1.1.1</auto-service.version>
 		<commons-csv.version>1.12.0</commons-csv.version>
 		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
