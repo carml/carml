@@ -1,11 +1,11 @@
 @prefix rml: <http://w3id.org/rml/> .
 @prefix foaf: <http://xmlns.com/foaf/0.1/> .
-@prefix void: <http://rdfs.org/ns/void#> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
 @prefix formats: <http://www.w3.org/ns/formats/> .
 @base <http://example.com/rules/> .
 
-<#VoIDSourceAccess> a rml:Source, void:Dataset;
-  void:dataDump <http://w3id.org/rml/resources/rml-io/RMLSTC0006b/Friends.nt>;
+<#VoIDSourceAccess> a rml:Source, dcat:Distribution;
+  dcat:downloadURL <http://w3id.org/rml/resources/rml-io/RMLSTC0006b/Friends.nt>;
 .
 
 <#TriplesMap> a rml:TriplesMap;

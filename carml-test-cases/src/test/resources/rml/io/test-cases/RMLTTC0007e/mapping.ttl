@@ -1,11 +1,15 @@
 @prefix rml: <http://w3id.org/rml/> .
 @prefix foaf: <http://xmlns.com/foaf/0.1/> .
 @prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix td: <https://www.w3.org/2019/wot/td#> .
+@prefix htv: <http://www.w3.org/2011/http#> .
+@prefix hctl: <https://www.w3.org/2019/wot/hypermedia#> .
 @prefix formats: <http://www.w3.org/ns/formats/> .
 @base <http://example.com/rules/> .
 
 <#DCATSourceAccess> a rml:Source, dcat:Distribution;
-    dcat:downloadURL <http://w3id.org/rml/resources/rml-io/RMLTTC0004e/Friends.json>;
+    dcat:downloadURL <http://w3id.org/rml/resources/rml-io/RMLTTC0007d/Friends.json>;
+    dcat:format <http://www.iana.org/assignments/media-types/application/json> ;
 .
 
 <#TriplesMap> a rml:TriplesMap;
@@ -37,8 +41,13 @@
 .
 
 <#TargetDump1> a rml:LogicalTarget;
-  rml:target [ a rml:Target, dcat:Distribution;
-    dcat:downloadURL <file://./dump1.rdfjson>;
+  rml:target [ a rml:Target, td:Thing;
+      td:hasPropertyAffordance [
+        td:hasForm [
+          hctl:hasTarget "http://localhost/data";
+          hctl:forContentType "application/n-quads";
+      ];
+    ];
   ];
-  rml:serialization formats:RDF_JSON;
+  rml:serialization formats:N-Quads;
 .

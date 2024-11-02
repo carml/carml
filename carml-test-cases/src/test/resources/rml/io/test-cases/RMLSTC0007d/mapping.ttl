@@ -16,10 +16,10 @@
         rml:namespaceURL "http://example.org";
       ];
     ];
-    rml:iterator "//Friends/ex:Character/";
+    rml:iterator "//Friends/ex:Character";
   ];
   rml:subjectMap [ a rml:SubjectMap;
-    rml:template "http://example.org/{id}";
+    rml:template "http://example.org/{@id}";
   ];
   rml:predicateObjectMap [ a rml:PredicateObjectMap;
     rml:predicateMap [ a rml:PredicateMap;

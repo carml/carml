@@ -1,7 +1,6 @@
 @prefix rml: <http://w3id.org/rml/> .
 @prefix foaf: <http://xmlns.com/foaf/0.1/> .
 @prefix dcat: <http://www.w3.org/ns/dcat#> .
-@prefix void: <http://rdfs.org/ns/void#> .
 @prefix formats: <http://www.w3.org/ns/formats/> .
 @base <http://example.com/rules/> .
 
@@ -40,22 +39,22 @@
 .
 
 <#TargetDump1> a rml:LogicalTarget;
-  rml:target [ a rml:Target, void:Dataset;
-    void:dataDump <file://./dump1.nq>;
+  rml:target [ a rml:Target, dcat:Distribution;
+    dcat:downloadURL <file://./dump1.nq>;
   ];
   rml:serialization formats:N-Quads;
 .
 
 <#TargetDump2> a rml:LogicalTarget;
-  rml:target [ a rml:Target, void:Dataset;
-    void:dataDump <file://./dump2.nq>;
+  rml:target [ a rml:Target, dcat:Distribution;
+    dcat:downloadURL <file://./dump2.nq>;
   ];
   rml:serialization formats:N-Quads;
 .
 
 <#TargetDump3> a rml:LogicalTarget;
-  rml:target [ a rml:Target, void:Dataset;
-    void:dataDump <file://./dump3.nq>;
+  rml:target [ a rml:Target, dcat:Distribution;
+    dcat:downloadURL <file://./dump3.nq>;
   ];
   rml:serialization formats:N-Quads;
 .

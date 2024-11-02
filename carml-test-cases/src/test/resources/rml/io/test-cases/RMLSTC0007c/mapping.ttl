@@ -11,10 +11,10 @@
   rml:logicalSource [ a rml:LogicalSource;
     rml:source <#DCATSourceAccess>;
     rml:referenceFormulation rml:XPath;
-    rml:iterator "//Friends/Character/";
+    rml:iterator "//Friends/Character";
   ];
   rml:subjectMap [ a rml:SubjectMap;
-    rml:template "http://example.org/{id}";
+    rml:template "http://example.org/{@id}";
   ];
   rml:predicateObjectMap [ a rml:PredicateObjectMap;
     rml:predicateMap [ a rml:PredicateMap;
