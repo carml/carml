@@ -6,9 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import io.carml.engine.rdf.RdfRmlMapper;
-import io.carml.logicalsourceresolver.CsvResolver;
-import io.carml.logicalsourceresolver.JsonPathResolver;
-import io.carml.logicalsourceresolver.XPathResolver;
 import io.carml.logicalsourceresolver.sourceresolver.ClassPathResolver;
 import io.carml.logicalsourceresolver.sql.MySqlResolver;
 import io.carml.logicalsourceresolver.sql.PostgreSqlResolver;
@@ -211,23 +208,19 @@ public class TestRmlTestCases {
     }
 
     private Model executeMapping(TestCase testCase) {
-        mapperBuilder = RdfRmlMapper.builder()
-                .valueFactorySupplier(ValidatingValueFactory::new)
-                .logicalSourceResolverMatcher(CsvResolver.Matcher.getInstance())
-                .logicalSourceResolverMatcher(JsonPathResolver.Matcher.getInstance())
-                .logicalSourceResolverMatcher(XPathResolver.Matcher.getInstance());
+        mapperBuilder = RdfRmlMapper.builder().valueFactorySupplier(ValidatingValueFactory::new);
 
         InputStream mappingStream = getDatasetInputStream(testCase.getRules());
         Set<TriplesMap> mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingStream);
 
         if (testCase.getId().endsWith("MySQL")) {
-            mapperBuilder.logicalSourceResolverMatcher(MySqlResolver.Matcher.getInstance());
+            mapperBuilder.excludeLogicalSourceResolver(PostgreSqlResolver.NAME);
             prepareForDatabaseTest(
                     testCase, mysql, mysql -> MySQLR2DBCDatabaseContainer.getOptions((MySQLContainer<?>) mysql));
         }
 
         if (testCase.getId().endsWith("PostgreSQL")) {
-            mapperBuilder.logicalSourceResolverMatcher(PostgreSqlResolver.Matcher.getInstance());
+            mapperBuilder.excludeLogicalSourceResolver(MySqlResolver.NAME);
             prepareForDatabaseTest(
                     testCase,
                     postgresql,

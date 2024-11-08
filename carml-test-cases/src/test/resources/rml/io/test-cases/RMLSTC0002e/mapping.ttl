@@ -4,7 +4,7 @@
 @base <http://example.com/rules/> .
 
 <#DCATSourceAccess> a rml:Source, dcat:Distribution;
-  dcat:downloadURL <http://w3id.org/rml/resources/Friends.json.tar.gz>;
+  dcat:downloadURL <http://w3id.org/rml/resources/rml-io/RMLSTC0002e/Friends.json.tar.gz>;
   rml:compression rml:targz;
 .
 

@@ -8,6 +8,7 @@ import io.carml.model.LogicalSource;
 import io.carml.model.SubjectMap;
 import io.carml.model.TriplesMap;
 import io.carml.model.impl.CarmlLogicalSource;
+import io.carml.model.impl.CarmlReferenceFormulation;
 import io.carml.model.impl.CarmlSubjectMap;
 import io.carml.model.impl.CarmlTemplate;
 import io.carml.model.impl.CarmlTemplate.TextSegment;
@@ -34,7 +35,9 @@ class LogUtilTest {
     void beforeEach() {
         logicalSource = CarmlLogicalSource.builder()
                 .id("ls")
-                .referenceFormulation(Rdf.Ql.Csv)
+                .referenceFormulation(CarmlReferenceFormulation.builder()
+                        .id(Rdf.Ql.Csv.stringValue())
+                        .build())
                 .build();
 
         subjectMap = CarmlSubjectMap.builder()

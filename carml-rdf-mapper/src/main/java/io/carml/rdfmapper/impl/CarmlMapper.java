@@ -35,8 +35,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
-import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -420,12 +420,12 @@ public class CarmlMapper implements Mapper, MappingCache {
             Method setter = findSetter(clazz, setterName)
                     .orElseThrow(() -> createCouldNotFindSetterException(clazz, setterName));
 
-            BiConsumer<Object, Object> set =
-                    getSetterInvoker(setter, createSetterInvocationErrorFactory(clazz, property));
-
             return new PropertyHandler() {
                 @Override
                 public void handle(Model model, Resource resource, Object instance) {
+                    BiConsumer<Object, Object> set =
+                            getSetterInvoker(setter, createSetterInvocationErrorFactory(clazz, property));
+
                     set.accept(instance, resource.stringValue());
                 }
 
@@ -437,27 +437,31 @@ public class CarmlMapper implements Mapper, MappingCache {
         });
     }
 
-    private RuntimeException createCouldNotFindSetterException(Class<?> clazz, String setterName) {
-        return new RuntimeException(String.format(
+    private CarmlMapperException createCouldNotFindSetterException(Class<?> clazz, String setterName) {
+        return new CarmlMapperException(String.format(
                 "in class %s, could not find setter [%s] with 1 parameter", clazz.getCanonicalName(), setterName));
     }
 
-    private Function<Exception, RuntimeException> createSetterInvocationErrorFactory(Class<?> clazz, String property) {
-        return e -> new RuntimeException(
-                String.format("Unexpected value type for property %s on %s", property, clazz.getSimpleName()), e);
+    private BiFunction<Exception, Object, RuntimeException> createSetterInvocationErrorFactory(
+            Class<?> clazz, String property) {
+        return (error, value) -> new CarmlMapperException(
+                String.format(
+                        "Unexpected value type of value '%s' for property '%s' on '%s'.",
+                        value, property, clazz.getSimpleName()),
+                error);
     }
 
     private BiConsumer<Object, Object> getSetterInvoker(
-            Method setter, Function<Exception, RuntimeException> invocationErrorFactory) {
+            Method setter, BiFunction<Exception, Object, RuntimeException> invocationErrorFactory) {
         Objects.requireNonNull(setter);
 
         // TODO if no setter, set the field directly? (configurable option) ugh
 
-        return (i, v) -> {
+        return (instance, value) -> {
             try {
-                setter.invoke(i, v);
-            } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-                throw invocationErrorFactory.apply(e);
+                setter.invoke(instance, value);
+            } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException exception) {
+                throw invocationErrorFactory.apply(exception, value);
             }
         };
     }

@@ -1,9 +1,6 @@
 package io.carml.rmltestcases;
 
 import io.carml.engine.rdf.RdfRmlMapper;
-import io.carml.logicalsourceresolver.CsvResolver;
-import io.carml.logicalsourceresolver.JsonPathResolver;
-import io.carml.logicalsourceresolver.XPathResolver;
 import io.carml.logicalsourceresolver.sourceresolver.ClassPathResolver;
 import io.carml.model.TriplesMap;
 import io.carml.rdfmapper.util.RdfObjectLoader;
@@ -11,7 +8,6 @@ import io.carml.rmltestcases.model.Output;
 import io.carml.rmltestcases.model.TestCase;
 import io.carml.util.Models;
 import io.carml.util.RmlMappingLoader;
-import io.carml.vocab.Rdf;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -82,9 +78,6 @@ public class RmlImplementationReport {
 
     public static TestCaseResult runTestCase(TestCase testCase) {
         RdfRmlMapper.Builder mapperBuilder = RdfRmlMapper.builder()
-                .setLogicalSourceResolver(Rdf.Ql.JsonPath, JsonPathResolver::getInstance)
-                .setLogicalSourceResolver(Rdf.Ql.XPath, XPathResolver::getInstance)
-                .setLogicalSourceResolver(Rdf.Ql.Csv, CsvResolver::getInstance)
                 .classPathResolver(ClassPathResolver.of(
                         String.format("test-cases/%s", testCase.getIdentifier()), RmlImplementationReport.class));
 

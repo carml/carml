@@ -1,9 +1,9 @@
 package io.carml.engine.rdf;
 
+import jakarta.xml.bind.DatatypeConverter;
 import java.nio.ByteBuffer;
 import java.time.temporal.TemporalAccessor;
 import java.util.function.BiFunction;
-import javax.xml.bind.DatatypeConverter;
 import lombok.NoArgsConstructor;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.base.CoreDatatype;

@@ -4,19 +4,14 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.collect.Sets;
 import io.carml.engine.rdf.RdfRmlMapper;
-import io.carml.logicalsourceresolver.CsvResolver;
-import io.carml.logicalsourceresolver.JsonPathResolver;
-import io.carml.logicalsourceresolver.XPathResolver;
-import io.carml.model.TriplesMap;
+import io.carml.model.Mapping;
 import io.carml.util.Models;
 import io.carml.util.RmlMappingLoader;
 import io.carml.util.RmlNamespaces;
-import io.carml.vocab.Rdf;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Consumer;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Statement;
@@ -47,16 +42,11 @@ class MappingTester {
             String outputPath,
             Consumer<RdfRmlMapper.Builder> configureMapper,
             Map<String, InputStream> namedInputStreams) {
-        Set<TriplesMap> mapping = loader.load(RDFFormat.TURTLE, MappingTester.class.getResourceAsStream(rmlPath));
+        var mapping = Mapping.of(RDFFormat.TURTLE, MappingTester.class.getResourceAsStream(rmlPath));
 
-        RdfRmlMapper.Builder builder = RdfRmlMapper.builder()
-                .setLogicalSourceResolver(Rdf.Ql.Csv, CsvResolver::getInstance)
-                .setLogicalSourceResolver(Rdf.Ql.JsonPath, JsonPathResolver::getInstance)
-                .setLogicalSourceResolver(Rdf.Ql.XPath, XPathResolver::getInstance)
-                .classPathResolver(contextPath)
-                .triplesMaps(mapping);
+        var builder = RdfRmlMapper.builder().classPathResolver(contextPath).mapping(mapping);
         configureMapper.accept(builder);
-        RdfRmlMapper mapper = builder.build();
+        var mapper = builder.build();
 
         Model result;
         if (namedInputStreams.isEmpty()) {
@@ -72,9 +62,9 @@ class MappingTester {
             return;
         }
 
-        InputStream expectedModel = MappingTester.class.getResourceAsStream(outputPath);
+        var expectedModel = MappingTester.class.getResourceAsStream(outputPath);
 
-        Model expected = Models.parse(Objects.requireNonNull(expectedModel), determineRdfFormat(outputPath)).stream()
+        var expected = Models.parse(Objects.requireNonNull(expectedModel), determineRdfFormat(outputPath)).stream()
                 .collect(ModelCollector.toTreeModel());
 
         assertThat(result, equalTo(expected));
@@ -83,7 +73,7 @@ class MappingTester {
     RDFFormat determineRdfFormat(String path) {
         return Rio.getParserFormatForFileName(path)
                 .orElseThrow(() ->
-                        new RuntimeException(String.format("could not determine rdf format from file [%s]", path)));
+                        new RuntimeException(String.format("could not determine RDF format from file [%s]", path)));
     }
 
     static Matcher<Model> equalTo(final Model expected) {

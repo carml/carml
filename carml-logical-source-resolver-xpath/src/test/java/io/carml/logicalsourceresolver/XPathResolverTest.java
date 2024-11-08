@@ -8,14 +8,15 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.google.common.collect.Iterables;
+import io.carml.logicalsourceresolver.LogicalSourceResolver.LogicalSourceResolverFactory;
 import io.carml.model.LogicalSource;
 import io.carml.model.Source;
+import io.carml.model.XPathReferenceFormulation;
 import io.carml.model.impl.CarmlLogicalSource;
 import io.carml.model.impl.CarmlRelativePathSource;
-import io.carml.model.impl.CarmlStream;
 import io.carml.util.RmlMappingLoader;
-import io.carml.vocab.Rdf.Ql;
-import java.io.InputStream;
+import io.carml.util.TypeRef;
+import io.carml.vocab.Rdf.Rml;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -33,6 +34,9 @@ import org.junit.jupiter.api.Test;
 import reactor.test.StepVerifier;
 
 class XPathResolverTest {
+
+    public static final XPathReferenceFormulation XPATH =
+            XPathReferenceFormulation.builder().id(Rml.XPath.stringValue()).build();
 
     private static final Source RML_SOURCE = CarmlRelativePathSource.of("foo");
 
@@ -68,25 +72,25 @@ class XPathResolverTest {
     private static final LogicalSource LSOURCE = CarmlLogicalSource.builder()
             .source(RML_SOURCE)
             .iterator("/bookstore/*")
-            .referenceFormulation(Ql.XPath)
+            .referenceFormulation(XPATH)
             .build();
 
     private static final LogicalSource LSOURCE2 = CarmlLogicalSource.builder()
             .source(RML_SOURCE)
             .iterator("/bookstore/*/author")
-            .referenceFormulation(Ql.XPath)
+            .referenceFormulation(XPATH)
             .build();
 
     private static final LogicalSource LSOURCE_ROOT = CarmlLogicalSource.builder()
             .source(RML_SOURCE)
             .iterator("/bookstore")
-            .referenceFormulation(Ql.XPath)
+            .referenceFormulation(XPATH)
             .build();
 
     private static final LogicalSource LSOURCE_INVALID = CarmlLogicalSource.builder()
             .source(RML_SOURCE)
             .iterator("/bookstore/\\\\")
-            .referenceFormulation(Ql.XPath)
+            .referenceFormulation(XPATH)
             .build();
 
     private static final String SOURCE_NS = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" //
@@ -101,14 +105,14 @@ class XPathResolverTest {
 
     private Processor processor;
 
-    private XPathResolver xpathResolver;
+    private LogicalSourceResolverFactory<XdmItem> xpathResolverFactory;
 
     @BeforeEach
     public void init() {
         processor = new Processor(false);
         var compiler = processor.newXPathCompiler();
         compiler.setCaching(true);
-        xpathResolver = XPathResolver.getInstance(processor, compiler, true);
+        xpathResolverFactory = XPathResolver.factory(processor, compiler, true);
     }
 
     @Test
@@ -116,7 +120,8 @@ class XPathResolverTest {
         // Given
         var inputStream = IOUtils.toInputStream(SOURCE, StandardCharsets.UTF_8);
 
-        var resolvedSource = ResolvedSource.of(new CarmlStream(), inputStream, InputStream.class);
+        var resolvedSource = ResolvedSource.of(inputStream, new TypeRef<>() {});
+        var xpathResolver = xpathResolverFactory.apply(LSOURCE.getSource());
         var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(LSOURCE, LSOURCE2));
 
         // When
@@ -131,7 +136,8 @@ class XPathResolverTest {
         // Given
         var inputStream = IOUtils.toInputStream(SOURCE, StandardCharsets.UTF_8);
 
-        var resolvedSource = ResolvedSource.of(new CarmlStream(), inputStream, InputStream.class);
+        var resolvedSource = ResolvedSource.of(inputStream, new TypeRef<>() {});
+        var xpathResolver = xpathResolverFactory.apply(LSOURCE.getSource());
         var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(LSOURCE, LSOURCE2));
 
         // When
@@ -143,7 +149,7 @@ class XPathResolverTest {
         // Given
         var inputStream2 = IOUtils.toInputStream(SOURCE, StandardCharsets.UTF_8);
 
-        var resolvedSource2 = ResolvedSource.of(new CarmlStream(), inputStream2, InputStream.class);
+        var resolvedSource2 = ResolvedSource.of(inputStream2, new TypeRef<>() {});
         var recordResolver2 = xpathResolver.getLogicalSourceRecords(Set.of(LSOURCE, LSOURCE2));
 
         // When
@@ -158,7 +164,8 @@ class XPathResolverTest {
         // Given
         var inputStream = IOUtils.toInputStream(SOURCE, StandardCharsets.UTF_8);
 
-        var resolvedSource = ResolvedSource.of(new CarmlStream(), inputStream, InputStream.class);
+        var resolvedSource = ResolvedSource.of(inputStream, new TypeRef<>() {});
+        var xpathResolver = xpathResolverFactory.apply(LSOURCE.getSource());
         var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(LSOURCE, LSOURCE_ROOT));
 
         // When
@@ -173,7 +180,8 @@ class XPathResolverTest {
         // Given
         var inputStream = IOUtils.toInputStream(SOURCE, StandardCharsets.UTF_8);
 
-        var resolvedSource = ResolvedSource.of(new CarmlStream(), inputStream, InputStream.class);
+        var resolvedSource = ResolvedSource.of(inputStream, new TypeRef<>() {});
+        var xpathResolver = xpathResolverFactory.apply(LSOURCE.getSource());
         var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(LSOURCE, LSOURCE2));
 
         // When
@@ -201,7 +209,8 @@ class XPathResolverTest {
         DocumentBuilder docBuilder = processor.newDocumentBuilder();
         var record = docBuilder.build(new StreamSource(new StringReader(SOURCE)));
 
-        var resolvedSource = ResolvedSource.of(new CarmlStream(), record, XdmItem.class);
+        var resolvedSource = ResolvedSource.of(record, new TypeRef<>() {});
+        var xpathResolver = xpathResolverFactory.apply(LSOURCE.getSource());
         var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(LSOURCE, LSOURCE2));
 
         // When
@@ -219,12 +228,13 @@ class XPathResolverTest {
 
         var unresolvable = CarmlLogicalSource.builder()
                 .iterator("/foo")
-                .referenceFormulation(Ql.XPath)
+                .referenceFormulation(XPATH)
                 .build();
 
         var record = docBuilder.build(new StreamSource(new StringReader(BOOK_ONE)));
 
-        var resolvedSource = ResolvedSource.of(new CarmlStream(), record, XdmItem.class);
+        var resolvedSource = ResolvedSource.of(record, new TypeRef<>() {});
+        var xpathResolver = xpathResolverFactory.apply(unresolvable.getSource());
         var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(unresolvable));
 
         // When
@@ -239,7 +249,8 @@ class XPathResolverTest {
         // Given
         var inputStream = IOUtils.toInputStream(SOURCE, StandardCharsets.UTF_8);
 
-        var resolvedSource = ResolvedSource.of(RML_SOURCE, inputStream, InputStream.class);
+        var resolvedSource = ResolvedSource.of(inputStream, new TypeRef<>() {});
+        var xpathResolver = xpathResolverFactory.apply(RML_SOURCE);
         var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(LSOURCE_INVALID));
 
         // When
@@ -256,7 +267,8 @@ class XPathResolverTest {
         // Given
         var inputStream = IOUtils.toInputStream(SOURCE, StandardCharsets.UTF_8);
 
-        var resolvedSource = ResolvedSource.of(RML_SOURCE, inputStream, InputStream.class);
+        var resolvedSource = ResolvedSource.of(inputStream, new TypeRef<>() {});
+        var xpathResolver = xpathResolverFactory.apply(RML_SOURCE);
         var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of());
 
         // When
@@ -271,6 +283,7 @@ class XPathResolverTest {
     void givenExpression_whenExpressionEvaluationApplied_thenReturnCorrectValue() throws SaxonApiException {
         // Given
         var expression = "book/author";
+        var xpathResolver = xpathResolverFactory.apply(LSOURCE.getSource());
         var evaluationFactory = xpathResolver.getExpressionEvaluationFactory();
 
         var documentBuilder = processor.newDocumentBuilder();
@@ -295,6 +308,7 @@ class XPathResolverTest {
             throws SaxonApiException {
         // Given
         var expression = "tokenize(book/price, '\\.')";
+        var xpathResolver = xpathResolverFactory.apply(LSOURCE.getSource());
         var evaluationFactory = xpathResolver.getExpressionEvaluationFactory();
 
         var documentBuilder = processor.newDocumentBuilder();
@@ -318,7 +332,8 @@ class XPathResolverTest {
     void givenExpression_whenExpressionEvaluationWithoutAutoTextExtractionApplied_thenReturnCorrectValue() {
         var inputStream = IOUtils.toInputStream(SOURCE, StandardCharsets.UTF_8);
 
-        var resolvedSource = ResolvedSource.of(LSOURCE.getSource(), inputStream, InputStream.class);
+        var resolvedSource = ResolvedSource.of(inputStream, new TypeRef<>() {});
+        var xpathResolver = xpathResolverFactory.apply(LSOURCE.getSource());
         var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(LSOURCE));
 
         var recordFlux = recordResolver.apply(resolvedSource);
@@ -338,11 +353,12 @@ class XPathResolverTest {
         // redefine XPath resolver to not auto-extract text
 
         // Given
-        xpathResolver = XPathResolver.getInstance(false);
+        var factory = XPathResolver.factory(false);
+        xpathResolver = factory.apply(LSOURCE.getSource());
 
         inputStream = IOUtils.toInputStream(SOURCE, StandardCharsets.UTF_8);
 
-        resolvedSource = ResolvedSource.of(LSOURCE.getSource(), inputStream, InputStream.class);
+        resolvedSource = ResolvedSource.of(inputStream, new TypeRef<>() {});
         recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(LSOURCE));
 
         recordFlux = recordResolver.apply(resolvedSource);
@@ -360,7 +376,7 @@ class XPathResolverTest {
     }
 
     @Test
-    void givenExpressionWithNamespace_whenExpressionEvaluationApplied_thenReturnCorrectValue() {
+    void givenExpressionWithNamespaceBindings_whenExpressionEvaluationApplied_thenReturnCorrectValue() {
         // Given
         var mapping = RmlMappingLoader.build()
                 .load(RDFFormat.TURTLE, XPathResolverTest.class.getResourceAsStream("xmlns.rml.ttl"));
@@ -368,8 +384,38 @@ class XPathResolverTest {
         var triplesMap = Iterables.getOnlyElement(mapping);
         var logicalSource = triplesMap.getLogicalSource();
 
-        var resolvedSource = ResolvedSource.of(
-                logicalSource.getSource(), IOUtils.toInputStream(SOURCE_NS, StandardCharsets.UTF_8), InputStream.class);
+        var resolvedSource =
+                ResolvedSource.of(IOUtils.toInputStream(SOURCE_NS, StandardCharsets.UTF_8), new TypeRef<>() {});
+        var xpathResolver = xpathResolverFactory.apply(logicalSource.getSource());
+        var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(logicalSource));
+
+        var recordFlux = recordResolver.apply(resolvedSource);
+        var item = recordFlux.blockFirst();
+
+        var expression = "./ex:author/lower-case(.)";
+        var evaluationFactory = xpathResolver.getExpressionEvaluationFactory();
+        var expressionEvaluation = evaluationFactory.apply(item.getSourceRecord());
+
+        // When
+        var evaluationResult = expressionEvaluation.apply(expression);
+
+        // Then
+        assertThat(evaluationResult.isPresent(), is(true));
+        assertThat(evaluationResult.get(), is("j k. rowling"));
+    }
+
+    @Test
+    void givenExpressionWithLegacyNamespaceBinding_whenExpressionEvaluationApplied_thenReturnCorrectValue() {
+        // Given
+        var mapping = RmlMappingLoader.build()
+                .load(RDFFormat.TURTLE, XPathResolverTest.class.getResourceAsStream("xmlns-legacy.rml.ttl"));
+
+        var triplesMap = Iterables.getOnlyElement(mapping);
+        var logicalSource = triplesMap.getLogicalSource();
+
+        var resolvedSource =
+                ResolvedSource.of(IOUtils.toInputStream(SOURCE_NS, StandardCharsets.UTF_8), new TypeRef<>() {});
+        var xpathResolver = xpathResolverFactory.apply(logicalSource.getSource());
         var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(logicalSource));
 
         var recordFlux = recordResolver.apply(resolvedSource);

@@ -4,7 +4,7 @@
 @base <http://example.com/rules/> .
 
 <#DCATSourceAccess> a rml:Source, dcat:Distribution;
-  dcat:downloadURL <http://w3id.org/rml/resources/Friends.xml>;
+  dcat:downloadURL <http://w3id.org/rml/resources/rml-io/RMLSTC0007d/Friends.xml>;
 .
 
 <#TriplesMap> a rml:TriplesMap;
@@ -16,10 +16,10 @@
         rml:namespaceURL "http://example.org";
       ];
     ];
-    rml:iterator "//Friends/ex:Character/";
+    rml:iterator "//Friends/ex:Character";
   ];
   rml:subjectMap [ a rml:SubjectMap;
-    rml:template "http://example.org/{id}";
+    rml:template "http://example.org/{@id}";
   ];
   rml:predicateObjectMap [ a rml:PredicateObjectMap;
     rml:predicateMap [ a rml:PredicateMap;

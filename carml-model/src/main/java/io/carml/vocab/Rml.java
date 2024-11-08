@@ -140,6 +140,7 @@ public class Rml {
     public static final String path = NAMESPACE + "path";
 
     public static final String gatherMap = NAMESPACE + "gatherMap";
+
     public static final String GatherMap = NAMESPACE + "GatherMap";
 
     public static final String strategy = NAMESPACE + "strategy";
@@ -158,6 +159,16 @@ public class Rml {
 
     public static final String compression = NAMESPACE + "compression";
 
+    public static final String none = NAMESPACE + "none";
+
+    public static final String gzip = NAMESPACE + "gzip";
+
+    public static final String zip = NAMESPACE + "zip";
+
+    public static final String tarxz = NAMESPACE + "tarxz";
+
+    public static final String targz = NAMESPACE + "targz";
+
     public static final String encoding = NAMESPACE + "encoding";
 
     public static final String NULL = NAMESPACE + "null";
@@ -165,4 +176,10 @@ public class Rml {
     public static final String UTF_8 = NAMESPACE + "UTF-8";
 
     public static final String UTF_16 = NAMESPACE + "UTF-16";
+
+    public static final String namespace = NAMESPACE + "namespace";
+
+    public static final String namespacePrefix = NAMESPACE + "namespacePrefix";
+
+    public static final String namespaceURL = NAMESPACE + "namespaceURL";
 }

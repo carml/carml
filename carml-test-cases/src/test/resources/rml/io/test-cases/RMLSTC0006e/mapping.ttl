@@ -9,7 +9,7 @@
   td:hasPropertyAffordance [
     td:hasForm [
       # URL and content type
-      hctl:hasTarget "http://w3id.org/rml/resources/Friends.json";
+      hctl:hasTarget "http://w3id.org/rml/resources/rml-io/RMLSTC0006e/Friends.json";
       hctl:forContentType "application/json";
     ];
   ];
@@ -19,17 +19,17 @@
   rml:logicalSource [ a rml:LogicalSource;
     rml:source <#WoTSourceAccess>;
     rml:referenceFormulation rml:JSONPath;
-    rml:iterator "$.[*]";
+    rml:iterator "$[*]";
   ];
   rml:subjectMap [ a rml:SubjectMap;
-    rml:template "http://example.org/{id}";
+    rml:template "http://example.org/{$.id}";
   ];
   rml:predicateObjectMap [ a rml:PredicateObjectMap;
     rml:predicateMap [ a rml:PredicateMap;
       rml:constant foaf:name;
     ];
     rml:objectMap [ a rml:ObjectMap;
-      rml:reference "name";
+      rml:reference "$.name";
     ];
   ];
   rml:predicateObjectMap [ a rml:PredicateObjectMap;
@@ -37,7 +37,7 @@
       rml:constant foaf:age;
     ];
     rml:objectMap [ a rml:ObjectMap;
-      rml:reference "age";
+      rml:reference "$.age";
     ];
   ];
 .

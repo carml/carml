@@ -9,7 +9,7 @@ public interface LogicalSource extends Resource {
 
     String getIterator();
 
-    IRI getReferenceFormulation();
+    ReferenceFormulation getReferenceFormulation();
 
     String getTableName();
 
