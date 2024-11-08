@@ -84,11 +84,17 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
     private final Map<Set<LogicalSource>, XMLDog> xmlDogCache;
 
     private void setNamespaces(LogicalSource logicalSource) {
-        var source = logicalSource.getSource();
         if (source instanceof XmlSource xmlSource) {
             xmlSource.getDeclaredNamespaces().forEach(n -> {
                 nsContext.declarePrefix(n.getPrefix(), n.getName());
                 xpathCompiler.declareNamespace(n.getPrefix(), n.getName());
+            });
+        }
+
+        if (logicalSource.getReferenceFormulation() instanceof XPathReferenceFormulation xpathReferenceFormulation) {
+            xpathReferenceFormulation.getNamespaces().forEach(namespace -> {
+                nsContext.declarePrefix(namespace.getNamespacePrefix(), namespace.getNamespaceUrl());
+                xpathCompiler.declareNamespace(namespace.getNamespacePrefix(), namespace.getNamespaceUrl());
             });
         }
     }

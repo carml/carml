@@ -376,10 +376,39 @@ class XPathResolverTest {
     }
 
     @Test
-    void givenExpressionWithNamespace_whenExpressionEvaluationApplied_thenReturnCorrectValue() {
+    void givenExpressionWithNamespaceBindings_whenExpressionEvaluationApplied_thenReturnCorrectValue() {
         // Given
         var mapping = RmlMappingLoader.build()
                 .load(RDFFormat.TURTLE, XPathResolverTest.class.getResourceAsStream("xmlns.rml.ttl"));
+
+        var triplesMap = Iterables.getOnlyElement(mapping);
+        var logicalSource = triplesMap.getLogicalSource();
+
+        var resolvedSource =
+                ResolvedSource.of(IOUtils.toInputStream(SOURCE_NS, StandardCharsets.UTF_8), new TypeRef<>() {});
+        var xpathResolver = xpathResolverFactory.apply(logicalSource.getSource());
+        var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(logicalSource));
+
+        var recordFlux = recordResolver.apply(resolvedSource);
+        var item = recordFlux.blockFirst();
+
+        var expression = "./ex:author/lower-case(.)";
+        var evaluationFactory = xpathResolver.getExpressionEvaluationFactory();
+        var expressionEvaluation = evaluationFactory.apply(item.getSourceRecord());
+
+        // When
+        var evaluationResult = expressionEvaluation.apply(expression);
+
+        // Then
+        assertThat(evaluationResult.isPresent(), is(true));
+        assertThat(evaluationResult.get(), is("j k. rowling"));
+    }
+
+    @Test
+    void givenExpressionWithLegacyNamespaceBinding_whenExpressionEvaluationApplied_thenReturnCorrectValue() {
+        // Given
+        var mapping = RmlMappingLoader.build()
+                .load(RDFFormat.TURTLE, XPathResolverTest.class.getResourceAsStream("xmlns-legacy.rml.ttl"));
 
         var triplesMap = Iterables.getOnlyElement(mapping);
         var logicalSource = triplesMap.getLogicalSource();

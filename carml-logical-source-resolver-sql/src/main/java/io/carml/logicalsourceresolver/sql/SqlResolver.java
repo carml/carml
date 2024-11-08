@@ -130,7 +130,6 @@ public abstract class SqlResolver implements LogicalSourceResolver<RowData> {
     }
 
     private String getSelectQueryString(LogicalSource logicalSource) {
-        var source = logicalSource.getSource();
         if (source instanceof JoiningDatabaseSource joiningDatabaseSource) {
             return getJointSqlQuery(joiningDatabaseSource);
         } else if (logicalSource.getSource() instanceof DatabaseSource) {

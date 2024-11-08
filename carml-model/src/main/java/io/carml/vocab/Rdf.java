@@ -43,6 +43,12 @@ public class Rdf {
 
         public static final IRI namespace = iri("namespace");
 
+        public static final IRI Namespace = iri("Namespace");
+
+        public static final IRI namespacePrefix = iri("namespacePrefix");
+
+        public static final IRI namespaceURL = iri("namespaceURL");
+
         public static final IRI Csv = iri("CSV");
 
         public static final IRI Rdb = iri("Rdb");

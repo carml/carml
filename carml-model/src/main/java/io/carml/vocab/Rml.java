@@ -140,6 +140,7 @@ public class Rml {
     public static final String path = NAMESPACE + "path";
 
     public static final String gatherMap = NAMESPACE + "gatherMap";
+
     public static final String GatherMap = NAMESPACE + "GatherMap";
 
     public static final String strategy = NAMESPACE + "strategy";
@@ -175,4 +176,10 @@ public class Rml {
     public static final String UTF_8 = NAMESPACE + "UTF-8";
 
     public static final String UTF_16 = NAMESPACE + "UTF-16";
+
+    public static final String namespace = NAMESPACE + "namespace";
+
+    public static final String namespacePrefix = NAMESPACE + "namespacePrefix";
+
+    public static final String namespaceURL = NAMESPACE + "namespaceURL";
 }
