@@ -4,14 +4,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.collect.Sets;
 import io.carml.engine.rdf.RdfRmlMapper;
-import io.carml.logicalsourceresolver.CsvResolver;
-import io.carml.logicalsourceresolver.JsonPathResolver;
-import io.carml.logicalsourceresolver.XPathResolver;
 import io.carml.model.Mapping;
 import io.carml.util.Models;
 import io.carml.util.RmlMappingLoader;
 import io.carml.util.RmlNamespaces;
-import io.carml.vocab.Rdf;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.util.Map;
@@ -48,14 +44,9 @@ class MappingTester {
             Map<String, InputStream> namedInputStreams) {
         var mapping = Mapping.of(RDFFormat.TURTLE, MappingTester.class.getResourceAsStream(rmlPath));
 
-        RdfRmlMapper.Builder builder = RdfRmlMapper.builder()
-                .setLogicalSourceResolverFactory(Rdf.Ql.Csv, CsvResolver.factory())
-                .setLogicalSourceResolverFactory(Rdf.Ql.JsonPath, JsonPathResolver.factory())
-                .setLogicalSourceResolverFactory(Rdf.Ql.XPath, XPathResolver.factory())
-                .classPathResolver(contextPath)
-                .mapping(mapping);
+        var builder = RdfRmlMapper.builder().classPathResolver(contextPath).mapping(mapping);
         configureMapper.accept(builder);
-        RdfRmlMapper mapper = builder.build();
+        var mapper = builder.build();
 
         Model result;
         if (namedInputStreams.isEmpty()) {
@@ -71,9 +62,9 @@ class MappingTester {
             return;
         }
 
-        InputStream expectedModel = MappingTester.class.getResourceAsStream(outputPath);
+        var expectedModel = MappingTester.class.getResourceAsStream(outputPath);
 
-        Model expected = Models.parse(Objects.requireNonNull(expectedModel), determineRdfFormat(outputPath)).stream()
+        var expected = Models.parse(Objects.requireNonNull(expectedModel), determineRdfFormat(outputPath)).stream()
                 .collect(ModelCollector.toTreeModel());
 
         assertThat(result, equalTo(expected));

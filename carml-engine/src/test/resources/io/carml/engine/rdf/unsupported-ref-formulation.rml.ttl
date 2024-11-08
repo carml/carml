@@ -12,7 +12,7 @@ ex:TriplesMap a rr:TriplesMap ;
   rml:logicalSource [
     rml:source "some-source.xml" ;
     rml:iterator "/*" ;
-    # rml:referenceFormulation ql:XPath ;
+    rml:referenceFormulation ql:Foo ;
   ] ;
   rr:subjectMap [
     rr:template "http://example.org/{/some-node}" ;
@@ -32,7 +32,7 @@ ex:TriplesMap a rr:TriplesMap ;
     rr:graph ex:Graph3 ;
     rr:graphMap [
         rml:reference "graph3" ;
-        rr:termType rr:BlankNode ;
+        rr:termType rr:IRI ;
     ] ;
   ] ;
   rr:predicateObjectMap [
@@ -87,7 +87,7 @@ ex:FileSourceTM a rr:TriplesMap ;
       carml:url "file:///some/file"
     ] ;
     rml:iterator "/*" ;
-    # rml:referenceFormulation ql:XPath ;
+    rml:referenceFormulation ql:Foo ;
   ] ;
   rr:subject ex:subject ;
   rr:class ex:ClassFileSource ;

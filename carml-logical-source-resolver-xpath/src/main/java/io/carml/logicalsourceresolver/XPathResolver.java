@@ -2,23 +2,21 @@ package io.carml.logicalsourceresolver;
 
 import static io.carml.util.LogUtil.exception;
 
+import com.google.auto.service.AutoService;
 import io.carml.model.LogicalSource;
 import io.carml.model.Source;
+import io.carml.model.XPathReferenceFormulation;
 import io.carml.model.XmlSource;
-import io.carml.vocab.Rdf.Ql;
-import io.carml.vocab.Rdf.Rml;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.xpath.XPathException;
 import jlibs.xml.DefaultNamespaceContext;
@@ -38,7 +36,6 @@ import net.sf.saxon.s9api.SaxonApiException;
 import net.sf.saxon.s9api.XPathCompiler;
 import net.sf.saxon.s9api.XdmItem;
 import net.sf.saxon.s9api.XdmValue;
-import org.eclipse.rdf4j.model.IRI;
 import org.jaxen.saxpath.SAXPathException;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -49,6 +46,8 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class XPathResolver implements LogicalSourceResolver<XdmItem> {
+
+    public static final String NAME = "XPathResolver";
 
     public static LogicalSourceResolverFactory<XdmItem> factory() {
         return factory(true);
@@ -332,22 +331,8 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
     }
 
     @ToString
-    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    @AutoService(MatchingLogicalSourceResolverFactory.class)
     public static class Matcher implements MatchingLogicalSourceResolverFactory {
-        private static final Set<IRI> MATCHING_REF_FORMULATIONS = Set.of(Rml.XPath, Ql.XPath);
-
-        private List<IRI> matchingReferenceFormulations;
-
-        public static Matcher getInstance() {
-            return getInstance(Set.of());
-        }
-
-        public static Matcher getInstance(Set<IRI> customMatchingReferenceFormulations) {
-            return new Matcher(
-                    Stream.concat(customMatchingReferenceFormulations.stream(), MATCHING_REF_FORMULATIONS.stream())
-                            .distinct()
-                            .toList());
-        }
 
         @Override
         public Optional<MatchedLogicalSourceResolverFactory> apply(LogicalSource logicalSource) {
@@ -367,13 +352,12 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
         }
 
         private boolean matchesReferenceFormulation(LogicalSource logicalSource) {
-            return logicalSource.getReferenceFormulation() != null
-                    && matchingReferenceFormulations.contains(logicalSource.getReferenceFormulation());
+            return logicalSource.getReferenceFormulation() instanceof XPathReferenceFormulation;
         }
 
         @Override
         public String getResolverName() {
-            return "XPathResolver";
+            return NAME;
         }
     }
 }

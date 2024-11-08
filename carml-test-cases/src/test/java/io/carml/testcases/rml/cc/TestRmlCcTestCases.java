@@ -6,9 +6,6 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.carml.engine.rdf.RdfRmlMapper;
-import io.carml.logicalsourceresolver.CsvResolver;
-import io.carml.logicalsourceresolver.JsonPathResolver;
-import io.carml.logicalsourceresolver.XPathResolver;
 import io.carml.logicalsourceresolver.sourceresolver.ClassPathResolver;
 import io.carml.model.TriplesMap;
 import io.carml.rdfmapper.util.RdfObjectLoader;
@@ -93,11 +90,7 @@ class TestRmlCcTestCases {
     }
 
     private Model executeMapping(TestCase testCase, String testCaseIdentifier) {
-        mapperBuilder = RdfRmlMapper.builder()
-                .valueFactorySupplier(ValidatingValueFactory::new)
-                .logicalSourceResolverMatcher(CsvResolver.Matcher.getInstance())
-                .logicalSourceResolverMatcher(JsonPathResolver.Matcher.getInstance())
-                .logicalSourceResolverMatcher(XPathResolver.Matcher.getInstance());
+        mapperBuilder = RdfRmlMapper.builder().valueFactorySupplier(ValidatingValueFactory::new);
 
         var mappingStream = getTestCaseFileInputStream(BASE_PATH, testCaseIdentifier, testCase.getMappingDocument());
         Set<TriplesMap> mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingStream);

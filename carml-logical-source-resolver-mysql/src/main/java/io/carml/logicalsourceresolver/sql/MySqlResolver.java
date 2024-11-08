@@ -1,5 +1,6 @@
 package io.carml.logicalsourceresolver.sql;
 
+import com.google.auto.service.AutoService;
 import io.asyncer.r2dbc.mysql.constant.MySqlType;
 import io.carml.logicalsourceresolver.LogicalSourceResolverException;
 import io.carml.logicalsourceresolver.MatchedLogicalSourceResolverFactory;
@@ -8,22 +9,20 @@ import io.carml.logicalsourceresolver.sql.sourceresolver.JoiningDatabaseSource;
 import io.carml.model.DatabaseSource;
 import io.carml.model.LogicalSource;
 import io.carml.model.Source;
-import io.carml.vocab.Rdf.Ql;
-import io.carml.vocab.Rdf.Rml;
+import io.carml.model.SqlReferenceFormulation;
 import io.carml.vocab.Rdf.Rr;
 import io.r2dbc.spi.Type;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Stream;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.ToString;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.vocabulary.XSD;
 import org.jooq.SQLDialect;
 
 public class MySqlResolver extends SqlResolver {
+
+    public static final String NAME = "MySqlResolver";
 
     private MySqlResolver(Source source, boolean isStrict) {
         super(source, isStrict);
@@ -78,24 +77,12 @@ public class MySqlResolver extends SqlResolver {
     }
 
     @ToString
-    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    @AutoService(MatchingLogicalSourceResolverFactory.class)
     public static class Matcher implements MatchingLogicalSourceResolverFactory {
 
-        private static final Set<IRI> MATCHING_REF_FORMULATIONS =
-                Set.of(Rml.SQL2008Table, Rml.SQL2008Query, Ql.Rdb, Rr.MySQL);
-
-        private List<IRI> matchingReferenceFormulations;
-
-        public static Matcher getInstance() {
-            return getInstance(Set.of());
-        }
-
-        public static Matcher getInstance(Set<IRI> customMatchingReferenceFormulations) {
-            return new Matcher(
-                    Stream.concat(customMatchingReferenceFormulations.stream(), MATCHING_REF_FORMULATIONS.stream())
-                            .distinct()
-                            .toList());
-        }
+        private final List<IRI> matchingReferenceFormulations = Stream.concat(
+                        SqlReferenceFormulation.IRIS.stream(), Stream.of(Rr.MySQL))
+                .toList();
 
         @Override
         public Optional<MatchedLogicalSourceResolverFactory> apply(LogicalSource logicalSource) {
@@ -105,7 +92,7 @@ public class MySqlResolver extends SqlResolver {
                 scoreBuilder.strongMatch();
             }
 
-            if (referenceFormulationMatchesSql2008(logicalSource)) {
+            if (referenceFormulationMatchesByIri(logicalSource)) {
                 scoreBuilder.weakMatch();
             }
 
@@ -123,17 +110,17 @@ public class MySqlResolver extends SqlResolver {
         }
 
         private boolean matchesReferenceFormulation(LogicalSource logicalSource) {
-            return logicalSource.getReferenceFormulation() != null
-                            && matchingReferenceFormulations.contains(logicalSource.getReferenceFormulation())
+            return logicalSource.getReferenceFormulation() instanceof SqlReferenceFormulation
                     || logicalSource.getSqlVersion() != null
                             && matchingReferenceFormulations.contains(logicalSource.getSqlVersion());
         }
 
-        private boolean referenceFormulationMatchesSql2008(LogicalSource logicalSource) {
+        private boolean referenceFormulationMatchesByIri(LogicalSource logicalSource) {
             return logicalSource.getReferenceFormulation() != null
-                            && logicalSource.getReferenceFormulation().equals(Rr.SQL2008)
+                            && matchingReferenceFormulations.contains(
+                                    logicalSource.getReferenceFormulation().getAsResource())
                     || logicalSource.getSqlVersion() != null
-                            && logicalSource.getSqlVersion().equals(Rr.SQL2008);
+                            && matchingReferenceFormulations.contains(logicalSource.getSqlVersion());
         }
 
         private boolean hasMySqlSource(LogicalSource logicalSource) {
@@ -147,7 +134,7 @@ public class MySqlResolver extends SqlResolver {
 
         @Override
         public String getResolverName() {
-            return "MySqlResolver";
+            return NAME;
         }
     }
 }

@@ -7,12 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import io.carml.engine.rdf.RdfRmlMapper;
-import io.carml.logicalsourceresolver.CsvResolver;
-import io.carml.logicalsourceresolver.JsonPathResolver;
-import io.carml.logicalsourceresolver.XPathResolver;
 import io.carml.logicalsourceresolver.sourceresolver.ClassPathResolver;
-import io.carml.logicalsourceresolver.sql.MySqlResolver;
-import io.carml.logicalsourceresolver.sql.PostgreSqlResolver;
 import io.carml.logicalsourceresolver.sql.sourceresolver.DatabaseConnectionOptions;
 import io.carml.model.TriplesMap;
 import io.carml.rdfmapper.util.RdfObjectLoader;
@@ -153,17 +148,13 @@ class TestRmlCoreTestCases {
     }
 
     private Model executeMapping(TestCase testCase, String testCaseIdentifier) {
-        mapperBuilder = RdfRmlMapper.builder()
-                .valueFactorySupplier(ValidatingValueFactory::new)
-                .logicalSourceResolverMatcher(CsvResolver.Matcher.getInstance())
-                .logicalSourceResolverMatcher(JsonPathResolver.Matcher.getInstance())
-                .logicalSourceResolverMatcher(XPathResolver.Matcher.getInstance());
+        mapperBuilder = RdfRmlMapper.builder().valueFactorySupplier(ValidatingValueFactory::new);
 
         var mappingStream = getTestCaseFileInputStream(BASE_PATH, testCaseIdentifier, testCase.getMappingDocument());
         Set<TriplesMap> mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingStream);
 
         if (testCase.getInput().getInputType().equals("MySQL")) {
-            mapperBuilder.logicalSourceResolverMatcher(MySqlResolver.Matcher.getInstance());
+            mapperBuilder.excludeLogicalSourceResolver("PostgreSqlResolver");
             prepareForDatabaseTest(
                     testCase,
                     testCaseIdentifier,
@@ -172,7 +163,7 @@ class TestRmlCoreTestCases {
         }
 
         if (testCase.getInput().getInputType().equals("PostgreSQL")) {
-            mapperBuilder.logicalSourceResolverMatcher(PostgreSqlResolver.Matcher.getInstance());
+            mapperBuilder.excludeLogicalSourceResolver("MySqlResolver");
             prepareForDatabaseTest(
                     testCase,
                     testCaseIdentifier,

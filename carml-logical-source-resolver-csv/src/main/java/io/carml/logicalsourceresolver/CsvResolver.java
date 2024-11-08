@@ -3,27 +3,25 @@ package io.carml.logicalsourceresolver;
 import static io.carml.util.LogUtil.exception;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import com.google.auto.service.AutoService;
 import com.google.common.collect.Iterables;
 import de.siegmar.fastcsv.reader.CommentStrategy;
 import de.siegmar.fastcsv.reader.CsvReader;
 import de.siegmar.fastcsv.reader.CsvReader.CsvReaderBuilder;
 import de.siegmar.fastcsv.reader.NamedCsvRecord;
 import io.carml.logicalsourceresolver.sourceresolver.Encodings;
+import io.carml.model.CsvReferenceFormulation;
 import io.carml.model.LogicalSource;
 import io.carml.model.Source;
 import io.carml.model.source.csvw.CsvwDialect;
 import io.carml.model.source.csvw.CsvwTable;
 import io.carml.util.TypeRef;
-import io.carml.vocab.Rdf.Ql;
-import io.carml.vocab.Rdf.Rml;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.ToString;
@@ -35,6 +33,8 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
+
+    public static final String NAME = "CsvResolver";
 
     public static LogicalSourceResolverFactory<NamedCsvRecord> factory() {
         return CsvResolver::new;
@@ -166,22 +166,8 @@ public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
     }
 
     @ToString
-    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    @AutoService(MatchingLogicalSourceResolverFactory.class)
     public static class Matcher implements MatchingLogicalSourceResolverFactory {
-        private static final Set<IRI> MATCHING_REF_FORMULATIONS = Set.of(Rml.Csv, Ql.Csv);
-
-        private List<IRI> matchingReferenceFormulations;
-
-        public static Matcher getInstance() {
-            return getInstance(Set.of());
-        }
-
-        public static Matcher getInstance(Set<IRI> customMatchingReferenceFormulations) {
-            return new Matcher(
-                    Stream.concat(customMatchingReferenceFormulations.stream(), MATCHING_REF_FORMULATIONS.stream())
-                            .distinct()
-                            .toList());
-        }
 
         @Override
         public Optional<MatchedLogicalSourceResolverFactory> apply(LogicalSource logicalSource) {
@@ -201,13 +187,12 @@ public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
         }
 
         private boolean matchesReferenceFormulation(LogicalSource logicalSource) {
-            return logicalSource.getReferenceFormulation() != null
-                    && matchingReferenceFormulations.contains(logicalSource.getReferenceFormulation());
+            return logicalSource.getReferenceFormulation() instanceof CsvReferenceFormulation;
         }
 
         @Override
         public String getResolverName() {
-            return "CsvResolver";
+            return NAME;
         }
     }
 }

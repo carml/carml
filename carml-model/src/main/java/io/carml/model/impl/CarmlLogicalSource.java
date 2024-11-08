@@ -2,9 +2,11 @@ package io.carml.model.impl;
 
 import io.carml.model.DatabaseSource;
 import io.carml.model.LogicalSource;
+import io.carml.model.ReferenceFormulation;
 import io.carml.model.Resource;
 import io.carml.model.Source;
 import io.carml.rdfmapper.annotations.RdfProperty;
+import io.carml.rdfmapper.annotations.RdfTypeDecider;
 import io.carml.vocab.OldRml;
 import io.carml.vocab.Rdf;
 import io.carml.vocab.Rml;
@@ -30,7 +32,7 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
 
     private String iterator;
 
-    private IRI referenceFormulation;
+    private ReferenceFormulation referenceFormulation;
 
     private String tableName;
 
@@ -66,10 +68,14 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
 
     @RdfProperty(Rml.referenceFormulation)
     @RdfProperty(OldRml.referenceFormulation)
+    @RdfTypeDecider(LogicalSourceReferenceFormulationTypeDecider.class)
     @Override
-    public IRI getReferenceFormulation() {
+    public ReferenceFormulation getReferenceFormulation() {
         if (source instanceof DatabaseSource || hasTableNameOrSqlQuery()) {
-            return Rdf.Ql.Rdb;
+            // handle legacy R2RML cases where the referenceFormulation is not set
+            return CarmlReferenceFormulation.builder()
+                    .id(Rdf.Ql.Rdb.stringValue())
+                    .build();
         }
 
         return referenceFormulation;
@@ -102,7 +108,7 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
     public String getQuery() {
         String query = null;
 
-        if (referenceFormulation != null && referenceFormulation.equals(Rdf.Rml.SQL2008Query)) {
+        if (referenceFormulation != null && referenceFormulation.getAsResource().equals(Rdf.Rml.SQL2008Query)) {
             query = iterator;
         }
 
@@ -113,8 +119,14 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
         if (query == null
                 && source instanceof DatabaseSource databaseSource
                 && referenceFormulation != null
-                && !referenceFormulation.equals(Rdf.Rml.SQL2008Table)) {
+                && !referenceFormulation.getAsResource().equals(Rdf.Rml.SQL2008Table)) {
             query = databaseSource.getQuery();
+        }
+
+        if (query == null
+                && referenceFormulation != null
+                && referenceFormulation.getAsResource().equals(Rdf.Rml.SQL2008Table)) {
+            query = String.format("SELECT * FROM %s", iterator);
         }
 
         if (query == null) {
@@ -153,7 +165,7 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
             modelBuilder.add(Rdf.Rml.iterator, iterator);
         }
         if (referenceFormulation != null) {
-            modelBuilder.add(Rdf.Rml.referenceFormulation, referenceFormulation);
+            modelBuilder.add(Rdf.Rml.referenceFormulation, referenceFormulation.getAsResource());
         }
     }
 }

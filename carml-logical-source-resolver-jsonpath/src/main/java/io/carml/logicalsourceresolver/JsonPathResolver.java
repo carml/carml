@@ -6,15 +6,15 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.auto.service.AutoService;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.Option;
 import com.jayway.jsonpath.spi.json.JacksonJsonNodeJsonProvider;
 import io.carml.logicalsourceresolver.sourceresolver.Encodings;
+import io.carml.model.JsonPathReferenceFormulation;
 import io.carml.model.LogicalSource;
 import io.carml.model.Source;
-import io.carml.vocab.Rdf.Ql;
-import io.carml.vocab.Rdf.Rml;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -29,14 +29,12 @@ import java.util.Spliterators;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
-import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
-import org.eclipse.rdf4j.model.IRI;
 import org.jsfr.json.JsonSurfer;
 import org.jsfr.json.JsonSurferJackson;
 import org.jsfr.json.NonBlockingParser;
@@ -48,6 +46,8 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
+
+    public static final String NAME = "JsonPathResolver";
 
     private static final int DEFAULT_BUFFER_SIZE = 8 * 1024;
 
@@ -297,22 +297,8 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
     }
 
     @ToString
-    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    @AutoService(MatchingLogicalSourceResolverFactory.class)
     public static class Matcher implements MatchingLogicalSourceResolverFactory {
-        private static final Set<IRI> MATCHING_REF_FORMULATIONS = Set.of(Rml.JsonPath, Ql.JsonPath);
-
-        private List<IRI> matchingReferenceFormulations;
-
-        public static Matcher getInstance() {
-            return getInstance(Set.of());
-        }
-
-        public static Matcher getInstance(Set<IRI> customMatchingReferenceFormulations) {
-            return new Matcher(
-                    Stream.concat(customMatchingReferenceFormulations.stream(), MATCHING_REF_FORMULATIONS.stream())
-                            .distinct()
-                            .toList());
-        }
 
         @Override
         public Optional<MatchedLogicalSourceResolverFactory> apply(LogicalSource logicalSource) {
@@ -332,13 +318,12 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
         }
 
         private boolean matchesReferenceFormulation(LogicalSource logicalSource) {
-            return logicalSource.getReferenceFormulation() != null
-                    && matchingReferenceFormulations.contains(logicalSource.getReferenceFormulation());
+            return logicalSource.getReferenceFormulation() instanceof JsonPathReferenceFormulation;
         }
 
         @Override
         public String getResolverName() {
-            return "JsonPathResolver";
+            return NAME;
         }
     }
 }

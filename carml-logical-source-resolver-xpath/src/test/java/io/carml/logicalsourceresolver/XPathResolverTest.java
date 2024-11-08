@@ -11,11 +11,12 @@ import com.google.common.collect.Iterables;
 import io.carml.logicalsourceresolver.LogicalSourceResolver.LogicalSourceResolverFactory;
 import io.carml.model.LogicalSource;
 import io.carml.model.Source;
+import io.carml.model.XPathReferenceFormulation;
 import io.carml.model.impl.CarmlLogicalSource;
 import io.carml.model.impl.CarmlRelativePathSource;
 import io.carml.util.RmlMappingLoader;
 import io.carml.util.TypeRef;
-import io.carml.vocab.Rdf.Ql;
+import io.carml.vocab.Rdf.Rml;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -33,6 +34,9 @@ import org.junit.jupiter.api.Test;
 import reactor.test.StepVerifier;
 
 class XPathResolverTest {
+
+    public static final XPathReferenceFormulation XPATH =
+            XPathReferenceFormulation.builder().id(Rml.XPath.stringValue()).build();
 
     private static final Source RML_SOURCE = CarmlRelativePathSource.of("foo");
 
@@ -68,25 +72,25 @@ class XPathResolverTest {
     private static final LogicalSource LSOURCE = CarmlLogicalSource.builder()
             .source(RML_SOURCE)
             .iterator("/bookstore/*")
-            .referenceFormulation(Ql.XPath)
+            .referenceFormulation(XPATH)
             .build();
 
     private static final LogicalSource LSOURCE2 = CarmlLogicalSource.builder()
             .source(RML_SOURCE)
             .iterator("/bookstore/*/author")
-            .referenceFormulation(Ql.XPath)
+            .referenceFormulation(XPATH)
             .build();
 
     private static final LogicalSource LSOURCE_ROOT = CarmlLogicalSource.builder()
             .source(RML_SOURCE)
             .iterator("/bookstore")
-            .referenceFormulation(Ql.XPath)
+            .referenceFormulation(XPATH)
             .build();
 
     private static final LogicalSource LSOURCE_INVALID = CarmlLogicalSource.builder()
             .source(RML_SOURCE)
             .iterator("/bookstore/\\\\")
-            .referenceFormulation(Ql.XPath)
+            .referenceFormulation(XPATH)
             .build();
 
     private static final String SOURCE_NS = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" //
@@ -224,7 +228,7 @@ class XPathResolverTest {
 
         var unresolvable = CarmlLogicalSource.builder()
                 .iterator("/foo")
-                .referenceFormulation(Ql.XPath)
+                .referenceFormulation(XPATH)
                 .build();
 
         var record = docBuilder.build(new StreamSource(new StringReader(BOOK_ONE)));

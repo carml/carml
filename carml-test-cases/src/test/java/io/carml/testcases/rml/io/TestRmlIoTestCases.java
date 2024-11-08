@@ -7,9 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import io.carml.engine.rdf.RdfRmlMapper;
-import io.carml.logicalsourceresolver.CsvResolver;
-import io.carml.logicalsourceresolver.JsonPathResolver;
-import io.carml.logicalsourceresolver.XPathResolver;
 import io.carml.logicalsourceresolver.sourceresolver.ClassPathResolver;
 import io.carml.logicalsourceresolver.sql.sourceresolver.DatabaseConnectionOptions;
 import io.carml.model.TriplesMap;
@@ -151,10 +148,7 @@ class TestRmlIoTestCases {
 
     private Model executeMapping(TestCase testCase, String testCaseIdentifier) {
         mapperBuilder = RdfRmlMapper.builder()
-                .valueFactorySupplier(ValidatingValueFactory::new)
-                .logicalSourceResolverMatcher(CsvResolver.Matcher.getInstance())
-                .logicalSourceResolverMatcher(JsonPathResolver.Matcher.getInstance())
-                .logicalSourceResolverMatcher(XPathResolver.Matcher.getInstance());
+                .valueFactorySupplier(ValidatingValueFactory::new);
 
         var mappingStream = getTestCaseFileInputStream(BASE_PATH, testCaseIdentifier, testCase.getMappingDocument());
         Set<TriplesMap> mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingStream);

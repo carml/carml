@@ -1,5 +1,7 @@
 package io.carml.engine.rdf;
 
+import static java.util.function.Predicate.not;
+import static java.util.stream.Collectors.toUnmodifiableSet;
 import static org.eclipse.rdf4j.model.util.Values.iri;
 
 import io.carml.engine.MappedValue;
@@ -12,7 +14,6 @@ import io.carml.engine.join.ChildSideJoinStoreProvider;
 import io.carml.engine.join.ParentSideJoinConditionStoreProvider;
 import io.carml.engine.join.impl.CarmlChildSideJoinStoreProvider;
 import io.carml.engine.join.impl.CarmlParentSideJoinConditionStoreProvider;
-import io.carml.logicalsourceresolver.LogicalSourceResolver.LogicalSourceResolverFactory;
 import io.carml.logicalsourceresolver.MatchingLogicalSourceResolverFactory;
 import io.carml.logicalsourceresolver.sourceresolver.ClassPathResolver;
 import io.carml.logicalsourceresolver.sourceresolver.FileResolver;
@@ -27,9 +28,7 @@ import java.io.InputStream;
 import java.nio.file.Path;
 import java.text.Normalizer;
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.Set;
@@ -71,11 +70,6 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
 
         private IRI baseIri = RML_BASE_IRI;
 
-        private final Map<IRI, LogicalSourceResolverFactory<?>> logicalSourceResolverFactories = new HashMap<>();
-
-        private final Set<MatchingLogicalSourceResolverFactory> matchingLogicalSourceResolverFactories =
-                new LinkedHashSet<>();
-
         private Mapping mapping;
 
         private Set<TriplesMap> providedTriplesMaps = new HashSet<>();
@@ -101,6 +95,8 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
                 CarmlParentSideJoinConditionStoreProvider.of();
 
         private DatabaseConnectionOptions databaseConnectionOptions;
+
+        private Set<String> excludeLogicalSourceResolvers = new HashSet<>();
 
         /**
          * Sets the base IRI used in resolving relative IRIs produced by RML mappings.<br>
@@ -148,16 +144,6 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
         public Builder classPathResolver(ClassPathResolver classPathResolver) {
             fileResolverBuilder.classPathBase(classPathResolver.getClassPathBase());
             fileResolverBuilder.loadingClass(classPathResolver.getLoadingClass());
-            return this;
-        }
-
-        public Builder setLogicalSourceResolverFactory(IRI iri, LogicalSourceResolverFactory<?> factory) {
-            logicalSourceResolverFactories.put(iri, factory);
-            return this;
-        }
-
-        public Builder logicalSourceResolverMatcher(MatchingLogicalSourceResolverFactory matchingResolverSupplier) {
-            matchingLogicalSourceResolverFactories.add(matchingResolverSupplier);
             return this;
         }
 
@@ -212,8 +198,24 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
             return this;
         }
 
+        public Builder excludeLogicalSourceResolver(String resolverName) {
+            excludeLogicalSourceResolvers.add(resolverName);
+            return this;
+        }
+
+        public Builder excludeLogicalSourceResolver(Set<String> resolverNames) {
+            excludeLogicalSourceResolvers = resolverNames;
+            return this;
+        }
+
         public RdfRmlMapper build() {
-            if (matchingLogicalSourceResolverFactories.isEmpty() && logicalSourceResolverFactories.isEmpty()) {
+            var matchingLogicalSourceResolverFactories =
+                    ServiceLoader.load(MatchingLogicalSourceResolverFactory.class).stream()
+                            .map(ServiceLoader.Provider::get)
+                            .filter(not(factory -> excludeLogicalSourceResolvers.contains(factory.getResolverName())))
+                            .collect(toUnmodifiableSet());
+
+            if (matchingLogicalSourceResolverFactories.isEmpty()) {
                 throw new RmlMapperException("No logical source resolver suppliers specified.");
             }
 
@@ -246,10 +248,7 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
             var mappableTriplesMaps = Mappings.filterMappable(triplesMaps);
 
             var mappingPipeline = pipelineFactory.getMappingPipeline(
-                    mappableTriplesMaps,
-                    rdfMapperConfig,
-                    logicalSourceResolverFactories,
-                    matchingLogicalSourceResolverFactories);
+                    mappableTriplesMaps, rdfMapperConfig, matchingLogicalSourceResolverFactories);
 
             sourceResolvers.add(fileResolverBuilder.build());
 

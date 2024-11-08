@@ -25,7 +25,7 @@ import org.eclipse.rdf4j.model.vocabulary.RDFS;
 @SuperBuilder(toBuilder = true)
 @NoArgsConstructor
 @Setter
-@ToString(callSuper = true)
+@ToString
 @EqualsAndHashCode
 public abstract class CarmlResource implements Resource {
 

@@ -1,7 +1,6 @@
 package io.carml.engine.rdf;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalToCompressingWhiteSpace;
 import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -9,30 +8,24 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import io.carml.engine.RmlMapperException;
 import io.carml.engine.join.impl.CarmlChildSideJoinStoreProvider;
 import io.carml.engine.join.impl.CarmlParentSideJoinConditionStoreProvider;
-import io.carml.logicalsourceresolver.CsvResolver;
-import io.carml.logicalsourceresolver.XPathResolver;
 import io.carml.logicalsourceresolver.sourceresolver.ClassPathResolver;
 import io.carml.logicalsourceresolver.sourceresolver.SourceResolverException;
 import io.carml.logicalsourceresolver.sql.sourceresolver.DatabaseConnectionOptions;
 import io.carml.model.Mapping;
 import io.carml.model.TriplesMap;
+import io.carml.rdfmapper.impl.CarmlMapperException;
 import io.carml.util.RmlMappingLoader;
 import io.carml.util.TypeRef;
-import io.carml.vocab.Rdf;
-import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.Normalizer;
 import java.util.Map;
 import java.util.Set;
-import org.eclipse.rdf4j.model.Model;
-import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.impl.ValidatingValueFactory;
 import org.eclipse.rdf4j.rio.RDFFormat;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -40,25 +33,12 @@ import reactor.test.StepVerifier;
 class RdfRmlMapperTest {
 
     @Test
-    void givenBuilderWithNoLogicalSourceResolver_whenBuild_thenThrowException() {
-        // Given
-        RdfRmlMapper.Builder builder = RdfRmlMapper.builder();
-
-        // When
-        RmlMapperException rmlMapperException = assertThrows(RmlMapperException.class, builder::build);
-
-        // Then
-        assertThat(rmlMapperException.getMessage(), is("No logical source resolver suppliers specified."));
-    }
-
-    @Test
     void givenBuilderWithNoMapping_whenBuild_thenThrowException() {
         // Given
-        RdfRmlMapper.Builder builder =
-                RdfRmlMapper.builder().setLogicalSourceResolverFactory(Rdf.Ql.XPath, XPathResolver.factory());
+        var builder = RdfRmlMapper.builder();
 
         // When
-        RmlMapperException rmlMapperException = assertThrows(RmlMapperException.class, builder::build);
+        var rmlMapperException = assertThrows(RmlMapperException.class, builder::build);
 
         // Then
         assertThat(rmlMapperException.getMessage(), is("No executable triples maps found."));
@@ -66,31 +46,23 @@ class RdfRmlMapperTest {
 
     @Test
     void givenBuilderWithMappingWithUnsupportedReferenceFormulation_whenBuild_thenThrowException() {
-        // Given
-        InputStream mappingSource = RdfRmlMapperTest.class.getResourceAsStream("mapping.rml.ttl");
-        Set<TriplesMap> mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
-        RdfRmlMapper.Builder builder = RdfRmlMapper.builder()
-                .setLogicalSourceResolverFactory(Rdf.Ql.JsonPath, XPathResolver.factory())
-                .triplesMaps(mapping);
-
-        // When
-        RmlMapperException rmlMapperException = assertThrows(RmlMapperException.class, builder::build);
+        // Given // When
+        var exception = assertThrows(
+                CarmlMapperException.class,
+                () -> Mapping.of(RDFFormat.TURTLE, RdfRmlMapperTest.class, "unsupported-ref-formulation.rml.ttl"));
 
         // Then
         assertThat(
-                rmlMapperException.getMessage(),
-                equalToCompressingWhiteSpace(
-                        "No logical source resolver supplier bound for reference formulation "
-                                + "http://semweb.mmlab.be/ns/ql#XPath Resolvers available: http://semweb.mmlab.be/ns/ql#JSONPath"));
+                exception.getMessage(),
+                is("Encountered unsupported reference formulation: http://semweb.mmlab.be/ns/ql#Foo"));
     }
 
     @Test
     void givenAllOptions_whenBuild_thenBuildMapperCorrectly() {
         // Given
-        InputStream mappingSource = RdfRmlMapperTest.class.getResourceAsStream("mapping.rml.ttl");
-        Set<TriplesMap> mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
-        RdfRmlMapper.Builder builder = RdfRmlMapper.builder()
-                .setLogicalSourceResolverFactory(Rdf.Ql.XPath, XPathResolver.factory())
+        var mappingSource = RdfRmlMapperTest.class.getResourceAsStream("mapping.rml.ttl");
+        var mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
+        var builder = RdfRmlMapper.builder()
                 .triplesMaps(mapping)
                 .valueFactorySupplier(ValidatingValueFactory::new)
                 .classPathResolver("classpath")
@@ -105,11 +77,10 @@ class RdfRmlMapperTest {
                         .database("db://")
                         .username("foo")
                         .password("bar")
-                        .build())
-                .logicalSourceResolverMatcher(CsvResolver.Matcher.getInstance());
+                        .build());
 
         // When
-        RdfRmlMapper rmlMapper = builder.build();
+        var rmlMapper = builder.build();
 
         // Then
         assertThat(rmlMapper.getTriplesMaps(), is(mapping));
@@ -118,15 +89,12 @@ class RdfRmlMapperTest {
     @Test
     void givenMappingExpectingInputStream_whenMapCalledWithoutInputStream_thenThrowException() {
         // Given
-        InputStream mappingSource = RdfRmlMapperTest.class.getResourceAsStream("cars.rml.ttl");
-        Set<TriplesMap> mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
-        RdfRmlMapper rmlMapper = RdfRmlMapper.builder()
-                .setLogicalSourceResolverFactory(Rdf.Ql.Csv, CsvResolver.factory())
-                .triplesMaps(mapping)
-                .build();
+        var mappingSource = RdfRmlMapperTest.class.getResourceAsStream("cars.rml.ttl");
+        var mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
+        var rmlMapper = RdfRmlMapper.builder().triplesMaps(mapping).build();
 
         // When
-        RmlMapperException rmlMapperException = assertThrows(RmlMapperException.class, rmlMapper::map);
+        var rmlMapperException = assertThrows(RmlMapperException.class, rmlMapper::map);
 
         // Then
         assertThat(
@@ -138,17 +106,14 @@ class RdfRmlMapperTest {
     @Test
     void givenMappingExpectingInputStream_whenMapWithInputStream_thenMapCorrectly() {
         // Given
-        InputStream mappingSource = RdfRmlMapperTest.class.getResourceAsStream("cars.rml.ttl");
-        Set<TriplesMap> mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
-        RdfRmlMapper rmlMapper = RdfRmlMapper.builder()
-                .setLogicalSourceResolverFactory(Rdf.Ql.Csv, CsvResolver.factory())
-                .triplesMaps(mapping)
-                .build();
+        var mappingSource = RdfRmlMapperTest.class.getResourceAsStream("cars.rml.ttl");
+        var mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
+        var rmlMapper = RdfRmlMapper.builder().triplesMaps(mapping).build();
 
-        InputStream sourceInputStream = RdfRmlMapperTest.class.getResourceAsStream("cars.csv");
+        var sourceInputStream = RdfRmlMapperTest.class.getResourceAsStream("cars.csv");
 
         // When
-        Flux<Statement> statements = rmlMapper.map(sourceInputStream);
+        var statements = rmlMapper.map(sourceInputStream);
 
         // Then
         StepVerifier.create(statements).expectNextCount(22).expectComplete().verify();
@@ -157,17 +122,14 @@ class RdfRmlMapperTest {
     @Test
     void givenMappingExpectingInputStream_whenMapToModelWithInputStream_thenMapCorrectly() {
         // Given
-        InputStream mappingSource = RdfRmlMapperTest.class.getResourceAsStream("cars.rml.ttl");
-        Set<TriplesMap> mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
-        RdfRmlMapper rmlMapper = RdfRmlMapper.builder()
-                .setLogicalSourceResolverFactory(Rdf.Ql.Csv, CsvResolver.factory())
-                .triplesMaps(mapping)
-                .build();
+        var mappingSource = RdfRmlMapperTest.class.getResourceAsStream("cars.rml.ttl");
+        var mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
+        var rmlMapper = RdfRmlMapper.builder().triplesMaps(mapping).build();
 
-        InputStream sourceInputStream = RdfRmlMapperTest.class.getResourceAsStream("cars.csv");
+        var sourceInputStream = RdfRmlMapperTest.class.getResourceAsStream("cars.csv");
 
         // When
-        Model model = rmlMapper.mapToModel(sourceInputStream);
+        var model = rmlMapper.mapToModel(sourceInputStream);
 
         // Then
         assertThat(model.size(), is(21));
@@ -176,23 +138,20 @@ class RdfRmlMapperTest {
     @Test
     void givenMappingExpectingInputStreamAndTriplesMapFilter_whenMapToModelWithInputStreamAndFilter_thenMapCorrectly() {
         // Given
-        InputStream mappingSource = RdfRmlMapperTest.class.getResourceAsStream("cars.rml.ttl");
-        Set<TriplesMap> mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
+        var mappingSource = RdfRmlMapperTest.class.getResourceAsStream("cars.rml.ttl");
+        var mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
 
-        TriplesMap makeMapping = mapping.stream()
+        var makeMapping = mapping.stream()
                 .filter(tm -> tm.getResourceName().equals("http://example.com/mapping/MakeMapping"))
                 .findFirst()
                 .orElseThrow(IllegalStateException::new);
 
-        RdfRmlMapper rmlMapper = RdfRmlMapper.builder()
-                .setLogicalSourceResolverFactory(Rdf.Ql.Csv, CsvResolver.factory())
-                .triplesMaps(mapping)
-                .build();
+        var rmlMapper = RdfRmlMapper.builder().triplesMaps(mapping).build();
 
-        InputStream sourceInputStream = RdfRmlMapperTest.class.getResourceAsStream("cars.csv");
+        var sourceInputStream = RdfRmlMapperTest.class.getResourceAsStream("cars.csv");
 
         // When
-        Model model = rmlMapper.mapToModel(sourceInputStream, Set.of(makeMapping));
+        var model = rmlMapper.mapToModel(sourceInputStream, Set.of(makeMapping));
 
         // Then
         assertThat(model.size(), is(3));
@@ -201,17 +160,14 @@ class RdfRmlMapperTest {
     @Test
     void givenMappingExpectingInputStream_whenMapRecordToModelWithInputStream_thenMapCorrectly() {
         // Given
-        InputStream mappingSource = RdfRmlMapperTest.class.getResourceAsStream("cars.rml.ttl");
-        Set<TriplesMap> mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
-        RdfRmlMapper rmlMapper = RdfRmlMapper.builder()
-                .setLogicalSourceResolverFactory(Rdf.Ql.Csv, CsvResolver.factory())
-                .triplesMaps(mapping)
-                .build();
+        var mappingSource = RdfRmlMapperTest.class.getResourceAsStream("cars.rml.ttl");
+        var mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
+        var rmlMapper = RdfRmlMapper.builder().triplesMaps(mapping).build();
 
-        InputStream sourceInputStream = RdfRmlMapperTest.class.getResourceAsStream("cars.csv");
+        var sourceInputStream = RdfRmlMapperTest.class.getResourceAsStream("cars.csv");
 
         // When
-        Model model = rmlMapper.mapRecordToModel(Mono.just(sourceInputStream), new TypeRef<>() {});
+        var model = rmlMapper.mapRecordToModel(Mono.just(sourceInputStream), new TypeRef<>() {});
 
         // Then
         assertThat(model.size(), is(21));
@@ -220,20 +176,17 @@ class RdfRmlMapperTest {
     @Test
     void givenMappingExpectingInputStreamAndFilter_whenMapRecordToModelWithInputStreamAndFilter_thenMapCorrectly() {
         // Given
-        InputStream mappingSource = RdfRmlMapperTest.class.getResourceAsStream("cars.rml.ttl");
-        Set<TriplesMap> mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
+        var mappingSource = RdfRmlMapperTest.class.getResourceAsStream("cars.rml.ttl");
+        var mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
 
-        TriplesMap makeMapping = getTriplesMapByName("http://example.com/mapping/MakeMapping", mapping);
+        var makeMapping = getTriplesMapByName("http://example.com/mapping/MakeMapping", mapping);
 
-        RdfRmlMapper rmlMapper = RdfRmlMapper.builder()
-                .setLogicalSourceResolverFactory(Rdf.Ql.Csv, CsvResolver.factory())
-                .triplesMaps(mapping)
-                .build();
+        var rmlMapper = RdfRmlMapper.builder().triplesMaps(mapping).build();
 
-        InputStream sourceInputStream = RdfRmlMapperTest.class.getResourceAsStream("cars.csv");
+        var sourceInputStream = RdfRmlMapperTest.class.getResourceAsStream("cars.csv");
 
         // When
-        Model model = rmlMapper.mapRecordToModel(Mono.just(sourceInputStream), new TypeRef<>() {}, Set.of(makeMapping));
+        var model = rmlMapper.mapRecordToModel(Mono.just(sourceInputStream), new TypeRef<>() {}, Set.of(makeMapping));
 
         // Then
         assertThat(model.size(), is(3));
@@ -242,18 +195,14 @@ class RdfRmlMapperTest {
     @Test
     void givenMappingExpectingNamedInputStream_whenMapToModelWithInputStream_thenMapCorrectly() {
         // Given
-        InputStream mappingSource = RdfRmlMapperTest.class.getResourceAsStream("cars-stream-name.rml.ttl");
-        Set<TriplesMap> mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
-        RdfRmlMapper rmlMapper = RdfRmlMapper.builder()
-                .setLogicalSourceResolverFactory(Rdf.Ql.Csv, CsvResolver.factory())
-                .triplesMaps(mapping)
-                .build();
+        var mappingSource = RdfRmlMapperTest.class.getResourceAsStream("cars-stream-name.rml.ttl");
+        var mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
+        var rmlMapper = RdfRmlMapper.builder().triplesMaps(mapping).build();
 
-        Map<String, InputStream> namedInputStream =
-                Map.of("cars", RdfRmlMapperTest.class.getResourceAsStream("cars.csv"));
+        var namedInputStream = Map.of("cars", RdfRmlMapperTest.class.getResourceAsStream("cars.csv"));
 
         // When
-        Model model = rmlMapper.mapToModel(namedInputStream);
+        var model = rmlMapper.mapToModel(namedInputStream);
 
         // Then
         assertThat(model.size(), is(21));
@@ -262,19 +211,14 @@ class RdfRmlMapperTest {
     @Test
     void givenMappingExpectingNamedInputStream_whenMapToModelWithoutThatInputStream_thenThrowException() {
         // Given
-        InputStream mappingSource = RdfRmlMapperTest.class.getResourceAsStream("cars-stream-name.rml.ttl");
-        Set<TriplesMap> mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
-        RdfRmlMapper rmlMapper = RdfRmlMapper.builder()
-                .setLogicalSourceResolverFactory(Rdf.Ql.Csv, CsvResolver.factory())
-                .triplesMaps(mapping)
-                .build();
+        var mappingSource = RdfRmlMapperTest.class.getResourceAsStream("cars-stream-name.rml.ttl");
+        var mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
+        var rmlMapper = RdfRmlMapper.builder().triplesMaps(mapping).build();
 
-        Map<String, InputStream> namedInputStream =
-                Map.of("foo", RdfRmlMapperTest.class.getResourceAsStream("cars.csv"));
+        var namedInputStream = Map.of("foo", RdfRmlMapperTest.class.getResourceAsStream("cars.csv"));
 
         // When
-        RmlMapperException rmlMapperException =
-                assertThrows(RmlMapperException.class, () -> rmlMapper.mapToModel(namedInputStream));
+        var rmlMapperException = assertThrows(RmlMapperException.class, () -> rmlMapper.mapToModel(namedInputStream));
 
         // Then
         assertThat(
@@ -287,21 +231,17 @@ class RdfRmlMapperTest {
     void
             givenMappingExpectingNamedInputStreamAndFilter_whenMapRecordToModelWithInputStreamAndFilter_thenMapCorrectly() {
         // Given
-        InputStream mappingSource = RdfRmlMapperTest.class.getResourceAsStream("cars-stream-name.rml.ttl");
-        Set<TriplesMap> mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
+        var mappingSource = RdfRmlMapperTest.class.getResourceAsStream("cars-stream-name.rml.ttl");
+        var mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
 
-        TriplesMap makeMapping = getTriplesMapByName("http://example.com/mapping/MakeMapping", mapping);
+        var makeMapping = getTriplesMapByName("http://example.com/mapping/MakeMapping", mapping);
 
-        RdfRmlMapper rmlMapper = RdfRmlMapper.builder()
-                .setLogicalSourceResolverFactory(Rdf.Ql.Csv, CsvResolver.factory())
-                .triplesMaps(mapping)
-                .build();
+        var rmlMapper = RdfRmlMapper.builder().triplesMaps(mapping).build();
 
-        Map<String, InputStream> namedInputStream =
-                Map.of("cars", RdfRmlMapperTest.class.getResourceAsStream("cars.csv"));
+        var namedInputStream = Map.of("cars", RdfRmlMapperTest.class.getResourceAsStream("cars.csv"));
 
         // When
-        Model model = rmlMapper.mapToModel(namedInputStream, Set.of(makeMapping));
+        var model = rmlMapper.mapToModel(namedInputStream, Set.of(makeMapping));
 
         // Then
         assertThat(model.size(), is(3));
@@ -310,14 +250,13 @@ class RdfRmlMapperTest {
     @Test
     void givenMappingExpectingFileSource_whenMapToModel_thenMapCorrectly() {
         // Given
-        RdfRmlMapper rmlMapper = RdfRmlMapper.builder()
-                .setLogicalSourceResolverFactory(Rdf.Ql.Csv, CsvResolver.factory())
+        var rmlMapper = RdfRmlMapper.builder()
                 .mapping(Mapping.of(RDFFormat.TURTLE, this.getClass(), "cars-file-input.rml.ttl"))
                 .classPathResolver(ClassPathResolver.of(RdfRmlMapperTest.class))
                 .build();
 
         // When
-        Model model = rmlMapper.mapToModel();
+        var model = rmlMapper.mapToModel();
 
         // Then
         assertThat(model.size(), is(21));
@@ -326,19 +265,18 @@ class RdfRmlMapperTest {
     @Test
     void givenMappingExpectingFileSourceAndFilter_whenMapRecordToModelWithFilter_thenMapCorrectly() {
         // Given
-        InputStream mappingSource = RdfRmlMapperTest.class.getResourceAsStream("cars-file-input.rml.ttl");
-        Set<TriplesMap> mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
+        var mappingSource = RdfRmlMapperTest.class.getResourceAsStream("cars-file-input.rml.ttl");
+        var mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
 
-        TriplesMap makeMapping = getTriplesMapByName("http://example.com/mapping/MakeMapping", mapping);
+        var makeMapping = getTriplesMapByName("http://example.com/mapping/MakeMapping", mapping);
 
-        RdfRmlMapper rmlMapper = RdfRmlMapper.builder()
-                .setLogicalSourceResolverFactory(Rdf.Ql.Csv, CsvResolver.factory())
+        var rmlMapper = RdfRmlMapper.builder()
                 .triplesMaps(mapping)
                 .classPathResolver(ClassPathResolver.of(RdfRmlMapperTest.class))
                 .build();
 
         // When
-        Model model = rmlMapper.mapToModel(Set.of(makeMapping));
+        var model = rmlMapper.mapToModel(Set.of(makeMapping));
 
         // Then
         assertThat(model.size(), is(3));
@@ -347,10 +285,9 @@ class RdfRmlMapperTest {
     @Test
     void givenMappingWithUnresolvableSource_whenMapCalled_thenThrowException() {
         // Given
-        InputStream mappingSource = RdfRmlMapperTest.class.getResourceAsStream("cars-file-input.rml.ttl");
-        Set<TriplesMap> mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
-        RdfRmlMapper rmlMapper = RdfRmlMapper.builder()
-                .setLogicalSourceResolverFactory(Rdf.Ql.Csv, CsvResolver.factory())
+        var mappingSource = RdfRmlMapperTest.class.getResourceAsStream("cars-file-input.rml.ttl");
+        var mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
+        var rmlMapper = RdfRmlMapper.builder()
                 .triplesMaps(mapping)
                 .classPathResolver("foo")
                 .fileResolver(Paths.get("bar"))

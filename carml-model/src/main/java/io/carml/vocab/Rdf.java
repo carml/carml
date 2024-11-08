@@ -39,6 +39,10 @@ public class Rdf {
 
         public static final IRI XPath = iri("XPath");
 
+        public static final IRI XPathReferenceFormulation = iri("XPathReferenceFormulation");
+
+        public static final IRI namespace = iri("namespace");
+
         public static final IRI Csv = iri("CSV");
 
         public static final IRI Rdb = iri("Rdb");

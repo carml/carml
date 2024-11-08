@@ -5,12 +5,13 @@ import static org.hamcrest.Matchers.is;
 
 import de.siegmar.fastcsv.reader.NamedCsvRecord;
 import io.carml.logicalsourceresolver.LogicalSourceResolver.LogicalSourceResolverFactory;
+import io.carml.model.CsvReferenceFormulation;
 import io.carml.model.LogicalSource;
 import io.carml.model.Source;
 import io.carml.model.impl.CarmlLogicalSource;
 import io.carml.model.impl.CarmlRelativePathSource;
 import io.carml.util.TypeRef;
-import io.carml.vocab.Rdf.Ql;
+import io.carml.vocab.Rdf.Rml;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -25,6 +26,9 @@ import reactor.test.StepVerifier;
 
 class CsvResolverTest {
 
+    private static final CsvReferenceFormulation CSV =
+            CsvReferenceFormulation.builder().id(Rml.Csv.stringValue()).build();
+
     private static final Source RML_SOURCE = CarmlRelativePathSource.of("foo");
 
     private static final String SOURCE =
@@ -35,7 +39,7 @@ class CsvResolverTest {
 
     private static final LogicalSource LSOURCE = CarmlLogicalSource.builder()
             .source(RML_SOURCE)
-            .referenceFormulation(Ql.Csv)
+            .referenceFormulation(CSV)
             .build();
 
     private static final String SOURCE_DELIM =
@@ -46,7 +50,7 @@ class CsvResolverTest {
 
     private static final LogicalSource LSOURCE_DELIM = CarmlLogicalSource.builder()
             .source(RML_SOURCE)
-            .referenceFormulation(Ql.Csv)
+            .referenceFormulation(CSV)
             .build();
 
     private final Function<Object, Mono<InputStream>> sourceResolver =
@@ -160,7 +164,7 @@ class CsvResolverTest {
                 StandardCharsets.UTF_8);
         var logicalSource = CarmlLogicalSource.builder()
                 .source(RML_SOURCE)
-                .referenceFormulation(Ql.Csv)
+                .referenceFormulation(CSV)
                 .build();
         var resolvedSource = ResolvedSource.of(sourceResolver.apply(csv), new TypeRef<>() {});
         var csvResolver = csvResolverFactory.apply(RML_SOURCE);
