@@ -53,7 +53,8 @@ class InternalFileResolver {
     private Mono<InputStream> handlePathString(Source source, Mapping mapping) {
         Path path;
         if (basePath != null) {
-            path = basePath.resolve(pathString);
+            var relativePath = handleAsRelativePath(pathString);
+            path = basePath.resolve(relativePath);
         } else if (classPathBase != null) {
             String sourceName = classPathBase.isEmpty()
                     ? pathString
@@ -70,18 +71,25 @@ class InternalFileResolver {
 
             return Mono.just(inputStream);
         } else if (pathRelativeTo != null) {
+            var relativePath = handleAsRelativePath(pathString);
+
             if (pathRelativeTo == PathRelativeTo.MAPPING_DIRECTORY) {
                 var mappingDirPath = getMappingDirPath(source, mapping);
-                path = mappingDirPath.resolve(pathString);
+                path = mappingDirPath.resolve(relativePath);
             } else {
                 // Current working directory
-                path = Paths.get("").resolve(pathString);
+                path = Paths.get("").resolve(relativePath);
             }
         } else {
-            var relativePath = pathString.startsWith("/") ? pathString.replaceFirst("/", "") : pathString;
+            var relativePath = handleAsRelativePath(pathString);
             path = Paths.get(relativePath);
         }
+
         return resolvePath(source, path);
+    }
+
+    private String handleAsRelativePath(String pathString) {
+        return pathString.startsWith("/") ? pathString.replaceFirst("/", "") : pathString;
     }
 
     private String getClassPathBaseTemplate(String classPathBase) {

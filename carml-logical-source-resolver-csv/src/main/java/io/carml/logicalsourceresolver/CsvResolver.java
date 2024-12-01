@@ -109,7 +109,7 @@ public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
 
     private Flux<NamedCsvRecord> getCsvRecordFlux(
             CsvReaderBuilder csvReaderBuilder, InputStream inputStream, Charset charset) {
-        return Flux.fromStream(csvReaderBuilder.ofNamedCsvRecord(new InputStreamReader(inputStream, charset)).stream());
+        return Flux.fromIterable(csvReaderBuilder.ofNamedCsvRecord(new InputStreamReader(inputStream, charset)));
     }
 
     private void applyCsvwDialect(CsvwDialect csvwDialect, CsvReaderBuilder csvReaderBuilder) {

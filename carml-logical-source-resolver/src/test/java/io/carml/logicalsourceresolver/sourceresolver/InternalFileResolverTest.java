@@ -57,6 +57,34 @@ class InternalFileResolverTest {
     }
 
     @Test
+    void givenAbsolutePathStringAndBasePath_whenResolve_thenReturnExpected(@TempDir Path basePath) {
+        // Given
+        createTestFile(basePath, "input.csv");
+        var source = CarmlDcatDistribution.builder().build();
+        var mapping = Mapping.builder().build();
+        var resolver = InternalFileResolver.builder()
+                .basePath(basePath)
+                .pathString("/input.csv")
+                .build();
+
+        // When
+        var inputStreamMono = resolver.resolve(source, mapping);
+
+        // Then
+        StepVerifier.create(inputStreamMono)
+                .expectNextMatches(inputStream -> {
+                    try {
+                        var actual = IOUtils.toString(inputStream, UTF_8);
+                        assertThat(actual, startsWith("foo,bar,baz"));
+                        return true;
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .verifyComplete();
+    }
+
+    @Test
     void givenPathStringAndClassPathBase_whenResolve_thenReturnExpected() {
         // Given
         var source = CarmlDcatDistribution.builder().build();
@@ -240,6 +268,35 @@ class InternalFileResolverTest {
         var mapping = Mapping.builder().build();
         var resolver = InternalFileResolver.builder()
                 .pathString("src/test/resources/emptyBaseInput.csv")
+                .pathRelativeTo(PathRelativeTo.WORKING_DIRECTORY)
+                .build();
+
+        // When
+        var inputStreamMono = resolver.resolve(source, mapping);
+
+        // Then
+        StepVerifier.create(inputStreamMono)
+                .expectNextMatches(inputStream -> {
+                    try {
+                        var actual = IOUtils.toString(inputStream, UTF_8);
+                        assertThat(actual, startsWith("baz,bar,foo"));
+                        return true;
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void givenAbsolutePathStringAndPathRelativeToWorkingDir_whenResolve_thenReturnExpected() {
+        // Given
+        var source = CarmlRelativePathSource.builder()
+                .root(Rml.CurrentWorkingDirectory)
+                .build();
+        var mapping = Mapping.builder().build();
+        var resolver = InternalFileResolver.builder()
+                .pathString("/src/test/resources/emptyBaseInput.csv")
                 .pathRelativeTo(PathRelativeTo.WORKING_DIRECTORY)
                 .build();
 
