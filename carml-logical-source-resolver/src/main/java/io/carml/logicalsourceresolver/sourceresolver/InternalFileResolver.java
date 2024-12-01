@@ -44,7 +44,7 @@ class InternalFileResolver {
         }
 
         if (compression != null) {
-            return inputStreamMono.map(inputStream -> Decompressor.getInstance().apply(inputStream, compression));
+            return inputStreamMono.map(inputStream -> Compressions.decompress(inputStream, compression));
         } else {
             return inputStreamMono;
         }

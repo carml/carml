@@ -4,19 +4,18 @@ import io.carml.vocab.Rml;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.function.BiFunction;
 import java.util.zip.GZIPInputStream;
+import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream;
 import org.apache.commons.compress.compressors.xz.XZCompressorInputStream;
 import org.eclipse.rdf4j.model.IRI;
 
-@NoArgsConstructor(staticName = "getInstance")
-public class Decompressor implements BiFunction<InputStream, IRI, InputStream> {
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public class Compressions {
 
-    @Override
-    public InputStream apply(InputStream inputStream, IRI compression) {
+    public static InputStream decompress(InputStream inputStream, IRI compression) {
         if (compression == null) {
             return inputStream;
         }
