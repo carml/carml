@@ -195,6 +195,10 @@ public class Rdf {
 
         public static final IRI targz = iri("targz");
 
+        public static final IRI UTF_8 = iri("UTF-8");
+
+        public static final IRI UTF_16 = iri("UTF-16");
+
         public static final IRI NULL = iri("null");
 
         public static final IRI strategy = iri("strategy");
