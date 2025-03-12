@@ -6,3 +6,7 @@ updates:
       interval: daily
     ignore:
       - dependency-name: "com.univocity:univocity-parsers"
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: daily
