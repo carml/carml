@@ -5,9 +5,9 @@
 @base <http://example.com/rules/> .
 
 <#D2RQSourceAccess> a rml:Source, d2rq:Database;
-  d2rq:jdbcDSN "jdbc://host:port/database";
-  d2rq:username "username";
-  d2rq:password "password"
+  d2rq:jdbcDSN "$CONNECTIONDSN";
+  d2rq:username "$USERNAME";
+  d2rq:password "$PASSWORD"
 .
 
 <#TriplesMap> a rml:TriplesMap;

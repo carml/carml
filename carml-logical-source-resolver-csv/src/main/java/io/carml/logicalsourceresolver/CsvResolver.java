@@ -1,41 +1,55 @@
 package io.carml.logicalsourceresolver;
 
 import static io.carml.util.LogUtil.exception;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
+import com.google.auto.service.AutoService;
 import com.google.common.collect.Iterables;
-import com.univocity.parsers.common.record.Record;
-import com.univocity.parsers.csv.CsvParser;
-import com.univocity.parsers.csv.CsvParserSettings;
+import de.siegmar.fastcsv.reader.CommentStrategy;
+import de.siegmar.fastcsv.reader.CsvReader;
+import de.siegmar.fastcsv.reader.CsvReader.CsvReaderBuilder;
+import de.siegmar.fastcsv.reader.NamedCsvRecord;
+import io.carml.logicalsourceresolver.sourceresolver.Encodings;
+import io.carml.model.CsvReferenceFormulation;
 import io.carml.model.LogicalSource;
-import io.carml.vocab.Rdf.Ql;
-import io.carml.vocab.Rdf.Rml;
+import io.carml.model.Source;
+import io.carml.model.source.csvw.CsvwDialect;
+import io.carml.model.source.csvw.CsvwTable;
+import io.carml.util.TypeRef;
 import java.io.InputStream;
-import java.util.List;
+import java.io.InputStreamReader;
+import java.nio.charset.Charset;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.rdf4j.model.IRI;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class CsvResolver implements LogicalSourceResolver<Record> {
+public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
 
-    public static CsvResolver getInstance() {
-        return new CsvResolver();
+    public static final String NAME = "CsvResolver";
+
+    public static LogicalSourceResolverFactory<NamedCsvRecord> factory() {
+        return CsvResolver::new;
     }
 
+    private final Source source;
+
     @Override
-    public Function<ResolvedSource<?>, Flux<LogicalSourceRecord<Record>>> getLogicalSourceRecords(
+    public Function<ResolvedSource<?>, Flux<LogicalSourceRecord<NamedCsvRecord>>> getLogicalSourceRecords(
             Set<LogicalSource> logicalSourceFilter) {
         return resolvedSource -> getCsvRecordFlux(resolvedSource, logicalSourceFilter);
     }
 
-    private Flux<LogicalSourceRecord<Record>> getCsvRecordFlux(
+    @SuppressWarnings("unchecked")
+    private Flux<LogicalSourceRecord<NamedCsvRecord>> getCsvRecordFlux(
             ResolvedSource<?> resolvedSource, Set<LogicalSource> logicalSources) {
         if (logicalSources.size() > 1) {
             throw new LogicalSourceResolverException(String.format(
@@ -56,10 +70,12 @@ public class CsvResolver implements LogicalSourceResolver<Record> {
 
         var resolved = resolvedSource.getResolved().get();
 
-        if (resolved instanceof InputStream resolvedInputStream) {
-            return getCsvRecordFlux(resolvedInputStream)
-                    .map(lsRecord -> LogicalSourceRecord.of(logicalSource, lsRecord));
-        } else if (resolved instanceof Record resolvedRecord) {
+        var encoding = source.getEncoding();
+
+        if (resolvedSource.getResolvedTypeRef().equals(new TypeRef<Mono<InputStream>>() {})) {
+            return ((Mono<InputStream>) resolved).flatMapMany(inputStream -> getCsvRecordFlux(inputStream, encoding)
+                    .map(lsRecord -> LogicalSourceRecord.of(logicalSource, lsRecord)));
+        } else if (resolved instanceof NamedCsvRecord resolvedRecord) {
             return Flux.just(LogicalSourceRecord.of(logicalSource, resolvedRecord));
         } else {
             throw new LogicalSourceResolverException(String.format(
@@ -67,51 +83,95 @@ public class CsvResolver implements LogicalSourceResolver<Record> {
         }
     }
 
-    private Flux<Record> getCsvRecordFlux(InputStream inputStream) {
-        var settings = new CsvParserSettings();
-        settings.setHeaderExtractionEnabled(true);
-        settings.setLineSeparatorDetectionEnabled(true);
-        settings.setDelimiterDetectionEnabled(true);
-        settings.setReadInputOnSeparateThread(true);
-        settings.setMaxCharsPerColumn(-1);
-        var parser = new CsvParser(settings);
+    private Flux<NamedCsvRecord> getCsvRecordFlux(InputStream inputStream, IRI encoding) {
+        var csvReaderBuilder = CsvReader.builder().detectBomHeader(true);
 
-        return Flux.fromIterable(parser.iterateRecords(inputStream));
+        Charset charset;
+        if (source instanceof CsvwTable csvwTable) {
+            var csvwDialect = csvwTable.getDialect();
+
+            applyCsvwDialect(csvwDialect, csvReaderBuilder);
+            if (encoding != null) {
+                charset = Encodings.resolveCharset(encoding)
+                        .orElseThrow(() -> new LogicalSourceResolverException(
+                                String.format("Unsupported encoding provided: %s", encoding)));
+            } else if (csvwDialect.getEncoding() != null) {
+                charset = Charset.forName(csvwDialect.getEncoding());
+            } else {
+                charset = UTF_8;
+            }
+        } else {
+            charset = Encodings.resolveCharset(encoding).orElse(UTF_8);
+        }
+
+        return getCsvRecordFlux(csvReaderBuilder, inputStream, charset);
+    }
+
+    private Flux<NamedCsvRecord> getCsvRecordFlux(
+            CsvReaderBuilder csvReaderBuilder, InputStream inputStream, Charset charset) {
+        return Flux.fromIterable(csvReaderBuilder.ofNamedCsvRecord(new InputStreamReader(inputStream, charset)));
+    }
+
+    private void applyCsvwDialect(CsvwDialect csvwDialect, CsvReaderBuilder csvReaderBuilder) {
+        applyDelimiter(csvwDialect, csvReaderBuilder);
+        applyQuoteCharacter(csvwDialect, csvReaderBuilder);
+        applyCommentStrategy(csvwDialect, csvReaderBuilder);
+    }
+
+    private void applyDelimiter(CsvwDialect csvwDialect, CsvReaderBuilder csvReaderBuilder) {
+        toChar(csvwDialect.getDelimiter(), "CSVW delimiter").ifPresent(csvReaderBuilder::fieldSeparator);
+    }
+
+    private void applyQuoteCharacter(CsvwDialect csvwDialect, CsvReaderBuilder csvReaderBuilder) {
+        toChar(csvwDialect.getQuoteChar(), "CSVW quote character").ifPresent(csvReaderBuilder::quoteCharacter);
+    }
+
+    private void applyCommentStrategy(CsvwDialect csvwDialect, CsvReaderBuilder csvReaderBuilder) {
+        toChar(csvwDialect.getCommentPrefix(), "CSVW comment prefix")
+                .ifPresentOrElse(
+                        commentCharacter -> csvReaderBuilder
+                                .commentCharacter(commentCharacter)
+                                .commentStrategy(CommentStrategy.SKIP),
+                        () -> csvReaderBuilder.commentStrategy(CommentStrategy.NONE));
+    }
+
+    private Optional<Character> toChar(String string, String errorSubject) {
+        if (string == null || string.isEmpty()) {
+            return Optional.empty();
+        }
+        if (string.length() > 1) {
+            throw new LogicalSourceResolverException(
+                    String.format("%s must be a single character, but was %s", errorSubject, string));
+        }
+
+        return Optional.of(string.charAt(0));
     }
 
     @Override
-    public LogicalSourceResolver.ExpressionEvaluationFactory<Record> getExpressionEvaluationFactory() {
-        return row -> headerName -> {
+    public LogicalSourceResolver.ExpressionEvaluationFactory<NamedCsvRecord> getExpressionEvaluationFactory() {
+        return namedCsvRecord -> headerName -> {
             logEvaluateExpression(headerName, LOG);
-            return Optional.ofNullable(row.getString(headerName));
+            var result = namedCsvRecord.getField(headerName);
+
+            if (result == null || source.getNulls().contains(result)) {
+                return Optional.empty();
+            }
+            return Optional.ofNullable(namedCsvRecord.getField(headerName));
         };
     }
 
     @Override
-    public Optional<DatatypeMapperFactory<Record>> getDatatypeMapperFactory() {
+    public Optional<DatatypeMapperFactory<NamedCsvRecord>> getDatatypeMapperFactory() {
         return Optional.empty();
     }
 
-    @AllArgsConstructor(access = AccessLevel.PRIVATE)
-    public static class Matcher implements MatchingLogicalSourceResolverSupplier {
-        private static final Set<IRI> MATCHING_REF_FORMULATIONS = Set.of(Rml.Csv, Ql.Csv);
-
-        private List<IRI> matchingReferenceFormulations;
-
-        public static Matcher getInstance() {
-            return getInstance(Set.of());
-        }
-
-        public static Matcher getInstance(Set<IRI> customMatchingReferenceFormulations) {
-            return new Matcher(
-                    Stream.concat(customMatchingReferenceFormulations.stream(), MATCHING_REF_FORMULATIONS.stream())
-                            .distinct()
-                            .toList());
-        }
+    @ToString
+    @AutoService(MatchingLogicalSourceResolverFactory.class)
+    public static class Matcher implements MatchingLogicalSourceResolverFactory {
 
         @Override
-        public Optional<MatchedLogicalSourceResolverSupplier> apply(LogicalSource logicalSource) {
-            var scoreBuilder = MatchedLogicalSourceResolverSupplier.MatchScore.builder();
+        public Optional<MatchedLogicalSourceResolverFactory> apply(LogicalSource logicalSource) {
+            var scoreBuilder = MatchedLogicalSourceResolverFactory.MatchScore.builder();
 
             if (matchesReferenceFormulation(logicalSource)) {
                 scoreBuilder.strongMatch();
@@ -123,17 +183,16 @@ public class CsvResolver implements LogicalSourceResolver<Record> {
                 return Optional.empty();
             }
 
-            return Optional.of(MatchedLogicalSourceResolverSupplier.of(matchScore, CsvResolver::getInstance));
+            return Optional.of(MatchedLogicalSourceResolverFactory.of(matchScore, CsvResolver.factory()));
         }
 
         private boolean matchesReferenceFormulation(LogicalSource logicalSource) {
-            return logicalSource.getReferenceFormulation() != null
-                    && matchingReferenceFormulations.contains(logicalSource.getReferenceFormulation());
+            return logicalSource.getReferenceFormulation() instanceof CsvReferenceFormulation;
         }
 
         @Override
         public String getResolverName() {
-            return "CsvResolver";
+            return NAME;
         }
     }
 }

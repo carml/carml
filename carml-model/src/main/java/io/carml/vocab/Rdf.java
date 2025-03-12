@@ -39,6 +39,16 @@ public class Rdf {
 
         public static final IRI XPath = iri("XPath");
 
+        public static final IRI XPathReferenceFormulation = iri("XPathReferenceFormulation");
+
+        public static final IRI namespace = iri("namespace");
+
+        public static final IRI Namespace = iri("Namespace");
+
+        public static final IRI namespacePrefix = iri("namespacePrefix");
+
+        public static final IRI namespaceURL = iri("namespaceURL");
+
         public static final IRI Csv = iri("CSV");
 
         public static final IRI Rdb = iri("Rdb");
@@ -175,7 +185,21 @@ public class Rdf {
 
         public static final IRI compression = iri("compression");
 
-        public static final IRI nullPattern = iri("nullPattern");
+        public static final IRI none = iri("none");
+
+        public static final IRI gzip = iri("gzip");
+
+        public static final IRI zip = iri("zip");
+
+        public static final IRI tarxz = iri("tarxz");
+
+        public static final IRI targz = iri("targz");
+
+        public static final IRI UTF_8 = iri("UTF-8");
+
+        public static final IRI UTF_16 = iri("UTF-16");
+
+        public static final IRI NULL = iri("null");
 
         public static final IRI strategy = iri("strategy");
 
@@ -354,6 +378,28 @@ public class Rdf {
         public static final IRI Database = iri("Database");
 
         public static final IRI jdbcDriver = iri("jdbcDriver");
+    }
+
+    @NoArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class Csvw {
+
+        private static IRI iri(String suffix) {
+            return f.createIRI(io.carml.vocab.Csvw.NAMESPACE + suffix);
+        }
+
+        public static final IRI Table = iri("Table");
+
+        public static final IRI Dialect = iri("Dialect");
+
+        public static final IRI rtl = iri("rtl");
+
+        public static final IRI ltr = iri("ltr");
+
+        public static final IRI auto = iri("auto");
+
+        public static final IRI url = iri("url");
+
+        public static final IRI dialect = iri("dialect");
     }
 
     @NoArgsConstructor(access = AccessLevel.PRIVATE)

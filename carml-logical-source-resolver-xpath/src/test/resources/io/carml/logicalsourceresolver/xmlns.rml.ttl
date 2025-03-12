@@ -1,20 +1,19 @@
-@prefix rr: <http://www.w3.org/ns/r2rml#>.
-@prefix rml: <http://semweb.mmlab.be/ns/rml#>.
-@prefix ql: <http://semweb.mmlab.be/ns/ql#> .
+@prefix rml: <http://w3id.org/rml/>.
 @prefix carml: <http://carml.taxonic.com/carml/> .
 
-<#SubjectMapping> a rr:TriplesMap ;
+<#SubjectMapping> a rml:TriplesMap ;
 	rml:logicalSource [
 		rml:source [
 			a carml:Stream ;
-			carml:declaresNamespace [
-				carml:namespacePrefix "ex" ;
-				carml:namespaceName "http://www.example.com/books/1.0/" ;
-			] ;
 		] ;
-		rml:referenceFormulation ql:XPath ;
+		rml:referenceFormulation [
+		    rml:namespace [
+                rml:namespacePrefix "ex" ;
+                rml:namespaceURL "http://www.example.com/books/1.0/" ;
+            ] ;
+		] ;
 		rml:iterator "/ex:bookstore/*" ;
 	] ;
-	
-	rr:subject <http://www.example.com/subject> ;
+
+	rml:subject <http://www.example.com/subject> ;
 .

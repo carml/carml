@@ -1,28 +1,23 @@
 package io.carml.logicalsourceresolver;
 
-import io.carml.model.Source;
+import io.carml.util.TypeRef;
 import java.util.Optional;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
-import lombok.NonNull;
 
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Data
 public class ResolvedSource<V> {
 
-    @Getter
-    @NonNull
-    private Source rmlSource;
-
     private V resolved;
 
     @Getter
-    private Class<V> resolvedClass;
+    private TypeRef<V> resolvedTypeRef;
 
-    public static <V> ResolvedSource<V> of(Source rmlSource, V resolved, Class<V> resolvedClass) {
-        return new ResolvedSource<>(rmlSource, resolved, resolvedClass);
+    public static <V> ResolvedSource<V> of(V resolved, TypeRef<V> resolvedTypeRef) {
+        return new ResolvedSource<>(resolved, resolvedTypeRef);
     }
 
     public Optional<V> getResolved() {

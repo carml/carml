@@ -33,10 +33,7 @@ class JenaConvertersTest {
                 Arguments.of(
                         bnode("123"),
                         (Predicate<Node>) Node::isBlank,
-                        Map.of(
-                                (Function<Node, String>)
-                                        node -> node.getBlankNodeId().getLabelString(),
-                                "123")),
+                        Map.of((Function<Node, String>) Node::getBlankNodeLabel, "123")),
                 Arguments.of(
                         literal("foo"),
                         (Predicate<Node>) Node::isLiteral,

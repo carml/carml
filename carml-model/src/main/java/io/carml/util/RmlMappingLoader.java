@@ -15,9 +15,12 @@ import io.carml.model.impl.CarmlRelativePathSource;
 import io.carml.model.impl.CarmlStream;
 import io.carml.model.impl.CarmlTriplesMap;
 import io.carml.model.impl.CarmlXmlSource;
+import io.carml.model.impl.source.csvw.CarmlCsvwTable;
+import io.carml.model.source.csvw.CsvwTable;
 import io.carml.rdfmapper.impl.MappingCache;
 import io.carml.rdfmapper.util.RdfObjectLoader;
 import io.carml.vocab.Rdf;
+import io.carml.vocab.Rdf.Csvw;
 import io.carml.vocab.Rdf.OldRml;
 import io.carml.vocab.Rdf.Rml;
 import io.carml.vocab.Rdf.Rr;
@@ -102,7 +105,9 @@ public class RmlMappingLoader {
                         .addDecidableType(Rdf.Rml.RelativePathSource, RelativePathSource.class)
                         .bindInterfaceImplementation(RelativePathSource.class, CarmlRelativePathSource.class)
                         .addDecidableType(DCAT.DISTRIBUTION, DcatDistribution.class)
-                        .bindInterfaceImplementation(DcatDistribution.class, CarmlDcatDistribution.class),
+                        .bindInterfaceImplementation(DcatDistribution.class, CarmlDcatDistribution.class)
+                        .addDecidableType(Csvw.Table, CsvwTable.class)
+                        .bindInterfaceImplementation(CsvwTable.class, CarmlCsvwTable.class),
                 RmlNamespaces.RML_NAMESPACES));
     }
 

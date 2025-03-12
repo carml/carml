@@ -1,12 +1,13 @@
 package io.carml.model;
 
+import java.util.Set;
 import org.eclipse.rdf4j.model.IRI;
 
 public interface Source extends Resource {
 
     IRI getEncoding();
 
-    String getNull();
+    Set<Object> getNulls();
 
     IRI getCompression();
 }

@@ -1,6 +1,7 @@
 package io.carml.logicalsourceresolver;
 
 import io.carml.model.LogicalSource;
+import io.carml.model.Source;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -21,6 +22,8 @@ public interface LogicalSourceResolver<R> {
      * @return an optional datatype mapper factory
      */
     Optional<DatatypeMapperFactory<R>> getDatatypeMapperFactory();
+
+    interface LogicalSourceResolverFactory<R> extends Function<Source, LogicalSourceResolver<R>> {}
 
     interface ExpressionEvaluationFactory<R> extends Function<R, ExpressionEvaluation> {}
 

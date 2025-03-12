@@ -15,8 +15,8 @@
 	<dependencies>
 
 		<dependency>
-			<groupId>com.univocity</groupId>
-			<artifactId>univocity-parsers</artifactId>
+			<groupId>de.siegmar</groupId>
+			<artifactId>fastcsv</artifactId>
 		</dependency>
 
 		<dependency>
@@ -54,6 +54,12 @@
 		<dependency>
 			<groupId>io.projectreactor</groupId>
 			<artifactId>reactor-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.eclipse.rdf4j</groupId>
+			<artifactId>rdf4j-rio-turtle</artifactId>
 			<scope>test</scope>
 		</dependency>
 

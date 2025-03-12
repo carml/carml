@@ -5,8 +5,10 @@ import io.carml.rdfmapper.annotations.RdfProperty;
 import io.carml.vocab.Rdf;
 import io.carml.vocab.Rml;
 import java.util.Objects;
+import java.util.Set;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.Singular;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 import org.eclipse.rdf4j.model.IRI;
@@ -15,14 +17,14 @@ import org.eclipse.rdf4j.model.util.ModelBuilder;
 @SuperBuilder(toBuilder = true)
 @NoArgsConstructor
 @ToString(callSuper = true)
-abstract class CarmlSource extends CarmlResource implements Source {
+@Setter
+public abstract class CarmlSource extends CarmlResource implements Source {
 
-    @Setter
     private IRI encoding;
 
-    private String nullPattern;
+    @Singular
+    private Set<Object> nulls;
 
-    @Setter
     private IRI compression;
 
     @RdfProperty(Rml.encoding)
@@ -33,12 +35,8 @@ abstract class CarmlSource extends CarmlResource implements Source {
 
     @RdfProperty(Rml.NULL)
     @Override
-    public String getNull() {
-        return nullPattern;
-    }
-
-    public void setNull(String nullPattern) {
-        this.nullPattern = nullPattern;
+    public Set<Object> getNulls() {
+        return nulls;
     }
 
     @RdfProperty(Rml.compression)
@@ -51,9 +49,7 @@ abstract class CarmlSource extends CarmlResource implements Source {
         if (encoding != null) {
             builder.add(Rdf.Rml.encoding, encoding);
         }
-        if (nullPattern != null) {
-            builder.add(Rdf.Rml.nullPattern, nullPattern);
-        }
+        nulls.forEach(nullPattern -> builder.add(Rdf.Rml.NULL, nullPattern));
         if (compression != null) {
             builder.add(Rdf.Rml.compression, compression);
         }
@@ -70,12 +66,12 @@ abstract class CarmlSource extends CarmlResource implements Source {
 
     protected boolean equalsSource(Source that) {
         return Objects.equals(encoding, that.getEncoding())
-                && Objects.equals(nullPattern, that.getNull())
+                && Objects.equals(nulls, that.getNulls())
                 && Objects.equals(compression, that.getCompression());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(encoding, nullPattern, compression);
+        return Objects.hash(encoding, nulls, compression);
     }
 }

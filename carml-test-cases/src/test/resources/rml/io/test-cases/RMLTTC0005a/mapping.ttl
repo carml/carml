@@ -1,22 +1,21 @@
 @prefix rml: <http://w3id.org/rml/> .
 @prefix foaf: <http://xmlns.com/foaf/0.1/> .
 @prefix dcat: <http://www.w3.org/ns/dcat#> .
-@prefix void: <http://rdfs.org/ns/void#> .
 @prefix formats: <http://www.w3.org/ns/formats/> .
 @base <http://example.com/rules/> .
 
 <#DCATSourceAccess> a rml:Source, dcat:Distribution;
-    dcat:downloadURL <http://w3id.org/rml/resources/Friends.json>;
+    dcat:downloadURL <http://w3id.org/rml/resources/rml-io/RMLTTC0005a/Friends.json>;
 .
 
 <#TriplesMap> a rml:TriplesMap;
   rml:logicalSource [ a rml:LogicalSource;
     rml:source <#DCATSourceAccess>;
     rml:referenceFormulation rml:JSONPath;
-    rml:iterator "$.[*]";
+    rml:iterator "$[*]";
   ];
   rml:subjectMap [ a rml:SubjectMap;
-    rml:template "http://example.org/{id}";
+    rml:template "http://example.org/{$.id}";
     rml:logicalTarget <#TargetDump1>;
   ];
   rml:predicateObjectMap [ a rml:PredicateObjectMap;
@@ -24,7 +23,7 @@
       rml:constant foaf:name;
     ];
     rml:objectMap [ a rml:ObjectMap;
-      rml:reference "name";
+      rml:reference "$.name";
     ];
   ];
   rml:predicateObjectMap [ a rml:PredicateObjectMap;
@@ -32,14 +31,14 @@
       rml:constant foaf:age;
     ];
     rml:objectMap [ a rml:ObjectMap;
-      rml:reference "age";
+      rml:reference "$.age";
     ];
   ];
 .
 
 <#TargetDump1> a rml:LogicalTarget;
-  rml:target [ a rml:Target, void:Dataset;
-    void:dataDump <file://./dump1.nq>;
+  rml:target [ a rml:Target, dcat:Distribution;
+    dcat:downloadURL <file://./dump1.nq>;
   ];
   rml:serialization formats:N-Quads;
   rml:encoding rml:UTF-8;

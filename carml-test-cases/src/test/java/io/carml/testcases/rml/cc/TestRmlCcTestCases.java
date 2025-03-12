@@ -6,17 +6,12 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.carml.engine.rdf.RdfRmlMapper;
-import io.carml.logicalsourceresolver.CsvResolver;
-import io.carml.logicalsourceresolver.JsonPathResolver;
-import io.carml.logicalsourceresolver.XPathResolver;
 import io.carml.logicalsourceresolver.sourceresolver.ClassPathResolver;
 import io.carml.model.TriplesMap;
 import io.carml.rdfmapper.util.RdfObjectLoader;
 import io.carml.testcases.model.TestCase;
-import io.carml.util.ModelSerializer;
 import io.carml.util.Models;
 import io.carml.util.RmlMappingLoader;
-import io.carml.util.RmlNamespaces;
 import java.io.InputStream;
 import java.util.Comparator;
 import java.util.List;
@@ -90,20 +85,12 @@ class TestRmlCcTestCases {
             Model expected = Models.parse(expectedOutputStream, RDFFormat.NQUADS).stream()
                     .collect(ModelCollector.toTreeModel());
 
-            String resultTtl =
-                    ModelSerializer.serializeAsRdf(result, RDFFormat.TURTLE, RmlNamespaces::applyRmlNameSpaces);
-            String expectedTtl =
-                    ModelSerializer.serializeAsRdf(expected, RDFFormat.TURTLE, RmlNamespaces::applyRmlNameSpaces);
             assertThat(isomorphic(result, expected), is(true));
         }
     }
 
     private Model executeMapping(TestCase testCase, String testCaseIdentifier) {
-        mapperBuilder = RdfRmlMapper.builder()
-                .valueFactorySupplier(ValidatingValueFactory::new)
-                .logicalSourceResolverMatcher(CsvResolver.Matcher.getInstance())
-                .logicalSourceResolverMatcher(JsonPathResolver.Matcher.getInstance())
-                .logicalSourceResolverMatcher(XPathResolver.Matcher.getInstance());
+        mapperBuilder = RdfRmlMapper.builder().valueFactorySupplier(ValidatingValueFactory::new);
 
         var mappingStream = getTestCaseFileInputStream(BASE_PATH, testCaseIdentifier, testCase.getMappingDocument());
         Set<TriplesMap> mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingStream);

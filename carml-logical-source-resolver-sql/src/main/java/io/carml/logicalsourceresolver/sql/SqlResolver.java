@@ -18,6 +18,7 @@ import io.carml.model.Join;
 import io.carml.model.LogicalSource;
 import io.carml.model.ParentMap;
 import io.carml.model.RefObjectMap;
+import io.carml.model.Source;
 import io.r2dbc.pool.ConnectionPool;
 import io.r2dbc.pool.ConnectionPoolConfiguration;
 import io.r2dbc.spi.Connection;
@@ -51,9 +52,17 @@ public abstract class SqlResolver implements LogicalSourceResolver<RowData> {
 
     public static final String PARENT_ALIAS = "parent";
 
-    private boolean isStrict;
+    static {
+        System.getProperties().setProperty("org.jooq.no-logo", "true");
+        System.getProperties().setProperty("org.jooq.no-tips", "true");
+    }
 
-    SqlResolver(boolean isStrict) {
+    private final Source source;
+
+    private final boolean isStrict;
+
+    SqlResolver(Source source, boolean isStrict) {
+        this.source = source;
         this.isStrict = isStrict;
     }
 
@@ -121,7 +130,6 @@ public abstract class SqlResolver implements LogicalSourceResolver<RowData> {
     }
 
     private String getSelectQueryString(LogicalSource logicalSource) {
-        var source = logicalSource.getSource();
         if (source instanceof JoiningDatabaseSource joiningDatabaseSource) {
             return getJointSqlQuery(joiningDatabaseSource);
         } else if (logicalSource.getSource() instanceof DatabaseSource) {
@@ -353,7 +361,7 @@ public abstract class SqlResolver implements LogicalSourceResolver<RowData> {
 
             var result = data.get(expression);
 
-            return result == null ? Optional.empty() : Optional.of(result);
+            return result == null || source.getNulls().contains(result) ? Optional.empty() : Optional.of(result);
         };
     }
 
