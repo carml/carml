@@ -69,7 +69,7 @@
 		<slf4j.version>2.0.17</slf4j.version>
 		<guava.version>33.4.8-jre</guava.version>
 		<reactor.version>2024.0.9</reactor.version>
-		<lombok.version>1.18.38</lombok.version>
+		<lombok.version>1.18.40</lombok.version>
 		<univocity.version>2.9.0</univocity.version>
 		<jayway.version>2.9.0</jayway.version>
 		<jsurfer.version>1.6.5</jsurfer.version>
