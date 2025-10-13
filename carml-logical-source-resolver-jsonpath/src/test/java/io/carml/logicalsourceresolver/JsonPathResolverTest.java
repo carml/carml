@@ -12,6 +12,7 @@ import io.carml.engine.ExpressionEvaluation;
 import io.carml.model.LogicalSource;
 import io.carml.model.impl.CarmlLogicalSource;
 import io.carml.vocab.Rdf;
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -219,6 +220,42 @@ class JsonPathResolverTest {
         .expectNextCount(1)
         .thenAwait(Duration.ofMillis(100))
         .thenRequest(1)
+        .expectNextCount(1)
+        .thenAwait(Duration.ofMillis(100))
+        .thenRequest(1)
+        .expectNextCount(1)
+        .thenAwait(Duration.ofMillis(100))
+        .thenRequest(1)
+        .expectNextCount(1)
+        .verifyComplete();
+  }
+
+  @Test
+  void givenInputStreamWithAvailable0_whenGetRecordResolver_thenReturnSourceFluxWithMatchingObjects() {
+    // Given
+    var foodSource = CarmlLogicalSource.builder()
+        .source("")
+        .iterator("$.food[*]")
+        .referenceFormulation(Rdf.Ql.JsonPath)
+        .build();
+
+    inputStream = new BufferedInputStream(JsonPathResolverTest.class.getResourceAsStream("food.json")) {
+      @Override
+      public synchronized int available() {
+        return 0;
+      }
+    };
+
+    var resolvedSource = ResolvedSource.of(foodSource.getSource(), inputStream, InputStream.class);
+    var jsonPathResolver = JsonPathResolver.getInstance(200);
+
+    var recordResolver = jsonPathResolver.getLogicalSourceRecords(Set.of(foodSource));
+
+    // When
+    var items = recordResolver.apply(resolvedSource);
+
+    // Then
+    StepVerifier.create(items, 1)
         .expectNextCount(1)
         .thenAwait(Duration.ofMillis(100))
         .thenRequest(1)

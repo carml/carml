@@ -156,7 +156,7 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
 
       while (!parsingCompleted.get()) {
         while (!parsingPaused.get()) {
-          var readStatus = inputStream.available() > 0 ? channel.read(byteBuffer) : -1;
+          var readStatus = channel.read(byteBuffer);
 
           if (readStatus == -1) {
             parser.endOfInput();
