@@ -6,6 +6,8 @@ updates:
       interval: daily
     ignore:
       - dependency-name: "com.univocity:univocity-parsers"
+      - dependency-name: " com.puppycrawl.tools:checkstyle"
+        versions: [ ">=11.0.0" ] # Ignoring due to JDK 11 compatibility issues
   - package-ecosystem: github-actions
     directory: "/"
     schedule:

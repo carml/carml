@@ -64,7 +64,7 @@
 		<maven.compiler.source>11</maven.compiler.source>
 		<maven.compiler.target>11</maven.compiler.target>
 		<rdf4j.version>5.1.5</rdf4j.version>
-		<commons-lang3.version>3.17.0</commons-lang3.version>
+		<commons-lang3.version>3.19.0</commons-lang3.version>
 		<commons-io.version>2.20.0</commons-io.version>
 		<slf4j.version>2.0.17</slf4j.version>
 		<guava.version>33.4.8-jre</guava.version>
