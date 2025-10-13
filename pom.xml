@@ -73,7 +73,7 @@
 		<univocity.version>2.9.0</univocity.version>
 		<jayway.version>2.9.0</jayway.version>
 		<jsurfer.version>1.6.5</jsurfer.version>
-		<saxon.version>12.8</saxon.version>
+		<saxon.version>12.9</saxon.version>
 		<xmldog.version>3.0.1</xmldog.version>
 		<jena.version>4.10.0</jena.version>
 		<mockito.version>5.20.0</mockito.version>
