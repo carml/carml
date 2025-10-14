@@ -7,8 +7,10 @@ updates:
     open-pull-requests-limit: 10
     ignore:
       - dependency-name: "com.univocity:univocity-parsers"
-      - dependency-name: " com.puppycrawl.tools:checkstyle"
-        versions: [ "11.x", "12.x" ] # Ignoring due to JDK 11 compatibility issues
+      - dependency-name: "com.puppycrawl.tools:checkstyle"
+        versions: [ ">=11.0.0" ] # Ignoring due to JDK 11 compatibility issues
+      - dependency-name: "com.diffplug.spotless:spotless-maven-plugin"
+        versions: [ ">=3.0.0" ] # Ignoring due to JDK 11 compatibility issues
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
