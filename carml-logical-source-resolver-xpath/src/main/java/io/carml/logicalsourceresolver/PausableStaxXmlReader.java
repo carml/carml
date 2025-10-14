@@ -164,7 +164,7 @@ public class PausableStaxXmlReader extends AbstractXMLReader {
 
     String localName = reader.getLocalName();
     String prefix = reader.getPrefix();
-    String qname = prefix == null || prefix.length() == 0 ? localName : prefix + ':' + localName;
+    String qname = prefix == null || prefix.isEmpty() ? localName : prefix + ':' + localName;
     String uri = reader.getNamespaceURI();
     handler.startElement(uri == null ? "" : uri, localName, qname, attrs);
   }
@@ -172,7 +172,7 @@ public class PausableStaxXmlReader extends AbstractXMLReader {
   private void handleEndElement() throws SAXException {
     String localName = reader.getLocalName();
     String prefix = reader.getPrefix();
-    String qname = prefix == null || prefix.length() == 0 ? localName : prefix + ':' + localName;
+    String qname = prefix == null || prefix.isEmpty() ? localName : prefix + ':' + localName;
     String uri = reader.getNamespaceURI();
     handler.endElement(uri == null ? "" : uri, localName, qname);
 

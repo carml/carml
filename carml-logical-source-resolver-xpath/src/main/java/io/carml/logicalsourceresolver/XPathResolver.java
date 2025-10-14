@@ -244,7 +244,7 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
       selector.setContextItem(xdmItem);
       var value = selector.evaluate();
 
-      if (value.isEmpty()) {
+      if (value.isEmptySequence()) {
         return Flux.empty();
       }
 
@@ -276,7 +276,7 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
             }
           });
           return Optional.of(results);
-        } else if (value.size() == 0) {
+        } else if (value.isEmptySequence()) {
           return Optional.empty();
         }
 
@@ -291,7 +291,7 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
 
   private String getItemStringValue(XdmItem item, XdmValue value) {
     if (item.getStringValue()
-        .length() == 0) {
+        .isEmpty()) {
       return null;
     }
 
