@@ -4,7 +4,7 @@
 	<parent>
 		<groupId>io.carml</groupId>
 		<artifactId>carml</artifactId>
-		<version>0.4.13</version>
+		<version>0.4.14-SNAPSHOT</version>
 	</parent>
 
 	<artifactId>carml-logical-source-resolver-xpath</artifactId>
