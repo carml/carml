@@ -83,7 +83,7 @@
 		<saxon.version>12.9</saxon.version>
 		<xmldog.version>3.0.1</xmldog.version>
 		<jena.version>5.1.0</jena.version>
-		<jooq.version>3.20.11</jooq.version>
+		<jooq.version>3.19.22</jooq.version>
 		<r2dbc-spi.version>1.0.0.RELEASE</r2dbc-spi.version>
 		<r2dbc-pool.version>1.0.2.RELEASE</r2dbc-pool.version>
 		<r2dbc-mysql.version>1.4.1</r2dbc-mysql.version>

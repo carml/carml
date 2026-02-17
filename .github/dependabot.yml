@@ -6,3 +6,5 @@ updates:
       interval: daily
     ignore:
       - dependency-name: "com.univocity:univocity-parsers"
+      - dependency-name: "org.jooq:jooq"
+        versions: [">=3.20.0"]
