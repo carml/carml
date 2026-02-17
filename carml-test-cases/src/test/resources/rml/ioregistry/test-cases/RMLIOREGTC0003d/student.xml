@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+
+<students xmlns="http://example.org/">
+  <student>
+    <Name>Venus</Name>
+  </student>
+</students>

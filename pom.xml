@@ -64,43 +64,44 @@
   </modules>
 
 	<properties>
-		<maven.compiler.source>17</maven.compiler.source>
-		<maven.compiler.target>17</maven.compiler.target>
+		<maven.compiler.release>17</maven.compiler.release>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-		<rdf4j.version>5.0.2</rdf4j.version>
-		<commons-lang3.version>3.17.0</commons-lang3.version>
-		<commons-io.version>2.17.0</commons-io.version>
-		<commons-collections4.version>4.4</commons-collections4.version>
-		<slf4j.version>2.0.16</slf4j.version>
-		<guava.version>33.3.1-jre</guava.version>
-		<reactor.version>2023.0.10</reactor.version>
-		<jakarta.xml.bind-api.version>4.0.2</jakarta.xml.bind-api.version>
-		<lombok.version>1.18.34</lombok.version>
+		<rdf4j.version>5.2.2</rdf4j.version>
+		<commons-lang3.version>3.20.0</commons-lang3.version>
+		<commons-io.version>2.21.0</commons-io.version>
+		<commons-collections4.version>4.5.0</commons-collections4.version>
+		<slf4j.version>2.0.17</slf4j.version>
+		<guava.version>33.5.0-jre</guava.version>
+		<reactor.version>2025.0.3</reactor.version>
+		<netty.version>4.2.10.Final</netty.version>
+		<jakarta.xml.bind-api.version>4.0.5</jakarta.xml.bind-api.version>
+		<lombok.version>1.18.42</lombok.version>
 		<fastcsv.version>3.3.1</fastcsv.version>
-		<jayway.version>2.9.0</jayway.version>
+		<jayway.version>2.10.0</jayway.version>
 		<jsurfer.version>1.6.5</jsurfer.version>
-		<saxon.version>12.5</saxon.version>
+		<saxon.version>12.9</saxon.version>
 		<xmldog.version>3.0.1</xmldog.version>
 		<jena.version>5.1.0</jena.version>
-		<jooq.version>3.19.13</jooq.version>
+		<jooq.version>3.19.22</jooq.version>
 		<r2dbc-spi.version>1.0.0.RELEASE</r2dbc-spi.version>
-		<r2dbc-pool.version>1.0.1.RELEASE</r2dbc-pool.version>
-		<r2dbc-mysql.version>1.2.0</r2dbc-mysql.version>
-		<r2dbc-postgresql.version>1.0.5.RELEASE</r2dbc-postgresql.version>
-		<commons-compress.version>1.27.1</commons-compress.version>
-		<xz.version>1.10</xz.version>
-		<mockito.version>5.14.1</mockito.version>
-		<junit.version>5.11.1</junit.version>
+		<r2dbc-pool.version>1.0.2.RELEASE</r2dbc-pool.version>
+		<r2dbc-mysql.version>1.4.1</r2dbc-mysql.version>
+		<r2dbc-postgresql.version>1.1.1.RELEASE</r2dbc-postgresql.version>
+		<commons-compress.version>1.28.0</commons-compress.version>
+		<xz.version>1.11</xz.version>
+		<mockito.version>5.21.0</mockito.version>
+		<junit.version>5.14.3</junit.version>
 		<hamcrest.version>3.0</hamcrest.version>
-		<blockhound.version>1.0.9.RELEASE</blockhound.version>
+		<blockhound.version>1.0.16.RELEASE</blockhound.version>
 		<auto-service.version>1.1.1</auto-service.version>
-		<commons-csv.version>1.12.0</commons-csv.version>
-		<testcontainers.version>1.20.2</testcontainers.version>
-		<mysql-connector-j.version>9.0.0</mysql-connector-j.version>
-		<postgresql.version>42.7.4</postgresql.version>
-		<spotless.version>2.43.0</spotless.version>
-		<palantir.version>2.50.0</palantir.version>
+		<spotbugs-annotations.version>4.9.3</spotbugs-annotations.version>
+		<commons-csv.version>1.14.1</commons-csv.version>
+		<testcontainers.version>1.21.4</testcontainers.version>
+		<mysql-connector-j.version>9.6.0</mysql-connector-j.version>
+		<postgresql.version>42.7.10</postgresql.version>
+		<spotless.version>3.2.1</spotless.version>
+		<palantir.version>2.87.0</palantir.version>
 		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
 		<sonar.organization>carml</sonar.organization>
 	</properties>
@@ -178,6 +179,22 @@
 				<groupId>io.carml</groupId>
 				<artifactId>carml-join-storage</artifactId>
 				<version>${project.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>io.netty</groupId>
+				<artifactId>netty-bom</artifactId>
+				<version>${netty.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+
+			<dependency>
+				<groupId>org.junit</groupId>
+				<artifactId>junit-bom</artifactId>
+				<version>${junit.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
 			</dependency>
 
 			<dependency>
@@ -325,14 +342,6 @@
 			</dependency>
 
 			<dependency>
-				<groupId>org.junit</groupId>
-				<artifactId>junit-bom</artifactId>
-				<version>${junit.version}</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
-
-			<dependency>
 				<groupId>org.slf4j</groupId>
 				<artifactId>slf4j-simple</artifactId>
 				<version>${slf4j.version}</version>
@@ -383,9 +392,22 @@
 
 			<dependency>
 				<groupId>com.google.auto.service</groupId>
+				<artifactId>auto-service-annotations</artifactId>
+				<version>${auto-service.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>com.google.auto.service</groupId>
 				<artifactId>auto-service</artifactId>
 				<version>${auto-service.version}</version>
-				<optional>true</optional>
+				<scope>provided</scope>
+			</dependency>
+
+			<dependency>
+				<groupId>com.github.spotbugs</groupId>
+				<artifactId>spotbugs-annotations</artifactId>
+				<version>${spotbugs-annotations.version}</version>
+				<scope>test</scope>
 			</dependency>
 
 			<dependency>
@@ -470,7 +492,7 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-compiler-plugin</artifactId>
-					<version>3.13.0</version>
+					<version>3.15.0</version>
 					<configuration>
 						<showWarnings>true</showWarnings>
 						<showDeprecation>true</showDeprecation>
@@ -480,24 +502,12 @@
 							<!-- Suppress unknown annotation processing warnings -->
 							<arg>-Xlint:-processing</arg>
 						</compilerArgs>
-						<annotationProcessorPaths>
-							<path>
-								<groupId>org.projectlombok</groupId>
-								<artifactId>lombok</artifactId>
-								<version>${lombok.version}</version>
-							</path>
-							<path>
-								<groupId>com.google.auto.service</groupId>
-								<artifactId>auto-service</artifactId>
-								<version>${auto-service.version}</version>
-							</path>
-						</annotationProcessorPaths>
 					</configuration>
 				</plugin>
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-release-plugin</artifactId>
-					<version>3.1.1</version>
+					<version>3.3.1</version>
 					<configuration>
 						<tagNameFormat>v@{project.version}</tagNameFormat>
 						<autoVersionSubmodules>true</autoVersionSubmodules>
@@ -509,7 +519,7 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-checkstyle-plugin</artifactId>
-					<version>3.5.0</version>
+					<version>3.6.0</version>
 					<executions>
 						<execution>
 							<id>validate</id>
@@ -530,14 +540,14 @@
 						<dependency>
 							<groupId>com.puppycrawl.tools</groupId>
 							<artifactId>checkstyle</artifactId>
-							<version>10.18.2</version>
+							<version>10.25.0</version>
 						</dependency>
 					</dependencies>
 				</plugin>
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-enforcer-plugin</artifactId>
-					<version>3.5.0</version>
+					<version>3.6.2</version>
 					<executions>
 						<execution>
 							<id>enforce-maven</id>
@@ -557,7 +567,7 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-surefire-plugin</artifactId>
-					<version>3.5.0</version>
+					<version>3.5.4</version>
 					<configuration>
 						<argLine>-XX:+AllowRedefinitionToAddDeleteMethods</argLine>
 					</configuration>
@@ -576,7 +586,7 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-source-plugin</artifactId>
-					<version>3.3.1</version>
+					<version>3.4.0</version>
 					<executions>
 						<execution>
 							<id>attach-sources</id>
@@ -589,7 +599,7 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-javadoc-plugin</artifactId>
-					<version>3.10.0</version>
+					<version>3.12.0</version>
 <!--					<configuration>-->
 <!--						<failOnError>false</failOnError>-->
 <!--					</configuration>-->
@@ -605,7 +615,7 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-gpg-plugin</artifactId>
-					<version>3.2.7</version>
+					<version>3.2.8</version>
 					<executions>
 						<execution>
 							<id>sign-artifacts</id>
@@ -626,7 +636,7 @@
 				<plugin>
 					<groupId>org.jacoco</groupId>
 					<artifactId>jacoco-maven-plugin</artifactId>
-					<version>0.8.12</version>
+					<version>0.8.14</version>
 					<configuration>
 						<excludes>
 							<exclude>io/carml/test/**/*</exclude>

@@ -12,10 +12,10 @@
     ];
   rml:predicateObjectMap [
       rml:objectMap [
-          rml:reference "Name"
+          rml:reference "$.Name"
         ];
       rml:predicate ex:name
     ];
   rml:subjectMap [
-      rml:template "http://example.com/{$.['Country Code']}"
+      rml:template "http://example.com/{$['Country Code']}"
     ] .

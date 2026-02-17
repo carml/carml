@@ -3,6 +3,7 @@
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
 
 _:b273446 a rml:RelativePathSource ;
+    rml:root rml:MappingDirectory ;
     rml:path "student.csv" .
 
 <http://example.com/base/TriplesMap1> a rml:TriplesMap ;

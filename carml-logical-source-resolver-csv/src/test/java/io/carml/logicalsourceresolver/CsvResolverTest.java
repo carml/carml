@@ -31,8 +31,7 @@ class CsvResolverTest {
 
     private static final Source RML_SOURCE = CarmlRelativePathSource.of("foo");
 
-    private static final String SOURCE =
-            """
+    private static final String SOURCE = """
                     Year,Make,Model,Description,Price
                     1997,Ford,E350,"ac, abs, moon",3000.00
                     1999,Chevy,"Venture ""Extended Edition""\","",4900.00""";
@@ -42,8 +41,7 @@ class CsvResolverTest {
             .referenceFormulation(CSV)
             .build();
 
-    private static final String SOURCE_DELIM =
-            """
+    private static final String SOURCE_DELIM = """
                     Year^Make^Model^Description^Price
                     1997^Ford^E350^"ac, abs, moon"^3000.00
                     1999^Chevy^"Venture ""Extended Edition""\"^""^4900.00""";

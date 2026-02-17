@@ -1,3338 +1,970 @@
-@base <http://w3id.org/rml/core/test-cases/id/> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix rml: <http://w3id.org/rml/> .
 @prefix rmltest: <http://w3id.org/rml/test/> .
 @prefix test: <http://www.w3.org/2006/03/test-description#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<RMLTC0000-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0000-CSV";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0000-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0000-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0000-JSON";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0000-JSON/input/student.json>;
   rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0000-JSON/output/output.nq> .
 
-<RMLTC0000-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0000-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0000-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0000-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0000-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0000-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
 
-<RMLTC0000-SPARQL> a test:TestCase;
-  dcterms:identifier "RMLTC0000-SPARQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SPARQL";
-      rmltest:tripleStore [
-          rmltest:rdfFile "resource.ttl"
-        ]
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0000-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0000-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0000-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0000-XML";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0001a-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0001a-CSV";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0001a-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0001a-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0001a-JSON";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0001a-JSON/input/student.json>;
   rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0001a-JSON/output/output.nq> .
 
-<RMLTC0001a-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0001a-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0001a-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0001a-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0001a-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0001a-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
 
-<RMLTC0001a-SPARQL> a test:TestCase;
-  dcterms:identifier "RMLTC0001a-SPARQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SPARQL";
-      rmltest:tripleStore [
-          rmltest:rdfFile "resource.ttl"
-        ]
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0001a-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0001a-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0001a-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0001a-XML";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0001b-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0001b-CSV";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0001b-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0001b-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0001b-JSON";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0001b-JSON/input/student.json>;
   rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0001b-JSON/output/output.nq> .
 
-<RMLTC0001b-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0001b-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0001b-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0001b-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0001b-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0001b-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
 
-<RMLTC0001b-SPARQL> a test:TestCase;
-  dcterms:identifier "RMLTC0001b-SPARQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SPARQL";
-      rmltest:tripleStore [
-          rmltest:rdfFile "resource.ttl"
-        ]
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0001b-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0001b-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0001b-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0001b-XML";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0002a-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0002a-CSV";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0002a-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0002a-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0002a-JSON";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0002a-JSON/input/student.json>;
   rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0002a-JSON/output/output.nq> .
 
-<RMLTC0002a-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0002a-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0002a-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0002a-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0002a-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0002a-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
 
-<RMLTC0002a-SPARQL> a test:TestCase;
-  dcterms:identifier "RMLTC0002a-SPARQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SPARQL";
-      rmltest:tripleStore [
-          rmltest:rdfFile "resource.ttl"
-        ]
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0002a-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0002a-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0002a-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0002a-XML";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0002b-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0002b-CSV";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0002b-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0002b-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0002b-JSON";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0002b-JSON/input/student.json>;
   rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0002b-JSON/output/output.nq> .
 
-<RMLTC0002b-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0002b-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0002b-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0002b-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0002b-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0002b-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
 
-<RMLTC0002b-SPARQL> a test:TestCase;
-  dcterms:identifier "RMLTC0002b-SPARQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SPARQL";
-      rmltest:tripleStore [
-          rmltest:rdfFile "resource.ttl"
-        ]
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0002b-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0002b-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0002b-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0002b-XML";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0002c-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0002c-CSV";
-  rmltest:input [
-      rmltest:inputFile "student.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0002c-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0002c-MySQL";
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0002c-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0002c-PostgreSQL";
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0002c-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0002c-SQLServer";
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0002d-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0002d-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0002d-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0002d-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0002d-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0002d-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0002e-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0002e-CSV";
-  rmltest:input [
-      rmltest:inputFile "student.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0002e-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0002e-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0002e-JSON";
-  rmltest:input [
-      rmltest:inputFile "student.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError true;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0002e-JSON/input/student.json>;
   rmltest:mappingDocument "mapping.ttl" .
 
-<RMLTC0002e-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0002e-MySQL";
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0002e-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0002e-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0002e-PostgreSQL";
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0002e-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0002e-SQLServer";
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0002e-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0002e-XML";
-  rmltest:input [
-      rmltest:inputFile "student.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0002f-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0002f-MySQL";
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0002f-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0002f-PostgreSQL";
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0002f-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0002f-SQLServer";
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0002g-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0002g-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0002g-JSON";
-  rmltest:input [
-      rmltest:inputFile "student.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError true;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0002g-JSON/input/student.json>;
   rmltest:mappingDocument "mapping.ttl" .
 
-<RMLTC0002g-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0002g-MySQL";
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0002g-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0002g-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0002g-PostgreSQL";
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0002g-SPARQL> a test:TestCase;
-  dcterms:identifier "RMLTC0002g-SPARQL";
-  rmltest:input [
-      rmltest:inputType "SPARQL";
-      rmltest:tripleStore [
-          rmltest:rdfFile "resource.ttl"
-        ]
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0002g-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0002g-SQLServer";
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0002h-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0002h-MySQL";
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0002h-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0002h-PostgreSQL";
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0002h-SPARQL> a test:TestCase;
-  dcterms:identifier "RMLTC0002h-SPARQL";
-  rmltest:input [
-      rmltest:inputType "SPARQL";
-      rmltest:tripleStore [
-          rmltest:rdfFile "resource.ttl"
-        ]
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0002h-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0002h-SQLServer";
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0002i-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0002i-MySQL";
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0002i-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0002i-PostgreSQL";
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0002i-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0002i-SQLServer";
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0002j-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0002j-MySQL";
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0002j-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0002j-PostgreSQL";
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0002j-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0002j-SQLServer";
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0003a-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0003a-MySQL";
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0003a-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0003a-PostgreSQL";
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0003a-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0003a-SQLServer";
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0003b-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0003b-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0003b-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0003b-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0003b-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0003b-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0003c-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0003c-CSV";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0003c-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0003c-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0003c-JSON";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0003c-JSON/input/student.json>;
   rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0003c-JSON/output/output.nq> .
 
-<RMLTC0003c-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0003c-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0003c-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0003c-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0003c-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0003c-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
 
-<RMLTC0003c-SPARQL> a test:TestCase;
-  dcterms:identifier "RMLTC0003c-SPARQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SPARQL";
-      rmltest:tripleStore [
-          rmltest:rdfFile "resource.ttl"
-        ]
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0003c-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0003c-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0003c-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0003c-XML";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0004a-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0004a-CSV";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student_sport.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0004a-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0004a-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0004a-JSON";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student_sport.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0004a-JSON/input/student_sport.json>;
   rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0004a-JSON/output/output.nq> .
 
-<RMLTC0004a-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0004a-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0004a-JSON/input/student_sport.json> a rmltest:Input;
+  rmltest:input "student_sport.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0004a-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0004a-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0004a-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
 
-<RMLTC0004a-SPARQL> a test:TestCase;
-  dcterms:identifier "RMLTC0004a-SPARQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SPARQL";
-      rmltest:tripleStore [
-          rmltest:rdfFile "resource.ttl"
-        ]
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0004a-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0004a-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student_sport.csv";
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0004a-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0004a-XML";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student_sport.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0004b-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0004b-CSV";
-  rmltest:input [
-      rmltest:inputFile "student.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0004b-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0004b-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0004b-JSON";
-  rmltest:input [
-      rmltest:inputFile "student.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError true;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0004b-JSON/input/student.json>;
   rmltest:mappingDocument "mapping.ttl" .
 
-<RMLTC0004b-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0004b-MySQL";
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0004b-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0004b-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0004b-PostgreSQL";
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0004b-SPARQL> a test:TestCase;
-  dcterms:identifier "RMLTC0004b-SPARQL";
-  rmltest:input [
-      rmltest:inputType "SPARQL";
-      rmltest:tripleStore [
-          rmltest:rdfFile "resource.ttl"
-        ]
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0004b-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0004b-SQLServer";
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0004b-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0004b-XML";
-  rmltest:input [
-      rmltest:inputFile "student.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0005a-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0005a-CSV";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "ious.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0005a-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0005a-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0005a-JSON";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "ious.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0005a-JSON/input/ious.json>;
   rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0005a-JSON/output/output.nq> .
 
-<RMLTC0005a-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0005a-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0005a-JSON/input/ious.json> a rmltest:Input;
+  rmltest:input "ious.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0005a-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0005a-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0005a-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
 
-<RMLTC0005a-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0005a-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0005a-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0005a-XML";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "ious.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0005b-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0005b-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0005b-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0005b-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0005b-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0005b-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0006a-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0006a-CSV";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0006a-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0006a-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0006a-JSON";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0006a-JSON/input/student.json>;
   rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0006a-JSON/output/output.nq> .
 
-<RMLTC0006a-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0006a-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0006a-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0006a-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0006a-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0006a-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
 
-<RMLTC0006a-SPARQL> a test:TestCase;
-  dcterms:identifier "RMLTC0006a-SPARQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SPARQL";
-      rmltest:tripleStore [
-          rmltest:rdfFile "resource.ttl"
-        ]
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0006a-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0006a-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0006a-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0006a-XML";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0007a-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0007a-CSV";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0007a-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0007a-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0007a-JSON";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0007a-JSON/input/student.json>;
   rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0007a-JSON/output/output.nq> .
 
-<RMLTC0007a-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0007a-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0007a-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0007a-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0007a-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0007a-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
 
-<RMLTC0007a-SPARQL> a test:TestCase;
-  dcterms:identifier "RMLTC0007a-SPARQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SPARQL";
-      rmltest:tripleStore [
-          rmltest:rdfFile "resource.ttl"
-        ]
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0007a-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0007a-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0007a-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0007a-XML";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0007b-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0007b-CSV";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0007b-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0007b-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0007b-JSON";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0007b-JSON/input/student.json>;
   rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0007b-JSON/output/output.nq> .
 
-<RMLTC0007b-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0007b-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0007b-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0007b-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0007b-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0007b-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
 
-<RMLTC0007b-SPARQL> a test:TestCase;
-  dcterms:identifier "RMLTC0007b-SPARQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SPARQL";
-      rmltest:tripleStore [
-          rmltest:rdfFile "resource.ttl"
-        ]
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0007b-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0007b-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0007b-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0007b-XML";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0007c-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0007c-CSV";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0007c-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0007c-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0007c-JSON";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0007c-JSON/input/student.json>;
   rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0007c-JSON/output/output.nq> .
 
-<RMLTC0007c-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0007c-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0007c-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0007c-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0007c-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0007c-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
 
-<RMLTC0007c-SPARQL> a test:TestCase;
-  dcterms:identifier "RMLTC0007c-SPARQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SPARQL";
-      rmltest:tripleStore [
-          rmltest:rdfFile "resource.ttl"
-        ]
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0007c-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0007c-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0007c-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0007c-XML";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0007d-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0007d-CSV";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0007d-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0007d-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0007d-JSON";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0007d-JSON/input/student.json>;
   rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0007d-JSON/output/output.nq> .
 
-<RMLTC0007d-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0007d-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0007d-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0007d-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0007d-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0007d-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
 
-<RMLTC0007d-SPARQL> a test:TestCase;
-  dcterms:identifier "RMLTC0007d-SPARQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SPARQL";
-      rmltest:tripleStore [
-          rmltest:rdfFile "resource.ttl"
-        ]
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0007d-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0007d-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0007d-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0007d-XML";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0007e-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0007e-CSV";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0007e-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0007e-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0007e-JSON";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0007e-JSON/input/student.json>;
   rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0007e-JSON/output/output.nq> .
 
-<RMLTC0007e-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0007e-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0007e-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0007e-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0007e-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0007e-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
 
-<RMLTC0007e-SPARQL> a test:TestCase;
-  dcterms:identifier "RMLTC0007e-SPARQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SPARQL";
-      rmltest:tripleStore [
-          rmltest:rdfFile "resource.ttl"
-        ]
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0007e-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0007e-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0007e-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0007e-XML";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0007f-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0007f-CSV";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0007f-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0007f-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0007f-JSON";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0007f-JSON/input/student.json>;
   rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0007f-JSON/output/output.nq> .
 
-<RMLTC0007f-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0007f-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0007f-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0007f-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0007f-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0007f-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
 
-<RMLTC0007f-SPARQL> a test:TestCase;
-  dcterms:identifier "RMLTC0007f-SPARQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SPARQL";
-      rmltest:tripleStore [
-          rmltest:rdfFile "resource.ttl"
-        ]
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0007f-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0007f-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0007f-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0007f-XML";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0007g-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0007g-CSV";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0007g-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0007g-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0007g-JSON";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0007g-JSON/input/student.json>;
   rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0007g-JSON/output/output.nq> .
 
-<RMLTC0007g-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0007g-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0007g-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0007g-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0007g-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0007g-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
 
-<RMLTC0007g-SPARQL> a test:TestCase;
-  dcterms:identifier "RMLTC0007g-SPARQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SPARQL";
-      rmltest:tripleStore [
-          rmltest:rdfFile "resource.ttl"
-        ]
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0007g-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0007g-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0007g-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0007g-XML";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0007h-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0007h-CSV";
-  rmltest:input [
-      rmltest:inputFile "student.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0007h-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0007h-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0007h-JSON";
-  rmltest:input [
-      rmltest:inputFile "student.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError true;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0007h-JSON/input/student.json>;
   rmltest:mappingDocument "mapping.ttl" .
 
-<RMLTC0007h-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0007h-MySQL";
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0007h-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0007h-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0007h-PostgreSQL";
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0007h-SPARQL> a test:TestCase;
-  dcterms:identifier "RMLTC0007h-SPARQL";
-  rmltest:input [
-      rmltest:inputType "SPARQL";
-      rmltest:tripleStore [
-          rmltest:rdfFile "resource.ttl"
-        ]
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0007h-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0007h-SQLServer";
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0007h-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0007h-XML";
-  rmltest:input [
-      rmltest:inputFile "student.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0008a-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0008a-CSV";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0008a-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0008a-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0008a-JSON";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0008a-JSON/input/student.json>;
   rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0008a-JSON/output/output.nq> .
 
-<RMLTC0008a-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0008a-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0008a-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0008a-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0008a-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0008a-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
 
-<RMLTC0008a-SPARQL> a test:TestCase;
-  dcterms:identifier "RMLTC0008a-SPARQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SPARQL";
-      rmltest:tripleStore [
-          rmltest:rdfFile "resource.ttl"
-        ]
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0008a-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0008a-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0008a-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0008a-XML";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0008b-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0008b-CSV";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0008b-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0008b-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0008b-JSON";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0008b-JSON/input/student.json>;
   rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0008b-JSON/output/output.nq> .
 
-<RMLTC0008b-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0008b-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0008b-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0008b-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0008b-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0008b-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
 
-<RMLTC0008b-SPARQL> a test:TestCase;
-  dcterms:identifier "RMLTC0008b-SPARQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SPARQL";
-      rmltest:tripleStore [
-          rmltest:rdfFile "resource.ttl"
-        ]
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0008b-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0008b-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0008b-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0008b-XML";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0008c-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0008c-CSV";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0008c-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0008c-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0008c-JSON";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0008c-JSON/input/student.json>;
   rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0008c-JSON/output/output.nq> .
 
-<RMLTC0008c-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0008c-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0008c-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0008c-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0008c-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0008c-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
 
-<RMLTC0008c-SPARQL> a test:TestCase;
-  dcterms:identifier "RMLTC0008c-SPARQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SPARQL";
-      rmltest:tripleStore [
-          rmltest:rdfFile "resource.ttl"
-        ]
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0008c-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0008c-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0008c-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0008c-XML";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0009a-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0009a-CSV";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "sport.csv", "student.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0009a-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0009a-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0009a-JSON";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "sport.json", "student.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0009a-JSON/input/sport.json>, <http://w3id.org/rml/core/test/RMLTC0009a-JSON/input/student.json>;
   rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0009a-JSON/output/output.nq> .
 
-<RMLTC0009a-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0009a-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0009a-JSON/input/sport.json> a rmltest:Input;
+  rmltest:input "sport.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0009a-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0009a-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0009a-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0009a-SPARQL> a test:TestCase;
-  dcterms:identifier "RMLTC0009a-SPARQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SPARQL";
-      rmltest:tripleStore [
-          rmltest:rdfFile "resource1.ttl", "resource2.ttl"
-        ]
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0009a-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
 
-<RMLTC0009a-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0009a-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0009a-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0009a-XML";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "sport.xml", "student.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0009b-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0009b-CSV";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "sport.csv", "student.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0009b-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0009b-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0009b-JSON";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "sport.json", "student.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0009b-JSON/input/sport.json>, <http://w3id.org/rml/core/test/RMLTC0009b-JSON/input/student.json>;
   rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0009b-JSON/output/output.nq> .
 
-<RMLTC0009b-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0009b-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0009b-JSON/input/sport.json> a rmltest:Input;
+  rmltest:input "sport.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0009b-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0009b-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0009b-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0009b-SPARQL> a test:TestCase;
-  dcterms:identifier "RMLTC0009b-SPARQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SPARQL";
-      rmltest:tripleStore [
-          rmltest:rdfFile "resource1.ttl", "resource2.ttl"
-        ]
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0009b-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
 
-<RMLTC0009b-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0009b-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0009b-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0009b-XML";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "sport.xml", "student.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0009c-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0009c-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0009c-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0009c-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0009c-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0009c-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0009d-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0009d-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0009d-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0009d-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0009d-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0009d-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0010a-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0010a-CSV";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "country_info.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0010a-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0010a-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0010a-JSON";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "country_info.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0010a-JSON/input/country_info.json>;
   rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0010a-JSON/output/output.nq> .
 
-<RMLTC0010a-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0010a-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0010a-JSON/input/country_info.json> a rmltest:Input;
+  rmltest:input "country_info.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0010a-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0010a-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0010a-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
 
-<RMLTC0010a-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0010a-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0010b-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0010b-CSV";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "country_info.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0010b-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0010b-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0010b-JSON";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "country_info.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0010b-JSON/input/country_info.json>;
   rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0010b-JSON/output/output.nq> .
 
-<RMLTC0010b-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0010b-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0010b-JSON/input/country_info.json> a rmltest:Input;
+  rmltest:input "country_info.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0010b-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0010b-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0010b-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
 
-<RMLTC0010b-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0010b-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0010b-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0010b-XML";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "country_info.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0010c-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0010c-CSV";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "country_info.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0010c-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0010c-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0010c-JSON";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "country_info.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0010c-JSON/input/country_info.json>;
   rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0010c-JSON/output/output.nq> .
 
-<RMLTC0010c-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0010c-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0010c-JSON/input/country_info.json> a rmltest:Input;
+  rmltest:input "country_info.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0010c-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0010c-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0010c-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
 
-<RMLTC0010c-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0010c-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0010c-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0010c-XML";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "country_info.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0011a-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0011a-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0011a-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0011a-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0011a-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0011a-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0011b-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0011b-CSV";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "sport.csv", "student.csv", "student_sport.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0011b-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0011b-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0011b-JSON";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "sport.json", "student.json", "student_sport.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0011b-JSON/input/sport.json>, <http://w3id.org/rml/core/test/RMLTC0011b-JSON/input/student.json>,
+    <http://w3id.org/rml/core/test/RMLTC0011b-JSON/input/student_sport.json>;
   rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0011b-JSON/output/output.nq> .
 
-<RMLTC0011b-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0011b-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0011b-JSON/input/sport.json> a rmltest:Input;
+  rmltest:input "sport.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0011b-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0011b-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0011b-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0011b-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0011b-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0011b-JSON/input/student_sport.json> a rmltest:Input;
+  rmltest:input "student_sport.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0011b-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0011b-XML";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "sport.xml", "student.xml", "student_sport.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0011b-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
 
-<RMLTC0012a-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0012a-CSV";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "persons.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0012a-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0012a-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0012a-JSON";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "persons.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0012a-JSON/input/persons.json>;
   rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0012a-JSON/output/output.nq> .
 
-<RMLTC0012a-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0012a-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0012a-JSON/input/persons.json> a rmltest:Input;
+  rmltest:input "persons.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0012a-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0012a-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0012a-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
 
-<RMLTC0012a-SPARQL> a test:TestCase;
-  dcterms:identifier "RMLTC0012a-SPARQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SPARQL";
-      rmltest:tripleStore [
-          rmltest:rdfFile "resource.ttl"
-        ]
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0012a-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0012a-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0012a-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0012a-XML";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "persons.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0012b-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0012b-CSV";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "lives.csv", "persons.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0012b-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0012b-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0012b-JSON";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "lives.json", "persons.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0012b-JSON/input/lives.json>, <http://w3id.org/rml/core/test/RMLTC0012b-JSON/input/persons.json>;
   rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0012b-JSON/output/output.nq> .
 
-<RMLTC0012b-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0012b-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0012b-JSON/input/lives.json> a rmltest:Input;
+  rmltest:input "lives.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0012b-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0012b-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0012b-JSON/input/persons.json> a rmltest:Input;
+  rmltest:input "persons.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0012b-SPARQL> a test:TestCase;
-  dcterms:identifier "RMLTC0012b-SPARQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SPARQL";
-      rmltest:tripleStore [
-          rmltest:rdfFile "resource1.ttl", "resource2.ttl"
-        ]
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0012b-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
 
-<RMLTC0012b-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0012b-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0012b-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0012b-XML";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "lives.xml", "persons.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0012c-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0012c-CSV";
-  rmltest:input [
-      rmltest:inputFile "persons.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0012c-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0012c-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0012c-JSON";
-  rmltest:input [
-      rmltest:inputFile "persons.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError true;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0012c-JSON/input/persons.json>;
   rmltest:mappingDocument "mapping.ttl" .
 
-<RMLTC0012c-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0012c-MySQL";
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0012c-JSON/input/persons.json> a rmltest:Input;
+  rmltest:input "persons.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0012c-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0012c-PostgreSQL";
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0012c-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0012c-SQLServer";
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0012c-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0012c-XML";
-  rmltest:input [
-      rmltest:inputFile "persons.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0012d-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0012d-CSV";
-  rmltest:input [
-      rmltest:inputFile "persons.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0012d-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0012d-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0012d-JSON";
-  rmltest:input [
-      rmltest:inputFile "persons.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError true;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0012d-JSON/input/persons.json>;
   rmltest:mappingDocument "mapping.ttl" .
 
-<RMLTC0012d-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0012d-MySQL";
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0012d-JSON/input/persons.json> a rmltest:Input;
+  rmltest:input "persons.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0012d-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0012d-PostgreSQL";
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0012d-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0012d-SQLServer";
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0012d-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0012d-XML";
-  rmltest:input [
-      rmltest:inputFile "persons.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0012e-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0012e-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
+<http://w3id.org/rml/core/test/RMLTC0012e-JSON> a test:TestCase;
+  dcterms:identifier "RMLTC0012e-JSON";
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
   rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0012e-JSON/output/output.nq> .
 
-<RMLTC0012e-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0012e-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0012e-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
 
-<RMLTC0012e-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0012e-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0013a-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0013a-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0013a-JSON";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "persons.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0013a-JSON/input/persons.json>;
   rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0013a-JSON/output/output.nq> .
 
-<RMLTC0013a-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0013a-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0013a-JSON/input/persons.json> a rmltest:Input;
+  rmltest:input "persons.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0013a-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0013a-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0013a-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
 
-<RMLTC0013a-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0013a-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0014d-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0014d-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0014d-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0014d-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0014d-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0014d-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0015a-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0015a-CSV";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "country_en.csv", "country_es.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0015a-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0015a-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0015a-JSON";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "country_en.json", "country_es.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0015a-JSON/input/country_es.json>;
   rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0015a-JSON/output/output.nq> .
 
-<RMLTC0015a-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0015a-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0015a-JSON/input/country_es.json> a rmltest:Input;
+  rmltest:input "country_es.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0015a-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0015a-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0015a-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
 
-<RMLTC0015a-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0015a-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0015a-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0015a-XML";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "country_en.xml", "country_es.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0015b-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0015b-CSV";
-  rmltest:input [
-      rmltest:inputFile "country_en.csv", "country_es.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0015b-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0015b-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0015b-JSON";
-  rmltest:input [
-      rmltest:inputFile "country_en.json", "country_es.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError true;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0015b-JSON/input/country_es.json>;
   rmltest:mappingDocument "mapping.ttl" .
 
-<RMLTC0015b-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0015b-MySQL";
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0015b-JSON/input/country_es.json> a rmltest:Input;
+  rmltest:input "country_es.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0015b-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0015b-PostgreSQL";
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0015b-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0015b-SQLServer";
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0015b-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0015b-XML";
-  rmltest:input [
-      rmltest:inputFile "country_en.xml", "country_es.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0016a-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0016a-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0016a-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0016a-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0016a-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0016a-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0016b-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0016b-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0016b-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0016b-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0016b-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0016b-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0016c-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0016c-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0016c-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0016c-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0016c-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0016c-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0016d-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0016d-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0016d-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0016d-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0016d-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0016d-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0016e-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0016e-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0016e-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0016e-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0016e-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0016e-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0019a-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0019a-CSV";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "persons.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0019a-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0019a-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0019a-JSON";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "persons.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0019a-JSON/input/persons.json>;
   rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0019a-JSON/output/output.nq> .
 
-<RMLTC0019a-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0019a-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0019a-JSON/input/persons.json> a rmltest:Input;
+  rmltest:input "persons.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0019a-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0019a-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0019a-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
 
-<RMLTC0019a-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0019a-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0019a-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0019a-XML";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "persons.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0019b-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0019b-CSV";
-  rmltest:input [
-      rmltest:inputFile "persons.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0019b-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0019b-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0019b-JSON";
-  rmltest:input [
-      rmltest:inputFile "persons.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError true;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0019b-JSON/input/persons.json>;
   rmltest:mappingDocument "mapping.ttl" .
 
-<RMLTC0019b-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0019b-MySQL";
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0019b-JSON/input/persons.json> a rmltest:Input;
+  rmltest:input "persons.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0019b-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0019b-PostgreSQL";
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0019b-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0019b-SQLServer";
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0019b-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0019b-XML";
-  rmltest:input [
-      rmltest:inputFile "persons.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl" .
-
-<RMLTC0020a-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0020a-CSV";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0020a-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0020a-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0020a-JSON";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0020a-JSON/input/student.json>;
   rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0020a-JSON/output/output.nq> .
 
-<RMLTC0020a-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0020a-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0020a-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0020a-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0020a-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0020a-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
 
-<RMLTC0020a-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0020a-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0020a-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0020a-XML";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0021a-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0021a-CSV";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
-
-<RMLTC0021a-JSON> a test:TestCase;
+<http://w3id.org/rml/core/test/RMLTC0021a-JSON> a test:TestCase;
   dcterms:identifier "RMLTC0021a-JSON";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.json";
-      rmltest:inputType "JSON"
-    ];
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0021a-JSON/input/student.json>;
   rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0021a-JSON/output/output.nq> .
 
-<RMLTC0021a-MySQL> a test:TestCase;
-  dcterms:identifier "RMLTC0021a-MySQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "MySQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0021a-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0021a-PostgreSQL> a test:TestCase;
-  dcterms:identifier "RMLTC0021a-PostgreSQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:database [
-          rmltest:sqlScriptFile "resource.sql"
-        ];
-      rmltest:inputType "PostgreSQL"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0021a-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
 
-<RMLTC0021a-SPARQL> a test:TestCase;
-  dcterms:identifier "RMLTC0021a-SPARQL";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SPARQL";
-      rmltest:tripleStore [
-          rmltest:rdfFile "resource.ttl"
-        ]
-    ];
+<http://w3id.org/rml/core/test/RMLTC0022a-JSON> a test:TestCase;
+  dcterms:identifier "RMLTC0022a-JSON";
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0022a-JSON/input/student.json>;
   rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0022a-JSON/output/output.nq> .
 
-<RMLTC0021a-SQLServer> a test:TestCase;
-  dcterms:identifier "RMLTC0021a-SQLServer";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputType "SQLServer"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0022a-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0021a-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0021a-XML";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0022a-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
 
-<RMLTC0022a-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0022a-CSV";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "student.csv";
-      rmltest:inputType "CSV"
-    ];
+<http://w3id.org/rml/core/test/RMLTC0022b-JSON> a test:TestCase;
+  dcterms:identifier "RMLTC0022b-JSON";
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0022b-JSON/input/data.json>;
   rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0022b-JSON/output/output.nq> .
 
-<RMLTC0022b-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0022b-CSV";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "data.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0022b-JSON/input/data.json> a rmltest:Input;
+  rmltest:input "data.json";
+  rmltest:inputFormat "application/json" .
 
-<RMLTC0022c-CSV> a test:TestCase;
-  dcterms:identifier "RMLTC0022c-CSV";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "data.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0022b-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
 
-<RMLTC0023a-XML> a test:TestCase;
-  dcterms:identifier "RMLTC0023a-XML";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "ious.xml";
-      rmltest:inputType "XML"
-    ];
+<http://w3id.org/rml/core/test/RMLTC0022c-JSON> a test:TestCase;
+  dcterms:identifier "RMLTC0022c-JSON";
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0022c-JSON/input/data.json>;
   rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "output.nq" .
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0022c-JSON/output/output.nq> .
+
+<http://w3id.org/rml/core/test/RMLTC0022c-JSON/input/data.json> a rmltest:Input;
+  rmltest:input "data.json";
+  rmltest:inputFormat "application/json" .
+
+<http://w3id.org/rml/core/test/RMLTC0022c-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
+
+<http://w3id.org/rml/core/test/RMLTC0023a-JSON> a test:TestCase;
+  dcterms:identifier "RMLTC0023a-JSON";
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError true;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0023a-JSON/input/student.json>;
+  rmltest:mappingDocument "mapping.ttl" .
+
+<http://w3id.org/rml/core/test/RMLTC0023a-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
+
+<http://w3id.org/rml/core/test/RMLTC0023b-JSON> a test:TestCase;
+  dcterms:identifier "RMLTC0023b-JSON";
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError true;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0023b-JSON/input/student.json>;
+  rmltest:mappingDocument "mapping.ttl" .
+
+<http://w3id.org/rml/core/test/RMLTC0023b-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
+
+<http://w3id.org/rml/core/test/RMLTC0023c-JSON> a test:TestCase;
+  dcterms:identifier "RMLTC0023c-JSON";
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError true;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0023c-JSON/input/student.json>;
+  rmltest:mappingDocument "mapping.ttl" .
+
+<http://w3id.org/rml/core/test/RMLTC0023c-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
+
+<http://w3id.org/rml/core/test/RMLTC0023d-JSON> a test:TestCase;
+  dcterms:identifier "RMLTC0023d-JSON";
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError true;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0023d-JSON/input/student.json>;
+  rmltest:mappingDocument "mapping.ttl" .
+
+<http://w3id.org/rml/core/test/RMLTC0023d-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
+
+<http://w3id.org/rml/core/test/RMLTC0023e-JSON> a test:TestCase;
+  dcterms:identifier "RMLTC0023e-JSON";
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError true;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0023e-JSON/input/student.json>;
+  rmltest:mappingDocument "mapping.ttl" .
+
+<http://w3id.org/rml/core/test/RMLTC0023e-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
+
+<http://w3id.org/rml/core/test/RMLTC0023f-JSON> a test:TestCase;
+  dcterms:identifier "RMLTC0023f-JSON";
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0023f-JSON/input/student.json>;
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0023f-JSON/output/output.nq> .
+
+<http://w3id.org/rml/core/test/RMLTC0023f-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
+
+<http://w3id.org/rml/core/test/RMLTC0023f-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
+
+<http://w3id.org/rml/core/test/RMLTC0024a-JSON> a test:TestCase;
+  dcterms:identifier "RMLTC0024a-JSON";
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError true;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0024a-JSON/input/student.json>;
+  rmltest:mappingDocument "mapping.ttl" .
+
+<http://w3id.org/rml/core/test/RMLTC0024a-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
+
+<http://w3id.org/rml/core/test/RMLTC0025a-JSON> a test:TestCase;
+  dcterms:identifier "RMLTC0025a-JSON";
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0025a-JSON/input/persons.json>;
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0025a-JSON/output/output.nq> .
+
+<http://w3id.org/rml/core/test/RMLTC0025a-JSON/input/persons.json> a rmltest:Input;
+  rmltest:input "persons.json";
+  rmltest:inputFormat "application/json" .
+
+<http://w3id.org/rml/core/test/RMLTC0025a-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
+
+<http://w3id.org/rml/core/test/RMLTC0025b-JSON> a test:TestCase;
+  dcterms:identifier "RMLTC0025b-JSON";
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError true;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0025b-JSON/input/persons.json>;
+  rmltest:mappingDocument "mapping.ttl" .
+
+<http://w3id.org/rml/core/test/RMLTC0025b-JSON/input/persons.json> a rmltest:Input;
+  rmltest:input "persons.json";
+  rmltest:inputFormat "application/json" .
+
+<http://w3id.org/rml/core/test/RMLTC0025c-JSON> a test:TestCase;
+  dcterms:identifier "RMLTC0025c-JSON";
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0025c-JSON/input/persons.json>;
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0025c-JSON/output/output.nq> .
+
+<http://w3id.org/rml/core/test/RMLTC0025c-JSON/input/persons.json> a rmltest:Input;
+  rmltest:input "persons.json";
+  rmltest:inputFormat "application/json" .
+
+<http://w3id.org/rml/core/test/RMLTC0025c-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
+
+<http://w3id.org/rml/core/test/RMLTC0026a-JSON> a test:TestCase;
+  dcterms:identifier "RMLTC0026a-JSON";
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0026a-JSON/input/persons.json>;
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0026a-JSON/output/output.nq> .
+
+<http://w3id.org/rml/core/test/RMLTC0026a-JSON/input/persons.json> a rmltest:Input;
+  rmltest:input "persons.json";
+  rmltest:inputFormat "application/json" .
+
+<http://w3id.org/rml/core/test/RMLTC0026a-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
+
+<http://w3id.org/rml/core/test/RMLTC0026b-JSON> a test:TestCase;
+  dcterms:identifier "RMLTC0026b-JSON";
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0026b-JSON/input/persons.json>;
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0026b-JSON/output/output.nq> .
+
+<http://w3id.org/rml/core/test/RMLTC0026b-JSON/input/persons.json> a rmltest:Input;
+  rmltest:input "persons.json";
+  rmltest:inputFormat "application/json" .
+
+<http://w3id.org/rml/core/test/RMLTC0026b-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
+
+<http://w3id.org/rml/core/test/RMLTC0026c-JSON> a test:TestCase;
+  dcterms:identifier "RMLTC0026c-JSON";
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0026c-JSON/input/persons.json>;
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0026c-JSON/output/output.nq> .
+
+<http://w3id.org/rml/core/test/RMLTC0026c-JSON/input/persons.json> a rmltest:Input;
+  rmltest:input "persons.json";
+  rmltest:inputFormat "application/json" .
+
+<http://w3id.org/rml/core/test/RMLTC0026c-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
+
+<http://w3id.org/rml/core/test/RMLTC0026d-JSON> a test:TestCase;
+  dcterms:identifier "RMLTC0026d-JSON";
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0026d-JSON/input/persons.json>;
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0026d-JSON/output/output.nq> .
+
+<http://w3id.org/rml/core/test/RMLTC0026d-JSON/input/persons.json> a rmltest:Input;
+  rmltest:input "persons.json";
+  rmltest:inputFormat "application/json" .
+
+<http://w3id.org/rml/core/test/RMLTC0026d-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
+
+<http://w3id.org/rml/core/test/RMLTC0027a-JSON> a test:TestCase;
+  dcterms:identifier "RMLTC0027a-JSON";
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0027a-JSON/input/student.json>;
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0027a-JSON/output/output.nq> .
+
+<http://w3id.org/rml/core/test/RMLTC0027a-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
+
+<http://w3id.org/rml/core/test/RMLTC0027a-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
+
+<http://w3id.org/rml/core/test/RMLTC0027b-JSON> a test:TestCase;
+  dcterms:identifier "RMLTC0027b-JSON";
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0027b-JSON/input/student.json>;
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0027b-JSON/output/output.nq> .
+
+<http://w3id.org/rml/core/test/RMLTC0027b-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
+
+<http://w3id.org/rml/core/test/RMLTC0027b-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
+
+<http://w3id.org/rml/core/test/RMLTC0027c-JSON> a test:TestCase;
+  dcterms:identifier "RMLTC0027c-JSON";
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0027c-JSON/input/student.json>;
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0027c-JSON/output/output.nq> .
+
+<http://w3id.org/rml/core/test/RMLTC0027c-JSON/input/student.json> a rmltest:Input;
+  rmltest:input "student.json";
+  rmltest:inputFormat "application/json" .
+
+<http://w3id.org/rml/core/test/RMLTC0027c-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
+
+<http://w3id.org/rml/core/test/RMLTC0028a-JSON> a test:TestCase;
+  dcterms:identifier "RMLTC0028a-JSON";
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0028a-JSON/input/data.json>;
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0028a-JSON/output/output.nq> .
+
+<http://w3id.org/rml/core/test/RMLTC0028a-JSON/input/data.json> a rmltest:Input;
+  rmltest:input "data.json";
+  rmltest:inputFormat "application/json" .
+
+<http://w3id.org/rml/core/test/RMLTC0028a-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
+
+<http://w3id.org/rml/core/test/RMLTC0028b-JSON> a test:TestCase;
+  dcterms:identifier "RMLTC0028b-JSON";
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0028b-JSON/input/data.json>;
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0028b-JSON/output/output.nq> .
+
+<http://w3id.org/rml/core/test/RMLTC0028b-JSON/input/data.json> a rmltest:Input;
+  rmltest:input "data.json";
+  rmltest:inputFormat "application/json" .
+
+<http://w3id.org/rml/core/test/RMLTC0028b-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .
+
+<http://w3id.org/rml/core/test/RMLTC0028c-JSON> a test:TestCase;
+  dcterms:identifier "RMLTC0028c-JSON";
+  rmltest:defaultBaseIRI <http://example.com/>;
+  rmltest:hasError false;
+  rmltest:input <http://w3id.org/rml/core/test/RMLTC0028c-JSON/input/data.json>;
+  rmltest:mappingDocument "mapping.ttl";
+  rmltest:output <http://w3id.org/rml/core/test/RMLTC0028c-JSON/output/output.nq> .
+
+<http://w3id.org/rml/core/test/RMLTC0028c-JSON/input/data.json> a rmltest:Input;
+  rmltest:input "data.json";
+  rmltest:inputFormat "application/json" .
+
+<http://w3id.org/rml/core/test/RMLTC0028c-JSON/output/output.nq> a rmltest:Output;
+  rmltest:output "output.nq";
+  rmltest:outputFormat "application/n-quads" .

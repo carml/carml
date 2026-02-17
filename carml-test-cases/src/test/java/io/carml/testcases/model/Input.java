@@ -5,12 +5,10 @@ import io.carml.model.Resource;
 import io.carml.model.impl.CarmlResource;
 import io.carml.rdfmapper.annotations.RdfProperty;
 import io.carml.rdfmapper.annotations.RdfType;
-import java.util.List;
 import java.util.Set;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.Singular;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
@@ -22,23 +20,22 @@ import org.eclipse.rdf4j.model.util.ModelBuilder;
 @ToString(callSuper = true)
 public class Input extends CarmlResource {
 
-    private String inputType;
+    private String inputFormat;
 
-    @Singular
-    private List<String> inputFiles;
+    private String inputFile;
 
     private Database database;
 
     private TripleStore tripleStore;
 
-    @RdfProperty("http://w3id.org/rml/test/inputType")
-    public String getInputType() {
-        return inputType;
+    @RdfProperty("http://w3id.org/rml/test/inputFormat")
+    public String getInputFormat() {
+        return inputFormat;
     }
 
-    @RdfProperty("http://w3id.org/rml/test/inputFile")
-    public List<String> getInputFiles() {
-        return inputFiles;
+    @RdfProperty("http://w3id.org/rml/test/input")
+    public String getInputFile() {
+        return inputFile;
     }
 
     @RdfProperty("http://w3id.org/rml/test/database")
@@ -72,11 +69,13 @@ public class Input extends CarmlResource {
     public void addTriples(ModelBuilder modelBuilder) {
         modelBuilder.subject(getAsResource());
 
-        if (inputType != null) {
-            modelBuilder.add("http://w3id.org/rml/test/inputType", inputType);
+        if (inputFormat != null) {
+            modelBuilder.add("http://w3id.org/rml/test/inputFormat", inputFormat);
         }
 
-        inputFiles.forEach(inputFile -> modelBuilder.add("http://w3id.org/rml/test/inputFile", inputFile));
+        if (inputFile != null) {
+            modelBuilder.add("http://w3id.org/rml/test/input", inputFile);
+        }
 
         if (database != null) {
             modelBuilder.add("http://w3id.org/rml/test/database", database.getAsResource());
