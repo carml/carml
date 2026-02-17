@@ -1,0 +1,23 @@
+<http://example.com/base/e/a> <http://example.com/ns#with> _:n988e0f11d19c486fa3b3255f94c9b3bab1 .
+_:n988e0f11d19c486fa3b3255f94c9b3bab1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> "1" .
+_:n988e0f11d19c486fa3b3255f94c9b3bab1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:n988e0f11d19c486fa3b3255f94c9b3bab2 .
+_:n988e0f11d19c486fa3b3255f94c9b3bab2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> "1" .
+_:n988e0f11d19c486fa3b3255f94c9b3bab2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:n988e0f11d19c486fa3b3255f94c9b3bab3 .
+_:n988e0f11d19c486fa3b3255f94c9b3bab3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> "1" .
+_:n988e0f11d19c486fa3b3255f94c9b3bab3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> <http://www.w3.org/1999/02/22-rdf-syntax-ns#nil> .
+
+<http://example.com/base/e/b> <http://example.com/ns#with> _:n988e0f11d19c486fa3b3255f94c9b3bab4 .
+_:n988e0f11d19c486fa3b3255f94c9b3bab4 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> "2" .
+_:n988e0f11d19c486fa3b3255f94c9b3bab4 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:n988e0f11d19c486fa3b3255f94c9b3bab5 .
+_:n988e0f11d19c486fa3b3255f94c9b3bab5 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> "2" .
+_:n988e0f11d19c486fa3b3255f94c9b3bab5 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:n988e0f11d19c486fa3b3255f94c9b3bab6 .
+_:n988e0f11d19c486fa3b3255f94c9b3bab6 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> "6" .
+_:n988e0f11d19c486fa3b3255f94c9b3bab6 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> <http://www.w3.org/1999/02/22-rdf-syntax-ns#nil> .
+
+<http://example.com/base/e/c> <http://example.com/ns#with> _:n988e0f11d19c486fa3b3255f94c9b3bab7 .
+_:n988e0f11d19c486fa3b3255f94c9b3bab7 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> "7" .
+_:n988e0f11d19c486fa3b3255f94c9b3bab7 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:n988e0f11d19c486fa3b3255f94c9b3bab8 .
+_:n988e0f11d19c486fa3b3255f94c9b3bab8 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> "8" .
+_:n988e0f11d19c486fa3b3255f94c9b3bab8 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:n988e0f11d19c486fa3b3255f94c9b3bab9 .
+_:n988e0f11d19c486fa3b3255f94c9b3bab9 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> "9" .
+_:n988e0f11d19c486fa3b3255f94c9b3bab9 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> <http://www.w3.org/1999/02/22-rdf-syntax-ns#nil> .

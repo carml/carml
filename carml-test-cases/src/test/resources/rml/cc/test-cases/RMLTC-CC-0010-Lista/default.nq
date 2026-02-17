@@ -1,0 +1,10 @@
+_:genid1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> "1" <http://example.com/base/g/1> .
+_:genid1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> <http://www.w3.org/1999/02/22-rdf-syntax-ns#nil> <http://example.com/base/g/1> .
+_:genid2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> "3" <http://example.com/base/g/1> .
+_:genid2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> <http://www.w3.org/1999/02/22-rdf-syntax-ns#nil> <http://example.com/base/g/1> .
+<http://example.com/base/e/a> <http://example.com/ns#with> _:genid1 <http://example.com/base/g/1> .
+<http://example.com/base/e/a> <http://example.com/ns#with> _:genid2 <http://example.com/base/g/1> .
+
+_:genidx1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> "2" <http://example.com/base/g/2> .
+_:genidx1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> <http://www.w3.org/1999/02/22-rdf-syntax-ns#nil> <http://example.com/base/g/2> .
+<http://example.com/base/e/a> <http://example.com/ns#with> _:genidx1 <http://example.com/base/g/2> .

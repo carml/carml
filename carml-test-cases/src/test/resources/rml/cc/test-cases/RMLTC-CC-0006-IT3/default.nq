@@ -1,0 +1,14 @@
+<http://example.com/base/e/a> <http://example.com/ns#with> _:a .
+_:a <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/1999/02/22-rdf-syntax-ns#Bag> .
+_:a <http://www.w3.org/1999/02/22-rdf-syntax-ns#_1> "1" .
+_:a <http://www.w3.org/1999/02/22-rdf-syntax-ns#_2> "2" .
+
+<http://example.com/base/e/b> <http://example.com/ns#with> _:b .
+_:b <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/1999/02/22-rdf-syntax-ns#Bag> .
+_:b <http://www.w3.org/1999/02/22-rdf-syntax-ns#_1> "3" .
+_:b <http://www.w3.org/1999/02/22-rdf-syntax-ns#_2> "4" .
+
+<http://example.com/base/e/a> <http://example.com/ns#with> _:c .
+_:c <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/1999/02/22-rdf-syntax-ns#Bag> .
+_:c <http://www.w3.org/1999/02/22-rdf-syntax-ns#_1> "5" .
+_:c <http://www.w3.org/1999/02/22-rdf-syntax-ns#_2> "6" .

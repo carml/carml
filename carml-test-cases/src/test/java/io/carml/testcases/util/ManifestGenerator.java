@@ -70,7 +70,7 @@ public class ManifestGenerator {
         var testCaseType = testCaseName.split("-")[1];
         var files = getFiles(testcasePath);
         var inputBuilder =
-                Input.builder().id(String.format("input-%s", testCaseName)).inputType(testCaseType);
+                Input.builder().id(String.format("input-%s", testCaseName)).inputFormat(testCaseType);
 
         if (SQL_TYPE.contains(testCaseType)) {
             processSqlTestCase(inputBuilder, testCaseName, files);
@@ -92,12 +92,13 @@ public class ManifestGenerator {
                 .findFirst()
                 .orElse(null);
 
-        var testCase = testCaseBuilder
-                .input(inputBuilder.build())
-                .mappingDocument(mapping)
-                .output(output)
-                .hasExpectedOutput(output != null)
-                .build();
+        testCaseBuilder.input(inputBuilder.build()).mappingDocument(mapping).hasError(output == null);
+
+        if (output != null) {
+            testCaseBuilder.output(output);
+        }
+
+        var testCase = testCaseBuilder.build();
 
         return testCase.asRdf().stream();
     }

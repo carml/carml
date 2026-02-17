@@ -34,10 +34,10 @@ public class RmlImplementationReport {
                 FileWriter errors = new FileWriter("rml-implementation-report/errors.csv")) {
             try (CSVPrinter resultPrinter = new CSVPrinter(
                             results,
-                            CSVFormat.Builder.create().setHeader(RESULT_HEADERS).build());
+                            CSVFormat.Builder.create().setHeader(RESULT_HEADERS).get());
                     CSVPrinter errorPrinter = new CSVPrinter(
                             errors,
-                            CSVFormat.Builder.create().setHeader(ERROR_HEADERS).build())) {
+                            CSVFormat.Builder.create().setHeader(ERROR_HEADERS).get())) {
                 populateTestCases().stream()
                         .map(RmlImplementationReport::runTestCase)
                         .forEach(result -> {

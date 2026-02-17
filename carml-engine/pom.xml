@@ -85,7 +85,18 @@
 
 		<dependency>
 			<groupId>com.google.auto.service</groupId>
+			<artifactId>auto-service-annotations</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>com.google.auto.service</groupId>
 			<artifactId>auto-service</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>com.github.spotbugs</groupId>
+			<artifactId>spotbugs-annotations</artifactId>
+			<scope>test</scope>
 		</dependency>
 
 		<dependency>

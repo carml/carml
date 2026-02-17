@@ -260,14 +260,16 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
             List<IRI> overrideDatatypes,
             List<String> languageTags) {
         return switch (termMap.getTermType()) {
-            case IRI -> values.stream()
-                    .map(value -> CanonicalRdfLexicalForm.get().apply(value, mappedDatatype))
-                    .map(lexicalForm -> generateIriTerm(lexicalForm, termMap))
-                    .toList();
-            case BLANK_NODE -> values.stream()
-                    .map(value -> CanonicalRdfLexicalForm.get().apply(value, mappedDatatype))
-                    .map(lexicalForm -> generateBNodeTerm(lexicalForm, termMap))
-                    .toList();
+            case IRI ->
+                values.stream()
+                        .map(value -> CanonicalRdfLexicalForm.get().apply(value, mappedDatatype))
+                        .map(lexicalForm -> generateIriTerm(lexicalForm, termMap))
+                        .toList();
+            case BLANK_NODE ->
+                values.stream()
+                        .map(value -> CanonicalRdfLexicalForm.get().apply(value, mappedDatatype))
+                        .map(lexicalForm -> generateBNodeTerm(lexicalForm, termMap))
+                        .toList();
             case LITERAL -> generateLiteralTerms(values, termMap, mappedDatatype, overrideDatatypes, languageTags);
         };
     }

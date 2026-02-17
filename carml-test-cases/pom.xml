@@ -117,6 +117,12 @@
 
     <dependency>
       <groupId>com.google.auto.service</groupId>
+      <artifactId>auto-service-annotations</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>com.google.auto.service</groupId>
       <artifactId>auto-service</artifactId>
       <scope>test</scope>
     </dependency>

@@ -57,7 +57,7 @@ public class TemplateParser {
                 .forEach(character ->
                         parseCharToSegments(template, character, segmentContainer, escaping, storeSegment));
 
-        Segment segment = segmentContainer.getValue();
+        Segment segment = segmentContainer.get();
         if (segment instanceof ExpressionSegment) {
             throw new TemplateException(String.format("unclosed expression in template [%s]", template));
         }
@@ -70,7 +70,7 @@ public class TemplateParser {
         MutableInt nextId = new MutableInt();
 
         return () -> {
-            Segment segment = segmentContainer.getValue();
+            Segment segment = segmentContainer.get();
             if (segment == null) {
                 return;
             }
@@ -95,7 +95,7 @@ public class TemplateParser {
             MutableObject<Segment> segmentContainer,
             MutableBoolean escaping,
             Runnable storeSegment) {
-        Segment segment = segmentContainer.getValue();
+        Segment segment = segmentContainer.get();
 
         if (escaping.booleanValue()) {
             if (!escapableChars.contains(character)) {

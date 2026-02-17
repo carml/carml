@@ -55,7 +55,7 @@ import org.testcontainers.shaded.org.apache.commons.io.IOUtils;
 public class TestRmlTestCases {
 
     public static MySQLContainer<?> mysql =
-            new MySQLContainer<>("mysql:latest").withUsername("root").withUrlParam("allowMultiQueries", "true");
+            new MySQLContainer<>("mysql:8").withUsername("root").withUrlParam("allowMultiQueries", "true");
 
     public static PostgreSQLContainer<?> postgresql =
             new PostgreSQLContainer<>("postgres:latest").withUsername("root").withUrlParam("allowMultiQueries", "true");

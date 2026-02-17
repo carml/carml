@@ -1,226 +1,1096 @@
-@base <http://w3id.org/rml/io/test-cases/id/> .
-@prefix dcterms: <http://purl.org/dc/terms/> .
-@prefix rmltest: <http://w3id.org/rml/test/> .
-@prefix test: <http://www.w3.org/2006/03/test-description#> .
-
-<RMLSTC0001a> a test:TestCase;
-  dcterms:identifier "RMLSTC0001a";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "Friends.json";
-      rmltest:inputType "JSON"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "default.nq" .
-
-<RMLSTC0001b> a test:TestCase;
-  dcterms:identifier "RMLSTC0001b";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "Friends-UTF16.json";
-      rmltest:inputType "JSON"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "default.nq" .
-
-<RMLSTC0002a> a test:TestCase;
-  dcterms:identifier "RMLSTC0002a";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "Friends.json";
-      rmltest:inputType "JSON"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "default.nq" .
-
-<RMLSTC0002b> a test:TestCase;
-  dcterms:identifier "RMLSTC0002b";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "Friends.json.gz";
-      rmltest:inputType "JSON"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "default.nq" .
-
-<RMLSTC0002c> a test:TestCase;
-  dcterms:identifier "RMLSTC0002c";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "Friends.json.zip";
-      rmltest:inputType "JSON"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "default.nq" .
-
-<RMLSTC0002d> a test:TestCase;
-  dcterms:identifier "RMLSTC0002d";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "Friends.tar.xz";
-      rmltest:inputType "JSON"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "default.nq" .
-
-<RMLSTC0002e> a test:TestCase;
-  dcterms:identifier "RMLSTC0002e";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "Friends.tar.gz";
-      rmltest:inputType "JSON"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "default.nq" .
-
-<RMLSTC0003> a test:TestCase;
-  dcterms:identifier "RMLSTC0003";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "Friends.nt";
-      rmltest:inputType "RDF"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "default.nq" .
-
-<RMLSTC0004a> a test:TestCase;
-  dcterms:identifier "RMLSTC0004a";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "Friends-NULL.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "default.nq" .
-
-<RMLSTC0004b> a test:TestCase;
-  dcterms:identifier "RMLSTC0004b";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "Friends-NULL.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "default.nq" .
-
-<RMLSTC0004c> a test:TestCase;
-  dcterms:identifier "RMLSTC0004c";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "Friends-NULL.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "default.nq" .
-
-<RMLSTC0005a> a test:TestCase;
-  dcterms:identifier "RMLSTC0005a";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "Friends-NULL.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "default.nq" .
-
-<RMLSTC0005b> a test:TestCase;
-  dcterms:identifier "RMLSTC0005b";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "Friends.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "default.nq" .
-
-<RMLSTC0006a> a test:TestCase;
-  dcterms:identifier "RMLSTC0006a";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "Friends.json";
-      rmltest:inputType "JSON"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "default.nq" .
-
-<RMLSTC0006b> a test:TestCase;
-  dcterms:identifier "RMLSTC0006b";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "Friends.nt";
-      rmltest:inputType "RDF"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "default.nq" .
-
-<RMLSTC0006c> a test:TestCase;
-  dcterms:identifier "RMLSTC0006c";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "Friends.nt";
-      rmltest:inputType "RDF"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "default.nq" .
-
-<RMLSTC0006d> a test:TestCase;
-  dcterms:identifier "RMLSTC0006d";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "Friends.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "default.nq" .
-
-<RMLSTC0006e> a test:TestCase;
-  dcterms:identifier "RMLSTC0006e";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "Friends.json";
-      rmltest:inputType "JSON"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "default.nq" .
-
-# TODO  <RMLSTC0006f>
-
-<RMLSTC0007a> a test:TestCase;
-  dcterms:identifier "RMLSTC0007a";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "Friends.json";
-      rmltest:inputType "JSON"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "default.nq" .
-
-<RMLSTC0007b> a test:TestCase;
-  dcterms:identifier "RMLSTC0007b";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "Friends.csv";
-      rmltest:inputType "CSV"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "default.nq" .
-
-<RMLSTC0007c> a test:TestCase;
-  dcterms:identifier "RMLSTC0007c";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "Friends.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "default.nq" .
-
-<RMLSTC0007d> a test:TestCase;
-  dcterms:identifier "RMLSTC0007d";
-  rmltest:hasExpectedOutput true;
-  rmltest:input [
-      rmltest:inputFile "Friends.xml";
-      rmltest:inputType "XML"
-    ];
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output "default.nq" .
+<http://w3id.org/rml/io/test/RMLSTC0001a/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLSTC0001a/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLSTC0001a/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLSTC0001a/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLSTC0001a/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLSTC0001a/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLSTC0001a> <http://purl.org/dc/terms/identifier> "RMLSTC0001a" .
+<http://w3id.org/rml/io/test/RMLSTC0001a> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLSTC0001a> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLSTC0001a/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLSTC0001a> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLSTC0001a> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLSTC0001a/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLSTC0001a> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLSTC0001b/input/Friends-UTF16.json> <http://w3id.org/rml/test/input> "Friends-UTF16.json" .
+<http://w3id.org/rml/io/test/RMLSTC0001b/input/Friends-UTF16.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLSTC0001b/input/Friends-UTF16.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLSTC0001b/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLSTC0001b/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLSTC0001b/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLSTC0001b> <http://purl.org/dc/terms/identifier> "RMLSTC0001b" .
+<http://w3id.org/rml/io/test/RMLSTC0001b> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLSTC0001b> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLSTC0001b/input/Friends-UTF16.json> .
+<http://w3id.org/rml/io/test/RMLSTC0001b> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLSTC0001b> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLSTC0001b/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLSTC0001b> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLSTC0002a/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLSTC0002a/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLSTC0002a/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLSTC0002a/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLSTC0002a/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLSTC0002a/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLSTC0002a> <http://purl.org/dc/terms/identifier> "RMLSTC0002a" .
+<http://w3id.org/rml/io/test/RMLSTC0002a> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLSTC0002a> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLSTC0002a/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLSTC0002a> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLSTC0002a> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLSTC0002a/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLSTC0002a> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLSTC0002b/input/Friends.json.gz> <http://w3id.org/rml/test/input> "Friends.json.gz" .
+<http://w3id.org/rml/io/test/RMLSTC0002b/input/Friends.json.gz> <http://w3id.org/rml/test/inputFormat> "application/gzip+json" .
+<http://w3id.org/rml/io/test/RMLSTC0002b/input/Friends.json.gz> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLSTC0002b/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLSTC0002b/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLSTC0002b/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLSTC0002b> <http://purl.org/dc/terms/identifier> "RMLSTC0002b" .
+<http://w3id.org/rml/io/test/RMLSTC0002b> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLSTC0002b> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLSTC0002b/input/Friends.json.gz> .
+<http://w3id.org/rml/io/test/RMLSTC0002b> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLSTC0002b> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLSTC0002b/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLSTC0002b> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLSTC0002c/input/Friends.json.zip> <http://w3id.org/rml/test/input> "Friends.json.zip" .
+<http://w3id.org/rml/io/test/RMLSTC0002c/input/Friends.json.zip> <http://w3id.org/rml/test/inputFormat> "application/gzip+json" .
+<http://w3id.org/rml/io/test/RMLSTC0002c/input/Friends.json.zip> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLSTC0002c/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLSTC0002c/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLSTC0002c/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLSTC0002c> <http://purl.org/dc/terms/identifier> "RMLSTC0002c" .
+<http://w3id.org/rml/io/test/RMLSTC0002c> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLSTC0002c> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLSTC0002c/input/Friends.json.zip> .
+<http://w3id.org/rml/io/test/RMLSTC0002c> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLSTC0002c> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLSTC0002c/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLSTC0002c> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLSTC0002d/input/Friends.json.tar.xz> <http://w3id.org/rml/test/input> "Friends.json.tar.xz" .
+<http://w3id.org/rml/io/test/RMLSTC0002d/input/Friends.json.tar.xz> <http://w3id.org/rml/test/inputFormat> "application/tarxz+json" .
+<http://w3id.org/rml/io/test/RMLSTC0002d/input/Friends.json.tar.xz> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLSTC0002d/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLSTC0002d/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLSTC0002d/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLSTC0002d> <http://purl.org/dc/terms/identifier> "RMLSTC0002d" .
+<http://w3id.org/rml/io/test/RMLSTC0002d> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLSTC0002d> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLSTC0002d/input/Friends.json.tar.xz> .
+<http://w3id.org/rml/io/test/RMLSTC0002d> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLSTC0002d> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLSTC0002d/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLSTC0002d> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLSTC0002e/input/Friends.json.tar.gz> <http://w3id.org/rml/test/input> "Friends.json.tar.gz" .
+<http://w3id.org/rml/io/test/RMLSTC0002e/input/Friends.json.tar.gz> <http://w3id.org/rml/test/inputFormat> "application/targz+json" .
+<http://w3id.org/rml/io/test/RMLSTC0002e/input/Friends.json.tar.gz> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLSTC0002e/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLSTC0002e/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLSTC0002e/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLSTC0002e> <http://purl.org/dc/terms/identifier> "RMLSTC0002e" .
+<http://w3id.org/rml/io/test/RMLSTC0002e> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLSTC0002e> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLSTC0002e/input/Friends.json.tar.gz> .
+<http://w3id.org/rml/io/test/RMLSTC0002e> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLSTC0002e> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLSTC0002e/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLSTC0002e> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLSTC0003/input/Friends.nt> <http://w3id.org/rml/test/input> "Friends.nt" .
+<http://w3id.org/rml/io/test/RMLSTC0003/input/Friends.nt> <http://w3id.org/rml/test/inputFormat> "application/n-triples" .
+<http://w3id.org/rml/io/test/RMLSTC0003/input/Friends.nt> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLSTC0003/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLSTC0003/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLSTC0003/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLSTC0003> <http://purl.org/dc/terms/identifier> "RMLSTC0003" .
+<http://w3id.org/rml/io/test/RMLSTC0003> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLSTC0003> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLSTC0003/input/Friends.nt> .
+<http://w3id.org/rml/io/test/RMLSTC0003> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLSTC0003> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLSTC0003/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLSTC0003> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLSTC0004a/input/Friends-NULL.csv> <http://w3id.org/rml/test/input> "Friends-NULL.csv" .
+<http://w3id.org/rml/io/test/RMLSTC0004a/input/Friends-NULL.csv> <http://w3id.org/rml/test/inputFormat> "text/csv" .
+<http://w3id.org/rml/io/test/RMLSTC0004a/input/Friends-NULL.csv> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLSTC0004a/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLSTC0004a/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLSTC0004a/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLSTC0004a> <http://purl.org/dc/terms/identifier> "RMLSTC0004a" .
+<http://w3id.org/rml/io/test/RMLSTC0004a> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLSTC0004a> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLSTC0004a/input/Friends-NULL.csv> .
+<http://w3id.org/rml/io/test/RMLSTC0004a> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLSTC0004a> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLSTC0004a/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLSTC0004a> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLSTC0004b/input/Friends-NULL.csv> <http://w3id.org/rml/test/input> "Friends-NULL.csv" .
+<http://w3id.org/rml/io/test/RMLSTC0004b/input/Friends-NULL.csv> <http://w3id.org/rml/test/inputFormat> "text/csv" .
+<http://w3id.org/rml/io/test/RMLSTC0004b/input/Friends-NULL.csv> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLSTC0004b/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLSTC0004b/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLSTC0004b/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLSTC0004b> <http://purl.org/dc/terms/identifier> "RMLSTC0004b" .
+<http://w3id.org/rml/io/test/RMLSTC0004b> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLSTC0004b> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLSTC0004b/input/Friends-NULL.csv> .
+<http://w3id.org/rml/io/test/RMLSTC0004b> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLSTC0004b> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLSTC0004b/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLSTC0004b> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLSTC0004c/input/Friends-NULL.csv> <http://w3id.org/rml/test/input> "Friends-NULL.csv" .
+<http://w3id.org/rml/io/test/RMLSTC0004c/input/Friends-NULL.csv> <http://w3id.org/rml/test/inputFormat> "text/csv" .
+<http://w3id.org/rml/io/test/RMLSTC0004c/input/Friends-NULL.csv> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLSTC0004c/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLSTC0004c/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLSTC0004c/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLSTC0004c> <http://purl.org/dc/terms/identifier> "RMLSTC0004c" .
+<http://w3id.org/rml/io/test/RMLSTC0004c> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLSTC0004c> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLSTC0004c/input/Friends-NULL.csv> .
+<http://w3id.org/rml/io/test/RMLSTC0004c> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLSTC0004c> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLSTC0004c/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLSTC0004c> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLSTC0006a/input/Friends.csv> <http://w3id.org/rml/test/input> "Friends.csv" .
+<http://w3id.org/rml/io/test/RMLSTC0006a/input/Friends.csv> <http://w3id.org/rml/test/inputFormat> "text/csv" .
+<http://w3id.org/rml/io/test/RMLSTC0006a/input/Friends.csv> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLSTC0006a/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLSTC0006a/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLSTC0006a/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLSTC0006a> <http://purl.org/dc/terms/identifier> "RMLSTC0006a" .
+<http://w3id.org/rml/io/test/RMLSTC0006a> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLSTC0006a> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLSTC0006a/input/Friends.csv> .
+<http://w3id.org/rml/io/test/RMLSTC0006a> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLSTC0006a> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLSTC0006a/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLSTC0006a> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLSTC0006b/input/Friends.csv> <http://w3id.org/rml/test/input> "Friends.csv" .
+<http://w3id.org/rml/io/test/RMLSTC0006b/input/Friends.csv> <http://w3id.org/rml/test/inputFormat> "text/csv" .
+<http://w3id.org/rml/io/test/RMLSTC0006b/input/Friends.csv> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLSTC0006b/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLSTC0006b/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLSTC0006b/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLSTC0006b> <http://purl.org/dc/terms/identifier> "RMLSTC0006b" .
+<http://w3id.org/rml/io/test/RMLSTC0006b> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLSTC0006b> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLSTC0006b/input/Friends.csv> .
+<http://w3id.org/rml/io/test/RMLSTC0006b> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLSTC0006b> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLSTC0006b/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLSTC0006b> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLSTC0007a/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLSTC0007a/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLSTC0007a/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLSTC0007a/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLSTC0007a/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLSTC0007a/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLSTC0007a> <http://purl.org/dc/terms/identifier> "RMLSTC0007a" .
+<http://w3id.org/rml/io/test/RMLSTC0007a> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLSTC0007a> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLSTC0007a/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLSTC0007a> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLSTC0007a> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLSTC0007a/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLSTC0007a> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLSTC0007b/input/Friends.csv> <http://w3id.org/rml/test/input> "Friends.csv" .
+<http://w3id.org/rml/io/test/RMLSTC0007b/input/Friends.csv> <http://w3id.org/rml/test/inputFormat> "text/csv" .
+<http://w3id.org/rml/io/test/RMLSTC0007b/input/Friends.csv> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLSTC0007b/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLSTC0007b/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLSTC0007b/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLSTC0007b> <http://purl.org/dc/terms/identifier> "RMLSTC0007b" .
+<http://w3id.org/rml/io/test/RMLSTC0007b> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLSTC0007b> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLSTC0007b/input/Friends.csv> .
+<http://w3id.org/rml/io/test/RMLSTC0007b> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLSTC0007b> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLSTC0007b/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLSTC0007b> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLSTC0007c/input/Friends.xml> <http://w3id.org/rml/test/input> "Friends.xml" .
+<http://w3id.org/rml/io/test/RMLSTC0007c/input/Friends.xml> <http://w3id.org/rml/test/inputFormat> "text/xml" .
+<http://w3id.org/rml/io/test/RMLSTC0007c/input/Friends.xml> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLSTC0007c/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLSTC0007c/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLSTC0007c/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLSTC0007c> <http://purl.org/dc/terms/identifier> "RMLSTC0007c" .
+<http://w3id.org/rml/io/test/RMLSTC0007c> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLSTC0007c> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLSTC0007c/input/Friends.xml> .
+<http://w3id.org/rml/io/test/RMLSTC0007c> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLSTC0007c> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLSTC0007c/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLSTC0007c> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLSTC0007d/input/Friends.xml> <http://w3id.org/rml/test/input> "Friends.xml" .
+<http://w3id.org/rml/io/test/RMLSTC0007d/input/Friends.xml> <http://w3id.org/rml/test/inputFormat> "text/xml" .
+<http://w3id.org/rml/io/test/RMLSTC0007d/input/Friends.xml> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLSTC0007d/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLSTC0007d/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLSTC0007d/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLSTC0007d> <http://purl.org/dc/terms/identifier> "RMLSTC0007d" .
+<http://w3id.org/rml/io/test/RMLSTC0007d> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLSTC0007d> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLSTC0007d/input/Friends.xml> .
+<http://w3id.org/rml/io/test/RMLSTC0007d> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLSTC0007d> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLSTC0007d/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLSTC0007d> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLSTC0008a/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLSTC0008a/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLSTC0008a/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLSTC0008a/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLSTC0008a/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLSTC0008a/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLSTC0008a> <http://purl.org/dc/terms/identifier> "RMLSTC0008a" .
+<http://w3id.org/rml/io/test/RMLSTC0008a> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLSTC0008a> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLSTC0008a/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLSTC0008a> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLSTC0008a> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLSTC0008a/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLSTC0008a> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLSTC0008b/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLSTC0008b/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLSTC0008b/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLSTC0008b/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLSTC0008b/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLSTC0008b/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLSTC0008b> <http://purl.org/dc/terms/identifier> "RMLSTC0008b" .
+<http://w3id.org/rml/io/test/RMLSTC0008b> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLSTC0008b> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLSTC0008b/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLSTC0008b> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLSTC0008b> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLSTC0008b/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLSTC0008b> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLSTC0009a/input/Friends.csv> <http://w3id.org/rml/test/input> "Friends.csv" .
+<http://w3id.org/rml/io/test/RMLSTC0009a/input/Friends.csv> <http://w3id.org/rml/test/inputFormat> "text/csv" .
+<http://w3id.org/rml/io/test/RMLSTC0009a/input/Friends.csv> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLSTC0009a> <http://purl.org/dc/terms/identifier> "RMLSTC0009a" .
+<http://w3id.org/rml/io/test/RMLSTC0009a> <http://w3id.org/rml/test/hasError> "true"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLSTC0009a> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLSTC0009a/input/Friends.csv> .
+<http://w3id.org/rml/io/test/RMLSTC0009a> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLSTC0009a> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLSTC0010a/input/Friends.csv> <http://w3id.org/rml/test/input> "Friends.csv" .
+<http://w3id.org/rml/io/test/RMLSTC0010a/input/Friends.csv> <http://w3id.org/rml/test/inputFormat> "text/csv" .
+<http://w3id.org/rml/io/test/RMLSTC0010a/input/Friends.csv> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLSTC0010a> <http://purl.org/dc/terms/identifier> "RMLSTC0010a" .
+<http://w3id.org/rml/io/test/RMLSTC0010a> <http://w3id.org/rml/test/hasError> "true"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLSTC0010a> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLSTC0010a/input/Friends.csv> .
+<http://w3id.org/rml/io/test/RMLSTC0010a> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLSTC0010a> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLSTC0010b/input/Friends.csv> <http://w3id.org/rml/test/input> "Friends.csv" .
+<http://w3id.org/rml/io/test/RMLSTC0010b/input/Friends.csv> <http://w3id.org/rml/test/inputFormat> "text/csv" .
+<http://w3id.org/rml/io/test/RMLSTC0010b/input/Friends.csv> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLSTC0010b> <http://purl.org/dc/terms/identifier> "RMLSTC0010b" .
+<http://w3id.org/rml/io/test/RMLSTC0010b> <http://w3id.org/rml/test/hasError> "true"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLSTC0010b> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLSTC0010b/input/Friends.csv> .
+<http://w3id.org/rml/io/test/RMLSTC0010b> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLSTC0010b> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLSTC0011a/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0011a%2FFriends.json> <http://w3id.org/rml/test/input> "http://w3id.org/rml/resources/rml-io/RMLSTC0011a/Friends.json" .
+<http://w3id.org/rml/io/test/RMLSTC0011a/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0011a%2FFriends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLSTC0011a/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0011a%2FFriends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLSTC0011a/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLSTC0011a/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLSTC0011a/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLSTC0011a> <http://purl.org/dc/terms/identifier> "RMLSTC0011a" .
+<http://w3id.org/rml/io/test/RMLSTC0011a> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLSTC0011a> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLSTC0011a/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0011a%2FFriends.json> .
+<http://w3id.org/rml/io/test/RMLSTC0011a> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLSTC0011a> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLSTC0011a/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLSTC0011a> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLSTC0011b/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0011b%2FFriends.json> <http://w3id.org/rml/test/input> "http://w3id.org/rml/resources/rml-io/RMLSTC0011b/Friends.json" .
+<http://w3id.org/rml/io/test/RMLSTC0011b/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0011b%2FFriends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLSTC0011b/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0011b%2FFriends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLSTC0011b/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLSTC0011b/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLSTC0011b/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLSTC0011b> <http://purl.org/dc/terms/identifier> "RMLSTC0011b" .
+<http://w3id.org/rml/io/test/RMLSTC0011b> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLSTC0011b> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLSTC0011b/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0011b%2FFriends.json> .
+<http://w3id.org/rml/io/test/RMLSTC0011b> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLSTC0011b> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLSTC0011b/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLSTC0011b> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLSTC0011c/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0011c%2FFriends.json> <http://w3id.org/rml/test/input> "http://w3id.org/rml/resources/rml-io/RMLSTC0011c/Friends.json" .
+<http://w3id.org/rml/io/test/RMLSTC0011c/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0011c%2FFriends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLSTC0011c/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0011c%2FFriends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLSTC0011c/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLSTC0011c/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLSTC0011c/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLSTC0011c> <http://purl.org/dc/terms/identifier> "RMLSTC0011c" .
+<http://w3id.org/rml/io/test/RMLSTC0011c> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLSTC0011c> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLSTC0011c/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0011c%2FFriends.json> .
+<http://w3id.org/rml/io/test/RMLSTC0011c> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLSTC0011c> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLSTC0011c/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLSTC0011c> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLSTC0011d/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0011d%2FFriends.json> <http://w3id.org/rml/test/input> "http://w3id.org/rml/resources/rml-io/RMLSTC0011d/Friends.json" .
+<http://w3id.org/rml/io/test/RMLSTC0011d/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0011d%2FFriends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLSTC0011d/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0011d%2FFriends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLSTC0011d/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLSTC0011d/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLSTC0011d/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLSTC0011d> <http://purl.org/dc/terms/identifier> "RMLSTC0011d" .
+<http://w3id.org/rml/io/test/RMLSTC0011d> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLSTC0011d> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLSTC0011d/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0011d%2FFriends.json> .
+<http://w3id.org/rml/io/test/RMLSTC0011d> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLSTC0011d> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLSTC0011d/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLSTC0011d> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLSTC0011e/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0011e%2FFriends.json> <http://w3id.org/rml/test/input> "http://w3id.org/rml/resources/rml-io/RMLSTC0011e/Friends.json" .
+<http://w3id.org/rml/io/test/RMLSTC0011e/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0011e%2FFriends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLSTC0011e/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0011e%2FFriends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLSTC0011e/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLSTC0011e/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLSTC0011e/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLSTC0011e> <http://purl.org/dc/terms/identifier> "RMLSTC0011e" .
+<http://w3id.org/rml/io/test/RMLSTC0011e> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLSTC0011e> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLSTC0011e/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0011e%2FFriends.json> .
+<http://w3id.org/rml/io/test/RMLSTC0011e> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLSTC0011e> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLSTC0011e/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLSTC0011e> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLSTC0012a/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0012a%2FFriends.json> <http://w3id.org/rml/test/input> "http://w3id.org/rml/resources/rml-io/RMLSTC0012a/Friends.json" .
+<http://w3id.org/rml/io/test/RMLSTC0012a/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0012a%2FFriends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLSTC0012a/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0012a%2FFriends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLSTC0012a/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLSTC0012a/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLSTC0012a/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLSTC0012a> <http://purl.org/dc/terms/identifier> "RMLSTC0012a" .
+<http://w3id.org/rml/io/test/RMLSTC0012a> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLSTC0012a> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLSTC0012a/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0012a%2FFriends.json> .
+<http://w3id.org/rml/io/test/RMLSTC0012a> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLSTC0012a> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLSTC0012a/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLSTC0012a> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLSTC0012b/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0012b%2FFriends.json> <http://w3id.org/rml/test/input> "http://w3id.org/rml/resources/rml-io/RMLSTC0012b/Friends.json" .
+<http://w3id.org/rml/io/test/RMLSTC0012b/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0012b%2FFriends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLSTC0012b/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0012b%2FFriends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLSTC0012b/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLSTC0012b/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLSTC0012b/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLSTC0012b> <http://purl.org/dc/terms/identifier> "RMLSTC0012b" .
+<http://w3id.org/rml/io/test/RMLSTC0012b> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLSTC0012b> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLSTC0012b/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0012b%2FFriends.json> .
+<http://w3id.org/rml/io/test/RMLSTC0012b> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLSTC0012b> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLSTC0012b/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLSTC0012b> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLSTC0012c/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0012c%2FFriends.json> <http://w3id.org/rml/test/input> "http://w3id.org/rml/resources/rml-io/RMLSTC0012c/Friends.json" .
+<http://w3id.org/rml/io/test/RMLSTC0012c/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0012c%2FFriends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLSTC0012c/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0012c%2FFriends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLSTC0012c/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLSTC0012c/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLSTC0012c/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLSTC0012c> <http://purl.org/dc/terms/identifier> "RMLSTC0012c" .
+<http://w3id.org/rml/io/test/RMLSTC0012c> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLSTC0012c> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLSTC0012c/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0012c%2FFriends.json> .
+<http://w3id.org/rml/io/test/RMLSTC0012c> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLSTC0012c> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLSTC0012c/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLSTC0012c> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLSTC0012d/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0012d%2FFriends.json> <http://w3id.org/rml/test/input> "http://w3id.org/rml/resources/rml-io/RMLSTC0012d/Friends.json" .
+<http://w3id.org/rml/io/test/RMLSTC0012d/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0012d%2FFriends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLSTC0012d/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0012d%2FFriends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLSTC0012d/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLSTC0012d/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLSTC0012d/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLSTC0012d> <http://purl.org/dc/terms/identifier> "RMLSTC0012d" .
+<http://w3id.org/rml/io/test/RMLSTC0012d> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLSTC0012d> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLSTC0012d/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0012d%2FFriends.json> .
+<http://w3id.org/rml/io/test/RMLSTC0012d> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLSTC0012d> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLSTC0012d/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLSTC0012d> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLSTC0012e/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0012e%2FFriends.json> <http://w3id.org/rml/test/input> "http://w3id.org/rml/resources/rml-io/RMLSTC0012e/Friends.json" .
+<http://w3id.org/rml/io/test/RMLSTC0012e/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0012e%2FFriends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLSTC0012e/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0012e%2FFriends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLSTC0012e/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLSTC0012e/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLSTC0012e/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLSTC0012e> <http://purl.org/dc/terms/identifier> "RMLSTC0012e" .
+<http://w3id.org/rml/io/test/RMLSTC0012e> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLSTC0012e> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLSTC0012e/input/http%3A%2F%2Fw3id.org%2Frml%2Fresources%2Frml-io%2FRMLSTC0012e%2FFriends.json> .
+<http://w3id.org/rml/io/test/RMLSTC0012e> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLSTC0012e> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLSTC0012e/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLSTC0012e> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0000/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0000/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0000/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0000/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0000/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0000/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0000> <http://purl.org/dc/terms/identifier> "RMLTTC0000" .
+<http://w3id.org/rml/io/test/RMLTTC0000> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0000> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0000/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0000> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0000> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0000/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0000> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0001a/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0001a/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0001a/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0001a/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0001a/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0001a/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0001a/output/dump1.nq> <http://w3id.org/rml/test/output> "dump1.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0001a/output/dump1.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0001a/output/dump1.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0001a> <http://purl.org/dc/terms/identifier> "RMLTTC0001a" .
+<http://w3id.org/rml/io/test/RMLTTC0001a> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0001a> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0001a/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0001a> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0001a> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0001a/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0001a> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0001a/output/dump1.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0001a> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0001b/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0001b/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0001b/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0001b/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0001b/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0001b/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0001b/output/dump1.nq> <http://w3id.org/rml/test/output> "dump1.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0001b/output/dump1.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0001b/output/dump1.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0001b> <http://purl.org/dc/terms/identifier> "RMLTTC0001b" .
+<http://w3id.org/rml/io/test/RMLTTC0001b> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0001b> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0001b/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0001b> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0001b> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0001b/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0001b> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0001b/output/dump1.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0001b> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0001c/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0001c/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0001c/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0001c/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0001c/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0001c/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0001c/output/dump1.nq> <http://w3id.org/rml/test/output> "dump1.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0001c/output/dump1.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0001c/output/dump1.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0001c> <http://purl.org/dc/terms/identifier> "RMLTTC0001c" .
+<http://w3id.org/rml/io/test/RMLTTC0001c> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0001c> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0001c/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0001c> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0001c> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0001c/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0001c> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0001c/output/dump1.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0001c> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0001d/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0001d/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0001d/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0001d/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0001d/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0001d/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0001d/output/dump1.nq> <http://w3id.org/rml/test/output> "dump1.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0001d/output/dump1.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0001d/output/dump1.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0001d> <http://purl.org/dc/terms/identifier> "RMLTTC0001d" .
+<http://w3id.org/rml/io/test/RMLTTC0001d> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0001d> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0001d/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0001d> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0001d> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0001d/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0001d> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0001d/output/dump1.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0001d> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0001e/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0001e/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0001e/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0001e/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0001e/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0001e/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0001e/output/dump1.nq> <http://w3id.org/rml/test/output> "dump1.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0001e/output/dump1.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0001e/output/dump1.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0001e> <http://purl.org/dc/terms/identifier> "RMLTTC0001e" .
+<http://w3id.org/rml/io/test/RMLTTC0001e> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0001e> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0001e/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0001e> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0001e> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0001e/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0001e> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0001e/output/dump1.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0001e> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0001f/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0001f/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0001f/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0001f/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0001f/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0001f/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0001f/output/dump1.nq> <http://w3id.org/rml/test/output> "dump1.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0001f/output/dump1.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0001f/output/dump1.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0001f> <http://purl.org/dc/terms/identifier> "RMLTTC0001f" .
+<http://w3id.org/rml/io/test/RMLTTC0001f> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0001f> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0001f/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0001f> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0001f> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0001f/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0001f> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0001f/output/dump1.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0001f> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0002a/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0002a/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0002a/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0002a/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002a/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002a/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002a/output/dump1.nq> <http://w3id.org/rml/test/output> "dump1.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002a/output/dump1.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002a/output/dump1.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002a/output/dump2.nq> <http://w3id.org/rml/test/output> "dump2.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002a/output/dump2.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002a/output/dump2.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002a> <http://purl.org/dc/terms/identifier> "RMLTTC0002a" .
+<http://w3id.org/rml/io/test/RMLTTC0002a> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0002a> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0002a/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0002a> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0002a> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002a/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002a> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002a/output/dump1.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002a> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002a/output/dump2.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002a> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0002b/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0002b/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0002b/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0002b/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002b/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002b/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002b/output/dump1.nq> <http://w3id.org/rml/test/output> "dump1.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002b/output/dump1.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002b/output/dump1.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002b/output/dump2.nq> <http://w3id.org/rml/test/output> "dump2.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002b/output/dump2.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002b/output/dump2.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002b> <http://purl.org/dc/terms/identifier> "RMLTTC0002b" .
+<http://w3id.org/rml/io/test/RMLTTC0002b> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0002b> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0002b/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0002b> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0002b> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002b/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002b> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002b/output/dump1.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002b> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002b/output/dump2.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002b> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0002c/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0002c/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0002c/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0002c/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002c/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002c/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002c/output/dump1.nq> <http://w3id.org/rml/test/output> "dump1.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002c/output/dump1.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002c/output/dump1.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002c/output/dump2.nq> <http://w3id.org/rml/test/output> "dump2.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002c/output/dump2.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002c/output/dump2.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002c> <http://purl.org/dc/terms/identifier> "RMLTTC0002c" .
+<http://w3id.org/rml/io/test/RMLTTC0002c> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0002c> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0002c/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0002c> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0002c> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002c/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002c> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002c/output/dump1.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002c> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002c/output/dump2.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002c> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0002d/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0002d/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0002d/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0002d/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002d/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002d/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002d/output/dump1.nq> <http://w3id.org/rml/test/output> "dump1.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002d/output/dump1.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002d/output/dump1.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002d/output/dump2.nq> <http://w3id.org/rml/test/output> "dump2.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002d/output/dump2.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002d/output/dump2.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002d> <http://purl.org/dc/terms/identifier> "RMLTTC0002d" .
+<http://w3id.org/rml/io/test/RMLTTC0002d> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0002d> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0002d/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0002d> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0002d> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002d/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002d> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002d/output/dump1.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002d> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002d/output/dump2.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002d> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0002e/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0002e/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0002e/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0002e/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002e/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002e/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002e/output/dump1.nq> <http://w3id.org/rml/test/output> "dump1.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002e/output/dump1.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002e/output/dump1.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002e/output/dump2.nq> <http://w3id.org/rml/test/output> "dump2.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002e/output/dump2.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002e/output/dump2.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002e> <http://purl.org/dc/terms/identifier> "RMLTTC0002e" .
+<http://w3id.org/rml/io/test/RMLTTC0002e> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0002e> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0002e/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0002e> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0002e> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002e/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002e> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002e/output/dump1.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002e> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002e/output/dump2.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002e> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0002f/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0002f/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0002f/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0002f/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002f/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002f/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002f/output/dump1.nq> <http://w3id.org/rml/test/output> "dump1.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002f/output/dump1.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002f/output/dump1.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002f/output/dump2.nq> <http://w3id.org/rml/test/output> "dump2.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002f/output/dump2.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002f/output/dump2.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002f> <http://purl.org/dc/terms/identifier> "RMLTTC0002f" .
+<http://w3id.org/rml/io/test/RMLTTC0002f> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0002f> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0002f/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0002f> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0002f> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002f/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002f> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002f/output/dump1.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002f> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002f/output/dump2.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002f> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0002g/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0002g/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0002g/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0002g/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002g/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002g/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002g/output/dump1.nq> <http://w3id.org/rml/test/output> "dump1.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002g/output/dump1.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002g/output/dump1.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002g/output/dump2.nq> <http://w3id.org/rml/test/output> "dump2.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002g/output/dump2.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002g/output/dump2.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002g> <http://purl.org/dc/terms/identifier> "RMLTTC0002g" .
+<http://w3id.org/rml/io/test/RMLTTC0002g> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0002g> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0002g/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0002g> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0002g> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002g/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002g> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002g/output/dump1.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002g> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002g/output/dump2.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002g> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0002h/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0002h/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0002h/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0002h/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002h/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002h/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002h/output/dump1.nq> <http://w3id.org/rml/test/output> "dump1.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002h/output/dump1.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002h/output/dump1.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002h/output/dump2.nq> <http://w3id.org/rml/test/output> "dump2.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002h/output/dump2.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002h/output/dump2.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002h> <http://purl.org/dc/terms/identifier> "RMLTTC0002h" .
+<http://w3id.org/rml/io/test/RMLTTC0002h> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0002h> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0002h/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0002h> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0002h> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002h/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002h> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002h/output/dump1.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002h> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002h/output/dump2.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002h> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0002i/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0002i/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0002i/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0002i/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002i/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002i/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002i/output/dump1.nq> <http://w3id.org/rml/test/output> "dump1.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002i/output/dump1.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002i/output/dump1.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002i/output/dump2.nq> <http://w3id.org/rml/test/output> "dump2.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002i/output/dump2.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002i/output/dump2.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002i> <http://purl.org/dc/terms/identifier> "RMLTTC0002i" .
+<http://w3id.org/rml/io/test/RMLTTC0002i> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0002i> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0002i/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0002i> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0002i> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002i/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002i> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002i/output/dump1.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002i> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002i/output/dump2.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002i> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0002j/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0002j/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0002j/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0002j/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002j/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002j/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002j/output/dump1.nq> <http://w3id.org/rml/test/output> "dump1.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002j/output/dump1.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002j/output/dump1.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002j/output/dump2.nq> <http://w3id.org/rml/test/output> "dump2.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002j/output/dump2.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002j/output/dump2.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002j> <http://purl.org/dc/terms/identifier> "RMLTTC0002j" .
+<http://w3id.org/rml/io/test/RMLTTC0002j> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0002j> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0002j/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0002j> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0002j> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002j/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002j> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002j/output/dump1.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002j> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002j/output/dump2.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002j> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0002k/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0002k/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0002k/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0002k/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002k/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002k/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002k/output/dump1.nq> <http://w3id.org/rml/test/output> "dump1.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002k/output/dump1.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002k/output/dump1.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002k/output/dump2.nq> <http://w3id.org/rml/test/output> "dump2.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002k/output/dump2.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002k/output/dump2.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002k> <http://purl.org/dc/terms/identifier> "RMLTTC0002k" .
+<http://w3id.org/rml/io/test/RMLTTC0002k> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0002k> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0002k/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0002k> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0002k> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002k/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002k> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002k/output/dump1.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002k> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002k/output/dump2.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002k> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0002l/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0002l/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0002l/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0002l/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002l/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002l/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002l/output/dump1.nq> <http://w3id.org/rml/test/output> "dump1.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002l/output/dump1.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002l/output/dump1.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002l/output/dump2.nq> <http://w3id.org/rml/test/output> "dump2.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002l/output/dump2.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002l/output/dump2.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002l> <http://purl.org/dc/terms/identifier> "RMLTTC0002l" .
+<http://w3id.org/rml/io/test/RMLTTC0002l> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0002l> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0002l/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0002l> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0002l> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002l/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002l> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002l/output/dump1.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002l> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002l/output/dump2.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002l> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0002m/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0002m/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0002m/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0002m/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002m/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002m/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002m/output/dump1.nq> <http://w3id.org/rml/test/output> "dump1.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002m/output/dump1.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002m/output/dump1.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002m/output/dump2.nq> <http://w3id.org/rml/test/output> "dump2.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002m/output/dump2.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002m/output/dump2.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002m> <http://purl.org/dc/terms/identifier> "RMLTTC0002m" .
+<http://w3id.org/rml/io/test/RMLTTC0002m> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0002m> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0002m/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0002m> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0002m> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002m/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002m> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002m/output/dump1.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002m> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002m/output/dump2.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002m> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0002n/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0002n/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0002n/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0002n/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002n/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002n/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002n/output/dump1.nq> <http://w3id.org/rml/test/output> "dump1.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002n/output/dump1.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002n/output/dump1.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002n/output/dump2.nq> <http://w3id.org/rml/test/output> "dump2.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002n/output/dump2.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002n/output/dump2.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002n> <http://purl.org/dc/terms/identifier> "RMLTTC0002n" .
+<http://w3id.org/rml/io/test/RMLTTC0002n> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0002n> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0002n/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0002n> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0002n> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002n/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002n> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002n/output/dump1.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002n> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002n/output/dump2.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002n> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0002o/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0002o/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0002o/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0002o/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002o/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002o/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002o/output/dump1.nq> <http://w3id.org/rml/test/output> "dump1.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002o/output/dump1.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002o/output/dump1.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002o/output/dump2.nq> <http://w3id.org/rml/test/output> "dump2.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002o/output/dump2.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002o/output/dump2.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002o> <http://purl.org/dc/terms/identifier> "RMLTTC0002o" .
+<http://w3id.org/rml/io/test/RMLTTC0002o> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0002o> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0002o/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0002o> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0002o> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002o/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002o> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002o/output/dump1.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002o> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002o/output/dump2.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002o> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0002p/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0002p/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0002p/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0002p/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002p/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002p/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002p/output/dump1.nq> <http://w3id.org/rml/test/output> "dump1.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002p/output/dump1.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002p/output/dump1.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002p/output/dump2.nq> <http://w3id.org/rml/test/output> "dump2.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002p/output/dump2.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002p/output/dump2.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002p> <http://purl.org/dc/terms/identifier> "RMLTTC0002p" .
+<http://w3id.org/rml/io/test/RMLTTC0002p> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0002p> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0002p/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0002p> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0002p> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002p/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002p> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002p/output/dump1.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002p> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002p/output/dump2.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002p> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0002q/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0002q/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0002q/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0002q/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002q/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002q/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002q/output/dump1.nq> <http://w3id.org/rml/test/output> "dump1.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002q/output/dump1.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002q/output/dump1.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002q/output/dump2.nq> <http://w3id.org/rml/test/output> "dump2.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002q/output/dump2.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002q/output/dump2.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002q> <http://purl.org/dc/terms/identifier> "RMLTTC0002q" .
+<http://w3id.org/rml/io/test/RMLTTC0002q> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0002q> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0002q/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0002q> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0002q> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002q/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002q> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002q/output/dump1.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002q> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002q/output/dump2.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002q> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0002r/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0002r/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0002r/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0002r/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002r/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002r/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002r/output/dump1.nq> <http://w3id.org/rml/test/output> "dump1.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0002r/output/dump1.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0002r/output/dump1.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0002r> <http://purl.org/dc/terms/identifier> "RMLTTC0002r" .
+<http://w3id.org/rml/io/test/RMLTTC0002r> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0002r> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0002r/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0002r> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0002r> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002r/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002r> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0002r/output/dump1.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0002r> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0003a/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0003a/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0003a/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0003a/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0003a/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0003a/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0003a/output/dump1.nq> <http://w3id.org/rml/test/output> "dump1.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0003a/output/dump1.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0003a/output/dump1.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0003a/output/dump2.nq> <http://w3id.org/rml/test/output> "dump2.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0003a/output/dump2.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0003a/output/dump2.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0003a> <http://purl.org/dc/terms/identifier> "RMLTTC0003a" .
+<http://w3id.org/rml/io/test/RMLTTC0003a> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0003a> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0003a/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0003a> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0003a> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0003a/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0003a> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0003a/output/dump1.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0003a> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0003a/output/dump2.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0003a> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0004a/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0004a/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0004a/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0004a/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0004a/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0004a/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0004a/output/dump1.jsonld> <http://w3id.org/rml/test/output> "dump1.jsonld" .
+<http://w3id.org/rml/io/test/RMLTTC0004a/output/dump1.jsonld> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0004a/output/dump1.jsonld> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0004a> <http://purl.org/dc/terms/identifier> "RMLTTC0004a" .
+<http://w3id.org/rml/io/test/RMLTTC0004a> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0004a> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0004a/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0004a> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0004a> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0004a/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0004a> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0004a/output/dump1.jsonld> .
+<http://w3id.org/rml/io/test/RMLTTC0004a> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0004b/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0004b/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0004b/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0004b/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0004b/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0004b/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0004b/output/dump1.n3> <http://w3id.org/rml/test/output> "dump1.n3" .
+<http://w3id.org/rml/io/test/RMLTTC0004b/output/dump1.n3> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0004b/output/dump1.n3> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0004b> <http://purl.org/dc/terms/identifier> "RMLTTC0004b" .
+<http://w3id.org/rml/io/test/RMLTTC0004b> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0004b> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0004b/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0004b> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0004b> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0004b/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0004b> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0004b/output/dump1.n3> .
+<http://w3id.org/rml/io/test/RMLTTC0004b> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0004c/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0004c/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0004c/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0004c/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0004c/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0004c/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0004c/output/dump1.nt> <http://w3id.org/rml/test/output> "dump1.nt" .
+<http://w3id.org/rml/io/test/RMLTTC0004c/output/dump1.nt> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0004c/output/dump1.nt> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0004c> <http://purl.org/dc/terms/identifier> "RMLTTC0004c" .
+<http://w3id.org/rml/io/test/RMLTTC0004c> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0004c> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0004c/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0004c> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0004c> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0004c/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0004c> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0004c/output/dump1.nt> .
+<http://w3id.org/rml/io/test/RMLTTC0004c> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0004d/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0004d/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0004d/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0004d/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0004d/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0004d/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0004d/output/dump1.nq> <http://w3id.org/rml/test/output> "dump1.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0004d/output/dump1.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0004d/output/dump1.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0004d> <http://purl.org/dc/terms/identifier> "RMLTTC0004d" .
+<http://w3id.org/rml/io/test/RMLTTC0004d> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0004d> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0004d/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0004d> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0004d> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0004d/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0004d> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0004d/output/dump1.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0004d> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0004e/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0004e/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0004e/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0004e/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0004e/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0004e/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0004e/output/dump1.rdfjson> <http://w3id.org/rml/test/output> "dump1.rdfjson" .
+<http://w3id.org/rml/io/test/RMLTTC0004e/output/dump1.rdfjson> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0004e/output/dump1.rdfjson> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0004e> <http://purl.org/dc/terms/identifier> "RMLTTC0004e" .
+<http://w3id.org/rml/io/test/RMLTTC0004e> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0004e> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0004e/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0004e> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0004e> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0004e/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0004e> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0004e/output/dump1.rdfjson> .
+<http://w3id.org/rml/io/test/RMLTTC0004e> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0004f/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0004f/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0004f/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0004f/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0004f/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0004f/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0004f/output/dump1.rdfxml> <http://w3id.org/rml/test/output> "dump1.rdfxml" .
+<http://w3id.org/rml/io/test/RMLTTC0004f/output/dump1.rdfxml> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0004f/output/dump1.rdfxml> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0004f> <http://purl.org/dc/terms/identifier> "RMLTTC0004f" .
+<http://w3id.org/rml/io/test/RMLTTC0004f> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0004f> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0004f/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0004f> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0004f> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0004f/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0004f> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0004f/output/dump1.rdfxml> .
+<http://w3id.org/rml/io/test/RMLTTC0004f> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0004g/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0004g/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0004g/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0004g/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0004g/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0004g/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0004g/output/dump1.ttl> <http://w3id.org/rml/test/output> "dump1.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0004g/output/dump1.ttl> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0004g/output/dump1.ttl> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0004g> <http://purl.org/dc/terms/identifier> "RMLTTC0004g" .
+<http://w3id.org/rml/io/test/RMLTTC0004g> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0004g> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0004g/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0004g> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0004g> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0004g/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0004g> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0004g/output/dump1.ttl> .
+<http://w3id.org/rml/io/test/RMLTTC0004g> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0005a/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0005a/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0005a/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0005a/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0005a/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0005a/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0005a/output/dump1.nq> <http://w3id.org/rml/test/output> "dump1.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0005a/output/dump1.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0005a/output/dump1.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0005a> <http://purl.org/dc/terms/identifier> "RMLTTC0005a" .
+<http://w3id.org/rml/io/test/RMLTTC0005a> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0005a> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0005a/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0005a> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0005a> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0005a/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0005a> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0005a/output/dump1.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0005a> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0005b/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0005b/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0005b/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0005b/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0005b/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0005b/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0005b/output/dump1.nq> <http://w3id.org/rml/test/output> "dump1.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0005b/output/dump1.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0005b/output/dump1.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0005b> <http://purl.org/dc/terms/identifier> "RMLTTC0005b" .
+<http://w3id.org/rml/io/test/RMLTTC0005b> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0005b> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0005b/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0005b> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0005b> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0005b/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0005b> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0005b/output/dump1.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0005b> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0006a/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0006a/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0006a/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0006a/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0006a/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0006a/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0006a/output/dump1.nq> <http://w3id.org/rml/test/output> "dump1.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0006a/output/dump1.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0006a/output/dump1.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0006a> <http://purl.org/dc/terms/identifier> "RMLTTC0006a" .
+<http://w3id.org/rml/io/test/RMLTTC0006a> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0006a> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0006a/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0006a> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0006a> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0006a/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0006a> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0006a/output/dump1.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0006a> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0006b/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0006b/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0006b/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0006b/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0006b/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0006b/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0006b/output/dump1.nq.gz> <http://w3id.org/rml/test/output> "dump1.nq.gz" .
+<http://w3id.org/rml/io/test/RMLTTC0006b/output/dump1.nq.gz> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0006b/output/dump1.nq.gz> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0006b> <http://purl.org/dc/terms/identifier> "RMLTTC0006b" .
+<http://w3id.org/rml/io/test/RMLTTC0006b> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0006b> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0006b/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0006b> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0006b> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0006b/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0006b> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0006b/output/dump1.nq.gz> .
+<http://w3id.org/rml/io/test/RMLTTC0006b> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0006c/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0006c/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0006c/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0006c/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0006c/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0006c/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0006c/output/dump1.nq.zip> <http://w3id.org/rml/test/output> "dump1.nq.zip" .
+<http://w3id.org/rml/io/test/RMLTTC0006c/output/dump1.nq.zip> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0006c/output/dump1.nq.zip> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0006c> <http://purl.org/dc/terms/identifier> "RMLTTC0006c" .
+<http://w3id.org/rml/io/test/RMLTTC0006c> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0006c> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0006c/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0006c> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0006c> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0006c/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0006c> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0006c/output/dump1.nq.zip> .
+<http://w3id.org/rml/io/test/RMLTTC0006c> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0006d/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0006d/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0006d/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0006d/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0006d/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0006d/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0006d/output/dump1.nq.tar.xz> <http://w3id.org/rml/test/output> "dump1.nq.tar.xz" .
+<http://w3id.org/rml/io/test/RMLTTC0006d/output/dump1.nq.tar.xz> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0006d/output/dump1.nq.tar.xz> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0006d> <http://purl.org/dc/terms/identifier> "RMLTTC0006d" .
+<http://w3id.org/rml/io/test/RMLTTC0006d> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0006d> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0006d/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0006d> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0006d> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0006d/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0006d> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0006d/output/dump1.nq.tar.xz> .
+<http://w3id.org/rml/io/test/RMLTTC0006d> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0006e/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0006e/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0006e/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0006e/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0006e/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0006e/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0006e/output/dump1.nq.tar.gz> <http://w3id.org/rml/test/output> "dump1.nq.tar.gz" .
+<http://w3id.org/rml/io/test/RMLTTC0006e/output/dump1.nq.tar.gz> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0006e/output/dump1.nq.tar.gz> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0006e> <http://purl.org/dc/terms/identifier> "RMLTTC0006e" .
+<http://w3id.org/rml/io/test/RMLTTC0006e> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0006e> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0006e/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0006e> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0006e> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0006e/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0006e> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0006e/output/dump1.nq.tar.gz> .
+<http://w3id.org/rml/io/test/RMLTTC0006e> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/io/test/RMLTTC0007a/input/Friends.json> <http://w3id.org/rml/test/input> "Friends.json" .
+<http://w3id.org/rml/io/test/RMLTTC0007a/input/Friends.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/io/test/RMLTTC0007a/input/Friends.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/io/test/RMLTTC0007a/output/default.nq> <http://w3id.org/rml/test/output> "default.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0007a/output/default.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0007a/output/default.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0007a/output/dump1.nq> <http://w3id.org/rml/test/output> "dump1.nq" .
+<http://w3id.org/rml/io/test/RMLTTC0007a/output/dump1.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/io/test/RMLTTC0007a/output/dump1.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/io/test/RMLTTC0007a> <http://purl.org/dc/terms/identifier> "RMLTTC0007a" .
+<http://w3id.org/rml/io/test/RMLTTC0007a> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/io/test/RMLTTC0007a> <http://w3id.org/rml/test/input> <http://w3id.org/rml/io/test/RMLTTC0007a/input/Friends.json> .
+<http://w3id.org/rml/io/test/RMLTTC0007a> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/io/test/RMLTTC0007a> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0007a/output/default.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0007a> <http://w3id.org/rml/test/output> <http://w3id.org/rml/io/test/RMLTTC0007a/output/dump1.nq> .
+<http://w3id.org/rml/io/test/RMLTTC0007a> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .

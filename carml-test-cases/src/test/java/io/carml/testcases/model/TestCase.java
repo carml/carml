@@ -10,6 +10,7 @@ import java.util.Set;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.Singular;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
@@ -26,11 +27,13 @@ public class TestCase extends CarmlResource {
 
     private String identifier;
 
-    private boolean hasExpectedOutput;
+    private boolean hasError;
 
-    private Input input;
+    @Singular
+    private Set<Input> inputs;
 
-    private String output;
+    @Singular
+    private Set<String> outputs;
 
     private String mappingDocument;
 
@@ -39,20 +42,20 @@ public class TestCase extends CarmlResource {
         return identifier;
     }
 
-    @RdfProperty("http://w3id.org/rml/test/hasExpectedOutput")
-    public boolean hasExpectedOutput() {
-        return hasExpectedOutput;
+    @RdfProperty("http://w3id.org/rml/test/hasError")
+    public boolean hasError() {
+        return hasError;
     }
 
     @RdfProperty("http://w3id.org/rml/test/input")
     @RdfType(Input.class)
-    public Input getInput() {
-        return input;
+    public Set<Input> getInputs() {
+        return inputs;
     }
 
-    @RdfProperty("http://w3id.org/rml/test/output")
-    public String getOutput() {
-        return output;
+    @RdfProperty(value = "http://w3id.org/rml/test/output", handler = IriFilenamePropertyHandler.class)
+    public Set<String> getOutputs() {
+        return outputs;
     }
 
     @RdfProperty("http://w3id.org/rml/test/mappingDocument")
@@ -62,8 +65,8 @@ public class TestCase extends CarmlResource {
 
     @Override
     public Set<Resource> getReferencedResources() {
-        if (input != null) {
-            return Set.of(input);
+        if (inputs != null && !inputs.isEmpty()) {
+            return Set.copyOf(inputs);
         }
 
         return Set.of();
@@ -77,16 +80,14 @@ public class TestCase extends CarmlResource {
             modelBuilder.add(DCTERMS.IDENTIFIER, identifier);
         }
 
-        if (hasExpectedOutput) {
-            modelBuilder.add(iri("http://w3id.org/rml/test/hasExpectedOutput"), hasExpectedOutput);
+        modelBuilder.add(iri("http://w3id.org/rml/test/hasError"), hasError);
+
+        if (inputs != null) {
+            inputs.forEach(input -> modelBuilder.add(iri("http://w3id.org/rml/test/input"), input.getAsResource()));
         }
 
-        if (input != null) {
-            modelBuilder.add(iri("http://w3id.org/rml/test/input"), input.getAsResource());
-        }
-
-        if (output != null) {
-            modelBuilder.add(iri("http://w3id.org/rml/test/output"), output);
+        if (outputs != null) {
+            outputs.forEach(output -> modelBuilder.add(iri("http://w3id.org/rml/test/output"), output));
         }
 
         if (mappingDocument != null) {

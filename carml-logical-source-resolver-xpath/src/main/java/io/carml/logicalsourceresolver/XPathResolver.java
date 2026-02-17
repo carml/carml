@@ -233,7 +233,7 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
             @Override
             public void onNodeHit(Expression expression, NodeItem nodeItem) {
                 var logicalSource = logicalSourceByExpression.get(expression.getXPath());
-                sink.next(LogicalSourceRecord.of(logicalSource, docBuilder.wrap(nodeItem.xml)));
+                sink.next(LogicalSourceRecord.of(logicalSource, (XdmItem) docBuilder.wrap(nodeItem.xml)));
                 var outstanding = outstandingRequests.decrementAndGet();
                 checkReaderToPause(outstanding, pausableReader);
             }
@@ -249,7 +249,7 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
             @Override
             public void onResult(Expression expression, Object object) {
                 var logicalSource = logicalSourceByExpression.get(expression.getXPath());
-                sink.next(LogicalSourceRecord.of(logicalSource, docBuilder.wrap(object)));
+                sink.next(LogicalSourceRecord.of(logicalSource, (XdmItem) docBuilder.wrap(object)));
                 var outstanding = outstandingRequests.decrementAndGet();
                 checkReaderToPause(outstanding, pausableReader);
             }
@@ -277,7 +277,7 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
             selector.setContextItem(xdmItem);
             var value = selector.evaluate();
 
-            if (value.isEmpty()) {
+            if (value.isEmptySequence()) {
                 return Flux.empty();
             }
 
@@ -309,7 +309,7 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
                         }
                     });
                     return Optional.of(results);
-                } else if (value.isEmpty()) {
+                } else if (value.isEmptySequence()) {
                     return Optional.empty();
                 }
 
