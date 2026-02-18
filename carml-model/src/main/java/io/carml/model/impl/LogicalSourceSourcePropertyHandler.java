@@ -44,7 +44,7 @@ public class LogicalSourceSourcePropertyHandler implements PropertyHandler {
         Value object = objects.iterator().next();
 
         if (object instanceof Literal) {
-            return Optional.of(CarmlRelativePathSource.of(object.stringValue()));
+            return Optional.of(CarmlFilePath.of(object.stringValue()));
         }
 
         // map 'object' to some complex type

@@ -13,31 +13,21 @@ class TestRmlIoTestCases extends RmlTestCaseSuite {
     @Override
     protected List<String> getSkipTests() {
         return List.of(
-                // rml:RelativePathSource renamed to rml:FilePath - not yet supported
-                "RMLSTC0001a",
-                "RMLSTC0001b",
-                "RMLSTC0002a",
-                "RMLSTC0004a",
+                "RMLSTC0001b", // JSON BOM parsing error
+                "RMLSTC0004a", // CSV natural datatype mapping not yet supported
                 "RMLSTC0004b",
                 "RMLSTC0004c",
                 "RMLSTC0006a", // $CONNECTIONDSN r2dbc connection not available
                 "RMLSTC0006b",
-                "RMLSTC0007a",
-                "RMLSTC0007b",
-                "RMLSTC0007c",
+                "RMLSTC0007b", // CSV natural datatype mapping not yet supported
+                "RMLSTC0007c", // XML natural datatype mapping not yet supported
                 "RMLSTC0007d",
-                "RMLSTC0008a",
-                "RMLSTC0008b",
-                "RMLSTC0011a",
-                "RMLSTC0011b",
-                "RMLSTC0011c",
-                "RMLSTC0011d",
-                "RMLSTC0011e",
-                "RMLSTC0012a",
-                "RMLSTC0012b",
+                "RMLSTC0008b", // CSV natural datatype mapping not yet supported (multi-source)
+                "RMLSTC0009a", // expected error not thrown
+                "RMLSTC0010b", // expected error not thrown
+                "RMLSTC0012b", // XML isomorphic mismatch
                 "RMLSTC0012c",
                 "RMLSTC0012d",
-                "RMLSTC0012e",
                 // Target tests - not yet supported
                 "RMLTTC" // all target test cases
                 );

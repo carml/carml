@@ -2,7 +2,7 @@ package io.carml.logicalsourceresolver.sourceresolver.aspects;
 
 import com.google.auto.service.AutoService;
 import io.carml.logicalsourceresolver.sourceresolver.PathRelativeTo;
-import io.carml.model.RelativePathSource;
+import io.carml.model.FilePath;
 import io.carml.model.Source;
 import io.carml.vocab.Rdf.Rml;
 import java.nio.file.Path;
@@ -11,7 +11,7 @@ import java.util.function.Function;
 import org.eclipse.rdf4j.model.Literal;
 
 @AutoService(FileSourceAspects.class)
-public class RelativePathSourceAspects extends AbstractFileSourceAspects {
+public class FilePathAspects extends AbstractFileSourceAspects {
 
     @Override
     public int getPriority() {
@@ -20,14 +20,14 @@ public class RelativePathSourceAspects extends AbstractFileSourceAspects {
 
     @Override
     public boolean supportsSource(Source source) {
-        return source instanceof RelativePathSource;
+        return source instanceof FilePath;
     }
 
     @Override
     public Optional<Function<Source, Optional<Path>>> getBasePath() {
         return Optional.of(source -> {
-            if (source instanceof RelativePathSource relativePathSource) {
-                var root = relativePathSource.getRoot();
+            if (source instanceof FilePath filePath) {
+                var root = filePath.getRoot();
                 if (root instanceof Literal literalRoot) {
                     return Optional.of(Path.of(literalRoot.stringValue()));
                 }
@@ -40,8 +40,8 @@ public class RelativePathSourceAspects extends AbstractFileSourceAspects {
     @Override
     public Optional<Function<Source, Optional<PathRelativeTo>>> getPathRelativeTo() {
         return Optional.of(source -> {
-            if (source instanceof RelativePathSource relativePathSource) {
-                var root = relativePathSource.getRoot();
+            if (source instanceof FilePath filePath) {
+                var root = filePath.getRoot();
                 if (root == null || root.equals(Rml.CurrentWorkingDirectory)) {
                     return Optional.of(PathRelativeTo.WORKING_DIRECTORY);
                 }
@@ -57,8 +57,8 @@ public class RelativePathSourceAspects extends AbstractFileSourceAspects {
     @Override
     public Optional<Function<Source, Optional<String>>> getPathString() {
         return Optional.of(source -> {
-            if (source instanceof RelativePathSource relativePathSource) {
-                return Optional.of(relativePathSource.getPath());
+            if (source instanceof FilePath filePath) {
+                return Optional.of(filePath.getPath());
             }
 
             return Optional.empty();

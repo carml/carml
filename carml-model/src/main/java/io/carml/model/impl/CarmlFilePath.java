@@ -1,6 +1,6 @@
 package io.carml.model.impl;
 
-import io.carml.model.RelativePathSource;
+import io.carml.model.FilePath;
 import io.carml.model.Resource;
 import io.carml.rdfmapper.annotations.RdfProperty;
 import io.carml.vocab.Rdf;
@@ -19,10 +19,10 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @NoArgsConstructor
 @Setter
 @ToString(callSuper = true)
-public class CarmlRelativePathSource extends CarmlSource implements RelativePathSource {
+public class CarmlFilePath extends CarmlSource implements FilePath {
 
-    public static CarmlRelativePathSource of(String path) {
-        return CarmlRelativePathSource.builder().path(path).build();
+    public static CarmlFilePath of(String path) {
+        return CarmlFilePath.builder().path(path).build();
     }
 
     private Value root;
@@ -48,7 +48,7 @@ public class CarmlRelativePathSource extends CarmlSource implements RelativePath
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof RelativePathSource other) {
+        if (obj instanceof FilePath other) {
             return super.equalsSource(other)
                     && Objects.equals(root, other.getRoot())
                     && Objects.equals(path, other.getPath());
@@ -64,7 +64,7 @@ public class CarmlRelativePathSource extends CarmlSource implements RelativePath
 
     @Override
     public void addTriples(ModelBuilder modelBuilder) {
-        modelBuilder.subject(getAsResource()).add(RDF.TYPE, Rdf.Rml.RelativePathSource);
+        modelBuilder.subject(getAsResource()).add(RDF.TYPE, Rdf.Rml.FilePath);
         super.addTriplesBase(modelBuilder);
 
         if (root != null) {

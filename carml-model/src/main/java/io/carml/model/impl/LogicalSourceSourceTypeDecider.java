@@ -32,7 +32,7 @@ public class LogicalSourceSourceTypeDecider implements TypeDecider {
             Carml.declaresNamespace, Carml.XmlDocument,
             Carml.url, Carml.FileSource,
             D2rq.jdbcDriver, D2rq.Database,
-            Rml.path, Rml.RelativePathSource,
+            Rml.path, Rml.FilePath,
             DCAT.ACCESS_URL, DCAT.DISTRIBUTION,
             DCAT.DOWNLOAD_URL, DCAT.DISTRIBUTION,
             Csvw.url, Csvw.Table,

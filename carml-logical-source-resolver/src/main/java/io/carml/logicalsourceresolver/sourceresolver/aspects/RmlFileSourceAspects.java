@@ -2,7 +2,7 @@ package io.carml.logicalsourceresolver.sourceresolver.aspects;
 
 import com.google.auto.service.AutoService;
 import io.carml.model.DcatDistribution;
-import io.carml.model.RelativePathSource;
+import io.carml.model.FilePath;
 import io.carml.model.Source;
 import java.util.Optional;
 import java.util.function.Function;
@@ -23,6 +23,6 @@ public class RmlFileSourceAspects extends AbstractFileSourceAspects {
 
     @Override
     public boolean supportsSource(Source source) {
-        return source instanceof DcatDistribution || source instanceof RelativePathSource;
+        return source instanceof DcatDistribution || source instanceof FilePath;
     }
 }

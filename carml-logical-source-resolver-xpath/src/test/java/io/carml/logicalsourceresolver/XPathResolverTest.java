@@ -12,8 +12,8 @@ import io.carml.logicalsourceresolver.LogicalSourceResolver.LogicalSourceResolve
 import io.carml.model.LogicalSource;
 import io.carml.model.Source;
 import io.carml.model.XPathReferenceFormulation;
+import io.carml.model.impl.CarmlFilePath;
 import io.carml.model.impl.CarmlLogicalSource;
-import io.carml.model.impl.CarmlRelativePathSource;
 import io.carml.util.RmlMappingLoader;
 import io.carml.util.TypeRef;
 import io.carml.vocab.Rdf.Rml;
@@ -38,7 +38,7 @@ class XPathResolverTest {
     public static final XPathReferenceFormulation XPATH =
             XPathReferenceFormulation.builder().id(Rml.XPath.stringValue()).build();
 
-    private static final Source RML_SOURCE = CarmlRelativePathSource.of("foo");
+    private static final Source RML_SOURCE = CarmlFilePath.of("foo");
 
     private static final String BOOK_ONE = //
             "<book category=\"cooking &amp; food\">" //

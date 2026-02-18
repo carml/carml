@@ -169,6 +169,9 @@ public class Rdf {
 
         public static final IRI Firebird = iri("Firebird");
 
+        public static final IRI FilePath = iri("FilePath");
+
+        @Deprecated
         public static final IRI RelativePathSource = iri("RelativePathSource");
 
         public static final IRI root = iri("root");

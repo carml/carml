@@ -10,7 +10,7 @@ import static org.mockito.Mockito.when;
 import io.carml.logicalsourceresolver.ResolvedSource;
 import io.carml.model.Mapping;
 import io.carml.model.impl.CarmlDcatDistribution;
-import io.carml.model.impl.CarmlRelativePathSource;
+import io.carml.model.impl.CarmlFilePath;
 import io.carml.vocab.Rdf.Rml;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -188,8 +188,7 @@ class InternalFileResolverTest {
     void givenPathStringAndPathRelativeToMappingDir_whenResolve_thenReturnExpected(@TempDir Path tempDir) {
         // Given
         createTestFile(tempDir, "input.csv");
-        var source =
-                CarmlRelativePathSource.builder().root(Rml.MappingDirectory).build();
+        var source = CarmlFilePath.builder().root(Rml.MappingDirectory).build();
         var mapping = Mapping.builder()
                 .mappingFilePath(tempDir.resolve("mapping.ttl"))
                 .build();
@@ -220,8 +219,7 @@ class InternalFileResolverTest {
     void givenPathStringAndPathRelativeToMappingDirButNoMappingPath_whenResolve_thenThrowException(
             @TempDir Path tempDir, @TempDir Path tempDir2) {
         // Given
-        var source =
-                CarmlRelativePathSource.builder().root(Rml.MappingDirectory).build();
+        var source = CarmlFilePath.builder().root(Rml.MappingDirectory).build();
         var mapping = Mapping.builder()
                 .mappingFilePath(tempDir.resolve("mapping.ttl"))
                 .mappingFilePath(tempDir2.resolve("mapping.ttl"))
@@ -244,8 +242,7 @@ class InternalFileResolverTest {
     @SuppressWarnings("ReactiveStreamsUnusedPublisher")
     void givenPathStringAndPathRelativeToMappingDirWithMultipleMappingPath_whenResolve_thenThrowException() {
         // Given
-        var source =
-                CarmlRelativePathSource.builder().root(Rml.MappingDirectory).build();
+        var source = CarmlFilePath.builder().root(Rml.MappingDirectory).build();
         var mapping = Mapping.builder().build();
         var resolver = InternalFileResolver.builder()
                 .pathString("input.csv")
@@ -262,9 +259,7 @@ class InternalFileResolverTest {
     @Test
     void givenPathStringAndPathRelativeToWorkingDir_whenResolve_thenReturnExpected() {
         // Given
-        var source = CarmlRelativePathSource.builder()
-                .root(Rml.CurrentWorkingDirectory)
-                .build();
+        var source = CarmlFilePath.builder().root(Rml.CurrentWorkingDirectory).build();
         var mapping = Mapping.builder().build();
         var resolver = InternalFileResolver.builder()
                 .pathString("src/test/resources/emptyBaseInput.csv")
@@ -291,9 +286,7 @@ class InternalFileResolverTest {
     @Test
     void givenAbsolutePathStringAndPathRelativeToWorkingDir_whenResolve_thenReturnExpected() {
         // Given
-        var source = CarmlRelativePathSource.builder()
-                .root(Rml.CurrentWorkingDirectory)
-                .build();
+        var source = CarmlFilePath.builder().root(Rml.CurrentWorkingDirectory).build();
         var mapping = Mapping.builder().build();
         var resolver = InternalFileResolver.builder()
                 .pathString("/src/test/resources/emptyBaseInput.csv")
@@ -320,7 +313,7 @@ class InternalFileResolverTest {
     @Test
     void givenPathStringOnly_whenResolve_thenReturnExpected() {
         // Given
-        var source = CarmlRelativePathSource.builder().build();
+        var source = CarmlFilePath.builder().build();
         var mapping = Mapping.builder().build();
         var resolver = InternalFileResolver.builder()
                 .pathString("/src/test/resources/emptyBaseInput.csv")
