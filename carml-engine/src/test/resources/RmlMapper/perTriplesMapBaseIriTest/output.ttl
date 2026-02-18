@@ -1,0 +1,13 @@
+@prefix ex: <http://example.com/ns#> .
+
+# TriplesMap1: baseIRI override to http://override.example/
+<http://override.example/Bob> ex:lname "Smith" .
+<http://override.example/Sue> ex:lname "Jones" .
+
+# TriplesMap2: no baseIRI, falls back to mapper default http://example.org/
+<http://example.org/Smith> ex:fname "Bob" .
+<http://example.org/Jones> ex:fname "Sue" .
+
+# TriplesMap3: baseIRI set but template produces absolute IRIs, so baseIRI is not prepended
+<http://absolute.example/Bob> ex:lname "Smith" .
+<http://absolute.example/Sue> ex:lname "Jones" .

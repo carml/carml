@@ -41,6 +41,8 @@ public class Rml {
 
     public static final String TriplesMap = NAMESPACE + "TriplesMap";
 
+    public static final String baseIRI = NAMESPACE + "baseIRI";
+
     public static final String SubjectMap = NAMESPACE + "SubjectMap";
 
     public static final String PredicateMap = NAMESPACE + "PredicateMap";

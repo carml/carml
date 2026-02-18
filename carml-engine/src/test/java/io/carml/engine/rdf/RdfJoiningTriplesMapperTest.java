@@ -131,6 +131,7 @@ class RdfJoiningTriplesMapperTest {
     void givenAllParams_whenOfCalled_thenReturnRdfJoiningTripleMapper() {
         // Given
         var rdfMapperConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
                 .childSideJoinStoreProvider(childSideJoinStoreProvider)
@@ -180,6 +181,7 @@ class RdfJoiningTriplesMapperTest {
         when(subjectGenerator.apply(any(), any())).thenReturn(List.of());
 
         var rdfMapperConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
                 .childSideJoinStoreProvider(childSideJoinStoreProvider)
@@ -235,6 +237,7 @@ class RdfJoiningTriplesMapperTest {
                 .thenReturn(List.of(RdfMappedValue.of(graph1), RdfMappedValue.of(Rml.defaultGraph)));
 
         var rdfMapperConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(() -> getValueFactory())
                 .termGeneratorFactory(rdfTermGeneratorFactory)
                 .childSideJoinStoreProvider(childSideJoinStoreProvider)

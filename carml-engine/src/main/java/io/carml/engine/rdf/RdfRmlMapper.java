@@ -50,7 +50,7 @@ import reactor.core.publisher.Flux;
 @Slf4j
 public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
 
-    private static final IRI RML_BASE_IRI = iri("http://example.com/base/");
+    private static final IRI RML_BASE_IRI = iri("http://example.org/");
 
     private static final long SECONDS_TO_TIMEOUT = 30;
 
@@ -100,7 +100,8 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
 
         /**
          * Sets the base IRI used in resolving relative IRIs produced by RML mappings.<br>
-         * If not set, the base IRI will default to <code>"http://example.com/base/"</code>.
+         * If not set, the base IRI will default to <code>"http://example.org/"</code> per the RML-Core spec.
+         * Individual TriplesMap base IRIs (via <code>rml:baseIRI</code>) take precedence when present.
          *
          * @param baseIriString the base IRI String
          * @return {@link Builder}
@@ -111,7 +112,8 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
 
         /**
          * Sets the base IRI used in resolving relative IRIs produced by RML mappings.<br>
-         * If not set, the base IRI will default to <code>&lt;http://example.com/base/&gt;</code>.
+         * If not set, the base IRI will default to <code>&lt;http://example.org/&gt;</code> per the RML-Core spec.
+         * Individual TriplesMap base IRIs (via <code>rml:baseIRI</code>) take precedence when present.
          *
          * @param baseIri the base IRI
          * @return {@link Builder}
@@ -239,6 +241,7 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
             var rdfMapperConfig = RdfMapperConfig.builder()
                     .valueFactorySupplier(valueFactorySupplier)
                     .termGeneratorFactory(termGeneratorFactory)
+                    .rdfTermGeneratorConfig(rdfTermGeneratorConfig)
                     .childSideJoinStoreProvider(childSideJoinCacheProvider)
                     .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                     .build();

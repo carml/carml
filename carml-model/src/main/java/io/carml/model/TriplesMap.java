@@ -3,12 +3,15 @@ package io.carml.model;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.eclipse.rdf4j.model.IRI;
 
 public interface TriplesMap extends Resource {
 
     LogicalSource getLogicalSource();
 
     LogicalTable getLogicalTable();
+
+    IRI getBaseIri();
 
     Set<SubjectMap> getSubjectMaps();
 

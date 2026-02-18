@@ -13,6 +13,7 @@ import lombok.Setter;
 import lombok.Singular;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
+import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
 import org.eclipse.rdf4j.model.vocabulary.DCTERMS;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
@@ -28,6 +29,8 @@ public class TestCase extends CarmlResource {
     private String identifier;
 
     private boolean hasError;
+
+    private IRI defaultBaseIri;
 
     @Singular
     private Set<Input> inputs;
@@ -45,6 +48,11 @@ public class TestCase extends CarmlResource {
     @RdfProperty("http://w3id.org/rml/test/hasError")
     public boolean hasError() {
         return hasError;
+    }
+
+    @RdfProperty("http://w3id.org/rml/test/defaultBaseIRI")
+    public IRI getDefaultBaseIri() {
+        return defaultBaseIri;
     }
 
     @RdfProperty("http://w3id.org/rml/test/input")
@@ -88,6 +96,10 @@ public class TestCase extends CarmlResource {
 
         if (outputs != null) {
             outputs.forEach(output -> modelBuilder.add(iri("http://w3id.org/rml/test/output"), output));
+        }
+
+        if (defaultBaseIri != null) {
+            modelBuilder.add(iri("http://w3id.org/rml/test/defaultBaseIRI"), defaultBaseIri);
         }
 
         if (mappingDocument != null) {

@@ -60,7 +60,7 @@ class RdfTermGeneratorFactoryTest {
     @BeforeEach
     void beforeEach() {
         var rdfTermGeneratorConfig = RdfTermGeneratorConfig.builder()
-                .baseIri(iri("http://example.com/base/"))
+                .baseIri(iri("http://example.org/"))
                 .valueFactory(SimpleValueFactory.getInstance())
                 .normalizationForm(Normalizer.Form.NFC)
                 .build();
@@ -178,7 +178,7 @@ class RdfTermGeneratorFactoryTest {
                         "foo",
                         List.of("bar"),
                         null,
-                        List.of(RdfMappedValue.of(iri("http://example.com/base/bar")))),
+                        List.of(RdfMappedValue.of(iri("http://example.org/bar")))),
                 Arguments.of(
                         CarmlSubjectMap.builder()
                                 .reference("foo")
@@ -249,7 +249,7 @@ class RdfTermGeneratorFactoryTest {
                         "foo",
                         List.of("bar"),
                         null,
-                        List.of(RdfMappedValue.of(iri("http://example.com/base/bar")))));
+                        List.of(RdfMappedValue.of(iri("http://example.org/bar")))));
     }
 
     @ParameterizedTest

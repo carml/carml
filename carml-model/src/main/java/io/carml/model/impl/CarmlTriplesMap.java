@@ -20,6 +20,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.Singular;
 import lombok.experimental.SuperBuilder;
+import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 
@@ -33,11 +34,19 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap {
 
     private LogicalTable logicalTable;
 
+    private IRI baseIri;
+
     @Singular
     private Set<SubjectMap> subjectMaps;
 
     @Singular
     private Set<PredicateObjectMap> predicateObjectMaps;
+
+    @RdfProperty(Rml.baseIRI)
+    @Override
+    public IRI getBaseIri() {
+        return baseIri;
+    }
 
     @RdfProperty(Rml.logicalSource)
     @RdfProperty(OldRml.logicalSource)
@@ -74,6 +83,7 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap {
     public String toString() {
         return new StringJoiner(String.format(",%s", System.lineSeparator()), "CarmlTriplesMap(", ")")
                 .add(String.format("super=%s", super.toString()))
+                .add(String.format("baseIri=%s", baseIri))
                 .add(String.format("logicalSource=%s", logicalSource))
                 .add(String.format("logicalTable=%s", logicalTable))
                 .add(String.format("subjectMaps=%s", subjectMaps))
@@ -96,6 +106,9 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap {
     @Override
     public void addTriples(ModelBuilder modelBuilder) {
         modelBuilder.subject(getAsResource()).add(RDF.TYPE, Rdf.Rml.TriplesMap);
+        if (baseIri != null) {
+            modelBuilder.add(Rdf.Rml.baseIRI, baseIri);
+        }
         if (logicalSource != null) {
             modelBuilder.add(Rdf.Rml.logicalSource, logicalSource.getAsResource());
         }

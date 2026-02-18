@@ -186,6 +186,7 @@ class RdfTriplesMapperTest {
     void givenTriplesMapWithLogicalTable_whenOfCalled_thenConstructRdfTriplesMapper() {
         // Given
         RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
                 .childSideJoinStoreProvider(childSideJoinStoreProvider)
@@ -211,6 +212,7 @@ class RdfTriplesMapperTest {
         when(triplesMap2.getLogicalTable()).thenReturn(logicalTable);
 
         var rdfMapperConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
                 .childSideJoinStoreProvider(childSideJoinStoreProvider)
@@ -265,6 +267,7 @@ class RdfTriplesMapperTest {
         when(subjectMap.getClasses()).thenReturn(Set.of(class1));
 
         var rdfMapperConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
                 .childSideJoinStoreProvider(childSideJoinStoreProvider)
@@ -291,6 +294,7 @@ class RdfTriplesMapperTest {
         when(subjectGenerator.apply(any(), any())).thenReturn(List.of());
 
         var rdfMapperConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
                 .childSideJoinStoreProvider(childSideJoinStoreProvider)
@@ -337,6 +341,7 @@ class RdfTriplesMapperTest {
                 .thenReturn(List.of(RdfMappedValue.of(graph1), RdfMappedValue.of(Rml.defaultGraph)));
 
         var rdfMapperConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
                 .childSideJoinStoreProvider(childSideJoinStoreProvider)
@@ -404,6 +409,7 @@ class RdfTriplesMapperTest {
         when(graphGenerator3.apply(any(), any())).thenReturn(List.of(RdfMappedValue.of(graph1)));
 
         var rdfMapperConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
                 .childSideJoinStoreProvider(childSideJoinStoreProvider)
@@ -462,6 +468,7 @@ class RdfTriplesMapperTest {
         when(expressionEvaluation.apply(any())).thenReturn(Optional.of(List.of("baz")));
 
         var rdfMapperConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
                 .childSideJoinStoreProvider(childSideJoinStoreProvider)
@@ -512,6 +519,7 @@ class RdfTriplesMapperTest {
         when(expressionEvaluation.apply(any())).thenReturn(Optional.of(List.of("baz")));
 
         var rdfMapperConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
                 .childSideJoinStoreProvider(childSideJoinStoreProvider)

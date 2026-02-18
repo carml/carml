@@ -15,6 +15,7 @@ import io.carml.util.RmlMappingLoader;
 import java.io.InputStream;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -51,6 +52,10 @@ public abstract class RmlTestCaseSuite {
     protected abstract String getBasePath();
 
     protected abstract List<String> getSkipTests();
+
+    protected Optional<IRI> getBaseIri() {
+        return Optional.empty();
+    }
 
     Stream<Arguments> populateTestCases() {
         var manifest = RmlTestCaseSuite.class.getResourceAsStream(String.format("%s/manifest.ttl", getBasePath()));
@@ -92,6 +97,7 @@ public abstract class RmlTestCaseSuite {
 
     protected Model executeMapping(TestCase testCase, String testCaseIdentifier) {
         var mapperBuilder = RdfRmlMapper.builder().valueFactorySupplier(ValidatingValueFactory::new);
+        Optional.ofNullable(testCase.getDefaultBaseIri()).or(this::getBaseIri).ifPresent(mapperBuilder::baseIri);
 
         var mappingStream =
                 getTestCaseFileInputStream(getBasePath(), testCaseIdentifier, testCase.getMappingDocument());

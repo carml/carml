@@ -1,0 +1,52 @@
+@prefix rml: <http://w3id.org/rml/> .
+@prefix ex: <http://example.com/ns#> .
+
+<http://example.com/base/TriplesMap1> a rml:TriplesMap;
+  rml:baseIRI <http://override.example/> ;
+  rml:logicalSource [
+    rml:source "perTriplesMapBaseIriTest/persons.json" ;
+    rml:referenceFormulation rml:JSONPath ;
+    rml:iterator "$.persons[*]"
+  ] ;
+  rml:subjectMap [
+    rml:template "{$.fname}"
+  ] ;
+  rml:predicateObjectMap [
+    rml:predicate ex:lname ;
+    rml:objectMap [
+      rml:reference "$.lname"
+    ]
+  ] .
+
+<http://example.com/base/TriplesMap2> a rml:TriplesMap;
+  rml:logicalSource [
+    rml:source "perTriplesMapBaseIriTest/persons.json" ;
+    rml:referenceFormulation rml:JSONPath ;
+    rml:iterator "$.persons[*]"
+  ] ;
+  rml:subjectMap [
+    rml:template "{$.lname}"
+  ] ;
+  rml:predicateObjectMap [
+    rml:predicate ex:fname ;
+    rml:objectMap [
+      rml:reference "$.fname"
+    ]
+  ] .
+
+<http://example.com/base/TriplesMap3> a rml:TriplesMap;
+  rml:baseIRI <http://override.example/> ;
+  rml:logicalSource [
+    rml:source "perTriplesMapBaseIriTest/persons.json" ;
+    rml:referenceFormulation rml:JSONPath ;
+    rml:iterator "$.persons[*]"
+  ] ;
+  rml:subjectMap [
+    rml:template "http://absolute.example/{$.fname}"
+  ] ;
+  rml:predicateObjectMap [
+    rml:predicate ex:lname ;
+    rml:objectMap [
+      rml:reference "$.lname"
+    ]
+  ] .

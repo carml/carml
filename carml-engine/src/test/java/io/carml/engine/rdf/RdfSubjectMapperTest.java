@@ -76,6 +76,7 @@ class RdfSubjectMapperTest {
         // Given
         when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
         RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
                 .childSideJoinStoreProvider(childSideJoinStoreProvider)
@@ -111,6 +112,7 @@ class RdfSubjectMapperTest {
         // Given
         when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
         RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
                 .childSideJoinStoreProvider(childSideJoinStoreProvider)
@@ -151,6 +153,7 @@ class RdfSubjectMapperTest {
         when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
 
         RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
                 .childSideJoinStoreProvider(childSideJoinStoreProvider)
@@ -176,6 +179,7 @@ class RdfSubjectMapperTest {
         when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
 
         RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
                 .childSideJoinStoreProvider(childSideJoinStoreProvider)
@@ -206,6 +210,7 @@ class RdfSubjectMapperTest {
         when(subjectMap.getClasses()).thenReturn(Set.of(class1, class2));
 
         RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
                 .childSideJoinStoreProvider(childSideJoinStoreProvider)
@@ -250,6 +255,7 @@ class RdfSubjectMapperTest {
         when(graphGenerator2.apply(any(), any())).thenReturn(List.of(mappedGraph21, mappedGraph22));
 
         RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
                 .childSideJoinStoreProvider(childSideJoinStoreProvider)
@@ -307,6 +313,7 @@ class RdfSubjectMapperTest {
         when(graphGenerator2.apply(any(), any())).thenReturn(List.of(mappedGraph21, mappedDefaultGraph));
 
         RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
                 .childSideJoinStoreProvider(childSideJoinStoreProvider)

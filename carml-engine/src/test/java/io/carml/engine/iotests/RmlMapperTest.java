@@ -256,6 +256,14 @@ class RmlMapperTest extends MappingTester {
     }
 
     @Test
+    void testPerTriplesMapBaseIri() {
+        testMapping(
+                "RmlMapper",
+                "/RmlMapper/perTriplesMapBaseIriTest/mapping.rml.ttl",
+                "/RmlMapper/perTriplesMapBaseIriTest/output.ttl");
+    }
+
+    @Test
     void testMappingWithNullReference() {
         testMapping(
                 "RmlMapper",

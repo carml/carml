@@ -87,7 +87,7 @@ RdfRmlMapper mapper = RdfRmlMapper.builder()
     .setLogicalSourceResolver(Rdf.Ql.Csv, CsvResolver::getInstance)
     //-- optional: --
     // specify base IRI to use for relative IRIs in mapping results
-    // default is "http://example.com/base/"
+    // default is "http://example.org/"
     .baseIri("http://foo.bar")
     // specify IRI unicode normalization form (default = NFC)
     // see http://www.unicode.org/unicode/reports/tr15/tr15-23.html

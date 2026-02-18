@@ -44,6 +44,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Statement;
 
 @Slf4j
@@ -69,6 +70,8 @@ public class RdfMappingPipelineFactory {
                     .filter(rom -> !rom.getJoinConditions().isEmpty() && !rom.isSelfJoining(triplesMap))
                     .forEach(rom -> {
                         if (!isTableJoiningRefObjectMap(rom, triplesMap)) {
+                            // RdfRefObjectMapper only uses join store and value factory from config,
+                            // not the termGeneratorFactory, so no per-TriplesMap baseIRI override needed.
                             var roMapper = RdfRefObjectMapper.of(rom, triplesMap, rdfMapperConfig);
                             roMappers.add(roMapper);
                             roMapperToParentTm.put(roMapper, rom.getParentTriplesMap());
@@ -90,7 +93,7 @@ public class RdfMappingPipelineFactory {
                         tmToRoMappers.get(triplesMap),
                         !parentTmToRoMappers.containsKey(triplesMap) ? Set.of() : parentTmToRoMappers.get(triplesMap),
                         getTriplesMapLogicalSourceResolver(triplesMap, sourceToLogicalSourceResolver),
-                        rdfMapperConfig));
+                        getEffectiveMapperConfig(triplesMap, rdfMapperConfig)));
 
         var joiningTriplesMapperStream = tableJoiningGroups.stream()
                 .map(tableJoiningGroup -> RdfJoiningTriplesMapper.of(
@@ -99,7 +102,7 @@ public class RdfMappingPipelineFactory {
                         tableJoiningGroup.getJoiningLogicalSource(),
                         getTriplesMapLogicalSourceResolver(
                                 tableJoiningGroup.getTriplesMap(), sourceToLogicalSourceResolver),
-                        rdfMapperConfig));
+                        getEffectiveMapperConfig(tableJoiningGroup.getTriplesMap(), rdfMapperConfig)));
 
         Set<TriplesMapper<Statement>> triplesMappers =
                 Stream.concat(triplesMapperStream, joiningTriplesMapperStream).collect(toUnmodifiableSet());
@@ -312,6 +315,22 @@ public class RdfMappingPipelineFactory {
                                 .map(MatchingLogicalSourceResolverFactory::getResolverName)
                                 .collect(joining(", ")))))
                 .apply(logicalSource.getSource());
+    }
+
+    private RdfMapperConfig getEffectiveMapperConfig(TriplesMap triplesMap, RdfMapperConfig rdfMapperConfig) {
+        IRI triplesMapBaseIri = triplesMap.getBaseIri();
+        if (triplesMapBaseIri == null) {
+            return rdfMapperConfig;
+        }
+
+        var overriddenTermGenConfig = rdfMapperConfig.getRdfTermGeneratorConfig().toBuilder()
+                .baseIri(triplesMapBaseIri)
+                .build();
+
+        return rdfMapperConfig.toBuilder()
+                .termGeneratorFactory(RdfTermGeneratorFactory.of(overriddenTermGenConfig))
+                .rdfTermGeneratorConfig(overriddenTermGenConfig)
+                .build();
     }
 
     private LogicalSourceResolver<?> getTriplesMapLogicalSourceResolver(

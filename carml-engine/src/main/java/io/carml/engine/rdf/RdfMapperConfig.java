@@ -16,7 +16,7 @@ import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.ValueFactory;
 
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-@Builder
+@Builder(toBuilder = true)
 @Getter
 public class RdfMapperConfig {
 
@@ -25,6 +25,9 @@ public class RdfMapperConfig {
 
     @NonNull
     private final TermGeneratorFactory<Value> termGeneratorFactory;
+
+    @NonNull
+    private final RdfTermGeneratorConfig rdfTermGeneratorConfig;
 
     private final ChildSideJoinStoreProvider<MappedValue<Resource>, MappedValue<IRI>> childSideJoinStoreProvider;
 

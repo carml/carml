@@ -103,6 +103,8 @@ public class Rdf {
 
         public static final IRI TriplesMap = iri("TriplesMap");
 
+        public static final IRI baseIRI = iri("baseIRI");
+
         public static final IRI SubjectMap = iri("SubjectMap");
 
         public static final IRI PredicateMap = iri("PredicateMap");

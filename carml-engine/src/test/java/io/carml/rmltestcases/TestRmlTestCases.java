@@ -1,5 +1,6 @@
 package io.carml.rmltestcases;
 
+import static org.eclipse.rdf4j.model.util.Values.iri;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -228,6 +229,7 @@ public class TestRmlTestCases {
         }
 
         RdfRmlMapper mapper = mapperBuilder
+                .baseIri(iri("http://example.com/base/"))
                 .triplesMaps(mapping)
                 .classPathResolver(ClassPathResolver.of(
                         String.format("test-cases/%s", testCase.getIdentifier()), TestRmlTestCases.class))
