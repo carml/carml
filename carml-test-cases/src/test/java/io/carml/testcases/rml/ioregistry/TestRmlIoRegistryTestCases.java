@@ -100,7 +100,9 @@ class TestRmlIoRegistryTestCases extends RmlTestCaseSuite {
                 "RMLIOREGTC0012h",
                 "RMLIOREGTC0012i",
                 // SQL Server tests - not supported
-                "RMLIOREGTC0006");
+                "RMLIOREGTC0006",
+                // Test case expected output incorrect: has plain "33" instead of "33"^^xsd:integer for JSON integers
+                "RMLIOREGTC0007a");
     }
 
     private void prepareForDatabaseTest(

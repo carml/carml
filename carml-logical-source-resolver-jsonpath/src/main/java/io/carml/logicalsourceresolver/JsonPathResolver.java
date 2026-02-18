@@ -22,6 +22,7 @@ import java.nio.channels.Channels;
 import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.Spliterator;
@@ -30,11 +31,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.stream.StreamSupport;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
+import org.eclipse.rdf4j.model.IRI;
+import org.eclipse.rdf4j.model.vocabulary.XSD;
 import org.jsfr.json.JsonSurfer;
 import org.jsfr.json.JsonSurferJackson;
 import org.jsfr.json.NonBlockingParser;
@@ -44,7 +45,6 @@ import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 
 @Slf4j
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
 
     public static final String NAME = "JsonPathResolver";
@@ -72,6 +72,15 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
     private final JsonSurfer jsonSurfer;
 
     private final int bufferSize;
+
+    private JsonPathResolver(Source source, JsonSurfer jsonSurfer, int bufferSize) {
+        this.source = Objects.requireNonNull(source, "source");
+        this.jsonSurfer = Objects.requireNonNull(jsonSurfer, "jsonSurfer");
+        if (bufferSize <= 0) {
+            throw new IllegalArgumentException("bufferSize must be positive");
+        }
+        this.bufferSize = bufferSize;
+    }
 
     @Override
     public Function<ResolvedSource<?>, Flux<LogicalSourceRecord<JsonNode>>> getLogicalSourceRecords(
@@ -291,8 +300,43 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
         };
     }
 
+    // Note: unlike getExpressionEvaluationFactory(), this does not check source.getNulls() —
+    // the datatype is inferred from the JSON node type, not the string value. A field whose text
+    // matches a null sentinel still has a valid JSON type for datatype inference.
     @Override
     public Optional<DatatypeMapperFactory<JsonNode>> getDatatypeMapperFactory() {
+        return Optional.of(jsonNode -> expression -> {
+            var resultNode = JsonPath.using(JSONPATH_CONF).parse(jsonNode).read(expression, JsonNode.class);
+
+            if (resultNode == null || resultNode.isNull()) {
+                return Optional.empty();
+            }
+
+            // DatatypeMapper returns a single type per expression; for arrays, use the first
+            // non-null element's type. JSON arrays are typically homogeneous in RML sources.
+            if (resultNode.isArray()) {
+                for (JsonNode element : resultNode) {
+                    if (!element.isNull()) {
+                        return getJsonNodeXsdDatatype(element);
+                    }
+                }
+                return Optional.empty();
+            }
+
+            return getJsonNodeXsdDatatype(resultNode);
+        });
+    }
+
+    private static Optional<IRI> getJsonNodeXsdDatatype(JsonNode node) {
+        if (node.isIntegralNumber()) {
+            return Optional.of(XSD.INTEGER);
+        }
+        if (node.isFloatingPointNumber()) {
+            return Optional.of(XSD.DOUBLE);
+        }
+        if (node.isBoolean()) {
+            return Optional.of(XSD.BOOLEAN);
+        }
         return Optional.empty();
     }
 

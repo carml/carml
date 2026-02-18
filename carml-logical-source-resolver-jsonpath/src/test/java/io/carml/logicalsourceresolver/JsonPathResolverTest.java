@@ -3,6 +3,7 @@ package io.carml.logicalsourceresolver;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -22,8 +23,10 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import org.apache.commons.io.IOUtils;
+import org.eclipse.rdf4j.model.vocabulary.XSD;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
@@ -434,5 +437,147 @@ class JsonPathResolverTest {
                 .expectErrorMatches(throwable ->
                         throwable.getMessage().equals("An exception occurred while parsing expression: $.foo[invalid]"))
                 .verify();
+    }
+
+    @Test
+    void givenDatatypeMapperFactory_whenIntegerField_thenReturnXsdInteger() {
+        // Given
+        var datatypeMapper =
+                createDatatypeMapper(new ObjectMapper().createObjectNode().put("val", 42));
+
+        // When / Then
+        assertThat(datatypeMapper.apply("$.val"), is(Optional.of(XSD.INTEGER)));
+    }
+
+    @Test
+    void givenDatatypeMapperFactory_whenDoubleField_thenReturnXsdDouble() {
+        // Given
+        var datatypeMapper =
+                createDatatypeMapper(new ObjectMapper().createObjectNode().put("val", 3.14));
+
+        // When / Then
+        assertThat(datatypeMapper.apply("$.val"), is(Optional.of(XSD.DOUBLE)));
+    }
+
+    @Test
+    void givenDatatypeMapperFactory_whenBooleanField_thenReturnXsdBoolean() {
+        // Given
+        var datatypeMapper =
+                createDatatypeMapper(new ObjectMapper().createObjectNode().put("val", true));
+
+        // When / Then
+        assertThat(datatypeMapper.apply("$.val"), is(Optional.of(XSD.BOOLEAN)));
+    }
+
+    @Test
+    void givenDatatypeMapperFactory_whenStringField_thenReturnEmpty() {
+        // Given
+        var datatypeMapper =
+                createDatatypeMapper(new ObjectMapper().createObjectNode().put("val", "hello"));
+
+        // When / Then
+        assertThat(datatypeMapper.apply("$.val"), is(Optional.empty()));
+    }
+
+    @Test
+    void givenDatatypeMapperFactory_whenExpressionResolvesToNull_thenReturnEmpty() {
+        // Given
+        var datatypeMapper =
+                createDatatypeMapper(new ObjectMapper().createObjectNode().putNull("nullField"));
+
+        // When / Then
+        assertThat(datatypeMapper.apply("$.nullField"), is(Optional.empty()));
+    }
+
+    @Test
+    void givenDatatypeMapperFactory_whenExpressionDoesNotResolve_thenReturnEmpty() {
+        // Given
+        var datatypeMapper =
+                createDatatypeMapper(new ObjectMapper().createObjectNode().put("name", "test"));
+
+        // When / Then
+        assertThat(datatypeMapper.apply("$.nonExistent"), is(Optional.empty()));
+    }
+
+    @Test
+    void givenDatatypeMapperFactory_whenExpressionResolvesToArray_thenReturnFirstNonNullElementDatatype() {
+        // Given
+        var objectMapper = new ObjectMapper();
+        var arrayNode = objectMapper.createArrayNode().add(10).add(20);
+        var datatypeMapper =
+                createDatatypeMapper(objectMapper.createObjectNode().set("numbers", arrayNode));
+
+        // When / Then
+        assertThat(datatypeMapper.apply("$.numbers"), is(Optional.of(XSD.INTEGER)));
+    }
+
+    @Test
+    void givenDatatypeMapperFactory_whenArrayWithLeadingNulls_thenReturnFirstNonNullElementDatatype() {
+        // Given
+        var objectMapper = new ObjectMapper();
+        var arrayNode = objectMapper.createArrayNode().addNull().addNull().add(3.14);
+        var datatypeMapper =
+                createDatatypeMapper(objectMapper.createObjectNode().set("vals", arrayNode));
+
+        // When / Then
+        assertThat(datatypeMapper.apply("$.vals"), is(Optional.of(XSD.DOUBLE)));
+    }
+
+    @Test
+    void givenDatatypeMapperFactory_whenEmptyArray_thenReturnEmpty() {
+        // Given
+        var objectMapper = new ObjectMapper();
+        var datatypeMapper =
+                createDatatypeMapper(objectMapper.createObjectNode().set("empty", objectMapper.createArrayNode()));
+
+        // When / Then
+        assertThat(datatypeMapper.apply("$.empty"), is(Optional.empty()));
+    }
+
+    @Test
+    void givenDatatypeMapperFactory_whenExpressionResolvesToArrayOfNulls_thenReturnEmpty() {
+        // Given
+        var objectMapper = new ObjectMapper();
+        var arrayNode = objectMapper.createArrayNode().addNull().addNull();
+        var datatypeMapper =
+                createDatatypeMapper(objectMapper.createObjectNode().set("nullArray", arrayNode));
+
+        // When / Then
+        assertThat(datatypeMapper.apply("$.nullArray"), is(Optional.empty()));
+    }
+
+    @Test
+    void givenDatatypeMapperFactory_whenExpressionResolvesToObject_thenReturnEmpty() {
+        // Given
+        var objectMapper = new ObjectMapper();
+        var nested = objectMapper.createObjectNode().put("key", "value");
+        var datatypeMapper =
+                createDatatypeMapper(objectMapper.createObjectNode().set("nested", nested));
+
+        // When / Then
+        assertThat(datatypeMapper.apply("$.nested"), is(Optional.empty()));
+    }
+
+    @Test
+    void givenFactory_whenBufferSizeIsZero_thenThrowIllegalArgumentException() {
+        var factory = JsonPathResolver.factory(0);
+        assertThrows(IllegalArgumentException.class, () -> factory.apply(CarmlRelativePathSource.of("food.json")));
+    }
+
+    @Test
+    void givenFactory_whenBufferSizeIsNegative_thenThrowIllegalArgumentException() {
+        var factory = JsonPathResolver.factory(-1);
+        assertThrows(IllegalArgumentException.class, () -> factory.apply(CarmlRelativePathSource.of("food.json")));
+    }
+
+    private DatatypeMapper createDatatypeMapper(JsonNode jsonNode) {
+        var foodSource = CarmlLogicalSource.builder()
+                .source(CarmlRelativePathSource.of("food.json"))
+                .iterator("$")
+                .referenceFormulation(JSON_PATH)
+                .build();
+
+        var jsonPathResolver = jsonPathResolverFactory.apply(foodSource.getSource());
+        return jsonPathResolver.getDatatypeMapperFactory().orElseThrow().apply(jsonNode);
     }
 }
