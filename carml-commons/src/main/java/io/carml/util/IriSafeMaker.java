@@ -1,5 +1,7 @@
 package io.carml.util;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.text.Normalizer;
 import java.text.Normalizer.Form;
 import java.util.Arrays;
@@ -31,6 +33,19 @@ public class IriSafeMaker implements UnaryOperator<String> {
 
     public static IriSafeMaker getInstance() {
         return DEFAULT;
+    }
+
+    /**
+     * Creates a {@link UnaryOperator} that percent-encodes values for use in RFC 3986 URIs. Unlike
+     * IRI-safe encoding, this also encodes non-ASCII (Unicode) characters as UTF-8 byte sequences.
+     */
+    public static UnaryOperator<String> createUriSafe(@NonNull Form normalizationForm) {
+        return value -> {
+            var normalized = Normalizer.normalize(value, normalizationForm);
+            return URLEncoder.encode(normalized, StandardCharsets.UTF_8)
+                    .replace("+", "%20")
+                    .replace("%7E", "~");
+        };
     }
 
     public static IriSafeMaker create(@NonNull Form normalizationForm, boolean upperCaseHex) {

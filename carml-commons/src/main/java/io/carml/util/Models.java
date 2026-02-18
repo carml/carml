@@ -31,9 +31,14 @@ public final class Models {
     private Models() {}
 
     public static Model parse(@NonNull InputStream inputStream, @NonNull RDFFormat format) {
+        var settings = new ParserConfig();
+        settings.set(BasicParserSettings.PRESERVE_BNODE_IDS, true);
+        return parse(inputStream, format, settings);
+    }
+
+    public static Model parse(
+            @NonNull InputStream inputStream, @NonNull RDFFormat format, @NonNull ParserConfig settings) {
         try (var is = inputStream) {
-            var settings = new ParserConfig();
-            settings.set(BasicParserSettings.PRESERVE_BNODE_IDS, true);
             return Rio.parse(
                     is, "http://none.com/", format, settings, SimpleValueFactory.getInstance(), new ParseErrorLogger());
         } catch (IOException ioException) {

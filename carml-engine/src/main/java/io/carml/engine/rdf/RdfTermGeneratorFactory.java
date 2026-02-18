@@ -33,10 +33,13 @@ import org.eclipse.rdf4j.model.Literal;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.ValueFactory;
+import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 
 @Slf4j
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
+
+    private static final ValueFactory SIMPLE_VALUE_FACTORY = SimpleValueFactory.getInstance();
 
     private final RdfTermGeneratorConfig rdfTermGeneratorConfig;
 
@@ -44,13 +47,16 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
 
     private final UnaryOperator<String> makeIriSafe;
 
+    private final UnaryOperator<String> makeUriSafe;
+
     public static RdfTermGeneratorFactory of(RdfTermGeneratorConfig rdfTermGeneratorConfig) {
         return new RdfTermGeneratorFactory(
                 rdfTermGeneratorConfig,
                 rdfTermGeneratorConfig.getValueFactory(),
                 IriSafeMaker.create(
                         rdfTermGeneratorConfig.getNormalizationForm(),
-                        rdfTermGeneratorConfig.isIriUpperCasePercentEncoding()));
+                        rdfTermGeneratorConfig.isIriUpperCasePercentEncoding()),
+                IriSafeMaker.createUriSafe(rdfTermGeneratorConfig.getNormalizationForm()));
     }
 
     private void validateTermType(TermMap termMap, Set<TermType> allowedTermTypes) {
@@ -68,7 +74,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
             return (expressionEvaluation, datatypeMapper) -> List.of(RdfMappedValue.of(valueFactory.createBNode()));
         }
 
-        validateTermType(subjectMap, Set.of(BLANK_NODE, TermType.IRI));
+        validateTermType(subjectMap, Set.of(BLANK_NODE, TermType.IRI, TermType.URI, TermType.UNSAFE_IRI));
         return (TermGenerator<Resource>) createTermGenerator(subjectMap, Set.of(IRI.class));
     }
 
@@ -82,14 +88,14 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
     @Override
     @SuppressWarnings("unchecked")
     public TermGenerator<IRI> getPredicateGenerator(PredicateMap predicateMap) {
-        validateTermType(predicateMap, Set.of(TermType.IRI));
+        validateTermType(predicateMap, Set.of(TermType.IRI, TermType.URI, TermType.UNSAFE_IRI));
         return (TermGenerator<IRI>) createTermGenerator(predicateMap, Set.of(IRI.class));
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public TermGenerator<Value> getObjectGenerator(ObjectMap objectMap) {
-        validateTermType(objectMap, Set.of(TermType.IRI, BLANK_NODE, LITERAL));
+        validateTermType(objectMap, Set.of(TermType.IRI, TermType.URI, TermType.UNSAFE_IRI, BLANK_NODE, LITERAL));
 
         var generateOverrideDatatypes =
                 objectMap.getDatatypeMap() == null ? null : getDatatypeGenerator(objectMap.getDatatypeMap());
@@ -101,7 +107,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
     @Override
     @SuppressWarnings("unchecked")
     public TermGenerator<Resource> getGraphGenerator(GraphMap graphMap) {
-        validateTermType(graphMap, Set.of(TermType.IRI));
+        validateTermType(graphMap, Set.of(TermType.IRI, TermType.URI, TermType.UNSAFE_IRI));
         return (TermGenerator<Resource>) createTermGenerator(graphMap, Set.of(IRI.class));
     }
 
@@ -187,7 +193,11 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
     private TermGenerator<? extends Value> getTemplateGenerator(
             TermMap termMap, TermGenerator<? extends Value> generateOverrideDatatypes, LanguageMap languageMap) {
         UnaryOperator<String> valueTransformingFunction =
-                termMap.getTermType() == TermType.IRI ? makeIriSafe : UnaryOperator.identity();
+                switch (termMap.getTermType()) {
+                    case IRI -> makeIriSafe;
+                    case URI -> makeUriSafe;
+                    case UNSAFE_IRI, BLANK_NODE, LITERAL -> UnaryOperator.identity();
+                };
 
         return (expressionEvaluation, datatypeMapper) -> {
             var templateValues = RdfExpressionMapEvaluation.builder()
@@ -260,7 +270,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
             List<IRI> overrideDatatypes,
             List<String> languageTags) {
         return switch (termMap.getTermType()) {
-            case IRI ->
+            case IRI, URI, UNSAFE_IRI ->
                 values.stream()
                         .map(value -> CanonicalRdfLexicalForm.get().apply(value, mappedDatatype))
                         .map(lexicalForm -> generateIriTerm(lexicalForm, termMap))
@@ -275,6 +285,10 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
     }
 
     private MappedValue<Value> generateIriTerm(String lexicalForm, TermMap termMap) {
+        if (termMap.getTermType() == TermType.UNSAFE_IRI) {
+            return generateUnsafeIriTerm(lexicalForm, termMap);
+        }
+
         if (RdfValues.isValidIri(lexicalForm)) {
             return RdfMappedValue.of(valueFactory.createIRI(lexicalForm), termMap.getTargets());
         }
@@ -287,6 +301,16 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
         throw new TermGeneratorFactoryException(String.format(
                 "Could not generate a valid iri from term lexical form [%s] as-is, or prefixed with base iri [%s]",
                 lexicalForm, rdfTermGeneratorConfig.getBaseIri()));
+    }
+
+    private MappedValue<Value> generateUnsafeIriTerm(String lexicalForm, TermMap termMap) {
+        // SIMPLE_VALUE_FACTORY is used intentionally to bypass IRI validation, since rml:UnsafeIRI
+        // produces IRIs without percent-encoding that may contain characters invalid per RFC 3987.
+        if (lexicalForm.contains(":")) {
+            return RdfMappedValue.of(SIMPLE_VALUE_FACTORY.createIRI(lexicalForm), termMap.getTargets());
+        }
+        String unsafeIri = rdfTermGeneratorConfig.getBaseIri().stringValue() + lexicalForm;
+        return RdfMappedValue.of(SIMPLE_VALUE_FACTORY.createIRI(unsafeIri), termMap.getTargets());
     }
 
     private MappedValue<Value> generateBNodeTerm(String lexicalForm, TermMap termMap) {

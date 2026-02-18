@@ -11,6 +11,11 @@ class TestRmlCoreTestCases extends RmlTestCaseSuite {
     }
 
     @Override
+    protected List<String> getLenientOutputTests() {
+        return List.of("RMLTC0027b"); // rml:UnsafeIRI produces IRIs with unencoded characters
+    }
+
+    @Override
     protected List<String> getSkipTests() {
         return List.of(
                 "RMLTC0002a", // Missing xsd:integer natural datatype (Task 0.3)
@@ -29,9 +34,7 @@ class TestRmlCoreTestCases extends RmlTestCaseSuite {
                 "RMLTC0026a", // Missing xsd:integer natural datatype (Task 0.3)
                 "RMLTC0026b", // Missing xsd:integer natural datatype (Task 0.3)
                 "RMLTC0026c", // Missing xsd:integer natural datatype (Task 0.3)
-                "RMLTC0026d", // Missing xsd:integer natural datatype (Task 0.3)
-                "RMLTC0027a", // TermType enum mapping error (Task 0.2)
-                "RMLTC0027b" // TermType enum mapping error (Task 0.2)
+                "RMLTC0026d" // Missing xsd:integer natural datatype (Task 0.3)
                 );
     }
 }

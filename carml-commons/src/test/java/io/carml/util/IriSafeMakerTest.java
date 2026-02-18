@@ -15,6 +15,8 @@ class IriSafeMakerTest {
 
     private final Function<String, String> nfkcSafeMaker = IriSafeMaker.create(Form.NFKC, true);
 
+    private final Function<String, String> uriSafeMaker = IriSafeMaker.createUriSafe(Form.NFC);
+
     @Test
     void safeMaker_givenStringWithSpace_encodesAsExpected() {
         test("hello there", "hello%20there", true);
@@ -59,6 +61,50 @@ class IriSafeMakerTest {
         String expected = "StandaardGeluidsruimteDagInDb_a_M2";
         String actual = nfkcSafeMaker.apply(input);
         assertThat(expected, is(actual));
+    }
+
+    @Test
+    void uriSafeMaker_givenUnicodeCharacters_encodesAsUtf8Bytes() {
+        assertThat(uriSafeMaker.apply("Zoë"), is("Zo%C3%AB"));
+        assertThat(uriSafeMaker.apply("Krüger"), is("Kr%C3%BCger"));
+    }
+
+    @Test
+    void uriSafeMaker_givenSpace_encodesAsPercent20() {
+        assertThat(uriSafeMaker.apply("hello there"), is("hello%20there"));
+    }
+
+    @Test
+    void uriSafeMaker_givenTilde_preservesTilde() {
+        assertThat(uriSafeMaker.apply("~test"), is("~test"));
+    }
+
+    @Test
+    void uriSafeMaker_givenPercentSign_doubleEncodes() {
+        assertThat(uriSafeMaker.apply("100%"), is("100%25"));
+    }
+
+    @Test
+    void uriSafeMaker_givenPlusSign_encodesPlus() {
+        assertThat(uriSafeMaker.apply("a+b"), is("a%2Bb"));
+    }
+
+    @Test
+    void uriSafeMaker_givenAsciiSafe_doesNotEncode() {
+        assertThat(uriSafeMaker.apply("test-value"), is("test-value"));
+        assertThat(uriSafeMaker.apply("test_value"), is("test_value"));
+        assertThat(uriSafeMaker.apply("test.value"), is("test.value"));
+    }
+
+    @Test
+    void iriSafe_vs_uriSafe_givenUnicode_encodeDifferently() {
+        var input = "Zoë Krüger";
+
+        // IRI-safe (RFC 3987): preserves Unicode, encodes space
+        assertThat(safeMaker.apply(input), is("Zoë%20Krüger"));
+
+        // URI-safe (RFC 3986): encodes Unicode as UTF-8 bytes, encodes space
+        assertThat(uriSafeMaker.apply(input), is("Zo%C3%AB%20Kr%C3%BCger"));
     }
 
     private void test(String toMakeIriSafe, String expectedResult, boolean upperCasePercentEncoding) {

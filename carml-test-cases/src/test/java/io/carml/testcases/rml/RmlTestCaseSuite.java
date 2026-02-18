@@ -28,7 +28,9 @@ import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.model.impl.ValidatingValueFactory;
 import org.eclipse.rdf4j.model.util.ModelCollector;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
+import org.eclipse.rdf4j.rio.ParserConfig;
 import org.eclipse.rdf4j.rio.RDFFormat;
+import org.eclipse.rdf4j.rio.helpers.BasicParserSettings;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -52,6 +54,14 @@ public abstract class RmlTestCaseSuite {
     protected abstract String getBasePath();
 
     protected abstract List<String> getSkipTests();
+
+    /**
+     * Returns test identifier prefixes whose expected output requires lenient URI syntax verification.
+     * Needed for {@code rml:UnsafeIRI} test cases that produce IRIs with unencoded characters.
+     */
+    protected List<String> getLenientOutputTests() {
+        return List.of();
+    }
 
     protected Optional<IRI> getBaseIri() {
         return Optional.empty();
@@ -88,7 +98,7 @@ public abstract class RmlTestCaseSuite {
 
             Model expected = testCase.getOutputs().stream()
                     .map(output -> getTestCaseFileInputStream(getBasePath(), testCaseIdentifier, output))
-                    .flatMap(stream -> Models.parse(stream, RDFFormat.NQUADS).stream())
+                    .flatMap(stream -> parseExpectedOutput(stream, testCaseIdentifier).stream())
                     .collect(ModelCollector.toTreeModel());
 
             assertThat(result, isIsomorphicTo(expected));
@@ -116,5 +126,16 @@ public abstract class RmlTestCaseSuite {
             String basePath, String testCaseIdentifier, String fileName) {
         return RmlTestCaseSuite.class.getResourceAsStream(
                 String.format("%s/%s/%s", basePath, testCaseIdentifier, fileName));
+    }
+
+    private Model parseExpectedOutput(InputStream stream, String testCaseIdentifier) {
+        boolean lenient = getLenientOutputTests().stream().anyMatch(prefix -> testCaseIdentifier.startsWith(prefix));
+        if (lenient) {
+            var settings = new ParserConfig();
+            settings.set(BasicParserSettings.PRESERVE_BNODE_IDS, true);
+            settings.set(BasicParserSettings.VERIFY_URI_SYNTAX, false);
+            return Models.parse(stream, RDFFormat.NQUADS, settings);
+        }
+        return Models.parse(stream, RDFFormat.NQUADS);
     }
 }

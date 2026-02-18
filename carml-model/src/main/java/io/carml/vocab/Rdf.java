@@ -135,6 +135,10 @@ public class Rdf {
 
         public static final IRI IRI = iri("IRI");
 
+        public static final IRI URI = iri("URI");
+
+        public static final IRI UnsafeIRI = iri("UnsafeIRI");
+
         public static final IRI inverseExpression = iri("inverseExpression");
 
         public static final IRI SQL2008 = iri("SQL2008");

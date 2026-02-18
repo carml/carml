@@ -78,18 +78,14 @@ abstract class CarmlTermMap extends CarmlExpressionMap implements TermMap {
     }
 
     private void addTermTypeTriple(ModelBuilder builder) {
-        switch (termType) {
-            case IRI:
-                builder.add(Rdf.Rml.termType, Rdf.Rml.IRI);
-                break;
-            case LITERAL:
-                builder.add(Rdf.Rml.termType, Rdf.Rml.Literal);
-                break;
-            case BLANK_NODE:
-                builder.add(Rdf.Rml.termType, Rdf.Rml.BlankNode);
-                break;
-            default:
-                throw new IllegalStateException(String.format("Illegal term type value '%s' encountered.", termType));
-        }
+        var termTypeIri =
+                switch (termType) {
+                    case IRI -> Rdf.Rml.IRI;
+                    case URI -> Rdf.Rml.URI;
+                    case UNSAFE_IRI -> Rdf.Rml.UnsafeIRI;
+                    case LITERAL -> Rdf.Rml.Literal;
+                    case BLANK_NODE -> Rdf.Rml.BlankNode;
+                };
+        builder.add(Rdf.Rml.termType, termTypeIri);
     }
 }

@@ -1,6 +1,8 @@
 package io.carml.engine.rdf;
 
 import static io.carml.model.TermType.BLANK_NODE;
+import static io.carml.model.TermType.UNSAFE_IRI;
+import static io.carml.model.TermType.URI;
 import static org.eclipse.rdf4j.model.util.Values.bnode;
 import static org.eclipse.rdf4j.model.util.Values.iri;
 import static org.eclipse.rdf4j.model.util.Values.literal;
@@ -249,7 +251,36 @@ class RdfTermGeneratorFactoryTest {
                         "foo",
                         List.of("bar"),
                         null,
-                        List.of(RdfMappedValue.of(iri("http://example.org/bar")))));
+                        List.of(RdfMappedValue.of(iri("http://example.org/bar")))),
+                Arguments.of(
+                        CarmlSubjectMap.builder()
+                                .template(TemplateParser.getInstance().parse("http://example.org/{foo}"))
+                                .termType(URI)
+                                .build(),
+                        "foo",
+                        List.of("Zoë"),
+                        null,
+                        List.of(RdfMappedValue.of(iri("http://example.org/Zo%C3%AB")))),
+                Arguments.of(
+                        CarmlSubjectMap.builder()
+                                .template(TemplateParser.getInstance().parse("http://example.org/{foo}"))
+                                .termType(UNSAFE_IRI)
+                                .build(),
+                        "foo",
+                        List.of("Emily Smith"),
+                        null,
+                        List.of(RdfMappedValue.of(
+                                SimpleValueFactory.getInstance().createIRI("http://example.org/Emily Smith")))),
+                Arguments.of(
+                        CarmlSubjectMap.builder()
+                                .template(TemplateParser.getInstance().parse("{foo}"))
+                                .termType(UNSAFE_IRI)
+                                .build(),
+                        "foo",
+                        List.of("Emily Smith"),
+                        null,
+                        List.of(RdfMappedValue.of(
+                                SimpleValueFactory.getInstance().createIRI("http://example.org/Emily Smith")))));
     }
 
     @ParameterizedTest

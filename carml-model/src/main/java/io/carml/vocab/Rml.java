@@ -71,6 +71,10 @@ public class Rml {
 
     public static final String IRI = NAMESPACE + "IRI";
 
+    public static final String URI = NAMESPACE + "URI";
+
+    public static final String UnsafeIRI = NAMESPACE + "UnsafeIRI";
+
     public static final String BLANK_NODE = NAMESPACE + "BlankNode";
 
     public static final String LITERAL = NAMESPACE + "Literal";

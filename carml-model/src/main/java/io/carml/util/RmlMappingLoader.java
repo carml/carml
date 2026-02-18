@@ -130,6 +130,8 @@ public class RmlMappingLoader {
                 add(Rr.BlankNode, TermType.BLANK_NODE);
                 add(Rml.IRI, TermType.IRI);
                 add(Rr.IRI, TermType.IRI);
+                add(Rml.URI, TermType.URI);
+                add(Rml.UnsafeIRI, TermType.UNSAFE_IRI);
                 add(Rml.Literal, TermType.LITERAL);
                 add(Rr.Literal, TermType.LITERAL);
             }
