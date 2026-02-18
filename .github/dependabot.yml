@@ -4,6 +4,7 @@ updates:
     directory: "/"
     schedule:
       interval: daily
+    open-pull-requests-limit: 10
     ignore:
       - dependency-name: "com.univocity:univocity-parsers"
       - dependency-name: "org.jooq:jooq"
