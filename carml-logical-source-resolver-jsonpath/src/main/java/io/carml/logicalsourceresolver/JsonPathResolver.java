@@ -53,6 +53,8 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
+    private static final String ERROR_INTERPRETING_RESULT = "Error interpreting expression result %s";
+
     private static final Configuration JSONPATH_CONF = Configuration.builder()
             .jsonProvider(new JacksonJsonNodeJsonProvider())
             .options(Option.DEFAULT_PATH_LEAF_TO_NULL)
@@ -94,42 +96,44 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
             throw new IllegalStateException("No logical sources registered");
         }
 
-        if (resolvedSource == null || resolvedSource.getResolved().isEmpty()) {
+        if (resolvedSource == null) {
             throw new LogicalSourceResolverException(
                     String.format("No source provided for logical sources:%n%s", exception(logicalSources)));
         }
 
-        var resolved = resolvedSource.getResolved().get();
+        var resolved = resolvedSource
+                .getResolved()
+                .orElseThrow(() -> new LogicalSourceResolverException(
+                        String.format("No source provided for logical sources:%n%s", exception(logicalSources))));
 
         if (resolved instanceof InputStream resolvedInputStream) {
-            var charset = Encodings.resolveCharset(source.getEncoding()).orElse(UTF_8);
-
-            if (charset == UTF_8) {
-                return getObjectFlux(resolvedInputStream, logicalSources);
-            } else {
-                return getObjectFlux(resolvedInputStream, charset, logicalSources);
-            }
+            return resolveInputStream(resolvedInputStream, logicalSources);
         } else if (resolved instanceof Mono<?> mono) {
-            return mono.flatMapMany(resolvedMono -> {
-                if (resolvedMono instanceof InputStream resolvedInputStreamMono) {
-                    var charset = Encodings.resolveCharset(source.getEncoding()).orElse(UTF_8);
-
-                    if (charset == UTF_8) {
-                        return getObjectFlux(resolvedInputStreamMono, logicalSources);
-                    } else {
-                        return getObjectFlux(resolvedInputStreamMono, charset, logicalSources);
-                    }
-                } else {
-                    throw new LogicalSourceResolverException(String.format(
-                            "Unsupported source object provided for logical sources:%n%s", exception(logicalSources)));
-                }
-            });
+            return resolveMono(mono, logicalSources);
         } else if (resolved instanceof JsonNode resolvedJsonNode) {
             return getObjectFlux(resolvedJsonNode, logicalSources);
-        } else {
-            throw new LogicalSourceResolverException(String.format(
-                    "Unsupported source object provided for logical sources:%n%s", exception(logicalSources)));
         }
+        throw new LogicalSourceResolverException(String.format(
+                "Unsupported source object provided for logical sources:%n%s", exception(logicalSources)));
+    }
+
+    private Flux<LogicalSourceRecord<JsonNode>> resolveInputStream(
+            InputStream inputStream, Set<LogicalSource> logicalSources) {
+        var charset = Encodings.resolveCharset(source.getEncoding()).orElse(UTF_8);
+        if (charset == UTF_8) {
+            return getObjectFlux(inputStream, logicalSources);
+        }
+        return getObjectFlux(inputStream, charset, logicalSources);
+    }
+
+    private Flux<LogicalSourceRecord<JsonNode>> resolveMono(Mono<?> mono, Set<LogicalSource> logicalSources) {
+        return mono.flatMapMany(resolvedMono -> {
+            if (resolvedMono instanceof InputStream resolvedInputStreamMono) {
+                return resolveInputStream(resolvedInputStreamMono, logicalSources);
+            }
+            return Flux.error(new LogicalSourceResolverException(String.format(
+                    "Unsupported source object provided for logical sources:%n%s", exception(logicalSources))));
+        });
     }
 
     private Flux<LogicalSourceRecord<JsonNode>> getObjectFlux(
@@ -139,23 +143,10 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
             return Flux.fromIterable(logicalSources).flatMap(logicalSource -> {
                 var resultNode =
                         JsonPath.using(JSONPATH_CONF).parse(tmp).read(logicalSource.getIterator(), JsonNode.class);
-
-                if (resultNode == null || resultNode.isNull()) {
-                    return Flux.empty();
-                }
-                if (resultNode.isArray()) {
-                    return Flux.fromStream(StreamSupport.stream(
-                                    Spliterators.spliteratorUnknownSize(resultNode.elements(), Spliterator.ORDERED),
-                                    false))
-                            .map(lsRecord -> LogicalSourceRecord.of(logicalSource, lsRecord));
-                } else if (resultNode.isObject() || resultNode.isValueNode()) {
-                    return Flux.just(LogicalSourceRecord.of(logicalSource, resultNode));
-                }
-                throw new LogicalSourceResolverException(
-                        String.format("Error interpreting expression result %s", resultNode));
+                return toLogicalSourceRecordFlux(resultNode, logicalSource);
             });
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new LogicalSourceResolverException("Error reading input stream.", e);
         }
     }
 
@@ -194,8 +185,27 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
     }
 
     private Flux<LogicalSourceRecord<JsonNode>> getObjectFlux(JsonNode jsonNode, Set<LogicalSource> logicalSources) {
-        return Flux.fromIterable(logicalSources)
-                .flatMap(logicalSource -> getObjectFluxForLogicalSource(jsonNode, logicalSource));
+        return Flux.fromIterable(logicalSources).flatMap(logicalSource -> {
+            var resultNode =
+                    JsonPath.using(JSONPATH_CONF).parse(jsonNode).read(logicalSource.getIterator(), JsonNode.class);
+            return toLogicalSourceRecordFlux(resultNode, logicalSource);
+        });
+    }
+
+    private static Flux<LogicalSourceRecord<JsonNode>> toLogicalSourceRecordFlux(
+            JsonNode resultNode, LogicalSource logicalSource) {
+        if (resultNode == null || resultNode.isNull()) {
+            return Flux.empty();
+        }
+        if (resultNode.isArray()) {
+            return Flux.fromStream(StreamSupport.stream(
+                            Spliterators.spliteratorUnknownSize(resultNode.elements(), Spliterator.ORDERED), false))
+                    .map(lsRecord -> LogicalSourceRecord.of(logicalSource, lsRecord));
+        }
+        if (resultNode.isObject() || resultNode.isValueNode()) {
+            return Flux.just(LogicalSourceRecord.of(logicalSource, resultNode));
+        }
+        return Flux.error(new LogicalSourceResolverException(String.format(ERROR_INTERPRETING_RESULT, resultNode)));
     }
 
     private void bridgeAndListen(
@@ -231,7 +241,7 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
 
             while (!parsingCompleted.get()) {
                 while (!parsingPaused.get()) {
-                    var readStatus = inputStream.available() > 0 ? channel.read(byteBuffer) : -1;
+                    var readStatus = channel.read(byteBuffer);
 
                     if (readStatus == -1) {
                         parser.endOfInput();
@@ -249,55 +259,39 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
         }
     }
 
-    private Flux<LogicalSourceRecord<JsonNode>> getObjectFluxForLogicalSource(
-            JsonNode jsonNode, LogicalSource logicalSource) {
-        var resultNode =
-                JsonPath.using(JSONPATH_CONF).parse(jsonNode).read(logicalSource.getIterator(), JsonNode.class);
-
-        if (resultNode == null || resultNode.isNull()) {
-            return Flux.empty();
-        }
-        if (resultNode.isArray()) {
-            return Flux.fromStream(StreamSupport.stream(
-                            Spliterators.spliteratorUnknownSize(resultNode.elements(), Spliterator.ORDERED), false))
-                    .map(lsRecord -> LogicalSourceRecord.of(logicalSource, lsRecord));
-        } else if (resultNode.isObject() || resultNode.isValueNode()) {
-            return Flux.just(LogicalSourceRecord.of(logicalSource, resultNode));
-        }
-        throw new LogicalSourceResolverException(String.format("Error interpreting expression result %s", resultNode));
-    }
-
     @Override
     public ExpressionEvaluationFactory<JsonNode> getExpressionEvaluationFactory() {
-        return jsonNode -> expression -> {
-            logEvaluateExpression(expression, LOG);
+        return jsonNode -> expression -> evaluateExpression(jsonNode, expression);
+    }
 
-            var resultNode = JsonPath.using(JSONPATH_CONF).parse(jsonNode).read(expression, JsonNode.class);
+    private Optional<Object> evaluateExpression(JsonNode jsonNode, String expression) {
+        logEvaluateExpression(expression, LOG);
 
-            try {
-                if (resultNode == null || resultNode.isNull()) {
+        var resultNode = JsonPath.using(JSONPATH_CONF).parse(jsonNode).read(expression, JsonNode.class);
+
+        try {
+            if (resultNode == null || resultNode.isNull()) {
+                return Optional.empty();
+            }
+            if (resultNode.isArray()) {
+                return Optional.of(OBJECT_MAPPER.treeToValue(resultNode, List.class));
+            }
+            if (resultNode.isObject()) {
+                return Optional.of(OBJECT_MAPPER.treeToValue(resultNode, Map.class));
+            }
+            if (resultNode.isValueNode()) {
+                var textResult = resultNode.asText();
+                if (source.getNulls().contains(textResult)) {
                     return Optional.empty();
                 }
-                if (resultNode.isArray()) {
-                    return Optional.of(OBJECT_MAPPER.treeToValue(resultNode, List.class));
-                } else if (resultNode.isObject()) {
-                    return Optional.of(OBJECT_MAPPER.treeToValue(resultNode, Map.class));
-                } else if (resultNode.isValueNode()) {
-                    var textResult = resultNode.asText();
-                    if (source.getNulls().contains(textResult)) {
-                        return Optional.empty();
-                    }
-
-                    return Optional.of(textResult);
-                }
-
-                throw new LogicalSourceResolverException(
-                        String.format("Error interpreting expression result %s", resultNode));
-            } catch (JsonProcessingException jsonProcessingException) {
-                throw new LogicalSourceResolverException(
-                        String.format("Error processing expression result %s", resultNode), jsonProcessingException);
+                return Optional.of(textResult);
             }
-        };
+
+            throw new LogicalSourceResolverException(String.format(ERROR_INTERPRETING_RESULT, resultNode));
+        } catch (JsonProcessingException jsonProcessingException) {
+            throw new LogicalSourceResolverException(
+                    String.format("Error processing expression result %s", resultNode), jsonProcessingException);
+        }
     }
 
     // Note: unlike getExpressionEvaluationFactory(), this does not check source.getNulls() —
@@ -305,26 +299,31 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
     // matches a null sentinel still has a valid JSON type for datatype inference.
     @Override
     public Optional<DatatypeMapperFactory<JsonNode>> getDatatypeMapperFactory() {
-        return Optional.of(jsonNode -> expression -> {
-            var resultNode = JsonPath.using(JSONPATH_CONF).parse(jsonNode).read(expression, JsonNode.class);
+        return Optional.of(jsonNode -> expression -> resolveDatatype(jsonNode, expression));
+    }
 
-            if (resultNode == null || resultNode.isNull()) {
-                return Optional.empty();
-            }
+    private static Optional<IRI> resolveDatatype(JsonNode jsonNode, String expression) {
+        var resultNode = JsonPath.using(JSONPATH_CONF).parse(jsonNode).read(expression, JsonNode.class);
 
-            // DatatypeMapper returns a single type per expression; for arrays, use the first
-            // non-null element's type. JSON arrays are typically homogeneous in RML sources.
-            if (resultNode.isArray()) {
-                for (JsonNode element : resultNode) {
-                    if (!element.isNull()) {
-                        return getJsonNodeXsdDatatype(element);
-                    }
-                }
-                return Optional.empty();
-            }
+        if (resultNode == null || resultNode.isNull()) {
+            return Optional.empty();
+        }
 
-            return getJsonNodeXsdDatatype(resultNode);
-        });
+        // DatatypeMapper returns a single type per expression; for arrays, use the first
+        // non-null element's type. JSON arrays are typically homogeneous in RML sources.
+        if (resultNode.isArray()) {
+            return getFirstNonNullDatatype(resultNode);
+        }
+
+        return getJsonNodeXsdDatatype(resultNode);
+    }
+
+    private static Optional<IRI> getFirstNonNullDatatype(JsonNode arrayNode) {
+        return StreamSupport.stream(
+                        Spliterators.spliteratorUnknownSize(arrayNode.elements(), Spliterator.ORDERED), false)
+                .filter(element -> !element.isNull())
+                .findFirst()
+                .flatMap(JsonPathResolver::getJsonNodeXsdDatatype);
     }
 
     private static Optional<IRI> getJsonNodeXsdDatatype(JsonNode node) {

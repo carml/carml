@@ -16,6 +16,7 @@ import io.carml.model.impl.CarmlLogicalSource;
 import io.carml.model.impl.CarmlRelativePathSource;
 import io.carml.util.TypeRef;
 import io.carml.vocab.Rdf.Rml;
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -43,7 +44,7 @@ class JsonPathResolverTest {
     private LogicalSourceResolverFactory<JsonNode> jsonPathResolverFactory;
 
     @BeforeEach
-    public void init() {
+    void init() {
         jsonPathResolverFactory = JsonPathResolver.factory();
     }
 
@@ -238,6 +239,44 @@ class JsonPathResolverTest {
     }
 
     @Test
+    void givenInputStreamWithAvailable0_whenGetRecordResolver_thenReturnSourceFluxWithMatchingObjects() {
+        // Given
+        var foodSource = CarmlLogicalSource.builder()
+                .source(CarmlRelativePathSource.of(""))
+                .iterator("$.food[*]")
+                .referenceFormulation(JSON_PATH)
+                .build();
+
+        inputStream =
+                new BufferedInputStream(
+                        Objects.requireNonNull(JsonPathResolverTest.class.getResourceAsStream("food.json"))) {
+                    @Override
+                    public synchronized int available() {
+                        return 0;
+                    }
+                };
+
+        var resolvedSource = ResolvedSource.of(inputStream, new TypeRef<>() {});
+        var factory = JsonPathResolver.factory(200);
+        var jsonPathResolver = factory.apply(foodSource.getSource());
+        var recordResolver = jsonPathResolver.getLogicalSourceRecords(Set.of(foodSource));
+
+        // When
+        var items = recordResolver.apply(resolvedSource);
+
+        // Then
+        StepVerifier.create(items, 1)
+                .expectNextCount(1)
+                .thenAwait(Duration.ofMillis(100))
+                .thenRequest(1)
+                .expectNextCount(1)
+                .thenAwait(Duration.ofMillis(100))
+                .thenRequest(1)
+                .expectNextCount(1)
+                .verifyComplete();
+    }
+
+    @Test
     void givenJsonPathResolverAndProvidedRecord_whenGetRecordResolver_thenReturnSourceFluxWithMatchingObjects()
             throws IOException {
         // Given
@@ -253,8 +292,8 @@ class JsonPathResolverTest {
                 .referenceFormulation(JSON_PATH)
                 .build();
 
-        var record = new ObjectMapper().readTree(JsonPathResolverTest.class.getResourceAsStream("food.json"));
-        var resolvedSource = ResolvedSource.of(record, new TypeRef<>() {});
+        var rec = new ObjectMapper().readTree(JsonPathResolverTest.class.getResourceAsStream("food.json"));
+        var resolvedSource = ResolvedSource.of(rec, new TypeRef<>() {});
 
         var jsonPathResolver = jsonPathResolverFactory.apply(foodSource.getSource());
 
@@ -295,8 +334,8 @@ class JsonPathResolverTest {
 
         Map<String, Object> waffles = Map.of("name", "Belgian Waffles", "countryOfOrigin", "Belgium");
 
-        var record = new ObjectMapper().valueToTree(waffles);
-        var resolvedSource = ResolvedSource.of(record, new TypeRef<>() {});
+        var rec = new ObjectMapper().valueToTree(waffles);
+        var resolvedSource = ResolvedSource.of(rec, new TypeRef<>() {});
 
         var jsonPathResolver = jsonPathResolverFactory.apply(foodSource.getSource());
 
@@ -307,7 +346,7 @@ class JsonPathResolverTest {
         // Then
         StepVerifier.create(records)
                 .expectNextMatches(logicalSourceRecord ->
-                        logicalSourceRecord.getSourceRecord().equals(record))
+                        logicalSourceRecord.getSourceRecord().equals(rec))
                 .verifyComplete();
     }
 
@@ -322,8 +361,8 @@ class JsonPathResolverTest {
 
         Map<String, Object> waffles = Map.of("name", "Belgian Waffles", "countryOfOrigin", "Belgium");
 
-        var record = new ObjectMapper().valueToTree(waffles);
-        var resolvedSource = ResolvedSource.of(record, new TypeRef<>() {});
+        var rec = new ObjectMapper().valueToTree(waffles);
+        var resolvedSource = ResolvedSource.of(rec, new TypeRef<>() {});
 
         var jsonPathResolver = jsonPathResolverFactory.apply(foodSource.getSource());
 
@@ -349,8 +388,8 @@ class JsonPathResolverTest {
 
         Map<String, Object> waffles = Map.of("name", "Belgian Waffles", "countryOfOrigin", "Belgium");
 
-        var record = new ObjectMapper().valueToTree(waffles);
-        var resolvedSource = ResolvedSource.of(record, new TypeRef<>() {});
+        var rec = new ObjectMapper().valueToTree(waffles);
+        var resolvedSource = ResolvedSource.of(rec, new TypeRef<>() {});
 
         var jsonPathResolver = jsonPathResolverFactory.apply(nonResolvingSource.getSource());
 
@@ -561,13 +600,15 @@ class JsonPathResolverTest {
     @Test
     void givenFactory_whenBufferSizeIsZero_thenThrowIllegalArgumentException() {
         var factory = JsonPathResolver.factory(0);
-        assertThrows(IllegalArgumentException.class, () -> factory.apply(CarmlRelativePathSource.of("food.json")));
+        var source = CarmlRelativePathSource.of("food.json");
+        assertThrows(IllegalArgumentException.class, () -> factory.apply(source));
     }
 
     @Test
     void givenFactory_whenBufferSizeIsNegative_thenThrowIllegalArgumentException() {
         var factory = JsonPathResolver.factory(-1);
-        assertThrows(IllegalArgumentException.class, () -> factory.apply(CarmlRelativePathSource.of("food.json")));
+        var source = CarmlRelativePathSource.of("food.json");
+        assertThrows(IllegalArgumentException.class, () -> factory.apply(source));
     }
 
     private DatatypeMapper createDatatypeMapper(JsonNode jsonNode) {
