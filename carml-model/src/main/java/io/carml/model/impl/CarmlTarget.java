@@ -31,19 +31,19 @@ public class CarmlTarget extends CarmlResource implements Target {
     @RdfProperty(Rml.serialization)
     @Override
     public IRI getSerialization() {
-        return null;
+        return serialization;
     }
 
     @RdfProperty(Rml.encoding)
     @Override
     public IRI getEncoding() {
-        return null;
+        return encoding;
     }
 
     @RdfProperty(Rml.compression)
     @Override
     public IRI getCompression() {
-        return null;
+        return compression;
     }
 
     @Override
