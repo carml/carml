@@ -2,8 +2,10 @@ package io.carml.engine.rdf;
 
 import io.carml.engine.MappedValue;
 import io.carml.engine.MappingResult;
+import io.carml.engine.rdf.util.RdfCollectionsAndContainers;
 import io.carml.model.Target;
 import io.carml.util.Models;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -17,6 +19,7 @@ import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.Value;
+import org.eclipse.rdf4j.model.ValueFactory;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 
@@ -34,6 +37,17 @@ public class RdfContainer<T extends Value> implements MappedValue<T>, MappingRes
 
     @Singular
     private final Set<Target> targets;
+
+    public static RdfContainer<Value> empty(IRI type, ValueFactory valueFactory, Set<Target> targets) {
+        var containerResource = valueFactory.createBNode();
+        var model = RdfCollectionsAndContainers.toRdfContainerModel(type, List.of(), containerResource, valueFactory);
+        return RdfContainer.<Value>builder()
+                .type(type)
+                .container(containerResource)
+                .model(model)
+                .targets(targets)
+                .build();
+    }
 
     @Override
     public T getValue() {

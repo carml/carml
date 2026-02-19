@@ -58,7 +58,8 @@ public class RdfListOrContainerGenerator
         var gatheredTerms = gatherMap.getGathers().stream()
                 .map(termMap -> rdfTermGeneratorFactory.getObjectGenerator(termMap))
                 .map(termGenerator -> termGenerator.apply(expressionEvaluation, datatypeMapper))
-                .map(LinkedHashSet::new) // TODO https://github.com/kg-construct/rml-core/issues/121
+                .map(LinkedHashSet::new) // TODO #121 resolved: expression results are arrays, not sets. Remove dedup +
+                // replace Sets.cartesianProduct (Task 0.15)
                 .toList();
 
         if (gatheredTerms.isEmpty()) {
@@ -73,7 +74,10 @@ public class RdfListOrContainerGenerator
 
     private List<MappedValue<Value>> handleEmpty() {
         if (gatherMap.getAllowEmptyListAndContainer()) {
-            return List.of(RdfMappedValue.of(RDF.NIL, gatherMap.getTargets()));
+            if (gatherMap.getGatherAs().equals(RDF.LIST)) {
+                return List.of(RdfMappedValue.of(RDF.NIL, gatherMap.getTargets()));
+            }
+            return List.of(RdfContainer.empty(gatherMap.getGatherAs(), valueFactory, gatherMap.getTargets()));
         } else {
             return List.of();
         }
