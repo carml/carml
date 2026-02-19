@@ -6,6 +6,8 @@ import static org.eclipse.rdf4j.model.util.Values.getValueFactory;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
@@ -177,5 +179,35 @@ public final class Models {
                         .map(statement -> statement(
                                 statement.getSubject(), statement.getPredicate(), statement.getObject(), graph)))
                 .collect(ModelCollector.toModel());
+    }
+
+    /**
+     * Remaps all blank nodes in the given model to fresh blank nodes and places the resulting
+     * statements in the given graph context.
+     *
+     * @param model the source model containing statements (typically in the default graph)
+     * @param graph the target named graph context
+     * @param valueFactory the value factory for creating new blank nodes
+     * @return a map entry where the key is the blank node remapping and the value is the resulting model
+     */
+    public static Map.Entry<Map<BNode, BNode>, Model> remapBlanksForGraph(
+            Model model, Resource graph, ValueFactory valueFactory) {
+        Map<BNode, BNode> bnodeMap = new HashMap<>();
+
+        var remappedModel = model.stream()
+                .map(stmt -> {
+                    Resource subject = stmt.getSubject() instanceof BNode bNode
+                            ? bnodeMap.computeIfAbsent(bNode, ignored -> valueFactory.createBNode())
+                            : stmt.getSubject();
+
+                    Value object = stmt.getObject() instanceof BNode bNode
+                            ? bnodeMap.computeIfAbsent(bNode, ignored -> valueFactory.createBNode())
+                            : stmt.getObject();
+
+                    return statement(subject, stmt.getPredicate(), object, graph);
+                })
+                .collect(ModelCollector.toModel());
+
+        return Map.entry(bnodeMap, remappedModel);
     }
 }

@@ -491,6 +491,80 @@ class ModelsTest {
                         + "one of subjects, predicates or objects was empty."));
     }
 
+    @Test
+    void remapBlanksForGraph_remapsAllBlankNodes_andPlacesInGraph() {
+        // Given
+        var vf = getValueFactory();
+        var bnode1 = vf.createBNode("b1");
+        var bnode2 = vf.createBNode("b2");
+        var pred = iri("http://example.com/pred");
+        var graph = iri("http://example.com/graph1");
+
+        var model = Stream.of(
+                        vf.createStatement(
+                                bnode1, iri("http://www.w3.org/1999/02/22-rdf-syntax-ns#first"), literal("1")),
+                        vf.createStatement(bnode1, iri("http://www.w3.org/1999/02/22-rdf-syntax-ns#rest"), bnode2),
+                        vf.createStatement(
+                                bnode2, iri("http://www.w3.org/1999/02/22-rdf-syntax-ns#first"), literal("2")),
+                        vf.createStatement(
+                                bnode2,
+                                iri("http://www.w3.org/1999/02/22-rdf-syntax-ns#rest"),
+                                iri("http://www.w3.org/1999/02/22-rdf-syntax-ns#nil")))
+                .collect(ModelCollector.toModel());
+
+        // When
+        var result = Models.remapBlanksForGraph(model, graph, vf);
+        var bnodeMap = result.getKey();
+        var remappedModel = result.getValue();
+
+        // Then
+        // All blank nodes should be remapped
+        assertThat(bnodeMap.size(), is(2));
+        assertThat(bnodeMap.containsKey(bnode1), is(true));
+        assertThat(bnodeMap.containsKey(bnode2), is(true));
+
+        // Remapped blank nodes should be different from originals
+        assertThat(bnodeMap.get(bnode1).equals(bnode1), is(false));
+        assertThat(bnodeMap.get(bnode2).equals(bnode2), is(false));
+
+        // All statements should be in the target graph
+        assertThat(remappedModel.size(), is(4));
+        assertThat(remappedModel.stream().allMatch(stmt -> graph.equals(stmt.getContext())), is(true));
+
+        // No original blank nodes should appear
+        assertThat(
+                remappedModel.stream()
+                        .noneMatch(stmt -> stmt.getSubject().equals(bnode1)
+                                || stmt.getSubject().equals(bnode2)
+                                || stmt.getObject().equals(bnode1)
+                                || stmt.getObject().equals(bnode2)),
+                is(true));
+    }
+
+    @Test
+    void remapBlanksForGraph_preservesNonBlankNodes() {
+        // Given
+        var vf = getValueFactory();
+        var subject = iri("http://example.com/subject");
+        var bnode = vf.createBNode("b1");
+        var graph = iri("http://example.com/graph1");
+
+        var model = Stream.of(
+                        vf.createStatement(subject, iri("http://example.com/pred"), bnode),
+                        vf.createStatement(bnode, iri("http://example.com/val"), literal("v")))
+                .collect(ModelCollector.toModel());
+
+        // When
+        var result = Models.remapBlanksForGraph(model, graph, vf);
+        var remappedModel = result.getValue();
+
+        // Then
+        // IRI subject should be preserved
+        assertThat(remappedModel.stream().anyMatch(stmt -> stmt.getSubject().equals(subject)), is(true));
+        // Literal object should be preserved
+        assertThat(remappedModel.stream().anyMatch(stmt -> stmt.getObject().equals(literal("v"))), is(true));
+    }
+
     static Matcher<Model> isIsomorphicWith(final Model expected) {
         return new TypeSafeMatcher<>() {
 
