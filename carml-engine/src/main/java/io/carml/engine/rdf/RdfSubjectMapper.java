@@ -12,6 +12,7 @@ import io.carml.logicalsourceresolver.DatatypeMapper;
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.model.SubjectMap;
 import io.carml.model.TriplesMap;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -148,7 +149,7 @@ public class RdfSubjectMapper {
         Stream<MappingResult<Statement>> typeStatementStream = streamCartesianProductMappedStatements(
                 subjects,
                 Set.of(RdfMappedValue.of(RDF.TYPE)),
-                classes,
+                List.copyOf(classes),
                 graphs,
                 RdfTriplesMapper.defaultGraphModifier,
                 valueFactory,

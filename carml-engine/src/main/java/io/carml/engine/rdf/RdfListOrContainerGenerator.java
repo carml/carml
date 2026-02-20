@@ -1,6 +1,7 @@
 package io.carml.engine.rdf;
 
-import com.google.common.collect.Sets;
+import static io.carml.engine.util.CartesianProduct.listCartesianProduct;
+
 import io.carml.engine.MappedValue;
 import io.carml.engine.rdf.RdfContainer.RdfContainerBuilder;
 import io.carml.engine.rdf.RdfList.RdfListBuilder;
@@ -10,7 +11,6 @@ import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.model.GatherMap;
 import io.carml.vocab.Rdf.Rml;
 import java.util.Collection;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BiFunction;
@@ -58,15 +58,13 @@ public class RdfListOrContainerGenerator
         var gatheredTerms = gatherMap.getGathers().stream()
                 .map(termMap -> rdfTermGeneratorFactory.getObjectGenerator(termMap))
                 .map(termGenerator -> termGenerator.apply(expressionEvaluation, datatypeMapper))
-                .map(LinkedHashSet::new) // TODO #121 resolved: expression results are arrays, not sets. Remove dedup +
-                // replace Sets.cartesianProduct (Task 0.15)
                 .toList();
 
         if (gatheredTerms.isEmpty()) {
             return handleEmpty();
         }
 
-        return Sets.cartesianProduct(gatheredTerms).stream()
+        return listCartesianProduct(gatheredTerms).stream()
                 .flatMap(cartesianProductItem -> headGenerator.apply(expressionEvaluation, datatypeMapper).stream()
                         .map(head -> createRdfListOrContainer(head, cartesianProductItem)))
                 .toList();

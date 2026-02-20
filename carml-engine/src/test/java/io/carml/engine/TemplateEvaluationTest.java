@@ -2,7 +2,9 @@ package io.carml.engine;
 
 import static java.util.Map.entry;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.is;
 
 import io.carml.model.Template.ReferenceExpression;
 import io.carml.model.impl.CarmlTemplate;
@@ -33,7 +35,19 @@ class TemplateEvaluationTest {
                                 entry("foo", (Function<ReferenceExpression, List<String>>) expr -> List.of("foo1")),
                                 entry("bar", (Function<ReferenceExpression, List<String>>)
                                         expr -> List.of("bar1", "bar2"))),
-                        List.of("foo1-bar1", "foo1-bar2")));
+                        List.of("foo1-bar1", "foo1-bar2")),
+                // Duplicate expression values: duplicates should be preserved in output
+                Arguments.of(
+                        "{foo}",
+                        List.of(entry("foo", (Function<ReferenceExpression, List<String>>) expr -> List.of("a", "a"))),
+                        List.of("a", "a")),
+                // Duplicate expression values in multi-reference template
+                Arguments.of(
+                        "{foo}-{bar}",
+                        List.of(
+                                entry("foo", (Function<ReferenceExpression, List<String>>) expr -> List.of("x", "x")),
+                                entry("bar", (Function<ReferenceExpression, List<String>>) expr -> List.of("1"))),
+                        List.of("x-1", "x-1")));
     }
 
     @ParameterizedTest
@@ -58,6 +72,10 @@ class TemplateEvaluationTest {
         var evaluationResult = templateEvaluation.get();
 
         // Then
-        assertThat(evaluationResult, containsInAnyOrder(expected.toArray()));
+        if (expected.isEmpty()) {
+            assertThat(evaluationResult, is(empty()));
+        } else {
+            assertThat(evaluationResult, contains(expected.toArray()));
+        }
     }
 }

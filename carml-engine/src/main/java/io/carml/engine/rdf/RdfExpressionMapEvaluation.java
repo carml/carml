@@ -183,10 +183,10 @@ public class RdfExpressionMapEvaluation {
             return Stream.empty();
         }
 
-        Set<MappedValue<? extends Value>> objects = objectGenerators
+        List<MappedValue<? extends Value>> objects = objectGenerators
                 .map(g -> g.apply(expressionEvaluation, datatypeMapper))
-                .flatMap(List::stream)
-                .collect(Collectors.toUnmodifiableSet());
+                .<MappedValue<? extends Value>>flatMap(List::stream)
+                .toList();
 
         if (objects.isEmpty()) {
             return Stream.empty();

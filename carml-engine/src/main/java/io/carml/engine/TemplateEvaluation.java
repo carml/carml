@@ -1,6 +1,7 @@
 package io.carml.engine;
 
-import com.google.common.collect.Sets;
+import static io.carml.engine.util.CartesianProduct.listCartesianProduct;
+
 import io.carml.model.Template;
 import io.carml.model.Template.ReferenceExpression;
 import io.carml.model.Template.Segment;
@@ -12,7 +13,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -94,19 +94,17 @@ public class TemplateEvaluation implements Supplier<List<String>> {
                 .map(segment -> processSegment(segment, indexedExprValues))
                 .toList();
 
-        return Sets.cartesianProduct(processedSegments).stream()
+        return listCartesianProduct(processedSegments).stream()
                 .map(segmentValues -> String.join("", segmentValues))
-                .distinct() // TODO https://github.com/kg-construct/rml-core/issues/121
                 .toList();
     }
 
-    // TODO https://github.com/kg-construct/rml-core/issues/121
-    private Set<String> processSegment(Segment segment, Map<Segment, List<String>> indexedExprValues) {
+    private List<String> processSegment(Segment segment, Map<Segment, List<String>> indexedExprValues) {
         if (segment instanceof TextSegment) {
-            return Set.of(segment.getValue());
+            return List.of(segment.getValue());
         }
 
-        return Set.copyOf(indexedExprValues.get(segment));
+        return List.copyOf(indexedExprValues.get(segment));
     }
 
     public static final class TemplateEvaluationBuilder {

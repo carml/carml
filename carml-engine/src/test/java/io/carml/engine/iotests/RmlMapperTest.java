@@ -302,4 +302,12 @@ class RmlMapperTest extends MappingTester {
                 "/RmlMapper/datatypeMap/datatypeMap.rml.ttl",
                 "/RmlMapper/datatypeMap/datatypeMap.output.ttl");
     }
+
+    @Test
+    void testMappingWithDuplicateExpressionValues() {
+        testMapping(
+                "RmlMapper",
+                "/RmlMapper/test19/duplicateExpressionValues.rml.ttl",
+                "/RmlMapper/test19/duplicateExpressionValues.output.ttl");
+    }
 }

@@ -17,6 +17,7 @@ import io.carml.model.ObjectMap;
 import io.carml.model.PredicateObjectMap;
 import io.carml.model.RefObjectMap;
 import io.carml.model.TriplesMap;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -234,10 +235,10 @@ public class RdfPredicateObjectMapper {
             return Flux.empty();
         }
 
-        Set<MappedValue<? extends Value>> objects = objectGenerators.stream()
+        var objects = objectGenerators.stream()
                 .map(g -> g.apply(expressionEvaluation, datatypeMapper))
-                .flatMap(List::stream)
-                .collect(toUnmodifiableSet());
+                .<MappedValue<? extends Value>>flatMap(List::stream)
+                .toList();
 
         Set<MappedValue<Resource>> pomGraphs = graphGenerators.stream()
                 .flatMap(graphGenerator -> graphGenerator.apply(expressionEvaluation, datatypeMapper).stream())
@@ -258,10 +259,10 @@ public class RdfPredicateObjectMapper {
         // cartesian product because each graph requires independent blank nodes and linking triples.
         var mergeableObjects = objects.stream()
                 .filter(obj -> isMergeableCollection(obj) && !pomGraphs.isEmpty())
-                .collect(toUnmodifiableSet());
+                .toList();
 
         var regularObjects =
-                objects.stream().filter(obj -> !mergeableObjects.contains(obj)).collect(toUnmodifiableSet());
+                objects.stream().filter(obj -> !mergeableObjects.contains(obj)).toList();
 
         Set<Flux<MappingResult<Statement>>> statementsPerGraphSet = new HashSet<>();
 
@@ -288,10 +289,11 @@ public class RdfPredicateObjectMapper {
             statementsPerGraphSet.add(mergeableCollectionResults);
         }
 
-        var collectionResults = Flux.fromStream(Stream.of(predicates, regularObjects, pomGraphs)
-                .flatMap(Set::stream)
-                .map(mappedValue -> getCollectionResults(mappedValue, pomGraphs))
-                .filter(Objects::nonNull));
+        var collectionResults = Flux.fromStream(
+                Stream.<Collection<? extends MappedValue<? extends Value>>>of(predicates, regularObjects, pomGraphs)
+                        .flatMap(Collection::stream)
+                        .map(mappedValue -> getCollectionResults(mappedValue, pomGraphs))
+                        .filter(Objects::nonNull));
 
         statementsPerGraphSet.add(collectionResults);
 

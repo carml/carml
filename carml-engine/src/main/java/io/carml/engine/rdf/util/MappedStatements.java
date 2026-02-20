@@ -8,6 +8,7 @@ import io.carml.engine.MappingResult;
 import io.carml.engine.rdf.MappedStatement;
 import io.carml.model.Target;
 import io.carml.util.ModelsException;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
@@ -24,10 +25,16 @@ import org.eclipse.rdf4j.model.ValueFactory;
 @UtilityClass
 public class MappedStatements {
 
+    /**
+     * Produces the cartesian product of subjects x predicates x objects x graphs.
+     *
+     * @see #streamCartesianProductMappedStatementsForResourceObjects which uses {@code Sets.cartesianProduct}
+     *      because join-resolved parent subjects are intentionally deduplicated
+     */
     public static Stream<MappingResult<Statement>> streamCartesianProductMappedStatements(
             Set<MappedValue<Resource>> mappedSubjects,
             Set<MappedValue<IRI>> mappedPredicates,
-            Set<MappedValue<? extends Value>> mappedObjects,
+            List<MappedValue<? extends Value>> mappedObjects,
             Set<MappedValue<Resource>> mappedGraphs) {
         return streamCartesianProductMappedStatements(
                 mappedSubjects, mappedPredicates, mappedObjects, mappedGraphs, graph -> graph, getValueFactory());
@@ -37,7 +44,7 @@ public class MappedStatements {
     public static Stream<MappingResult<Statement>> streamCartesianProductMappedStatements(
             Set<MappedValue<Resource>> mappedSubjects,
             Set<MappedValue<IRI>> mappedPredicates,
-            Set<MappedValue<? extends Value>> mappedObjects,
+            List<MappedValue<? extends Value>> mappedObjects,
             Set<MappedValue<Resource>> mappedGraphs,
             UnaryOperator<Resource> graphModifier,
             ValueFactory valueFactory,
@@ -48,25 +55,27 @@ public class MappedStatements {
         }
 
         if (mappedGraphs.isEmpty()) {
-            return Sets.cartesianProduct(mappedSubjects, mappedPredicates, mappedObjects).stream()
-                    .map(element -> createMappedStatement(
-                            element.get(0),
-                            element.get(1),
-                            element.get(2),
-                            null,
-                            graphModifier,
-                            valueFactory,
-                            statementConsumers));
+            return mappedSubjects.stream()
+                    .flatMap(subject -> mappedPredicates.stream().flatMap(predicate -> mappedObjects.stream()
+                            .map(object -> createMappedStatement(
+                                    subject,
+                                    predicate,
+                                    object,
+                                    null,
+                                    graphModifier,
+                                    valueFactory,
+                                    statementConsumers))));
         } else {
-            return Sets.cartesianProduct(mappedSubjects, mappedPredicates, mappedObjects, mappedGraphs).stream()
-                    .map(element -> createMappedStatement(
-                            element.get(0),
-                            element.get(1),
-                            element.get(2),
-                            element.get(3),
-                            graphModifier,
-                            valueFactory,
-                            statementConsumers));
+            return mappedSubjects.stream().flatMap(subject -> mappedPredicates.stream()
+                    .flatMap(predicate -> mappedObjects.stream().flatMap(object -> mappedGraphs.stream()
+                            .map(graph -> createMappedStatement(
+                                    subject,
+                                    predicate,
+                                    object,
+                                    graph,
+                                    graphModifier,
+                                    valueFactory,
+                                    statementConsumers)))));
         }
     }
 

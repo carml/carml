@@ -155,6 +155,71 @@ class RdfListOrContainerGeneratorTest {
     }
 
     @Test
+    void nonAppendStrategy_withTwoGathers_returnsCartesianProductList() {
+        // Given
+        var objectMap2 = org.mockito.Mockito.mock(ObjectMap.class);
+        @SuppressWarnings("unchecked")
+        TermGenerator<Value> objectGenerator2 = org.mockito.Mockito.mock(TermGenerator.class);
+
+        when(gatherMap.getStrategy()).thenReturn(Rml.cartesianProduct);
+        when(gatherMap.getGathers()).thenReturn(List.of(objectMap, objectMap2));
+        when(rdfTermGeneratorFactory.getObjectGenerator(objectMap)).thenReturn(objectGenerator);
+        when(rdfTermGeneratorFactory.getObjectGenerator(objectMap2)).thenReturn(objectGenerator2);
+
+        var val1 = RdfMappedValue.<Value>of(valueFactory.createLiteral("a"));
+        var val2 = RdfMappedValue.<Value>of(valueFactory.createLiteral("b"));
+        var val3 = RdfMappedValue.<Value>of(valueFactory.createLiteral("x"));
+
+        when(objectGenerator.apply(any(), any())).thenReturn(List.of(val1, val2));
+        when(objectGenerator2.apply(any(), any())).thenReturn(List.of(val3));
+
+        var headValue = RdfMappedValue.<Resource>of(valueFactory.createBNode("head1"));
+        when(subjectGenerator.apply(any(), any())).thenReturn(List.of(headValue));
+
+        when(gatherMap.getGatherAs()).thenReturn(RDF.SEQ);
+        when(gatherMap.getExpressionMapExpressionSet()).thenReturn(Set.of());
+
+        var generator = RdfListOrContainerGenerator.of(gatherMap, valueFactory, rdfTermGeneratorFactory);
+
+        // When
+        var result = generator.apply(null, null);
+
+        // Then — cartesian product of [a, b] x [x] = 2 containers, each with 2 elements
+        assertThat(result, hasSize(2));
+        for (var mappedValue : result) {
+            assertThat(mappedValue, instanceOf(RdfContainer.class));
+        }
+    }
+
+    @Test
+    void nonAppendStrategy_withDuplicateValues_preservesDuplicates() {
+        // Given
+        when(gatherMap.getStrategy()).thenReturn(Rml.cartesianProduct);
+        when(gatherMap.getGathers()).thenReturn(List.of(objectMap));
+        when(rdfTermGeneratorFactory.getObjectGenerator(objectMap)).thenReturn(objectGenerator);
+
+        var val = RdfMappedValue.<Value>of(valueFactory.createLiteral("dup"));
+        when(objectGenerator.apply(any(), any())).thenReturn(List.of(val, val));
+
+        var headValue = RdfMappedValue.<Resource>of(valueFactory.createBNode("head1"));
+        when(subjectGenerator.apply(any(), any())).thenReturn(List.of(headValue));
+
+        when(gatherMap.getGatherAs()).thenReturn(RDF.LIST);
+        when(gatherMap.getExpressionMapExpressionSet()).thenReturn(Set.of());
+
+        var generator = RdfListOrContainerGenerator.of(gatherMap, valueFactory, rdfTermGeneratorFactory);
+
+        // When
+        var result = generator.apply(null, null);
+
+        // Then — two duplicate values produce two separate lists (one element each)
+        assertThat(result, hasSize(2));
+        for (var mappedValue : result) {
+            assertThat(mappedValue, instanceOf(RdfList.class));
+        }
+    }
+
+    @Test
     void handleEmpty_allowEmptyFalse_returnsEmptyList() {
         // Given
         when(gatherMap.getGathers()).thenReturn(List.of(objectMap));
