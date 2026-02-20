@@ -20,7 +20,10 @@ class TestRmlIoTestCases extends RmlTestCaseSuite {
                 "RMLSTC0006a", // $CONNECTIONDSN r2dbc connection not available
                 "RMLSTC0006b",
                 "RMLSTC0007b", // CSV natural datatype mapping not yet supported
-                "RMLSTC0007c", // XML natural datatype mapping not yet supported
+                // Test case bug: default.nq expects xsd:integer but spec prescribes no type inference
+                // for unvalidated XML (xs:untypedAtomic). README correctly shows plain literals.
+                // See Epic 0 Task 0.17 and Epic N1 Task N1.1 for details.
+                "RMLSTC0007c",
                 "RMLSTC0007d",
                 "RMLSTC0008b", // CSV natural datatype mapping not yet supported (multi-source)
                 "RMLSTC0009a", // expected error not thrown
