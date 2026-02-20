@@ -66,8 +66,6 @@ class TestRmlIoRegistryTestCases extends RmlTestCaseSuite {
                 // Test case bug: spec says missing JSON/XML values produce NULL, not errors
                 "RMLIOREGTC0002b",
                 "RMLIOREGTC0003b",
-                // Spec requires error for invalid JSONPath syntax, but SUPPRESS_EXCEPTIONS config returns null
-                "RMLIOREGTC0002c",
                 // Expected error for invalid PostgreSQL table
                 "RMLIOREGTC0005d",
                 // Output mismatch

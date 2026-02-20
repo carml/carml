@@ -8,8 +8,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.auto.service.AutoService;
 import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.InvalidPathException;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.Option;
+import com.jayway.jsonpath.PathNotFoundException;
 import com.jayway.jsonpath.spi.json.JacksonJsonNodeJsonProvider;
 import io.carml.logicalsourceresolver.sourceresolver.Encodings;
 import io.carml.model.JsonPathReferenceFormulation;
@@ -40,6 +42,7 @@ import org.jsfr.json.JsonSurfer;
 import org.jsfr.json.JsonSurferJackson;
 import org.jsfr.json.NonBlockingParser;
 import org.jsfr.json.SurfingConfiguration;
+import org.jsfr.json.compiler.JsonPathCompiler;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
@@ -58,7 +61,6 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
     private static final Configuration JSONPATH_CONF = Configuration.builder()
             .jsonProvider(new JacksonJsonNodeJsonProvider())
             .options(Option.DEFAULT_PATH_LEAF_TO_NULL)
-            .options(Option.SUPPRESS_EXCEPTIONS)
             .build();
 
     public static LogicalSourceResolverFactory<JsonNode> factory() {
@@ -140,11 +142,7 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
             InputStream inputStream, Charset charset, Set<LogicalSource> logicalSources) {
         try {
             var tmp = IOUtils.toString(inputStream, charset);
-            return Flux.fromIterable(logicalSources).flatMap(logicalSource -> {
-                var resultNode =
-                        JsonPath.using(JSONPATH_CONF).parse(tmp).read(logicalSource.getIterator(), JsonNode.class);
-                return toLogicalSourceRecordFlux(resultNode, logicalSource);
-            });
+            return Flux.fromIterable(logicalSources).flatMap(logicalSource -> readIterator(tmp, logicalSource));
         } catch (IOException e) {
             throw new LogicalSourceResolverException("Error reading input stream.", e);
         }
@@ -185,11 +183,20 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
     }
 
     private Flux<LogicalSourceRecord<JsonNode>> getObjectFlux(JsonNode jsonNode, Set<LogicalSource> logicalSources) {
-        return Flux.fromIterable(logicalSources).flatMap(logicalSource -> {
+        return Flux.fromIterable(logicalSources).flatMap(logicalSource -> readIterator(jsonNode, logicalSource));
+    }
+
+    private static Flux<LogicalSourceRecord<JsonNode>> readIterator(Object input, LogicalSource logicalSource) {
+        try {
             var resultNode =
-                    JsonPath.using(JSONPATH_CONF).parse(jsonNode).read(logicalSource.getIterator(), JsonNode.class);
+                    JsonPath.using(JSONPATH_CONF).parse(input).read(logicalSource.getIterator(), JsonNode.class);
             return toLogicalSourceRecordFlux(resultNode, logicalSource);
-        });
+        } catch (PathNotFoundException pathNotFoundException) {
+            return Flux.empty();
+        } catch (InvalidPathException invalidPathException) {
+            return Flux.error(new LogicalSourceResolverException(
+                    "Invalid JSONPath expression in iterator: " + logicalSource.getIterator(), invalidPathException));
+        }
     }
 
     private static Flux<LogicalSourceRecord<JsonNode>> toLogicalSourceRecordFlux(
@@ -264,15 +271,92 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
         return jsonNode -> expression -> evaluateExpression(jsonNode, expression);
     }
 
+    /**
+     * Validates a JSONPath expression using JSurfer's ANTLR-based parser. Jayway silently accepts gibberish
+     * expressions (e.g. "Dhkef;esfkdleshfjdls;fk") as property name lookups and returns null. JSurfer's
+     * compiler rejects them with a {@code ParseCancellationException}.
+     *
+     * <p>Standard JSONPath expressions (starting with "$") are validated directly by JSurfer. Jayway also
+     * accepts bare expressions without "$" prefix (e.g. "Name", "@.id", "tags[*]"). These cannot be
+     * validated by JSurfer (which requires "$" prefix), so they are checked for characters that are
+     * clearly not part of JSONPath syntax or member names (e.g. semicolons).
+     */
+    private static void validateJsonPathExpression(String expression) {
+        if (expression == null || expression.isEmpty()) {
+            throw new LogicalSourceResolverException(
+                    "Invalid JSONPath expression: expression must not be null or empty");
+        }
+        if (expression.startsWith("$")) {
+            try {
+                JsonPathCompiler.compile(expression);
+            } catch (Exception e) {
+                throw new LogicalSourceResolverException("Invalid JSONPath expression: " + expression, e);
+            }
+        } else if (containsInvalidBareNameChars(expression)) {
+            throw new LogicalSourceResolverException("Invalid JSONPath expression: " + expression);
+        }
+    }
+
+    private static boolean containsInvalidBareNameChars(String expression) {
+        for (int i = 0; i < expression.length(); i++) {
+            char c = expression.charAt(i);
+            if (Character.isLetterOrDigit(c)
+                    || c == '_'
+                    || c == '-'
+                    || c == '.'
+                    || c == '['
+                    || c == ']'
+                    || c == '*'
+                    || c == '@'
+                    || c == '?'
+                    || c == '('
+                    || c == ')'
+                    || c == '\''
+                    || c == '"'
+                    || c == ':'
+                    || c == '='
+                    || c == '!'
+                    || c == '&'
+                    || c == '|'
+                    || c == '>'
+                    || c == '<'
+                    || c == ' ') {
+                continue;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private static Optional<JsonNode> readExpression(JsonNode jsonNode, String expression) {
+        validateJsonPathExpression(expression);
+
+        JsonNode resultNode;
+        try {
+            resultNode = JsonPath.using(JSONPATH_CONF).parse(jsonNode).read(expression, JsonNode.class);
+        } catch (PathNotFoundException pathNotFoundException) {
+            return Optional.empty();
+        } catch (InvalidPathException invalidPathException) {
+            throw new LogicalSourceResolverException(
+                    "Invalid JSONPath expression: " + expression, invalidPathException);
+        }
+
+        if (resultNode == null || resultNode.isNull()) {
+            return Optional.empty();
+        }
+        return Optional.of(resultNode);
+    }
+
     private Optional<Object> evaluateExpression(JsonNode jsonNode, String expression) {
         logEvaluateExpression(expression, LOG);
 
-        var resultNode = JsonPath.using(JSONPATH_CONF).parse(jsonNode).read(expression, JsonNode.class);
+        var resultNodeOpt = readExpression(jsonNode, expression);
+        if (resultNodeOpt.isEmpty()) {
+            return Optional.empty();
+        }
+        var resultNode = resultNodeOpt.get();
 
         try {
-            if (resultNode == null || resultNode.isNull()) {
-                return Optional.empty();
-            }
             if (resultNode.isArray()) {
                 return Optional.of(OBJECT_MAPPER.treeToValue(resultNode, List.class));
             }
@@ -303,19 +387,14 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
     }
 
     private static Optional<IRI> resolveDatatype(JsonNode jsonNode, String expression) {
-        var resultNode = JsonPath.using(JSONPATH_CONF).parse(jsonNode).read(expression, JsonNode.class);
-
-        if (resultNode == null || resultNode.isNull()) {
-            return Optional.empty();
-        }
-
-        // DatatypeMapper returns a single type per expression; for arrays, use the first
-        // non-null element's type. JSON arrays are typically homogeneous in RML sources.
-        if (resultNode.isArray()) {
-            return getFirstNonNullDatatype(resultNode);
-        }
-
-        return getJsonNodeXsdDatatype(resultNode);
+        return readExpression(jsonNode, expression).flatMap(resultNode -> {
+            // DatatypeMapper returns a single type per expression; for arrays, use the first
+            // non-null element's type. JSON arrays are typically homogeneous in RML sources.
+            if (resultNode.isArray()) {
+                return getFirstNonNullDatatype(resultNode);
+            }
+            return getJsonNodeXsdDatatype(resultNode);
+        });
     }
 
     private static Optional<IRI> getFirstNonNullDatatype(JsonNode arrayNode) {

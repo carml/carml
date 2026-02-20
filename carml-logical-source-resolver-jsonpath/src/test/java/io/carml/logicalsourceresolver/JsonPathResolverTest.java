@@ -611,6 +611,112 @@ class JsonPathResolverTest {
         assertThrows(IllegalArgumentException.class, () -> factory.apply(source));
     }
 
+    @Test
+    void givenInvalidJsonPathExpression_whenEvaluateExpression_thenThrowLogicalSourceResolverException()
+            throws IOException {
+        // Given
+        var foodSource = CarmlLogicalSource.builder()
+                .source(CarmlFilePath.of("food.json"))
+                .iterator("$")
+                .referenceFormulation(JSON_PATH)
+                .build();
+
+        var food = IOUtils.toString(
+                Objects.requireNonNull(JsonPathResolverTest.class.getResourceAsStream("food.json")),
+                StandardCharsets.UTF_8);
+        var objectMapper = new ObjectMapper();
+
+        var jsonPathResolver = jsonPathResolverFactory.apply(foodSource.getSource());
+        var expressionEvaluationFactory = jsonPathResolver.getExpressionEvaluationFactory();
+        var expressionEvaluation = expressionEvaluationFactory.apply(objectMapper.readTree(food));
+
+        // When / Then — $$$$: caught by Jayway's InvalidPathException
+        var exception = assertThrows(LogicalSourceResolverException.class, () -> expressionEvaluation.apply("$$$$"));
+        assertThat(exception.getMessage(), startsWith("Invalid JSONPath expression: $$$$"));
+    }
+
+    @Test
+    void givenGibberishExpression_whenEvaluateExpression_thenThrowLogicalSourceResolverException() throws IOException {
+        // Given — mimics RMLIOREGTC0002c: expression with semicolons that Jayway silently accepts
+        var foodSource = CarmlLogicalSource.builder()
+                .source(CarmlFilePath.of("food.json"))
+                .iterator("$")
+                .referenceFormulation(JSON_PATH)
+                .build();
+
+        var food = IOUtils.toString(
+                Objects.requireNonNull(JsonPathResolverTest.class.getResourceAsStream("food.json")),
+                StandardCharsets.UTF_8);
+        var objectMapper = new ObjectMapper();
+
+        var jsonPathResolver = jsonPathResolverFactory.apply(foodSource.getSource());
+        var expressionEvaluationFactory = jsonPathResolver.getExpressionEvaluationFactory();
+        var expressionEvaluation = expressionEvaluationFactory.apply(objectMapper.readTree(food));
+
+        // When / Then — caught by containsInvalidBareNameChars validation (Jayway would return null, not throw)
+        var exception = assertThrows(
+                LogicalSourceResolverException.class, () -> expressionEvaluation.apply("Dhkef;esfkdleshfjdls;fk"));
+        assertThat(exception.getMessage(), startsWith("Invalid JSONPath expression: Dhkef;esfkdleshfjdls;fk"));
+    }
+
+    @Test
+    void givenBracketNotationExpression_whenEvaluateExpression_thenReturnValue() throws IOException {
+        // Given — hyphenated JSON keys require bracket notation per JSONPath syntax
+        var objectMapper = new ObjectMapper();
+        var jsonNode = objectMapper.createObjectNode().put("my-field", "hello");
+
+        var foodSource = CarmlLogicalSource.builder()
+                .source(CarmlFilePath.of("food.json"))
+                .iterator("$")
+                .referenceFormulation(JSON_PATH)
+                .build();
+
+        var jsonPathResolver = jsonPathResolverFactory.apply(foodSource.getSource());
+        var expressionEvaluationFactory = jsonPathResolver.getExpressionEvaluationFactory();
+        var expressionEvaluation = expressionEvaluationFactory.apply(jsonNode);
+
+        // When / Then — bracket notation works for keys with hyphens
+        var result = expressionEvaluation.apply("$['my-field']");
+        assertThat(result, is(Optional.of("hello")));
+    }
+
+    @Test
+    void givenInvalidJsonPathExpression_whenResolveDatatype_thenThrowLogicalSourceResolverException() {
+        // Given
+        var objectMapper = new ObjectMapper();
+        var datatypeMapper =
+                createDatatypeMapper(objectMapper.createObjectNode().put("val", 42));
+
+        // When / Then
+        var exception = assertThrows(LogicalSourceResolverException.class, () -> datatypeMapper.apply("$$$$"));
+        assertThat(exception.getMessage(), startsWith("Invalid JSONPath expression: $$$$"));
+    }
+
+    @Test
+    void givenInvalidJsonPathIterator_whenGetObjectFluxWithJsonNode_thenFluxEmitsError() throws IOException {
+        // Given
+        var invalidSource = CarmlLogicalSource.builder()
+                .source(CarmlFilePath.of("food.json"))
+                .iterator("$$$$")
+                .referenceFormulation(JSON_PATH)
+                .build();
+
+        var rec = new ObjectMapper().readTree(JsonPathResolverTest.class.getResourceAsStream("food.json"));
+        var resolvedSource = ResolvedSource.of(rec, new TypeRef<>() {});
+
+        var jsonPathResolver = jsonPathResolverFactory.apply(invalidSource.getSource());
+        var recordResolver = jsonPathResolver.getLogicalSourceRecords(Set.of(invalidSource));
+
+        // When
+        var items = recordResolver.apply(resolvedSource);
+
+        // Then
+        StepVerifier.create(items)
+                .expectErrorMatches(throwable -> throwable instanceof LogicalSourceResolverException
+                        && throwable.getMessage().startsWith("Invalid JSONPath expression in iterator: $$$$"))
+                .verify();
+    }
+
     private DatatypeMapper createDatatypeMapper(JsonNode jsonNode) {
         var foodSource = CarmlLogicalSource.builder()
                 .source(CarmlFilePath.of("food.json"))
