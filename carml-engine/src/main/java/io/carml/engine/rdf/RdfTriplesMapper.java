@@ -6,6 +6,7 @@ import static java.util.stream.Collectors.toUnmodifiableSet;
 
 import io.carml.engine.MappedValue;
 import io.carml.engine.MappingResult;
+import io.carml.engine.NonExistentReferenceException;
 import io.carml.engine.RefObjectMapper;
 import io.carml.engine.TermGenerator;
 import io.carml.engine.TriplesMapper;
@@ -31,16 +32,14 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Statement;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Slf4j
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
 
     static final UnaryOperator<Resource> defaultGraphModifier =
@@ -74,6 +73,37 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
     @NonNull
     private final ParentSideJoinConditionStore<MappedValue<Resource>> parentSideJoinConditions;
 
+    private final boolean strictMode;
+
+    private final Set<String> referenceExpressions;
+
+    private final Set<String> matchedExpressions;
+
+    private volatile boolean recordsProcessed;
+
+    private RdfTriplesMapper(
+            @NonNull TriplesMap triplesMap,
+            Set<RdfSubjectMapper> subjectMappers,
+            Set<RdfPredicateObjectMapper> predicateObjectMappers,
+            Set<RdfRefObjectMapper> incomingRefObjectMappers,
+            @NonNull LogicalSourceResolver.ExpressionEvaluationFactory<R> expressionEvaluationFactory,
+            LogicalSourceResolver.DatatypeMapperFactory<R> datatypeMapperFactory,
+            @NonNull ParentSideJoinConditionStore<MappedValue<Resource>> parentSideJoinConditions,
+            boolean strictMode,
+            Set<String> referenceExpressions,
+            Set<String> matchedExpressions) {
+        this.triplesMap = triplesMap;
+        this.subjectMappers = subjectMappers;
+        this.predicateObjectMappers = predicateObjectMappers;
+        this.incomingRefObjectMappers = incomingRefObjectMappers;
+        this.expressionEvaluationFactory = expressionEvaluationFactory;
+        this.datatypeMapperFactory = datatypeMapperFactory;
+        this.parentSideJoinConditions = parentSideJoinConditions;
+        this.strictMode = strictMode;
+        this.referenceExpressions = referenceExpressions;
+        this.matchedExpressions = matchedExpressions;
+    }
+
     public static <R> RdfTriplesMapper<R> of(
             @NonNull TriplesMap triplesMap,
             Set<RdfRefObjectMapper> refObjectMappers,
@@ -98,16 +128,28 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
             actionableIncomingRefObjectMappers = incomingRefObjectMappers;
         }
 
+        var isStrictMode = rdfMapperConfig.isStrictMode();
+        var refExpressions = isStrictMode ? triplesMap.getReferenceExpressionSet() : Set.<String>of();
+        var matched = isStrictMode ? TrackingExpressionEvaluation.createMatchedExpressionsSet() : Set.<String>of();
+
+        var baseFactory = logicalSourceResolver.getExpressionEvaluationFactory();
+        LogicalSourceResolver.ExpressionEvaluationFactory<R> effectiveFactory = isStrictMode
+                ? sourceRecord -> TrackingExpressionEvaluation.of(baseFactory.apply(sourceRecord), matched)
+                : baseFactory;
+
         return new RdfTriplesMapper<>(
                 triplesMap,
                 subjectMappers,
                 predicateObjectMappers,
                 actionableIncomingRefObjectMappers,
-                logicalSourceResolver.getExpressionEvaluationFactory(),
+                effectiveFactory,
                 logicalSourceResolver.getDatatypeMapperFactory().orElse(null),
                 rdfMapperConfig
                         .getParentSideJoinConditionStoreProvider()
-                        .createParentSideJoinConditionStore(triplesMap.getId()));
+                        .createParentSideJoinConditionStore(triplesMap.getId()),
+                isStrictMode,
+                refExpressions,
+                matched);
     }
 
     static Set<TermGenerator<Resource>> createGraphGenerators(
@@ -170,6 +212,7 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
     public Flux<MappingResult<Statement>> map(LogicalSourceRecord<?> logicalSourceRecord) {
         var sourceRecord = (R) logicalSourceRecord.getSourceRecord();
         LOG.trace("Mapping triples for record {}", logicalSourceRecord);
+        recordsProcessed = true;
         var expressionEvaluation = expressionEvaluationFactory.apply(sourceRecord);
         var datatypeMapper = datatypeMapperFactory != null ? datatypeMapperFactory.apply(sourceRecord) : null;
 
@@ -245,6 +288,28 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
         }
 
         parentSideJoinConditions.put(ParentSideJoinKey.of(parentReference, parentValue), parentSubjects);
+    }
+
+    @Override
+    public Mono<Void> validate() {
+        if (!strictMode || !recordsProcessed) {
+            return Mono.empty();
+        }
+
+        var unmatchedExpressions = referenceExpressions.stream()
+                .filter(expr -> !matchedExpressions.contains(expr))
+                .sorted()
+                .toList();
+
+        if (unmatchedExpressions.isEmpty()) {
+            return Mono.empty();
+        }
+
+        var message = String.format(
+                "The following reference expression(s) in TriplesMap %s never produced a non-null result: %s",
+                triplesMap.getResourceName(), String.join(", ", unmatchedExpressions));
+
+        return Mono.error(new NonExistentReferenceException(message));
     }
 
     public void cleanup() {

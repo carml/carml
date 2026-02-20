@@ -1,0 +1,26 @@
+@prefix rml: <http://w3id.org/rml/> .
+@prefix ql: <http://semweb.mmlab.be/ns/ql#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix ex: <http://example.com/> .
+@prefix carml: <http://carml.taxonic.com/carml/> .
+
+ex:LogicalSource a rml:LogicalSource ;
+  rml:source [
+    a carml:Stream ;
+  ] ;
+  rml:iterator "$.students[*]" ;
+  rml:referenceFormulation ql:JSONPath ;
+.
+
+ex:TriplesMap a rml:TriplesMap ;
+  rml:logicalSource ex:LogicalSource ;
+  rml:subjectMap [
+    rml:template "http://example.com/{$.Name}" ;
+  ] ;
+  rml:predicateObjectMap [
+    rml:predicate foaf:name ;
+    rml:objectMap [
+      rml:reference "$.THIS_VALUE_DOES_NOT_EXIST" ;
+    ] ;
+  ] ;
+.

@@ -32,4 +32,7 @@ public class RdfMapperConfig {
     private final ChildSideJoinStoreProvider<MappedValue<Resource>, MappedValue<IRI>> childSideJoinStoreProvider;
 
     private final ParentSideJoinConditionStoreProvider<MappedValue<Resource>> parentSideJoinConditionStoreProvider;
+
+    @Builder.Default
+    private final boolean strictMode = false;
 }

@@ -63,10 +63,12 @@ class TestRmlIoRegistryTestCases extends RmlTestCaseSuite {
     @Override
     protected List<String> getSkipTests() {
         return List.of(
-                // Expected error but mapping succeeds
+                // Test case bug: spec says missing JSON/XML values produce NULL, not errors
                 "RMLIOREGTC0002b",
-                "RMLIOREGTC0002c",
                 "RMLIOREGTC0003b",
+                // Spec requires error for invalid JSONPath syntax, but SUPPRESS_EXCEPTIONS config returns null
+                "RMLIOREGTC0002c",
+                // Expected error for invalid PostgreSQL table
                 "RMLIOREGTC0005d",
                 // Output mismatch
                 "RMLIOREGTC0003d",

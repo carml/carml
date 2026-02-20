@@ -96,6 +96,8 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
 
         private DatabaseConnectionOptions databaseConnectionOptions;
 
+        private boolean strictMode = false;
+
         private Set<String> excludeLogicalSourceResolvers = new HashSet<>();
 
         /**
@@ -200,6 +202,19 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
             return this;
         }
 
+        /**
+         * Enables or disables strict mode. When strict mode is enabled, the mapper will raise a data
+         * error if a reference expression never produces a non-null result across all records of a logical
+         * source. In lenient mode (default), non-matching references are silently skipped.
+         *
+         * @param strictMode true to enable strict mode, false for lenient mode
+         * @return {@link Builder}
+         */
+        public Builder strictMode(boolean strictMode) {
+            this.strictMode = strictMode;
+            return this;
+        }
+
         public Builder excludeLogicalSourceResolver(String resolverName) {
             excludeLogicalSourceResolvers.add(resolverName);
             return this;
@@ -244,6 +259,7 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
                     .rdfTermGeneratorConfig(rdfTermGeneratorConfig)
                     .childSideJoinStoreProvider(childSideJoinCacheProvider)
                     .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
+                    .strictMode(strictMode)
                     .build();
 
             var pipelineFactory = RdfMappingPipelineFactory.getInstance();

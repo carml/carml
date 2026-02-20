@@ -113,6 +113,7 @@ public abstract class RmlMapper<T, K> {
                 .mapNotNull(this::handleCompletable)
                 .filter(Objects::nonNull)
                 .concatWith(resolveFinishers(mappingContext))
+                .concatWith(validateTriplesMappers(mappingContext))
                 .doOnTerminate(() -> mappingPipeline.getTriplesMappers().forEach(TriplesMapper::cleanup));
     }
 
@@ -206,6 +207,13 @@ public abstract class RmlMapper<T, K> {
 
     private Flux<MappingResult<T>> resolveFinishers(MappingContext<T> mappingContext) {
         return Flux.merge(resolveJoins(mappingContext), mergeMergeables());
+    }
+
+    private Flux<MappingResult<T>> validateTriplesMappers(MappingContext<T> mappingContext) {
+        Flux<TriplesMapper<T>> mappers = Flux.fromIterable(
+                        mappingContext.getTriplesMapperPerLogicalSource().values())
+                .flatMapIterable(triplesMappers -> triplesMappers);
+        return mappers.concatMap(triplesMapper -> triplesMapper.validate().then(Mono.<MappingResult<T>>empty()));
     }
 
     private Flux<MappingResult<T>> resolveJoins(MappingContext<T> mappingContext) {
