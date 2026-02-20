@@ -23,11 +23,15 @@ public class RdfMapperConfig {
     @NonNull
     private final Supplier<ValueFactory> valueFactorySupplier;
 
-    @NonNull
+    @Getter(AccessLevel.NONE)
     private final TermGeneratorFactory<Value> termGeneratorFactory;
 
     @NonNull
     private final RdfTermGeneratorConfig rdfTermGeneratorConfig;
+
+    public TermGeneratorFactory<Value> getTermGeneratorFactory() {
+        return termGeneratorFactory != null ? termGeneratorFactory : RdfTermGeneratorFactory.of(rdfTermGeneratorConfig);
+    }
 
     private final ChildSideJoinStoreProvider<MappedValue<Resource>, MappedValue<IRI>> childSideJoinStoreProvider;
 

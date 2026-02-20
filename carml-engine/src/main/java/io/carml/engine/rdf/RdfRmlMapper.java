@@ -249,10 +249,6 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
                     .functions(functions)
                     .build();
 
-            if (termGeneratorFactory == null) {
-                termGeneratorFactory = RdfTermGeneratorFactory.of(rdfTermGeneratorConfig);
-            }
-
             var rdfMapperConfig = RdfMapperConfig.builder()
                     .valueFactorySupplier(valueFactorySupplier)
                     .termGeneratorFactory(termGeneratorFactory)

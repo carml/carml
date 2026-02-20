@@ -328,7 +328,6 @@ public class RdfMappingPipelineFactory {
                 .build();
 
         return rdfMapperConfig.toBuilder()
-                .termGeneratorFactory(RdfTermGeneratorFactory.of(overriddenTermGenConfig))
                 .rdfTermGeneratorConfig(overriddenTermGenConfig)
                 .build();
     }
