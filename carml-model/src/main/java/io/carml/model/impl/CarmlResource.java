@@ -34,6 +34,11 @@ public abstract class CarmlResource implements Resource {
     private String label;
 
     @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @Setter(lombok.AccessLevel.NONE)
+    private transient org.eclipse.rdf4j.model.Resource cachedBNode;
+
+    @ToString.Exclude
     @Builder.Default
     private Map<Resource, Model> modelCache = new HashMap<>();
 
@@ -53,7 +58,10 @@ public abstract class CarmlResource implements Resource {
     public org.eclipse.rdf4j.model.Resource getAsResource() {
 
         if (id == null) {
-            return bnode();
+            if (cachedBNode == null) {
+                cachedBNode = bnode();
+            }
+            return cachedBNode;
         }
 
         if (RdfValues.isValidIri(id)) {

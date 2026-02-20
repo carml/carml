@@ -1,0 +1,91 @@
+@prefix rml: <http://w3id.org/rml/> .
+@prefix rr: <http://www.w3.org/ns/r2rml#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix ex: <http://example.org/> .
+
+# TriplesMap with baseIRI, multiple subjectMaps, graphMap, languageMap, datatypeMap, gatherMap
+ex:MainTriplesMap a rml:TriplesMap ;
+  rml:baseIRI <http://base.example.org/> ;
+  rml:logicalSource [
+    rml:source "data.json" ;
+    rml:iterator "$.[*]" ;
+    rml:referenceFormulation rml:JSONPath ;
+  ] ;
+  rml:subjectMap [
+    rml:template "http://example.org/{id}" ;
+    rml:class ex:Thing , ex:Entity ;
+    rml:graphMap [
+      rml:constant ex:MainGraph ;
+      rml:termType rml:IRI ;
+    ] ;
+  ] ;
+  rml:subjectMap [
+    rml:reference "alt_id" ;
+    rml:termType rml:BlankNode ;
+    rml:class ex:AltThing ;
+  ] ;
+  rml:predicateObjectMap [
+    rml:predicateMap [ rml:constant ex:label ] ;
+    rml:objectMap [
+      rml:reference "title" ;
+      rml:languageMap [ rml:reference "lang" ] ;
+    ] ;
+  ] ;
+  rml:predicateObjectMap [
+    rml:predicateMap [ rml:constant ex:value ] ;
+    rml:objectMap [
+      rml:template "{amount}" ;
+      rml:datatypeMap [ rml:constant xsd:decimal ] ;
+    ] ;
+  ] ;
+  rml:predicateObjectMap [
+    rml:predicateMap [ rml:constant ex:tags ] ;
+    rml:objectMap [
+      rml:gather (
+        [ rml:reference "tag1" ]
+        [ rml:reference "tag2" ]
+      ) ;
+      rml:gatherAs rml:RDFList ;
+      rml:strategy rml:append ;
+      rml:allowEmptyListAndContainer true ;
+      rml:termType rml:BlankNode ;
+    ] ;
+  ] ;
+.
+
+# RefObjectMap with parentTriplesMap and join conditions using new vocab
+ex:RefTriplesMap a rml:TriplesMap ;
+  rml:logicalSource [
+    rml:source "refs.json" ;
+    rml:iterator "$.[*]" ;
+    rml:referenceFormulation rml:JSONPath ;
+  ] ;
+  rml:subjectMap [
+    rml:template "http://example.org/ref/{ref_id}" ;
+  ] ;
+  rml:predicateObjectMap [
+    rml:predicateMap [ rml:constant ex:relatedTo ] ;
+    rml:objectMap [
+      rml:parentTriplesMap ex:MainTriplesMap ;
+      rml:joinCondition [
+        rml:childMap [ rml:reference "fk_id" ] ;
+        rml:parentMap [ rml:reference "id" ] ;
+      ] ;
+      rml:joinCondition [
+        rml:childMap [ rml:reference "fk_type" ] ;
+        rml:parentMap [ rml:reference "type" ] ;
+      ] ;
+    ] ;
+  ] ;
+.
+
+# R2RML backward compat: logicalTable with tableName
+ex:SqlTriplesMap a rr:TriplesMap ;
+  rr:logicalTable [
+    rr:tableName "items" ;
+  ] ;
+  rml:subjectMap [
+    rml:template "http://example.org/item/{item_id}" ;
+    rml:class ex:Item ;
+  ] ;
+.

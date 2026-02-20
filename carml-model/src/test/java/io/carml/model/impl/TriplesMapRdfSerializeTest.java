@@ -12,10 +12,8 @@ import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.util.ModelCollector;
 import org.eclipse.rdf4j.rio.RDFFormat;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-@Disabled // TODO add new constructs
 class TriplesMapRdfSerializeTest {
 
     private RmlMappingLoader mappingLoader;
@@ -28,6 +26,24 @@ class TriplesMapRdfSerializeTest {
     @Test
     void triplesMapAsRdfRoundTripTest() {
         InputStream mappingSource = TriplesMapRdfSerializeTest.class.getResourceAsStream("Mapping.rml.ttl");
+        Set<TriplesMap> mapping = mappingLoader.load(RDFFormat.TURTLE, mappingSource);
+
+        Model model =
+                mapping.stream().map(Resource::asRdf).flatMap(Model::stream).collect(ModelCollector.toModel());
+
+        Set<TriplesMap> mappingReloaded = mappingLoader.load(model);
+
+        Model modelReloaded = mappingReloaded.stream()
+                .map(Resource::asRdf)
+                .flatMap(Model::stream)
+                .collect(ModelCollector.toModel());
+
+        assertThat(model, is(modelReloaded));
+    }
+
+    @Test
+    void expandedMappingRoundTripTest() {
+        InputStream mappingSource = TriplesMapRdfSerializeTest.class.getResourceAsStream("ExpandedMapping.rml.ttl");
         Set<TriplesMap> mapping = mappingLoader.load(RDFFormat.TURTLE, mappingSource);
 
         Model model =
