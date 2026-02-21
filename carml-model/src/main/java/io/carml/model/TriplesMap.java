@@ -7,7 +7,7 @@ import org.eclipse.rdf4j.model.IRI;
 
 public interface TriplesMap extends Resource {
 
-    LogicalSource getLogicalSource();
+    AbstractLogicalSource getLogicalSource();
 
     LogicalTable getLogicalTable();
 

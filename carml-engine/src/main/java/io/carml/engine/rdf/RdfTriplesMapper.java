@@ -188,7 +188,7 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
 
     @Override
     public LogicalSource getLogicalSource() {
-        return triplesMap.getLogicalSource();
+        return (LogicalSource) triplesMap.getLogicalSource();
     }
 
     Set<RefObjectMapper<Statement>> getRefObjectMappers() {

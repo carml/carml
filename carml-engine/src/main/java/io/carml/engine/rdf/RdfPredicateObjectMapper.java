@@ -151,7 +151,8 @@ public class RdfPredicateObjectMapper {
                     refObjectMap.getParentTriplesMap().getResourceName());
         }
 
-        LogicalSource parentLogicalSource = refObjectMap.getParentTriplesMap().getLogicalSource();
+        var parentLogicalSource =
+                (LogicalSource) refObjectMap.getParentTriplesMap().getLogicalSource();
 
         if (parentLogicalSource == null) {
             throw new TriplesMapperException(String.format(
@@ -176,7 +177,7 @@ public class RdfPredicateObjectMapper {
     private static Stream<TermGenerator<? extends Value>> createJoinlessRefObjectMapGenerators(
             Set<BaseObjectMap> objectMaps, TriplesMap triplesMap, RdfTermGeneratorFactory termGeneratorFactory) {
 
-        LogicalSource logicalSource = triplesMap.getLogicalSource();
+        var logicalSource = (LogicalSource) triplesMap.getLogicalSource();
 
         return objectMaps.stream()
                 .filter(RefObjectMap.class::isInstance)

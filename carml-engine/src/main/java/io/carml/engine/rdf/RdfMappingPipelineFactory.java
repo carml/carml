@@ -128,7 +128,7 @@ public class RdfMappingPipelineFactory {
 
         lsExpressions.forEach((logicalSource, expressions) -> groupedTriplesMaps
                 .get(logicalSource)
-                .forEach(triplesMap -> triplesMap.getLogicalSource().setExpressions(expressions)));
+                .forEach(triplesMap -> requireLogicalSource(triplesMap).setExpressions(expressions)));
     }
 
     private Set<TableJoiningGroup> getTableJoiningGroups(Set<TriplesMap> triplesMaps) {
@@ -150,7 +150,7 @@ public class RdfMappingPipelineFactory {
                     .filter(rom -> isTableJoiningRefObjectMap(rom, triplesMap))
                     .collect(groupingBy(
                             rom -> ParentLogicalSourceAndJoins.of(
-                                    rom.getParentTriplesMap().getLogicalSource(), rom.getJoinConditions()),
+                                    requireLogicalSource(rom.getParentTriplesMap()), rom.getJoinConditions()),
                             toUnmodifiableSet()));
 
             refObjectMapsByParentLogicalSourceAndJoins.entrySet().stream()
@@ -201,7 +201,7 @@ public class RdfMappingPipelineFactory {
 
         var joiningLogicalSource = CarmlLogicalSource.builder()
                 .source(JoiningDatabaseSource.builder()
-                        .childLogicalSource(triplesMap.getLogicalSource())
+                        .childLogicalSource(requireLogicalSource(triplesMap))
                         .parentLogicalSource(parentLogicalSource)
                         .refObjectMaps(refObjectMaps)
                         .childExpressions(childExpressions)
@@ -231,12 +231,12 @@ public class RdfMappingPipelineFactory {
 
     private boolean isDatabaseTriplesMap(TriplesMap triplesMap) {
         return triplesMap.getLogicalTable() != null
-                || triplesMap.getLogicalSource().getSource() instanceof DatabaseSource;
+                || requireLogicalSource(triplesMap).getSource() instanceof DatabaseSource;
     }
 
     private boolean isSameDatabase(TriplesMap child, TriplesMap parent) {
-        var childSource = child.getLogicalSource().getSource();
-        var parentSource = parent.getLogicalSource().getSource();
+        var childSource = requireLogicalSource(child).getSource();
+        var parentSource = requireLogicalSource(parent).getSource();
         if (childSource instanceof DatabaseSource childDbSource
                 && parentSource instanceof DatabaseSource parentDbSource) {
             var childJdbcDsn = childDbSource.getJdbcDsn();
@@ -261,7 +261,7 @@ public class RdfMappingPipelineFactory {
             throw new RmlMapperException("No executable triples maps found.");
         }
 
-        var triplesMapLogicalSources = triplesMaps.stream().map(TriplesMap::getLogicalSource);
+        var triplesMapLogicalSources = triplesMaps.stream().map(RdfMappingPipelineFactory::requireLogicalSource);
 
         var tableJoiningLogicalSources = tableJoiningGroups.stream().map(TableJoiningGroup::getJoiningLogicalSource);
 
@@ -336,7 +336,7 @@ public class RdfMappingPipelineFactory {
             TriplesMap triplesMap, Map<Source, LogicalSourceResolver<?>> sourceToLogicalSourceResolver) {
         return sourceToLogicalSourceResolver.entrySet().stream()
                 .filter(entry ->
-                        entry.getKey().equals(triplesMap.getLogicalSource().getSource()))
+                        entry.getKey().equals(requireLogicalSource(triplesMap).getSource()))
                 .map(Entry::getValue)
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException(
@@ -364,6 +364,15 @@ public class RdfMappingPipelineFactory {
 
         @NonNull
         private Set<PredicateObjectMap> referencingPredicateObjectMaps;
+    }
+
+    private static LogicalSource requireLogicalSource(TriplesMap triplesMap) {
+        if (triplesMap.getLogicalSource() instanceof LogicalSource logicalSource) {
+            return logicalSource;
+        }
+        throw new RmlMapperException(String.format(
+                "Expected LogicalSource but found %s for TriplesMap %s",
+                triplesMap.getLogicalSource().getClass().getSimpleName(), triplesMap.getResourceName()));
     }
 
     @AllArgsConstructor(staticName = "of")

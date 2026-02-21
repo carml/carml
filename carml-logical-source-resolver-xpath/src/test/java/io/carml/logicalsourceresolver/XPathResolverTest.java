@@ -382,7 +382,7 @@ class XPathResolverTest {
                 .load(RDFFormat.TURTLE, XPathResolverTest.class.getResourceAsStream("xmlns.rml.ttl"));
 
         var triplesMap = Iterables.getOnlyElement(mapping);
-        var logicalSource = triplesMap.getLogicalSource();
+        var logicalSource = (LogicalSource) triplesMap.getLogicalSource();
 
         var resolvedSource =
                 ResolvedSource.of(IOUtils.toInputStream(SOURCE_NS, StandardCharsets.UTF_8), new TypeRef<>() {});
@@ -411,7 +411,7 @@ class XPathResolverTest {
                 .load(RDFFormat.TURTLE, XPathResolverTest.class.getResourceAsStream("xmlns-legacy.rml.ttl"));
 
         var triplesMap = Iterables.getOnlyElement(mapping);
-        var logicalSource = triplesMap.getLogicalSource();
+        var logicalSource = (LogicalSource) triplesMap.getLogicalSource();
 
         var resolvedSource =
                 ResolvedSource.of(IOUtils.toInputStream(SOURCE_NS, StandardCharsets.UTF_8), new TypeRef<>() {});
