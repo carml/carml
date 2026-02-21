@@ -1,7 +1,7 @@
 package io.carml.model.impl;
 
 import com.google.common.collect.ImmutableSet;
-import io.carml.model.LogicalSource;
+import io.carml.model.AbstractLogicalSource;
 import io.carml.model.LogicalTable;
 import io.carml.model.PredicateObjectMap;
 import io.carml.model.Resource;
@@ -9,6 +9,7 @@ import io.carml.model.SubjectMap;
 import io.carml.model.TriplesMap;
 import io.carml.rdfmapper.annotations.RdfProperty;
 import io.carml.rdfmapper.annotations.RdfType;
+import io.carml.rdfmapper.annotations.RdfTypeDecider;
 import io.carml.vocab.OldRml;
 import io.carml.vocab.Rdf;
 import io.carml.vocab.Rml;
@@ -30,7 +31,7 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @EqualsAndHashCode(callSuper = false)
 public class CarmlTriplesMap extends CarmlResource implements TriplesMap {
 
-    private LogicalSource logicalSource;
+    private AbstractLogicalSource logicalSource;
 
     private LogicalTable logicalTable;
 
@@ -50,9 +51,9 @@ public class CarmlTriplesMap extends CarmlResource implements TriplesMap {
 
     @RdfProperty(Rml.logicalSource)
     @RdfProperty(OldRml.logicalSource)
-    @RdfType(CarmlLogicalSource.class)
+    @RdfTypeDecider(LogicalSourceTypeDecider.class)
     @Override
-    public LogicalSource getLogicalSource() {
+    public AbstractLogicalSource getLogicalSource() {
         return logicalTable != null ? logicalTable : logicalSource;
     }
 

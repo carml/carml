@@ -188,4 +188,56 @@ public class Rml {
     public static final String namespacePrefix = NAMESPACE + "namespacePrefix";
 
     public static final String namespaceURL = NAMESPACE + "namespaceURL";
+
+    // LogicalView
+
+    public static final String LogicalView = NAMESPACE + "LogicalView";
+
+    public static final String viewOn = NAMESPACE + "viewOn";
+
+    public static final String field = NAMESPACE + "field";
+
+    public static final String leftJoin = NAMESPACE + "leftJoin";
+
+    public static final String innerJoin = NAMESPACE + "innerJoin";
+
+    // Fields
+
+    public static final String Field = NAMESPACE + "Field";
+
+    public static final String ExpressionField = NAMESPACE + "ExpressionField";
+
+    public static final String IterableField = NAMESPACE + "IterableField";
+
+    public static final String fieldName = NAMESPACE + "fieldName";
+
+    // LogicalViewJoin
+
+    public static final String LogicalViewJoin = NAMESPACE + "LogicalViewJoin";
+
+    public static final String parentLogicalView = NAMESPACE + "parentLogicalView";
+
+    // Structural annotations
+
+    public static final String structuralAnnotation = NAMESPACE + "structuralAnnotation";
+
+    public static final String StructuralAnnotation = NAMESPACE + "StructuralAnnotation";
+
+    public static final String IriSafeAnnotation = NAMESPACE + "IriSafeAnnotation";
+
+    public static final String PrimaryKeyAnnotation = NAMESPACE + "PrimaryKeyAnnotation";
+
+    public static final String UniqueAnnotation = NAMESPACE + "UniqueAnnotation";
+
+    public static final String NotNullAnnotation = NAMESPACE + "NotNullAnnotation";
+
+    public static final String ForeignKeyAnnotation = NAMESPACE + "ForeignKeyAnnotation";
+
+    public static final String InclusionAnnotation = NAMESPACE + "InclusionAnnotation";
+
+    public static final String onFields = NAMESPACE + "onFields";
+
+    public static final String targetView = NAMESPACE + "targetView";
+
+    public static final String targetFields = NAMESPACE + "targetFields";
 }

@@ -223,6 +223,58 @@ public class Rdf {
         public static final IRI append = iri("append");
 
         public static final IRI cartesianProduct = iri("cartesianProduct");
+
+        // LogicalView
+
+        public static final IRI LogicalView = iri("LogicalView");
+
+        public static final IRI viewOn = iri("viewOn");
+
+        public static final IRI field = iri("field");
+
+        public static final IRI leftJoin = iri("leftJoin");
+
+        public static final IRI innerJoin = iri("innerJoin");
+
+        // Fields
+
+        public static final IRI Field = iri("Field");
+
+        public static final IRI ExpressionField = iri("ExpressionField");
+
+        public static final IRI IterableField = iri("IterableField");
+
+        public static final IRI fieldName = iri("fieldName");
+
+        // LogicalViewJoin
+
+        public static final IRI LogicalViewJoin = iri("LogicalViewJoin");
+
+        public static final IRI parentLogicalView = iri("parentLogicalView");
+
+        // Structural annotations
+
+        public static final IRI structuralAnnotation = iri("structuralAnnotation");
+
+        public static final IRI StructuralAnnotation = iri("StructuralAnnotation");
+
+        public static final IRI IriSafeAnnotation = iri("IriSafeAnnotation");
+
+        public static final IRI PrimaryKeyAnnotation = iri("PrimaryKeyAnnotation");
+
+        public static final IRI UniqueAnnotation = iri("UniqueAnnotation");
+
+        public static final IRI NotNullAnnotation = iri("NotNullAnnotation");
+
+        public static final IRI ForeignKeyAnnotation = iri("ForeignKeyAnnotation");
+
+        public static final IRI InclusionAnnotation = iri("InclusionAnnotation");
+
+        public static final IRI onFields = iri("onFields");
+
+        public static final IRI targetView = iri("targetView");
+
+        public static final IRI targetFields = iri("targetFields");
     }
 
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
