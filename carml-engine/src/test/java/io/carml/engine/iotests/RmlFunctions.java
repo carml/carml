@@ -7,6 +7,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 
+@SuppressWarnings("deprecation")
 public class RmlFunctions {
 
     private static class Ex {

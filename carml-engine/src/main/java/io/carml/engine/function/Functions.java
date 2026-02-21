@@ -24,7 +24,7 @@ import org.eclipse.rdf4j.model.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("java:S1135")
+@SuppressWarnings({"java:S1135", "deprecation"})
 public class Functions {
 
     private static final Logger LOG = LoggerFactory.getLogger(Functions.class);
