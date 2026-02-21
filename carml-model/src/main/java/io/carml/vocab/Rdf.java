@@ -275,6 +275,38 @@ public class Rdf {
         public static final IRI targetView = iri("targetView");
 
         public static final IRI targetFields = iri("targetFields");
+
+        // RML-FNML
+
+        public static final IRI FunctionExecution = iri("FunctionExecution");
+
+        public static final IRI FunctionMap = iri("FunctionMap");
+
+        public static final IRI Input = iri("Input");
+
+        public static final IRI ParameterMap = iri("ParameterMap");
+
+        public static final IRI ReturnMap = iri("ReturnMap");
+
+        public static final IRI functionExecution = iri("functionExecution");
+
+        public static final IRI functionMap = iri("functionMap");
+
+        public static final IRI function = iri("function");
+
+        public static final IRI input = iri("input");
+
+        public static final IRI parameterMap = iri("parameterMap");
+
+        public static final IRI parameter = iri("parameter");
+
+        public static final IRI inputValueMap = iri("inputValueMap");
+
+        public static final IRI inputValue = iri("inputValue");
+
+        public static final IRI returnMap = iri("returnMap");
+
+        public static final IRI returnProperty = iri("return");
     }
 
     @NoArgsConstructor(access = AccessLevel.PRIVATE)

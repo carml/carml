@@ -240,4 +240,36 @@ public class Rml {
     public static final String targetView = NAMESPACE + "targetView";
 
     public static final String targetFields = NAMESPACE + "targetFields";
+
+    // RML-FNML
+
+    public static final String FunctionExecution = NAMESPACE + "FunctionExecution";
+
+    public static final String FunctionMap = NAMESPACE + "FunctionMap";
+
+    public static final String Input = NAMESPACE + "Input";
+
+    public static final String ParameterMap = NAMESPACE + "ParameterMap";
+
+    public static final String ReturnMap = NAMESPACE + "ReturnMap";
+
+    public static final String functionExecution = NAMESPACE + "functionExecution";
+
+    public static final String functionMap = NAMESPACE + "functionMap";
+
+    public static final String function = NAMESPACE + "function";
+
+    public static final String input = NAMESPACE + "input";
+
+    public static final String parameterMap = NAMESPACE + "parameterMap";
+
+    public static final String parameter = NAMESPACE + "parameter";
+
+    public static final String inputValueMap = NAMESPACE + "inputValueMap";
+
+    public static final String inputValue = NAMESPACE + "inputValue";
+
+    public static final String returnMap = NAMESPACE + "returnMap";
+
+    public static final String returnProperty = NAMESPACE + "return";
 }

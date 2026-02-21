@@ -1,9 +1,12 @@
 package io.carml.model.impl;
 
+import com.google.common.collect.ImmutableSet;
 import io.carml.model.ExpressionMap;
+import io.carml.model.FunctionExecution;
 import io.carml.model.ObjectMap;
 import io.carml.model.PredicateObjectMap;
 import io.carml.model.Resource;
+import io.carml.model.ReturnMap;
 import io.carml.model.Template;
 import io.carml.model.TriplesMap;
 import io.carml.rdfmapper.annotations.RdfProperty;
@@ -42,6 +45,10 @@ abstract class CarmlExpressionMap extends CarmlResource implements ExpressionMap
 
     private TriplesMap functionValue;
 
+    private FunctionExecution functionExecution;
+
+    private ReturnMap returnMap;
+
     @RdfProperty(Rml.reference)
     @RdfProperty(OldRml.reference)
     @RdfProperty(Rr.column)
@@ -65,8 +72,6 @@ abstract class CarmlExpressionMap extends CarmlResource implements ExpressionMap
         return constant;
     }
 
-    // TODO rml-fnml
-
     @RdfProperty(Fnml.functionValue)
     @RdfProperty(value = Carml.multiFunctionValue, deprecated = true)
     @RdfType(CarmlTriplesMap.class)
@@ -75,8 +80,35 @@ abstract class CarmlExpressionMap extends CarmlResource implements ExpressionMap
         return functionValue;
     }
 
+    @RdfProperty(Rml.functionExecution)
+    @RdfType(CarmlFunctionExecution.class)
+    @Override
+    public FunctionExecution getFunctionExecution() {
+        return functionExecution;
+    }
+
+    @RdfProperty(Rml.returnMap)
+    @RdfProperty(Rml.returnProperty)
+    @RdfType(CarmlReturnMap.class)
+    @Override
+    public ReturnMap getReturnMap() {
+        return returnMap;
+    }
+
     Set<Resource> getReferencedResourcesBase() {
-        return functionValue != null ? Set.of(functionValue) : Set.of();
+        var builder = ImmutableSet.<Resource>builder();
+
+        if (functionValue != null) {
+            builder.add(functionValue);
+        }
+        if (functionExecution != null) {
+            builder.add(functionExecution);
+        }
+        if (returnMap != null) {
+            builder.add(returnMap);
+        }
+
+        return builder.build();
     }
 
     void addTriplesBase(ModelBuilder builder) {
@@ -89,9 +121,14 @@ abstract class CarmlExpressionMap extends CarmlResource implements ExpressionMap
         if (constant != null) {
             builder.add(Rdf.Rml.constant, constant);
         }
-        // TODO fnml
         if (functionValue != null) {
             builder.add(Fnml.functionValue, functionValue.getAsResource());
+        }
+        if (functionExecution != null) {
+            builder.add(Rdf.Rml.functionExecution, functionExecution.getAsResource());
+        }
+        if (returnMap != null) {
+            builder.add(Rdf.Rml.returnMap, returnMap.getAsResource());
         }
     }
 

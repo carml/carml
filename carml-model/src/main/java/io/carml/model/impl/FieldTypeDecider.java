@@ -27,7 +27,8 @@ public class FieldTypeDecider implements TypeDecider {
         if (model.contains(resource, Rml.reference, null)
                 || model.contains(resource, Rml.template, null)
                 || model.contains(resource, Rml.constant, null)
-                || model.contains(resource, Fnml.functionValue, null)) {
+                || model.contains(resource, Fnml.functionValue, null)
+                || model.contains(resource, Rml.functionExecution, null)) {
             return Set.of(CarmlExpressionField.class);
         }
 

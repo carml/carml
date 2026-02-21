@@ -1,0 +1,52 @@
+@prefix rml: <http://w3id.org/rml/> .
+@prefix ex: <http://example.org/> .
+
+ex:Source a rml:LogicalSource ;
+  rml:source "people.json" ;
+  rml:iterator "$.[*]" ;
+  rml:referenceFormulation rml:JSONPath ;
+.
+
+ex:ToUpperCase a rml:FunctionExecution ;
+  rml:functionMap [ a rml:FunctionMap ; rml:constant ex:toUpperCaseFunction ] ;
+  rml:input [
+    a rml:Input ;
+    rml:parameterMap [ a rml:ParameterMap ; rml:constant ex:inputParam ] ;
+    rml:inputValueMap [ a rml:ObjectMap ; rml:reference "$.name" ] ;
+  ] ;
+.
+
+ex:Concat a rml:FunctionExecution ;
+  rml:functionMap [ a rml:FunctionMap ; rml:constant ex:concatFunction ] ;
+  rml:input [
+    a rml:Input ;
+    rml:parameterMap [ a rml:ParameterMap ; rml:constant ex:paramA ] ;
+    rml:inputValueMap [ a rml:ObjectMap ; rml:reference "$.firstName" ] ;
+  ] ;
+  rml:input [
+    a rml:Input ;
+    rml:parameterMap [ a rml:ParameterMap ; rml:constant ex:paramB ] ;
+    rml:inputValueMap [ a rml:ObjectMap ; rml:reference "$.lastName" ] ;
+  ] ;
+.
+
+ex:FnmlMapping a rml:TriplesMap ;
+  rml:logicalSource ex:Source ;
+  rml:subjectMap [
+    rml:template "http://example.org/person/{$.id}" ;
+    rml:class ex:Person ;
+  ] ;
+  rml:predicateObjectMap [
+    rml:predicateMap [ rml:constant ex:upperName ] ;
+    rml:objectMap [
+      rml:functionExecution ex:ToUpperCase ;
+      rml:returnMap [ a rml:ReturnMap ; rml:constant ex:outputParam ] ;
+    ] ;
+  ] ;
+  rml:predicateObjectMap [
+    rml:predicateMap [ rml:constant ex:fullName ] ;
+    rml:objectMap [
+      rml:functionExecution ex:Concat ;
+    ] ;
+  ] ;
+.
