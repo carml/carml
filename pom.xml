@@ -59,6 +59,7 @@
 		<module>carml-logical-source-resolver-mysql</module>
 		<module>carml-logical-source-resolver-postgresql</module>
 		<module>carml-join-storage</module>
+		<module>carml-logical-view</module>
 		<module>carml-converters-jena</module>
     <module>carml-test-cases</module>
   </modules>
@@ -178,6 +179,12 @@
 			<dependency>
 				<groupId>io.carml</groupId>
 				<artifactId>carml-join-storage</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>io.carml</groupId>
+				<artifactId>carml-logical-view</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 
