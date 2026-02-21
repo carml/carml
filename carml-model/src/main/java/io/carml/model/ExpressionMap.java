@@ -16,6 +16,27 @@ public interface ExpressionMap extends Resource {
 
     TriplesMap getFunctionValue();
 
+    /**
+     * Returns the {@link FunctionExecution} associated with this expression map, if any. This is the
+     * RML-FNML path for function-based term generation, as opposed to the legacy
+     * {@link #getFunctionValue()} path.
+     *
+     * @return the function execution, or {@code null} if not set
+     */
+    default FunctionExecution getFunctionExecution() {
+        return null;
+    }
+
+    /**
+     * Returns the {@link ReturnMap} selecting which return value to use from the
+     * {@link #getFunctionExecution()}, if any.
+     *
+     * @return the return map, or {@code null} if not set
+     */
+    default ReturnMap getReturnMap() {
+        return null;
+    }
+
     default Set<String> getExpressionMapExpressionSet() {
         if (getReference() != null) {
             return Set.of(getReference());
@@ -36,6 +57,13 @@ public interface ExpressionMap extends Resource {
                                     .filter(ObjectMap.class::isInstance)
                                     .map(ObjectMap.class::cast)
                                     .flatMap(objectMap -> objectMap.getExpressionMapExpressionSet().stream())))
+                    .collect(Collectors.toUnmodifiableSet());
+        }
+
+        if (getFunctionExecution() != null) {
+            return getFunctionExecution().getInputs().stream()
+                    .map(Input::getInputValueMap)
+                    .flatMap(inputValueMap -> inputValueMap.getExpressionMapExpressionSet().stream())
                     .collect(Collectors.toUnmodifiableSet());
         }
 
