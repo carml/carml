@@ -1,0 +1,125 @@
+@prefix rml: <http://w3id.org/rml/> .
+@prefix ex: <http://example.org/> .
+
+# Base LogicalSource
+ex:JsonSource a rml:LogicalSource ;
+  rml:source "people.json" ;
+  rml:iterator "$.[*]" ;
+  rml:referenceFormulation rml:JSONPath ;
+.
+
+# Another LogicalSource for join target
+ex:AddressSource a rml:LogicalSource ;
+  rml:source "addresses.json" ;
+  rml:iterator "$.[*]" ;
+  rml:referenceFormulation rml:JSONPath ;
+.
+
+# Named field resources for reuse in annotations
+ex:addrIdField a rml:ExpressionField ;
+  rml:fieldName "addr_id" ;
+  rml:reference "$.id" ;
+.
+
+ex:cityField a rml:ExpressionField ;
+  rml:fieldName "city" ;
+  rml:reference "$.city" ;
+.
+
+ex:idField a rml:ExpressionField ;
+  rml:fieldName "id" ;
+  rml:reference "$.id" ;
+.
+
+ex:fullNameField a rml:ExpressionField ;
+  rml:fieldName "fullName" ;
+  rml:template "{$.firstName} {$.lastName}" ;
+.
+
+# LogicalView for addresses (join target)
+ex:AddressView a rml:LogicalView ;
+  rml:viewOn ex:AddressSource ;
+  rml:field ex:addrIdField ;
+  rml:field ex:cityField ;
+  rml:structuralAnnotation [
+    a rml:UniqueAnnotation ;
+    rml:onFields ex:addrIdField ;
+  ] ;
+.
+
+# Main LogicalView with all RML-LV features
+ex:PersonView a rml:LogicalView ;
+  rml:viewOn ex:JsonSource ;
+
+  # ExpressionFields
+  rml:field ex:idField ;
+  rml:field ex:fullNameField ;
+
+  # IterableField with nested ExpressionFields
+  rml:field [
+    a rml:IterableField ;
+    rml:fieldName "item" ;
+    rml:iterator "$.items[*]" ;
+    rml:field [
+      a rml:ExpressionField ;
+      rml:fieldName "type" ;
+      rml:reference "$.type" ;
+    ] ;
+    rml:field [
+      a rml:ExpressionField ;
+      rml:fieldName "weight" ;
+      rml:reference "$.weight" ;
+    ] ;
+  ] ;
+
+  # Left join
+  rml:leftJoin [
+    rml:parentLogicalView ex:AddressView ;
+    rml:joinCondition [
+      rml:childMap [ rml:reference "addr_id" ] ;
+      rml:parentMap [ rml:reference "addr_id" ] ;
+    ] ;
+    rml:field [
+      a rml:ExpressionField ;
+      rml:fieldName "address_city" ;
+      rml:reference "city" ;
+    ] ;
+  ] ;
+
+  # Structural annotations — reference named fields
+  rml:structuralAnnotation [
+    a rml:PrimaryKeyAnnotation ;
+    rml:onFields ex:idField ;
+  ] ;
+
+  rml:structuralAnnotation [
+    a rml:NotNullAnnotation ;
+    rml:onFields ex:fullNameField ;
+  ] ;
+.
+
+# TriplesMap using LogicalView as logical source
+ex:PersonMapping a rml:TriplesMap ;
+  rml:logicalSource ex:PersonView ;
+  rml:subjectMap [
+    rml:template "http://example.org/person/{id}" ;
+    rml:class ex:Person ;
+  ] ;
+  rml:predicateObjectMap [
+    rml:predicateMap [ rml:constant ex:name ] ;
+    rml:objectMap [ rml:reference "fullName" ] ;
+  ] ;
+.
+
+# TriplesMap using LogicalView (AddressView) as logical source
+ex:AddressMapping a rml:TriplesMap ;
+  rml:logicalSource ex:AddressView ;
+  rml:subjectMap [
+    rml:template "http://example.org/address/{addr_id}" ;
+    rml:class ex:Address ;
+  ] ;
+  rml:predicateObjectMap [
+    rml:predicateMap [ rml:constant ex:city ] ;
+    rml:objectMap [ rml:reference "city" ] ;
+  ] ;
+.

@@ -7,8 +7,9 @@ import io.carml.model.Resource;
 import io.carml.rdfmapper.annotations.RdfProperty;
 import io.carml.rdfmapper.annotations.RdfResourceName;
 import io.carml.util.RdfValues;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
 import lombok.Builder;
@@ -36,7 +37,7 @@ public abstract class CarmlResource implements Resource {
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     @Setter(lombok.AccessLevel.NONE)
-    private transient org.eclipse.rdf4j.model.Resource cachedBNode;
+    private org.eclipse.rdf4j.model.Resource cachedBNode;
 
     @ToString.Exclude
     @Builder.Default
@@ -86,7 +87,7 @@ public abstract class CarmlResource implements Resource {
             }
         }
 
-        var model = asRdfInternal(this, new HashSet<>());
+        var model = asRdfInternal(this, Collections.newSetFromMap(new IdentityHashMap<>()));
 
         cacheModel(model);
 
