@@ -9,7 +9,13 @@ import io.carml.engine.MappingPipeline;
 import io.carml.engine.RmlMapper;
 import io.carml.engine.RmlMapperException;
 import io.carml.engine.TermGeneratorFactory;
-import io.carml.engine.function.Functions;
+import io.carml.engine.function.AnnotatedFunctionProvider;
+import io.carml.engine.function.BuiltInFunctionProvider;
+import io.carml.engine.function.FunctionDescriptor;
+import io.carml.engine.function.FunctionProvider;
+import io.carml.engine.function.FunctionRegistry;
+import io.carml.engine.function.ParameterDescriptor;
+import io.carml.engine.function.ReturnDescriptor;
 import io.carml.engine.join.ChildSideJoinStoreProvider;
 import io.carml.engine.join.ParentSideJoinConditionStoreProvider;
 import io.carml.engine.join.impl.CarmlChildSideJoinStoreProvider;
@@ -28,10 +34,14 @@ import java.io.InputStream;
 import java.nio.file.Path;
 import java.text.Normalizer;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -74,7 +84,9 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
 
         private Set<TriplesMap> providedTriplesMaps = new HashSet<>();
 
-        private final Functions functions = new Functions();
+        private final List<Object> pendingFunctionObjects = new ArrayList<>();
+
+        private final List<FunctionDescriptor> pendingDescriptors = new ArrayList<>();
 
         private final Set<SourceResolver<?>> sourceResolvers = new HashSet<>();
 
@@ -126,8 +138,38 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
         }
 
         public Builder addFunctions(Object... fn) {
-            functions.addFunctions(fn);
+            pendingFunctionObjects.addAll(Arrays.asList(fn));
             return this;
+        }
+
+        /**
+         * Loads function classes by fully-qualified class name, instantiates each via its default constructor,
+         * and registers them as annotated function objects.
+         *
+         * @param classNames the fully-qualified class names of function classes
+         * @return {@link Builder}
+         */
+        public Builder addFunctionClasses(String... classNames) {
+            Object[] instances = Arrays.stream(classNames)
+                    .map(name -> {
+                        try {
+                            return Class.forName(name).getDeclaredConstructor().newInstance();
+                        } catch (ReflectiveOperationException e) {
+                            throw new RmlMapperException("Failed to instantiate function class: " + name, e);
+                        }
+                    })
+                    .toArray();
+            return addFunctions(instances);
+        }
+
+        /**
+         * Starts a fluent function builder for registering a lambda-based function.
+         *
+         * @param iri the function IRI
+         * @return {@link FunctionBuilder}
+         */
+        public FunctionBuilder function(String iri) {
+            return new FunctionBuilder(this, iri);
         }
 
         public Builder sourceResolver(SourceResolver<?> sourceResolver) {
@@ -241,12 +283,14 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
                 throw new RmlMapperException("No mappings provided.");
             }
 
+            var functionRegistry = buildFunctionRegistry();
+
             RdfTermGeneratorConfig rdfTermGeneratorConfig = RdfTermGeneratorConfig.builder()
                     .baseIri(baseIri)
                     .valueFactory(valueFactorySupplier.get())
                     .normalizationForm(normalizationForm)
                     .iriUpperCasePercentEncoding(iriUpperCasePercentEncoding)
-                    .functions(functions)
+                    .functionRegistry(functionRegistry)
                     .build();
 
             var rdfMapperConfig = RdfMapperConfig.builder()
@@ -278,6 +322,119 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
                     .forEach(sourceResolvers::add);
 
             return new RdfRmlMapper(triplesMaps, mappingPipeline, sourceResolvers);
+        }
+
+        private FunctionRegistry buildFunctionRegistry() {
+            var registry = FunctionRegistry.create();
+
+            // 1. Built-in functions (lowest priority)
+            registry.registerAll(new BuiltInFunctionProvider());
+
+            // 2. SPI-discovered FunctionProviders (override built-ins)
+            ServiceLoader.load(FunctionProvider.class).stream()
+                    .map(ServiceLoader.Provider::get)
+                    .forEach(registry::registerAll);
+
+            // 3. Programmatic registrations via addFunctions/addFunctionClasses (override SPI)
+            if (!pendingFunctionObjects.isEmpty()) {
+                registry.registerAll(new AnnotatedFunctionProvider(pendingFunctionObjects.toArray()));
+            }
+
+            // 4. Lambda-based descriptors via function() chain (highest priority)
+            pendingDescriptors.forEach(registry::register);
+
+            return registry;
+        }
+    }
+
+    /**
+     * Fluent builder for registering lambda-based functions with the mapper.
+     */
+    public static class FunctionBuilder {
+
+        private static final SimpleValueFactory VF = SimpleValueFactory.getInstance();
+
+        private final Builder parent;
+
+        private final String functionIri;
+
+        private final List<ParameterDescriptor> params = new ArrayList<>();
+
+        private ReturnDescriptor returnDesc;
+
+        FunctionBuilder(Builder parent, String functionIri) {
+            this.parent = parent;
+            this.functionIri = functionIri;
+        }
+
+        /**
+         * Adds a required parameter to this function.
+         *
+         * @param paramIri the parameter IRI
+         * @param type the parameter Java type
+         * @return this {@link FunctionBuilder}
+         */
+        public FunctionBuilder param(String paramIri, Class<?> type) {
+            params.add(new ParameterDescriptor(VF.createIRI(paramIri), type, true));
+            return this;
+        }
+
+        /**
+         * Adds an optional parameter to this function.
+         *
+         * @param paramIri the parameter IRI
+         * @param type the parameter Java type
+         * @return this {@link FunctionBuilder}
+         */
+        public FunctionBuilder optionalParam(String paramIri, Class<?> type) {
+            params.add(new ParameterDescriptor(VF.createIRI(paramIri), type, false));
+            return this;
+        }
+
+        /**
+         * Sets the return type of this function.
+         *
+         * @param type the return Java type
+         * @return this {@link FunctionBuilder}
+         */
+        public FunctionBuilder returns(Class<?> type) {
+            returnDesc = new ReturnDescriptor(null, type);
+            return this;
+        }
+
+        /**
+         * Completes the function registration with the given executor.
+         *
+         * @param executor the function implementation
+         * @return the parent {@link Builder}
+         */
+        public Builder execute(Function<Map<IRI, Object>, Object> executor) {
+            var iri = VF.createIRI(functionIri);
+            var returns = returnDesc != null ? List.of(returnDesc) : List.of(new ReturnDescriptor(null, Object.class));
+            var paramsCopy = List.copyOf(params);
+
+            parent.pendingDescriptors.add(new FunctionDescriptor() {
+                @Override
+                public IRI getFunctionIri() {
+                    return iri;
+                }
+
+                @Override
+                public List<ParameterDescriptor> getParameters() {
+                    return paramsCopy;
+                }
+
+                @Override
+                public List<ReturnDescriptor> getReturns() {
+                    return returns;
+                }
+
+                @Override
+                public Object execute(Map<IRI, Object> parameterValues) {
+                    return executor.apply(parameterValues);
+                }
+            });
+            return parent;
         }
     }
 

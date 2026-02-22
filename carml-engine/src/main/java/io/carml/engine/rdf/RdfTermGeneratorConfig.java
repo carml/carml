@@ -1,6 +1,6 @@
 package io.carml.engine.rdf;
 
-import io.carml.engine.function.Functions;
+import io.carml.engine.function.FunctionRegistry;
 import java.text.Normalizer;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -26,5 +26,5 @@ public class RdfTermGeneratorConfig {
 
     private final boolean iriUpperCasePercentEncoding;
 
-    private final Functions functions;
+    private final FunctionRegistry functionRegistry;
 }

@@ -127,18 +127,36 @@ public interface TypeCoercer {
 
             @Override
             public Object coerce(Object value, Class<?> targetType) {
-                return immutableCoercers.stream()
+                var matched = immutableCoercers.stream()
                         .filter(coercer -> coercer.supports(targetType))
                         .findFirst()
-                        .map(coercer -> coercer.coerce(value, targetType))
                         .orElseThrow(() -> new IllegalArgumentException(
                                 String.format("No coercer found for target type: %s", targetType)));
+                return matched.coerce(value, targetType);
             }
         };
     }
 
-    /** Returns a composite coercer combining string, numeric, boolean, and collection coercers. */
+    /** Returns a catch-all coercer that converts values to their string representation. */
+    static TypeCoercer passthrough() {
+        return new TypeCoercer() {
+            @Override
+            public boolean supports(Class<?> targetType) {
+                return true;
+            }
+
+            @Override
+            public Object coerce(Object value, Class<?> targetType) {
+                if (value == null) {
+                    return null;
+                }
+                return value.toString();
+            }
+        };
+    }
+
+    /** Returns a composite coercer combining string, numeric, boolean, collection, and passthrough coercers. */
     static TypeCoercer defaults() {
-        return composite(List.of(string(), numeric(), bool(), collection()));
+        return composite(List.of(string(), numeric(), bool(), collection(), passthrough()));
     }
 }

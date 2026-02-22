@@ -1,8 +1,9 @@
 package io.carml.engine.rdf;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
-import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.carml.engine.RmlMapperException;
@@ -298,6 +299,70 @@ class RdfRmlMapperTest {
 
         // Then
         assertThat(rmlMapperException.getMessage(), startsWith("File does not exist at path bar/cars.csv for source"));
+    }
+
+    // -- addFunctionClasses --
+
+    @Test
+    void addFunctionClasses_buildsSuccessfully_givenValidClassName() {
+        var mapping = loadMapping("mapping.rml.ttl");
+        var rmlMapper = RdfRmlMapper.builder()
+                .triplesMaps(mapping)
+                .addFunctionClasses("io.carml.engine.iotests.RmlFunctions")
+                .build();
+
+        assertThat(rmlMapper, is(notNullValue()));
+    }
+
+    @Test
+    void addFunctionClasses_throwsRmlMapperException_givenNonExistentClass() {
+        assertThrows(
+                RmlMapperException.class, () -> RdfRmlMapper.builder().addFunctionClasses("com.example.DoesNotExist"));
+    }
+
+    @Test
+    void addFunctionClasses_buildsSuccessfully_givenEmptyArray() {
+        var mapping = loadMapping("mapping.rml.ttl");
+        var rmlMapper =
+                RdfRmlMapper.builder().triplesMaps(mapping).addFunctionClasses().build();
+
+        assertThat(rmlMapper, is(notNullValue()));
+    }
+
+    // -- function() fluent chain --
+
+    @Test
+    void functionBuilder_buildsSuccessfully_givenLambdaFunction() {
+        var mapping = loadMapping("mapping.rml.ttl");
+        var rmlMapper = RdfRmlMapper.builder()
+                .triplesMaps(mapping)
+                .function("http://example.org/fn")
+                .param("http://example.org/p", String.class)
+                .returns(String.class)
+                .execute(params -> "ok")
+                .build();
+
+        assertThat(rmlMapper, is(notNullValue()));
+    }
+
+    @Test
+    void functionBuilder_buildsSuccessfully_withOptionalParam() {
+        var mapping = loadMapping("mapping.rml.ttl");
+        var rmlMapper = RdfRmlMapper.builder()
+                .triplesMaps(mapping)
+                .function("http://example.org/fn")
+                .param("http://example.org/required", String.class)
+                .optionalParam("http://example.org/optional", String.class)
+                .returns(String.class)
+                .execute(params -> "ok")
+                .build();
+
+        assertThat(rmlMapper, is(notNullValue()));
+    }
+
+    private Set<TriplesMap> loadMapping(String resourceName) {
+        var mappingSource = RdfRmlMapperTest.class.getResourceAsStream(resourceName);
+        return RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
     }
 
     private static TriplesMap getTriplesMapByName(String name, Set<TriplesMap> mapping) {

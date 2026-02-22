@@ -9,8 +9,9 @@ import static org.eclipse.rdf4j.model.util.Values.bnode;
 import io.carml.engine.MappedValue;
 import io.carml.engine.TemplateEvaluation;
 import io.carml.engine.TemplateEvaluation.TemplateEvaluationBuilder;
-import io.carml.engine.function.ExecuteFunction;
-import io.carml.engine.function.Functions;
+import io.carml.engine.function.FunctionDescriptor;
+import io.carml.engine.function.FunctionRegistry;
+import io.carml.engine.function.TypeCoercer;
 import io.carml.logicalsourceresolver.DatatypeMapper;
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.model.DatatypeMap;
@@ -25,7 +26,9 @@ import io.carml.model.TriplesMap;
 import io.carml.vocab.Rdf;
 import java.text.Normalizer;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -58,7 +61,7 @@ public class RdfExpressionMapEvaluation {
 
     private final RdfTermGeneratorFactory rdfTermGeneratorFactory;
 
-    private final Functions functions;
+    private final FunctionRegistry functionRegistry;
 
     private final Normalizer.Form normalizationForm;
 
@@ -202,13 +205,45 @@ public class RdfExpressionMapEvaluation {
 
         return optionalExecution.map(execution -> {
             IRI functionIri = getFunctionIri(execution, executionStatements);
-            ExecuteFunction function = functions
+            FunctionDescriptor descriptor = functionRegistry
                     .getFunction(functionIri)
                     .orElseThrow(() -> new RdfExpressionMapEvaluationException(
                             "no function registered for function IRI [" + functionIri + "]"));
 
-            return function.execute(executionStatements, execution, returnValueAdapter);
+            var parameterValues = extractParameters(executionStatements, execution, descriptor);
+
+            Object result = descriptor.execute(parameterValues);
+            if (result == null) {
+                return null;
+            }
+            return returnValueAdapter.apply(result);
         });
+    }
+
+    private static final TypeCoercer TYPE_COERCER = TypeCoercer.defaults();
+
+    private Map<IRI, Object> extractParameters(Model model, Resource execution, FunctionDescriptor descriptor) {
+        var params = new HashMap<IRI, Object>();
+
+        for (var paramDesc : descriptor.getParameters()) {
+            var values = model.filter(execution, paramDesc.iri(), null).stream()
+                    .map(Statement::getObject)
+                    .toList();
+
+            if (values.isEmpty()) {
+                params.put(paramDesc.iri(), null);
+                continue;
+            }
+
+            if (Collection.class.isAssignableFrom(paramDesc.type())) {
+                params.put(
+                        paramDesc.iri(), values.stream().map(Value::stringValue).toList());
+            } else {
+                params.put(paramDesc.iri(), TYPE_COERCER.coerce(values.get(0).stringValue(), paramDesc.type()));
+            }
+        }
+
+        return params;
     }
 
     private Object iriEncodeResult(Object result) {

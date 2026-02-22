@@ -223,7 +223,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
                     .expressionMap(termMap)
                     .expressionEvaluation(expressionEvaluation)
                     .datatypeMapper(datatypeMapper)
-                    .functions(rdfTermGeneratorConfig.getFunctions())
+                    .functionRegistry(rdfTermGeneratorConfig.getFunctionRegistry())
                     .normalizationForm(rdfTermGeneratorConfig.getNormalizationForm())
                     .rdfTermGeneratorFactory(this)
                     .build()

@@ -238,5 +238,49 @@ class TypeCoercerTest {
         void supports_collection() {
             assertThat(coercer.supports(Collection.class), is(true));
         }
+
+        @Test
+        void supports_objectClass() {
+            assertThat(coercer.supports(Object.class), is(true));
+        }
+
+        @Test
+        void coerce_returnsStringValue_givenObjectClassTarget() {
+            assertThat(coercer.coerce("hello", Object.class), is("hello"));
+        }
+
+        @Test
+        void coerce_returnsToString_givenObjectClassTargetAndNonString() {
+            assertThat(coercer.coerce(42, Object.class), is("42"));
+        }
+
+        @Test
+        void coerce_returnsNull_givenObjectClassTargetAndNull() {
+            assertThat(coercer.coerce(null, Object.class), is(nullValue()));
+        }
+    }
+
+    @Nested
+    class PassthroughCoercer {
+
+        private final TypeCoercer coercer = TypeCoercer.passthrough();
+
+        @Test
+        void supports_returnsTrue_forAnyType() {
+            assertThat(coercer.supports(Object.class), is(true));
+            assertThat(coercer.supports(String.class), is(true));
+            assertThat(coercer.supports(Integer.class), is(true));
+        }
+
+        @Test
+        void coerce_returnsToString_givenAnyValue() {
+            assertThat(coercer.coerce("hello", Object.class), is("hello"));
+            assertThat(coercer.coerce(42, Object.class), is("42"));
+        }
+
+        @Test
+        void coerce_returnsNull_givenNull() {
+            assertThat(coercer.coerce(null, Object.class), is(nullValue()));
+        }
     }
 }
