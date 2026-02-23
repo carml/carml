@@ -50,13 +50,18 @@ public class DatabaseConnectionOptions {
         public Builder driver(String driver) {
             checkAndWarn(ConnectionFactoryOptions.DRIVER);
             // TODO: Also delegate?
-            optionsBuilder.option(
-                    ConnectionFactoryOptions.DRIVER,
-                    driver.equals("com.mysql.cj.jdbc.Driver") || driver.equals("com.mysql.jdbc.Driver")
-                            ? "mysql"
-                            : driver);
+            optionsBuilder.option(ConnectionFactoryOptions.DRIVER, mapJdbcDriverToR2dbc(driver));
 
             return this;
+        }
+
+        private static String mapJdbcDriverToR2dbc(String driver) {
+            return switch (driver) {
+                case "com.mysql.cj.jdbc.Driver", "com.mysql.jdbc.Driver" -> "mysql";
+                case "org.postgresql.Driver" -> "postgresql";
+                case "com.microsoft.sqlserver.jdbc.SQLServerDriver" -> "mssql";
+                default -> driver;
+            };
         }
 
         public Builder host(String host) {

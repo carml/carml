@@ -103,6 +103,7 @@
 		<testcontainers.version>1.21.4</testcontainers.version>
 		<mysql-connector-j.version>9.6.0</mysql-connector-j.version>
 		<postgresql.version>42.7.10</postgresql.version>
+		<mssql-jdbc.version>12.8.1.jre11</mssql-jdbc.version>
 		<spotless.version>3.2.1</spotless.version>
 		<palantir.version>2.87.0</palantir.version>
 		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
@@ -449,6 +450,13 @@
 				<groupId>org.postgresql</groupId>
 				<artifactId>postgresql</artifactId>
 				<version>${postgresql.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>com.microsoft.sqlserver</groupId>
+				<artifactId>mssql-jdbc</artifactId>
+				<version>${mssql-jdbc.version}</version>
+				<scope>test</scope>
 			</dependency>
 
 			<dependency>
