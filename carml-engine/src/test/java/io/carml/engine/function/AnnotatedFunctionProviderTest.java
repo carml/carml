@@ -1,5 +1,6 @@
 package io.carml.engine.function;
 
+import static org.eclipse.rdf4j.model.util.Values.iri;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
@@ -9,19 +10,16 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Map;
 import org.eclipse.rdf4j.model.IRI;
-import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.junit.jupiter.api.Test;
 
 class AnnotatedFunctionProviderTest {
 
-    private static final SimpleValueFactory VF = SimpleValueFactory.getInstance();
-
-    private static final IRI UPPER_IRI = VF.createIRI("http://example.org/toUpperCase");
-    private static final IRI INPUT_IRI = VF.createIRI("http://example.org/input");
-    private static final IRI CONCAT_IRI = VF.createIRI("http://example.org/concat");
-    private static final IRI LEFT_IRI = VF.createIRI("http://example.org/left");
-    private static final IRI RIGHT_IRI = VF.createIRI("http://example.org/right");
-    private static final IRI NOOP_IRI = VF.createIRI("http://example.org/noOp");
+    private static final IRI UPPER_IRI = iri("http://example.org/toUpperCase");
+    private static final IRI INPUT_IRI = iri("http://example.org/input");
+    private static final IRI CONCAT_IRI = iri("http://example.org/concat");
+    private static final IRI LEFT_IRI = iri("http://example.org/left");
+    private static final IRI RIGHT_IRI = iri("http://example.org/right");
+    private static final IRI NOOP_IRI = iri("http://example.org/noOp");
 
     // -- Test fixtures using @RmlFunction / @RmlParam --
 
@@ -160,7 +158,7 @@ class AnnotatedFunctionProviderTest {
         assertThat(descriptor.getParameters(), hasSize(1));
         var param = descriptor.getParameters().get(0);
         assertThat(param.iri(), is(INPUT_IRI));
-        assertThat(param.type(), is((Class) String.class));
+        assertThat(param.type(), is(String.class));
         assertThat(param.required(), is(true));
     }
 
@@ -176,7 +174,7 @@ class AnnotatedFunctionProviderTest {
         assertThat(descriptor.getParameters(), hasSize(1));
         var param = descriptor.getParameters().get(0);
         assertThat(param.iri(), is(INPUT_IRI));
-        assertThat(param.type(), is((Class) String.class));
+        assertThat(param.type(), is(String.class));
         assertThat(param.required(), is(true));
     }
 
@@ -192,7 +190,7 @@ class AnnotatedFunctionProviderTest {
         assertThat(descriptor.getReturns(), hasSize(1));
         var ret = descriptor.getReturns().get(0);
         assertThat(ret.iri(), is(nullValue()));
-        assertThat(ret.type(), is((Class) String.class));
+        assertThat(ret.type(), is(String.class));
     }
 
     @Test
@@ -241,7 +239,8 @@ class AnnotatedFunctionProviderTest {
 
     @Test
     void constructor_throwsIllegalArgument_givenMissingParamAnnotation() {
-        assertThrows(IllegalArgumentException.class, () -> new AnnotatedFunctionProvider(new MissingParamAnnotation()));
+        var target = new MissingParamAnnotation();
+        assertThrows(IllegalArgumentException.class, () -> new AnnotatedFunctionProvider(target));
     }
 
     @Test
@@ -250,7 +249,7 @@ class AnnotatedFunctionProviderTest {
 
         var descriptor = provider.getFunctions().stream().findFirst().orElseThrow();
 
-        assertThat(descriptor.getFunctionIri(), is(VF.createIRI("http://example.org/rmlIri")));
+        assertThat(descriptor.getFunctionIri(), is(iri("http://example.org/rmlIri")));
     }
 
     @Test
@@ -260,7 +259,7 @@ class AnnotatedFunctionProviderTest {
         var descriptor = provider.getFunctions().stream().findFirst().orElseThrow();
         var param = descriptor.getParameters().get(0);
 
-        assertThat(param.iri(), is(VF.createIRI("http://example.org/rmlParam")));
+        assertThat(param.iri(), is(iri("http://example.org/rmlParam")));
     }
 
     @Test
@@ -268,7 +267,8 @@ class AnnotatedFunctionProviderTest {
         var provider = new AnnotatedFunctionProvider(new ThrowingFunctions());
         var descriptor = provider.getFunctions().stream().findFirst().orElseThrow();
 
-        var ex = assertThrows(IllegalStateException.class, () -> descriptor.execute(Map.of()));
+        var params = Map.<IRI, Object>of();
+        var ex = assertThrows(IllegalStateException.class, () -> descriptor.execute(params));
 
         assertThat(ex.getCause().getMessage(), is("user error"));
     }

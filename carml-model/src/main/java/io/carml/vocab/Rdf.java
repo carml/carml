@@ -454,9 +454,35 @@ public class Rdf {
             return f.createIRI(io.carml.vocab.Fno.NAMESPACE + suffix);
         }
 
+        public static final IRI Function = iri("Function");
+
+        public static final IRI Parameter = iri("Parameter");
+
+        public static final IRI Output = iri("Output");
+
         public static final IRI Execution = iri("Execution");
 
+        public static final IRI Mapping = iri("Mapping");
+
+        public static final IRI expects = iri("expects");
+
+        public static final IRI returns = iri("returns");
+
         public static final IRI executes = iri("executes");
+
+        public static final IRI predicate = iri("predicate");
+
+        public static final IRI type = iri("type");
+
+        public static final IRI required = iri("required");
+
+        public static final IRI name = iri("name");
+
+        public static final IRI function = iri("function");
+
+        public static final IRI implementation = iri("implementation");
+
+        public static final IRI methodMapping = iri("methodMapping");
 
         public static final IRI old_executes = f.createIRI(io.carml.vocab.Fno.OLD_executes);
     }
@@ -529,5 +555,67 @@ public class Rdf {
         public static final IRI multiFunctionValue = iri("multiFunctionValue");
 
         public static final IRI multiJoinCondition = iri("multiJoinCondition");
+    }
+
+    @NoArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class Grel {
+
+        private static IRI iri(String suffix) {
+            return f.createIRI(io.carml.vocab.Grel.NAMESPACE + suffix);
+        }
+
+        public static final IRI controls_if = iri("controls_if");
+
+        public static final IRI valueParam = iri("valueParam");
+
+        public static final IRI valueParam2 = iri("valueParam2");
+
+        public static final IRI bool_b = iri("bool_b");
+
+        public static final IRI any_true = iri("any_true");
+
+        public static final IRI any_false = iri("any_false");
+    }
+
+    @NoArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class IdlabFn {
+
+        private static IRI iri(String suffix) {
+            return f.createIRI(io.carml.vocab.IdlabFn.NAMESPACE + suffix);
+        }
+
+        public static final IRI isNull = iri("isNull");
+
+        public static final IRI isNotNull = iri("isNotNull");
+
+        public static final IRI equal = iri("equal");
+
+        public static final IRI notEqual = iri("notEqual");
+
+        public static final IRI str = iri("str");
+    }
+
+    @NoArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class Fnoi {
+
+        private static IRI iri(String suffix) {
+            return f.createIRI(io.carml.vocab.Fnoi.NAMESPACE + suffix);
+        }
+
+        public static final IRI JavaClass = iri("JavaClass");
+
+        public static final IRI class_name = iri("class-name");
+    }
+
+    @NoArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class Fnom {
+
+        private static IRI iri(String suffix) {
+            return f.createIRI(io.carml.vocab.Fnom.NAMESPACE + suffix);
+        }
+
+        public static final IRI StringMethodMapping = iri("StringMethodMapping");
+
+        public static final IRI method_name = iri("method-name");
     }
 }

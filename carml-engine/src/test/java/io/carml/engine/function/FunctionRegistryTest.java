@@ -1,5 +1,6 @@
 package io.carml.engine.function;
 
+import static org.eclipse.rdf4j.model.util.Values.iri;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
@@ -10,19 +11,16 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.util.List;
 import java.util.Map;
 import org.eclipse.rdf4j.model.IRI;
-import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class FunctionRegistryTest {
 
-    private static final SimpleValueFactory VF = SimpleValueFactory.getInstance();
+    private static final IRI FUNC_IRI_1 = iri("http://example.org/func1");
 
-    private static final IRI FUNC_IRI_1 = VF.createIRI("http://example.org/func1");
+    private static final IRI FUNC_IRI_2 = iri("http://example.org/func2");
 
-    private static final IRI FUNC_IRI_2 = VF.createIRI("http://example.org/func2");
-
-    private static final IRI UNKNOWN_IRI = VF.createIRI("http://example.org/unknown");
+    private static final IRI UNKNOWN_IRI = iri("http://example.org/unknown");
 
     private FunctionRegistry registry;
 

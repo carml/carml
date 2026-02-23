@@ -22,7 +22,13 @@ import java.nio.file.Paths;
 import java.text.Normalizer;
 import java.util.Map;
 import java.util.Set;
+import org.eclipse.rdf4j.model.IRI;
+import org.eclipse.rdf4j.model.Model;
+import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
+import org.eclipse.rdf4j.model.impl.TreeModel;
 import org.eclipse.rdf4j.model.impl.ValidatingValueFactory;
+import org.eclipse.rdf4j.model.vocabulary.RDF;
+import org.eclipse.rdf4j.model.vocabulary.XSD;
 import org.eclipse.rdf4j.rio.RDFFormat;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -301,6 +307,62 @@ class RdfRmlMapperTest {
         assertThat(rmlMapperException.getMessage(), startsWith("File does not exist at path bar/cars.csv for source"));
     }
 
+    // -- addFunctionDescriptions --
+
+    @Test
+    void addFunctionDescriptions_buildsSuccessfully_givenValidFnoModel() {
+        var mapping = loadMapping("mapping.rml.ttl");
+        var fnoModel = createMinimalFnoModel();
+        var rmlMapper = RdfRmlMapper.builder()
+                .triplesMaps(mapping)
+                .addFunctionDescriptions(fnoModel)
+                .build();
+
+        assertThat(rmlMapper, is(notNullValue()));
+    }
+
+    @Test
+    void addFunctionDescriptions_buildsSuccessfully_givenValidInputStream() {
+        var mapping = loadMapping("mapping.rml.ttl");
+        var turtle = String.join(
+                "\n",
+                "@prefix fno: <https://w3id.org/function/ontology#> .",
+                "@prefix fnoi: <https://w3id.org/function/vocabulary/implementation#> .",
+                "@prefix fnom: <https://w3id.org/function/vocabulary/mapping#> .",
+                "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .",
+                "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .",
+                "@prefix ex: <http://example.com/> .",
+                "",
+                "ex:toLowercase a fno:Function ;",
+                "  fno:expects ( ex:param1 ) .",
+                "",
+                "ex:param1 fno:predicate ex:startString ;",
+                "  fno:type xsd:string .",
+                "",
+                "ex:fnoMapping a fno:Mapping ;",
+                "  fno:function ex:toLowercase ;",
+                "  fno:implementation ex:javaClass ;",
+                "  fno:methodMapping [ fnom:method-name \"toLowercase\" ] .",
+                "",
+                "ex:javaClass fnoi:class-name \"io.carml.engine.iotests.RmlFunctions\" .");
+
+        var inputStream = new java.io.ByteArrayInputStream(turtle.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        var rmlMapper = RdfRmlMapper.builder()
+                .triplesMaps(mapping)
+                .addFunctionDescriptions(inputStream, RDFFormat.TURTLE)
+                .build();
+
+        assertThat(rmlMapper, is(notNullValue()));
+    }
+
+    @Test
+    void addFunctionDescriptions_throwsRmlMapperException_givenInvalidRdf() {
+        var invalidRdf = new java.io.ByteArrayInputStream("this is not valid RDF".getBytes());
+
+        assertThrows(RmlMapperException.class, () -> RdfRmlMapper.builder()
+                .addFunctionDescriptions(invalidRdf, RDFFormat.TURTLE));
+    }
+
     // -- addFunctionClasses --
 
     @Test
@@ -370,5 +432,64 @@ class RdfRmlMapperTest {
                 .filter(tm -> tm.getResourceName().equals(name))
                 .findFirst()
                 .orElseThrow(IllegalStateException::new);
+    }
+
+    /**
+     * Creates a minimal FnO model with a simple toUpperCase function backed by
+     * {@link io.carml.engine.iotests.RmlFunctions}.
+     */
+    private static Model createMinimalFnoModel() {
+        var vf = SimpleValueFactory.getInstance();
+        var model = new TreeModel();
+
+        var fnoNs = "https://w3id.org/function/ontology#";
+        var fnoiNs = "https://w3id.org/function/vocabulary/implementation#";
+        var fnomNs = "https://w3id.org/function/vocabulary/mapping#";
+        var ex = "http://example.com/";
+
+        IRI fnoFunction = vf.createIRI(fnoNs + "Function");
+        IRI fnoExpects = vf.createIRI(fnoNs + "expects");
+        IRI fnoPredicate = vf.createIRI(fnoNs + "predicate");
+        IRI fnoType = vf.createIRI(fnoNs + "type");
+        IRI fnoMapping = vf.createIRI(fnoNs + "Mapping");
+        IRI fnoFunctionProp = vf.createIRI(fnoNs + "function");
+        IRI fnoImplementation = vf.createIRI(fnoNs + "implementation");
+        IRI fnoMethodMapping = vf.createIRI(fnoNs + "methodMapping");
+        IRI fnoiClassName = vf.createIRI(fnoiNs + "class-name");
+        IRI fnomMethodName = vf.createIRI(fnomNs + "method-name");
+
+        IRI toLowerIri = vf.createIRI(ex + "toLowercase");
+        IRI startStringIri = vf.createIRI(ex + "startString");
+
+        // Parameter
+        var param = vf.createIRI(ex + "param1");
+        model.add(param, fnoPredicate, startStringIri);
+        model.add(param, fnoType, XSD.STRING);
+
+        // Expects list (single element)
+        var listNode = vf.createIRI(ex + "list1");
+        model.add(listNode, RDF.FIRST, param);
+        model.add(listNode, RDF.REST, RDF.NIL);
+
+        // Function
+        model.add(toLowerIri, RDF.TYPE, fnoFunction);
+        model.add(toLowerIri, fnoExpects, listNode);
+
+        // Implementation
+        var javaClass = vf.createIRI(ex + "javaClass");
+        model.add(javaClass, fnoiClassName, vf.createLiteral("io.carml.engine.iotests.RmlFunctions"));
+
+        // Method mapping
+        var mm = vf.createBNode();
+        model.add(mm, fnomMethodName, vf.createLiteral("toLowercase"));
+
+        // Mapping
+        var mapping = vf.createIRI(ex + "fnoMapping");
+        model.add(mapping, RDF.TYPE, fnoMapping);
+        model.add(mapping, fnoFunctionProp, toLowerIri);
+        model.add(mapping, fnoImplementation, javaClass);
+        model.add(mapping, fnoMethodMapping, mm);
+
+        return model;
     }
 }

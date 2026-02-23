@@ -1,17 +1,17 @@
 package io.carml.engine.function;
 
+import static org.eclipse.rdf4j.model.util.Values.iri;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.eclipse.rdf4j.model.IRI;
-import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.junit.jupiter.api.Test;
 
 class ParameterDescriptorTest {
 
-    private static final IRI PARAM_IRI = SimpleValueFactory.getInstance().createIRI("http://example.org/param1");
+    private static final IRI PARAM_IRI = iri("http://example.org/param1");
 
     @Test
     void constructor_throwsIllegalArgument_givenNullIri() {

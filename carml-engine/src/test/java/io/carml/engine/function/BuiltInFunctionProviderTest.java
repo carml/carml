@@ -1,28 +1,23 @@
 package io.carml.engine.function;
 
-import static io.carml.engine.function.BuiltInFunctionProvider.GREL_ANY_FALSE;
-import static io.carml.engine.function.BuiltInFunctionProvider.GREL_ANY_TRUE;
-import static io.carml.engine.function.BuiltInFunctionProvider.GREL_BOOL_B;
-import static io.carml.engine.function.BuiltInFunctionProvider.GREL_CONTROLS_IF;
-import static io.carml.engine.function.BuiltInFunctionProvider.GREL_VALUE_PARAM;
-import static io.carml.engine.function.BuiltInFunctionProvider.GREL_VALUE_PARAM2;
-import static io.carml.engine.function.BuiltInFunctionProvider.IDLAB_FN_EQUAL;
-import static io.carml.engine.function.BuiltInFunctionProvider.IDLAB_FN_IS_NOT_NULL;
-import static io.carml.engine.function.BuiltInFunctionProvider.IDLAB_FN_IS_NULL;
-import static io.carml.engine.function.BuiltInFunctionProvider.IDLAB_FN_NOT_EQUAL;
-import static io.carml.engine.function.BuiltInFunctionProvider.IDLAB_FN_STR;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import io.carml.vocab.Rdf.Grel;
+import io.carml.vocab.Rdf.IdlabFn;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.eclipse.rdf4j.model.IRI;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class BuiltInFunctionProviderTest {
 
@@ -40,58 +35,58 @@ class BuiltInFunctionProviderTest {
 
     @Test
     void getFunctions_containsIsNull() {
-        assertThat(findDescriptor(IDLAB_FN_IS_NULL).getFunctionIri(), is(IDLAB_FN_IS_NULL));
+        assertThat(findDescriptor(IdlabFn.isNull).getFunctionIri(), is(IdlabFn.isNull));
     }
 
     @Test
     void getFunctions_containsIsNotNull() {
-        assertThat(findDescriptor(IDLAB_FN_IS_NOT_NULL).getFunctionIri(), is(IDLAB_FN_IS_NOT_NULL));
+        assertThat(findDescriptor(IdlabFn.isNotNull).getFunctionIri(), is(IdlabFn.isNotNull));
     }
 
     @Test
     void getFunctions_containsEquals() {
-        assertThat(findDescriptor(IDLAB_FN_EQUAL).getFunctionIri(), is(IDLAB_FN_EQUAL));
+        assertThat(findDescriptor(IdlabFn.equal).getFunctionIri(), is(IdlabFn.equal));
     }
 
     @Test
     void getFunctions_containsNotEquals() {
-        assertThat(findDescriptor(IDLAB_FN_NOT_EQUAL).getFunctionIri(), is(IDLAB_FN_NOT_EQUAL));
+        assertThat(findDescriptor(IdlabFn.notEqual).getFunctionIri(), is(IdlabFn.notEqual));
     }
 
     @Test
     void getFunctions_containsIf() {
-        assertThat(findDescriptor(GREL_CONTROLS_IF).getFunctionIri(), is(GREL_CONTROLS_IF));
+        assertThat(findDescriptor(Grel.controls_if).getFunctionIri(), is(Grel.controls_if));
     }
 
     // -- isNull --
 
     @Test
     void isNull_hasOneOptionalParameter() {
-        var descriptor = findDescriptor(IDLAB_FN_IS_NULL);
+        var descriptor = findDescriptor(IdlabFn.isNull);
         assertThat(descriptor.getParameters(), hasSize(1));
-        assertThat(descriptor.getParameters().get(0).iri(), is(IDLAB_FN_STR));
+        assertThat(descriptor.getParameters().get(0).iri(), is(IdlabFn.str));
         assertThat(descriptor.getParameters().get(0).required(), is(false));
     }
 
     @Test
     void isNull_returnsTrue_givenNull() {
-        var descriptor = findDescriptor(IDLAB_FN_IS_NULL);
+        var descriptor = findDescriptor(IdlabFn.isNull);
         var params = new HashMap<IRI, Object>();
-        params.put(IDLAB_FN_STR, null);
+        params.put(IdlabFn.str, null);
 
         assertThat(descriptor.execute(params), is(true));
     }
 
     @Test
     void isNull_returnsFalse_givenNonNull() {
-        var descriptor = findDescriptor(IDLAB_FN_IS_NULL);
+        var descriptor = findDescriptor(IdlabFn.isNull);
 
-        assertThat(descriptor.execute(Map.of(IDLAB_FN_STR, "hello")), is(false));
+        assertThat(descriptor.execute(Map.of(IdlabFn.str, "hello")), is(false));
     }
 
     @Test
     void isNull_returnsTrue_givenMissingKey() {
-        var descriptor = findDescriptor(IDLAB_FN_IS_NULL);
+        var descriptor = findDescriptor(IdlabFn.isNull);
 
         assertThat(descriptor.execute(Map.of()), is(true));
     }
@@ -100,31 +95,31 @@ class BuiltInFunctionProviderTest {
 
     @Test
     void isNotNull_hasOneOptionalParameter() {
-        var descriptor = findDescriptor(IDLAB_FN_IS_NOT_NULL);
+        var descriptor = findDescriptor(IdlabFn.isNotNull);
         assertThat(descriptor.getParameters(), hasSize(1));
-        assertThat(descriptor.getParameters().get(0).iri(), is(IDLAB_FN_STR));
+        assertThat(descriptor.getParameters().get(0).iri(), is(IdlabFn.str));
         assertThat(descriptor.getParameters().get(0).required(), is(false));
     }
 
     @Test
     void isNotNull_returnsFalse_givenNull() {
-        var descriptor = findDescriptor(IDLAB_FN_IS_NOT_NULL);
+        var descriptor = findDescriptor(IdlabFn.isNotNull);
         var params = new HashMap<IRI, Object>();
-        params.put(IDLAB_FN_STR, null);
+        params.put(IdlabFn.str, null);
 
         assertThat(descriptor.execute(params), is(false));
     }
 
     @Test
     void isNotNull_returnsTrue_givenNonNull() {
-        var descriptor = findDescriptor(IDLAB_FN_IS_NOT_NULL);
+        var descriptor = findDescriptor(IdlabFn.isNotNull);
 
-        assertThat(descriptor.execute(Map.of(IDLAB_FN_STR, "hello")), is(true));
+        assertThat(descriptor.execute(Map.of(IdlabFn.str, "hello")), is(true));
     }
 
     @Test
     void isNotNull_returnsFalse_givenMissingKey() {
-        var descriptor = findDescriptor(IDLAB_FN_IS_NOT_NULL);
+        var descriptor = findDescriptor(IdlabFn.isNotNull);
 
         assertThat(descriptor.execute(Map.of()), is(false));
     }
@@ -133,34 +128,34 @@ class BuiltInFunctionProviderTest {
 
     @Test
     void equals_hasTwoRequiredParameters() {
-        var descriptor = findDescriptor(IDLAB_FN_EQUAL);
+        var descriptor = findDescriptor(IdlabFn.equal);
         assertThat(descriptor.getParameters(), hasSize(2));
-        assertThat(descriptor.getParameters().get(0).iri(), is(GREL_VALUE_PARAM));
+        assertThat(descriptor.getParameters().get(0).iri(), is(Grel.valueParam));
         assertThat(descriptor.getParameters().get(0).required(), is(true));
-        assertThat(descriptor.getParameters().get(1).iri(), is(GREL_VALUE_PARAM2));
+        assertThat(descriptor.getParameters().get(1).iri(), is(Grel.valueParam2));
         assertThat(descriptor.getParameters().get(1).required(), is(true));
     }
 
     @Test
     void equals_returnsTrue_givenEqualValues() {
-        var descriptor = findDescriptor(IDLAB_FN_EQUAL);
+        var descriptor = findDescriptor(IdlabFn.equal);
 
-        assertThat(descriptor.execute(Map.of(GREL_VALUE_PARAM, "abc", GREL_VALUE_PARAM2, "abc")), is(true));
+        assertThat(descriptor.execute(Map.of(Grel.valueParam, "abc", Grel.valueParam2, "abc")), is(true));
     }
 
     @Test
     void equals_returnsFalse_givenDifferentValues() {
-        var descriptor = findDescriptor(IDLAB_FN_EQUAL);
+        var descriptor = findDescriptor(IdlabFn.equal);
 
-        assertThat(descriptor.execute(Map.of(GREL_VALUE_PARAM, "abc", GREL_VALUE_PARAM2, "xyz")), is(false));
+        assertThat(descriptor.execute(Map.of(Grel.valueParam, "abc", Grel.valueParam2, "xyz")), is(false));
     }
 
     @Test
     void equals_returnsTrue_givenBothNull() {
-        var descriptor = findDescriptor(IDLAB_FN_EQUAL);
+        var descriptor = findDescriptor(IdlabFn.equal);
         var params = new HashMap<IRI, Object>();
-        params.put(GREL_VALUE_PARAM, null);
-        params.put(GREL_VALUE_PARAM2, null);
+        params.put(Grel.valueParam, null);
+        params.put(Grel.valueParam2, null);
 
         assertThat(descriptor.execute(params), is(true));
     }
@@ -169,34 +164,34 @@ class BuiltInFunctionProviderTest {
 
     @Test
     void notEquals_hasTwoRequiredParameters() {
-        var descriptor = findDescriptor(IDLAB_FN_NOT_EQUAL);
+        var descriptor = findDescriptor(IdlabFn.notEqual);
         assertThat(descriptor.getParameters(), hasSize(2));
-        assertThat(descriptor.getParameters().get(0).iri(), is(GREL_VALUE_PARAM));
+        assertThat(descriptor.getParameters().get(0).iri(), is(Grel.valueParam));
         assertThat(descriptor.getParameters().get(0).required(), is(true));
-        assertThat(descriptor.getParameters().get(1).iri(), is(GREL_VALUE_PARAM2));
+        assertThat(descriptor.getParameters().get(1).iri(), is(Grel.valueParam2));
         assertThat(descriptor.getParameters().get(1).required(), is(true));
     }
 
     @Test
     void notEquals_returnsFalse_givenEqualValues() {
-        var descriptor = findDescriptor(IDLAB_FN_NOT_EQUAL);
+        var descriptor = findDescriptor(IdlabFn.notEqual);
 
-        assertThat(descriptor.execute(Map.of(GREL_VALUE_PARAM, "abc", GREL_VALUE_PARAM2, "abc")), is(false));
+        assertThat(descriptor.execute(Map.of(Grel.valueParam, "abc", Grel.valueParam2, "abc")), is(false));
     }
 
     @Test
     void notEquals_returnsTrue_givenDifferentValues() {
-        var descriptor = findDescriptor(IDLAB_FN_NOT_EQUAL);
+        var descriptor = findDescriptor(IdlabFn.notEqual);
 
-        assertThat(descriptor.execute(Map.of(GREL_VALUE_PARAM, "abc", GREL_VALUE_PARAM2, "xyz")), is(true));
+        assertThat(descriptor.execute(Map.of(Grel.valueParam, "abc", Grel.valueParam2, "xyz")), is(true));
     }
 
     @Test
     void notEquals_returnsFalse_givenBothNull() {
-        var descriptor = findDescriptor(IDLAB_FN_NOT_EQUAL);
+        var descriptor = findDescriptor(IdlabFn.notEqual);
         var params = new HashMap<IRI, Object>();
-        params.put(GREL_VALUE_PARAM, null);
-        params.put(GREL_VALUE_PARAM2, null);
+        params.put(Grel.valueParam, null);
+        params.put(Grel.valueParam2, null);
 
         assertThat(descriptor.execute(params), is(false));
     }
@@ -205,84 +200,71 @@ class BuiltInFunctionProviderTest {
 
     @Test
     void if_hasThreeParameters_firstRequiredOthersOptional() {
-        var descriptor = findDescriptor(GREL_CONTROLS_IF);
+        var descriptor = findDescriptor(Grel.controls_if);
         assertThat(descriptor.getParameters(), hasSize(3));
-        assertThat(descriptor.getParameters().get(0).iri(), is(GREL_BOOL_B));
+        assertThat(descriptor.getParameters().get(0).iri(), is(Grel.bool_b));
         assertThat(descriptor.getParameters().get(0).required(), is(true));
-        assertThat(descriptor.getParameters().get(1).iri(), is(GREL_ANY_TRUE));
+        assertThat(descriptor.getParameters().get(1).iri(), is(Grel.any_true));
         assertThat(descriptor.getParameters().get(1).required(), is(false));
-        assertThat(descriptor.getParameters().get(2).iri(), is(GREL_ANY_FALSE));
+        assertThat(descriptor.getParameters().get(2).iri(), is(Grel.any_false));
         assertThat(descriptor.getParameters().get(2).required(), is(false));
     }
 
     @Test
     void if_returnsTrueBranch_givenBooleanTrue() {
-        var descriptor = findDescriptor(GREL_CONTROLS_IF);
+        var descriptor = findDescriptor(Grel.controls_if);
 
-        var result = descriptor.execute(Map.of(GREL_BOOL_B, Boolean.TRUE, GREL_ANY_TRUE, "yes", GREL_ANY_FALSE, "no"));
+        var result = descriptor.execute(Map.of(Grel.bool_b, Boolean.TRUE, Grel.any_true, "yes", Grel.any_false, "no"));
 
         assertThat(result, is("yes"));
     }
 
     @Test
     void if_returnsFalseBranch_givenBooleanFalse() {
-        var descriptor = findDescriptor(GREL_CONTROLS_IF);
+        var descriptor = findDescriptor(Grel.controls_if);
 
-        var result = descriptor.execute(Map.of(GREL_BOOL_B, Boolean.FALSE, GREL_ANY_TRUE, "yes", GREL_ANY_FALSE, "no"));
-
-        assertThat(result, is("no"));
-    }
-
-    @Test
-    void if_returnsTrueBranch_givenStringTrue() {
-        var descriptor = findDescriptor(GREL_CONTROLS_IF);
-
-        var result = descriptor.execute(Map.of(GREL_BOOL_B, "true", GREL_ANY_TRUE, "yes", GREL_ANY_FALSE, "no"));
-
-        assertThat(result, is("yes"));
-    }
-
-    @Test
-    void if_returnsTrueBranch_givenStringTrueCaseInsensitive() {
-        var descriptor = findDescriptor(GREL_CONTROLS_IF);
-
-        var result = descriptor.execute(Map.of(GREL_BOOL_B, "TRUE", GREL_ANY_TRUE, "yes", GREL_ANY_FALSE, "no"));
-
-        assertThat(result, is("yes"));
-    }
-
-    @Test
-    void if_returnsFalseBranch_givenStringFalse() {
-        var descriptor = findDescriptor(GREL_CONTROLS_IF);
-
-        var result = descriptor.execute(Map.of(GREL_BOOL_B, "false", GREL_ANY_TRUE, "yes", GREL_ANY_FALSE, "no"));
+        var result = descriptor.execute(Map.of(Grel.bool_b, Boolean.FALSE, Grel.any_true, "yes", Grel.any_false, "no"));
 
         assertThat(result, is("no"));
+    }
+
+    static Stream<Arguments> stringConditionCases() {
+        return Stream.of(Arguments.of("true", "yes"), Arguments.of("TRUE", "yes"), Arguments.of("false", "no"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("stringConditionCases")
+    void if_returnsExpectedBranch_givenStringCondition(String condition, String expected) {
+        var descriptor = findDescriptor(Grel.controls_if);
+
+        var result = descriptor.execute(Map.of(Grel.bool_b, condition, Grel.any_true, "yes", Grel.any_false, "no"));
+
+        assertThat(result, is(expected));
     }
 
     @Test
     void if_returnsFalseBranch_givenNonBooleanObject() {
-        var descriptor = findDescriptor(GREL_CONTROLS_IF);
+        var descriptor = findDescriptor(Grel.controls_if);
 
-        var result = descriptor.execute(Map.of(GREL_BOOL_B, 42, GREL_ANY_TRUE, "yes", GREL_ANY_FALSE, "no"));
+        var result = descriptor.execute(Map.of(Grel.bool_b, 42, Grel.any_true, "yes", Grel.any_false, "no"));
 
         assertThat(result, is("no"));
     }
 
     @Test
     void if_returnsNull_givenTrueConditionAndMissingTrueBranch() {
-        var descriptor = findDescriptor(GREL_CONTROLS_IF);
+        var descriptor = findDescriptor(Grel.controls_if);
 
-        var result = descriptor.execute(Map.of(GREL_BOOL_B, Boolean.TRUE));
+        var result = descriptor.execute(Map.of(Grel.bool_b, Boolean.TRUE));
 
         assertThat(result, is(nullValue()));
     }
 
     @Test
     void if_returnsNull_givenFalseConditionAndMissingFalseBranch() {
-        var descriptor = findDescriptor(GREL_CONTROLS_IF);
+        var descriptor = findDescriptor(Grel.controls_if);
 
-        var result = descriptor.execute(Map.of(GREL_BOOL_B, Boolean.FALSE));
+        var result = descriptor.execute(Map.of(Grel.bool_b, Boolean.FALSE));
 
         assertThat(result, is(nullValue()));
     }

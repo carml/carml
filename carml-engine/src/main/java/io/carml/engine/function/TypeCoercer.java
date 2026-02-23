@@ -131,7 +131,7 @@ public interface TypeCoercer {
                         .filter(coercer -> coercer.supports(targetType))
                         .findFirst()
                         .orElseThrow(() -> new IllegalArgumentException(
-                                String.format("No coercer found for target type: %s", targetType)));
+                                "No coercer found for target type: %s".formatted(targetType)));
                 return matched.coerce(value, targetType);
             }
         };

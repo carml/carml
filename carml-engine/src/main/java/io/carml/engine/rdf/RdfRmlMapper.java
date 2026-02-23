@@ -11,6 +11,7 @@ import io.carml.engine.RmlMapperException;
 import io.carml.engine.TermGeneratorFactory;
 import io.carml.engine.function.AnnotatedFunctionProvider;
 import io.carml.engine.function.BuiltInFunctionProvider;
+import io.carml.engine.function.FnoDescriptionProvider;
 import io.carml.engine.function.FunctionDescriptor;
 import io.carml.engine.function.FunctionProvider;
 import io.carml.engine.function.FunctionRegistry;
@@ -55,6 +56,8 @@ import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.model.util.ModelCollector;
+import org.eclipse.rdf4j.rio.RDFFormat;
+import org.eclipse.rdf4j.rio.Rio;
 import reactor.core.publisher.Flux;
 
 @Slf4j
@@ -87,6 +90,8 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
         private final List<Object> pendingFunctionObjects = new ArrayList<>();
 
         private final List<FunctionDescriptor> pendingDescriptors = new ArrayList<>();
+
+        private final List<Model> pendingFnoDescriptions = new ArrayList<>();
 
         private final Set<SourceResolver<?>> sourceResolvers = new HashSet<>();
 
@@ -160,6 +165,36 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
                     })
                     .toArray();
             return addFunctions(instances);
+        }
+
+        /**
+         * Registers function descriptions from an RDF model containing FnO (Function Ontology)
+         * descriptions and Java implementation bindings.
+         *
+         * @param fnoModel the RDF model with FnO function descriptions and mappings
+         * @return {@link Builder}
+         */
+        public Builder addFunctionDescriptions(Model fnoModel) {
+            pendingFnoDescriptions.add(fnoModel);
+            return this;
+        }
+
+        /**
+         * Parses the given input stream as RDF in the specified format and registers the resulting
+         * FnO function descriptions.
+         *
+         * @param inputStream the input stream containing RDF data
+         * @param format the RDF serialization format
+         * @return {@link Builder}
+         */
+        public Builder addFunctionDescriptions(InputStream inputStream, RDFFormat format) {
+            try {
+                var model = Rio.parse(inputStream, format);
+                pendingFnoDescriptions.add(model);
+            } catch (Exception exception) {
+                throw new RmlMapperException("Failed to parse FnO description input", exception);
+            }
+            return this;
         }
 
         /**
@@ -335,7 +370,12 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
                     .map(ServiceLoader.Provider::get)
                     .forEach(registry::registerAll);
 
-            // 3. Programmatic registrations via addFunctions/addFunctionClasses (override SPI)
+            // 3a. FnO description-based registrations (override SPI)
+            for (var fnoModel : pendingFnoDescriptions) {
+                registry.registerAll(new FnoDescriptionProvider(fnoModel));
+            }
+
+            // 3b. Programmatic registrations via addFunctions/addFunctionClasses (override 3a for same IRI)
             if (!pendingFunctionObjects.isEmpty()) {
                 registry.registerAll(new AnnotatedFunctionProvider(pendingFunctionObjects.toArray()));
             }

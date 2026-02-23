@@ -1,13 +1,10 @@
 package io.carml.engine.function;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
-import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 
 /** Wraps annotated objects into {@link FunctionDescriptor} instances via reflection. */
@@ -79,70 +76,11 @@ public class AnnotatedFunctionProvider implements FunctionProvider {
             return fnoParam.value();
         }
 
-        throw new IllegalArgumentException(String.format(
-                "Parameter '%s' of method '%s' has neither @%s nor @%s annotation",
-                parameter.getName(),
-                parameter.getDeclaringExecutable().getName(),
-                RmlParam.class.getSimpleName(),
-                FnoParam.class.getSimpleName()));
-    }
-
-    private static final class ReflectiveFunctionDescriptor implements FunctionDescriptor {
-
-        private final IRI functionIri;
-        private final List<ParameterDescriptor> parameters;
-        private final List<ReturnDescriptor> returns;
-        private final Object target;
-        private final Method method;
-        private final List<IRI> paramIris;
-
-        ReflectiveFunctionDescriptor(
-                IRI functionIri,
-                List<ParameterDescriptor> parameters,
-                List<ReturnDescriptor> returns,
-                Object target,
-                Method method,
-                List<IRI> paramIris) {
-            this.functionIri = functionIri;
-            this.parameters = parameters;
-            this.returns = returns;
-            this.target = target;
-            this.method = method;
-            this.paramIris = paramIris;
-        }
-
-        @Override
-        public IRI getFunctionIri() {
-            return functionIri;
-        }
-
-        @Override
-        public List<ParameterDescriptor> getParameters() {
-            return parameters;
-        }
-
-        @Override
-        public List<ReturnDescriptor> getReturns() {
-            return returns;
-        }
-
-        @Override
-        public Object execute(Map<IRI, Object> parameterValues) {
-            var args = new Object[paramIris.size()];
-            for (int i = 0; i < paramIris.size(); i++) {
-                args[i] = parameterValues.get(paramIris.get(i));
-            }
-
-            try {
-                return method.invoke(target, args);
-            } catch (IllegalAccessException exception) {
-                throw new IllegalStateException(
-                        String.format("Failed to invoke function '%s'", functionIri), exception);
-            } catch (InvocationTargetException exception) {
-                throw new IllegalStateException(
-                        String.format("Failed to invoke function '%s'", functionIri),
-                        exception.getCause() != null ? exception.getCause() : exception);
-            }
-        }
+        throw new IllegalArgumentException("Parameter '%s' of method '%s' has neither @%s nor @%s annotation"
+                .formatted(
+                        parameter.getName(),
+                        parameter.getDeclaringExecutable().getName(),
+                        RmlParam.class.getSimpleName(),
+                        FnoParam.class.getSimpleName()));
     }
 }

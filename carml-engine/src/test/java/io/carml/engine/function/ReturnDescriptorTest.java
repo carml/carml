@@ -1,5 +1,6 @@
 package io.carml.engine.function;
 
+import static org.eclipse.rdf4j.model.util.Values.iri;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -7,12 +8,11 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.eclipse.rdf4j.model.IRI;
-import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.junit.jupiter.api.Test;
 
 class ReturnDescriptorTest {
 
-    private static final IRI RETURN_IRI = SimpleValueFactory.getInstance().createIRI("http://example.org/return1");
+    private static final IRI RETURN_IRI = iri("http://example.org/return1");
 
     @Test
     void constructor_throwsIllegalArgument_givenNullType() {
