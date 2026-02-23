@@ -7,6 +7,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.auto.service.AutoService;
+import com.google.common.io.CharStreams;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.InvalidPathException;
 import com.jayway.jsonpath.JsonPath;
@@ -19,6 +20,7 @@ import io.carml.model.LogicalSource;
 import io.carml.model.Source;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.charset.Charset;
@@ -32,10 +34,10 @@ import java.util.Spliterators;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.StreamSupport;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.IOUtils;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.vocabulary.XSD;
 import org.jsfr.json.JsonSurfer;
@@ -57,6 +59,13 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private static final String ERROR_INTERPRETING_RESULT = "Error interpreting expression result %s";
+
+    /**
+     * Characters valid in bare (non-$-prefixed) JSONPath expressions: letters, digits, underscore,
+     * hyphen, dot, brackets, wildcard, at, filter syntax, quotes, colon, comparison operators, and
+     * space. Anything outside this set indicates invalid syntax.
+     */
+    private static final Pattern INVALID_BARE_NAME_CHARS = Pattern.compile("[^\\w.\\[\\]*@?()'\":=!&|><\\s-]");
 
     private static final Configuration JSONPATH_CONF = Configuration.builder()
             .jsonProvider(new JacksonJsonNodeJsonProvider())
@@ -141,7 +150,7 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
     private Flux<LogicalSourceRecord<JsonNode>> getObjectFlux(
             InputStream inputStream, Charset charset, Set<LogicalSource> logicalSources) {
         try {
-            var tmp = IOUtils.toString(inputStream, charset);
+            var tmp = CharStreams.toString(new InputStreamReader(inputStream, charset));
             return Flux.fromIterable(logicalSources).flatMap(logicalSource -> readIterator(tmp, logicalSource));
         } catch (IOException e) {
             throw new LogicalSourceResolverException("Error reading input stream.", e);
@@ -298,34 +307,7 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
     }
 
     private static boolean containsInvalidBareNameChars(String expression) {
-        for (int i = 0; i < expression.length(); i++) {
-            char c = expression.charAt(i);
-            if (Character.isLetterOrDigit(c)
-                    || c == '_'
-                    || c == '-'
-                    || c == '.'
-                    || c == '['
-                    || c == ']'
-                    || c == '*'
-                    || c == '@'
-                    || c == '?'
-                    || c == '('
-                    || c == ')'
-                    || c == '\''
-                    || c == '"'
-                    || c == ':'
-                    || c == '='
-                    || c == '!'
-                    || c == '&'
-                    || c == '|'
-                    || c == '>'
-                    || c == '<'
-                    || c == ' ') {
-                continue;
-            }
-            return true;
-        }
-        return false;
+        return INVALID_BARE_NAME_CHARS.matcher(expression).find();
     }
 
     private static Optional<JsonNode> readExpression(JsonNode jsonNode, String expression) {

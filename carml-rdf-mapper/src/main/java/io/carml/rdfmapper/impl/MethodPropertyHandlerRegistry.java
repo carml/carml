@@ -34,7 +34,7 @@ public class MethodPropertyHandlerRegistry {
 
         private Boolean isIterable;
 
-        private final ImmutableSet.Builder<PropertyHandler> handlersBuilder = new ImmutableSet.Builder<>();
+        private final ImmutableSet.Builder<PropertyHandler> handlersBuilder = ImmutableSet.builder();
 
         void method(Method method) {
             this.method = method;

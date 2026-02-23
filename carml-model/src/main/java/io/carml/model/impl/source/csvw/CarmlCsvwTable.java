@@ -14,6 +14,7 @@ import io.carml.vocab.Csvw;
 import io.carml.vocab.Rdf;
 import io.carml.vocab.Rml;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.charset.UnsupportedCharsetException;
 import java.util.List;
 import java.util.Objects;
@@ -110,7 +111,7 @@ public class CarmlCsvwTable extends CarmlSource implements CsvwTable {
                 LOG.warn(
                         "Unsupported charset '{}'. Falling back to default charset '{}'.",
                         dialect.getEncoding(),
-                        Charset.defaultCharset());
+                        StandardCharsets.UTF_8);
             }
         }
 

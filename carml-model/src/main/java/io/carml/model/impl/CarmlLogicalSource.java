@@ -106,34 +106,33 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
 
     @Override
     public String getQuery() {
-        String query = null;
+        var query = resolveQuery();
+        return query != null ? trimTrailingSemiColon(query) : null;
+    }
 
+    private String resolveQuery() {
         if (referenceFormulation != null && referenceFormulation.getAsResource().equals(Rdf.Rml.SQL2008Query)) {
-            query = iterator;
+            return iterator;
         }
 
-        if (query == null && sqlQuery != null) {
-            query = sqlQuery;
+        if (sqlQuery != null) {
+            return sqlQuery;
         }
 
-        if (query == null
-                && source instanceof DatabaseSource databaseSource
-                && referenceFormulation != null
-                && !referenceFormulation.getAsResource().equals(Rdf.Rml.SQL2008Table)) {
-            query = databaseSource.getQuery();
-        }
-
-        if (query == null
-                && referenceFormulation != null
-                && referenceFormulation.getAsResource().equals(Rdf.Rml.SQL2008Table)) {
-            query = String.format("SELECT * FROM %s", iterator);
-        }
-
-        if (query == null) {
+        if (referenceFormulation == null) {
             return null;
         }
 
-        return trimTrailingSemiColon(query);
+        if (source instanceof DatabaseSource databaseSource
+                && !referenceFormulation.getAsResource().equals(Rdf.Rml.SQL2008Table)) {
+            return databaseSource.getQuery();
+        }
+
+        if (referenceFormulation.getAsResource().equals(Rdf.Rml.SQL2008Table)) {
+            return "SELECT * FROM %s".formatted(iterator);
+        }
+
+        return null;
     }
 
     private String trimTrailingSemiColon(String in) {
