@@ -154,65 +154,13 @@ public abstract class SqlResolver implements LogicalSourceResolver<RowData> {
         LOG.info("{}", selectQuery);
         // }
 
-        // return Flux.merge(logicalSources.stream()
-        // .map(logicalSource -> Mono.from(connectionFactory.create())
-        // .flatMapMany(connection -> {
-        // var statement = connection.createStatement(selectQuery);
-        //
-        // return Mono.from(statement.execute())
-        // .flatMapMany(result -> result.map(this::toRowData))
-        // .map(pair -> LogicalSourceRecord.of(logicalSource, pair))
-        // .concatWith(Flux.from(Mono.from(connection.close())
-        // .doOnError(error -> LOG.error("Connection close failed: {}", error.getMessage()))
-        // .doOnSuccess(success -> LOG.info("Successfully closed connection."))
-        // .map(obj -> LogicalSourceRecord.of(logicalSource, RowData.of(Map.of(), Map.of())))))
-        // .doOnCancel(() -> {
-        // LOG.info("Cancelling... Closing connection...");
-        // Mono.from(connection.close())
-        // .doOnError(error -> LOG.error("Connection close failed: {}", error.getMessage()))
-        // .doOnSuccess(success -> LOG.info("Successfully closed connection."))
-        // .subscribe();
-        // })
-        // .log("query");
-        // }))
-        // .collect(toUnmodifiableSet()));
-
-        return Flux.fromIterable(logicalSources).concatMap(logicalSource -> Mono.from(connectionFactory.create())
-                .flatMapMany(connection -> {
-                    var statement = connection.createStatement(selectQuery);
-
-                    return Mono.from(statement.execute())
-                            .flatMapMany(result -> result.map(this::toRowData))
-                            .map(pair -> LogicalSourceRecord.of(logicalSource, pair))
-                            .concatWith(Flux.from(Mono.from(connection.close())
-                                    .doOnError(error -> LOG.error("Connection close failed: {}", error.getMessage()))
-                                    .doOnSuccess(success -> LOG.info("Successfully closed connection."))
-                                    .map(obj -> LogicalSourceRecord.of(logicalSource, RowData.of()))))
-                            .doOnCancel(() -> {
-                                LOG.info("Cancelling... Closing connection...");
-                                Mono.from(connection.close())
-                                        .doOnError(
-                                                error -> LOG.error("Connection close failed: {}", error.getMessage()))
-                                        .doOnSuccess(success -> LOG.info("Successfully closed connection."))
-                                        .subscribe();
-                            })
-                            .doFinally(signalType -> {
-                                LOG.info("Finally: {}", signalType);
-                                LOG.info("Closing connection...");
-                                Mono.from(connection.close())
-                                        .doOnError(
-                                                error -> LOG.error("Connection close failed: {}", error.getMessage()))
-                                        .doOnSuccess(success -> LOG.info("Successfully closed connection."))
-                                        .subscribe();
-                            });
-                }));
-
-        // return Flux.fromIterable(logicalSources)
-        // .concatMap(logicalSource -> Flux.usingWhen(connectionFactory.create(), c ->
-        // c.createStatement(selectQuery)
-        // .execute(), Connection::close)
-        // .concatMap(result -> result.map(this::toRowData))
-        // .map(pair -> LogicalSourceRecord.of(logicalSource, pair)));
+        return Flux.fromIterable(logicalSources).concatMap(logicalSource -> Flux.usingWhen(
+                        connectionFactory.create(),
+                        connection -> Mono.from(
+                                        connection.createStatement(selectQuery).execute())
+                                .flatMapMany(result -> result.map(this::toRowData)),
+                        this::closeConnection)
+                .map(rowData -> LogicalSourceRecord.of(logicalSource, rowData)));
     }
 
     private Mono<Void> closeConnection(Connection connection) {
