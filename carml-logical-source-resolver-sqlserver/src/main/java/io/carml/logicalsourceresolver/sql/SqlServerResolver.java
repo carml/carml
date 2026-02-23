@@ -1,8 +1,6 @@
 package io.carml.logicalsourceresolver.sql;
 
 import com.google.auto.service.AutoService;
-import io.asyncer.r2dbc.mysql.constant.MySqlType;
-import io.carml.logicalsourceresolver.LogicalSourceResolverException;
 import io.carml.logicalsourceresolver.MatchedLogicalSourceResolverFactory;
 import io.carml.logicalsourceresolver.MatchingLogicalSourceResolverFactory;
 import io.carml.logicalsourceresolver.sql.sourceresolver.JoiningDatabaseSource;
@@ -11,6 +9,7 @@ import io.carml.model.LogicalSource;
 import io.carml.model.Source;
 import io.carml.model.SqlReferenceFormulation;
 import io.carml.vocab.Rdf.Rr;
+import io.r2dbc.mssql.message.type.SqlServerType;
 import io.r2dbc.spi.Type;
 import java.util.List;
 import java.util.Optional;
@@ -20,11 +19,11 @@ import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.vocabulary.XSD;
 import org.jooq.SQLDialect;
 
-public class MySqlResolver extends SqlResolver {
+public class SqlServerResolver extends SqlResolver {
 
-    public static final String NAME = "MySqlResolver";
+    public static final String NAME = "SqlServerResolver";
 
-    private MySqlResolver(Source source, boolean isStrict) {
+    private SqlServerResolver(Source source, boolean isStrict) {
         super(source, isStrict);
     }
 
@@ -33,47 +32,37 @@ public class MySqlResolver extends SqlResolver {
     }
 
     public static LogicalSourceResolverFactory<RowData> factory(boolean isStrict) {
-        return source -> new MySqlResolver(source, isStrict);
+        return source -> new SqlServerResolver(source, isStrict);
     }
 
     @Override
     public String getQuery(LogicalSource logicalSource) {
-        return SqlResolver.getQuery(SQLDialect.MYSQL, logicalSource);
+        return SqlResolver.getQuery(SQLDialect.DEFAULT, logicalSource);
     }
 
     @Override
     public String getJointSqlQuery(JoiningDatabaseSource joiningDatabaseSourceSupplier) {
-        return SqlResolver.getJointSqlQuery(SQLDialect.MYSQL, joiningDatabaseSourceSupplier);
+        return SqlResolver.getJointSqlQuery(SQLDialect.DEFAULT, joiningDatabaseSourceSupplier);
     }
 
+    // Datatype mapping per https://www.w3.org/TR/r2rml/#dfn-natural-rdf-literal
     @Override
     public IRI getDatatypeIri(Type sqlDataType) {
-        if (sqlDataType instanceof MySqlType mySqlType) {
-            return switch (mySqlType) {
-                case SMALLINT, MEDIUMINT, BIGINT, INT -> XSD.INTEGER;
-                case DECIMAL -> XSD.DECIMAL;
-                case FLOAT, DOUBLE -> XSD.DOUBLE;
+        if (sqlDataType instanceof SqlServerType sqlServerType) {
+            return switch (sqlServerType) {
+                case TINYINT, SMALLINT, INTEGER, BIGINT -> XSD.INTEGER;
+                case DECIMAL, NUMERIC, SMALLMONEY, MONEY -> XSD.DECIMAL;
+                case FLOAT, REAL -> XSD.DOUBLE;
+                case BIT -> XSD.BOOLEAN;
                 case DATE -> XSD.DATE;
                 case TIME -> XSD.TIME;
-                case YEAR -> XSD.GYEAR;
-                case TIMESTAMP -> XSD.DATETIME;
-                case TINYINT -> {
-                    if (mySqlType.getBinarySize() == 1) {
-                        yield XSD.BOOLEAN;
-                    } else {
-                        yield XSD.BYTE;
-                    }
-                }
-                case SMALLINT_UNSIGNED -> XSD.UNSIGNED_SHORT;
-                case MEDIUMINT_UNSIGNED, INT_UNSIGNED -> XSD.UNSIGNED_INT;
-                case BIGINT_UNSIGNED -> XSD.UNSIGNED_LONG;
-                case VARBINARY, TINYBLOB, MEDIUMBLOB, BLOB, LONGBLOB -> XSD.HEXBINARY;
-                case TINYINT_UNSIGNED -> XSD.UNSIGNED_BYTE;
+                case DATETIME, SMALLDATETIME, DATETIME2, DATETIMEOFFSET -> XSD.DATETIME;
+                case BINARY, VARBINARY, VARBINARYMAX, IMAGE, TIMESTAMP -> XSD.HEXBINARY;
                 default -> XSD.STRING;
             };
-        } else {
-            throw new LogicalSourceResolverException(String.format("Encountered unsupported type: %s", sqlDataType));
         }
+
+        return XSD.STRING;
     }
 
     @ToString
@@ -81,7 +70,7 @@ public class MySqlResolver extends SqlResolver {
     public static class Matcher implements MatchingLogicalSourceResolverFactory {
 
         private final List<IRI> matchingReferenceFormulations = Stream.concat(
-                        SqlReferenceFormulation.IRIS.stream(), Stream.of(Rr.MySQL))
+                        SqlReferenceFormulation.IRIS.stream(), Stream.of(Rr.MSSQLServer))
                 .toList();
 
         @Override
@@ -96,7 +85,7 @@ public class MySqlResolver extends SqlResolver {
                 scoreBuilder.weakMatch();
             }
 
-            if (hasMySqlSource(logicalSource)) {
+            if (hasSqlServerSource(logicalSource)) {
                 scoreBuilder.strongMatch();
             }
 
@@ -106,7 +95,7 @@ public class MySqlResolver extends SqlResolver {
                 return Optional.empty();
             }
 
-            return Optional.of(MatchedLogicalSourceResolverFactory.of(matchScore, MySqlResolver.factory()));
+            return Optional.of(MatchedLogicalSourceResolverFactory.of(matchScore, SqlServerResolver.factory()));
         }
 
         private boolean matchesReferenceFormulation(LogicalSource logicalSource) {
@@ -123,10 +112,10 @@ public class MySqlResolver extends SqlResolver {
                             && matchingReferenceFormulations.contains(logicalSource.getSqlVersion());
         }
 
-        private boolean hasMySqlSource(LogicalSource logicalSource) {
+        private boolean hasSqlServerSource(LogicalSource logicalSource) {
             if (logicalSource.getSource() instanceof DatabaseSource dbSource) {
                 return dbSource.getJdbcDriver() != null
-                        && dbSource.getJdbcDriver().contains("mysql");
+                        && dbSource.getJdbcDriver().contains("sqlserver");
             }
 
             return false;

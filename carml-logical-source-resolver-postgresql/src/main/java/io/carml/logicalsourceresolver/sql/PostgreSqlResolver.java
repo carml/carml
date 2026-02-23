@@ -133,8 +133,8 @@ public class PostgreSqlResolver extends SqlResolver {
 
         private boolean referenceFormulationMatchesByIri(LogicalSource logicalSource) {
             return logicalSource.getReferenceFormulation() != null
-                            && matchingReferenceFormulations.contains(
-                                    logicalSource.getReferenceFormulation().getAsResource())
+                            && logicalSource.getReferenceFormulation().getAsResource() instanceof IRI refIri
+                            && matchingReferenceFormulations.contains(refIri)
                     || logicalSource.getSqlVersion() != null
                             && matchingReferenceFormulations.contains(logicalSource.getSqlVersion());
         }

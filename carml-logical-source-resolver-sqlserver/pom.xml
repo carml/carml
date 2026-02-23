@@ -7,10 +7,10 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>carml-logical-source-resolver-mysql</artifactId>
+    <artifactId>carml-logical-source-resolver-sqlserver</artifactId>
     <packaging>jar</packaging>
 
-    <name>carml-logical-source-resolver-mysql</name>
+    <name>carml-logical-source-resolver-sqlserver</name>
 
     <dependencies>
 
@@ -35,13 +35,8 @@
         </dependency>
 
         <dependency>
-            <groupId>com.mysql</groupId>
-            <artifactId>mysql-connector-j</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.asyncer</groupId>
-            <artifactId>r2dbc-mysql</artifactId>
+            <groupId>io.r2dbc</groupId>
+            <artifactId>r2dbc-mssql</artifactId>
         </dependency>
 
         <dependency>

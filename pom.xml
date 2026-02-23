@@ -58,6 +58,7 @@
 		<module>carml-logical-source-resolver-sql</module>
 		<module>carml-logical-source-resolver-mysql</module>
 		<module>carml-logical-source-resolver-postgresql</module>
+		<module>carml-logical-source-resolver-sqlserver</module>
 		<module>carml-join-storage</module>
 		<module>carml-logical-view</module>
 		<module>carml-converters-jena</module>
@@ -89,6 +90,7 @@
 		<r2dbc-pool.version>1.0.2.RELEASE</r2dbc-pool.version>
 		<r2dbc-mysql.version>1.4.1</r2dbc-mysql.version>
 		<r2dbc-postgresql.version>1.1.1.RELEASE</r2dbc-postgresql.version>
+		<r2dbc-mssql.version>1.0.4.RELEASE</r2dbc-mssql.version>
 		<commons-compress.version>1.28.0</commons-compress.version>
 		<xz.version>1.11</xz.version>
 		<mockito.version>5.21.0</mockito.version>
@@ -173,6 +175,12 @@
 			<dependency>
 				<groupId>io.carml</groupId>
 				<artifactId>carml-logical-source-resolver-postgresql</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>io.carml</groupId>
+				<artifactId>carml-logical-source-resolver-sqlserver</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 
@@ -334,6 +342,12 @@
 				<groupId>org.postgresql</groupId>
 				<artifactId>r2dbc-postgresql</artifactId>
 				<version>${r2dbc-postgresql.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>io.r2dbc</groupId>
+				<artifactId>r2dbc-mssql</artifactId>
+				<version>${r2dbc-mssql.version}</version>
 			</dependency>
 
 			<dependency>
