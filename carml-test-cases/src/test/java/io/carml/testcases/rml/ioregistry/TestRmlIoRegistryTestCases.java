@@ -101,13 +101,13 @@ class TestRmlIoRegistryTestCases extends RmlTestCaseSuite {
                 "RMLIOREGTC0005d", // PostgreSQL
                 "RMLIOREGTC0006d", // SQL Server
 
-                // Test case expected output has plain string "10" for SQL integer column;
+                // Test case expected output has plain string "10" for SQL integer column
                 // engine correctly produces "10"^^xsd:integer
                 "RMLIOREGTC0004k", // MySQL
                 "RMLIOREGTC0005k", // PostgreSQL
                 "RMLIOREGTC0006k", // SQL Server
 
-                // Test case expected output has non-canonical xsd:double ("30.0" vs canonical "3.0E1");
+                // Test case expected output has non-canonical xsd:double ("30.0" vs canonical "3.0E1")
                 // engine uses XMLDatatypeUtil.normalize which produces canonical scientific notation
                 "RMLIOREGTC0004o", // MySQL: FLOAT amount column
                 "RMLIOREGTC0004t", // MySQL: FLOAT amount column (two-table join)
@@ -142,14 +142,8 @@ class TestRmlIoRegistryTestCases extends RmlTestCaseSuite {
                 // Unsupported source type: SPARQL endpoint (sd:Service)
                 "RMLIOREGTC0011a",
 
-                // Unsupported source type: CSVW
-                "RMLIOREGTC0012b",
-                "RMLIOREGTC0012c",
-                "RMLIOREGTC0012d",
-                "RMLIOREGTC0012e",
-                "RMLIOREGTC0012f",
-                "RMLIOREGTC0012g",
-                "RMLIOREGTC0012h",
+                // CSVW quoteChar test case bug: mapping references uppercase {ID}/{Name} but CSV headers are
+                // lowercase id/name/age
                 "RMLIOREGTC0012i",
 
                 // SQL Server test case bug: invalid iterator "dsfjdlfjks;fkstudent" and output.nq references

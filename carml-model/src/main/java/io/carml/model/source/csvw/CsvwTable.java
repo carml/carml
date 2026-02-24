@@ -2,6 +2,7 @@ package io.carml.model.source.csvw;
 
 import io.carml.model.Source;
 import java.util.List;
+import java.util.Set;
 
 public interface CsvwTable extends Source {
 
@@ -18,4 +19,6 @@ public interface CsvwTable extends Source {
     CsvwSchema getTableSchema();
 
     List<CsvwTransformation> getTransformations();
+
+    Set<Object> getCsvwNulls();
 }

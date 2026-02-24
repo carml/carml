@@ -56,4 +56,6 @@ public class Csvw {
     public static final String skipInitialSpace = NAMESPACE + "skipInitialSpace";
 
     public static final String trim = NAMESPACE + "trim";
+
+    public static final String null_ = NAMESPACE + "null";
 }

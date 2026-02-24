@@ -16,9 +16,11 @@ import io.carml.model.Source;
 import io.carml.model.source.csvw.CsvwDialect;
 import io.carml.model.source.csvw.CsvwTable;
 import io.carml.util.TypeRef;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -26,6 +28,7 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.input.BOMInputStream;
 import org.eclipse.rdf4j.model.IRI;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -84,18 +87,20 @@ public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
     }
 
     private Flux<NamedCsvRecord> getCsvRecordFlux(InputStream inputStream, IRI encoding) {
-        var csvReaderBuilder = CsvReader.builder().detectBomHeader(true);
+        var csvReaderBuilder = CsvReader.builder();
 
         Charset charset;
         if (source instanceof CsvwTable csvwTable) {
             var csvwDialect = csvwTable.getDialect();
 
-            applyCsvwDialect(csvwDialect, csvReaderBuilder);
+            if (csvwDialect != null) {
+                applyCsvwDialect(csvwDialect, csvReaderBuilder);
+            }
             if (encoding != null) {
                 charset = Encodings.resolveCharset(encoding)
                         .orElseThrow(() -> new LogicalSourceResolverException(
                                 String.format("Unsupported encoding provided: %s", encoding)));
-            } else if (csvwDialect.getEncoding() != null) {
+            } else if (csvwDialect != null && csvwDialect.getEncoding() != null) {
                 charset = Charset.forName(csvwDialect.getEncoding());
             } else {
                 charset = UTF_8;
@@ -109,7 +114,16 @@ public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
 
     private Flux<NamedCsvRecord> getCsvRecordFlux(
             CsvReaderBuilder csvReaderBuilder, InputStream inputStream, Charset charset) {
-        return Flux.fromIterable(csvReaderBuilder.ofNamedCsvRecord(new InputStreamReader(inputStream, charset)));
+        try {
+            // Strip BOM before wrapping in InputStreamReader, since FastCSV's
+            // detectBomHeader only works with Path-based input, not Reader.
+            var bomFreeInputStream =
+                    BOMInputStream.builder().setInputStream(inputStream).get();
+            return Flux.fromIterable(
+                    csvReaderBuilder.ofNamedCsvRecord(new InputStreamReader(bomFreeInputStream, charset)));
+        } catch (IOException ioException) {
+            throw new LogicalSourceResolverException("Failed to create BOM-free input stream", ioException);
+        }
     }
 
     private void applyCsvwDialect(CsvwDialect csvwDialect, CsvReaderBuilder csvReaderBuilder) {
@@ -149,15 +163,38 @@ public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
 
     @Override
     public LogicalSourceResolver.ExpressionEvaluationFactory<NamedCsvRecord> getExpressionEvaluationFactory() {
+        var shouldTrim = source instanceof CsvwTable csvwTable
+                && csvwTable.getDialect() != null
+                && csvwTable.getDialect().trim();
+
+        var nullValues = getNullValues();
+
         return namedCsvRecord -> headerName -> {
             logEvaluateExpression(headerName, LOG);
             var result = namedCsvRecord.getField(headerName);
 
-            if (result == null || source.getNulls().contains(result)) {
+            if (shouldTrim && result != null) {
+                result = result.trim();
+            }
+
+            if (result == null || nullValues.contains(result)) {
                 return Optional.empty();
             }
-            return Optional.ofNullable(namedCsvRecord.getField(headerName));
+            return Optional.of(result);
         };
+    }
+
+    private Set<Object> getNullValues() {
+        var rmlNulls = source.getNulls();
+        if (source instanceof CsvwTable csvwTable) {
+            var csvwNulls = csvwTable.getCsvwNulls();
+            if (csvwNulls != null && !csvwNulls.isEmpty()) {
+                var merged = new HashSet<>(rmlNulls != null ? rmlNulls : Set.of());
+                merged.addAll(csvwNulls);
+                return Set.copyOf(merged);
+            }
+        }
+        return rmlNulls != null ? rmlNulls : Set.of();
     }
 
     @Override

@@ -54,6 +54,9 @@ public class CarmlCsvwTable extends CarmlSource implements CsvwTable {
     @Singular
     private List<CsvwTransformation> transformations;
 
+    @Singular
+    private Set<Object> csvwNulls;
+
     @RdfProperty(Csvw.url)
     @Override
     public String getUrl() {
@@ -97,6 +100,12 @@ public class CarmlCsvwTable extends CarmlSource implements CsvwTable {
         return transformations;
     }
 
+    @RdfProperty(Csvw.null_)
+    @Override
+    public Set<Object> getCsvwNulls() {
+        return csvwNulls;
+    }
+
     @RdfProperty(Rml.encoding)
     @Override
     public IRI getEncoding() {
@@ -104,7 +113,7 @@ public class CarmlCsvwTable extends CarmlSource implements CsvwTable {
             return super.getEncoding();
         }
 
-        if (dialect.getEncoding() != null) {
+        if (dialect != null && dialect.getEncoding() != null) {
             try {
                 Charset.forName(dialect.getEncoding());
             } catch (UnsupportedCharsetException unsupportedCharsetException) {
@@ -121,7 +130,15 @@ public class CarmlCsvwTable extends CarmlSource implements CsvwTable {
     @Override
     public int hashCode() {
         return Objects.hash(
-                super.hashCode(), url, dialect, notes, suppressOutput, tableDirection, tableSchema, transformations);
+                super.hashCode(),
+                url,
+                dialect,
+                notes,
+                suppressOutput,
+                tableDirection,
+                tableSchema,
+                transformations,
+                csvwNulls);
     }
 
     @Override
@@ -134,7 +151,8 @@ public class CarmlCsvwTable extends CarmlSource implements CsvwTable {
                     && suppressOutput == other.suppressOutput()
                     && tableDirection == other.getTableDirection()
                     && Objects.equals(tableSchema, other.getTableSchema())
-                    && Objects.equals(transformations, other.getTransformations());
+                    && Objects.equals(transformations, other.getTransformations())
+                    && Objects.equals(csvwNulls, other.getCsvwNulls());
         }
         return false;
     }
@@ -173,6 +191,7 @@ public class CarmlCsvwTable extends CarmlSource implements CsvwTable {
         }
         transformations.forEach(
                 transformation -> modelBuilder.add(Csvw.transformations, transformation.getAsResource()));
+        csvwNulls.forEach(nullValue -> modelBuilder.add(Csvw.null_, nullValue));
     }
 
     private void addTableDirectionTriple(ModelBuilder builder) {
