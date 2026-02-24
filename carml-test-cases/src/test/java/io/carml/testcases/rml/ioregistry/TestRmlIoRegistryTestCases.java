@@ -88,36 +88,61 @@ class TestRmlIoRegistryTestCases extends RmlTestCaseSuite {
     @Override
     protected List<String> getSkipTests() {
         return List.of(
-                // Test case bug: spec says missing JSON/XML values produce NULL, not errors
-                "RMLIOREGTC0002b",
-                "RMLIOREGTC0003b",
-                // Expected error for invalid PostgreSQL table
-                "RMLIOREGTC0005d",
-                // Output mismatch
+                // Missing JSON/XML references produce NULL instead of error (hasError=true but CARML doesn't throw)
+                "RMLIOREGTC0002b", // JSON: $.THIS_VALUE_DOES_NOT_EXIST
+                "RMLIOREGTC0003b", // XML: NON_EXISTING element
+
+                // Test case bug: namespace URL mismatch ("http://example.org" vs XML's "http://example.org/")
+                // and unprefixed names in iterator/references for elements in the default namespace.
+                // CARML's namespace pipeline works correctly (verified with corrected test case data).
                 "RMLIOREGTC0003d",
-                "RMLIOREGTC0004k",
-                "RMLIOREGTC0004o",
-                "RMLIOREGTC0004t",
-                "RMLIOREGTC0004w",
-                "RMLIOREGTC0004x",
-                "RMLIOREGTC0005o",
-                "RMLIOREGTC0005t",
-                "RMLIOREGTC0005w",
-                "RMLIOREGTC0005x",
-                "RMLIOREGTC0006k",
-                // Unknown column in DB query
-                "RMLIOREGTC0004l",
-                "RMLIOREGTC0005k",
-                "RMLIOREGTC0005l",
-                "RMLIOREGTC0006l",
-                // Unsupported rdf type (wot:Thing)
-                "RMLIOREGTC0008a",
-                // Turtle parse error
-                "RMLIOREGTC0009a",
-                "RMLIOREGTC0010a",
-                // Unsupported rdf type (sd:Service)
+
+                // Expected error for invalid table not thrown (jOOQ generates valid query for non-existent table)
+                "RMLIOREGTC0005d", // PostgreSQL
+                "RMLIOREGTC0006d", // SQL Server
+
+                // Test case expected output has plain string "10" for SQL integer column;
+                // engine correctly produces "10"^^xsd:integer
+                "RMLIOREGTC0004k", // MySQL
+                "RMLIOREGTC0005k", // PostgreSQL
+                "RMLIOREGTC0006k", // SQL Server
+
+                // Test case expected output has non-canonical xsd:double ("30.0" vs canonical "3.0E1");
+                // engine uses XMLDatatypeUtil.normalize which produces canonical scientific notation
+                "RMLIOREGTC0004o", // MySQL: FLOAT amount column
+                "RMLIOREGTC0004t", // MySQL: FLOAT amount column (two-table join)
+                "RMLIOREGTC0005o", // PostgreSQL: FLOAT amount column
+                "RMLIOREGTC0005t", // PostgreSQL: FLOAT amount column (two-table join)
+                "RMLIOREGTC0006t", // SQL Server: FLOAT amount column (two-table join)
+
+                // Test case expected output has non-canonical xsd:double for REAL/FLOAT Patient columns
+                // (e.g. "80.25" vs canonical "8.025E1", "1.7" vs "1.7E0")
+                "RMLIOREGTC0004w", // MySQL
+                "RMLIOREGTC0005w", // PostgreSQL
+                "RMLIOREGTC0006w", // SQL Server
+
+                // DateTime formatting mismatch (driver-specific temporal serialization)
+                "RMLIOREGTC0004x", // MySQL
+                "RMLIOREGTC0005x", // PostgreSQL
+                "RMLIOREGTC0006x", // SQL Server: trailing .0 (2009-10-10T12:12:22.0 vs 2009-10-10T12:12:22)
+
+                // SQL query references non-existent column "NoColumnName" but hasError=false (test case bug)
+                "RMLIOREGTC0004l", // MySQL
+                "RMLIOREGTC0005l", // PostgreSQL
+                "RMLIOREGTC0006l", // SQL Server
+
+                // Test case expected output has plain "33" for JSON integer; engine produces "33"^^xsd:integer
+                "RMLIOREGTC0007a",
+
+                // Unsupported source type: WoT (td:Thing) source descriptions
+                "RMLIOREGTC0008a", // HTTP JSON API
+                "RMLIOREGTC0009a", // Kafka stream
+                "RMLIOREGTC0010a", // MQTT stream
+
+                // Unsupported source type: SPARQL endpoint (sd:Service)
                 "RMLIOREGTC0011a",
-                // CSVW source not supported
+
+                // Unsupported source type: CSVW
                 "RMLIOREGTC0012b",
                 "RMLIOREGTC0012c",
                 "RMLIOREGTC0012d",
@@ -126,20 +151,12 @@ class TestRmlIoRegistryTestCases extends RmlTestCaseSuite {
                 "RMLIOREGTC0012g",
                 "RMLIOREGTC0012h",
                 "RMLIOREGTC0012i",
-                // Test case expected output incorrect: has plain "33" instead of "33"^^xsd:integer for JSON integers
-                "RMLIOREGTC0007a",
+
                 // SQL Server test case bug: invalid iterator "dsfjdlfjks;fkstudent" and output.nq references
                 // unrelated Person/BirthDay data
                 "RMLIOREGTC0006c",
-                // SQL Server: expected error for invalid table not thrown (jOOQ DEFAULT dialect produces valid query)
-                "RMLIOREGTC0006d",
-                // SQL Server output mismatch: float scientific notation (3.0E1 vs 30.0)
-                "RMLIOREGTC0006t",
-                // SQL Server output mismatch: real/float scientific notation
-                "RMLIOREGTC0006w",
-                // SQL Server output mismatch: datetime trailing .0 (2009-10-10T12:12:22.0 vs 2009-10-10T12:12:22)
-                "RMLIOREGTC0006x",
-                // SQL Server output mismatch: binary hex encoding (double-encoded hex string)
+
+                // SQL Server: binary hex encoding mismatch (ByteBuffer to hex string double-encoding)
                 "RMLIOREGTC0006z");
     }
 

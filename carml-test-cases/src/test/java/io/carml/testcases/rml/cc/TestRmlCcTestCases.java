@@ -22,7 +22,10 @@ class TestRmlCcTestCases extends RmlTestCaseSuite {
     @Override
     protected List<String> getSkipTests() {
         return List.of(
-                "RMLTC-CC-0008" // This will be supported when rml-lv is implemented
-                );
+                // rml:gather with referencing object maps (parentTriplesMap): CarmlGatherMap uses
+                // @RdfType(CarmlObjectMap.class) without a type decider, so gather items with
+                // rml:parentTriplesMap are parsed as plain object maps instead of CarmlRefObjectMap,
+                // losing the join semantics entirely
+                "RMLTC-CC-0008");
     }
 }
