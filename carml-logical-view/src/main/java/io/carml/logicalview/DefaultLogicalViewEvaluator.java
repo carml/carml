@@ -3,12 +3,12 @@ package io.carml.logicalview;
 import static java.util.stream.Collectors.joining;
 
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
-import io.carml.logicalsourceresolver.LogicalSourceRecord;
 import io.carml.logicalsourceresolver.LogicalSourceResolver;
 import io.carml.logicalsourceresolver.LogicalSourceResolverException;
 import io.carml.logicalsourceresolver.MatchedLogicalSourceResolverFactory;
 import io.carml.logicalsourceresolver.MatchingLogicalSourceResolverFactory;
 import io.carml.logicalsourceresolver.ResolvedSource;
+import io.carml.model.AbstractLogicalSource;
 import io.carml.model.ExpressionField;
 import io.carml.model.Field;
 import io.carml.model.IterableField;
@@ -48,46 +48,90 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
 
     private final Set<MatchingLogicalSourceResolverFactory> resolverFactories;
 
+    private record EvaluatedValues(
+            Map<String, Object> values, Map<String, ReferenceFormulation> referenceFormulations) {}
+
     @Override
-    @SuppressWarnings("unchecked")
     public Flux<ViewIteration> evaluate(
             LogicalView view, Function<Source, ResolvedSource<?>> sourceResolver, EvaluationContext context) {
 
-        var logicalSource = resolveLogicalSource(view);
-        var source = logicalSource.getSource();
-        var resolvedSource = sourceResolver.apply(source);
+        var viewOn = view.getViewOn();
 
-        var resolver = (LogicalSourceResolver<Object>) findResolver(logicalSource, source);
-        var expressionEvaluationFactory = resolver.getExpressionEvaluationFactory();
-
-        var factoryCache =
-                new HashMap<ReferenceFormulation, LogicalSourceResolver.ExpressionEvaluationFactory<Object>>();
-        var parentRefForm = logicalSource.getReferenceFormulation();
-        if (parentRefForm != null) {
-            factoryCache.put(parentRefForm, expressionEvaluationFactory);
+        if (!(viewOn instanceof LogicalSource) && !(viewOn instanceof LogicalView)) {
+            throw new LogicalSourceResolverException(
+                    "LogicalView viewOn must be a LogicalSource or LogicalView, but was %s"
+                            .formatted(viewOn.getClass().getSimpleName()));
         }
 
-        Function<ReferenceFormulation, LogicalSourceResolver.ExpressionEvaluationFactory<Object>> factoryResolver =
-                refForm -> factoryCache.computeIfAbsent(refForm, rf -> resolveExpressionEvaluationFactory(rf, source));
+        var rootLogicalSource = resolveRootLogicalSource(viewOn);
+        var rootSource = rootLogicalSource.getSource();
+        var rootRefForm = rootLogicalSource.getReferenceFormulation();
 
+        // HashMap permits null keys, which is needed when rootRefForm is null.
+        // Thread-safe: flatMapIterable processes elements sequentially, and all factory
+        // resolution happens synchronously inside its lambda.
+        var factoryCache =
+                new HashMap<ReferenceFormulation, LogicalSourceResolver.ExpressionEvaluationFactory<Object>>();
+
+        Function<ReferenceFormulation, LogicalSourceResolver.ExpressionEvaluationFactory<Object>> factoryResolver =
+                refForm ->
+                        factoryCache.computeIfAbsent(refForm, rf -> resolveExpressionEvaluationFactory(rf, rootSource));
+
+        return evaluateView(view, sourceResolver, context, rootRefForm, factoryCache, factoryResolver);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Flux<ViewIteration> evaluateView(
+            LogicalView view,
+            Function<Source, ResolvedSource<?>> sourceResolver,
+            EvaluationContext context,
+            ReferenceFormulation rootRefForm,
+            Map<ReferenceFormulation, LogicalSourceResolver.ExpressionEvaluationFactory<Object>> factoryCache,
+            Function<ReferenceFormulation, LogicalSourceResolver.ExpressionEvaluationFactory<Object>> factoryResolver) {
+
+        var viewOn = view.getViewOn();
         var fields = view.getFields();
         var index = new AtomicInteger(0);
 
-        Flux<ViewIteration> iterations = resolver.getLogicalSourceRecords(Set.of(logicalSource))
-                .apply(resolvedSource)
-                .flatMapIterable((LogicalSourceRecord<Object> rec) ->
-                        evaluateRecord(rec, expressionEvaluationFactory, fields, index, factoryResolver));
+        Flux<ExpressionEvaluation> exprEvalFlux;
+        if (viewOn instanceof LogicalSource logicalSource) {
+            var rootSource = logicalSource.getSource();
+            var resolver = (LogicalSourceResolver<Object>) findResolver(logicalSource, rootSource);
+            var expressionEvaluationFactory = resolver.getExpressionEvaluationFactory();
+            factoryCache.put(rootRefForm, expressionEvaluationFactory);
+
+            var resolvedSource = sourceResolver.apply(rootSource);
+            exprEvalFlux = resolver.getLogicalSourceRecords(Set.of(logicalSource))
+                    .apply(resolvedSource)
+                    .map(rec -> expressionEvaluationFactory.apply(rec.getSourceRecord()));
+        } else {
+            exprEvalFlux = evaluateView(
+                            (LogicalView) viewOn, sourceResolver, context, rootRefForm, factoryCache, factoryResolver)
+                    .map(ViewIterationExpressionEvaluation::new);
+        }
+
+        Flux<ViewIteration> iterations = exprEvalFlux.flatMapIterable(exprEval -> {
+            var evaluatedList = evaluateFields(fields, exprEval, rootRefForm, "", factoryResolver);
+            return evaluatedList.stream()
+                    .map(evaluated -> (ViewIteration) new DefaultViewIteration(
+                            index.getAndIncrement(), evaluated.values(), evaluated.referenceFormulations()))
+                    .toList();
+        });
 
         return context.getLimit().map(iterations::take).orElse(iterations);
     }
 
-    private LogicalSource resolveLogicalSource(LogicalView view) {
-        var viewOn = view.getViewOn();
-        if (viewOn instanceof LogicalSource logicalSource) {
-            return logicalSource;
+    private LogicalSource resolveRootLogicalSource(AbstractLogicalSource abstractLogicalSource) {
+        var current = abstractLogicalSource;
+        while (current instanceof LogicalView lv) {
+            current = lv.getViewOn();
         }
-        throw new LogicalSourceResolverException("LogicalView viewOn must be a LogicalSource, but was %s"
-                .formatted(viewOn.getClass().getSimpleName()));
+        if (current instanceof LogicalSource ls) {
+            return ls;
+        }
+        throw new LogicalSourceResolverException(
+                "Could not resolve root logical source from view chain; terminal viewOn was %s"
+                        .formatted(current.getClass().getSimpleName()));
     }
 
     private LogicalSourceResolver<?> findResolver(LogicalSource logicalSource, Source source) {
@@ -130,25 +174,10 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
         return resolver.getExpressionEvaluationFactory();
     }
 
-    private List<ViewIteration> evaluateRecord(
-            LogicalSourceRecord<Object> rec,
-            LogicalSourceResolver.ExpressionEvaluationFactory<Object> expressionEvaluationFactory,
-            Set<Field> fields,
-            AtomicInteger index,
-            Function<ReferenceFormulation, LogicalSourceResolver.ExpressionEvaluationFactory<Object>> factoryResolver) {
-
-        var exprEval = expressionEvaluationFactory.apply(rec.getSourceRecord());
-        var valueMaps = evaluateFields(fields, exprEval, expressionEvaluationFactory, "", factoryResolver);
-
-        return valueMaps.stream()
-                .map(valueMap -> (ViewIteration) new DefaultViewIteration(index.getAndIncrement(), valueMap))
-                .toList();
-    }
-
-    private List<Map<String, Object>> evaluateFields(
+    private List<EvaluatedValues> evaluateFields(
             Set<Field> fields,
             ExpressionEvaluation exprEval,
-            LogicalSourceResolver.ExpressionEvaluationFactory<Object> expressionEvaluationFactory,
+            ReferenceFormulation currentRefForm,
             String prefix,
             Function<ReferenceFormulation, LogicalSourceResolver.ExpressionEvaluationFactory<Object>> factoryResolver) {
 
@@ -158,10 +187,14 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                     if (field instanceof ExpressionField ef) {
                         var values = evaluateExpressionField(ef, exprEval);
                         var absoluteName = prefix + ef.getFieldName();
-                        return values.stream().map(v -> Map.of(absoluteName, v)).toList();
+                        var refFormMap = currentRefForm != null
+                                ? Map.<String, ReferenceFormulation>of(absoluteName, currentRefForm)
+                                : Map.<String, ReferenceFormulation>of();
+                        return values.stream()
+                                .map(v -> new EvaluatedValues(Map.of(absoluteName, v), refFormMap))
+                                .toList();
                     } else if (field instanceof IterableField itf) {
-                        return evaluateIterableField(
-                                itf, exprEval, expressionEvaluationFactory, prefix, factoryResolver);
+                        return evaluateIterableField(itf, exprEval, currentRefForm, prefix, factoryResolver);
                     } else {
                         throw new UnsupportedOperationException("Unsupported field type: %s"
                                 .formatted(field.getClass().getSimpleName()));
@@ -171,17 +204,21 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
 
         return CartesianProduct.listCartesianProduct(fieldContributions).stream()
                 .map(combo -> {
-                    var merged = new LinkedHashMap<String, Object>();
-                    combo.forEach(merged::putAll);
-                    return (Map<String, Object>) merged;
+                    var mergedValues = new LinkedHashMap<String, Object>();
+                    var mergedRefForms = new LinkedHashMap<String, ReferenceFormulation>();
+                    combo.forEach(ev -> {
+                        mergedValues.putAll(ev.values());
+                        mergedRefForms.putAll(ev.referenceFormulations());
+                    });
+                    return new EvaluatedValues(mergedValues, mergedRefForms);
                 })
                 .toList();
     }
 
-    private List<Map<String, Object>> evaluateIterableField(
+    private List<EvaluatedValues> evaluateIterableField(
             IterableField field,
             ExpressionEvaluation exprEval,
-            LogicalSourceResolver.ExpressionEvaluationFactory<Object> expressionEvaluationFactory,
+            ReferenceFormulation currentRefForm,
             String prefix,
             Function<ReferenceFormulation, LogicalSourceResolver.ExpressionEvaluationFactory<Object>> factoryResolver) {
 
@@ -198,16 +235,25 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
             return List.of();
         }
 
-        var nestedFactory = field.getReferenceFormulation() != null
-                ? factoryResolver.apply(field.getReferenceFormulation())
-                : expressionEvaluationFactory;
+        var nestedRefForm = field.getReferenceFormulation();
+        if (nestedRefForm == null && exprEval instanceof ViewIterationExpressionEvaluation viewExprEval) {
+            nestedRefForm = viewExprEval
+                    .getFieldReferenceFormulation(field.getIterator())
+                    .orElse(null);
+        }
+        if (nestedRefForm == null) {
+            nestedRefForm = currentRefForm;
+        }
+
+        var nestedFactory = factoryResolver.apply(nestedRefForm);
 
         var subPrefix = prefix + field.getFieldName() + ".";
 
+        var effectiveNestedRefForm = nestedRefForm;
         return subRecords.stream()
                 .flatMap(subRecord -> {
                     var subExprEval = nestedFactory.apply(subRecord);
-                    return evaluateFields(nestedFields, subExprEval, nestedFactory, subPrefix, factoryResolver)
+                    return evaluateFields(nestedFields, subExprEval, effectiveNestedRefForm, subPrefix, factoryResolver)
                             .stream();
                 })
                 .toList();

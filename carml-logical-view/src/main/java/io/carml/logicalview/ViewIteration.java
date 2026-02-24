@@ -1,5 +1,6 @@
 package io.carml.logicalview;
 
+import io.carml.model.ReferenceFormulation;
 import java.util.Optional;
 import java.util.Set;
 
@@ -30,4 +31,13 @@ public interface ViewIteration {
      * @return an unmodifiable set of field keys
      */
     Set<String> getKeys();
+
+    /**
+     * Returns the reference formulation under which the given field's value was evaluated, or empty
+     * if no reference formulation is tracked for that field.
+     *
+     * @param key the field key
+     * @return an {@link Optional} containing the reference formulation, or empty
+     */
+    Optional<ReferenceFormulation> getFieldReferenceFormulation(String key);
 }

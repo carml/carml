@@ -1,23 +1,28 @@
 package io.carml.logicalview;
 
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
+import io.carml.model.ReferenceFormulation;
 import java.util.Optional;
-import lombok.AllArgsConstructor;
 
 /**
- * Bridges a {@link ViewIteration} to the {@link ExpressionEvaluation} interface, allowing the
- * mapping engine to evaluate expressions against view iterations using the same abstraction it uses
- * for logical source records.
- *
- * <p>Delegates {@link #apply(String)} to {@link ViewIteration#getValue(String)}.
+ * Bridges a {@link ViewIteration} to the {@link ExpressionEvaluation} interface, enabling
+ * view-on-view evaluation where expressions are resolved as field-name lookups against a parent
+ * view's iterations.
  */
-@AllArgsConstructor(staticName = "of")
-public class ViewIterationExpressionEvaluation implements ExpressionEvaluation {
+class ViewIterationExpressionEvaluation implements ExpressionEvaluation {
 
-    private final ViewIteration viewIteration;
+    private final ViewIteration iteration;
+
+    ViewIterationExpressionEvaluation(ViewIteration iteration) {
+        this.iteration = iteration;
+    }
 
     @Override
     public Optional<Object> apply(String expression) {
-        return viewIteration.getValue(expression);
+        return iteration.getValue(expression);
+    }
+
+    Optional<ReferenceFormulation> getFieldReferenceFormulation(String key) {
+        return iteration.getFieldReferenceFormulation(key);
     }
 }
