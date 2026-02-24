@@ -14,10 +14,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import javax.xml.stream.XMLStreamException;
 import javax.xml.xpath.XPathException;
 import jlibs.xml.DefaultNamespaceContext;
 import jlibs.xml.sax.dog.NodeItem;
@@ -38,9 +36,7 @@ import net.sf.saxon.s9api.XdmItem;
 import net.sf.saxon.s9api.XdmValue;
 import org.jaxen.saxpath.SAXPathException;
 import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 
 @Slf4j
@@ -111,12 +107,15 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
             throw new IllegalStateException("No logical sources registered");
         }
 
-        if (resolvedSource == null || resolvedSource.getResolved().isEmpty()) {
+        if (resolvedSource == null) {
             throw new LogicalSourceResolverException(
-                    String.format("No source provided for logical sources:%n%s", exception(logicalSources)));
+                    "No source provided for logical sources:%n%s".formatted(exception(logicalSources)));
         }
 
-        var resolved = resolvedSource.getResolved().get();
+        var resolved = resolvedSource
+                .getResolved()
+                .orElseThrow(() -> new LogicalSourceResolverException(
+                        "No source provided for logical sources:%n%s".formatted(exception(logicalSources))));
 
         if (resolved instanceof InputStream resolvedInputStream) {
             return getXpathResultFlux(resolvedInputStream, logicalSources);
@@ -139,11 +138,25 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
 
     private Flux<LogicalSourceRecord<XdmItem>> getXpathResultFlux(
             InputStream inputStream, Set<LogicalSource> logicalSources) {
-        var outstandingRequests = new AtomicLong();
-        var pausableReader = new PausableStaxXmlReader();
+        return PausableFluxBridge.<LogicalSourceRecord<XdmItem>>builder()
+                .sourceFactory(emitter -> {
+                    var pausableReader = new PausableStaxXmlReader();
 
-        return Flux.create(
-                sink -> xpathPathFlux(sink, logicalSources, inputStream, outstandingRequests, pausableReader));
+                    Map<String, LogicalSource> logicalSourceByExpression = new HashMap<>();
+                    XMLDog xmlDog = prepareXmlDog(emitter, logicalSources, logicalSourceByExpression);
+                    var event = xmlDog.createEvent();
+                    bridgeAndListen(logicalSourceByExpression, event, emitter);
+
+                    return new XPathPausableSource(pausableReader, xmlDog, event, inputStream);
+                })
+                .onDispose(() -> {
+                    try {
+                        inputStream.close();
+                    } catch (IOException ioException) {
+                        throw new LogicalSourceResolverException("Error closing input stream.", ioException);
+                    }
+                })
+                .flux();
     }
 
     private Flux<LogicalSourceRecord<XdmItem>> getXpathResultFlux(XdmItem xdmItem, Set<LogicalSource> logicalSources) {
@@ -151,43 +164,8 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
                 .flatMap(logicalSource -> getXpathResultFluxForLogicalSource(xdmItem, logicalSource));
     }
 
-    private void xpathPathFlux(
-            FluxSink<LogicalSourceRecord<XdmItem>> sink,
-            Set<LogicalSource> logicalSources,
-            InputStream inputStream,
-            AtomicLong outstandingRequests,
-            PausableStaxXmlReader pausableReader) {
-        sink.onRequest(requested -> {
-            var outstanding = outstandingRequests.addAndGet(requested);
-            if (pausableReader.isPaused() && outstanding >= 0L) {
-                if (!pausableReader.isCompleted()) {
-                    try {
-                        pausableReader.resume();
-                    } catch (SAXException | XMLStreamException xmlReadingException) {
-                        sink.error(
-                                new LogicalSourceResolverException("Error reading XML source.", xmlReadingException));
-                    }
-                }
-            } else {
-                checkReaderToPause(outstanding, pausableReader);
-            }
-        });
-        sink.onDispose(() -> cleanup(inputStream));
-
-        Map<String, LogicalSource> logicalSourceByExpression = new HashMap<>();
-        XMLDog xmlDog = prepareXmlDog(sink, logicalSources, logicalSourceByExpression);
-        var event = xmlDog.createEvent();
-        bridgeAndListen(logicalSourceByExpression, event, sink, outstandingRequests, pausableReader);
-
-        try {
-            xmlDog.sniff(event, new InputSource(inputStream), pausableReader);
-        } catch (XPathException xpathException) {
-            sink.error(new LogicalSourceResolverException("Error executing XPath expression.", xpathException));
-        }
-    }
-
     private XMLDog prepareXmlDog(
-            FluxSink<LogicalSourceRecord<XdmItem>> sink,
+            PausableFluxBridge.Emitter<LogicalSourceRecord<XdmItem>> emitter,
             Set<LogicalSource> logicalSources,
             Map<String, LogicalSource> logicalSourceByExpression) {
         XMLDog xmlDog;
@@ -204,8 +182,8 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
                     xmlDog.addXPath(expression);
                     logicalSourceByExpression.put(expression, logicalSource);
                 } catch (SAXPathException saxPathException) {
-                    sink.error(new LogicalSourceResolverException(
-                            String.format("Error parsing XPath expression: %s", logicalSource.getIterator()),
+                    emitter.error(new LogicalSourceResolverException(
+                            "Error parsing XPath expression: %s".formatted(logicalSource.getIterator()),
                             saxPathException));
                 }
             });
@@ -219,9 +197,7 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
     private void bridgeAndListen(
             Map<String, LogicalSource> logicalSourceByExpression,
             Event event,
-            FluxSink<LogicalSourceRecord<XdmItem>> sink,
-            AtomicLong outstandingRequests,
-            PausableStaxXmlReader pausableReader) {
+            PausableFluxBridge.Emitter<LogicalSourceRecord<XdmItem>> emitter) {
 
         var expressionCompletion = logicalSourceByExpression.entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, entry -> false));
@@ -233,41 +209,23 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
             @Override
             public void onNodeHit(Expression expression, NodeItem nodeItem) {
                 var logicalSource = logicalSourceByExpression.get(expression.getXPath());
-                sink.next(LogicalSourceRecord.of(logicalSource, (XdmItem) docBuilder.wrap(nodeItem.xml)));
-                var outstanding = outstandingRequests.decrementAndGet();
-                checkReaderToPause(outstanding, pausableReader);
+                emitter.next(LogicalSourceRecord.of(logicalSource, (XdmItem) docBuilder.wrap(nodeItem.xml)));
             }
 
             @Override
             public void finishedNodeSet(Expression expression) {
                 expressionCompletion.put(expression.getXPath(), true);
                 if (expressionCompletion.values().stream().allMatch(Boolean::valueOf)) {
-                    sink.complete();
+                    emitter.complete();
                 }
             }
 
             @Override
             public void onResult(Expression expression, Object object) {
                 var logicalSource = logicalSourceByExpression.get(expression.getXPath());
-                sink.next(LogicalSourceRecord.of(logicalSource, (XdmItem) docBuilder.wrap(object)));
-                var outstanding = outstandingRequests.decrementAndGet();
-                checkReaderToPause(outstanding, pausableReader);
+                emitter.next(LogicalSourceRecord.of(logicalSource, (XdmItem) docBuilder.wrap(object)));
             }
         });
-    }
-
-    private void checkReaderToPause(long outstanding, PausableStaxXmlReader pausableReader) {
-        if (!pausableReader.isPaused() && outstanding < 0L) {
-            pausableReader.pause();
-        }
-    }
-
-    private void cleanup(InputStream inputStream) {
-        try {
-            inputStream.close();
-        } catch (IOException ioException) {
-            throw new LogicalSourceResolverException("Error closing input stream.", ioException);
-        }
     }
 
     private Flux<LogicalSourceRecord<XdmItem>> getXpathResultFluxForLogicalSource(
@@ -284,8 +242,8 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
             return Flux.fromIterable(value).map(item -> LogicalSourceRecord.of(logicalSource, item));
         } catch (SaxonApiException e) {
             throw new LogicalSourceResolverException(
-                    String.format(
-                            "Error applying XPath expression [%s] to entry [%s]", logicalSource.getIterator(), xdmItem),
+                    "Error applying XPath expression [%s] to entry [%s]"
+                            .formatted(logicalSource.getIterator(), xdmItem),
                     e);
         }
     }
@@ -317,7 +275,7 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
                 return Optional.ofNullable(getItemStringValue(item, value));
             } catch (SaxonApiException e) {
                 throw new LogicalSourceResolverException(
-                        String.format("Error applying XPath expression [%s] to entry [%s]", expression, entry), e);
+                        "Error applying XPath expression [%s] to entry [%s]".formatted(expression, entry), e);
             }
         };
     }
@@ -334,6 +292,44 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
     @Override
     public Optional<DatatypeMapperFactory<XdmItem>> getDatatypeMapperFactory() {
         return Optional.empty();
+    }
+
+    private record XPathPausableSource(
+            PausableStaxXmlReader pausableReader, XMLDog xmlDog, Event event, InputStream inputStream)
+            implements PausableSource {
+
+        @Override
+        public void start() {
+            try {
+                xmlDog.sniff(event, new InputSource(inputStream), pausableReader);
+            } catch (XPathException xPathException) {
+                throw new LogicalSourceResolverException("Error starting XML source parsing.", xPathException);
+            }
+        }
+
+        @Override
+        public void pause() {
+            pausableReader.pause();
+        }
+
+        @Override
+        public void resume() {
+            try {
+                pausableReader.resume();
+            } catch (Exception exception) {
+                throw new LogicalSourceResolverException("Error reading XML source.", exception);
+            }
+        }
+
+        @Override
+        public boolean isPaused() {
+            return pausableReader.isPaused();
+        }
+
+        @Override
+        public boolean isCompleted() {
+            return pausableReader.isCompleted();
+        }
     }
 
     @ToString

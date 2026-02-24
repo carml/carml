@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Map;
@@ -31,8 +32,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.StreamSupport;
@@ -46,7 +45,6 @@ import org.jsfr.json.NonBlockingParser;
 import org.jsfr.json.SurfingConfiguration;
 import org.jsfr.json.compiler.JsonPathCompiler;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 
 @Slf4j
@@ -109,13 +107,13 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
 
         if (resolvedSource == null) {
             throw new LogicalSourceResolverException(
-                    String.format("No source provided for logical sources:%n%s", exception(logicalSources)));
+                    "No source provided for logical sources:%n%s".formatted(exception(logicalSources)));
         }
 
         var resolved = resolvedSource
                 .getResolved()
                 .orElseThrow(() -> new LogicalSourceResolverException(
-                        String.format("No source provided for logical sources:%n%s", exception(logicalSources))));
+                        "No source provided for logical sources:%n%s".formatted(exception(logicalSources))));
 
         if (resolved instanceof InputStream resolvedInputStream) {
             return resolveInputStream(resolvedInputStream, logicalSources);
@@ -124,8 +122,8 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
         } else if (resolved instanceof JsonNode resolvedJsonNode) {
             return getObjectFlux(resolvedJsonNode, logicalSources);
         }
-        throw new LogicalSourceResolverException(String.format(
-                "Unsupported source object provided for logical sources:%n%s", exception(logicalSources)));
+        throw new LogicalSourceResolverException(
+                "Unsupported source object provided for logical sources:%n%s".formatted(exception(logicalSources)));
     }
 
     private Flux<LogicalSourceRecord<JsonNode>> resolveInputStream(
@@ -142,8 +140,9 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
             if (resolvedMono instanceof InputStream resolvedInputStreamMono) {
                 return resolveInputStream(resolvedInputStreamMono, logicalSources);
             }
-            return Flux.error(new LogicalSourceResolverException(String.format(
-                    "Unsupported source object provided for logical sources:%n%s", exception(logicalSources))));
+            return Flux.error(
+                    new LogicalSourceResolverException("Unsupported source object provided for logical sources:%n%s"
+                            .formatted(exception(logicalSources))));
         });
     }
 
@@ -159,36 +158,25 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
 
     private Flux<LogicalSourceRecord<JsonNode>> getObjectFlux(
             InputStream inputStream, Set<LogicalSource> logicalSources) {
-        var outstandingRequests = new AtomicLong();
-        var sourcePaused = new AtomicBoolean();
-        var sourceCompleted = new AtomicBoolean();
+        return PausableFluxBridge.<LogicalSourceRecord<JsonNode>>builder()
+                .sourceFactory(emitter -> {
+                    var configBuilder = jsonSurfer.configBuilder();
 
-        return Flux.create(sink -> {
-            sink.onRequest(requested -> {
-                var outstanding = outstandingRequests.addAndGet(requested);
-                if (sourcePaused.get() && outstanding >= 0L) {
-                    sourcePaused.compareAndSet(true, false);
-                } else if (!sourcePaused.get() && outstanding < 0L) {
-                    sourcePaused.compareAndSet(false, true);
-                }
-            });
-            sink.onDispose(() -> {
-                try {
-                    inputStream.close();
-                } catch (IOException ioException) {
-                    throw new LogicalSourceResolverException("Error closing input stream.", ioException);
-                }
-            });
+                    bridgeAndListen(logicalSources, configBuilder, emitter);
 
-            var configBuilder = jsonSurfer.configBuilder();
+                    var config = configBuilder.build();
+                    var parser = jsonSurfer.createNonBlockingParser(config);
 
-            bridgeAndListen(logicalSources, configBuilder, sink, outstandingRequests);
-
-            var config = configBuilder.build();
-            var parser = jsonSurfer.createNonBlockingParser(config);
-
-            readSource(inputStream, parser, sink, sourcePaused, sourceCompleted);
-        });
+                    return new JsonPausableSource(inputStream, parser, emitter, bufferSize);
+                })
+                .onDispose(() -> {
+                    try {
+                        inputStream.close();
+                    } catch (IOException ioException) {
+                        throw new LogicalSourceResolverException("Error closing input stream.", ioException);
+                    }
+                })
+                .flux();
     }
 
     private Flux<LogicalSourceRecord<JsonNode>> getObjectFlux(JsonNode jsonNode, Set<LogicalSource> logicalSources) {
@@ -221,57 +209,102 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
         if (resultNode.isObject() || resultNode.isValueNode()) {
             return Flux.just(LogicalSourceRecord.of(logicalSource, resultNode));
         }
-        return Flux.error(new LogicalSourceResolverException(String.format(ERROR_INTERPRETING_RESULT, resultNode)));
+        return Flux.error(new LogicalSourceResolverException(ERROR_INTERPRETING_RESULT.formatted(resultNode)));
     }
 
     private void bridgeAndListen(
             Set<LogicalSource> logicalSources,
             SurfingConfiguration.Builder configBuilder,
-            FluxSink<LogicalSourceRecord<JsonNode>> sink,
-            AtomicLong outstandingRequests) {
+            PausableFluxBridge.Emitter<LogicalSourceRecord<JsonNode>> emitter) {
         logicalSources.forEach(logicalSource -> {
             try {
                 configBuilder.bind(logicalSource.getIterator(), (value, context) -> {
                     if (!(value instanceof JsonNode)) {
-                        throw new LogicalSourceResolverException(
-                                String.format("Encountered non-JsonNode value: %s", value));
+                        throw new LogicalSourceResolverException("Encountered non-JsonNode value: %s".formatted(value));
                     }
-                    sink.next(LogicalSourceRecord.of(logicalSource, (JsonNode) value));
-                    outstandingRequests.decrementAndGet();
+                    emitter.next(LogicalSourceRecord.of(logicalSource, (JsonNode) value));
                 });
             } catch (RuntimeException parsingException) {
-                sink.error(new LogicalSourceResolverException(String.format(
-                        "An exception occurred while parsing expression: %s", logicalSource.getIterator())));
+                emitter.error(new LogicalSourceResolverException(
+                        "An exception occurred while parsing expression: %s".formatted(logicalSource.getIterator())));
             }
         });
     }
 
-    private void readSource(
-            InputStream inputStream,
-            NonBlockingParser parser,
-            FluxSink<LogicalSourceRecord<JsonNode>> sink,
-            AtomicBoolean parsingPaused,
-            AtomicBoolean parsingCompleted) {
-        try (var channel = Channels.newChannel(inputStream)) {
-            var byteBuffer = ByteBuffer.allocate(bufferSize);
+    private static class JsonPausableSource implements PausableSource {
+        private final NonBlockingParser parser;
+        private final PausableFluxBridge.Emitter<LogicalSourceRecord<JsonNode>> emitter;
+        private final ReadableByteChannel channel;
+        private final ByteBuffer byteBuffer;
 
-            while (!parsingCompleted.get()) {
-                while (!parsingPaused.get()) {
+        private volatile boolean paused;
+        private volatile boolean completed;
+
+        JsonPausableSource(
+                InputStream inputStream,
+                NonBlockingParser parser,
+                PausableFluxBridge.Emitter<LogicalSourceRecord<JsonNode>> emitter,
+                int bufferSize) {
+            this.parser = parser;
+            this.emitter = emitter;
+            this.channel = Channels.newChannel(inputStream);
+            this.byteBuffer = ByteBuffer.allocate(bufferSize);
+        }
+
+        @Override
+        public void start() {
+            readLoop();
+        }
+
+        @Override
+        public void pause() {
+            paused = true;
+        }
+
+        @Override
+        public void resume() {
+            paused = false;
+            readLoop();
+        }
+
+        @Override
+        public boolean isPaused() {
+            return paused;
+        }
+
+        @Override
+        public boolean isCompleted() {
+            return completed;
+        }
+
+        private void readLoop() {
+            try {
+                while (!completed && !paused) {
                     var readStatus = channel.read(byteBuffer);
 
                     if (readStatus == -1) {
                         parser.endOfInput();
-                        parsingCompleted.compareAndSet(false, true);
-                        sink.complete();
+                        completed = true;
+                        closeChannel();
+                        emitter.complete();
                         break;
                     }
 
                     parser.feed(byteBuffer.array(), 0, byteBuffer.position());
                     byteBuffer.clear();
                 }
+            } catch (IOException ioException) {
+                closeChannel();
+                emitter.error(new LogicalSourceResolverException("Error reading input stream.", ioException));
             }
-        } catch (IOException ioException) {
-            sink.error(new LogicalSourceResolverException("Error reading input stream.", ioException));
+        }
+
+        private void closeChannel() {
+            try {
+                channel.close();
+            } catch (IOException ignored) {
+                // Channel close failure is non-critical; the input stream is closed via onDispose.
+            }
         }
     }
 
@@ -353,10 +386,10 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
                 return Optional.of(textResult);
             }
 
-            throw new LogicalSourceResolverException(String.format(ERROR_INTERPRETING_RESULT, resultNode));
+            throw new LogicalSourceResolverException(ERROR_INTERPRETING_RESULT.formatted(resultNode));
         } catch (JsonProcessingException jsonProcessingException) {
             throw new LogicalSourceResolverException(
-                    String.format("Error processing expression result %s", resultNode), jsonProcessingException);
+                    "Error processing expression result %s".formatted(resultNode), jsonProcessingException);
         }
     }
 

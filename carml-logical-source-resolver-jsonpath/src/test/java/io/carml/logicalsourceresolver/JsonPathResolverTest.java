@@ -28,6 +28,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.apache.commons.io.IOUtils;
 import org.eclipse.rdf4j.model.vocabulary.XSD;
+import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
@@ -660,7 +661,7 @@ class JsonPathResolverTest {
     }
 
     @Test
-    void givenBracketNotationExpression_whenEvaluateExpression_thenReturnValue() throws IOException {
+    void givenBracketNotationExpression_whenEvaluateExpression_thenReturnValue() {
         // Given — hyphenated JSON keys require bracket notation per JSONPath syntax
         var objectMapper = new ObjectMapper();
         var jsonNode = objectMapper.createObjectNode().put("my-field", "hello");
@@ -714,6 +715,38 @@ class JsonPathResolverTest {
         StepVerifier.create(items)
                 .expectErrorMatches(throwable -> throwable instanceof LogicalSourceResolverException
                         && throwable.getMessage().startsWith("Invalid JSONPath expression in iterator: $$$$"))
+                .verify();
+    }
+
+    @Test
+    void givenInputStreamThatThrowsIOException_whenGetRecordResolver_thenFluxEmitsError() {
+        // Given
+        var foodSource = CarmlLogicalSource.builder()
+                .source(CarmlFilePath.of("food.json"))
+                .iterator("$.food[*]")
+                .referenceFormulation(JSON_PATH)
+                .build();
+
+        var brokenStream = new InputStream() {
+            @Override
+            public int read() throws IOException {
+                throw new IOException("disk failure");
+            }
+
+            @Override
+            public int read(byte @NonNull [] bytes, int off, int len) throws IOException {
+                throw new IOException("disk failure");
+            }
+        };
+
+        var resolvedSource = ResolvedSource.of(brokenStream, new TypeRef<>() {});
+        var jsonPathResolver = jsonPathResolverFactory.apply(foodSource.getSource());
+        var recordResolver = jsonPathResolver.getLogicalSourceRecords(Set.of(foodSource));
+
+        // When / Then
+        StepVerifier.create(recordResolver.apply(resolvedSource))
+                .expectErrorMatches(throwable -> throwable instanceof LogicalSourceResolverException
+                        && throwable.getMessage().equals("Error reading input stream."))
                 .verify();
     }
 
