@@ -19,7 +19,9 @@ import io.carml.logicalsourceresolver.MatchedLogicalSourceResolverFactory.MatchS
 import io.carml.logicalsourceresolver.MatchingLogicalSourceResolverFactory;
 import io.carml.logicalsourceresolver.ResolvedSource;
 import io.carml.model.ExpressionField;
+import io.carml.model.Field;
 import io.carml.model.FunctionExecution;
+import io.carml.model.IterableField;
 import io.carml.model.LogicalSource;
 import io.carml.model.LogicalView;
 import io.carml.model.Source;
@@ -526,5 +528,382 @@ class DefaultLogicalViewEvaluatorTest {
         when(resolverFactory.apply(source)).thenReturn(resolver);
         when(resolver.getLogicalSourceRecords(anySet())).thenReturn(rs -> recordFlux);
         when(resolver.getExpressionEvaluationFactory()).thenReturn(perRecordEvalFactory::apply);
+    }
+
+    private IterableField mockIterableField(String fieldName, String iterator, Set<io.carml.model.Field> nestedFields) {
+        var field = mock(IterableField.class);
+        when(field.getFieldName()).thenReturn(fieldName);
+        when(field.getIterator()).thenReturn(iterator);
+        when(field.getFields()).thenReturn(nestedFields);
+        return field;
+    }
+
+    @Test
+    void givenSingleIterableWithExpressionChildren_whenEvaluated_thenPrefixedKeysProduced() {
+        // Root iterable "items" with iterator "$.items[*]", containing expression field "type"
+        var typeField = mockExpressionField("type");
+        when(typeField.getReference()).thenReturn("type");
+
+        var itemsIterable = mockIterableField("items", "$.items[*]", Set.of(typeField));
+        when(logicalView.getFields()).thenReturn(Set.of(itemsIterable));
+
+        // Sub-records: two items returned by the iterator
+        var subRecord1 = new Object();
+        var subRecord2 = new Object();
+
+        // Root expression evaluation: iterator returns the sub-records
+        ExpressionEvaluation rootExprEval = expression -> {
+            if ("$.items[*]".equals(expression)) {
+                return Optional.of(List.of(subRecord1, subRecord2));
+            }
+            return Optional.empty();
+        };
+
+        // Per-sub-record evaluation factory
+        Function<Object, ExpressionEvaluation> perRecordFactory = rec -> expression -> {
+            if ("type".equals(expression)) {
+                if (rec == subRecord1) {
+                    return Optional.of("sword");
+                }
+                if (rec == subRecord2) {
+                    return Optional.of("shield");
+                }
+            }
+            return Optional.empty();
+        };
+
+        var record1 = createRecord("record-1");
+        setupMocksWithPerRecordEval(Flux.just(record1), rec -> {
+            if (rec == record1.getSourceRecord()) {
+                return rootExprEval;
+            }
+            return perRecordFactory.apply(rec);
+        });
+
+        var iterations = evaluator
+                .evaluate(logicalView, sourceResolver, EvaluationContext.defaults())
+                .collectList()
+                .block();
+
+        assertThat(iterations, hasSize(2));
+        assertThat(iterations.get(0).getValue("items.type"), is(Optional.of("sword")));
+        assertThat(iterations.get(1).getValue("items.type"), is(Optional.of("shield")));
+    }
+
+    @Test
+    void givenExpressionFieldAndIterableField_whenEvaluated_thenCrossProductProduced() {
+        // Root expression field "name" + iterable "items" with expression child "type"
+        var nameField = mockExpressionField("name");
+        when(nameField.getReference()).thenReturn("name");
+
+        var typeField = mockExpressionField("type");
+        when(typeField.getReference()).thenReturn("type");
+
+        var itemsIterable = mockIterableField("items", "$.items[*]", Set.of(typeField));
+        when(logicalView.getFields()).thenReturn(Set.of(nameField, itemsIterable));
+
+        var subRecord1 = new Object();
+        var subRecord2 = new Object();
+
+        ExpressionEvaluation rootExprEval = expression -> switch (expression) {
+            case "name" -> Optional.of("alice");
+            case "$.items[*]" -> Optional.of(List.of(subRecord1, subRecord2));
+            default -> Optional.empty();
+        };
+
+        Function<Object, ExpressionEvaluation> perRecordFactory = rec -> expression -> {
+            if ("type".equals(expression)) {
+                if (rec == subRecord1) {
+                    return Optional.of("sword");
+                }
+                if (rec == subRecord2) {
+                    return Optional.of("shield");
+                }
+            }
+            return Optional.empty();
+        };
+
+        var record1 = createRecord("record-1");
+        setupMocksWithPerRecordEval(Flux.just(record1), rec -> {
+            if (rec == record1.getSourceRecord()) {
+                return rootExprEval;
+            }
+            return perRecordFactory.apply(rec);
+        });
+
+        var iterations = evaluator
+                .evaluate(logicalView, sourceResolver, EvaluationContext.defaults())
+                .collectList()
+                .block();
+
+        // "items" sorts before "name", but Cartesian product is [items contribution] x [name contribution]
+        // Items contribute 2 maps, name contributes 1 map → 2 iterations
+        assertThat(iterations, hasSize(2));
+
+        var valuePairs = iterations.stream()
+                .map(it -> it.getValue("name").orElseThrow() + ","
+                        + it.getValue("items.type").orElseThrow())
+                .toList();
+
+        assertThat(valuePairs, containsInAnyOrder("alice,sword", "alice,shield"));
+    }
+
+    @Test
+    void givenMultiValuedExpressionWithinIterable_whenEvaluated_thenMultipleIterationsPerSubRecord() {
+        // Iterable "items" with expression child "tag" that returns multi-valued results
+        var tagField = mockExpressionField("tag");
+        when(tagField.getReference()).thenReturn("tags");
+
+        var itemsIterable = mockIterableField("items", "$.items[*]", Set.of(tagField));
+        when(logicalView.getFields()).thenReturn(Set.of(itemsIterable));
+
+        var subRecord1 = new Object();
+
+        ExpressionEvaluation rootExprEval = expression -> {
+            if ("$.items[*]".equals(expression)) {
+                return Optional.of(List.of(subRecord1));
+            }
+            return Optional.empty();
+        };
+
+        Function<Object, ExpressionEvaluation> perRecordFactory = rec -> expression -> {
+            if ("tags".equals(expression) && rec == subRecord1) {
+                return Optional.of(List.of("red", "blue"));
+            }
+            return Optional.empty();
+        };
+
+        var record1 = createRecord("record-1");
+        setupMocksWithPerRecordEval(Flux.just(record1), rec -> {
+            if (rec == record1.getSourceRecord()) {
+                return rootExprEval;
+            }
+            return perRecordFactory.apply(rec);
+        });
+
+        var iterations = evaluator
+                .evaluate(logicalView, sourceResolver, EvaluationContext.defaults())
+                .collectList()
+                .block();
+
+        assertThat(iterations, hasSize(2));
+        assertThat(iterations.get(0).getValue("items.tag"), is(Optional.of("red")));
+        assertThat(iterations.get(1).getValue("items.tag"), is(Optional.of("blue")));
+    }
+
+    @Test
+    void givenNestedIterables_whenEvaluated_thenRecursiveUnnesting() {
+        // items (iterable) → details (iterable) → value (expression)
+        var valueField = mockExpressionField("value");
+        when(valueField.getReference()).thenReturn("value");
+
+        var detailsIterable = mockIterableField("details", "$.details[*]", Set.of(valueField));
+        var itemsIterable = mockIterableField("items", "$.items[*]", Set.of(detailsIterable));
+        when(logicalView.getFields()).thenReturn(Set.of(itemsIterable));
+
+        var itemSubRecord = new Object();
+        var detailSubRecord1 = new Object();
+        var detailSubRecord2 = new Object();
+
+        ExpressionEvaluation rootExprEval = expression -> {
+            if ("$.items[*]".equals(expression)) {
+                return Optional.of(List.of(itemSubRecord));
+            }
+            return Optional.empty();
+        };
+
+        Function<Object, ExpressionEvaluation> perRecordFactory = rec -> expression -> {
+            if (rec == itemSubRecord && "$.details[*]".equals(expression)) {
+                return Optional.of(List.of(detailSubRecord1, detailSubRecord2));
+            }
+            if (rec == detailSubRecord1 && "value".equals(expression)) {
+                return Optional.of("v1");
+            }
+            if (rec == detailSubRecord2 && "value".equals(expression)) {
+                return Optional.of("v2");
+            }
+            return Optional.empty();
+        };
+
+        var record1 = createRecord("record-1");
+        setupMocksWithPerRecordEval(Flux.just(record1), rec -> {
+            if (rec == record1.getSourceRecord()) {
+                return rootExprEval;
+            }
+            return perRecordFactory.apply(rec);
+        });
+
+        var iterations = evaluator
+                .evaluate(logicalView, sourceResolver, EvaluationContext.defaults())
+                .collectList()
+                .block();
+
+        assertThat(iterations, hasSize(2));
+        assertThat(iterations.get(0).getValue("items.details.value"), is(Optional.of("v1")));
+        assertThat(iterations.get(1).getValue("items.details.value"), is(Optional.of("v2")));
+    }
+
+    @Test
+    void givenEmptyIterable_whenEvaluated_thenNoIterations() {
+        var itemsIterable = mock(IterableField.class);
+        when(itemsIterable.getIterator()).thenReturn("$.items[*]");
+        when(logicalView.getFields()).thenReturn(Set.of(itemsIterable));
+
+        // Iterator returns empty list
+        ExpressionEvaluation exprEval = expression -> {
+            if ("$.items[*]".equals(expression)) {
+                return Optional.of(List.of());
+            }
+            return Optional.empty();
+        };
+
+        var rec = createRecord("record-1");
+        setupMocks(Flux.just(rec), exprEval);
+
+        StepVerifier.create(evaluator.evaluate(logicalView, sourceResolver, EvaluationContext.defaults()))
+                .verifyComplete();
+    }
+
+    @Test
+    void givenIterableWithNoNestedFields_whenEvaluated_thenNoIterations() {
+        var itemsIterable = mock(IterableField.class);
+        when(itemsIterable.getIterator()).thenReturn("$.items[*]");
+        when(itemsIterable.getFields()).thenReturn(Set.of());
+        when(logicalView.getFields()).thenReturn(Set.of(itemsIterable));
+
+        var subRecord1 = new Object();
+
+        ExpressionEvaluation exprEval = expression -> {
+            if ("$.items[*]".equals(expression)) {
+                return Optional.of(List.of(subRecord1));
+            }
+            return Optional.empty();
+        };
+
+        var rec = createRecord("record-1");
+        setupMocks(Flux.just(rec), exprEval);
+
+        StepVerifier.create(evaluator.evaluate(logicalView, sourceResolver, EvaluationContext.defaults()))
+                .verifyComplete();
+    }
+
+    @Test
+    void givenIterableWithIteratorReturningEmpty_whenEvaluated_thenNoIterations() {
+        // Exercises the .orElse(List.of()) branch when iterator expression returns Optional.empty()
+        var itemsIterable = mock(IterableField.class);
+        when(itemsIterable.getIterator()).thenReturn("$.items[*]");
+        when(logicalView.getFields()).thenReturn(Set.of(itemsIterable));
+
+        // Iterator returns Optional.empty() (expression not found), distinct from Optional.of(List.of())
+        ExpressionEvaluation exprEval = expression -> Optional.empty();
+
+        var rec = createRecord("record-1");
+        setupMocks(Flux.just(rec), exprEval);
+
+        StepVerifier.create(evaluator.evaluate(logicalView, sourceResolver, EvaluationContext.defaults()))
+                .verifyComplete();
+    }
+
+    @Test
+    void givenIterableWithNullNestedFields_whenEvaluated_thenNoIterations() {
+        // Exercises the null guard on field.getFields()
+        var itemsIterable = mock(IterableField.class);
+        when(itemsIterable.getIterator()).thenReturn("$.items[*]");
+        when(itemsIterable.getFields()).thenReturn(null);
+        when(logicalView.getFields()).thenReturn(Set.of(itemsIterable));
+
+        var subRecord1 = new Object();
+
+        ExpressionEvaluation exprEval = expression -> {
+            if ("$.items[*]".equals(expression)) {
+                return Optional.of(List.of(subRecord1));
+            }
+            return Optional.empty();
+        };
+
+        var rec = createRecord("record-1");
+        setupMocks(Flux.just(rec), exprEval);
+
+        StepVerifier.create(evaluator.evaluate(logicalView, sourceResolver, EvaluationContext.defaults()))
+                .verifyComplete();
+    }
+
+    @Test
+    void givenMultipleSourceRecordsWithIterable_whenEvaluated_thenIndicesContinueAcrossRecords() {
+        var typeField = mockExpressionField("type");
+        when(typeField.getReference()).thenReturn("type");
+
+        var itemsIterable = mockIterableField("items", "$.items[*]", Set.of(typeField));
+        when(logicalView.getFields()).thenReturn(Set.of(itemsIterable));
+
+        // Each source record has one sub-record
+        var subRecordA = new Object();
+        var subRecordB = new Object();
+
+        var record1 = createRecord("record-1");
+        var record2 = createRecord("record-2");
+
+        setupMocksWithPerRecordEval(Flux.just(record1, record2), rec -> {
+            if (rec == record1.getSourceRecord()) {
+                return expression -> {
+                    if ("$.items[*]".equals(expression)) {
+                        return Optional.of(List.of(subRecordA));
+                    }
+                    return Optional.empty();
+                };
+            }
+            if (rec == record2.getSourceRecord()) {
+                return expression -> {
+                    if ("$.items[*]".equals(expression)) {
+                        return Optional.of(List.of(subRecordB));
+                    }
+                    return Optional.empty();
+                };
+            }
+            if (rec == subRecordA) {
+                return expression -> {
+                    if ("type".equals(expression)) {
+                        return Optional.of("sword");
+                    }
+                    return Optional.empty();
+                };
+            }
+            if (rec == subRecordB) {
+                return expression -> {
+                    if ("type".equals(expression)) {
+                        return Optional.of("shield");
+                    }
+                    return Optional.empty();
+                };
+            }
+            return expression -> Optional.empty();
+        });
+
+        var iterations = evaluator
+                .evaluate(logicalView, sourceResolver, EvaluationContext.defaults())
+                .collectList()
+                .block();
+
+        assertThat(iterations, hasSize(2));
+        assertThat(iterations.get(0).getIndex(), is(0));
+        assertThat(iterations.get(0).getValue("items.type"), is(Optional.of("sword")));
+        assertThat(iterations.get(1).getIndex(), is(1));
+        assertThat(iterations.get(1).getValue("items.type"), is(Optional.of("shield")));
+    }
+
+    @Test
+    void givenUnsupportedFieldType_whenEvaluated_thenThrowsUnsupportedOperation() {
+        // Field that is neither ExpressionField nor IterableField
+        var unknownField = mock(Field.class);
+        when(logicalView.getFields()).thenReturn(Set.of(unknownField));
+
+        ExpressionEvaluation exprEval = expression -> Optional.empty();
+
+        var rec = createRecord("record-1");
+        setupMocks(Flux.just(rec), exprEval);
+
+        StepVerifier.create(evaluator.evaluate(logicalView, sourceResolver, EvaluationContext.defaults()))
+                .expectError(UnsupportedOperationException.class)
+                .verify();
     }
 }

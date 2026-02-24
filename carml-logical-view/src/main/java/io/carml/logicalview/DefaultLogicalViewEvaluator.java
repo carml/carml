@@ -10,6 +10,8 @@ import io.carml.logicalsourceresolver.MatchedLogicalSourceResolverFactory;
 import io.carml.logicalsourceresolver.MatchingLogicalSourceResolverFactory;
 import io.carml.logicalsourceresolver.ResolvedSource;
 import io.carml.model.ExpressionField;
+import io.carml.model.Field;
+import io.carml.model.IterableField;
 import io.carml.model.LogicalSource;
 import io.carml.model.LogicalView;
 import io.carml.model.Source;
@@ -33,8 +35,9 @@ import reactor.core.publisher.Flux;
 /**
  * Default implementation of {@link LogicalViewEvaluator} that evaluates a {@link LogicalView}
  * definition into a reactive stream of {@link ViewIteration}s. For each source record, it evaluates
- * root-level {@link ExpressionField} entries (reference, template, constant) and builds view
- * iterations via Cartesian product expansion of multi-valued fields.
+ * {@link ExpressionField} entries (reference, template, constant) and recursively unnests
+ * {@link IterableField} entries, building view iterations via Cartesian product expansion of
+ * multivalued fields with absolute field name prefixing for nested fields.
  */
 @Slf4j
 @AllArgsConstructor
@@ -54,18 +57,13 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
         var resolver = (LogicalSourceResolver<Object>) findResolver(logicalSource, source);
         var expressionEvaluationFactory = resolver.getExpressionEvaluationFactory();
 
-        var expressionFields = view.getFields().stream()
-                .filter(ExpressionField.class::isInstance)
-                .map(ExpressionField.class::cast)
-                .sorted(Comparator.comparing(ExpressionField::getFieldName))
-                .toList();
-
+        var fields = view.getFields();
         var index = new AtomicInteger(0);
 
         Flux<ViewIteration> iterations = resolver.getLogicalSourceRecords(Set.of(logicalSource))
                 .apply(resolvedSource)
                 .flatMapIterable((LogicalSourceRecord<Object> rec) ->
-                        evaluateRecord(rec, expressionEvaluationFactory, expressionFields, index));
+                        evaluateRecord(rec, expressionEvaluationFactory, fields, index));
 
         return context.getLimit().map(iterations::take).orElse(iterations);
     }
@@ -106,32 +104,78 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                 .apply(source);
     }
 
-    private <R> List<ViewIteration> evaluateRecord(
-            LogicalSourceRecord<R> rec,
-            LogicalSourceResolver.ExpressionEvaluationFactory<R> expressionEvaluationFactory,
-            List<ExpressionField> expressionFields,
+    private List<ViewIteration> evaluateRecord(
+            LogicalSourceRecord<Object> rec,
+            LogicalSourceResolver.ExpressionEvaluationFactory<Object> expressionEvaluationFactory,
+            Set<Field> fields,
             AtomicInteger index) {
 
         var exprEval = expressionEvaluationFactory.apply(rec.getSourceRecord());
+        var valueMaps = evaluateFields(fields, exprEval, expressionEvaluationFactory, "");
 
-        var fieldNames = new ArrayList<String>();
-        var fieldValueLists = new ArrayList<List<Object>>();
+        return valueMaps.stream()
+                .map(valueMap -> (ViewIteration) new DefaultViewIteration(index.getAndIncrement(), valueMap))
+                .toList();
+    }
 
-        for (var field : expressionFields) {
-            var values = evaluateExpressionField(field, exprEval);
-            fieldNames.add(field.getFieldName());
-            fieldValueLists.add(values);
+    private List<Map<String, Object>> evaluateFields(
+            Set<Field> fields,
+            ExpressionEvaluation exprEval,
+            LogicalSourceResolver.ExpressionEvaluationFactory<Object> expressionEvaluationFactory,
+            String prefix) {
+
+        var fieldContributions = fields.stream()
+                .sorted(Comparator.comparing(Field::getFieldName))
+                .map(field -> {
+                    if (field instanceof ExpressionField ef) {
+                        var values = evaluateExpressionField(ef, exprEval);
+                        var absoluteName = prefix + ef.getFieldName();
+                        return values.stream()
+                                .map(v -> Map.of(absoluteName, v))
+                                .toList();
+                    } else if (field instanceof IterableField itf) {
+                        return evaluateIterableField(itf, exprEval, expressionEvaluationFactory, prefix);
+                    } else {
+                        throw new UnsupportedOperationException("Unsupported field type: %s"
+                                .formatted(field.getClass().getSimpleName()));
+                    }
+                })
+                .toList();
+
+        return CartesianProduct.listCartesianProduct(fieldContributions).stream()
+                .map(combo -> {
+                    var merged = new LinkedHashMap<String, Object>();
+                    combo.forEach(merged::putAll);
+                    return (Map<String, Object>) merged;
+                })
+                .toList();
+    }
+
+    private List<Map<String, Object>> evaluateIterableField(
+            IterableField field,
+            ExpressionEvaluation exprEval,
+            LogicalSourceResolver.ExpressionEvaluationFactory<Object> expressionEvaluationFactory,
+            String prefix) {
+
+        var subRecords = exprEval.apply(field.getIterator())
+                .map(ExpressionEvaluation::extractValues)
+                .orElse(List.of());
+
+        if (subRecords.isEmpty()) {
+            return List.of();
         }
 
-        var combinations = CartesianProduct.listCartesianProduct(fieldValueLists);
+        var nestedFields = field.getFields();
+        if (nestedFields == null || nestedFields.isEmpty()) {
+            return List.of();
+        }
 
-        return combinations.stream()
-                .map(combination -> {
-                    Map<String, Object> valueMap = new LinkedHashMap<>();
-                    for (int i = 0; i < fieldNames.size(); i++) {
-                        valueMap.put(fieldNames.get(i), combination.get(i));
-                    }
-                    return (ViewIteration) new DefaultViewIteration(index.getAndIncrement(), valueMap);
+        var subPrefix = prefix + field.getFieldName() + ".";
+
+        return subRecords.stream()
+                .flatMap(subRecord -> {
+                    var subExprEval = expressionEvaluationFactory.apply(subRecord);
+                    return evaluateFields(nestedFields, subExprEval, expressionEvaluationFactory, subPrefix).stream();
                 })
                 .toList();
     }
