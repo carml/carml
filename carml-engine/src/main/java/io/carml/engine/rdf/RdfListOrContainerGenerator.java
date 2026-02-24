@@ -1,6 +1,6 @@
 package io.carml.engine.rdf;
 
-import static io.carml.engine.util.CartesianProduct.listCartesianProduct;
+import static io.carml.util.CartesianProduct.listCartesianProduct;
 
 import io.carml.engine.MappedValue;
 import io.carml.engine.rdf.RdfContainer.RdfContainerBuilder;

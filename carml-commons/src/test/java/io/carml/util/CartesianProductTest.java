@@ -1,6 +1,6 @@
-package io.carml.engine.util;
+package io.carml.util;
 
-import static io.carml.engine.util.CartesianProduct.listCartesianProduct;
+import static io.carml.util.CartesianProduct.listCartesianProduct;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;

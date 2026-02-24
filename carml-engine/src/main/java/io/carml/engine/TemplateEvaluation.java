@@ -1,6 +1,6 @@
 package io.carml.engine;
 
-import static io.carml.engine.util.CartesianProduct.listCartesianProduct;
+import static io.carml.util.CartesianProduct.listCartesianProduct;
 
 import io.carml.model.Template;
 import io.carml.model.Template.ReferenceExpression;
