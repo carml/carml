@@ -14,13 +14,16 @@ import io.carml.model.Field;
 import io.carml.model.IterableField;
 import io.carml.model.LogicalSource;
 import io.carml.model.LogicalView;
+import io.carml.model.ReferenceFormulation;
 import io.carml.model.Source;
 import io.carml.model.Template;
+import io.carml.model.impl.CarmlLogicalSource;
 import io.carml.model.impl.CarmlTemplate.ExpressionSegment;
 import io.carml.model.impl.CarmlTemplate.TextSegment;
 import io.carml.util.CartesianProduct;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,13 +60,23 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
         var resolver = (LogicalSourceResolver<Object>) findResolver(logicalSource, source);
         var expressionEvaluationFactory = resolver.getExpressionEvaluationFactory();
 
+        var factoryCache =
+                new HashMap<ReferenceFormulation, LogicalSourceResolver.ExpressionEvaluationFactory<Object>>();
+        var parentRefForm = logicalSource.getReferenceFormulation();
+        if (parentRefForm != null) {
+            factoryCache.put(parentRefForm, expressionEvaluationFactory);
+        }
+
+        Function<ReferenceFormulation, LogicalSourceResolver.ExpressionEvaluationFactory<Object>> factoryResolver =
+                refForm -> factoryCache.computeIfAbsent(refForm, rf -> resolveExpressionEvaluationFactory(rf, source));
+
         var fields = view.getFields();
         var index = new AtomicInteger(0);
 
         Flux<ViewIteration> iterations = resolver.getLogicalSourceRecords(Set.of(logicalSource))
                 .apply(resolvedSource)
                 .flatMapIterable((LogicalSourceRecord<Object> rec) ->
-                        evaluateRecord(rec, expressionEvaluationFactory, fields, index));
+                        evaluateRecord(rec, expressionEvaluationFactory, fields, index, factoryResolver));
 
         return context.getLimit().map(iterations::take).orElse(iterations);
     }
@@ -104,14 +117,28 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                 .apply(source);
     }
 
+    @SuppressWarnings("unchecked")
+    private LogicalSourceResolver.ExpressionEvaluationFactory<Object> resolveExpressionEvaluationFactory(
+            ReferenceFormulation referenceFormulation, Source source) {
+        // Synthetic LogicalSource with only referenceFormulation set.
+        // CarmlLogicalSource.getReferenceFormulation() returns the raw field
+        // when source and tableName/sqlQuery are null.
+        var syntheticLogicalSource = CarmlLogicalSource.builder()
+                .referenceFormulation(referenceFormulation)
+                .build();
+        var resolver = (LogicalSourceResolver<Object>) findResolver(syntheticLogicalSource, source);
+        return resolver.getExpressionEvaluationFactory();
+    }
+
     private List<ViewIteration> evaluateRecord(
             LogicalSourceRecord<Object> rec,
             LogicalSourceResolver.ExpressionEvaluationFactory<Object> expressionEvaluationFactory,
             Set<Field> fields,
-            AtomicInteger index) {
+            AtomicInteger index,
+            Function<ReferenceFormulation, LogicalSourceResolver.ExpressionEvaluationFactory<Object>> factoryResolver) {
 
         var exprEval = expressionEvaluationFactory.apply(rec.getSourceRecord());
-        var valueMaps = evaluateFields(fields, exprEval, expressionEvaluationFactory, "");
+        var valueMaps = evaluateFields(fields, exprEval, expressionEvaluationFactory, "", factoryResolver);
 
         return valueMaps.stream()
                 .map(valueMap -> (ViewIteration) new DefaultViewIteration(index.getAndIncrement(), valueMap))
@@ -122,7 +149,8 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
             Set<Field> fields,
             ExpressionEvaluation exprEval,
             LogicalSourceResolver.ExpressionEvaluationFactory<Object> expressionEvaluationFactory,
-            String prefix) {
+            String prefix,
+            Function<ReferenceFormulation, LogicalSourceResolver.ExpressionEvaluationFactory<Object>> factoryResolver) {
 
         var fieldContributions = fields.stream()
                 .sorted(Comparator.comparing(Field::getFieldName))
@@ -130,11 +158,10 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                     if (field instanceof ExpressionField ef) {
                         var values = evaluateExpressionField(ef, exprEval);
                         var absoluteName = prefix + ef.getFieldName();
-                        return values.stream()
-                                .map(v -> Map.of(absoluteName, v))
-                                .toList();
+                        return values.stream().map(v -> Map.of(absoluteName, v)).toList();
                     } else if (field instanceof IterableField itf) {
-                        return evaluateIterableField(itf, exprEval, expressionEvaluationFactory, prefix);
+                        return evaluateIterableField(
+                                itf, exprEval, expressionEvaluationFactory, prefix, factoryResolver);
                     } else {
                         throw new UnsupportedOperationException("Unsupported field type: %s"
                                 .formatted(field.getClass().getSimpleName()));
@@ -155,7 +182,8 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
             IterableField field,
             ExpressionEvaluation exprEval,
             LogicalSourceResolver.ExpressionEvaluationFactory<Object> expressionEvaluationFactory,
-            String prefix) {
+            String prefix,
+            Function<ReferenceFormulation, LogicalSourceResolver.ExpressionEvaluationFactory<Object>> factoryResolver) {
 
         var subRecords = exprEval.apply(field.getIterator())
                 .map(ExpressionEvaluation::extractValues)
@@ -170,12 +198,17 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
             return List.of();
         }
 
+        var nestedFactory = field.getReferenceFormulation() != null
+                ? factoryResolver.apply(field.getReferenceFormulation())
+                : expressionEvaluationFactory;
+
         var subPrefix = prefix + field.getFieldName() + ".";
 
         return subRecords.stream()
                 .flatMap(subRecord -> {
-                    var subExprEval = expressionEvaluationFactory.apply(subRecord);
-                    return evaluateFields(nestedFields, subExprEval, expressionEvaluationFactory, subPrefix).stream();
+                    var subExprEval = nestedFactory.apply(subRecord);
+                    return evaluateFields(nestedFields, subExprEval, nestedFactory, subPrefix, factoryResolver)
+                            .stream();
                 })
                 .toList();
     }
