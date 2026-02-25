@@ -118,6 +118,8 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
 
         private boolean strictMode = false;
 
+        private Long limit;
+
         private Set<String> excludeLogicalSourceResolvers = new HashSet<>();
 
         /**
@@ -295,6 +297,22 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
             return this;
         }
 
+        /**
+         * Sets the maximum number of iterations (records) to process per logical source. When set,
+         * each mapping will produce at most this many iterations. By default, no limit is applied.
+         *
+         * @param limit the maximum number of iterations; must be positive
+         * @return {@link Builder}
+         * @throws IllegalArgumentException if limit is not positive
+         */
+        public Builder limit(long limit) {
+            if (limit <= 0) {
+                throw new IllegalArgumentException("limit must be positive, but was: %s".formatted(limit));
+            }
+            this.limit = limit;
+            return this;
+        }
+
         public Builder excludeLogicalSourceResolver(String resolverName) {
             excludeLogicalSourceResolvers.add(resolverName);
             return this;
@@ -343,7 +361,7 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
             var pipelineFactory = RdfMappingPipelineFactory.getInstance();
 
             var mappableTriplesMaps = Mappings.filterMappable(triplesMaps);
-            var resolvedMappings = MappingResolver.resolve(mappableTriplesMaps);
+            var resolvedMappings = MappingResolver.resolve(mappableTriplesMaps, limit);
 
             var mappingPipeline = pipelineFactory.getMappingPipeline(
                     mappableTriplesMaps, rdfMapperConfig, matchingLogicalSourceResolverFactories);

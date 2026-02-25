@@ -28,6 +28,18 @@ public final class MappingResolver {
     private MappingResolver() {}
 
     /**
+     * Resolves a set of TriplesMaps into ResolvedMapping instances with no iteration limit.
+     *
+     * <p>Equivalent to calling {@link #resolve(Set, Long) resolve(triplesMaps, null)}.
+     *
+     * @param triplesMaps the set of TriplesMaps to resolve
+     * @return a list of ResolvedMapping instances, one per TriplesMap
+     */
+    public static List<ResolvedMapping> resolve(Set<TriplesMap> triplesMaps) {
+        return resolve(triplesMaps, null);
+    }
+
+    /**
      * Resolves a set of TriplesMaps into ResolvedMapping instances.
      *
      * <p>For each TriplesMap:
@@ -38,33 +50,35 @@ public final class MappingResolver {
      * </ul>
      *
      * @param triplesMaps the set of TriplesMaps to resolve
+     * @param limit the maximum number of iterations to produce per mapping, or {@code null} for no limit
      * @return a list of ResolvedMapping instances, one per TriplesMap
      */
-    public static List<ResolvedMapping> resolve(Set<TriplesMap> triplesMaps) {
-        return triplesMaps.stream().map(MappingResolver::resolveOne).toList();
+    public static List<ResolvedMapping> resolve(Set<TriplesMap> triplesMaps, Long limit) {
+        return triplesMaps.stream().map(tm -> resolveOne(tm, limit)).toList();
     }
 
-    private static ResolvedMapping resolveOne(TriplesMap triplesMap) {
+    private static ResolvedMapping resolveOne(TriplesMap triplesMap, Long limit) {
         var logicalSource = triplesMap.getLogicalSource();
 
         if (logicalSource instanceof LogicalView logicalView) {
-            return resolveExplicit(triplesMap, logicalView);
+            return resolveExplicit(triplesMap, logicalView, limit);
         }
 
-        return resolveImplicit(triplesMap);
+        return resolveImplicit(triplesMap, limit);
     }
 
-    private static ResolvedMapping resolveExplicit(TriplesMap triplesMap, LogicalView logicalView) {
+    private static ResolvedMapping resolveExplicit(TriplesMap triplesMap, LogicalView logicalView, Long limit) {
         var fieldOrigins = buildFieldOrigins(triplesMap, logicalView);
-        var evaluationContext = EvaluationContext.withProjectedFields(triplesMap.getReferenceExpressionSet());
+        var evaluationContext =
+                EvaluationContext.withProjectedFieldsAndLimit(triplesMap.getReferenceExpressionSet(), limit);
         return ResolvedMapping.of(triplesMap, logicalView, false, fieldOrigins, evaluationContext);
     }
 
-    private static ResolvedMapping resolveImplicit(TriplesMap triplesMap) {
+    private static ResolvedMapping resolveImplicit(TriplesMap triplesMap, Long limit) {
         var syntheticView = ImplicitViewFactory.wrap(triplesMap);
         var expressionToTermMap = buildExpressionToTermMap(triplesMap);
         var fieldOrigins = buildFieldOrigins(triplesMap, syntheticView, expressionToTermMap);
-        var evaluationContext = EvaluationContext.withProjectedFields(Set.of());
+        var evaluationContext = EvaluationContext.withProjectedFieldsAndLimit(Set.of(), limit);
         return ResolvedMapping.of(triplesMap, syntheticView, true, fieldOrigins, evaluationContext);
     }
 

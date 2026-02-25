@@ -20,6 +20,7 @@ import io.carml.model.ObjectMap;
 import io.carml.model.PredicateObjectMap;
 import io.carml.model.SubjectMap;
 import io.carml.model.TriplesMap;
+import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -507,5 +508,57 @@ class MappingResolverTest {
         var origin = result.get(0).getFieldOrigin("name");
         assertThat(origin.isPresent(), is(true));
         assertThat(origin.get().getOriginatingTermMap().isPresent(), is(false));
+    }
+
+    // --- Limit parameter flow ---
+
+    @Test
+    void resolve_givenExplicitViewWithLimit_evaluationContextContainsLimit() {
+        when(triplesMap.getLogicalSource()).thenReturn(logicalView);
+        when(triplesMap.getReferenceExpressionSet()).thenReturn(Set.of());
+
+        var result = MappingResolver.resolve(Set.of(triplesMap), 100L);
+
+        assertThat(result.get(0).getEvaluationContext().getLimit(), is(Optional.of(100L)));
+    }
+
+    @Test
+    void resolve_givenExplicitViewWithNullLimit_evaluationContextLimitIsEmpty() {
+        when(triplesMap.getLogicalSource()).thenReturn(logicalView);
+        when(triplesMap.getReferenceExpressionSet()).thenReturn(Set.of());
+
+        var result = MappingResolver.resolve(Set.of(triplesMap), null);
+
+        assertThat(result.get(0).getEvaluationContext().getLimit().isPresent(), is(false));
+    }
+
+    @Test
+    void resolve_givenImplicitViewWithLimit_evaluationContextContainsLimit() {
+        when(triplesMap.getLogicalSource()).thenReturn(logicalSource);
+        when(triplesMap.getReferenceExpressionSet()).thenReturn(Set.of());
+
+        var result = MappingResolver.resolve(Set.of(triplesMap), 50L);
+
+        assertThat(result.get(0).getEvaluationContext().getLimit(), is(Optional.of(50L)));
+    }
+
+    @Test
+    void resolve_givenImplicitViewWithNullLimit_evaluationContextLimitIsEmpty() {
+        when(triplesMap.getLogicalSource()).thenReturn(logicalSource);
+        when(triplesMap.getReferenceExpressionSet()).thenReturn(Set.of());
+
+        var result = MappingResolver.resolve(Set.of(triplesMap), null);
+
+        assertThat(result.get(0).getEvaluationContext().getLimit().isPresent(), is(false));
+    }
+
+    @Test
+    void resolve_noArgOverload_evaluationContextLimitIsEmpty() {
+        when(triplesMap.getLogicalSource()).thenReturn(logicalView);
+        when(triplesMap.getReferenceExpressionSet()).thenReturn(Set.of());
+
+        var result = MappingResolver.resolve(Set.of(triplesMap));
+
+        assertThat(result.get(0).getEvaluationContext().getLimit().isPresent(), is(false));
     }
 }

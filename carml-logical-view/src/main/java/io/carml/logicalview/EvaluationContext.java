@@ -70,4 +70,24 @@ public interface EvaluationContext {
                 .projectedFields(Set.copyOf(projectedFields))
                 .build();
     }
+
+    /**
+     * Creates an evaluation context that projects the given fields and optionally limits the number
+     * of iterations produced.
+     *
+     * @param projectedFields the field names to project; an empty set means all fields
+     * @param limit the maximum number of iterations to produce, or {@code null} for no limit
+     * @return a new evaluation context with the specified projected fields and limit
+     * @throws IllegalArgumentException if limit is non-null and not positive
+     */
+    static EvaluationContext withProjectedFieldsAndLimit(Set<String> projectedFields, Long limit) {
+        Objects.requireNonNull(projectedFields, "projectedFields must not be null");
+        if (limit != null && limit <= 0) {
+            throw new IllegalArgumentException("limit must be positive, but was: %s".formatted(limit));
+        }
+        return DefaultEvaluationContext.builder()
+                .projectedFields(Set.copyOf(projectedFields))
+                .limit(limit)
+                .build();
+    }
 }

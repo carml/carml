@@ -492,4 +492,27 @@ class RdfRmlMapperTest {
 
         return model;
     }
+
+    // --- Builder.limit() validation ---
+
+    @Test
+    void givenBuilderWithZeroLimit_whenLimit_thenThrowIllegalArgumentException() {
+        var builder = RdfRmlMapper.builder();
+        var exception = assertThrows(IllegalArgumentException.class, () -> builder.limit(0));
+        assertThat(exception.getMessage(), startsWith("limit must be positive"));
+    }
+
+    @Test
+    void givenBuilderWithNegativeLimit_whenLimit_thenThrowIllegalArgumentException() {
+        var builder = RdfRmlMapper.builder();
+        var exception = assertThrows(IllegalArgumentException.class, () -> builder.limit(-5));
+        assertThat(exception.getMessage(), startsWith("limit must be positive"));
+    }
+
+    @Test
+    void givenBuilderWithPositiveLimit_whenLimit_thenReturnsBuilder() {
+        var builder = RdfRmlMapper.builder();
+        var result = builder.limit(10);
+        assertThat(result, is(notNullValue()));
+    }
 }
