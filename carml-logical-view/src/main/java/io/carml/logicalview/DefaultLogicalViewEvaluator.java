@@ -128,10 +128,11 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                                 datatypeMapperFactory.apply(sourceRecord));
                     });
         } else {
+            var parentReferenceableKeys = collectReferenceableKeys((LogicalView) viewOn);
             exprEvalFlux = evaluateView(
                             (LogicalView) viewOn, sourceResolver, context, rootRefForm, factoryCache, factoryResolver)
                     .map(vi -> {
-                        var viewExprEval = new ViewIterationExpressionEvaluation(vi);
+                        var viewExprEval = new ViewIterationExpressionEvaluation(vi, parentReferenceableKeys);
                         DatatypeMapper viewDatatypeMapper = vi::getNaturalDatatype;
                         return new ExprEvalWithDatatypeMapper(viewExprEval, viewDatatypeMapper);
                     });
@@ -173,22 +174,10 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
     }
 
     private Set<String> collectDedupKeyFields(LogicalView view) {
-        var keys = new LinkedHashSet<String>();
-        collectFieldKeys(view.getFields(), "", keys);
-        if (view.getLeftJoins() != null) {
-            for (var join : view.getLeftJoins()) {
-                collectJoinFieldKeys(join, keys);
-            }
-        }
-        if (view.getInnerJoins() != null) {
-            for (var join : view.getInnerJoins()) {
-                collectJoinFieldKeys(join, keys);
-            }
-        }
-        return keys;
+        return collectAllFieldKeys(view);
     }
 
-    private void collectFieldKeys(Set<Field> fields, String prefix, Set<String> keys) {
+    private static void collectFieldKeys(Set<Field> fields, String prefix, Set<String> keys) {
         if (fields == null) {
             return;
         }
@@ -205,7 +194,7 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
         }
     }
 
-    private void collectJoinFieldKeys(LogicalViewJoin join, Set<String> keys) {
+    private static void collectJoinFieldKeys(LogicalViewJoin join, Set<String> keys) {
         if (join.getFields() == null) {
             return;
         }
@@ -213,6 +202,33 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
             keys.add(field.getFieldName());
             keys.add(field.getFieldName() + INDEX_KEY_SUFFIX);
         }
+    }
+
+    private static LinkedHashSet<String> collectAllFieldKeys(LogicalView view) {
+        var keys = new LinkedHashSet<String>();
+        collectFieldKeys(view.getFields(), "", keys);
+        if (view.getLeftJoins() != null) {
+            for (var join : view.getLeftJoins()) {
+                collectJoinFieldKeys(join, keys);
+            }
+        }
+        if (view.getInnerJoins() != null) {
+            for (var join : view.getInnerJoins()) {
+                collectJoinFieldKeys(join, keys);
+            }
+        }
+        return keys;
+    }
+
+    /**
+     * Computes the set of referenceable keys for a given logical view definition. Referenceable keys
+     * include expression field keys, index keys ({@code #}, {@code field.#}), and join field keys.
+     * Iterable record keys and the root {@code <it>} key are excluded.
+     */
+    static Set<String> collectReferenceableKeys(LogicalView view) {
+        var keys = collectAllFieldKeys(view);
+        keys.add(INDEX_KEY);
+        return Set.copyOf(keys);
     }
 
     private LogicalSource resolveRootLogicalSource(AbstractLogicalSource abstractLogicalSource) {
@@ -409,24 +425,26 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
             boolean isLeftJoin,
             Function<Source, ResolvedSource<?>> sourceResolver) {
 
-        var parentFlux = evaluate(join.getParentLogicalView(), sourceResolver, EvaluationContext.defaults());
+        var parentView = join.getParentLogicalView();
+        var parentReferenceableKeys = collectReferenceableKeys(parentView);
+        var parentFlux = evaluate(parentView, sourceResolver, EvaluationContext.defaults());
 
         return parentFlux.collectList().flatMapMany(parentIterations -> {
             var conditions = join.getJoinConditions().stream()
                     .sorted(Comparator.comparing(
                             c -> c.getChildMap().getExpressionMapExpressionSet().toString()))
                     .toList();
-            var joinIndex = buildJoinIndex(conditions, parentIterations);
-            return childFlux.flatMapIterable(
-                    child -> matchAndExtend(child, conditions, join.getFields(), isLeftJoin, joinIndex));
+            var joinIndex = buildJoinIndex(conditions, parentIterations, parentReferenceableKeys);
+            return childFlux.flatMapIterable(child -> matchAndExtend(
+                    child, conditions, join.getFields(), isLeftJoin, joinIndex, parentReferenceableKeys));
         });
     }
 
     private JoinIndex<List<Object>, ViewIteration> buildJoinIndex(
-            List<Join> conditions, List<ViewIteration> parentIterations) {
+            List<Join> conditions, List<ViewIteration> parentIterations, Set<String> parentReferenceableKeys) {
         var joinIndex = new HashMapJoinIndex<List<Object>, ViewIteration>();
         for (var parentIteration : parentIterations) {
-            var parentExprEval = new ViewIterationExpressionEvaluation(parentIteration);
+            var parentExprEval = new ViewIterationExpressionEvaluation(parentIteration, parentReferenceableKeys);
             var key = evaluateJoinKey(conditions, parentExprEval, true);
             if (!key.isEmpty()) {
                 joinIndex.put(key, parentIteration);
@@ -454,7 +472,8 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
             List<Join> conditions,
             Set<ExpressionField> joinFields,
             boolean isLeftJoin,
-            JoinIndex<List<Object>, ViewIteration> joinIndex) {
+            JoinIndex<List<Object>, ViewIteration> joinIndex,
+            Set<String> parentReferenceableKeys) {
 
         // Build child key from EvaluatedValues — child field references point to field names in
         // child iteration values, so we use a simple lookup expression evaluation.
@@ -477,7 +496,7 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
 
         var result = new ArrayList<EvaluatedValues>();
         for (var parentIteration : matchedParents) {
-            var parentExprEval = new ViewIterationExpressionEvaluation(parentIteration);
+            var parentExprEval = new ViewIterationExpressionEvaluation(parentIteration, parentReferenceableKeys);
 
             // Evaluate join fields from the parent iteration, producing per-field value lists
             var fieldContributions = sortedJoinFields.stream()

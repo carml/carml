@@ -41,6 +41,7 @@ import io.carml.model.impl.CarmlTemplate.ExpressionSegment;
 import io.carml.model.impl.CarmlTemplate.TextSegment;
 import io.carml.util.TypeRef;
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -73,8 +74,7 @@ class DefaultLogicalViewEvaluatorTest {
     private Source source;
 
     @Mock
-    @SuppressWarnings("rawtypes")
-    private LogicalSourceResolver resolver;
+    private LogicalSourceResolver<Object> resolver;
 
     private DefaultLogicalViewEvaluator evaluator;
 
@@ -91,13 +91,12 @@ class DefaultLogicalViewEvaluatorTest {
         lenient().when(resolver.getDatatypeMapperFactory()).thenReturn(Optional.empty());
     }
 
-    @SuppressWarnings("unchecked")
     private void setupMocks(Flux<LogicalSourceRecord<Object>> recordFlux, ExpressionEvaluation exprEval) {
         when(logicalView.getViewOn()).thenReturn(logicalSource);
         when(logicalSource.getSource()).thenReturn(source);
 
         var matchScore = MatchScore.builder().strongMatch().build();
-        var resolverFactory = mock(LogicalSourceResolver.LogicalSourceResolverFactory.class);
+        LogicalSourceResolver.LogicalSourceResolverFactory<Object> resolverFactory = mock();
         var matchedFactory = MatchedLogicalSourceResolverFactory.of(matchScore, resolverFactory);
 
         when(matchingFactory.apply(logicalSource)).thenReturn(Optional.of(matchedFactory));
@@ -538,7 +537,6 @@ class DefaultLogicalViewEvaluatorTest {
      * Variant of setupMocks that accepts a per-record expression evaluation factory, allowing
      * different expression results per source record.
      */
-    @SuppressWarnings("unchecked")
     private void setupMocksWithPerRecordEval(
             Flux<LogicalSourceRecord<Object>> recordFlux, Function<Object, ExpressionEvaluation> perRecordEvalFactory) {
 
@@ -546,7 +544,7 @@ class DefaultLogicalViewEvaluatorTest {
         when(logicalSource.getSource()).thenReturn(source);
 
         var matchScore = MatchScore.builder().strongMatch().build();
-        var resolverFactory = mock(LogicalSourceResolver.LogicalSourceResolverFactory.class);
+        LogicalSourceResolver.LogicalSourceResolverFactory<Object> resolverFactory = mock();
         var matchedFactory = MatchedLogicalSourceResolverFactory.of(matchScore, resolverFactory);
 
         when(matchingFactory.apply(logicalSource)).thenReturn(Optional.of(matchedFactory));
@@ -955,12 +953,11 @@ class DefaultLogicalViewEvaluatorTest {
 
     // --- Mixed reference formulation tests ---
 
-    @SuppressWarnings("unchecked")
     private MatchingLogicalSourceResolverFactory setupSecondResolverFactory(
             ReferenceFormulation targetRefForm, Function<Object, ExpressionEvaluation> perRecordEvalFactory) {
         var secondMatchingFactory = mock(MatchingLogicalSourceResolverFactory.class);
-        var secondResolver = mock(LogicalSourceResolver.class);
-        var secondResolverFactory = mock(LogicalSourceResolver.LogicalSourceResolverFactory.class);
+        LogicalSourceResolver<Object> secondResolver = mock();
+        LogicalSourceResolver.LogicalSourceResolverFactory<Object> secondResolverFactory = mock();
         var matchScore = MatchScore.builder().strongMatch().build();
         var matchedFactory = MatchedLogicalSourceResolverFactory.of(matchScore, secondResolverFactory);
 
@@ -1142,7 +1139,6 @@ class DefaultLogicalViewEvaluatorTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void givenTwoIterablesWithSameReferenceFormulation_whenEvaluated_thenFactoryResolvedOnce() {
         var csvRefForm = mock(ReferenceFormulation.class);
         var jsonRefForm = mock(ReferenceFormulation.class);
@@ -1184,8 +1180,8 @@ class DefaultLogicalViewEvaluatorTest {
 
         // Track the second matching factory to verify it's only called once
         var secondMatchingFactory = mock(MatchingLogicalSourceResolverFactory.class);
-        var secondResolver = mock(LogicalSourceResolver.class);
-        var secondResolverFactory = mock(LogicalSourceResolver.LogicalSourceResolverFactory.class);
+        LogicalSourceResolver<Object> secondResolver = mock();
+        LogicalSourceResolver.LogicalSourceResolverFactory<Object> secondResolverFactory = mock();
         var matchScore = MatchScore.builder().strongMatch().build();
         var matchedFactory = MatchedLogicalSourceResolverFactory.of(matchScore, secondResolverFactory);
 
@@ -1229,7 +1225,6 @@ class DefaultLogicalViewEvaluatorTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void givenIterableWithUnresolvableReferenceFormulation_whenEvaluated_thenError() {
         var parentRefForm = mock(ReferenceFormulation.class);
         var unknownRefForm = mock(ReferenceFormulation.class);
@@ -1253,10 +1248,9 @@ class DefaultLogicalViewEvaluatorTest {
             LogicalSource ls = invocation.getArgument(0);
             if (parentRefForm.equals(ls.getReferenceFormulation())) {
                 var matchScore = MatchScore.builder().strongMatch().build();
-                var resolverFactory = mock(LogicalSourceResolver.LogicalSourceResolverFactory.class);
+                LogicalSourceResolver.LogicalSourceResolverFactory<Object> resolverFactory = mock();
                 var matched = MatchedLogicalSourceResolverFactory.of(matchScore, resolverFactory);
                 when(resolverFactory.apply(source)).thenReturn(resolver);
-                //noinspection ReactiveStreamsUnusedPublisher
                 when(resolver.getLogicalSourceRecords(anySet())).thenReturn(rs -> Flux.just(createRecord("r1")));
                 Function<Object, ExpressionEvaluation> parentEvalFactory = rec -> expression -> {
                     if ("$.items[*]".equals(expression)) {
@@ -1535,7 +1529,7 @@ class DefaultLogicalViewEvaluatorTest {
     }
 
     @Test
-    void givenViewOnViewWithMissingFieldReference_whenEvaluated_thenNoIterations() {
+    void givenViewOnViewWithMissingFieldReference_whenEvaluated_thenThrowsException() {
         var parentView = mock(LogicalView.class);
         var parentNameField = mockExpressionField("name");
         when(parentNameField.getReference()).thenReturn("name");
@@ -1561,7 +1555,12 @@ class DefaultLogicalViewEvaluatorTest {
         when(logicalView.getViewOn()).thenReturn(parentView);
 
         StepVerifier.create(evaluator.evaluate(logicalView, sourceResolver, EvaluationContext.defaults()))
-                .verifyComplete();
+                .expectErrorSatisfies(error -> {
+                    assertThat(
+                            error, org.hamcrest.Matchers.instanceOf(ViewIterationExpressionEvaluationException.class));
+                    assertThat(error.getMessage(), containsString("Reference to non-existing key 'nonexistent'"));
+                })
+                .verify();
     }
 
     @Test
@@ -2138,7 +2137,8 @@ class DefaultLogicalViewEvaluatorTest {
     /**
      * Record holding per-view resolver wiring (logical source → resolver → matched factory).
      */
-    private record ViewResolverBinding(LogicalSource logicalSource, Source source, LogicalSourceResolver<?> resolver) {}
+    private record ViewResolverBinding(
+            LogicalSource logicalSource, Source source, LogicalSourceResolver<Object> resolver) {}
 
     private final List<ViewResolverBinding> parentBindings = new ArrayList<>();
 
@@ -2147,7 +2147,6 @@ class DefaultLogicalViewEvaluatorTest {
      * {@link #logicalSource}, {@link #source}, {@link #resolver}) and configures the expression
      * evaluation factory.
      */
-    @SuppressWarnings("unchecked")
     private void setupChildView(Flux<LogicalSourceRecord<Object>> recordFlux, ExpressionEvaluation exprEval) {
         when(logicalView.getViewOn()).thenReturn(logicalSource);
         when(logicalSource.getSource()).thenReturn(source);
@@ -2158,7 +2157,6 @@ class DefaultLogicalViewEvaluatorTest {
     /**
      * Same as {@link #setupChildView} but with per-record expression evaluation.
      */
-    @SuppressWarnings("unchecked")
     private void setupChildViewPerRecord(
             Flux<LogicalSourceRecord<Object>> recordFlux, Function<Object, ExpressionEvaluation> perRecordEvalFactory) {
         when(logicalView.getViewOn()).thenReturn(logicalSource);
@@ -2171,7 +2169,6 @@ class DefaultLogicalViewEvaluatorTest {
      * Creates a mock parent LogicalView backed by the given rows. Must call
      * {@link #buildJoinEvaluator()} after all parent views are set up.
      */
-    @SuppressWarnings("unchecked")
     private LogicalView setupParentView(List<Map<String, Object>> parentRows) {
         var parentView = mock(LogicalView.class);
         var parentLogicalSource = mock(LogicalSource.class);
@@ -2180,19 +2177,18 @@ class DefaultLogicalViewEvaluatorTest {
         when(parentView.getViewOn()).thenReturn(parentLogicalSource);
         when(parentLogicalSource.getSource()).thenReturn(parentSource);
 
-        var parentResolver = mock(LogicalSourceResolver.class);
+        LogicalSourceResolver<Object> parentResolver = mock();
 
         var parentRecords = parentRows.stream()
                 .map(row -> LogicalSourceRecord.of(parentLogicalSource, (Object) row))
                 .toList();
 
-        //noinspection ReactiveStreamsUnusedPublisher
         when(parentResolver.getLogicalSourceRecords(anySet())).thenReturn(rs -> Flux.fromIterable(parentRecords));
-        LogicalSourceResolver.ExpressionEvaluationFactory<Object> parentExprEvalFactory = rec -> {
-            @SuppressWarnings("unchecked")
-            var rowMap = (Map<String, Object>) rec;
-            return expression -> Optional.ofNullable(rowMap.get(expression));
-        };
+        var evalsByRecord = new IdentityHashMap<Object, ExpressionEvaluation>();
+        for (var row : parentRows) {
+            evalsByRecord.put(row, expression -> Optional.ofNullable(row.get(expression)));
+        }
+        LogicalSourceResolver.ExpressionEvaluationFactory<Object> parentExprEvalFactory = evalsByRecord::get;
         when(parentResolver.getExpressionEvaluationFactory()).thenReturn(parentExprEvalFactory);
         when(parentResolver.getDatatypeMapperFactory()).thenReturn(Optional.empty());
 
@@ -2219,13 +2215,12 @@ class DefaultLogicalViewEvaluatorTest {
      * Builds the evaluator with a combined matching factory that dispatches to the child resolver
      * and all parent resolvers. Call after all {@link #setupParentView} calls.
      */
-    @SuppressWarnings("unchecked")
     private void buildJoinEvaluator() {
         var combinedFactory = mock(MatchingLogicalSourceResolverFactory.class);
         when(combinedFactory.apply(any(LogicalSource.class))).thenAnswer(invocation -> {
             LogicalSource ls = invocation.getArgument(0);
             if (ls == logicalSource) {
-                var resolverFactory = mock(LogicalSourceResolver.LogicalSourceResolverFactory.class);
+                LogicalSourceResolver.LogicalSourceResolverFactory<Object> resolverFactory = mock();
                 when(resolverFactory.apply(source)).thenReturn(resolver);
                 var matchedFactory = MatchedLogicalSourceResolverFactory.of(
                         MatchScore.builder().strongMatch().build(), resolverFactory);
@@ -2233,7 +2228,7 @@ class DefaultLogicalViewEvaluatorTest {
             }
             for (var binding : parentBindings) {
                 if (ls == binding.logicalSource()) {
-                    var resolverFactory = mock(LogicalSourceResolver.LogicalSourceResolverFactory.class);
+                    LogicalSourceResolver.LogicalSourceResolverFactory<Object> resolverFactory = mock();
                     when(resolverFactory.apply(binding.source())).thenReturn(binding.resolver());
                     var matchedFactory = MatchedLogicalSourceResolverFactory.of(
                             MatchScore.builder().strongMatch().build(), resolverFactory);
@@ -2739,9 +2734,9 @@ class DefaultLogicalViewEvaluatorTest {
     }
 
     @Test
-    void givenLeftJoinMatchButJoinFieldEmpty_whenEvaluated_thenChildDroppedByCartesianCollapse() {
-        // Parent matches on key, but the join field resolves to empty (absent from parent record).
-        // CartesianProduct of empty field contributions → 0 rows, even for left join.
+    void givenLeftJoinWithNonExistingJoinFieldReference_whenEvaluated_thenThrowsException() {
+        // Parent view has "pid" field but NOT "city". Join field references non-existing key "city"
+        // in the parent view — validation rejects this before any data access.
         var idField = mockExpressionField("id");
         when(idField.getReference()).thenReturn("id");
         when(logicalView.getFields()).thenReturn(Set.of(idField));
@@ -2751,7 +2746,7 @@ class DefaultLogicalViewEvaluatorTest {
         var rec = createRecord("record-1");
         setupChildView(Flux.just(rec), exprEval);
 
-        // Parent has "pid"=1 but NO "city" key — join field will resolve to empty list
+        // Parent has "pid"=1 but NO "city" key
         var parentView = setupParentView(List.of(Map.of("pid", "1")));
         buildJoinEvaluator();
 
@@ -2762,13 +2757,107 @@ class DefaultLogicalViewEvaluatorTest {
         var lvJoin = mockLogicalViewJoin(parentView, Set.of(joinCondition), Set.of(cityJoinField));
         when(logicalView.getLeftJoins()).thenReturn(Set.of(lvJoin));
 
-        var iterations = evaluator
-                .evaluate(logicalView, sourceResolver, EvaluationContext.defaults())
-                .collectList()
-                .block();
+        StepVerifier.create(evaluator.evaluate(logicalView, sourceResolver, EvaluationContext.defaults()))
+                .expectErrorSatisfies(error -> {
+                    assertThat(
+                            error, org.hamcrest.Matchers.instanceOf(ViewIterationExpressionEvaluationException.class));
+                    assertThat(error.getMessage(), containsString("Reference to non-existing key 'city'"));
+                })
+                .verify();
+    }
 
-        // Empty join field collapses the Cartesian product — child is dropped
-        assertThat(iterations, hasSize(0));
+    @Test
+    void givenJoinFieldReferencingItKey_whenEvaluated_thenThrowsException() {
+        var idField = mockExpressionField("id");
+        when(idField.getReference()).thenReturn("id");
+        when(logicalView.getFields()).thenReturn(Set.of(idField));
+
+        ExpressionEvaluation exprEval = expression -> "id".equals(expression) ? Optional.of("1") : Optional.empty();
+
+        var rec = createRecord("record-1");
+        setupChildView(Flux.just(rec), exprEval);
+
+        var parentView = setupParentView(List.of(Map.of("pid", "1")));
+        buildJoinEvaluator();
+
+        var itJoinField = mockExpressionField("itResult");
+        when(itJoinField.getReference()).thenReturn("<it>");
+
+        var joinCondition = mockJoinCondition("id", "pid");
+        var lvJoin = mockLogicalViewJoin(parentView, Set.of(joinCondition), Set.of(itJoinField));
+        when(logicalView.getLeftJoins()).thenReturn(Set.of(lvJoin));
+
+        StepVerifier.create(evaluator.evaluate(logicalView, sourceResolver, EvaluationContext.defaults()))
+                .expectErrorSatisfies(error -> {
+                    assertThat(
+                            error, org.hamcrest.Matchers.instanceOf(ViewIterationExpressionEvaluationException.class));
+                    assertThat(error.getMessage(), containsString("Reference to root iterable record key '<it>'"));
+                    assertThat(error.getMessage(), containsString("is not a referenceable key in a logical view"));
+                })
+                .verify();
+    }
+
+    @Test
+    void givenJoinFieldReferencingIterableRecordKey_whenEvaluated_thenThrowsException() {
+        var idField = mockExpressionField("id");
+        when(idField.getReference()).thenReturn("id");
+        when(logicalView.getFields()).thenReturn(Set.of(idField));
+
+        ExpressionEvaluation exprEval = expression -> "id".equals(expression) ? Optional.of("1") : Optional.empty();
+
+        var rec = createRecord("record-1");
+        setupChildView(Flux.just(rec), exprEval);
+
+        // Parent view with an iterable field "items" containing nested "type"
+        var parentView = mock(LogicalView.class);
+        var parentLogicalSource = mock(LogicalSource.class);
+        var parentSource = mock(Source.class);
+
+        when(parentView.getViewOn()).thenReturn(parentLogicalSource);
+        when(parentLogicalSource.getSource()).thenReturn(parentSource);
+
+        LogicalSourceResolver<Object> parentResolver = mock();
+
+        var subRecord = new Object();
+        var parentRecord = LogicalSourceRecord.of(parentLogicalSource, (Object) "parent-rec");
+
+        when(parentResolver.getLogicalSourceRecords(anySet())).thenReturn(rs -> Flux.just(parentRecord));
+        LogicalSourceResolver.ExpressionEvaluationFactory<Object> parentExprEvalFactory = rec2 -> expression -> {
+            if ("pid".equals(expression)) return Optional.of("1");
+            if ("$.items[*]".equals(expression)) return Optional.of(List.of(subRecord));
+            if ("type".equals(expression)) return Optional.of("sword");
+            return Optional.empty();
+        };
+        when(parentResolver.getExpressionEvaluationFactory()).thenReturn(parentExprEvalFactory);
+        when(parentResolver.getDatatypeMapperFactory()).thenReturn(Optional.empty());
+
+        // Parent view has "pid" expression field + "items" iterable field with nested "type"
+        var pidField = mockExpressionField("pid");
+        when(pidField.getReference()).thenReturn("pid");
+        var typeField = mockExpressionField("type");
+        when(typeField.getReference()).thenReturn("type");
+        var itemsIterable = mockIterableField("items", "$.items[*]", Set.of(typeField));
+        when(parentView.getFields()).thenReturn(Set.of(pidField, itemsIterable));
+
+        parentBindings.add(new ViewResolverBinding(parentLogicalSource, parentSource, parentResolver));
+        buildJoinEvaluator();
+
+        // Join field references "items" — the iterable record key, not a nested field
+        var itemsJoinField = mockExpressionField("itemsResult");
+        when(itemsJoinField.getReference()).thenReturn("items");
+
+        var joinCondition = mockJoinCondition("id", "pid");
+        var lvJoin = mockLogicalViewJoin(parentView, Set.of(joinCondition), Set.of(itemsJoinField));
+        when(logicalView.getLeftJoins()).thenReturn(Set.of(lvJoin));
+
+        StepVerifier.create(evaluator.evaluate(logicalView, sourceResolver, EvaluationContext.defaults()))
+                .expectErrorSatisfies(error -> {
+                    assertThat(
+                            error, org.hamcrest.Matchers.instanceOf(ViewIterationExpressionEvaluationException.class));
+                    assertThat(error.getMessage(), containsString("Reference to iterable record key 'items'"));
+                    assertThat(error.getMessage(), containsString("Use its nested field names instead"));
+                })
+                .verify();
     }
 
     @Test
@@ -3384,7 +3473,6 @@ class DefaultLogicalViewEvaluatorTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void givenJoinFieldWithParentNaturalDatatype_whenEvaluated_thenJoinFieldNaturalDatatypePropagated() {
         var idField = mockExpressionField("id");
         when(idField.getReference()).thenReturn("id");
@@ -3403,17 +3491,14 @@ class DefaultLogicalViewEvaluatorTest {
         when(parentView.getViewOn()).thenReturn(parentLogicalSource);
         when(parentLogicalSource.getSource()).thenReturn(parentSource);
 
-        var parentResolver = mock(LogicalSourceResolver.class);
+        LogicalSourceResolver<Object> parentResolver = mock();
 
         var parentRow = Map.<String, Object>of("pid", "1", "city", "NYC");
         var parentRecords = List.of(LogicalSourceRecord.of(parentLogicalSource, (Object) parentRow));
 
-        //noinspection ReactiveStreamsUnusedPublisher
         when(parentResolver.getLogicalSourceRecords(anySet())).thenReturn(rs -> Flux.fromIterable(parentRecords));
-        LogicalSourceResolver.ExpressionEvaluationFactory<Object> parentExprEvalFactory = rec2 -> {
-            var rowMap = (Map<String, Object>) rec2;
-            return expression -> Optional.ofNullable(rowMap.get(expression));
-        };
+        LogicalSourceResolver.ExpressionEvaluationFactory<Object> parentExprEvalFactory =
+                rec2 -> expression -> Optional.ofNullable(((Map<?, ?>) rec2).get(expression));
         when(parentResolver.getExpressionEvaluationFactory()).thenReturn(parentExprEvalFactory);
 
         // Parent resolver maps "city" → xsd:string
@@ -3483,6 +3568,122 @@ class DefaultLogicalViewEvaluatorTest {
                     assertThat(iteration.getValue("label"), is(Optional.of("item-42")));
                     // Template fields must not carry a natural datatype
                     assertThat(iteration.getNaturalDatatype("label"), is(Optional.empty()));
+                })
+                .verifyComplete();
+    }
+
+    // --- Non-referenceable key validation tests ---
+
+    @Test
+    void givenViewOnViewReferencingItKey_whenEvaluated_thenThrowsException() {
+        var parentView = mock(LogicalView.class);
+        var parentNameField = mockExpressionField("name");
+        when(parentNameField.getReference()).thenReturn("name");
+        when(parentView.getViewOn()).thenReturn(logicalSource);
+        when(parentView.getFields()).thenReturn(Set.of(parentNameField));
+
+        // Child references the root iterable record key "<it>"
+        var childField = mockExpressionField("result");
+        when(childField.getReference()).thenReturn("<it>");
+        when(logicalView.getViewOn()).thenReturn(parentView);
+        when(logicalView.getFields()).thenReturn(Set.of(childField));
+
+        ExpressionEvaluation exprEval = expression -> {
+            if ("name".equals(expression)) {
+                return Optional.of("alice");
+            }
+            return Optional.empty();
+        };
+
+        var rec = createRecord("record-1");
+        setupMocks(Flux.just(rec), exprEval);
+        when(parentView.getViewOn()).thenReturn(logicalSource);
+        when(logicalView.getViewOn()).thenReturn(parentView);
+
+        StepVerifier.create(evaluator.evaluate(logicalView, sourceResolver, EvaluationContext.defaults()))
+                .expectErrorSatisfies(error -> {
+                    assertThat(
+                            error, org.hamcrest.Matchers.instanceOf(ViewIterationExpressionEvaluationException.class));
+                    assertThat(error.getMessage(), containsString("Reference to root iterable record key '<it>'"));
+                    assertThat(error.getMessage(), containsString("is not a referenceable key in a logical view"));
+                })
+                .verify();
+    }
+
+    @Test
+    void givenViewOnViewReferencingIterableRecordKey_whenEvaluated_thenThrowsException() {
+        var parentView = mock(LogicalView.class);
+
+        // Parent has an iterable field "items" containing nested expression field "type"
+        var typeField = mockExpressionField("type");
+        when(typeField.getReference()).thenReturn("type");
+        var itemsIterable = mockIterableField("items", "$.items[*]", Set.of(typeField));
+        when(parentView.getViewOn()).thenReturn(logicalSource);
+        when(parentView.getFields()).thenReturn(Set.of(itemsIterable));
+
+        // Child references "items" directly — the iterable record key, not a nested field
+        var childField = mockExpressionField("result");
+        when(childField.getReference()).thenReturn("items");
+        when(logicalView.getViewOn()).thenReturn(parentView);
+        when(logicalView.getFields()).thenReturn(Set.of(childField));
+
+        ExpressionEvaluation exprEval = expression -> {
+            if ("$.items[*]".equals(expression)) {
+                return Optional.of(List.of(new Object()));
+            }
+            if ("type".equals(expression)) {
+                return Optional.of("sword");
+            }
+            return Optional.empty();
+        };
+
+        var rec = createRecord("record-1");
+        setupMocks(Flux.just(rec), exprEval);
+        when(parentView.getViewOn()).thenReturn(logicalSource);
+        when(logicalView.getViewOn()).thenReturn(parentView);
+
+        StepVerifier.create(evaluator.evaluate(logicalView, sourceResolver, EvaluationContext.defaults()))
+                .expectErrorSatisfies(error -> {
+                    assertThat(
+                            error, org.hamcrest.Matchers.instanceOf(ViewIterationExpressionEvaluationException.class));
+                    assertThat(error.getMessage(), containsString("Reference to iterable record key 'items'"));
+                    assertThat(error.getMessage(), containsString("Use its nested field names instead"));
+                })
+                .verify();
+    }
+
+    @Test
+    void givenViewOnViewWithValidKeys_whenEvaluated_thenSucceeds() {
+        // Positive regression test: child references valid keys from parent (expression field and index key)
+        var parentView = mock(LogicalView.class);
+        var parentNameField = mockExpressionField("name");
+        when(parentNameField.getReference()).thenReturn("name");
+        when(parentView.getViewOn()).thenReturn(logicalSource);
+        when(parentView.getFields()).thenReturn(Set.of(parentNameField));
+
+        var childResultField = mockExpressionField("result");
+        when(childResultField.getReference()).thenReturn("name");
+        var childIndexField = mockExpressionField("idx");
+        when(childIndexField.getReference()).thenReturn("name.#");
+        when(logicalView.getViewOn()).thenReturn(parentView);
+        when(logicalView.getFields()).thenReturn(Set.of(childResultField, childIndexField));
+
+        ExpressionEvaluation exprEval = expression -> {
+            if ("name".equals(expression)) {
+                return Optional.of("alice");
+            }
+            return Optional.empty();
+        };
+
+        var rec = createRecord("record-1");
+        setupMocks(Flux.just(rec), exprEval);
+        when(parentView.getViewOn()).thenReturn(logicalSource);
+        when(logicalView.getViewOn()).thenReturn(parentView);
+
+        StepVerifier.create(evaluator.evaluate(logicalView, sourceResolver, EvaluationContext.defaults()))
+                .assertNext(iteration -> {
+                    assertThat(iteration.getValue("result"), is(Optional.of("alice")));
+                    assertThat(iteration.getValue("idx"), is(Optional.of(0)));
                 })
                 .verifyComplete();
     }
