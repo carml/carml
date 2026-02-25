@@ -40,6 +40,11 @@
 		</dependency>
 
 		<dependency>
+			<groupId>io.carml</groupId>
+			<artifactId>carml-logical-view</artifactId>
+		</dependency>
+
+		<dependency>
 			<groupId>org.eclipse.rdf4j</groupId>
 			<artifactId>rdf4j-rio-turtle</artifactId>
 		</dependency>

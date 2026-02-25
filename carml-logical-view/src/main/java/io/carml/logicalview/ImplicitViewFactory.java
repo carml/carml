@@ -9,11 +9,11 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-class ImplicitViewFactory {
+public class ImplicitViewFactory {
 
     private ImplicitViewFactory() {}
 
-    static LogicalView wrap(TriplesMap triplesMap) {
+    public static LogicalView wrap(TriplesMap triplesMap) {
         Objects.requireNonNull(triplesMap, "triplesMap must not be null");
         var logicalSource = triplesMap.getLogicalSource();
         Objects.requireNonNull(logicalSource, "triplesMap must have a logicalSource");
