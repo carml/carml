@@ -17,6 +17,7 @@ import io.carml.util.TypeRef;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -45,14 +46,24 @@ public abstract class RmlMapper<T, K> {
 
     private final Map<K, Set<MergeableMappingResult<K, T>>> mergeables;
 
+    /**
+     * Resolved mappings for the mappable subset of triples maps. Each entry pairs an original
+     * TriplesMap with its effective LogicalView (explicit or synthetic). Computed eagerly at build
+     * time via {@link MappingResolver#resolve(Set)}.
+     */
+    @Getter
+    private final List<ResolvedMapping> resolvedMappings;
+
     protected RmlMapper(
             @NonNull Set<TriplesMap> triplesMaps,
             @NonNull MappingPipeline<T> mappingPipeline,
-            @NonNull Set<SourceResolver<?>> sourceResolvers) {
+            @NonNull Set<SourceResolver<?>> sourceResolvers,
+            @NonNull List<ResolvedMapping> resolvedMappings) {
         this.triplesMaps = triplesMaps;
         this.sourceResolvers = sourceResolvers;
         this.mappingPipeline = mappingPipeline;
         this.mergeables = new HashMap<>();
+        this.resolvedMappings = resolvedMappings;
     }
 
     public <R> Flux<T> mapRecord(R providedRecord, Class<R> providedRecordClass) {

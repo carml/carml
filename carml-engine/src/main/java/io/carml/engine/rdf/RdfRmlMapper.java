@@ -6,6 +6,8 @@ import static org.eclipse.rdf4j.model.util.Values.iri;
 
 import io.carml.engine.MappedValue;
 import io.carml.engine.MappingPipeline;
+import io.carml.engine.MappingResolver;
+import io.carml.engine.ResolvedMapping;
 import io.carml.engine.RmlMapper;
 import io.carml.engine.RmlMapperException;
 import io.carml.engine.TermGeneratorFactory;
@@ -70,8 +72,9 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
     private RdfRmlMapper(
             Set<TriplesMap> triplesMaps,
             MappingPipeline<Statement> mappingPipeline,
-            Set<SourceResolver<?>> sourceResolvers) {
-        super(triplesMaps, mappingPipeline, sourceResolvers);
+            Set<SourceResolver<?>> sourceResolvers,
+            List<ResolvedMapping> resolvedMappings) {
+        super(triplesMaps, mappingPipeline, sourceResolvers, resolvedMappings);
     }
 
     public static Builder builder() {
@@ -340,6 +343,7 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
             var pipelineFactory = RdfMappingPipelineFactory.getInstance();
 
             var mappableTriplesMaps = Mappings.filterMappable(triplesMaps);
+            var resolvedMappings = MappingResolver.resolve(mappableTriplesMaps);
 
             var mappingPipeline = pipelineFactory.getMappingPipeline(
                     mappableTriplesMaps, rdfMapperConfig, matchingLogicalSourceResolverFactories);
@@ -356,7 +360,7 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
                     .<SourceResolver<?>>map(ServiceLoader.Provider::get)
                     .forEach(sourceResolvers::add);
 
-            return new RdfRmlMapper(triplesMaps, mappingPipeline, sourceResolvers);
+            return new RdfRmlMapper(triplesMaps, mappingPipeline, sourceResolvers, resolvedMappings);
         }
 
         private FunctionRegistry buildFunctionRegistry() {
