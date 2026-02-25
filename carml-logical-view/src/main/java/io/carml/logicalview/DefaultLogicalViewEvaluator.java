@@ -2,6 +2,7 @@ package io.carml.logicalview;
 
 import static java.util.stream.Collectors.joining;
 
+import io.carml.logicalsourceresolver.DatatypeMapper;
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.logicalsourceresolver.LogicalSourceResolver;
 import io.carml.logicalsourceresolver.LogicalSourceResolverException;
@@ -38,6 +39,8 @@ import java.util.function.Function;
 import java.util.stream.IntStream;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.rdf4j.model.IRI;
+import org.eclipse.rdf4j.model.vocabulary.XSD;
 import reactor.core.publisher.Flux;
 
 /**
@@ -58,7 +61,11 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
     private final Set<MatchingLogicalSourceResolverFactory> resolverFactories;
 
     private record EvaluatedValues(
-            Map<String, Object> values, Map<String, ReferenceFormulation> referenceFormulations) {}
+            Map<String, Object> values,
+            Map<String, ReferenceFormulation> referenceFormulations,
+            Map<String, IRI> naturalDatatypes) {}
+
+    private record ExprEvalWithDatatypeMapper(ExpressionEvaluation exprEval, DatatypeMapper datatypeMapper) {}
 
     @Override
     public Flux<ViewIteration> evaluate(
@@ -101,25 +108,37 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
         var viewOn = view.getViewOn();
         var fields = view.getFields();
 
-        Flux<ExpressionEvaluation> exprEvalFlux;
+        Flux<ExprEvalWithDatatypeMapper> exprEvalFlux;
         if (viewOn instanceof LogicalSource logicalSource) {
             var rootSource = logicalSource.getSource();
             var resolver = (LogicalSourceResolver<Object>) findResolver(logicalSource, rootSource);
             var expressionEvaluationFactory = resolver.getExpressionEvaluationFactory();
             factoryCache.put(rootRefForm, expressionEvaluationFactory);
 
+            LogicalSourceResolver.DatatypeMapperFactory<Object> datatypeMapperFactory =
+                    resolver.getDatatypeMapperFactory().orElse(r -> value -> Optional.empty());
+
             var resolvedSource = sourceResolver.apply(rootSource);
             exprEvalFlux = resolver.getLogicalSourceRecords(Set.of(logicalSource))
                     .apply(resolvedSource)
-                    .map(rec -> expressionEvaluationFactory.apply(rec.getSourceRecord()));
+                    .map(rec -> {
+                        var sourceRecord = rec.getSourceRecord();
+                        return new ExprEvalWithDatatypeMapper(
+                                expressionEvaluationFactory.apply(sourceRecord),
+                                datatypeMapperFactory.apply(sourceRecord));
+                    });
         } else {
             exprEvalFlux = evaluateView(
                             (LogicalView) viewOn, sourceResolver, context, rootRefForm, factoryCache, factoryResolver)
-                    .map(ViewIterationExpressionEvaluation::new);
+                    .map(vi -> {
+                        var viewExprEval = new ViewIterationExpressionEvaluation(vi);
+                        DatatypeMapper viewDatatypeMapper = vi::getNaturalDatatype;
+                        return new ExprEvalWithDatatypeMapper(viewExprEval, viewDatatypeMapper);
+                    });
         }
 
-        Flux<EvaluatedValues> evaluatedFlux = exprEvalFlux.flatMapIterable(
-                exprEval -> evaluateFields(fields, exprEval, rootRefForm, "", factoryResolver));
+        Flux<EvaluatedValues> evaluatedFlux = exprEvalFlux.flatMapIterable(pair ->
+                evaluateFields(fields, pair.exprEval(), pair.datatypeMapper(), rootRefForm, "", factoryResolver));
 
         // Apply joins: left joins first, then inner joins
         var leftJoins = view.getLeftJoins();
@@ -137,8 +156,8 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
         }
 
         // Convert to ViewIteration without root # for dedup
-        Flux<ViewIteration> viewIterations =
-                evaluatedFlux.map(ev -> new DefaultViewIteration(0, ev.values(), ev.referenceFormulations()));
+        Flux<ViewIteration> viewIterations = evaluatedFlux.map(
+                ev -> new DefaultViewIteration(0, ev.values(), ev.referenceFormulations(), ev.naturalDatatypes()));
 
         // Apply dedup strategy
         var keyFields = collectDedupKeyFields(view);
@@ -252,6 +271,7 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
     private List<EvaluatedValues> evaluateFields(
             Set<Field> fields,
             ExpressionEvaluation exprEval,
+            DatatypeMapper datatypeMapper,
             ReferenceFormulation currentRefForm,
             String prefix,
             Function<ReferenceFormulation, LogicalSourceResolver.ExpressionEvaluationFactory<Object>> factoryResolver) {
@@ -266,12 +286,19 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                         var refFormMap = currentRefForm != null
                                 ? Map.of(absoluteName, currentRefForm)
                                 : Map.<String, ReferenceFormulation>of();
+
+                        // Resolve natural datatype for reference expressions
+                        var naturalDatatypeMap = resolveNaturalDatatypes(ef, absoluteName, indexKey, datatypeMapper);
+
                         return IntStream.range(0, values.size())
                                 .mapToObj(i -> new EvaluatedValues(
-                                        Map.of(absoluteName, values.get(i), indexKey, i), refFormMap))
+                                        Map.of(absoluteName, values.get(i), indexKey, i),
+                                        refFormMap,
+                                        naturalDatatypeMap))
                                 .toList();
                     } else if (field instanceof IterableField itf) {
-                        return evaluateIterableField(itf, exprEval, currentRefForm, prefix, factoryResolver);
+                        return evaluateIterableField(
+                                itf, exprEval, datatypeMapper, currentRefForm, prefix, factoryResolver);
                     } else {
                         throw new UnsupportedOperationException("Unsupported field type: %s"
                                 .formatted(field.getClass().getSimpleName()));
@@ -283,18 +310,38 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                 .map(combo -> {
                     var mergedValues = new LinkedHashMap<String, Object>();
                     var mergedRefForms = new LinkedHashMap<String, ReferenceFormulation>();
+                    var mergedNaturalDatatypes = new LinkedHashMap<String, IRI>();
                     combo.forEach(ev -> {
                         mergedValues.putAll(ev.values());
                         mergedRefForms.putAll(ev.referenceFormulations());
+                        mergedNaturalDatatypes.putAll(ev.naturalDatatypes());
                     });
-                    return new EvaluatedValues(mergedValues, mergedRefForms);
+                    return new EvaluatedValues(mergedValues, mergedRefForms, mergedNaturalDatatypes);
                 })
                 .toList();
+    }
+
+    private Map<String, IRI> resolveNaturalDatatypes(
+            ExpressionField ef, String absoluteName, String indexKey, DatatypeMapper datatypeMapper) {
+        var naturalDatatypes = new LinkedHashMap<String, IRI>();
+
+        // Index keys always have xsd:integer natural datatype
+        naturalDatatypes.put(indexKey, XSD.INTEGER);
+
+        // Natural datatypes are only resolved for reference expressions. Templates combine multiple
+        // expressions (no single source datatype applies) and constants are string literals with no
+        // source-determined datatype.
+        if (ef.getReference() != null) {
+            datatypeMapper.apply(ef.getReference()).ifPresent(iri -> naturalDatatypes.put(absoluteName, iri));
+        }
+
+        return naturalDatatypes;
     }
 
     private List<EvaluatedValues> evaluateIterableField(
             IterableField field,
             ExpressionEvaluation exprEval,
+            DatatypeMapper datatypeMapper,
             ReferenceFormulation currentRefForm,
             String prefix,
             Function<ReferenceFormulation, LogicalSourceResolver.ExpressionEvaluationFactory<Object>> factoryResolver) {
@@ -333,12 +380,24 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                 .boxed()
                 .flatMap(i -> {
                     var subExprEval = nestedFactory.apply(subRecords.get(i));
-                    return evaluateFields(nestedFields, subExprEval, effectiveNestedRefForm, subPrefix, factoryResolver)
+                    // For nested iterables, the datatype mapper is inherited from the parent
+                    // evaluation context. Each sub-record uses the same mapper since the source
+                    // format determines natural datatypes, not individual record content.
+                    return evaluateFields(
+                                    nestedFields,
+                                    subExprEval,
+                                    datatypeMapper,
+                                    effectiveNestedRefForm,
+                                    subPrefix,
+                                    factoryResolver)
                             .stream()
                             .map(ev -> {
                                 var mergedValues = new LinkedHashMap<>(ev.values());
                                 mergedValues.put(iterableIndexKey, i);
-                                return new EvaluatedValues(mergedValues, ev.referenceFormulations());
+                                var mergedNaturalDatatypes = new LinkedHashMap<>(ev.naturalDatatypes());
+                                mergedNaturalDatatypes.put(iterableIndexKey, XSD.INTEGER);
+                                return new EvaluatedValues(
+                                        mergedValues, ev.referenceFormulations(), mergedNaturalDatatypes);
                             });
                 })
                 .toList();
@@ -426,9 +485,19 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                         var fieldName = joinField.getFieldName();
                         var indexKey = fieldName + INDEX_KEY_SUFFIX;
                         var values = evaluateExpressionMap(joinField, parentExprEval);
+
+                        // Resolve natural datatypes from parent iteration for join fields
+                        var joinNaturalDatatypes = new LinkedHashMap<String, IRI>();
+                        joinNaturalDatatypes.put(indexKey, XSD.INTEGER);
+                        if (joinField.getReference() != null) {
+                            parentIteration
+                                    .getNaturalDatatype(joinField.getReference())
+                                    .ifPresent(iri -> joinNaturalDatatypes.put(fieldName, iri));
+                        }
+
                         return IntStream.range(0, values.size())
-                                .mapToObj(i ->
-                                        new EvaluatedValues(Map.of(fieldName, values.get(i), indexKey, i), Map.of()))
+                                .mapToObj(i -> new EvaluatedValues(
+                                        Map.of(fieldName, values.get(i), indexKey, i), Map.of(), joinNaturalDatatypes))
                                 .toList();
                     })
                     .toList();
@@ -438,11 +507,13 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
             for (var combo : combinations) {
                 var mergedValues = new LinkedHashMap<>(child.values());
                 var mergedRefForms = new LinkedHashMap<>(child.referenceFormulations());
+                var mergedNaturalDatatypes = new LinkedHashMap<>(child.naturalDatatypes());
                 combo.forEach(ev -> {
                     mergedValues.putAll(ev.values());
                     mergedRefForms.putAll(ev.referenceFormulations());
+                    mergedNaturalDatatypes.putAll(ev.naturalDatatypes());
                 });
-                result.add(new EvaluatedValues(mergedValues, mergedRefForms));
+                result.add(new EvaluatedValues(mergedValues, mergedRefForms, mergedNaturalDatatypes));
             }
         }
 

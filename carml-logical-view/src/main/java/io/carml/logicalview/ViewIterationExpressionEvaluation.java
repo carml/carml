@@ -3,6 +3,7 @@ package io.carml.logicalview;
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.model.ReferenceFormulation;
 import java.util.Optional;
+import org.eclipse.rdf4j.model.IRI;
 
 /**
  * Bridges a {@link ViewIteration} to the {@link ExpressionEvaluation} interface, enabling
@@ -24,5 +25,9 @@ class ViewIterationExpressionEvaluation implements ExpressionEvaluation {
 
     Optional<ReferenceFormulation> getFieldReferenceFormulation(String key) {
         return iteration.getFieldReferenceFormulation(key);
+    }
+
+    Optional<IRI> getNaturalDatatype(String key) {
+        return iteration.getNaturalDatatype(key);
     }
 }

@@ -5,6 +5,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import org.eclipse.rdf4j.model.IRI;
+import org.eclipse.rdf4j.model.vocabulary.XSD;
 
 class DefaultViewIteration implements ViewIteration {
 
@@ -14,11 +16,17 @@ class DefaultViewIteration implements ViewIteration {
 
     private final Map<String, ReferenceFormulation> referenceFormulations;
 
+    private final Map<String, IRI> naturalDatatypes;
+
     DefaultViewIteration(
-            int index, Map<String, Object> values, Map<String, ReferenceFormulation> referenceFormulations) {
+            int index,
+            Map<String, Object> values,
+            Map<String, ReferenceFormulation> referenceFormulations,
+            Map<String, IRI> naturalDatatypes) {
         this.index = index;
         this.values = Map.copyOf(values);
         this.referenceFormulations = Map.copyOf(referenceFormulations);
+        this.naturalDatatypes = Map.copyOf(naturalDatatypes);
     }
 
     @Override
@@ -41,9 +49,16 @@ class DefaultViewIteration implements ViewIteration {
         return Optional.ofNullable(referenceFormulations.get(key));
     }
 
+    @Override
+    public Optional<IRI> getNaturalDatatype(String key) {
+        return Optional.ofNullable(naturalDatatypes.get(key));
+    }
+
     DefaultViewIteration withIndex(int newIndex) {
         var newValues = new LinkedHashMap<>(this.values);
         newValues.put(DefaultLogicalViewEvaluator.INDEX_KEY, newIndex);
-        return new DefaultViewIteration(newIndex, newValues, this.referenceFormulations);
+        var newNaturalDatatypes = new LinkedHashMap<>(this.naturalDatatypes);
+        newNaturalDatatypes.put(DefaultLogicalViewEvaluator.INDEX_KEY, XSD.INTEGER);
+        return new DefaultViewIteration(newIndex, newValues, this.referenceFormulations, newNaturalDatatypes);
     }
 }

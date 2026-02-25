@@ -88,6 +88,7 @@ class DefaultLogicalViewEvaluatorTest {
         resolvedSource = ResolvedSource.of("test-source", new TypeRef<>() {});
         sourceResolver = s -> resolvedSource;
         parentBindings.clear();
+        lenient().when(resolver.getDatatypeMapperFactory()).thenReturn(Optional.empty());
     }
 
     @SuppressWarnings("unchecked")
@@ -353,6 +354,7 @@ class DefaultLogicalViewEvaluatorTest {
         when(logicalView.getViewOn()).thenReturn(unknownSource);
 
         var defaults = EvaluationContext.defaults();
+        @SuppressWarnings("ReactiveStreamsUnusedPublisher")
         var exception = assertThrows(
                 LogicalSourceResolverException.class, () -> evaluator.evaluate(logicalView, sourceResolver, defaults));
 
@@ -367,6 +369,7 @@ class DefaultLogicalViewEvaluatorTest {
         when(matchingFactory.getResolverName()).thenReturn("TestResolver");
 
         var defaults = EvaluationContext.defaults();
+        @SuppressWarnings("ReactiveStreamsUnusedPublisher")
         var exception = assertThrows(
                 LogicalSourceResolverException.class, () -> evaluator.evaluate(logicalView, sourceResolver, defaults));
 
@@ -972,6 +975,7 @@ class DefaultLogicalViewEvaluatorTest {
 
         when(secondResolverFactory.apply(source)).thenReturn(secondResolver);
         when(secondResolver.getExpressionEvaluationFactory()).thenReturn(perRecordEvalFactory::apply);
+        lenient().when(secondResolver.getDatatypeMapperFactory()).thenReturn(Optional.empty());
 
         return secondMatchingFactory;
     }
@@ -1204,6 +1208,7 @@ class DefaultLogicalViewEvaluatorTest {
             return Optional.empty();
         };
         when(secondResolver.getExpressionEvaluationFactory()).thenReturn(jsonEvalFactory::apply);
+        lenient().when(secondResolver.getDatatypeMapperFactory()).thenReturn(Optional.empty());
 
         evaluator = new DefaultLogicalViewEvaluator(Set.of(matchingFactory, secondMatchingFactory));
 
@@ -1251,6 +1256,7 @@ class DefaultLogicalViewEvaluatorTest {
                 var resolverFactory = mock(LogicalSourceResolver.LogicalSourceResolverFactory.class);
                 var matched = MatchedLogicalSourceResolverFactory.of(matchScore, resolverFactory);
                 when(resolverFactory.apply(source)).thenReturn(resolver);
+                //noinspection ReactiveStreamsUnusedPublisher
                 when(resolver.getLogicalSourceRecords(anySet())).thenReturn(rs -> Flux.just(createRecord("r1")));
                 Function<Object, ExpressionEvaluation> parentEvalFactory = rec -> expression -> {
                     if ("$.items[*]".equals(expression)) {
@@ -2130,11 +2136,6 @@ class DefaultLogicalViewEvaluatorTest {
     // --- Join tests ---
 
     /**
-     * Creates a mock parent LogicalView backed by the given iterations. The parent view is set up
-     * with its own LogicalSource, resolver, and expression evaluation that produces the given
-     * iterations from a single source record.
-     */
-    /**
      * Record holding per-view resolver wiring (logical source → resolver → matched factory).
      */
     private record ViewResolverBinding(LogicalSource logicalSource, Source source, LogicalSourceResolver<?> resolver) {}
@@ -2185,6 +2186,7 @@ class DefaultLogicalViewEvaluatorTest {
                 .map(row -> LogicalSourceRecord.of(parentLogicalSource, (Object) row))
                 .toList();
 
+        //noinspection ReactiveStreamsUnusedPublisher
         when(parentResolver.getLogicalSourceRecords(anySet())).thenReturn(rs -> Flux.fromIterable(parentRecords));
         LogicalSourceResolver.ExpressionEvaluationFactory<Object> parentExprEvalFactory = rec -> {
             @SuppressWarnings("unchecked")
@@ -2192,6 +2194,7 @@ class DefaultLogicalViewEvaluatorTest {
             return expression -> Optional.ofNullable(rowMap.get(expression));
         };
         when(parentResolver.getExpressionEvaluationFactory()).thenReturn(parentExprEvalFactory);
+        when(parentResolver.getDatatypeMapperFactory()).thenReturn(Optional.empty());
 
         if (!parentRows.isEmpty()) {
             var fieldNames = parentRows.get(0).keySet();
@@ -2779,7 +2782,7 @@ class DefaultLogicalViewEvaluatorTest {
         var rec = createRecord("record-1");
         setupChildView(Flux.just(rec), exprEval);
 
-        // Parent has one matching record with multi-valued "tags"
+        // Parent has one matching record with multivalued "tags"
         var parentView = setupParentView(List.of(Map.of("pid", "1", "tags", List.of("a", "b"))));
         buildJoinEvaluator();
 
@@ -2795,7 +2798,7 @@ class DefaultLogicalViewEvaluatorTest {
                 .collectList()
                 .block();
 
-        // Multi-valued parent source field → parent view produces 2 iterations (one per value).
+        // Multivalued parent source field → parent view produces 2 iterations (one per value).
         // Both parent iterations match child on pid=1, so child is extended twice.
         assertThat(iterations, hasSize(2));
         var tagValues = iterations.stream()
@@ -3126,5 +3129,361 @@ class DefaultLogicalViewEvaluatorTest {
         assertThat(iterations.get(0).getValue("#"), is(Optional.of(0)));
         assertThat(iterations.get(0).getValue("items.type"), is(Optional.of("sword")));
         assertThat(iterations.get(0).getValue("items.#"), is(Optional.of(0)));
+    }
+
+    // --- Natural datatype propagation tests ---
+
+    @Test
+    void givenResolverWithDatatypeMapper_whenEvaluated_thenNaturalDatatypesPropagated() {
+        var nameField = mockExpressionField("name");
+        when(nameField.getReference()).thenReturn("name");
+        when(logicalView.getFields()).thenReturn(Set.of(nameField));
+
+        ExpressionEvaluation exprEval = expression -> {
+            if ("name".equals(expression)) {
+                return Optional.of("alice");
+            }
+            return Optional.empty();
+        };
+
+        var rec = createRecord("record-1");
+        setupMocks(Flux.just(rec), exprEval);
+
+        // Override getDatatypeMapperFactory to return xsd:string for "name"
+        LogicalSourceResolver.DatatypeMapperFactory<Object> datatypeMapperFactory = sourceRecord -> expression -> {
+            if ("name".equals(expression)) {
+                return Optional.of(org.eclipse.rdf4j.model.vocabulary.XSD.STRING);
+            }
+            return Optional.empty();
+        };
+        when(resolver.getDatatypeMapperFactory()).thenReturn(Optional.of(datatypeMapperFactory));
+
+        StepVerifier.create(evaluator.evaluate(logicalView, sourceResolver, EvaluationContext.defaults()))
+                .assertNext(iteration -> {
+                    assertThat(iteration.getValue("name"), is(Optional.of("alice")));
+                    assertThat(
+                            iteration.getNaturalDatatype("name"),
+                            is(Optional.of(org.eclipse.rdf4j.model.vocabulary.XSD.STRING)));
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void givenIndexKeys_whenEvaluated_thenIndexKeysHaveIntegerNaturalDatatype() {
+        var nameField = mockExpressionField("name");
+        when(nameField.getReference()).thenReturn("name");
+        when(logicalView.getFields()).thenReturn(Set.of(nameField));
+
+        ExpressionEvaluation exprEval = expression -> {
+            if ("name".equals(expression)) {
+                return Optional.of("alice");
+            }
+            return Optional.empty();
+        };
+
+        var rec = createRecord("record-1");
+        setupMocks(Flux.just(rec), exprEval);
+
+        StepVerifier.create(evaluator.evaluate(logicalView, sourceResolver, EvaluationContext.defaults()))
+                .assertNext(iteration -> {
+                    assertThat(
+                            iteration.getNaturalDatatype("#"),
+                            is(Optional.of(org.eclipse.rdf4j.model.vocabulary.XSD.INTEGER)));
+                    assertThat(
+                            iteration.getNaturalDatatype("name.#"),
+                            is(Optional.of(org.eclipse.rdf4j.model.vocabulary.XSD.INTEGER)));
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void givenResolverWithoutDatatypeMapper_whenEvaluated_thenEmptyNaturalDatatypes() {
+        var nameField = mockExpressionField("name");
+        when(nameField.getReference()).thenReturn("name");
+        when(logicalView.getFields()).thenReturn(Set.of(nameField));
+
+        ExpressionEvaluation exprEval = expression -> {
+            if ("name".equals(expression)) {
+                return Optional.of("alice");
+            }
+            return Optional.empty();
+        };
+
+        var rec = createRecord("record-1");
+        setupMocks(Flux.just(rec), exprEval);
+
+        // resolver.getDatatypeMapperFactory() returns Optional.empty() by default from @BeforeEach
+
+        StepVerifier.create(evaluator.evaluate(logicalView, sourceResolver, EvaluationContext.defaults()))
+                .assertNext(iteration -> {
+                    assertThat(iteration.getValue("name"), is(Optional.of("alice")));
+                    // No natural datatype for the field value (only index keys have one)
+                    assertThat(iteration.getNaturalDatatype("name"), is(Optional.empty()));
+                    // Index keys still have xsd:integer
+                    assertThat(
+                            iteration.getNaturalDatatype("name.#"),
+                            is(Optional.of(org.eclipse.rdf4j.model.vocabulary.XSD.INTEGER)));
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void givenViewOnView_whenEvaluated_thenNaturalDatatypesInheritedFromParent() {
+        // Parent view: viewOn = logicalSource, field "name" → "alice" with xsd:string natural datatype
+        var parentView = mock(LogicalView.class);
+        var parentNameField = mockExpressionField("name");
+        when(parentNameField.getReference()).thenReturn("name");
+        when(parentView.getViewOn()).thenReturn(logicalSource);
+        when(parentView.getFields()).thenReturn(Set.of(parentNameField));
+
+        // Child view: viewOn = parentView, field "result" referencing parent's "name"
+        var childResultField = mockExpressionField("result");
+        when(childResultField.getReference()).thenReturn("name");
+        when(logicalView.getViewOn()).thenReturn(parentView);
+        when(logicalView.getFields()).thenReturn(Set.of(childResultField));
+
+        ExpressionEvaluation exprEval = expression -> {
+            if ("name".equals(expression)) {
+                return Optional.of("alice");
+            }
+            return Optional.empty();
+        };
+
+        var rec = createRecord("record-1");
+        setupMocks(Flux.just(rec), exprEval);
+
+        // Parent resolver has a datatype mapper that returns xsd:string for "name"
+        LogicalSourceResolver.DatatypeMapperFactory<Object> datatypeMapperFactory = sourceRecord -> expression -> {
+            if ("name".equals(expression)) {
+                return Optional.of(org.eclipse.rdf4j.model.vocabulary.XSD.STRING);
+            }
+            return Optional.empty();
+        };
+        when(resolver.getDatatypeMapperFactory()).thenReturn(Optional.of(datatypeMapperFactory));
+
+        // Re-stub: setupMocks stubs logicalView.getViewOn() → logicalSource, but parentView needs that
+        when(parentView.getViewOn()).thenReturn(logicalSource);
+        when(logicalView.getViewOn()).thenReturn(parentView);
+
+        StepVerifier.create(evaluator.evaluate(logicalView, sourceResolver, EvaluationContext.defaults()))
+                .assertNext(iteration -> {
+                    assertThat(iteration.getIndex(), is(0));
+                    assertThat(iteration.getValue("result"), is(Optional.of("alice")));
+                    // Child references parent's "name" which has xsd:string natural datatype.
+                    // The view-on-view DatatypeMapper delegates to parent's getNaturalDatatype("name"),
+                    // which returns xsd:string. The child field "result" references "name", so the
+                    // datatype mapper is applied with expression "name" and returns xsd:string.
+                    assertThat(
+                            iteration.getNaturalDatatype("result"),
+                            is(Optional.of(org.eclipse.rdf4j.model.vocabulary.XSD.STRING)));
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void givenIterableField_whenEvaluated_thenIterableIndexKeyHasIntegerNaturalDatatype() {
+        var typeField = mockExpressionField("type");
+        when(typeField.getReference()).thenReturn("type");
+
+        var itemsIterable = mockIterableField("items", "$.items[*]", Set.of(typeField));
+        when(logicalView.getFields()).thenReturn(Set.of(itemsIterable));
+
+        var subRecord1 = new Object();
+
+        ExpressionEvaluation rootExprEval = expression -> {
+            if ("$.items[*]".equals(expression)) {
+                return Optional.of(List.of(subRecord1));
+            }
+            return Optional.empty();
+        };
+
+        Function<Object, ExpressionEvaluation> perRecordFactory = rec -> expression -> {
+            if ("type".equals(expression) && rec == subRecord1) {
+                return Optional.of("sword");
+            }
+            return Optional.empty();
+        };
+
+        var record1 = createRecord("record-1");
+        setupMocksWithPerRecordEval(Flux.just(record1), rec -> {
+            if (rec == record1.getSourceRecord()) {
+                return rootExprEval;
+            }
+            return perRecordFactory.apply(rec);
+        });
+
+        var iterations = evaluator
+                .evaluate(logicalView, sourceResolver, EvaluationContext.defaults())
+                .collectList()
+                .block();
+
+        assertThat(iterations, hasSize(1));
+        // Iterable index key items.# has xsd:integer natural datatype
+        assertThat(
+                iterations.get(0).getNaturalDatatype("items.#"),
+                is(Optional.of(org.eclipse.rdf4j.model.vocabulary.XSD.INTEGER)));
+        // Expression field index key items.type.# has xsd:integer natural datatype
+        assertThat(
+                iterations.get(0).getNaturalDatatype("items.type.#"),
+                is(Optional.of(org.eclipse.rdf4j.model.vocabulary.XSD.INTEGER)));
+    }
+
+    @Test
+    void givenIterableFieldWithDatatypeMapper_whenEvaluated_thenNestedFieldNaturalDatatypePropagated() {
+        var typeField = mockExpressionField("type");
+        when(typeField.getReference()).thenReturn("type");
+
+        var itemsIterable = mockIterableField("items", "$.items[*]", Set.of(typeField));
+        when(logicalView.getFields()).thenReturn(Set.of(itemsIterable));
+
+        var subRecord1 = new Object();
+
+        ExpressionEvaluation rootExprEval = expression -> {
+            if ("$.items[*]".equals(expression)) {
+                return Optional.of(List.of(subRecord1));
+            }
+            return Optional.empty();
+        };
+
+        Function<Object, ExpressionEvaluation> perRecordFactory = rec -> expression -> {
+            if ("type".equals(expression) && rec == subRecord1) {
+                return Optional.of("sword");
+            }
+            return Optional.empty();
+        };
+
+        var record1 = createRecord("record-1");
+        setupMocksWithPerRecordEval(Flux.just(record1), rec -> {
+            if (rec == record1.getSourceRecord()) {
+                return rootExprEval;
+            }
+            return perRecordFactory.apply(rec);
+        });
+
+        // Override DatatypeMapperFactory: map "type" → xsd:string
+        LogicalSourceResolver.DatatypeMapperFactory<Object> datatypeMapperFactory =
+                sourceRecord -> expression -> "type".equals(expression)
+                        ? Optional.of(org.eclipse.rdf4j.model.vocabulary.XSD.STRING)
+                        : Optional.empty();
+        when(resolver.getDatatypeMapperFactory()).thenReturn(Optional.of(datatypeMapperFactory));
+
+        var iterations = evaluator
+                .evaluate(logicalView, sourceResolver, EvaluationContext.defaults())
+                .collectList()
+                .block();
+
+        assertThat(iterations, hasSize(1));
+        // Nested expression field items.type carries xsd:string from the inherited mapper
+        assertThat(
+                iterations.get(0).getNaturalDatatype("items.type"),
+                is(Optional.of(org.eclipse.rdf4j.model.vocabulary.XSD.STRING)));
+        // Index keys remain xsd:integer
+        assertThat(
+                iterations.get(0).getNaturalDatatype("items.#"),
+                is(Optional.of(org.eclipse.rdf4j.model.vocabulary.XSD.INTEGER)));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void givenJoinFieldWithParentNaturalDatatype_whenEvaluated_thenJoinFieldNaturalDatatypePropagated() {
+        var idField = mockExpressionField("id");
+        when(idField.getReference()).thenReturn("id");
+        when(logicalView.getFields()).thenReturn(Set.of(idField));
+
+        ExpressionEvaluation exprEval = expression -> "id".equals(expression) ? Optional.of("1") : Optional.empty();
+
+        var rec = createRecord("record-1");
+        setupChildView(Flux.just(rec), exprEval);
+
+        // Set up parent view with a resolver that maps "city" → xsd:string
+        var parentView = mock(LogicalView.class);
+        var parentLogicalSource = mock(LogicalSource.class);
+        var parentSource = mock(Source.class);
+
+        when(parentView.getViewOn()).thenReturn(parentLogicalSource);
+        when(parentLogicalSource.getSource()).thenReturn(parentSource);
+
+        var parentResolver = mock(LogicalSourceResolver.class);
+
+        var parentRow = Map.<String, Object>of("pid", "1", "city", "NYC");
+        var parentRecords = List.of(LogicalSourceRecord.of(parentLogicalSource, (Object) parentRow));
+
+        //noinspection ReactiveStreamsUnusedPublisher
+        when(parentResolver.getLogicalSourceRecords(anySet())).thenReturn(rs -> Flux.fromIterable(parentRecords));
+        LogicalSourceResolver.ExpressionEvaluationFactory<Object> parentExprEvalFactory = rec2 -> {
+            var rowMap = (Map<String, Object>) rec2;
+            return expression -> Optional.ofNullable(rowMap.get(expression));
+        };
+        when(parentResolver.getExpressionEvaluationFactory()).thenReturn(parentExprEvalFactory);
+
+        // Parent resolver maps "city" → xsd:string
+        LogicalSourceResolver.DatatypeMapperFactory<Object> parentDatatypeMapperFactory =
+                sourceRecord -> expression -> "city".equals(expression)
+                        ? Optional.of(org.eclipse.rdf4j.model.vocabulary.XSD.STRING)
+                        : Optional.empty();
+        when(parentResolver.getDatatypeMapperFactory()).thenReturn(Optional.of(parentDatatypeMapperFactory));
+
+        var pidField = mockExpressionField("pid");
+        when(pidField.getReference()).thenReturn("pid");
+        var cityField = mockExpressionField("city");
+        when(cityField.getReference()).thenReturn("city");
+        when(parentView.getFields()).thenReturn(Set.of(pidField, cityField));
+
+        parentBindings.add(new ViewResolverBinding(parentLogicalSource, parentSource, parentResolver));
+        buildJoinEvaluator();
+
+        var cityJoinField = mockExpressionField("city");
+        when(cityJoinField.getReference()).thenReturn("city");
+        var joinCondition = mockJoinCondition("id", "pid");
+        var lvJoin = mockLogicalViewJoin(parentView, Set.of(joinCondition), Set.of(cityJoinField));
+        when(logicalView.getLeftJoins()).thenReturn(Set.of(lvJoin));
+
+        var iterations = evaluator
+                .evaluate(logicalView, sourceResolver, EvaluationContext.defaults())
+                .collectList()
+                .block();
+
+        assertThat(iterations, hasSize(1));
+        assertThat(iterations.get(0).getValue("city"), is(Optional.of("NYC")));
+        // Join field "city" carries xsd:string from parent's natural datatype
+        assertThat(
+                iterations.get(0).getNaturalDatatype("city"),
+                is(Optional.of(org.eclipse.rdf4j.model.vocabulary.XSD.STRING)));
+        // Join field index key is xsd:integer
+        assertThat(
+                iterations.get(0).getNaturalDatatype("city.#"),
+                is(Optional.of(org.eclipse.rdf4j.model.vocabulary.XSD.INTEGER)));
+    }
+
+    @Test
+    void givenTemplateFieldWithDatatypeMapper_whenEvaluated_thenNoNaturalDatatypeForTemplateField() {
+        var labelField = mockExpressionField("label");
+        var seg1 = mock(CarmlTemplate.TextSegment.class);
+        when(seg1.getValue()).thenReturn("item-");
+        var seg2 = mock(CarmlTemplate.ExpressionSegment.class);
+        when(seg2.getValue()).thenReturn("id");
+        var template = mock(Template.class);
+        when(template.getSegments()).thenReturn(List.of(seg1, seg2));
+        when(labelField.getTemplate()).thenReturn(template);
+        when(labelField.getReference()).thenReturn(null);
+        when(logicalView.getFields()).thenReturn(Set.of(labelField));
+
+        ExpressionEvaluation exprEval = expression -> "id".equals(expression) ? Optional.of("42") : Optional.empty();
+
+        var rec = createRecord("record-1");
+        setupMocks(Flux.just(rec), exprEval);
+
+        // Mapper returns xsd:string for any expression — should not leak into template field
+        LogicalSourceResolver.DatatypeMapperFactory<Object> datatypeMapperFactory =
+                sourceRecord -> expression -> Optional.of(org.eclipse.rdf4j.model.vocabulary.XSD.STRING);
+        when(resolver.getDatatypeMapperFactory()).thenReturn(Optional.of(datatypeMapperFactory));
+
+        StepVerifier.create(evaluator.evaluate(logicalView, sourceResolver, EvaluationContext.defaults()))
+                .assertNext(iteration -> {
+                    assertThat(iteration.getValue("label"), is(Optional.of("item-42")));
+                    // Template fields must not carry a natural datatype
+                    assertThat(iteration.getNaturalDatatype("label"), is(Optional.empty()));
+                })
+                .verifyComplete();
     }
 }

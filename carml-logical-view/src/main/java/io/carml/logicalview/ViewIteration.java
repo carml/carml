@@ -3,6 +3,7 @@ package io.carml.logicalview;
 import io.carml.model.ReferenceFormulation;
 import java.util.Optional;
 import java.util.Set;
+import org.eclipse.rdf4j.model.IRI;
 
 /**
  * Represents a single iteration (row) produced by evaluating a {@link io.carml.model.LogicalView}.
@@ -40,4 +41,13 @@ public interface ViewIteration {
      * @return an {@link Optional} containing the reference formulation, or empty
      */
     Optional<ReferenceFormulation> getFieldReferenceFormulation(String key);
+
+    /**
+     * Returns the natural datatype IRI for the given field key, or empty if no natural datatype is
+     * known. Index keys always have natural datatype {@code xsd:integer}.
+     *
+     * @param key the field key
+     * @return an {@link Optional} containing the natural datatype IRI, or empty
+     */
+    Optional<IRI> getNaturalDatatype(String key);
 }
