@@ -31,6 +31,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import java.util.stream.IntStream;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -45,6 +46,10 @@ import reactor.core.publisher.Flux;
 @Slf4j
 @AllArgsConstructor
 public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
+
+    static final String INDEX_KEY = "#";
+
+    static final String INDEX_KEY_SUFFIX = ".#";
 
     private final Set<MatchingLogicalSourceResolverFactory> resolverFactories;
 
@@ -113,8 +118,13 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
         Flux<ViewIteration> iterations = exprEvalFlux.flatMapIterable(exprEval -> {
             var evaluatedList = evaluateFields(fields, exprEval, rootRefForm, "", factoryResolver);
             return evaluatedList.stream()
-                    .map(evaluated -> (ViewIteration) new DefaultViewIteration(
-                            index.getAndIncrement(), evaluated.values(), evaluated.referenceFormulations()))
+                    .map(evaluated -> {
+                        var iterationIndex = index.getAndIncrement();
+                        var values = new LinkedHashMap<>(evaluated.values());
+                        values.put(INDEX_KEY, iterationIndex);
+                        return (ViewIteration)
+                                new DefaultViewIteration(iterationIndex, values, evaluated.referenceFormulations());
+                    })
                     .toList();
         });
 
@@ -187,11 +197,13 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                     if (field instanceof ExpressionField ef) {
                         var values = evaluateExpressionField(ef, exprEval);
                         var absoluteName = prefix + ef.getFieldName();
+                        var indexKey = absoluteName + INDEX_KEY_SUFFIX;
                         var refFormMap = currentRefForm != null
-                                ? Map.<String, ReferenceFormulation>of(absoluteName, currentRefForm)
+                                ? Map.of(absoluteName, currentRefForm)
                                 : Map.<String, ReferenceFormulation>of();
-                        return values.stream()
-                                .map(v -> new EvaluatedValues(Map.of(absoluteName, v), refFormMap))
+                        return IntStream.range(0, values.size())
+                                .mapToObj(i -> new EvaluatedValues(
+                                        Map.of(absoluteName, values.get(i), indexKey, i), refFormMap))
                                 .toList();
                     } else if (field instanceof IterableField itf) {
                         return evaluateIterableField(itf, exprEval, currentRefForm, prefix, factoryResolver);
@@ -249,12 +261,20 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
 
         var subPrefix = prefix + field.getFieldName() + ".";
 
+        var iterableIndexKey = prefix + field.getFieldName() + INDEX_KEY_SUFFIX;
+
         var effectiveNestedRefForm = nestedRefForm;
-        return subRecords.stream()
-                .flatMap(subRecord -> {
-                    var subExprEval = nestedFactory.apply(subRecord);
+        return IntStream.range(0, subRecords.size())
+                .boxed()
+                .flatMap(i -> {
+                    var subExprEval = nestedFactory.apply(subRecords.get(i));
                     return evaluateFields(nestedFields, subExprEval, effectiveNestedRefForm, subPrefix, factoryResolver)
-                            .stream();
+                            .stream()
+                            .map(ev -> {
+                                var mergedValues = new LinkedHashMap<>(ev.values());
+                                mergedValues.put(iterableIndexKey, i);
+                                return new EvaluatedValues(mergedValues, ev.referenceFormulations());
+                            });
                 })
                 .toList();
     }
