@@ -3,11 +3,14 @@ package io.carml.engine;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
+import io.carml.logicalview.DedupStrategy;
 import io.carml.model.ExpressionField;
 import io.carml.model.IterableField;
 import io.carml.model.LogicalSource;
@@ -47,6 +50,7 @@ class MappingResolverTest {
         lenient().when(logicalView.getLeftJoins()).thenReturn(Set.of());
         lenient().when(logicalView.getInnerJoins()).thenReturn(Set.of());
         lenient().when(logicalView.getStructuralAnnotations()).thenReturn(Set.of());
+        lenient().when(triplesMap.getReferenceExpressionSet()).thenReturn(Set.of());
     }
 
     // --- resolve(Set) entry point ---
@@ -297,5 +301,143 @@ class MappingResolverTest {
         var parentOrigin = result.get(0).getFieldOrigin("location");
         assertThat(parentOrigin.isPresent(), is(true));
         assertThat(parentOrigin.get().getOriginalExpression(), is("location"));
+    }
+
+    // --- EvaluationContext: explicit view ---
+
+    @Test
+    void resolve_givenExplicitView_evaluationContextIsNonNull() {
+        when(triplesMap.getLogicalSource()).thenReturn(logicalView);
+        when(triplesMap.getReferenceExpressionSet()).thenReturn(Set.of());
+
+        var result = MappingResolver.resolve(Set.of(triplesMap));
+
+        assertThat(result.get(0).getEvaluationContext(), is(notNullValue()));
+    }
+
+    @Test
+    void resolve_givenExplicitView_projectedFieldsMatchReferenceExpressionSet() {
+        when(triplesMap.getLogicalSource()).thenReturn(logicalView);
+        when(triplesMap.getReferenceExpressionSet()).thenReturn(Set.of("name", "age"));
+
+        var result = MappingResolver.resolve(Set.of(triplesMap));
+
+        assertThat(result.get(0).getEvaluationContext().getProjectedFields(), is(Set.of("name", "age")));
+    }
+
+    @Test
+    void resolve_givenExplicitViewWithNoReferences_projectedFieldsAreEmpty() {
+        when(triplesMap.getLogicalSource()).thenReturn(logicalView);
+        when(triplesMap.getReferenceExpressionSet()).thenReturn(Set.of());
+
+        var result = MappingResolver.resolve(Set.of(triplesMap));
+
+        assertThat(result.get(0).getEvaluationContext().getProjectedFields(), is(empty()));
+    }
+
+    @Test
+    void resolve_givenExplicitView_dedupStrategyIsNone() {
+        when(triplesMap.getLogicalSource()).thenReturn(logicalView);
+        when(triplesMap.getReferenceExpressionSet()).thenReturn(Set.of());
+
+        var result = MappingResolver.resolve(Set.of(triplesMap));
+
+        assertThat(
+                result.get(0).getEvaluationContext().getDedupStrategy(),
+                is(instanceOf(DedupStrategy.none().getClass())));
+    }
+
+    @Test
+    void resolve_givenExplicitView_limitIsEmpty() {
+        when(triplesMap.getLogicalSource()).thenReturn(logicalView);
+        when(triplesMap.getReferenceExpressionSet()).thenReturn(Set.of());
+
+        var result = MappingResolver.resolve(Set.of(triplesMap));
+
+        assertThat(result.get(0).getEvaluationContext().getLimit().isPresent(), is(false));
+    }
+
+    @Test
+    void resolve_givenExplicitView_joinWindowDurationIsEmpty() {
+        when(triplesMap.getLogicalSource()).thenReturn(logicalView);
+        when(triplesMap.getReferenceExpressionSet()).thenReturn(Set.of());
+
+        var result = MappingResolver.resolve(Set.of(triplesMap));
+
+        assertThat(result.get(0).getEvaluationContext().getJoinWindowDuration().isPresent(), is(false));
+    }
+
+    @Test
+    void resolve_givenExplicitView_joinWindowCountIsEmpty() {
+        when(triplesMap.getLogicalSource()).thenReturn(logicalView);
+        when(triplesMap.getReferenceExpressionSet()).thenReturn(Set.of());
+
+        var result = MappingResolver.resolve(Set.of(triplesMap));
+
+        assertThat(result.get(0).getEvaluationContext().getJoinWindowCount().isPresent(), is(false));
+    }
+
+    // --- EvaluationContext: implicit view ---
+
+    @Test
+    void resolve_givenImplicitView_evaluationContextIsNonNull() {
+        when(triplesMap.getLogicalSource()).thenReturn(logicalSource);
+        when(triplesMap.getReferenceExpressionSet()).thenReturn(Set.of());
+
+        var result = MappingResolver.resolve(Set.of(triplesMap));
+
+        assertThat(result.get(0).getEvaluationContext(), is(notNullValue()));
+    }
+
+    @Test
+    void resolve_givenImplicitView_projectedFieldsAreEmpty() {
+        when(triplesMap.getLogicalSource()).thenReturn(logicalSource);
+        when(triplesMap.getReferenceExpressionSet()).thenReturn(Set.of("$.name", "$.age"));
+
+        var result = MappingResolver.resolve(Set.of(triplesMap));
+
+        assertThat(result.get(0).getEvaluationContext().getProjectedFields(), is(empty()));
+    }
+
+    @Test
+    void resolve_givenImplicitView_dedupStrategyIsNone() {
+        when(triplesMap.getLogicalSource()).thenReturn(logicalSource);
+        when(triplesMap.getReferenceExpressionSet()).thenReturn(Set.of());
+
+        var result = MappingResolver.resolve(Set.of(triplesMap));
+
+        assertThat(
+                result.get(0).getEvaluationContext().getDedupStrategy(),
+                is(instanceOf(DedupStrategy.none().getClass())));
+    }
+
+    @Test
+    void resolve_givenImplicitView_limitIsEmpty() {
+        when(triplesMap.getLogicalSource()).thenReturn(logicalSource);
+        when(triplesMap.getReferenceExpressionSet()).thenReturn(Set.of());
+
+        var result = MappingResolver.resolve(Set.of(triplesMap));
+
+        assertThat(result.get(0).getEvaluationContext().getLimit().isPresent(), is(false));
+    }
+
+    @Test
+    void resolve_givenImplicitView_joinWindowDurationIsEmpty() {
+        when(triplesMap.getLogicalSource()).thenReturn(logicalSource);
+        when(triplesMap.getReferenceExpressionSet()).thenReturn(Set.of());
+
+        var result = MappingResolver.resolve(Set.of(triplesMap));
+
+        assertThat(result.get(0).getEvaluationContext().getJoinWindowDuration().isPresent(), is(false));
+    }
+
+    @Test
+    void resolve_givenImplicitView_joinWindowCountIsEmpty() {
+        when(triplesMap.getLogicalSource()).thenReturn(logicalSource);
+        when(triplesMap.getReferenceExpressionSet()).thenReturn(Set.of());
+
+        var result = MappingResolver.resolve(Set.of(triplesMap));
+
+        assertThat(result.get(0).getEvaluationContext().getJoinWindowCount().isPresent(), is(false));
     }
 }

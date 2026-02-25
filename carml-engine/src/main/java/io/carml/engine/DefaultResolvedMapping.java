@@ -1,5 +1,6 @@
 package io.carml.engine;
 
+import io.carml.logicalview.EvaluationContext;
 import io.carml.model.LogicalView;
 import io.carml.model.TriplesMap;
 import java.util.Map;
@@ -28,6 +29,9 @@ class DefaultResolvedMapping implements ResolvedMapping {
     private final LogicalView effectiveView;
 
     private final boolean implicitView;
+
+    @NonNull
+    private final EvaluationContext evaluationContext;
 
     @NonNull
     @Getter(lombok.AccessLevel.NONE)

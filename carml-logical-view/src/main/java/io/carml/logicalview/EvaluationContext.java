@@ -1,6 +1,7 @@
 package io.carml.logicalview;
 
 import java.time.Duration;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -54,5 +55,19 @@ public interface EvaluationContext {
      */
     static EvaluationContext defaults() {
         return DefaultEvaluationContext.builder().build();
+    }
+
+    /**
+     * Creates an evaluation context that projects only the given fields. All other parameters
+     * (dedup strategy, join window, limit) use their defaults.
+     *
+     * @param projectedFields the field names to project; an empty set means all fields
+     * @return a new evaluation context with the specified projected fields
+     */
+    static EvaluationContext withProjectedFields(Set<String> projectedFields) {
+        Objects.requireNonNull(projectedFields, "projectedFields must not be null");
+        return DefaultEvaluationContext.builder()
+                .projectedFields(Set.copyOf(projectedFields))
+                .build();
     }
 }

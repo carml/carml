@@ -1,5 +1,6 @@
 package io.carml.engine;
 
+import io.carml.logicalview.EvaluationContext;
 import io.carml.model.LogicalView;
 import io.carml.model.TriplesMap;
 import java.util.Map;
@@ -23,18 +24,21 @@ public interface ResolvedMapping {
      * @param implicitView whether the effective view was synthetically derived from a bare
      *     LogicalSource
      * @param fieldOrigins mapping from field names to their provenance information
+     * @param evaluationContext the evaluation context controlling field projection and limits
      * @return a new ResolvedMapping instance
      */
     static ResolvedMapping of(
             TriplesMap originalTriplesMap,
             LogicalView effectiveView,
             boolean implicitView,
-            Map<String, FieldOrigin> fieldOrigins) {
+            Map<String, FieldOrigin> fieldOrigins,
+            EvaluationContext evaluationContext) {
         return DefaultResolvedMapping.builder()
                 .originalTriplesMap(originalTriplesMap)
                 .effectiveView(effectiveView)
                 .implicitView(implicitView)
                 .fieldOrigins(fieldOrigins)
+                .evaluationContext(evaluationContext)
                 .build();
     }
 
@@ -54,6 +58,12 @@ public interface ResolvedMapping {
      * LogicalSource.
      */
     boolean isImplicitView();
+
+    /**
+     * The evaluation context controlling field projection, deduplication, and result limiting for
+     * this mapping.
+     */
+    EvaluationContext getEvaluationContext();
 
     /**
      * Get the origin of a field in the effective view. Used to produce user-facing error messages

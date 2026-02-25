@@ -1,5 +1,6 @@
 package io.carml.engine;
 
+import io.carml.logicalview.EvaluationContext;
 import io.carml.logicalview.ImplicitViewFactory;
 import io.carml.model.ExpressionField;
 import io.carml.model.Field;
@@ -50,13 +51,15 @@ public final class MappingResolver {
 
     private static ResolvedMapping resolveExplicit(TriplesMap triplesMap, LogicalView logicalView) {
         var fieldOrigins = buildFieldOrigins(triplesMap, logicalView);
-        return ResolvedMapping.of(triplesMap, logicalView, false, fieldOrigins);
+        var evaluationContext = EvaluationContext.withProjectedFields(triplesMap.getReferenceExpressionSet());
+        return ResolvedMapping.of(triplesMap, logicalView, false, fieldOrigins, evaluationContext);
     }
 
     private static ResolvedMapping resolveImplicit(TriplesMap triplesMap) {
         var syntheticView = ImplicitViewFactory.wrap(triplesMap);
         var fieldOrigins = buildFieldOrigins(triplesMap, syntheticView);
-        return ResolvedMapping.of(triplesMap, syntheticView, true, fieldOrigins);
+        var evaluationContext = EvaluationContext.withProjectedFields(Set.of());
+        return ResolvedMapping.of(triplesMap, syntheticView, true, fieldOrigins, evaluationContext);
     }
 
     /**
