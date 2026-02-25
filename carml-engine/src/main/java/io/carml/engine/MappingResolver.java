@@ -3,8 +3,13 @@ package io.carml.engine;
 import io.carml.logicalview.EvaluationContext;
 import io.carml.logicalview.ImplicitViewFactory;
 import io.carml.model.ExpressionField;
+import io.carml.model.ExpressionMap;
 import io.carml.model.Field;
 import io.carml.model.LogicalView;
+import io.carml.model.ObjectMap;
+import io.carml.model.PredicateObjectMap;
+import io.carml.model.RefObjectMap;
+import io.carml.model.TermMap;
 import io.carml.model.TriplesMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -57,7 +62,8 @@ public final class MappingResolver {
 
     private static ResolvedMapping resolveImplicit(TriplesMap triplesMap) {
         var syntheticView = ImplicitViewFactory.wrap(triplesMap);
-        var fieldOrigins = buildFieldOrigins(triplesMap, syntheticView);
+        var expressionToTermMap = buildExpressionToTermMap(triplesMap);
+        var fieldOrigins = buildFieldOrigins(triplesMap, syntheticView, expressionToTermMap);
         var evaluationContext = EvaluationContext.withProjectedFields(Set.of());
         return ResolvedMapping.of(triplesMap, syntheticView, true, fieldOrigins, evaluationContext);
     }
@@ -67,8 +73,13 @@ public final class MappingResolver {
      * collect all leaf and intermediate fields.
      */
     private static Map<String, FieldOrigin> buildFieldOrigins(TriplesMap triplesMap, LogicalView view) {
+        return buildFieldOrigins(triplesMap, view, Map.of());
+    }
+
+    private static Map<String, FieldOrigin> buildFieldOrigins(
+            TriplesMap triplesMap, LogicalView view, Map<String, TermMap> expressionToTermMap) {
         var origins = new LinkedHashMap<String, FieldOrigin>();
-        collectFieldOrigins(triplesMap, view.getFields(), "", origins);
+        collectFieldOrigins(triplesMap, view.getFields(), "", origins, expressionToTermMap);
         return origins;
     }
 
@@ -78,7 +89,11 @@ public final class MappingResolver {
      * {@code DefaultLogicalViewEvaluator}'s field key collection.
      */
     private static void collectFieldOrigins(
-            TriplesMap triplesMap, Set<Field> fields, String prefix, Map<String, FieldOrigin> origins) {
+            TriplesMap triplesMap,
+            Set<Field> fields,
+            String prefix,
+            Map<String, FieldOrigin> origins,
+            Map<String, TermMap> expressionToTermMap) {
         if (fields == null) {
             return;
         }
@@ -90,9 +105,63 @@ public final class MappingResolver {
                 originalExpression = exprField.getReference();
             }
 
-            origins.put(absoluteName, FieldOrigin.of(originalExpression, triplesMap, field));
+            var termMap = expressionToTermMap.get(originalExpression);
+            if (termMap != null) {
+                origins.put(absoluteName, FieldOrigin.of(originalExpression, termMap, triplesMap, field));
+            } else {
+                origins.put(absoluteName, FieldOrigin.of(originalExpression, triplesMap, field));
+            }
 
-            collectFieldOrigins(triplesMap, field.getFields(), absoluteName, origins);
+            collectFieldOrigins(triplesMap, field.getFields(), absoluteName, origins, expressionToTermMap);
+        }
+    }
+
+    /**
+     * Builds a mapping from reference expressions to the TermMap that contributed them. Walks all
+     * SubjectMaps, PredicateMaps, ObjectMaps, GraphMaps, and join ChildMaps. When multiple TermMaps
+     * share an expression, the first one encountered wins.
+     */
+    private static Map<String, TermMap> buildExpressionToTermMap(TriplesMap triplesMap) {
+        var result = new LinkedHashMap<String, TermMap>();
+
+        for (var subjectMap : triplesMap.getSubjectMaps()) {
+            collectExpressionMapTermMap(subjectMap, result);
+            for (var graphMap : subjectMap.getGraphMaps()) {
+                collectExpressionMapTermMap(graphMap, result);
+            }
+        }
+
+        for (var pom : triplesMap.getPredicateObjectMaps()) {
+            collectPredicateObjectMapTermMaps(pom, result);
+        }
+
+        return result;
+    }
+
+    private static void collectPredicateObjectMapTermMaps(PredicateObjectMap pom, Map<String, TermMap> result) {
+        for (var predicateMap : pom.getPredicateMaps()) {
+            collectExpressionMapTermMap(predicateMap, result);
+        }
+        for (var objectMap : pom.getObjectMaps()) {
+            if (objectMap instanceof ObjectMap om) {
+                collectExpressionMapTermMap(om, result);
+            } else if (objectMap instanceof RefObjectMap rom) {
+                for (var join : rom.getJoinConditions()) {
+                    collectExpressionMapTermMap(join.getChildMap(), result);
+                }
+            }
+        }
+        for (var graphMap : pom.getGraphMaps()) {
+            collectExpressionMapTermMap(graphMap, result);
+        }
+    }
+
+    private static void collectExpressionMapTermMap(ExpressionMap expressionMap, Map<String, TermMap> result) {
+        var termMap = expressionMap instanceof TermMap tm ? tm : null;
+        for (var expression : expressionMap.getExpressionMapExpressionSet()) {
+            if (termMap != null) {
+                result.putIfAbsent(expression, termMap);
+            }
         }
     }
 }

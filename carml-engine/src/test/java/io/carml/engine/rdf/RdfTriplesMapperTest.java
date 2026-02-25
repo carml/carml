@@ -5,7 +5,9 @@ import static org.eclipse.rdf4j.model.util.Values.bnode;
 import static org.eclipse.rdf4j.model.util.Values.getValueFactory;
 import static org.eclipse.rdf4j.model.util.Values.iri;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -16,8 +18,10 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.carml.engine.FieldOrigin;
 import io.carml.engine.MappedValue;
 import io.carml.engine.MappingResult;
+import io.carml.engine.ResolvedMapping;
 import io.carml.engine.TermGenerator;
 import io.carml.engine.TriplesMapperException;
 import io.carml.engine.join.ChildSideJoinStoreProvider;
@@ -28,6 +32,7 @@ import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.logicalsourceresolver.LogicalSourceRecord;
 import io.carml.logicalsourceresolver.LogicalSourceResolver;
 import io.carml.logicalview.ViewIteration;
+import io.carml.model.Field;
 import io.carml.model.GraphMap;
 import io.carml.model.Join;
 import io.carml.model.LogicalTable;
@@ -643,5 +648,200 @@ class RdfTriplesMapperTest {
 
         // Then — validate must not produce a false-positive NonExistentReferenceException
         StepVerifier.create(rdfTriplesMapper.validate()).verifyComplete();
+    }
+
+    @Test
+    void givenImplicitViewResolvedMapping_whenMapViewIterationThrows_thenErrorEnrichedWithImplicitContext() {
+        // Given
+        when(viewIteration.getKeys()).thenReturn(Set.of("validKey"));
+        when(viewIteration.getIndex()).thenReturn(0);
+
+        var field = mock(Field.class);
+        var fieldOrigin = FieldOrigin.of("$.name", triplesMap, field);
+        when(triplesMap.getResourceName()).thenReturn(":studentMapping");
+
+        var resolvedMapping = mock(ResolvedMapping.class);
+        when(resolvedMapping.isImplicitView()).thenReturn(true);
+        when(resolvedMapping.getFieldOrigin("nonExistentKey")).thenReturn(Optional.of(fieldOrigin));
+
+        // The subjectGenerator will call apply("nonExistentKey") on the expression evaluation,
+        // which triggers the enriching decorator. The exception propagates synchronously through
+        // mapEvaluation's stream collection, so map(ViewIteration) throws directly.
+        when(subjectGenerator.apply(any(), any())).thenAnswer(invocation -> {
+            ExpressionEvaluation eval = invocation.getArgument(0);
+            eval.apply("nonExistentKey");
+            return List.of();
+        });
+
+        var rdfMapperConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
+                .valueFactorySupplier(Values::getValueFactory)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .childSideJoinStoreProvider(childSideJoinStoreProvider)
+                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
+                .build();
+
+        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
+                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+        rdfTriplesMapper.setResolvedMapping(resolvedMapping);
+
+        // When
+        var exception = assertThrows(TriplesMapperException.class, () -> rdfTriplesMapper.map(viewIteration));
+
+        // Then
+        assertThat(exception.getMessage(), is("Error evaluating reference '$.name' in TriplesMap :studentMapping"));
+        assertThat(exception.getCause(), is(not(nullValue())));
+        assertThat(exception.getCause().getMessage(), containsString("nonExistentKey"));
+    }
+
+    @Test
+    void givenFieldOriginWithTermMap_whenMapViewIterationThrows_thenErrorIncludesTermMapDescription() {
+        // Given
+        when(viewIteration.getKeys()).thenReturn(Set.of("validKey"));
+        when(viewIteration.getIndex()).thenReturn(0);
+
+        var originatingSubjectMap = mock(SubjectMap.class);
+        when(originatingSubjectMap.getAsResource()).thenReturn(iri("http://example.org/subjectMap1"));
+        when(triplesMap.asRdf()).thenReturn(new org.eclipse.rdf4j.model.impl.LinkedHashModel());
+
+        var field = mock(Field.class);
+        var fieldOrigin = FieldOrigin.of("$.name", originatingSubjectMap, triplesMap, field);
+
+        var resolvedMapping = mock(ResolvedMapping.class);
+        when(resolvedMapping.isImplicitView()).thenReturn(true);
+        when(resolvedMapping.getFieldOrigin("nonExistentKey")).thenReturn(Optional.of(fieldOrigin));
+
+        when(subjectGenerator.apply(any(), any())).thenAnswer(invocation -> {
+            ExpressionEvaluation eval = invocation.getArgument(0);
+            eval.apply("nonExistentKey");
+            return List.of();
+        });
+
+        var rdfMapperConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
+                .valueFactorySupplier(Values::getValueFactory)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .childSideJoinStoreProvider(childSideJoinStoreProvider)
+                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
+                .build();
+
+        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
+                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+        rdfTriplesMapper.setResolvedMapping(resolvedMapping);
+
+        // When
+        var exception = assertThrows(TriplesMapperException.class, () -> rdfTriplesMapper.map(viewIteration));
+
+        // Then — error message includes the bounded TermMap description from LogUtil.exception()
+        assertThat(exception.getMessage(), startsWith("Error evaluating reference '$.name' in "));
+        assertThat(exception.getMessage(), containsString("http://example.org/subjectMap1"));
+        assertThat(exception.getCause(), is(not(nullValue())));
+    }
+
+    @Test
+    void givenExplicitViewResolvedMapping_whenMapViewIterationThrows_thenErrorEnrichedWithExplicitContext() {
+        // Given
+        when(viewIteration.getKeys()).thenReturn(Set.of("validKey"));
+        when(viewIteration.getIndex()).thenReturn(0);
+
+        var field = mock(Field.class);
+        var fieldOrigin = FieldOrigin.of("$.name", triplesMap, field);
+        when(triplesMap.getResourceName()).thenReturn(":studentMapping");
+
+        var resolvedMapping = mock(ResolvedMapping.class);
+        when(resolvedMapping.isImplicitView()).thenReturn(false);
+        when(resolvedMapping.getFieldOrigin("name")).thenReturn(Optional.of(fieldOrigin));
+
+        when(subjectGenerator.apply(any(), any())).thenAnswer(invocation -> {
+            ExpressionEvaluation eval = invocation.getArgument(0);
+            eval.apply("name");
+            return List.of();
+        });
+
+        var rdfMapperConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
+                .valueFactorySupplier(Values::getValueFactory)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .childSideJoinStoreProvider(childSideJoinStoreProvider)
+                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
+                .build();
+
+        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
+                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+        rdfTriplesMapper.setResolvedMapping(resolvedMapping);
+
+        // When
+        var exception = assertThrows(TriplesMapperException.class, () -> rdfTriplesMapper.map(viewIteration));
+
+        // Then
+        assertThat(
+                exception.getMessage(),
+                is("Error evaluating field 'name' (reference '$.name') in TriplesMap :studentMapping"));
+        assertThat(exception.getCause(), is(not(nullValue())));
+        assertThat(exception.getCause().getMessage(), containsString("name"));
+    }
+
+    @Test
+    void givenNoResolvedMapping_whenMapViewIterationThrows_thenOriginalErrorPropagated() {
+        // Given — resolvedMapping is NOT set (null by default)
+        when(viewIteration.getKeys()).thenReturn(Set.of("validKey"));
+        when(viewIteration.getIndex()).thenReturn(0);
+
+        when(subjectGenerator.apply(any(), any())).thenAnswer(invocation -> {
+            ExpressionEvaluation eval = invocation.getArgument(0);
+            // Reference a key that does not exist in the view iteration keys,
+            // which causes ViewIterationExpressionEvaluation to throw.
+            eval.apply("nonExistentKey");
+            return List.of();
+        });
+
+        var rdfMapperConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
+                .valueFactorySupplier(Values::getValueFactory)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .childSideJoinStoreProvider(childSideJoinStoreProvider)
+                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
+                .build();
+
+        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
+                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+
+        // When & Then — the original error propagates unchanged (not a TriplesMapperException)
+        var exception = assertThrows(RuntimeException.class, () -> rdfTriplesMapper.map(viewIteration));
+        assertThat(exception, is(not(instanceOf(TriplesMapperException.class))));
+        assertThat(exception.getMessage(), containsString("nonExistentKey"));
+    }
+
+    @Test
+    void givenResolvedMappingWithNoFieldOrigin_whenMapViewIterationThrows_thenOriginalErrorPropagated() {
+        // Given — resolvedMapping is set but has no matching FieldOrigin for the expression
+        when(viewIteration.getKeys()).thenReturn(Set.of("validKey"));
+        when(viewIteration.getIndex()).thenReturn(0);
+
+        var resolvedMapping = mock(ResolvedMapping.class);
+        when(resolvedMapping.getFieldOrigin("nonExistentKey")).thenReturn(Optional.empty());
+
+        when(subjectGenerator.apply(any(), any())).thenAnswer(invocation -> {
+            ExpressionEvaluation eval = invocation.getArgument(0);
+            eval.apply("nonExistentKey");
+            return List.of();
+        });
+
+        var rdfMapperConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
+                .valueFactorySupplier(Values::getValueFactory)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .childSideJoinStoreProvider(childSideJoinStoreProvider)
+                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
+                .build();
+
+        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
+                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+        rdfTriplesMapper.setResolvedMapping(resolvedMapping);
+
+        // When & Then — no FieldOrigin match, so original error propagates unchanged
+        var exception = assertThrows(RuntimeException.class, () -> rdfTriplesMapper.map(viewIteration));
+        assertThat(exception, is(not(instanceOf(TriplesMapperException.class))));
+        assertThat(exception.getMessage(), containsString("nonExistentKey"));
     }
 }

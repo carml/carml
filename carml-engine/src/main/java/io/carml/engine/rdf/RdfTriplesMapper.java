@@ -4,10 +4,12 @@ import static io.carml.util.LogUtil.exception;
 import static io.carml.vocab.Rdf.Rr;
 import static java.util.stream.Collectors.toUnmodifiableSet;
 
+import io.carml.engine.FieldOrigin;
 import io.carml.engine.MappedValue;
 import io.carml.engine.MappingResult;
 import io.carml.engine.NonExistentReferenceException;
 import io.carml.engine.RefObjectMapper;
+import io.carml.engine.ResolvedMapping;
 import io.carml.engine.TermGenerator;
 import io.carml.engine.TriplesMapper;
 import io.carml.engine.TriplesMapperException;
@@ -84,6 +86,8 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
     private volatile boolean recordsProcessed;
 
     private volatile boolean viewIterationUsed;
+
+    private ResolvedMapping resolvedMapping;
 
     private RdfTriplesMapper(
             @NonNull TriplesMap triplesMap,
@@ -211,6 +215,18 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
         return parentSideJoinConditions;
     }
 
+    /**
+     * Associates this mapper with a {@link ResolvedMapping} for error context enrichment. When set,
+     * errors from {@link #map(ViewIteration)} are enriched with {@link FieldOrigin} provenance
+     * information, producing user-facing error messages that reference the original mapping
+     * constructs.
+     *
+     * @param resolvedMapping the resolved mapping providing field origin context
+     */
+    void setResolvedMapping(ResolvedMapping resolvedMapping) {
+        this.resolvedMapping = resolvedMapping;
+    }
+
     @Override
     @SuppressWarnings("unchecked")
     public Flux<MappingResult<Statement>> map(LogicalSourceRecord<?> logicalSourceRecord) {
@@ -230,8 +246,44 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
         viewIterationUsed = true;
         // Strict mode tracking is not applied here — ViewIterationExpressionEvaluation validates
         // referenced keys eagerly in apply(), so unmatched references are caught immediately.
-        var expressionEvaluation = new ViewIterationExpressionEvaluation(viewIteration, viewIteration.getKeys());
+        var baseEvaluation = new ViewIterationExpressionEvaluation(viewIteration, viewIteration.getKeys());
+        var expressionEvaluation = resolvedMapping != null ? enrichingEvaluation(baseEvaluation) : baseEvaluation;
         return mapEvaluation(expressionEvaluation, null);
+    }
+
+    private ExpressionEvaluation enrichingEvaluation(ExpressionEvaluation baseEvaluation) {
+        return expression -> {
+            try {
+                return baseEvaluation.apply(expression);
+            } catch (RuntimeException ex) {
+                throw enrichError(ex, expression);
+            }
+        };
+    }
+
+    private RuntimeException enrichError(RuntimeException original, String expression) {
+        var origin = resolvedMapping.getFieldOrigin(expression);
+        if (origin.isEmpty()) {
+            return original;
+        }
+
+        var fieldOrigin = origin.get();
+        var originatingTriplesMap = fieldOrigin.getOriginatingTriplesMap();
+
+        var location = fieldOrigin
+                .getOriginatingTermMap()
+                .map(termMap -> exception(originatingTriplesMap, termMap))
+                .orElse("TriplesMap %s".formatted(originatingTriplesMap.getResourceName()));
+
+        String message;
+        if (resolvedMapping.isImplicitView()) {
+            message = "Error evaluating reference '%s' in %s".formatted(fieldOrigin.getOriginalExpression(), location);
+        } else {
+            message = "Error evaluating field '%s' (reference '%s') in %s"
+                    .formatted(expression, fieldOrigin.getOriginalExpression(), location);
+        }
+
+        return new TriplesMapperException(message, original);
     }
 
     @Override

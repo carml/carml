@@ -8,6 +8,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.carml.logicalview.DedupStrategy;
@@ -15,6 +16,9 @@ import io.carml.model.ExpressionField;
 import io.carml.model.IterableField;
 import io.carml.model.LogicalSource;
 import io.carml.model.LogicalView;
+import io.carml.model.ObjectMap;
+import io.carml.model.PredicateObjectMap;
+import io.carml.model.SubjectMap;
 import io.carml.model.TriplesMap;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
@@ -439,5 +443,69 @@ class MappingResolverTest {
         var result = MappingResolver.resolve(Set.of(triplesMap));
 
         assertThat(result.get(0).getEvaluationContext().getJoinWindowCount().isPresent(), is(false));
+    }
+
+    // --- FieldOrigin: TermMap association for implicit views ---
+
+    @Test
+    void resolve_givenImplicitViewWithSubjectMapReference_fieldOriginCarriesSubjectMapAsTermMap() {
+        var subjectMap = mock(SubjectMap.class);
+        when(subjectMap.getExpressionMapExpressionSet()).thenReturn(Set.of("$.name"));
+        when(subjectMap.getGraphMaps()).thenReturn(Set.of());
+
+        when(triplesMap.getLogicalSource()).thenReturn(logicalSource);
+        when(triplesMap.getSubjectMaps()).thenReturn(Set.of(subjectMap));
+        when(triplesMap.getPredicateObjectMaps()).thenReturn(Set.of());
+        when(triplesMap.getReferenceExpressionSet()).thenReturn(Set.of("$.name"));
+
+        var result = MappingResolver.resolve(Set.of(triplesMap));
+
+        var origin = result.get(0).getFieldOrigin("$.name");
+        assertThat(origin.isPresent(), is(true));
+        assertThat(origin.get().getOriginatingTermMap().isPresent(), is(true));
+        assertThat(origin.get().getOriginatingTermMap().get(), is(sameInstance(subjectMap)));
+    }
+
+    @Test
+    void resolve_givenImplicitViewWithObjectMapReference_fieldOriginCarriesObjectMapAsTermMap() {
+        var subjectMap = mock(SubjectMap.class);
+        when(subjectMap.getExpressionMapExpressionSet()).thenReturn(Set.of());
+        when(subjectMap.getGraphMaps()).thenReturn(Set.of());
+
+        var objectMap = mock(ObjectMap.class);
+        when(objectMap.getExpressionMapExpressionSet()).thenReturn(Set.of("$.age"));
+
+        var pom = mock(PredicateObjectMap.class);
+        when(pom.getPredicateMaps()).thenReturn(Set.of());
+        when(pom.getObjectMaps()).thenReturn(Set.of(objectMap));
+        when(pom.getGraphMaps()).thenReturn(Set.of());
+
+        when(triplesMap.getLogicalSource()).thenReturn(logicalSource);
+        when(triplesMap.getSubjectMaps()).thenReturn(Set.of(subjectMap));
+        when(triplesMap.getPredicateObjectMaps()).thenReturn(Set.of(pom));
+        when(triplesMap.getReferenceExpressionSet()).thenReturn(Set.of("$.age"));
+
+        var result = MappingResolver.resolve(Set.of(triplesMap));
+
+        var origin = result.get(0).getFieldOrigin("$.age");
+        assertThat(origin.isPresent(), is(true));
+        assertThat(origin.get().getOriginatingTermMap().isPresent(), is(true));
+        assertThat(origin.get().getOriginatingTermMap().get(), is(sameInstance(objectMap)));
+    }
+
+    @Test
+    void resolve_givenExplicitView_fieldOriginHasNoTermMap() {
+        when(triplesMap.getLogicalSource()).thenReturn(logicalView);
+        when(expressionField.getFieldName()).thenReturn("name");
+        when(expressionField.getReference()).thenReturn("$.name");
+        when(expressionField.getFields()).thenReturn(Set.of());
+        when(logicalView.getFields()).thenReturn(Set.of(expressionField));
+        when(triplesMap.getReferenceExpressionSet()).thenReturn(Set.of("name"));
+
+        var result = MappingResolver.resolve(Set.of(triplesMap));
+
+        var origin = result.get(0).getFieldOrigin("name");
+        assertThat(origin.isPresent(), is(true));
+        assertThat(origin.get().getOriginatingTermMap().isPresent(), is(false));
     }
 }

@@ -348,6 +348,17 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
             var mappingPipeline = pipelineFactory.getMappingPipeline(
                     mappableTriplesMaps, rdfMapperConfig, matchingLogicalSourceResolverFactories);
 
+            // Wire each TriplesMapper with its corresponding ResolvedMapping for error context
+            // enrichment via FieldOrigin provenance.
+            for (var resolvedMapping : resolvedMappings) {
+                mappingPipeline.getTriplesMappers().stream()
+                        .filter(RdfTriplesMapper.class::isInstance)
+                        .map(RdfTriplesMapper.class::cast)
+                        .filter(rtm -> rtm.getTriplesMap().equals(resolvedMapping.getOriginalTriplesMap()))
+                        .findFirst()
+                        .ifPresent(rtm -> rtm.setResolvedMapping(resolvedMapping));
+            }
+
             sourceResolvers.add(fileResolverBuilder.build());
 
             if (databaseConnectionOptions != null) {
