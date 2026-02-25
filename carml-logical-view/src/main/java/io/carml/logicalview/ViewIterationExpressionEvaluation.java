@@ -17,7 +17,7 @@ import org.eclipse.rdf4j.model.IRI;
  * Non-referenceable keys (the root {@code <it>} key and iterable record keys) and non-existing keys
  * are rejected with a descriptive error message.
  */
-class ViewIterationExpressionEvaluation implements ExpressionEvaluation {
+public class ViewIterationExpressionEvaluation implements ExpressionEvaluation {
 
     static final String IT_KEY = "<it>";
 
@@ -25,7 +25,7 @@ class ViewIterationExpressionEvaluation implements ExpressionEvaluation {
 
     private final Set<String> referenceableKeys;
 
-    ViewIterationExpressionEvaluation(ViewIteration iteration, Set<String> referenceableKeys) {
+    public ViewIterationExpressionEvaluation(ViewIteration iteration, Set<String> referenceableKeys) {
         this.iteration = iteration;
         this.referenceableKeys = referenceableKeys;
     }

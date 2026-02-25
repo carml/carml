@@ -27,6 +27,7 @@ import io.carml.engine.join.impl.CarmlParentSideJoinConditionStoreProvider;
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.logicalsourceresolver.LogicalSourceRecord;
 import io.carml.logicalsourceresolver.LogicalSourceResolver;
+import io.carml.logicalview.ViewIteration;
 import io.carml.model.GraphMap;
 import io.carml.model.Join;
 import io.carml.model.LogicalTable;
@@ -167,6 +168,9 @@ class RdfTriplesMapperTest {
 
     @Mock
     private LogicalSourceRecord<?> logicalSourceRecord;
+
+    @Mock
+    private ViewIteration viewIteration;
 
     private ParentSideJoinConditionStoreProvider<MappedValue<Resource>> parentSideJoinConditionStoreProvider;
 
@@ -549,5 +553,95 @@ class RdfTriplesMapperTest {
         assertThat(
                 joinConditions.get(ParentSideJoinKey.of("bar1", "baz")),
                 is(Set.of(mappedSubject1, mappedSubject2, mappedSubject3)));
+    }
+
+    @Test
+    void givenOnlySubjectMapWithClass_whenMapViewIteration_thenReturnTypeStatement() {
+        // Given
+        var subject = iri("http://foo.bar/subject");
+        MappedValue<Resource> mappedSubject = RdfMappedValue.of(subject);
+        when(subjectGenerator.apply(any(), any())).thenReturn(List.of(mappedSubject));
+        when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
+        IRI class1 = iri("http://foo.bar/class1");
+        when(subjectMap.getClasses()).thenReturn(Set.of(class1));
+
+        when(viewIteration.getKeys()).thenReturn(Set.of("fieldName"));
+        when(viewIteration.getIndex()).thenReturn(0);
+
+        var rdfMapperConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
+                .valueFactorySupplier(Values::getValueFactory)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .childSideJoinStoreProvider(childSideJoinStoreProvider)
+                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
+                .build();
+
+        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
+                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+
+        // When
+        var statements = rdfTriplesMapper.map(viewIteration);
+
+        Predicate<MappingResult<Statement>> expectedStatement = mappedStatement -> Objects.equals(
+                statement(subject, RDF.TYPE, class1, null),
+                Mono.from(mappedStatement.getResults()).block());
+
+        // Then
+        StepVerifier.create(statements).expectNextMatches(expectedStatement).verifyComplete();
+    }
+
+    @Test
+    void givenSubjectMapThatReturnsNothing_whenMapViewIteration_thenReturnEmptyFlux() {
+        // Given
+        when(subjectGenerator.apply(any(), any())).thenReturn(List.of());
+
+        when(viewIteration.getKeys()).thenReturn(Set.of("fieldName"));
+        when(viewIteration.getIndex()).thenReturn(0);
+
+        var rdfMapperConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
+                .valueFactorySupplier(Values::getValueFactory)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .childSideJoinStoreProvider(childSideJoinStoreProvider)
+                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
+                .build();
+
+        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
+                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+
+        // When
+        var statements = rdfTriplesMapper.map(viewIteration);
+
+        // Then
+        StepVerifier.create(statements).expectNextCount(0).verifyComplete();
+    }
+
+    @Test
+    void givenStrictModeAndViewIteration_whenValidate_thenCompleteWithoutError() {
+        // Given — strict mode is active, so referenceExpressions is populated
+        when(triplesMap.getReferenceExpressionSet()).thenReturn(Set.of("name"));
+        when(subjectGenerator.apply(any(), any()))
+                .thenReturn(List.of(RdfMappedValue.of(iri("http://foo.bar/subject"))));
+
+        when(viewIteration.getKeys()).thenReturn(Set.of("name"));
+        when(viewIteration.getIndex()).thenReturn(0);
+
+        var rdfMapperConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
+                .valueFactorySupplier(Values::getValueFactory)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .childSideJoinStoreProvider(childSideJoinStoreProvider)
+                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
+                .strictMode(true)
+                .build();
+
+        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
+                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+
+        // When — map via ViewIteration path, then validate
+        StepVerifier.create(rdfTriplesMapper.map(viewIteration)).verifyComplete();
+
+        // Then — validate must not produce a false-positive NonExistentReferenceException
+        StepVerifier.create(rdfTriplesMapper.validate()).verifyComplete();
     }
 }

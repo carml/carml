@@ -17,6 +17,8 @@ import io.carml.logicalsourceresolver.DatatypeMapper;
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.logicalsourceresolver.LogicalSourceRecord;
 import io.carml.logicalsourceresolver.LogicalSourceResolver;
+import io.carml.logicalview.ViewIteration;
+import io.carml.logicalview.ViewIterationExpressionEvaluation;
 import io.carml.model.GraphMap;
 import io.carml.model.Join;
 import io.carml.model.LogicalSource;
@@ -80,6 +82,8 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
     private final Set<String> matchedExpressions;
 
     private volatile boolean recordsProcessed;
+
+    private volatile boolean viewIterationUsed;
 
     private RdfTriplesMapper(
             @NonNull TriplesMap triplesMap,
@@ -220,6 +224,17 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
     }
 
     @Override
+    public Flux<MappingResult<Statement>> map(ViewIteration viewIteration) {
+        LOG.trace("Mapping triples for view iteration {}", viewIteration.getIndex());
+        recordsProcessed = true;
+        viewIterationUsed = true;
+        // Strict mode tracking is not applied here — ViewIterationExpressionEvaluation validates
+        // referenced keys eagerly in apply(), so unmatched references are caught immediately.
+        var expressionEvaluation = new ViewIterationExpressionEvaluation(viewIteration, viewIteration.getKeys());
+        return mapEvaluation(expressionEvaluation, null);
+    }
+
+    @Override
     public Flux<MappingResult<Statement>> mapEvaluation(
             ExpressionEvaluation expressionEvaluation, DatatypeMapper datatypeMapper) {
 
@@ -292,7 +307,7 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
 
     @Override
     public Mono<Void> validate() {
-        if (!strictMode || !recordsProcessed) {
+        if (!strictMode || !recordsProcessed || viewIterationUsed) {
             return Mono.empty();
         }
 
