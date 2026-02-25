@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -135,16 +136,64 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
             }
         }
 
-        // Assign # index after all joins (so dropped/expanded iterations get correct indices)
-        var index = new AtomicInteger(0);
-        Flux<ViewIteration> iterations = evaluatedFlux.map(evaluated -> {
-            var iterationIndex = index.getAndIncrement();
-            var values = new LinkedHashMap<>(evaluated.values());
-            values.put(INDEX_KEY, iterationIndex);
-            return new DefaultViewIteration(iterationIndex, values, evaluated.referenceFormulations());
-        });
+        // Convert to ViewIteration without root # for dedup
+        Flux<ViewIteration> viewIterations =
+                evaluatedFlux.map(ev -> new DefaultViewIteration(0, ev.values(), ev.referenceFormulations()));
 
+        // Apply dedup strategy
+        var keyFields = collectDedupKeyFields(view);
+        viewIterations = context.getDedupStrategy().deduplicate(viewIterations, keyFields);
+
+        // Assign sequential # index after dedup
+        var index = new AtomicInteger(0);
+        var iterations = viewIterations.map(
+                vi -> (ViewIteration) ((DefaultViewIteration) vi).withIndex(index.getAndIncrement()));
+
+        // Apply limit
         return context.getLimit().map(iterations::take).orElse(iterations);
+    }
+
+    private Set<String> collectDedupKeyFields(LogicalView view) {
+        var keys = new LinkedHashSet<String>();
+        collectFieldKeys(view.getFields(), "", keys);
+        if (view.getLeftJoins() != null) {
+            for (var join : view.getLeftJoins()) {
+                collectJoinFieldKeys(join, keys);
+            }
+        }
+        if (view.getInnerJoins() != null) {
+            for (var join : view.getInnerJoins()) {
+                collectJoinFieldKeys(join, keys);
+            }
+        }
+        return keys;
+    }
+
+    private void collectFieldKeys(Set<Field> fields, String prefix, Set<String> keys) {
+        if (fields == null) {
+            return;
+        }
+        for (var field : fields) {
+            if (field instanceof ExpressionField expressionField) {
+                var absoluteName = prefix + expressionField.getFieldName();
+                keys.add(absoluteName);
+                keys.add(absoluteName + INDEX_KEY_SUFFIX);
+            } else if (field instanceof IterableField iterableField) {
+                var absoluteName = prefix + iterableField.getFieldName();
+                keys.add(absoluteName + INDEX_KEY_SUFFIX);
+                collectFieldKeys(iterableField.getFields(), absoluteName + ".", keys);
+            }
+        }
+    }
+
+    private void collectJoinFieldKeys(LogicalViewJoin join, Set<String> keys) {
+        if (join.getFields() == null) {
+            return;
+        }
+        for (var field : join.getFields()) {
+            keys.add(field.getFieldName());
+            keys.add(field.getFieldName() + INDEX_KEY_SUFFIX);
+        }
     }
 
     private LogicalSource resolveRootLogicalSource(AbstractLogicalSource abstractLogicalSource) {

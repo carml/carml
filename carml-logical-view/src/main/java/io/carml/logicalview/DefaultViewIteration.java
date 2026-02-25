@@ -1,6 +1,7 @@
 package io.carml.logicalview;
 
 import io.carml.model.ReferenceFormulation;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -38,5 +39,11 @@ class DefaultViewIteration implements ViewIteration {
     @Override
     public Optional<ReferenceFormulation> getFieldReferenceFormulation(String key) {
         return Optional.ofNullable(referenceFormulations.get(key));
+    }
+
+    DefaultViewIteration withIndex(int newIndex) {
+        var newValues = new LinkedHashMap<>(this.values);
+        newValues.put(DefaultLogicalViewEvaluator.INDEX_KEY, newIndex);
+        return new DefaultViewIteration(newIndex, newValues, this.referenceFormulations);
     }
 }

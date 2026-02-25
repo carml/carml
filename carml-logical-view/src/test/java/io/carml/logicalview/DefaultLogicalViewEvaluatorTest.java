@@ -330,41 +330,14 @@ class DefaultLogicalViewEvaluatorTest {
 
         var records = Flux.range(0, 5).map(i -> createRecord("record-" + i));
 
-        ExpressionEvaluation exprEval = expression -> {
+        setupMocksWithPerRecordEval(records, rec -> expression -> {
             if ("id".equals(expression)) {
-                return Optional.of("value");
+                return Optional.of("value-" + rec);
             }
             return Optional.empty();
-        };
+        });
 
-        setupMocks(records, exprEval);
-
-        var limitContext = new EvaluationContext() {
-            @Override
-            public Set<String> getProjectedFields() {
-                return Set.of();
-            }
-
-            @Override
-            public DedupStrategy getDedupStrategy() {
-                return DedupStrategy.exact();
-            }
-
-            @Override
-            public Optional<java.time.Duration> getJoinWindowDuration() {
-                return Optional.empty();
-            }
-
-            @Override
-            public Optional<Long> getJoinWindowCount() {
-                return Optional.empty();
-            }
-
-            @Override
-            public Optional<Long> getLimit() {
-                return Optional.of(3L);
-            }
-        };
+        var limitContext = DefaultEvaluationContext.builder().limit(3L).build();
 
         var iterations = evaluator
                 .evaluate(logicalView, sourceResolver, limitContext)
@@ -1675,32 +1648,7 @@ class DefaultLogicalViewEvaluatorTest {
         when(parentView.getViewOn()).thenReturn(logicalSource);
         when(logicalView.getViewOn()).thenReturn(parentView);
 
-        var limitContext = new EvaluationContext() {
-            @Override
-            public Set<String> getProjectedFields() {
-                return Set.of();
-            }
-
-            @Override
-            public DedupStrategy getDedupStrategy() {
-                return DedupStrategy.exact();
-            }
-
-            @Override
-            public Optional<java.time.Duration> getJoinWindowDuration() {
-                return Optional.empty();
-            }
-
-            @Override
-            public Optional<Long> getJoinWindowCount() {
-                return Optional.empty();
-            }
-
-            @Override
-            public Optional<Long> getLimit() {
-                return Optional.of(2L);
-            }
-        };
+        var limitContext = DefaultEvaluationContext.builder().limit(2L).build();
 
         var iterations = evaluator
                 .evaluate(logicalView, sourceResolver, limitContext)
@@ -1953,9 +1901,14 @@ class DefaultLogicalViewEvaluatorTest {
         var record2 = createRecord("record-2");
         var record3 = createRecord("record-3");
 
+        var valuesByRecord = Map.of(
+                "record-1", "alpha",
+                "record-2", "beta",
+                "record-3", "gamma");
+
         setupMocksWithPerRecordEval(Flux.just(record1, record2, record3), sourceRecord -> expression -> {
             if ("id".equals(expression)) {
-                return Optional.of("val");
+                return Optional.ofNullable(valuesByRecord.get((String) sourceRecord));
             }
             return Optional.empty();
         });
@@ -2853,5 +2806,325 @@ class DefaultLogicalViewEvaluatorTest {
         // Each parent iteration contributes a single "tags" value, so tags.# is 0 for both
         assertThat(iterations.get(0).getValue("tags.#"), is(Optional.of(0)));
         assertThat(iterations.get(1).getValue("tags.#"), is(Optional.of(0)));
+    }
+
+    // --- Deduplication tests ---
+
+    @Test
+    void givenExactDedupWithDuplicateSourceRecords_whenEvaluated_thenDuplicatesRemoved() {
+        var idField = mockExpressionField("id");
+        when(idField.getReference()).thenReturn("id");
+        var nameField = mockExpressionField("name");
+        when(nameField.getReference()).thenReturn("name");
+        when(logicalView.getFields()).thenReturn(Set.of(idField, nameField));
+
+        var rec1 = createRecord("record-1");
+        var rec2 = createRecord("record-2");
+
+        // Both records evaluate to the same field values
+        setupMocksWithPerRecordEval(Flux.just(rec1, rec2), rec -> expression -> switch (expression) {
+            case "id" -> Optional.of("1");
+            case "name" -> Optional.of("alice");
+            default -> Optional.empty();
+        });
+
+        var exactDedupContext = DefaultEvaluationContext.builder()
+                .dedupStrategy(DedupStrategy.exact())
+                .build();
+
+        var iterations = evaluator
+                .evaluate(logicalView, sourceResolver, exactDedupContext)
+                .collectList()
+                .block();
+
+        assertThat(iterations, hasSize(1));
+        assertThat(iterations.get(0).getIndex(), is(0));
+        assertThat(iterations.get(0).getValue("#"), is(Optional.of(0)));
+        assertThat(iterations.get(0).getValue("id"), is(Optional.of("1")));
+        assertThat(iterations.get(0).getValue("name"), is(Optional.of("alice")));
+    }
+
+    @Test
+    void givenExactDedupWithDistinctRecords_whenEvaluated_thenAllPreserved() {
+        var idField = mockExpressionField("id");
+        when(idField.getReference()).thenReturn("id");
+        var nameField = mockExpressionField("name");
+        when(nameField.getReference()).thenReturn("name");
+        when(logicalView.getFields()).thenReturn(Set.of(idField, nameField));
+
+        var rec1 = createRecord("record-1");
+        var rec2 = createRecord("record-2");
+
+        setupMocksWithPerRecordEval(Flux.just(rec1, rec2), rec -> expression -> {
+            if (rec == rec1.getSourceRecord()) {
+                return switch (expression) {
+                    case "id" -> Optional.of("1");
+                    case "name" -> Optional.of("alice");
+                    default -> Optional.empty();
+                };
+            }
+            return switch (expression) {
+                case "id" -> Optional.of("2");
+                case "name" -> Optional.of("bob");
+                default -> Optional.empty();
+            };
+        });
+
+        var exactDedupContext = DefaultEvaluationContext.builder()
+                .dedupStrategy(DedupStrategy.exact())
+                .build();
+
+        var iterations = evaluator
+                .evaluate(logicalView, sourceResolver, exactDedupContext)
+                .collectList()
+                .block();
+
+        assertThat(iterations, hasSize(2));
+        assertThat(iterations.get(0).getIndex(), is(0));
+        assertThat(iterations.get(0).getValue("#"), is(Optional.of(0)));
+        assertThat(iterations.get(1).getIndex(), is(1));
+        assertThat(iterations.get(1).getValue("#"), is(Optional.of(1)));
+    }
+
+    @Test
+    void givenNoneDedupWithDuplicates_whenEvaluated_thenDuplicatesPreserved() {
+        var idField = mockExpressionField("id");
+        when(idField.getReference()).thenReturn("id");
+        var nameField = mockExpressionField("name");
+        when(nameField.getReference()).thenReturn("name");
+        when(logicalView.getFields()).thenReturn(Set.of(idField, nameField));
+
+        var rec1 = createRecord("record-1");
+        var rec2 = createRecord("record-2");
+
+        // Both records evaluate to the same field values
+        setupMocksWithPerRecordEval(Flux.just(rec1, rec2), rec -> expression -> switch (expression) {
+            case "id" -> Optional.of("1");
+            case "name" -> Optional.of("alice");
+            default -> Optional.empty();
+        });
+
+        var noneContext = DefaultEvaluationContext.builder()
+                .dedupStrategy(DedupStrategy.none())
+                .build();
+
+        var iterations = evaluator
+                .evaluate(logicalView, sourceResolver, noneContext)
+                .collectList()
+                .block();
+
+        assertThat(iterations, hasSize(2));
+        assertThat(iterations.get(0).getIndex(), is(0));
+        assertThat(iterations.get(0).getValue("#"), is(Optional.of(0)));
+        assertThat(iterations.get(1).getIndex(), is(1));
+        assertThat(iterations.get(1).getValue("#"), is(Optional.of(1)));
+    }
+
+    @Test
+    void givenExactDedupWithPartialDuplicates_whenEvaluated_thenOnlyDuplicatesRemoved() {
+        var idField = mockExpressionField("id");
+        when(idField.getReference()).thenReturn("id");
+        var nameField = mockExpressionField("name");
+        when(nameField.getReference()).thenReturn("name");
+        when(logicalView.getFields()).thenReturn(Set.of(idField, nameField));
+
+        var rec1 = createRecord("record-1");
+        var rec2 = createRecord("record-2");
+        var rec3 = createRecord("record-3");
+
+        // Records 1 and 3 produce identical values; record 2 is different
+        setupMocksWithPerRecordEval(Flux.just(rec1, rec2, rec3), rec -> expression -> {
+            if (rec == rec2.getSourceRecord()) {
+                return switch (expression) {
+                    case "id" -> Optional.of("2");
+                    case "name" -> Optional.of("bob");
+                    default -> Optional.empty();
+                };
+            }
+            // rec1 and rec3 produce identical values
+            return switch (expression) {
+                case "id" -> Optional.of("1");
+                case "name" -> Optional.of("alice");
+                default -> Optional.empty();
+            };
+        });
+
+        var exactDedupContext = DefaultEvaluationContext.builder()
+                .dedupStrategy(DedupStrategy.exact())
+                .build();
+
+        var iterations = evaluator
+                .evaluate(logicalView, sourceResolver, exactDedupContext)
+                .collectList()
+                .block();
+
+        // Only 2 unique iterations: alice (from rec1) and bob (from rec2). rec3 is a duplicate of rec1.
+        assertThat(iterations, hasSize(2));
+        assertThat(iterations.get(0).getIndex(), is(0));
+        assertThat(iterations.get(0).getValue("#"), is(Optional.of(0)));
+        assertThat(iterations.get(0).getValue("id"), is(Optional.of("1")));
+        assertThat(iterations.get(0).getValue("name"), is(Optional.of("alice")));
+        assertThat(iterations.get(1).getIndex(), is(1));
+        assertThat(iterations.get(1).getValue("#"), is(Optional.of(1)));
+        assertThat(iterations.get(1).getValue("id"), is(Optional.of("2")));
+        assertThat(iterations.get(1).getValue("name"), is(Optional.of("bob")));
+    }
+
+    @Test
+    void givenExactDedupAfterJoinProducesDuplicates_whenEvaluated_thenDeduped() {
+        var idField = mockExpressionField("id");
+        when(idField.getReference()).thenReturn("id");
+        when(logicalView.getFields()).thenReturn(Set.of(idField));
+
+        ExpressionEvaluation exprEval = expression -> {
+            if ("id".equals(expression)) {
+                return Optional.of("1");
+            }
+            return Optional.empty();
+        };
+
+        var rec = createRecord("record-1");
+        setupChildView(Flux.just(rec), exprEval);
+
+        // Two parent rows with identical join field values: both pid=1, city=NYC
+        var parentView = setupParentView(List.of(Map.of("pid", "1", "city", "NYC"), Map.of("pid", "1", "city", "NYC")));
+        buildJoinEvaluator();
+
+        var cityJoinField = mockExpressionField("city");
+        when(cityJoinField.getReference()).thenReturn("city");
+
+        var joinCondition = mockJoinCondition("id", "pid");
+        var lvJoin = mockLogicalViewJoin(parentView, Set.of(joinCondition), Set.of(cityJoinField));
+        when(logicalView.getLeftJoins()).thenReturn(Set.of(lvJoin));
+
+        var exactDedupContext = DefaultEvaluationContext.builder()
+                .dedupStrategy(DedupStrategy.exact())
+                .build();
+
+        var iterations = evaluator
+                .evaluate(logicalView, sourceResolver, exactDedupContext)
+                .collectList()
+                .block();
+
+        // Two parent matches both produce id=1, city=NYC → exact dedup keeps only 1
+        assertThat(iterations, hasSize(1));
+        assertThat(iterations.get(0).getIndex(), is(0));
+        assertThat(iterations.get(0).getValue("id"), is(Optional.of("1")));
+        assertThat(iterations.get(0).getValue("city"), is(Optional.of("NYC")));
+    }
+
+    @Test
+    void givenExactDedupWithLimit_whenEvaluated_thenLimitAppliedAfterDedup() {
+        var idField = mockExpressionField("id");
+        when(idField.getReference()).thenReturn("id");
+        when(logicalView.getFields()).thenReturn(Set.of(idField));
+
+        var rec1 = createRecord("record-1");
+        var rec2 = createRecord("record-2");
+        var rec3 = createRecord("record-3");
+        var rec4 = createRecord("record-4");
+
+        // Records 1 & 3 produce "a", records 2 & 4 produce "b"
+        setupMocksWithPerRecordEval(Flux.just(rec1, rec2, rec3, rec4), rec -> expression -> {
+            if ("id".equals(expression)) {
+                if (rec == rec1.getSourceRecord() || rec == rec3.getSourceRecord()) {
+                    return Optional.of("a");
+                }
+                return Optional.of("b");
+            }
+            return Optional.empty();
+        });
+
+        // Exact dedup reduces 4 records to 2 unique ("a" and "b"), then limit takes 1
+        var limitContext = DefaultEvaluationContext.builder()
+                .dedupStrategy(DedupStrategy.exact())
+                .limit(1L)
+                .build();
+
+        var iterations = evaluator
+                .evaluate(logicalView, sourceResolver, limitContext)
+                .collectList()
+                .block();
+
+        assertThat(iterations, hasSize(1));
+    }
+
+    @Test
+    void givenExactDedupWithLeftJoinNoMatchAndIdenticalChildren_whenEvaluated_thenDuplicatesRemoved() {
+        var idField = mockExpressionField("id");
+        when(idField.getReference()).thenReturn("id");
+        when(logicalView.getFields()).thenReturn(Set.of(idField));
+
+        // Two child records with the same id — neither matches the join
+        var rec1 = createRecord("record-1");
+        var rec2 = createRecord("record-2");
+        setupChildViewPerRecord(
+                Flux.just(rec1, rec2),
+                rec -> expression -> "id".equals(expression) ? Optional.of("same") : Optional.empty());
+
+        var parentView = setupParentView(List.of(Map.of("pid", "999", "city", "NYC")));
+        buildJoinEvaluator();
+
+        var cityJoinField = mockExpressionField("city");
+        lenient().when(cityJoinField.getReference()).thenReturn("city");
+        var joinCondition = mockJoinCondition("id", "pid");
+        var lvJoin = mockLogicalViewJoin(parentView, Set.of(joinCondition), Set.of(cityJoinField));
+        when(logicalView.getLeftJoins()).thenReturn(Set.of(lvJoin));
+
+        var exactDedupContext = DefaultEvaluationContext.builder()
+                .dedupStrategy(DedupStrategy.exact())
+                .build();
+
+        var iterations = evaluator
+                .evaluate(logicalView, sourceResolver, exactDedupContext)
+                .collectList()
+                .block();
+
+        // Both children have id=same, city=absent, city.#=absent — exact dedup keeps only 1
+        assertThat(iterations, hasSize(1));
+        assertThat(iterations.get(0).getIndex(), is(0));
+        assertThat(iterations.get(0).getValue("#"), is(Optional.of(0)));
+        assertThat(iterations.get(0).getValue("id"), is(Optional.of("same")));
+        assertThat(iterations.get(0).getValue("city"), is(Optional.empty()));
+    }
+
+    @Test
+    void givenExactDedupWithIdenticalIterableContent_whenEvaluated_thenDuplicatesRemoved() {
+        var typeField = mockExpressionField("type");
+        when(typeField.getReference()).thenReturn("type");
+
+        var itemsIterable = mockIterableField("items", "$.items[*]", Set.of(typeField));
+        when(logicalView.getFields()).thenReturn(Set.of(itemsIterable));
+
+        var subRecord = new Object();
+
+        // Two source records, each producing items=[sword] — identical iterations
+        var record1 = createRecord("record-1");
+        var record2 = createRecord("record-2");
+        setupMocksWithPerRecordEval(Flux.just(record1, record2), rec -> expression -> {
+            if ("$.items[*]".equals(expression)) {
+                return Optional.of(List.of(subRecord));
+            }
+            if ("type".equals(expression)) {
+                return Optional.of("sword");
+            }
+            return Optional.empty();
+        });
+
+        var exactDedupContext = DefaultEvaluationContext.builder()
+                .dedupStrategy(DedupStrategy.exact())
+                .build();
+
+        var iterations = evaluator
+                .evaluate(logicalView, sourceResolver, exactDedupContext)
+                .collectList()
+                .block();
+
+        // Key fields: items.#, items.type, items.type.# — both records produce the same → dedup keeps 1
+        assertThat(iterations, hasSize(1));
+        assertThat(iterations.get(0).getIndex(), is(0));
+        assertThat(iterations.get(0).getValue("#"), is(Optional.of(0)));
+        assertThat(iterations.get(0).getValue("items.type"), is(Optional.of("sword")));
+        assertThat(iterations.get(0).getValue("items.#"), is(Optional.of(0)));
     }
 }

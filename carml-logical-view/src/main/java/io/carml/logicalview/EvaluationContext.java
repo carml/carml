@@ -47,37 +47,12 @@ public interface EvaluationContext {
     Optional<Long> getLimit();
 
     /**
-     * Returns a default batch evaluation context with all fields projected, exact deduplication, no
+     * Returns a default batch evaluation context with all fields projected, no deduplication, no
      * join window, and no limit.
      *
      * @return a default evaluation context
      */
     static EvaluationContext defaults() {
-        return new EvaluationContext() {
-            @Override
-            public Set<String> getProjectedFields() {
-                return Set.of();
-            }
-
-            @Override
-            public DedupStrategy getDedupStrategy() {
-                return DedupStrategy.exact();
-            }
-
-            @Override
-            public Optional<Duration> getJoinWindowDuration() {
-                return Optional.empty();
-            }
-
-            @Override
-            public Optional<Long> getJoinWindowCount() {
-                return Optional.empty();
-            }
-
-            @Override
-            public Optional<Long> getLimit() {
-                return Optional.empty();
-            }
-        };
+        return DefaultEvaluationContext.builder().build();
     }
 }
