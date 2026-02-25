@@ -1,0 +1,12 @@
+{
+  "people": [
+    {
+      "name": "alice",
+      "items": "type,weight\nsword,1500\nshield,2500"
+    },
+    {
+      "name": "bob",
+      "items": "type,weight\nflower,15"
+    }
+  ]
+}

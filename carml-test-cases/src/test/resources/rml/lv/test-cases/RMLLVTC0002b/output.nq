@@ -1,0 +1,6 @@
+<http://example.org/person/alice/item/sword> <http://example.org/hasName> "sword" .
+<http://example.org/person/alice/item/sword> <http://example.org/hasWeight> "1500"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<http://example.org/person/alice/item/shield> <http://example.org/hasName> "shield" .
+<http://example.org/person/alice/item/shield> <http://example.org/hasWeight> "2500"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<http://example.org/person/bob/item/flower> <http://example.org/hasName> "flower" .
+<http://example.org/person/bob/item/flower> <http://example.org/hasWeight> "15"^^<http://www.w3.org/2001/XMLSchema#integer> .

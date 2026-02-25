@@ -1,0 +1,12 @@
+{
+  "people": [
+    {
+      "name": "alice",
+      "birth_year": 1995
+    },
+    {
+      "name": "bob",
+      "birth_year": 1999
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+@prefix rml: <http://w3id.org/rml/> .
+@prefix : <http://example.org/> .
+
+:jsonSource a rml:LogicalSource ;
+  rml:source [
+    a rml:RelativePathSource , rml:Source ;
+    rml:root rml:MappingDirectory ;
+    rml:path "people.json" ;
+  ] ;
+  rml:referenceFormulation rml:JSONPath ;
+  rml:iterator "$.people[*]" .
+
+:jsonView a rml:LogicalView ;
+  rml:viewOn :jsonSource ;
+  rml:field [
+    a rml:ExpressionField ;
+    rml:fieldName "name" ;
+    rml:reference "$.name" ;
+  ] .
+
+:jsonViewOnJsonView a rml:LogicalView ;
+  rml:viewOn :jsonView ;
+  rml:field [
+    a rml:ExpressionField ;
+    rml:fieldName "newName" ;
+    rml:reference "name" ;
+  ] .
+
+:triplesMapPerson a rml:TriplesMap ;
+  rml:logicalSource :jsonViewOnJsonView ;
+  rml:subjectMap [
+    rml:template "http://example.org/person/{newName}" ;
+  ] ;
+  rml:predicateObjectMap [
+    rml:predicate :hasName ;
+    rml:objectMap [
+      rml:reference "newName" ;
+    ] ;
+  ] .

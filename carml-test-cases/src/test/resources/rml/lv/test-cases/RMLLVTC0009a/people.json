@@ -1,0 +1,12 @@
+{
+  "people": [
+    {
+      "givenName": "Alice",
+      "familyName": "Smith"
+    },
+    {
+      "givenName": "Bob",
+      "familyName": "Johnson"
+    }
+  ]
+}

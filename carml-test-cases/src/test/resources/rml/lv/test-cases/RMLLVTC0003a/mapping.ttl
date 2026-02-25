@@ -1,0 +1,33 @@
+@prefix rml: <http://w3id.org/rml/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix : <http://example.org/> .
+
+:jsonSource a rml:LogicalSource ;
+  rml:source [
+    a rml:RelativePathSource , rml:Source ;
+    rml:root rml:MappingDirectory ;
+    rml:path "people.json" ;
+  ] ;
+  rml:referenceFormulation rml:JSONPath ;
+  rml:iterator "$.people[*]" .
+
+:jsonView a rml:LogicalView ;
+  rml:viewOn :jsonSource ;
+  rml:field [
+    a rml:ExpressionField ;
+    rml:fieldName "name" ;
+    rml:reference "$.name" ;
+  ] .
+
+:triplesMapPerson a rml:TriplesMap ;
+  rml:logicalSource :jsonView ;
+  rml:subjectMap [
+    rml:template "http://example.org/person/{name}" ;
+  ] ;
+  rml:predicateObjectMap [
+    rml:predicate :hasSequenceNumber ;
+    rml:objectMap [
+      rml:reference "#" ;
+      rml:datatype xsd:integer ;
+    ] ;
+  ] .

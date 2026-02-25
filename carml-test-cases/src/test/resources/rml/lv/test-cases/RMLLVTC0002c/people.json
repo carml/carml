@@ -1,0 +1,34 @@
+{
+  "people": [
+    {
+      "name": "alice",
+      "items": [
+        {
+          "type": "sword",
+          "measures": {
+            "weight": 1500,
+            "length": 30
+          }
+        },
+        {
+          "type": "shield",
+          "measures": {
+            "weight": 2500
+          }
+        }
+      ]
+    },
+    {
+      "name": "bob",
+      "items": [
+        {
+          "type": "flower",
+          "measures" : {
+            "weight": 15,
+            "length" : 15
+          }
+        }
+      ]
+    }
+  ]
+}

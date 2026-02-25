@@ -1,0 +1,17 @@
+{
+  "people": [
+    {
+      "name": "alice",
+      "items": [
+        "sword",
+        "shield"
+      ]
+    },
+    {
+      "name": "bob",
+      "items": [
+        "flower"
+      ]
+    }
+  ]
+}

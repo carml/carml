@@ -1,0 +1,30 @@
+@prefix rml: <http://w3id.org/rml/> .
+@prefix : <http://example.org/> .
+
+:csvSource a rml:LogicalSource ;
+  rml:source [
+    a rml:RelativePathSource , rml:Source ;
+    rml:root rml:MappingDirectory ;
+    rml:path "people.csv" ;
+  ] ;
+  rml:referenceFormulation rml:CSV .
+
+:csvView a rml:LogicalView ;
+  rml:viewOn :csvSource ;
+  rml:field [
+    a rml:ExpressionField ;
+    rml:fieldName "name" ;
+    rml:reference "name" ;
+  ] .
+
+:triplesMapPerson a rml:TriplesMap ;
+  rml:logicalSource :csvView ;
+  rml:subjectMap [
+    rml:template "http://example.org/person/{name}" ;
+  ] ;
+  rml:predicateObjectMap [
+    rml:predicate :hasName ;
+    rml:objectMap [
+      rml:reference "name" ;
+    ] ;
+  ] .

@@ -1,0 +1,2 @@
+<http://example.org/person/alice> <http://example.org/hasName> "alice" .
+<http://example.org/person/bob> <http://example.org/hasName> "bob" .

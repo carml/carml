@@ -1,0 +1,3 @@
+<http://example.org/person/alice/item/sword> <http://example.org/hasSequenceNumber> "0"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<http://example.org/person/alice/item/shield> <http://example.org/hasSequenceNumber> "1"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<http://example.org/person/bob/item/flower> <http://example.org/hasSequenceNumber> "0"^^<http://www.w3.org/2001/XMLSchema#integer> .

@@ -1,0 +1,19 @@
+{
+  "people": [
+    {
+      "givenName": "alice",
+      "familyName": "smith",
+      "items": [
+        "sword",
+        "shield"
+      ]
+    },
+    {
+      "givenName": "bob",
+      "familyName": "johnson",
+      "items": [
+        "flower"
+      ]
+    }
+  ]
+}

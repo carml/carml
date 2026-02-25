@@ -1,0 +1,3 @@
+<http://example.org/person/123> <http://example.org/hasBirthYear> "1995"^^<http://www.w3.org/2001/XMLSchema#gYear> .
+<http://example.org/person/123> <http://example.org/hasItem> <http://example.org/person/123/item/sword> .
+<http://example.org/person/123> <http://example.org/hasItem> <http://example.org/person/123/item/shield> .

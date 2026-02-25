@@ -1,0 +1,28 @@
+{
+  "people": [
+    {
+      "name": "alice",
+      "lastName": "smith",
+      "items": [
+        {
+          "type": "sword",
+          "weight": 1500
+        },
+        {
+          "type": "shield",
+          "weight": 2500
+        }
+      ]
+    },
+    {
+      "name": "bob",
+      "lastName": "jones",
+      "items": [
+        {
+          "type": "flower",
+          "weight": 15
+        }
+      ]
+    }
+  ]
+}
