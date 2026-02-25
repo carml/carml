@@ -8,6 +8,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -22,12 +23,16 @@ import io.carml.logicalsourceresolver.MatchedLogicalSourceResolverFactory.MatchS
 import io.carml.logicalsourceresolver.MatchingLogicalSourceResolverFactory;
 import io.carml.logicalsourceresolver.ResolvedSource;
 import io.carml.model.AbstractLogicalSource;
+import io.carml.model.ChildMap;
 import io.carml.model.ExpressionField;
 import io.carml.model.Field;
 import io.carml.model.FunctionExecution;
 import io.carml.model.IterableField;
+import io.carml.model.Join;
 import io.carml.model.LogicalSource;
 import io.carml.model.LogicalView;
+import io.carml.model.LogicalViewJoin;
+import io.carml.model.ParentMap;
 import io.carml.model.ReferenceFormulation;
 import io.carml.model.Source;
 import io.carml.model.Template;
@@ -35,10 +40,14 @@ import io.carml.model.impl.CarmlTemplate;
 import io.carml.model.impl.CarmlTemplate.ExpressionSegment;
 import io.carml.model.impl.CarmlTemplate.TextSegment;
 import io.carml.util.TypeRef;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.eclipse.rdf4j.model.Value;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -78,6 +87,7 @@ class DefaultLogicalViewEvaluatorTest {
         evaluator = new DefaultLogicalViewEvaluator(Set.of(matchingFactory));
         resolvedSource = ResolvedSource.of("test-source", new TypeRef<>() {});
         sourceResolver = s -> resolvedSource;
+        parentBindings.clear();
     }
 
     @SuppressWarnings("unchecked")
@@ -97,7 +107,7 @@ class DefaultLogicalViewEvaluatorTest {
 
     private ExpressionField mockExpressionField(String fieldName) {
         var field = mock(ExpressionField.class);
-        when(field.getFieldName()).thenReturn(fieldName);
+        lenient().when(field.getFieldName()).thenReturn(fieldName);
         return field;
     }
 
@@ -2162,5 +2172,686 @@ class DefaultLogicalViewEvaluatorTest {
 
         // Every iteration has a root # key with typed Integer value
         iterations.forEach(it -> assertThat(it.getValue("#"), is(Optional.of(it.getIndex()))));
+    }
+
+    // --- Join tests ---
+
+    /**
+     * Creates a mock parent LogicalView backed by the given iterations. The parent view is set up
+     * with its own LogicalSource, resolver, and expression evaluation that produces the given
+     * iterations from a single source record.
+     */
+    /**
+     * Record holding per-view resolver wiring (logical source → resolver → matched factory).
+     */
+    private record ViewResolverBinding(LogicalSource logicalSource, Source source, LogicalSourceResolver<?> resolver) {}
+
+    private final List<ViewResolverBinding> parentBindings = new ArrayList<>();
+
+    /**
+     * Sets up the child view's resolver on the class-level mocks ({@link #logicalView},
+     * {@link #logicalSource}, {@link #source}, {@link #resolver}) and configures the expression
+     * evaluation factory.
+     */
+    @SuppressWarnings("unchecked")
+    private void setupChildView(Flux<LogicalSourceRecord<Object>> recordFlux, ExpressionEvaluation exprEval) {
+        when(logicalView.getViewOn()).thenReturn(logicalSource);
+        when(logicalSource.getSource()).thenReturn(source);
+        when(resolver.getLogicalSourceRecords(anySet())).thenReturn(rs -> recordFlux);
+        when(resolver.getExpressionEvaluationFactory()).thenReturn(rec -> exprEval);
+    }
+
+    /**
+     * Same as {@link #setupChildView} but with per-record expression evaluation.
+     */
+    @SuppressWarnings("unchecked")
+    private void setupChildViewPerRecord(
+            Flux<LogicalSourceRecord<Object>> recordFlux, Function<Object, ExpressionEvaluation> perRecordEvalFactory) {
+        when(logicalView.getViewOn()).thenReturn(logicalSource);
+        when(logicalSource.getSource()).thenReturn(source);
+        when(resolver.getLogicalSourceRecords(anySet())).thenReturn(rs -> recordFlux);
+        when(resolver.getExpressionEvaluationFactory()).thenReturn(perRecordEvalFactory::apply);
+    }
+
+    /**
+     * Creates a mock parent LogicalView backed by the given rows. Must call
+     * {@link #buildJoinEvaluator()} after all parent views are set up.
+     */
+    @SuppressWarnings("unchecked")
+    private LogicalView setupParentView(List<Map<String, Object>> parentRows) {
+        var parentView = mock(LogicalView.class);
+        var parentLogicalSource = mock(LogicalSource.class);
+        var parentSource = mock(Source.class);
+
+        when(parentView.getViewOn()).thenReturn(parentLogicalSource);
+        when(parentLogicalSource.getSource()).thenReturn(parentSource);
+
+        var parentResolver = mock(LogicalSourceResolver.class);
+
+        var parentRecords = parentRows.stream()
+                .map(row -> LogicalSourceRecord.of(parentLogicalSource, (Object) row))
+                .toList();
+
+        when(parentResolver.getLogicalSourceRecords(anySet())).thenReturn(rs -> Flux.fromIterable(parentRecords));
+        LogicalSourceResolver.ExpressionEvaluationFactory<Object> parentExprEvalFactory = rec -> {
+            @SuppressWarnings("unchecked")
+            var rowMap = (Map<String, Object>) rec;
+            return expression -> Optional.ofNullable(rowMap.get(expression));
+        };
+        when(parentResolver.getExpressionEvaluationFactory()).thenReturn(parentExprEvalFactory);
+
+        if (!parentRows.isEmpty()) {
+            var fieldNames = parentRows.get(0).keySet();
+            var parentFields = fieldNames.stream()
+                    .map(name -> {
+                        var f = mockExpressionField(name);
+                        when(f.getReference()).thenReturn(name);
+                        return (Field) f;
+                    })
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
+            when(parentView.getFields()).thenReturn(parentFields);
+        } else {
+            when(parentView.getFields()).thenReturn(Set.of());
+        }
+
+        parentBindings.add(new ViewResolverBinding(parentLogicalSource, parentSource, parentResolver));
+
+        return parentView;
+    }
+
+    /**
+     * Builds the evaluator with a combined matching factory that dispatches to the child resolver
+     * and all parent resolvers. Call after all {@link #setupParentView} calls.
+     */
+    @SuppressWarnings("unchecked")
+    private void buildJoinEvaluator() {
+        var combinedFactory = mock(MatchingLogicalSourceResolverFactory.class);
+        when(combinedFactory.apply(any(LogicalSource.class))).thenAnswer(invocation -> {
+            LogicalSource ls = invocation.getArgument(0);
+            if (ls == logicalSource) {
+                var resolverFactory = mock(LogicalSourceResolver.LogicalSourceResolverFactory.class);
+                when(resolverFactory.apply(source)).thenReturn(resolver);
+                var matchedFactory = MatchedLogicalSourceResolverFactory.of(
+                        MatchScore.builder().strongMatch().build(), resolverFactory);
+                return Optional.of(matchedFactory);
+            }
+            for (var binding : parentBindings) {
+                if (ls == binding.logicalSource()) {
+                    var resolverFactory = mock(LogicalSourceResolver.LogicalSourceResolverFactory.class);
+                    when(resolverFactory.apply(binding.source())).thenReturn(binding.resolver());
+                    var matchedFactory = MatchedLogicalSourceResolverFactory.of(
+                            MatchScore.builder().strongMatch().build(), resolverFactory);
+                    return Optional.of(matchedFactory);
+                }
+            }
+            return Optional.empty();
+        });
+
+        evaluator = new DefaultLogicalViewEvaluator(Set.of(combinedFactory));
+        sourceResolver = s -> {
+            if (s == source) {
+                return resolvedSource;
+            }
+            return ResolvedSource.of("parent-source", new TypeRef<>() {});
+        };
+    }
+
+    private Join mockJoinCondition(String childRef, String parentRef) {
+        var join = mock(Join.class);
+        var childMap = mock(ChildMap.class);
+        var parentMap = mock(ParentMap.class);
+        lenient().when(childMap.getReference()).thenReturn(childRef);
+        lenient().when(parentMap.getReference()).thenReturn(parentRef);
+        lenient().when(join.getChildMap()).thenReturn(childMap);
+        lenient().when(join.getParentMap()).thenReturn(parentMap);
+        return join;
+    }
+
+    private LogicalViewJoin mockLogicalViewJoin(
+            LogicalView parentView, Set<Join> conditions, Set<ExpressionField> joinFields) {
+        var lvJoin = mock(LogicalViewJoin.class);
+        when(lvJoin.getParentLogicalView()).thenReturn(parentView);
+        when(lvJoin.getJoinConditions()).thenReturn(conditions);
+        when(lvJoin.getFields()).thenReturn(joinFields);
+        return lvJoin;
+    }
+
+    @Test
+    void givenLeftJoinAllMatch_whenEvaluated_thenChildrenExtendedWithJoinFields() {
+        var idField = mockExpressionField("id");
+        when(idField.getReference()).thenReturn("id");
+        var nameField = mockExpressionField("name");
+        when(nameField.getReference()).thenReturn("name");
+        when(logicalView.getFields()).thenReturn(Set.of(idField, nameField));
+
+        ExpressionEvaluation exprEval = expression -> switch (expression) {
+            case "id" -> Optional.of("1");
+            case "name" -> Optional.of("alice");
+            default -> Optional.empty();
+        };
+
+        var rec = createRecord("record-1");
+        setupChildView(Flux.just(rec), exprEval);
+
+        var parentView = setupParentView(List.of(Map.of("pid", "1", "city", "NYC")));
+        buildJoinEvaluator();
+
+        var cityJoinField = mockExpressionField("city");
+        when(cityJoinField.getReference()).thenReturn("city");
+
+        var joinCondition = mockJoinCondition("id", "pid");
+        var lvJoin = mockLogicalViewJoin(parentView, Set.of(joinCondition), Set.of(cityJoinField));
+        when(logicalView.getLeftJoins()).thenReturn(Set.of(lvJoin));
+
+        var iterations = evaluator
+                .evaluate(logicalView, sourceResolver, EvaluationContext.defaults())
+                .collectList()
+                .block();
+
+        assertThat(iterations, hasSize(1));
+        assertThat(iterations.get(0).getValue("id"), is(Optional.of("1")));
+        assertThat(iterations.get(0).getValue("name"), is(Optional.of("alice")));
+        assertThat(iterations.get(0).getValue("city"), is(Optional.of("NYC")));
+        assertThat(iterations.get(0).getValue("city.#"), is(Optional.of(0)));
+    }
+
+    @Test
+    void givenLeftJoinNoMatch_whenEvaluated_thenChildPreservedWithoutJoinFields() {
+        var idField = mockExpressionField("id");
+        when(idField.getReference()).thenReturn("id");
+        when(logicalView.getFields()).thenReturn(Set.of(idField));
+
+        ExpressionEvaluation exprEval = expression -> {
+            if ("id".equals(expression)) {
+                return Optional.of("99");
+            }
+            return Optional.empty();
+        };
+
+        var rec = createRecord("record-1");
+        setupChildView(Flux.just(rec), exprEval);
+
+        var parentView = setupParentView(List.of(Map.of("pid", "1", "city", "NYC")));
+        buildJoinEvaluator();
+
+        var cityJoinField = mockExpressionField("city");
+        lenient().when(cityJoinField.getReference()).thenReturn("city");
+
+        var joinCondition = mockJoinCondition("id", "pid");
+        var lvJoin = mockLogicalViewJoin(parentView, Set.of(joinCondition), Set.of(cityJoinField));
+        when(logicalView.getLeftJoins()).thenReturn(Set.of(lvJoin));
+
+        var iterations = evaluator
+                .evaluate(logicalView, sourceResolver, EvaluationContext.defaults())
+                .collectList()
+                .block();
+
+        assertThat(iterations, hasSize(1));
+        assertThat(iterations.get(0).getValue("id"), is(Optional.of("99")));
+        assertThat(iterations.get(0).getValue("city"), is(Optional.empty()));
+    }
+
+    @Test
+    void givenInnerJoinAllMatch_whenEvaluated_thenChildrenExtended() {
+        var idField = mockExpressionField("id");
+        when(idField.getReference()).thenReturn("id");
+        when(logicalView.getFields()).thenReturn(Set.of(idField));
+
+        ExpressionEvaluation exprEval = expression -> {
+            if ("id".equals(expression)) {
+                return Optional.of("1");
+            }
+            return Optional.empty();
+        };
+
+        var rec = createRecord("record-1");
+        setupChildView(Flux.just(rec), exprEval);
+
+        var parentView = setupParentView(List.of(Map.of("pid", "1", "city", "NYC")));
+        buildJoinEvaluator();
+
+        var cityJoinField = mockExpressionField("city");
+        when(cityJoinField.getReference()).thenReturn("city");
+
+        var joinCondition = mockJoinCondition("id", "pid");
+        var lvJoin = mockLogicalViewJoin(parentView, Set.of(joinCondition), Set.of(cityJoinField));
+        when(logicalView.getInnerJoins()).thenReturn(Set.of(lvJoin));
+
+        var iterations = evaluator
+                .evaluate(logicalView, sourceResolver, EvaluationContext.defaults())
+                .collectList()
+                .block();
+
+        assertThat(iterations, hasSize(1));
+        assertThat(iterations.get(0).getValue("id"), is(Optional.of("1")));
+        assertThat(iterations.get(0).getValue("city"), is(Optional.of("NYC")));
+    }
+
+    @Test
+    void givenInnerJoinNoMatch_whenEvaluated_thenChildDropped() {
+        var idField = mockExpressionField("id");
+        when(idField.getReference()).thenReturn("id");
+        when(logicalView.getFields()).thenReturn(Set.of(idField));
+
+        ExpressionEvaluation exprEval = expression -> {
+            if ("id".equals(expression)) {
+                return Optional.of("99");
+            }
+            return Optional.empty();
+        };
+
+        var rec = createRecord("record-1");
+        setupChildView(Flux.just(rec), exprEval);
+
+        var parentView = setupParentView(List.of(Map.of("pid", "1", "city", "NYC")));
+        buildJoinEvaluator();
+
+        var cityJoinField = mockExpressionField("city");
+        lenient().when(cityJoinField.getReference()).thenReturn("city");
+
+        var joinCondition = mockJoinCondition("id", "pid");
+        var lvJoin = mockLogicalViewJoin(parentView, Set.of(joinCondition), Set.of(cityJoinField));
+        when(logicalView.getInnerJoins()).thenReturn(Set.of(lvJoin));
+
+        var iterations = evaluator
+                .evaluate(logicalView, sourceResolver, EvaluationContext.defaults())
+                .collectList()
+                .block();
+
+        assertThat(iterations, hasSize(0));
+    }
+
+    @Test
+    void givenMultipleParentMatches_whenEvaluated_thenMultipleOutputIterations() {
+        var idField = mockExpressionField("id");
+        when(idField.getReference()).thenReturn("id");
+        when(logicalView.getFields()).thenReturn(Set.of(idField));
+
+        ExpressionEvaluation exprEval = expression -> {
+            if ("id".equals(expression)) {
+                return Optional.of("1");
+            }
+            return Optional.empty();
+        };
+
+        var rec = createRecord("record-1");
+        setupChildView(Flux.just(rec), exprEval);
+
+        var parentView = setupParentView(List.of(Map.of("pid", "1", "city", "NYC"), Map.of("pid", "1", "city", "LA")));
+        buildJoinEvaluator();
+
+        var cityJoinField = mockExpressionField("city");
+        when(cityJoinField.getReference()).thenReturn("city");
+
+        var joinCondition = mockJoinCondition("id", "pid");
+        var lvJoin = mockLogicalViewJoin(parentView, Set.of(joinCondition), Set.of(cityJoinField));
+        when(logicalView.getLeftJoins()).thenReturn(Set.of(lvJoin));
+
+        var iterations = evaluator
+                .evaluate(logicalView, sourceResolver, EvaluationContext.defaults())
+                .collectList()
+                .block();
+
+        assertThat(iterations, hasSize(2));
+        var cities = iterations.stream()
+                .map(it -> it.getValue("city").orElseThrow().toString())
+                .toList();
+        assertThat(cities, containsInAnyOrder("NYC", "LA"));
+    }
+
+    @Test
+    void givenCompositeJoinCondition_whenEvaluated_thenCompositeKeyMatching() {
+        var aField = mockExpressionField("a");
+        when(aField.getReference()).thenReturn("a");
+        var bField = mockExpressionField("b");
+        when(bField.getReference()).thenReturn("b");
+        when(logicalView.getFields()).thenReturn(Set.of(aField, bField));
+
+        ExpressionEvaluation exprEval = expression -> switch (expression) {
+            case "a" -> Optional.of("1");
+            case "b" -> Optional.of("x");
+            default -> Optional.empty();
+        };
+
+        var rec = createRecord("record-1");
+        setupChildView(Flux.just(rec), exprEval);
+
+        var parentView = setupParentView(
+                List.of(Map.of("pa", "1", "pb", "x", "val", "match"), Map.of("pa", "1", "pb", "y", "val", "no-match")));
+        buildJoinEvaluator();
+
+        var valJoinField = mockExpressionField("val");
+        when(valJoinField.getReference()).thenReturn("val");
+
+        var cond1 = mockJoinCondition("a", "pa");
+        var cond2 = mockJoinCondition("b", "pb");
+        var lvJoin = mockLogicalViewJoin(parentView, Set.of(cond1, cond2), Set.of(valJoinField));
+        when(logicalView.getInnerJoins()).thenReturn(Set.of(lvJoin));
+
+        var iterations = evaluator
+                .evaluate(logicalView, sourceResolver, EvaluationContext.defaults())
+                .collectList()
+                .block();
+
+        assertThat(iterations, hasSize(1));
+        assertThat(iterations.get(0).getValue("val"), is(Optional.of("match")));
+    }
+
+    @Test
+    void givenTwoLeftJoins_whenEvaluated_thenBothAppliedSequentially() {
+        var idField = mockExpressionField("id");
+        when(idField.getReference()).thenReturn("id");
+        when(logicalView.getFields()).thenReturn(Set.of(idField));
+
+        ExpressionEvaluation exprEval = expression -> {
+            if ("id".equals(expression)) {
+                return Optional.of("1");
+            }
+            return Optional.empty();
+        };
+
+        var rec = createRecord("record-1");
+        setupChildView(Flux.just(rec), exprEval);
+
+        var parentView1 = setupParentView(List.of(Map.of("pid", "1", "city", "NYC")));
+        var parentView2 = setupParentView(List.of(Map.of("pid", "1", "color", "blue")));
+        buildJoinEvaluator();
+
+        var cityJoinField = mockExpressionField("city");
+        when(cityJoinField.getReference()).thenReturn("city");
+        var cond1 = mockJoinCondition("id", "pid");
+        var lvJoin1 = mockLogicalViewJoin(parentView1, Set.of(cond1), Set.of(cityJoinField));
+
+        var colorJoinField = mockExpressionField("color");
+        when(colorJoinField.getReference()).thenReturn("color");
+        var cond2 = mockJoinCondition("id", "pid");
+        var lvJoin2 = mockLogicalViewJoin(parentView2, Set.of(cond2), Set.of(colorJoinField));
+
+        var leftJoins = new LinkedHashSet<LogicalViewJoin>();
+        leftJoins.add(lvJoin1);
+        leftJoins.add(lvJoin2);
+        when(logicalView.getLeftJoins()).thenReturn(leftJoins);
+
+        var iterations = evaluator
+                .evaluate(logicalView, sourceResolver, EvaluationContext.defaults())
+                .collectList()
+                .block();
+
+        assertThat(iterations, hasSize(1));
+        assertThat(iterations.get(0).getValue("id"), is(Optional.of("1")));
+        assertThat(iterations.get(0).getValue("city"), is(Optional.of("NYC")));
+        assertThat(iterations.get(0).getValue("color"), is(Optional.of("blue")));
+    }
+
+    @Test
+    void givenInnerAndLeftJoinCombo_whenEvaluated_thenAppliedSequentially() {
+        var idField = mockExpressionField("id");
+        when(idField.getReference()).thenReturn("id");
+        when(logicalView.getFields()).thenReturn(Set.of(idField));
+
+        var record1 = createRecord("record-1");
+        var record2 = createRecord("record-2");
+
+        setupChildViewPerRecord(Flux.just(record1, record2), sourceRecord -> expression -> {
+            if ("id".equals(expression)) {
+                if (sourceRecord == record1.getSourceRecord()) {
+                    return Optional.of("1");
+                }
+                if (sourceRecord == record2.getSourceRecord()) {
+                    return Optional.of("2");
+                }
+            }
+            return Optional.empty();
+        });
+
+        var innerParentView = setupParentView(List.of(Map.of("pid", "1", "city", "NYC")));
+        var leftParentView = setupParentView(List.of(Map.of("pid", "1", "color", "blue")));
+        buildJoinEvaluator();
+
+        var cityJoinField = mockExpressionField("city");
+        when(cityJoinField.getReference()).thenReturn("city");
+        var innerCond = mockJoinCondition("id", "pid");
+        var innerJoin = mockLogicalViewJoin(innerParentView, Set.of(innerCond), Set.of(cityJoinField));
+        when(logicalView.getInnerJoins()).thenReturn(Set.of(innerJoin));
+
+        var colorJoinField = mockExpressionField("color");
+        when(colorJoinField.getReference()).thenReturn("color");
+        var leftCond = mockJoinCondition("id", "pid");
+        var leftJoin = mockLogicalViewJoin(leftParentView, Set.of(leftCond), Set.of(colorJoinField));
+        when(logicalView.getLeftJoins()).thenReturn(Set.of(leftJoin));
+
+        var iterations = evaluator
+                .evaluate(logicalView, sourceResolver, EvaluationContext.defaults())
+                .collectList()
+                .block();
+
+        assertThat(iterations, hasSize(1));
+        assertThat(iterations.get(0).getValue("id"), is(Optional.of("1")));
+        assertThat(iterations.get(0).getValue("city"), is(Optional.of("NYC")));
+        assertThat(iterations.get(0).getValue("color"), is(Optional.of("blue")));
+    }
+
+    @Test
+    void givenJoinField_whenEvaluated_thenJoinFieldHasIndexKey() {
+        var idField = mockExpressionField("id");
+        when(idField.getReference()).thenReturn("id");
+        when(logicalView.getFields()).thenReturn(Set.of(idField));
+
+        ExpressionEvaluation exprEval = expression -> {
+            if ("id".equals(expression)) {
+                return Optional.of("1");
+            }
+            return Optional.empty();
+        };
+
+        var rec = createRecord("record-1");
+        setupChildView(Flux.just(rec), exprEval);
+
+        var parentView = setupParentView(List.of(Map.of("pid", "1", "city", "NYC")));
+        buildJoinEvaluator();
+
+        var cityJoinField = mockExpressionField("city");
+        when(cityJoinField.getReference()).thenReturn("city");
+
+        var joinCondition = mockJoinCondition("id", "pid");
+        var lvJoin = mockLogicalViewJoin(parentView, Set.of(joinCondition), Set.of(cityJoinField));
+        when(logicalView.getLeftJoins()).thenReturn(Set.of(lvJoin));
+
+        var iterations = evaluator
+                .evaluate(logicalView, sourceResolver, EvaluationContext.defaults())
+                .collectList()
+                .block();
+
+        assertThat(iterations, hasSize(1));
+        assertThat(iterations.get(0).getValue("city.#"), is(Optional.of(0)));
+    }
+
+    @Test
+    void givenEmptyParentView_whenLeftJoinEvaluated_thenChildPreserved() {
+        var idField = mockExpressionField("id");
+        when(idField.getReference()).thenReturn("id");
+        when(logicalView.getFields()).thenReturn(Set.of(idField));
+
+        ExpressionEvaluation exprEval = expression -> {
+            if ("id".equals(expression)) {
+                return Optional.of("1");
+            }
+            return Optional.empty();
+        };
+
+        var rec = createRecord("record-1");
+        setupChildView(Flux.just(rec), exprEval);
+
+        var parentView = setupParentView(List.of());
+        buildJoinEvaluator();
+
+        var cityJoinField = mockExpressionField("city");
+        lenient().when(cityJoinField.getReference()).thenReturn("city");
+
+        var joinCondition = mockJoinCondition("id", "pid");
+        var lvJoin = mockLogicalViewJoin(parentView, Set.of(joinCondition), Set.of(cityJoinField));
+        when(logicalView.getLeftJoins()).thenReturn(Set.of(lvJoin));
+
+        var iterations = evaluator
+                .evaluate(logicalView, sourceResolver, EvaluationContext.defaults())
+                .collectList()
+                .block();
+
+        assertThat(iterations, hasSize(1));
+        assertThat(iterations.get(0).getValue("id"), is(Optional.of("1")));
+        assertThat(iterations.get(0).getValue("city"), is(Optional.empty()));
+    }
+
+    @Test
+    void givenEmptyParentView_whenInnerJoinEvaluated_thenAllChildrenDropped() {
+        var idField = mockExpressionField("id");
+        when(idField.getReference()).thenReturn("id");
+        when(logicalView.getFields()).thenReturn(Set.of(idField));
+
+        ExpressionEvaluation exprEval = expression -> {
+            if ("id".equals(expression)) {
+                return Optional.of("1");
+            }
+            return Optional.empty();
+        };
+
+        var rec = createRecord("record-1");
+        setupChildView(Flux.just(rec), exprEval);
+
+        var parentView = setupParentView(List.of());
+        buildJoinEvaluator();
+
+        var cityJoinField = mockExpressionField("city");
+        lenient().when(cityJoinField.getReference()).thenReturn("city");
+
+        var joinCondition = mockJoinCondition("id", "pid");
+        var lvJoin = mockLogicalViewJoin(parentView, Set.of(joinCondition), Set.of(cityJoinField));
+        when(logicalView.getInnerJoins()).thenReturn(Set.of(lvJoin));
+
+        var iterations = evaluator
+                .evaluate(logicalView, sourceResolver, EvaluationContext.defaults())
+                .collectList()
+                .block();
+
+        assertThat(iterations, hasSize(0));
+    }
+
+    @Test
+    void givenInnerJoinDroppingIterations_whenEvaluated_thenIndexIsReassignedWithoutGaps() {
+        var idField = mockExpressionField("id");
+        when(idField.getReference()).thenReturn("id");
+        when(logicalView.getFields()).thenReturn(Set.of(idField));
+
+        var record1 = createRecord("record-1");
+        var record2 = createRecord("record-2");
+        var record3 = createRecord("record-3");
+
+        setupChildViewPerRecord(Flux.just(record1, record2, record3), sourceRecord -> expression -> {
+            if ("id".equals(expression)) {
+                if (sourceRecord == record1.getSourceRecord()) {
+                    return Optional.of("1");
+                }
+                if (sourceRecord == record2.getSourceRecord()) {
+                    return Optional.of("2");
+                }
+                if (sourceRecord == record3.getSourceRecord()) {
+                    return Optional.of("3");
+                }
+            }
+            return Optional.empty();
+        });
+
+        var parentView = setupParentView(List.of(Map.of("pid", "1", "val", "a"), Map.of("pid", "3", "val", "c")));
+        buildJoinEvaluator();
+
+        var valJoinField = mockExpressionField("val");
+        when(valJoinField.getReference()).thenReturn("val");
+        var joinCondition = mockJoinCondition("id", "pid");
+        var lvJoin = mockLogicalViewJoin(parentView, Set.of(joinCondition), Set.of(valJoinField));
+        when(logicalView.getInnerJoins()).thenReturn(Set.of(lvJoin));
+
+        var iterations = evaluator
+                .evaluate(logicalView, sourceResolver, EvaluationContext.defaults())
+                .collectList()
+                .block();
+
+        assertThat(iterations, hasSize(2));
+        assertThat(iterations.get(0).getIndex(), is(0));
+        assertThat(iterations.get(0).getValue("#"), is(Optional.of(0)));
+        assertThat(iterations.get(1).getIndex(), is(1));
+        assertThat(iterations.get(1).getValue("#"), is(Optional.of(1)));
+    }
+
+    @Test
+    void givenLeftJoinMatchButJoinFieldEmpty_whenEvaluated_thenChildDroppedByCartesianCollapse() {
+        // Parent matches on key, but the join field resolves to empty (absent from parent record).
+        // CartesianProduct of empty field contributions → 0 rows, even for left join.
+        var idField = mockExpressionField("id");
+        when(idField.getReference()).thenReturn("id");
+        when(logicalView.getFields()).thenReturn(Set.of(idField));
+
+        ExpressionEvaluation exprEval = expression -> "id".equals(expression) ? Optional.of("1") : Optional.empty();
+
+        var rec = createRecord("record-1");
+        setupChildView(Flux.just(rec), exprEval);
+
+        // Parent has "pid"=1 but NO "city" key — join field will resolve to empty list
+        var parentView = setupParentView(List.of(Map.of("pid", "1")));
+        buildJoinEvaluator();
+
+        var cityJoinField = mockExpressionField("city");
+        lenient().when(cityJoinField.getReference()).thenReturn("city");
+
+        var joinCondition = mockJoinCondition("id", "pid");
+        var lvJoin = mockLogicalViewJoin(parentView, Set.of(joinCondition), Set.of(cityJoinField));
+        when(logicalView.getLeftJoins()).thenReturn(Set.of(lvJoin));
+
+        var iterations = evaluator
+                .evaluate(logicalView, sourceResolver, EvaluationContext.defaults())
+                .collectList()
+                .block();
+
+        // Empty join field collapses the Cartesian product — child is dropped
+        assertThat(iterations, hasSize(0));
+    }
+
+    @Test
+    void givenJoinFieldWithMultipleValues_whenEvaluated_thenMultipleRowsPerParentMatch() {
+        var idField = mockExpressionField("id");
+        when(idField.getReference()).thenReturn("id");
+        when(logicalView.getFields()).thenReturn(Set.of(idField));
+
+        ExpressionEvaluation exprEval = expression -> "id".equals(expression) ? Optional.of("1") : Optional.empty();
+
+        var rec = createRecord("record-1");
+        setupChildView(Flux.just(rec), exprEval);
+
+        // Parent has one matching record with multi-valued "tags"
+        var parentView = setupParentView(List.of(Map.of("pid", "1", "tags", List.of("a", "b"))));
+        buildJoinEvaluator();
+
+        var tagsJoinField = mockExpressionField("tags");
+        when(tagsJoinField.getReference()).thenReturn("tags");
+
+        var joinCondition = mockJoinCondition("id", "pid");
+        var lvJoin = mockLogicalViewJoin(parentView, Set.of(joinCondition), Set.of(tagsJoinField));
+        when(logicalView.getLeftJoins()).thenReturn(Set.of(lvJoin));
+
+        var iterations = evaluator
+                .evaluate(logicalView, sourceResolver, EvaluationContext.defaults())
+                .collectList()
+                .block();
+
+        // Multi-valued parent source field → parent view produces 2 iterations (one per value).
+        // Both parent iterations match child on pid=1, so child is extended twice.
+        assertThat(iterations, hasSize(2));
+        var tagValues = iterations.stream()
+                .map(it -> it.getValue("tags").orElseThrow().toString())
+                .toList();
+        assertThat(tagValues, containsInAnyOrder("a", "b"));
+
+        // Each parent iteration contributes a single "tags" value, so tags.# is 0 for both
+        assertThat(iterations.get(0).getValue("tags.#"), is(Optional.of(0)));
+        assertThat(iterations.get(1).getValue("tags.#"), is(Optional.of(0)));
     }
 }

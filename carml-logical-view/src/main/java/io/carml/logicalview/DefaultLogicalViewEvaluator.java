@@ -10,10 +10,13 @@ import io.carml.logicalsourceresolver.MatchingLogicalSourceResolverFactory;
 import io.carml.logicalsourceresolver.ResolvedSource;
 import io.carml.model.AbstractLogicalSource;
 import io.carml.model.ExpressionField;
+import io.carml.model.ExpressionMap;
 import io.carml.model.Field;
 import io.carml.model.IterableField;
+import io.carml.model.Join;
 import io.carml.model.LogicalSource;
 import io.carml.model.LogicalView;
+import io.carml.model.LogicalViewJoin;
 import io.carml.model.ReferenceFormulation;
 import io.carml.model.Source;
 import io.carml.model.Template;
@@ -96,7 +99,6 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
 
         var viewOn = view.getViewOn();
         var fields = view.getFields();
-        var index = new AtomicInteger(0);
 
         Flux<ExpressionEvaluation> exprEvalFlux;
         if (viewOn instanceof LogicalSource logicalSource) {
@@ -115,17 +117,31 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                     .map(ViewIterationExpressionEvaluation::new);
         }
 
-        Flux<ViewIteration> iterations = exprEvalFlux.flatMapIterable(exprEval -> {
-            var evaluatedList = evaluateFields(fields, exprEval, rootRefForm, "", factoryResolver);
-            return evaluatedList.stream()
-                    .map(evaluated -> {
-                        var iterationIndex = index.getAndIncrement();
-                        var values = new LinkedHashMap<>(evaluated.values());
-                        values.put(INDEX_KEY, iterationIndex);
-                        return (ViewIteration)
-                                new DefaultViewIteration(iterationIndex, values, evaluated.referenceFormulations());
-                    })
-                    .toList();
+        Flux<EvaluatedValues> evaluatedFlux = exprEvalFlux.flatMapIterable(
+                exprEval -> evaluateFields(fields, exprEval, rootRefForm, "", factoryResolver));
+
+        // Apply joins: left joins first, then inner joins
+        var leftJoins = view.getLeftJoins();
+        var innerJoins = view.getInnerJoins();
+
+        if (leftJoins != null) {
+            for (var join : leftJoins) {
+                evaluatedFlux = applyJoin(evaluatedFlux, join, true, sourceResolver);
+            }
+        }
+        if (innerJoins != null) {
+            for (var join : innerJoins) {
+                evaluatedFlux = applyJoin(evaluatedFlux, join, false, sourceResolver);
+            }
+        }
+
+        // Assign # index after all joins (so dropped/expanded iterations get correct indices)
+        var index = new AtomicInteger(0);
+        Flux<ViewIteration> iterations = evaluatedFlux.map(evaluated -> {
+            var iterationIndex = index.getAndIncrement();
+            var values = new LinkedHashMap<>(evaluated.values());
+            values.put(INDEX_KEY, iterationIndex);
+            return new DefaultViewIteration(iterationIndex, values, evaluated.referenceFormulations());
         });
 
         return context.getLimit().map(iterations::take).orElse(iterations);
@@ -195,7 +211,7 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                 .sorted(Comparator.comparing(Field::getFieldName))
                 .map(field -> {
                     if (field instanceof ExpressionField ef) {
-                        var values = evaluateExpressionField(ef, exprEval);
+                        var values = evaluateExpressionMap(ef, exprEval);
                         var absoluteName = prefix + ef.getFieldName();
                         var indexKey = absoluteName + INDEX_KEY_SUFFIX;
                         var refFormMap = currentRefForm != null
@@ -279,7 +295,112 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                 .toList();
     }
 
-    private List<Object> evaluateExpressionField(ExpressionField field, ExpressionEvaluation exprEval) {
+    private Flux<EvaluatedValues> applyJoin(
+            Flux<EvaluatedValues> childFlux,
+            LogicalViewJoin join,
+            boolean isLeftJoin,
+            Function<Source, ResolvedSource<?>> sourceResolver) {
+
+        var parentFlux = evaluate(join.getParentLogicalView(), sourceResolver, EvaluationContext.defaults());
+
+        return parentFlux.collectList().flatMapMany(parentIterations -> {
+            var conditions = join.getJoinConditions().stream()
+                    .sorted(Comparator.comparing(
+                            c -> c.getChildMap().getExpressionMapExpressionSet().toString()))
+                    .toList();
+            var joinIndex = buildJoinIndex(conditions, parentIterations);
+            return childFlux.flatMapIterable(
+                    child -> matchAndExtend(child, conditions, join.getFields(), isLeftJoin, joinIndex));
+        });
+    }
+
+    private JoinIndex<List<Object>, ViewIteration> buildJoinIndex(
+            List<Join> conditions, List<ViewIteration> parentIterations) {
+        var joinIndex = new HashMapJoinIndex<List<Object>, ViewIteration>();
+        for (var parentIteration : parentIterations) {
+            var parentExprEval = new ViewIterationExpressionEvaluation(parentIteration);
+            var key = evaluateJoinKey(conditions, parentExprEval, true);
+            if (!key.isEmpty()) {
+                joinIndex.put(key, parentIteration);
+            }
+        }
+        return joinIndex;
+    }
+
+    private List<Object> evaluateJoinKey(List<Join> conditions, ExpressionEvaluation exprEval, boolean isParent) {
+        var key = new ArrayList<>(conditions.size());
+        for (var condition : conditions) {
+            var expressionMap = isParent ? condition.getParentMap() : condition.getChildMap();
+            var values = evaluateExpressionMap(expressionMap, exprEval);
+            if (values.isEmpty()) {
+                return List.of();
+            }
+            // Use the first value of each condition as the key component
+            key.add(values.get(0));
+        }
+        return key;
+    }
+
+    private List<EvaluatedValues> matchAndExtend(
+            EvaluatedValues child,
+            List<Join> conditions,
+            Set<ExpressionField> joinFields,
+            boolean isLeftJoin,
+            JoinIndex<List<Object>, ViewIteration> joinIndex) {
+
+        // Build child key from EvaluatedValues — child field references point to field names in
+        // child iteration values, so we use a simple lookup expression evaluation.
+        ExpressionEvaluation childExprEval =
+                expression -> Optional.ofNullable(child.values().get(expression));
+
+        var childKey = evaluateJoinKey(conditions, childExprEval, false);
+        if (childKey.isEmpty()) {
+            return isLeftJoin ? List.of(child) : List.of();
+        }
+
+        var matchedParents = joinIndex.get(childKey);
+        if (matchedParents.isEmpty()) {
+            return isLeftJoin ? List.of(child) : List.of();
+        }
+
+        var sortedJoinFields = joinFields.stream()
+                .sorted(Comparator.comparing(ExpressionField::getFieldName))
+                .toList();
+
+        var result = new ArrayList<EvaluatedValues>();
+        for (var parentIteration : matchedParents) {
+            var parentExprEval = new ViewIterationExpressionEvaluation(parentIteration);
+
+            // Evaluate join fields from the parent iteration, producing per-field value lists
+            var fieldContributions = sortedJoinFields.stream()
+                    .map(joinField -> {
+                        var fieldName = joinField.getFieldName();
+                        var indexKey = fieldName + INDEX_KEY_SUFFIX;
+                        var values = evaluateExpressionMap(joinField, parentExprEval);
+                        return IntStream.range(0, values.size())
+                                .mapToObj(i ->
+                                        new EvaluatedValues(Map.of(fieldName, values.get(i), indexKey, i), Map.of()))
+                                .toList();
+                    })
+                    .toList();
+
+            // Cartesian product of join field values, merged with child values
+            var combinations = CartesianProduct.listCartesianProduct(fieldContributions);
+            for (var combo : combinations) {
+                var mergedValues = new LinkedHashMap<>(child.values());
+                var mergedRefForms = new LinkedHashMap<>(child.referenceFormulations());
+                combo.forEach(ev -> {
+                    mergedValues.putAll(ev.values());
+                    mergedRefForms.putAll(ev.referenceFormulations());
+                });
+                result.add(new EvaluatedValues(mergedValues, mergedRefForms));
+            }
+        }
+
+        return result;
+    }
+
+    private List<Object> evaluateExpressionMap(ExpressionMap field, ExpressionEvaluation exprEval) {
         if (field.getReference() != null) {
             return evaluateReference(field.getReference(), exprEval);
         }
