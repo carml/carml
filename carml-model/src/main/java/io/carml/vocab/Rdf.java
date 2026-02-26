@@ -307,6 +307,18 @@ public class Rdf {
         public static final IRI returnMap = iri("returnMap");
 
         public static final IRI returnProperty = iri("return");
+
+        // RML Conditions
+
+        public static final IRI condition = iri("condition");
+
+        public static final IRI isNull = iri("isNull");
+
+        public static final IRI isNotNull = iri("isNotNull");
+
+        public static final IRI equals = iri("equals");
+
+        public static final IRI notEquals = iri("notEquals");
     }
 
     @NoArgsConstructor(access = AccessLevel.PRIVATE)

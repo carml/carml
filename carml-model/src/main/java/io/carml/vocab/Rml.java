@@ -272,4 +272,16 @@ public class Rml {
     public static final String returnMap = NAMESPACE + "returnMap";
 
     public static final String returnProperty = NAMESPACE + "return";
+
+    // RML Conditions
+
+    public static final String condition = NAMESPACE + "condition";
+
+    public static final String isNull = NAMESPACE + "isNull";
+
+    public static final String isNotNull = NAMESPACE + "isNotNull";
+
+    public static final String equals = NAMESPACE + "equals";
+
+    public static final String notEquals = NAMESPACE + "notEquals";
 }

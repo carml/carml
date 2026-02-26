@@ -37,6 +37,16 @@ public interface ExpressionMap extends Resource {
         return null;
     }
 
+    /**
+     * Returns the set of {@link Condition}s that gate this expression map. If any condition
+     * evaluates to false, the expression map produces no value.
+     *
+     * @return the conditions, or an empty set if none are set
+     */
+    default Set<Condition> getConditions() {
+        return Set.of();
+    }
+
     default Set<String> getExpressionMapExpressionSet() {
         if (getReference() != null) {
             return Set.of(getReference());

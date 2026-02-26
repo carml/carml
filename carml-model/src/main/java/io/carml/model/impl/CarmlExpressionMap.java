@@ -1,6 +1,7 @@
 package io.carml.model.impl;
 
 import com.google.common.collect.ImmutableSet;
+import io.carml.model.Condition;
 import io.carml.model.ExpressionMap;
 import io.carml.model.FunctionExecution;
 import io.carml.model.ObjectMap;
@@ -24,6 +25,7 @@ import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.Singular;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 import org.eclipse.rdf4j.model.Value;
@@ -48,6 +50,9 @@ abstract class CarmlExpressionMap extends CarmlResource implements ExpressionMap
     private FunctionExecution functionExecution;
 
     private ReturnMap returnMap;
+
+    @Singular
+    private Set<Condition> conditions;
 
     @RdfProperty(Rml.reference)
     @RdfProperty(OldRml.reference)
@@ -95,6 +100,13 @@ abstract class CarmlExpressionMap extends CarmlResource implements ExpressionMap
         return returnMap;
     }
 
+    @RdfProperty(Rml.condition)
+    @RdfType(CarmlCondition.class)
+    @Override
+    public Set<Condition> getConditions() {
+        return conditions != null ? conditions : Set.of();
+    }
+
     Set<Resource> getReferencedResourcesBase() {
         var builder = ImmutableSet.<Resource>builder();
 
@@ -106,6 +118,9 @@ abstract class CarmlExpressionMap extends CarmlResource implements ExpressionMap
         }
         if (returnMap != null) {
             builder.add(returnMap);
+        }
+        if (conditions != null) {
+            builder.addAll(conditions);
         }
 
         return builder.build();
@@ -129,6 +144,9 @@ abstract class CarmlExpressionMap extends CarmlResource implements ExpressionMap
         }
         if (returnMap != null) {
             builder.add(Rdf.Rml.returnMap, returnMap.getAsResource());
+        }
+        if (conditions != null) {
+            conditions.forEach(c -> builder.add(Rdf.Rml.condition, c.getAsResource()));
         }
     }
 

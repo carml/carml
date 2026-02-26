@@ -74,7 +74,7 @@ public class BuiltInFunctionProvider implements FunctionProvider {
                 });
     }
 
-    private static boolean isTruthy(Object value) {
+    public static boolean isTruthy(Object value) {
         if (Boolean.TRUE.equals(value)) {
             return true;
         }

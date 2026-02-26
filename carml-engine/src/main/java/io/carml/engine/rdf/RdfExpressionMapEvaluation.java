@@ -9,13 +9,16 @@ import static org.eclipse.rdf4j.model.util.Values.bnode;
 import io.carml.engine.MappedValue;
 import io.carml.engine.TemplateEvaluation;
 import io.carml.engine.TemplateEvaluation.TemplateEvaluationBuilder;
+import io.carml.engine.function.BuiltInFunctionProvider;
 import io.carml.engine.function.FunctionDescriptor;
 import io.carml.engine.function.FunctionRegistry;
 import io.carml.engine.function.TypeCoercer;
 import io.carml.logicalsourceresolver.DatatypeMapper;
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
+import io.carml.model.Condition;
 import io.carml.model.DatatypeMap;
 import io.carml.model.ExpressionMap;
+import io.carml.model.FunctionExecution;
 import io.carml.model.Input;
 import io.carml.model.LanguageMap;
 import io.carml.model.ObjectMap;
@@ -74,6 +77,12 @@ public class RdfExpressionMapEvaluation {
 
     @SuppressWarnings("unchecked")
     public <T> List<T> evaluate(Class<T> expectedType) {
+        // Gate: evaluate conditions first — if any condition is falsy, produce no values
+        var conditions = expressionMap.getConditions();
+        if (!conditions.isEmpty() && !evaluateConditions(conditions)) {
+            return List.of();
+        }
+
         if (expressionMap.getConstant() != null) {
             if (expectedType == String.class) {
                 return evaluateConstant().stream()
@@ -171,10 +180,7 @@ public class RdfExpressionMapEvaluation {
         IRI functionIri = resolveIriFromExpressionMap(functionMap, Rdf.Rml.FunctionMap);
 
         // 2. Look up descriptor
-        FunctionDescriptor descriptor = functionRegistry
-                .getFunction(functionIri)
-                .orElseThrow(() -> new RdfExpressionMapEvaluationException(
-                        "no function registered for function IRI [%s]".formatted(functionIri)));
+        FunctionDescriptor descriptor = lookupFunction(functionIri);
 
         // 3. Resolve input bindings
         Map<IRI, Object> parameterValues = resolveInputBindings(fnExecution.getInputs(), descriptor);
@@ -196,6 +202,13 @@ public class RdfExpressionMapEvaluation {
 
         // 7. Extract values
         return ExpressionEvaluation.extractValues(result);
+    }
+
+    private FunctionDescriptor lookupFunction(IRI functionIri) {
+        return functionRegistry
+                .getFunction(functionIri)
+                .orElseThrow(() -> new RdfExpressionMapEvaluationException(
+                        "no function registered for function IRI [%s]".formatted(functionIri)));
     }
 
     private IRI resolveIriFromExpressionMap(ExpressionMap iriExpressionMap, IRI mapType) {
@@ -340,10 +353,7 @@ public class RdfExpressionMapEvaluation {
 
         return optionalExecution.map(execution -> {
             IRI functionIri = getFunctionIri(execution, executionStatements);
-            FunctionDescriptor descriptor = functionRegistry
-                    .getFunction(functionIri)
-                    .orElseThrow(() -> new RdfExpressionMapEvaluationException(
-                            "no function registered for function IRI [" + functionIri + "]"));
+            FunctionDescriptor descriptor = lookupFunction(functionIri);
 
             var parameterValues = extractParameters(executionStatements, execution, descriptor);
 
@@ -438,5 +448,96 @@ public class RdfExpressionMapEvaluation {
 
     private boolean isReferenceTermMap(TermMap map) {
         return map.getConstant() == null && map.getReference() != null;
+    }
+
+    // --- Condition evaluation ---
+
+    private boolean evaluateConditions(Set<Condition> conditions) {
+        for (var condition : conditions) {
+            if (!evaluateCondition(condition)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean evaluateCondition(Condition condition) {
+        // Full form: FunctionExecution returning boolean
+        if (condition.getFunctionExecution() != null) {
+            return evaluateConditionFunctionExecution(condition.getFunctionExecution());
+        }
+
+        // Shortcut: isNull
+        if (condition.getIsNull() != null) {
+            return evaluateUnaryCondition(Rdf.IdlabFn.isNull, condition.getIsNull());
+        }
+
+        // Shortcut: isNotNull
+        if (condition.getIsNotNull() != null) {
+            return evaluateUnaryCondition(Rdf.IdlabFn.isNotNull, condition.getIsNotNull());
+        }
+
+        // Shortcut: equals
+        var equalsRefs = condition.getEquals();
+        if (equalsRefs != null && !equalsRefs.isEmpty()) {
+            return evaluateBinaryCondition(Rdf.IdlabFn.equal, equalsRefs);
+        }
+
+        // Shortcut: notEquals
+        var notEqualsRefs = condition.getNotEquals();
+        if (notEqualsRefs != null && !notEqualsRefs.isEmpty()) {
+            return evaluateBinaryCondition(Rdf.IdlabFn.notEqual, notEqualsRefs);
+        }
+
+        throw new RdfExpressionMapEvaluationException("Condition has no evaluable expression");
+    }
+
+    private boolean evaluateConditionFunctionExecution(FunctionExecution fnExec) {
+        var functionMap = fnExec.getFunctionMap();
+        if (functionMap == null) {
+            throw new RdfExpressionMapEvaluationException("Condition FunctionExecution has no FunctionMap");
+        }
+        IRI functionIri = resolveIriFromExpressionMap(functionMap, Rdf.Rml.FunctionMap);
+
+        FunctionDescriptor descriptor = lookupFunction(functionIri);
+
+        Map<IRI, Object> parameterValues = resolveInputBindings(fnExec.getInputs(), descriptor);
+        Object result = descriptor.execute(parameterValues);
+        return BuiltInFunctionProvider.isTruthy(result);
+    }
+
+    private boolean evaluateUnaryCondition(IRI functionIri, String reference) {
+        FunctionDescriptor descriptor = lookupFunction(functionIri);
+
+        Object value = expressionEvaluation.apply(reference).orElse(null);
+        Map<IRI, Object> params = new HashMap<>();
+        params.put(Rdf.IdlabFn.str, value);
+
+        Object result = descriptor.execute(params);
+        return BuiltInFunctionProvider.isTruthy(result);
+    }
+
+    private boolean evaluateBinaryCondition(IRI functionIri, Set<String> references) {
+        if (references.size() != 2) {
+            throw new RdfExpressionMapEvaluationException(
+                    "Binary condition (equals/notEquals) requires exactly 2 references, but got %d"
+                            .formatted(references.size()));
+        }
+
+        FunctionDescriptor descriptor = lookupFunction(functionIri);
+
+        var iter = references.iterator();
+        String ref1 = iter.next();
+        Object val1 = expressionEvaluation.apply(ref1).orElse(null);
+
+        String ref2 = iter.next();
+        Object val2 = expressionEvaluation.apply(ref2).orElse(null);
+
+        Map<IRI, Object> params = new HashMap<>();
+        params.put(Rdf.Grel.valueParam, val1);
+        params.put(Rdf.Grel.valueParam2, val2);
+
+        Object result = descriptor.execute(params);
+        return BuiltInFunctionProvider.isTruthy(result);
     }
 }
