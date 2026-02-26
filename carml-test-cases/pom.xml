@@ -211,8 +211,27 @@
       <scope>test</scope>
     </dependency>
 
+    <dependency>
+      <groupId>com.github.fnoio</groupId>
+      <artifactId>grel-functions-java</artifactId>
+      <version>v0.10.1</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>be.ugent.idlab.knows</groupId>
+      <artifactId>idlab-functions-java</artifactId>
+      <version>1.4.0</version>
+      <scope>test</scope>
+    </dependency>
+
   </dependencies>
 
-
+  <repositories>
+    <repository>
+      <id>jitpack.io</id>
+      <url>https://jitpack.io</url>
+    </repository>
+  </repositories>
 
 </project>
