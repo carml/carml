@@ -1,11 +1,17 @@
 package io.carml.engine.rdf;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
 
+import io.carml.engine.CompositeObserver;
+import io.carml.engine.MappingExecutionObserver;
+import io.carml.engine.NoOpObserver;
 import io.carml.engine.RmlMapperException;
 import io.carml.engine.join.impl.CarmlChildSideJoinStoreProvider;
 import io.carml.engine.join.impl.CarmlParentSideJoinConditionStoreProvider;
@@ -514,5 +520,54 @@ class RdfRmlMapperTest {
         var builder = RdfRmlMapper.builder();
         var result = builder.limit(10);
         assertThat(result, is(notNullValue()));
+    }
+
+    // --- Observer wiring ---
+
+    @Test
+    void givenNoObserver_whenBuild_thenGetObserverReturnsNoOp() {
+        // Given
+        var mappingSource = RdfRmlMapperTest.class.getResourceAsStream("mapping.rml.ttl");
+        var mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
+
+        // When
+        var rmlMapper = RdfRmlMapper.builder().triplesMaps(mapping).build();
+
+        // Then
+        assertThat(rmlMapper.getObserver(), is(instanceOf(NoOpObserver.class)));
+    }
+
+    @Test
+    void givenSingleObserver_whenBuild_thenGetObserverReturnsThatObserver() {
+        // Given
+        var mappingSource = RdfRmlMapperTest.class.getResourceAsStream("mapping.rml.ttl");
+        var mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
+        var observer = mock(MappingExecutionObserver.class);
+
+        // When
+        var rmlMapper =
+                RdfRmlMapper.builder().triplesMaps(mapping).observer(observer).build();
+
+        // Then
+        assertThat(rmlMapper.getObserver(), is(sameInstance(observer)));
+    }
+
+    @Test
+    void givenMultipleObservers_whenBuild_thenGetObserverReturnsCompositeObserver() {
+        // Given
+        var mappingSource = RdfRmlMapperTest.class.getResourceAsStream("mapping.rml.ttl");
+        var mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
+        var observer1 = mock(MappingExecutionObserver.class);
+        var observer2 = mock(MappingExecutionObserver.class);
+
+        // When
+        var rmlMapper = RdfRmlMapper.builder()
+                .triplesMaps(mapping)
+                .observer(observer1)
+                .observer(observer2)
+                .build();
+
+        // Then
+        assertThat(rmlMapper.getObserver(), is(instanceOf(CompositeObserver.class)));
     }
 }

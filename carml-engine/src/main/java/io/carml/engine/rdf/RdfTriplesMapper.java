@@ -6,7 +6,10 @@ import static java.util.stream.Collectors.toUnmodifiableSet;
 
 import io.carml.engine.FieldOrigin;
 import io.carml.engine.MappedValue;
+import io.carml.engine.MappingError;
+import io.carml.engine.MappingExecutionObserver;
 import io.carml.engine.MappingResult;
+import io.carml.engine.NoOpObserver;
 import io.carml.engine.NonExistentReferenceException;
 import io.carml.engine.RefObjectMapper;
 import io.carml.engine.ResolvedMapping;
@@ -33,6 +36,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
@@ -87,7 +91,13 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
 
     private volatile boolean viewIterationUsed;
 
+    private final AtomicBoolean mappingStartFired = new AtomicBoolean(false);
+
     private ResolvedMapping resolvedMapping;
+
+    // Set once during build(), before any Flux subscription — visibility is guaranteed by the
+    // Reactor subscription barrier (same pattern as resolvedMapping).
+    private MappingExecutionObserver observer = NoOpObserver.getInstance();
 
     private RdfTriplesMapper(
             @NonNull TriplesMap triplesMap,
@@ -227,28 +237,52 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
         this.resolvedMapping = resolvedMapping;
     }
 
+    /**
+     * Associates this mapper with a {@link MappingExecutionObserver} for pipeline callbacks.
+     * Statement generation and error events are forwarded to the observer.
+     *
+     * @param observer the observer to receive callbacks
+     */
+    void setObserver(MappingExecutionObserver observer) {
+        this.observer = observer;
+    }
+
     @Override
     @SuppressWarnings("unchecked")
     public Flux<MappingResult<Statement>> map(LogicalSourceRecord<?> logicalSourceRecord) {
         var sourceRecord = (R) logicalSourceRecord.getSourceRecord();
         LOG.trace("Mapping triples for record {}", logicalSourceRecord);
+        fireMappingStartOnce();
         recordsProcessed = true;
         var expressionEvaluation = expressionEvaluationFactory.apply(sourceRecord);
         var datatypeMapper = datatypeMapperFactory != null ? datatypeMapperFactory.apply(sourceRecord) : null;
 
-        return mapEvaluation(expressionEvaluation, datatypeMapper);
+        return mapEvaluation(expressionEvaluation, datatypeMapper).doOnError(ex -> fireError(null, ex));
     }
 
     @Override
     public Flux<MappingResult<Statement>> map(ViewIteration viewIteration) {
         LOG.trace("Mapping triples for view iteration {}", viewIteration.getIndex());
+        fireMappingStartOnce();
         recordsProcessed = true;
         viewIterationUsed = true;
         // Strict mode tracking is not applied here — ViewIterationExpressionEvaluation validates
         // referenced keys eagerly in apply(), so unmatched references are caught immediately.
         var baseEvaluation = new ViewIterationExpressionEvaluation(viewIteration, viewIteration.getKeys());
         var expressionEvaluation = resolvedMapping != null ? enrichingEvaluation(baseEvaluation) : baseEvaluation;
-        return mapEvaluation(expressionEvaluation, null);
+        return mapEvaluation(expressionEvaluation, null).doOnError(ex -> fireError(viewIteration, ex));
+    }
+
+    private void fireMappingStartOnce() {
+        if (resolvedMapping != null && mappingStartFired.compareAndSet(false, true)) {
+            observer.onMappingStart(resolvedMapping);
+        }
+    }
+
+    void fireError(ViewIteration iteration, Throwable ex) {
+        if (resolvedMapping != null) {
+            observer.onError(resolvedMapping, iteration, MappingError.of(ex.getMessage(), ex));
+        }
     }
 
     private ExpressionEvaluation enrichingEvaluation(ExpressionEvaluation baseEvaluation) {

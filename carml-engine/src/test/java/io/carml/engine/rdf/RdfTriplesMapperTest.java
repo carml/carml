@@ -14,12 +14,19 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.carml.engine.FieldOrigin;
 import io.carml.engine.MappedValue;
+import io.carml.engine.MappingExecutionObserver;
 import io.carml.engine.MappingResult;
 import io.carml.engine.ResolvedMapping;
 import io.carml.engine.TermGenerator;
@@ -843,5 +850,234 @@ class RdfTriplesMapperTest {
         var exception = assertThrows(RuntimeException.class, () -> rdfTriplesMapper.map(viewIteration));
         assertThat(exception, is(not(instanceOf(TriplesMapperException.class))));
         assertThat(exception.getMessage(), containsString("nonExistentKey"));
+    }
+
+    // --- Observer wiring ---
+
+    @Test
+    void givenObserverAndResolvedMapping_whenMapLogicalSourceRecord_thenOnMappingStartFired() {
+        // Given
+        when(subjectGenerator.apply(any(), any())).thenReturn(List.of());
+
+        var rdfMapperConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
+                .valueFactorySupplier(Values::getValueFactory)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .childSideJoinStoreProvider(childSideJoinStoreProvider)
+                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
+                .build();
+
+        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
+                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+
+        var observer = mock(MappingExecutionObserver.class);
+        var resolvedMapping = mock(ResolvedMapping.class);
+        rdfTriplesMapper.setObserver(observer);
+        rdfTriplesMapper.setResolvedMapping(resolvedMapping);
+
+        // When
+        rdfTriplesMapper.map(logicalSourceRecord);
+
+        // Then
+        verify(observer).onMappingStart(resolvedMapping);
+    }
+
+    @Test
+    void givenObserverAndResolvedMapping_whenMapLogicalSourceRecordTwice_thenOnMappingStartFiredOnlyOnce() {
+        // Given
+        when(subjectGenerator.apply(any(), any())).thenReturn(List.of());
+
+        var rdfMapperConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
+                .valueFactorySupplier(Values::getValueFactory)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .childSideJoinStoreProvider(childSideJoinStoreProvider)
+                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
+                .build();
+
+        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
+                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+
+        var observer = mock(MappingExecutionObserver.class);
+        var resolvedMapping = mock(ResolvedMapping.class);
+        rdfTriplesMapper.setObserver(observer);
+        rdfTriplesMapper.setResolvedMapping(resolvedMapping);
+
+        // When
+        rdfTriplesMapper.map(logicalSourceRecord);
+        rdfTriplesMapper.map(logicalSourceRecord);
+
+        // Then
+        verify(observer, times(1)).onMappingStart(resolvedMapping);
+    }
+
+    @Test
+    void givenObserverWithoutResolvedMapping_whenMapLogicalSourceRecord_thenOnMappingStartNotFired() {
+        // Given — resolvedMapping is NOT set (null by default)
+        when(subjectGenerator.apply(any(), any())).thenReturn(List.of());
+
+        var rdfMapperConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
+                .valueFactorySupplier(Values::getValueFactory)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .childSideJoinStoreProvider(childSideJoinStoreProvider)
+                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
+                .build();
+
+        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
+                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+
+        var observer = mock(MappingExecutionObserver.class);
+        rdfTriplesMapper.setObserver(observer);
+        // resolvedMapping NOT set
+
+        // When
+        rdfTriplesMapper.map(logicalSourceRecord);
+
+        // Then
+        verify(observer, never()).onMappingStart(any());
+    }
+
+    @Test
+    void givenObserverAndResolvedMapping_whenMapViewIteration_thenOnMappingStartFired() {
+        // Given
+        when(subjectGenerator.apply(any(), any())).thenReturn(List.of());
+        when(viewIteration.getKeys()).thenReturn(Set.of("fieldName"));
+        when(viewIteration.getIndex()).thenReturn(0);
+
+        var rdfMapperConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
+                .valueFactorySupplier(Values::getValueFactory)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .childSideJoinStoreProvider(childSideJoinStoreProvider)
+                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
+                .build();
+
+        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
+                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+
+        var observer = mock(MappingExecutionObserver.class);
+        var resolvedMapping = mock(ResolvedMapping.class);
+        rdfTriplesMapper.setObserver(observer);
+        rdfTriplesMapper.setResolvedMapping(resolvedMapping);
+
+        // When
+        rdfTriplesMapper.map(viewIteration);
+
+        // Then
+        verify(observer).onMappingStart(resolvedMapping);
+    }
+
+    @Test
+    void givenDefaultNoOpObserver_whenMapWithResolvedMapping_thenDoesNotThrow() {
+        // Given — observer is NOT set (NoOpObserver by default)
+        when(subjectGenerator.apply(any(), any())).thenReturn(List.of());
+
+        var rdfMapperConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
+                .valueFactorySupplier(Values::getValueFactory)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .childSideJoinStoreProvider(childSideJoinStoreProvider)
+                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
+                .build();
+
+        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
+                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+
+        var resolvedMapping = mock(ResolvedMapping.class);
+        rdfTriplesMapper.setResolvedMapping(resolvedMapping);
+        // observer NOT set — defaults to NoOpObserver
+
+        // When & Then — should not throw
+        var statements = rdfTriplesMapper.map(logicalSourceRecord);
+        StepVerifier.create(statements).verifyComplete();
+    }
+
+    @Test
+    void givenObserverWithoutResolvedMapping_whenMapViewIteration_thenOnMappingStartNotFired() {
+        // Given — resolvedMapping is NOT set (null by default)
+        when(subjectGenerator.apply(any(), any())).thenReturn(List.of());
+        when(viewIteration.getKeys()).thenReturn(Set.of("fieldName"));
+        when(viewIteration.getIndex()).thenReturn(0);
+
+        var rdfMapperConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
+                .valueFactorySupplier(Values::getValueFactory)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .childSideJoinStoreProvider(childSideJoinStoreProvider)
+                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
+                .build();
+
+        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
+                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+
+        var observer = mock(MappingExecutionObserver.class);
+        rdfTriplesMapper.setObserver(observer);
+        // resolvedMapping NOT set
+
+        // When
+        rdfTriplesMapper.map(viewIteration);
+
+        // Then
+        verify(observer, never()).onMappingStart(any());
+    }
+
+    @Test
+    void givenObserverAndResolvedMapping_whenFireError_thenOnErrorFired() {
+        // Given
+        var rdfMapperConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
+                .valueFactorySupplier(Values::getValueFactory)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .childSideJoinStoreProvider(childSideJoinStoreProvider)
+                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
+                .build();
+
+        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
+                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+
+        var observer = mock(MappingExecutionObserver.class);
+        var resolvedMapping = mock(ResolvedMapping.class);
+        rdfTriplesMapper.setObserver(observer);
+        rdfTriplesMapper.setResolvedMapping(resolvedMapping);
+
+        var cause = new RuntimeException("boom");
+
+        // When — null iteration simulates LogicalSourceRecord path
+        rdfTriplesMapper.fireError(null, cause);
+
+        // Then
+        verify(observer)
+                .onError(
+                        eq(resolvedMapping),
+                        isNull(),
+                        argThat(err -> "boom".equals(err.message())
+                                && err.cause().isPresent()
+                                && err.cause().get() == cause));
+    }
+
+    @Test
+    void givenObserverWithoutResolvedMapping_whenFireError_thenOnErrorNotFired() {
+        // Given — resolvedMapping NOT set
+        var rdfMapperConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
+                .valueFactorySupplier(Values::getValueFactory)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .childSideJoinStoreProvider(childSideJoinStoreProvider)
+                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
+                .build();
+
+        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
+                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+
+        var observer = mock(MappingExecutionObserver.class);
+        rdfTriplesMapper.setObserver(observer);
+        // resolvedMapping NOT set
+
+        // When
+        rdfTriplesMapper.fireError(null, new RuntimeException("boom"));
+
+        // Then
+        verify(observer, never()).onError(any(), any(), any());
     }
 }

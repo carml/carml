@@ -4,7 +4,9 @@ import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.toUnmodifiableSet;
 import static org.eclipse.rdf4j.model.util.Values.iri;
 
+import io.carml.engine.CompositeObserver;
 import io.carml.engine.MappedValue;
+import io.carml.engine.MappingExecutionObserver;
 import io.carml.engine.MappingPipeline;
 import io.carml.engine.MappingResolver;
 import io.carml.engine.ResolvedMapping;
@@ -69,12 +71,26 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
 
     private static final long SECONDS_TO_TIMEOUT = 30;
 
+    private final MappingExecutionObserver observer;
+
     private RdfRmlMapper(
             Set<TriplesMap> triplesMaps,
             MappingPipeline<Statement> mappingPipeline,
             Set<SourceResolver<?>> sourceResolvers,
-            List<ResolvedMapping> resolvedMappings) {
+            List<ResolvedMapping> resolvedMappings,
+            MappingExecutionObserver observer) {
         super(triplesMaps, mappingPipeline, sourceResolvers, resolvedMappings);
+        this.observer = observer;
+    }
+
+    /**
+     * Returns the observer associated with this mapper. Useful for downstream components that need
+     * to fire observer callbacks (e.g., view evaluation wiring).
+     *
+     * @return the mapping execution observer, never {@code null}
+     */
+    public MappingExecutionObserver getObserver() {
+        return observer;
     }
 
     public static Builder builder() {
@@ -115,6 +131,8 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
                 CarmlParentSideJoinConditionStoreProvider.of();
 
         private DatabaseConnectionOptions databaseConnectionOptions;
+
+        private final List<MappingExecutionObserver> observers = new ArrayList<>();
 
         private boolean strictMode = false;
 
@@ -323,6 +341,20 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
             return this;
         }
 
+        /**
+         * Registers a {@link MappingExecutionObserver} that receives callbacks at key points in the
+         * mapping pipeline. Multiple observers can be registered and are composed into a single
+         * composite observer. When no observer is registered, a no-op implementation is used for
+         * zero overhead.
+         *
+         * @param observer the observer to register
+         * @return {@link Builder}
+         */
+        public Builder observer(MappingExecutionObserver observer) {
+            observers.add(observer);
+            return this;
+        }
+
         public RdfRmlMapper build() {
             var matchingLogicalSourceResolverFactories =
                     ServiceLoader.load(MatchingLogicalSourceResolverFactory.class).stream()
@@ -363,18 +395,23 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
             var mappableTriplesMaps = Mappings.filterMappable(triplesMaps);
             var resolvedMappings = MappingResolver.resolve(mappableTriplesMaps, limit);
 
+            var observer = CompositeObserver.of(observers);
+
             var mappingPipeline = pipelineFactory.getMappingPipeline(
                     mappableTriplesMaps, rdfMapperConfig, matchingLogicalSourceResolverFactories);
 
             // Wire each TriplesMapper with its corresponding ResolvedMapping for error context
-            // enrichment via FieldOrigin provenance.
+            // enrichment via FieldOrigin provenance, and with the observer for pipeline callbacks.
             for (var resolvedMapping : resolvedMappings) {
                 mappingPipeline.getTriplesMappers().stream()
                         .filter(RdfTriplesMapper.class::isInstance)
                         .map(RdfTriplesMapper.class::cast)
                         .filter(rtm -> rtm.getTriplesMap().equals(resolvedMapping.getOriginalTriplesMap()))
                         .findFirst()
-                        .ifPresent(rtm -> rtm.setResolvedMapping(resolvedMapping));
+                        .ifPresent(rtm -> {
+                            rtm.setResolvedMapping(resolvedMapping);
+                            rtm.setObserver(observer);
+                        });
             }
 
             sourceResolvers.add(fileResolverBuilder.build());
@@ -389,7 +426,7 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
                     .<SourceResolver<?>>map(ServiceLoader.Provider::get)
                     .forEach(sourceResolvers::add);
 
-            return new RdfRmlMapper(triplesMaps, mappingPipeline, sourceResolvers, resolvedMappings);
+            return new RdfRmlMapper(triplesMaps, mappingPipeline, sourceResolvers, resolvedMappings, observer);
         }
 
         private FunctionRegistry buildFunctionRegistry() {
