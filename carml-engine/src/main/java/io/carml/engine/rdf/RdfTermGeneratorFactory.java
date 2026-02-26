@@ -134,8 +134,10 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
             return getReferenceGenerator(termMap, generateOverrideDatatypes, languageMap);
         } else if (termMap.getTemplate() != null) {
             return getTemplateGenerator(termMap, generateOverrideDatatypes, languageMap);
+        } else if (termMap.getFunctionExecution() != null) {
+            return getFunctionExecutionGenerator(termMap, generateOverrideDatatypes, languageMap);
         } else if (termMap.getFunctionValue() != null) {
-            return getFunctionValueGenerator(termMap, generateOverrideDatatypes, languageMap);
+            return getFunctionExecutionGenerator(termMap, generateOverrideDatatypes, languageMap);
         } else {
             throw new TermGeneratorFactoryException(
                     String.format("No valid expression found in %s", exception(termMap)));
@@ -216,7 +218,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
         };
     }
 
-    private TermGenerator<? extends Value> getFunctionValueGenerator(
+    private TermGenerator<? extends Value> getFunctionExecutionGenerator(
             TermMap termMap, TermGenerator<? extends Value> generateOverrideDatatypes, LanguageMap languageMap) {
         return (expressionEvaluation, datatypeMapper) -> {
             var functionExecutionValues = RdfExpressionMapEvaluation.builder()

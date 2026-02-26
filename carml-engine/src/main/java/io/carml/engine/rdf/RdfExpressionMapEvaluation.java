@@ -16,6 +16,7 @@ import io.carml.logicalsourceresolver.DatatypeMapper;
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.model.DatatypeMap;
 import io.carml.model.ExpressionMap;
+import io.carml.model.Input;
 import io.carml.model.LanguageMap;
 import io.carml.model.ObjectMap;
 import io.carml.model.PredicateObjectMap;
@@ -50,7 +51,7 @@ import org.eclipse.rdf4j.model.util.Models;
 import org.eclipse.rdf4j.model.vocabulary.XSD;
 
 @Slf4j
-@Builder
+@Builder(toBuilder = true)
 public class RdfExpressionMapEvaluation {
 
     private final ExpressionMap expressionMap;
@@ -85,11 +86,13 @@ public class RdfExpressionMapEvaluation {
             return (List<T>) evaluateReference();
         } else if (expressionMap.getTemplate() != null) {
             return (List<T>) evaluateTemplate();
+        } else if (expressionMap.getFunctionExecution() != null) {
+            return (List<T>) evaluateFnmlFunctionExecution();
         } else if (expressionMap.getFunctionValue() != null) {
             return (List<T>) evaluateFunctionValue();
         } else {
             throw new RdfExpressionMapEvaluationException(
-                    String.format("Encountered expressionMap without an expression %s", exception(expressionMap)));
+                    "Encountered expressionMap without an expression %s".formatted(exception(expressionMap)));
         }
     }
 
@@ -148,12 +151,144 @@ public class RdfExpressionMapEvaluation {
     private List<Object> evaluateFunctionValue() {
         var functionValue = expressionMap.getFunctionValue();
 
-        return mapFunctionExecution(expressionMap, functionValue)
+        return mapLegacyFunctionExecution(expressionMap, functionValue)
                 .map(ExpressionEvaluation::extractValues)
                 .orElse(List.of());
     }
 
-    private Optional<Object> mapFunctionExecution(ExpressionMap expressionMap, TriplesMap executionMap) {
+    private List<Object> evaluateFnmlFunctionExecution() {
+        var fnExecution = expressionMap.getFunctionExecution();
+        var termType = determineTermType(expressionMap);
+        UnaryOperator<Object> returnValueAdapter =
+                termType == TermType.IRI ? this::iriEncodeResult : UnaryOperator.identity();
+
+        // 1. Resolve function IRI from FunctionMap
+        var functionMap = fnExecution.getFunctionMap();
+        if (functionMap == null) {
+            throw new RdfExpressionMapEvaluationException(
+                    "FunctionExecution has no FunctionMap (rml:functionMap/rml:function is required)");
+        }
+        IRI functionIri = resolveIriFromExpressionMap(functionMap, Rdf.Rml.FunctionMap);
+
+        // 2. Look up descriptor
+        FunctionDescriptor descriptor = functionRegistry
+                .getFunction(functionIri)
+                .orElseThrow(() -> new RdfExpressionMapEvaluationException(
+                        "no function registered for function IRI [%s]".formatted(functionIri)));
+
+        // 3. Resolve input bindings
+        Map<IRI, Object> parameterValues = resolveInputBindings(fnExecution.getInputs(), descriptor);
+
+        // 4. Execute
+        Object result = descriptor.execute(parameterValues);
+        if (result == null) {
+            return List.of();
+        }
+
+        // 5. Apply ReturnMap if present
+        result = applyReturnMap(result);
+        if (result == null) {
+            return List.of();
+        }
+
+        // 6. Apply IRI encoding for IRI term types
+        result = returnValueAdapter.apply(result);
+
+        // 7. Extract values
+        return ExpressionEvaluation.extractValues(result);
+    }
+
+    private IRI resolveIriFromExpressionMap(ExpressionMap iriExpressionMap, IRI mapType) {
+        var childEvaluation = this.toBuilder().expressionMap(iriExpressionMap).build();
+
+        var values = childEvaluation.evaluate(Value.class);
+        if (values.isEmpty()) {
+            throw new RdfExpressionMapEvaluationException("%s did not produce a value".formatted(mapType));
+        }
+
+        var value = values.get(0);
+        if (value instanceof IRI iri) {
+            return iri;
+        }
+        throw new RdfExpressionMapEvaluationException("%s produced non-IRI value: %s".formatted(mapType, value));
+    }
+
+    private Map<IRI, Object> resolveInputBindings(Set<Input> inputs, FunctionDescriptor descriptor) {
+        var parameterValues = new HashMap<IRI, Object>();
+
+        for (var input : inputs) {
+            // Resolve parameter IRI from ParameterMap
+            IRI parameterIri = resolveIriFromExpressionMap(input.getParameterMap(), Rdf.Rml.ParameterMap);
+
+            // Resolve value from InputValueMap using a child evaluation
+            var valueEvaluation =
+                    this.toBuilder().expressionMap(input.getInputValueMap()).build();
+            var values = valueEvaluation.evaluate(Object.class);
+
+            // Find matching parameter descriptor for type coercion
+            var paramDesc = descriptor.getParameters().stream()
+                    .filter(pd -> pd.iri().equals(parameterIri))
+                    .findFirst();
+
+            if (values.isEmpty()) {
+                parameterValues.put(parameterIri, null);
+            } else if (paramDesc.isPresent()
+                    && Collection.class.isAssignableFrom(paramDesc.get().type())) {
+                // Collection parameter: pass all values as list of strings
+                parameterValues.put(
+                        parameterIri, values.stream().map(this::toStringValue).toList());
+            } else {
+                // Single value: coerce to expected type
+                var stringValue = toStringValue(values.get(0));
+                if (paramDesc.isPresent()) {
+                    parameterValues.put(
+                            parameterIri,
+                            TYPE_COERCER.coerce(stringValue, paramDesc.get().type()));
+                } else {
+                    parameterValues.put(parameterIri, stringValue);
+                }
+            }
+        }
+
+        // Fill in nulls for any parameters not provided by inputs
+        for (var paramDesc : descriptor.getParameters()) {
+            parameterValues.putIfAbsent(paramDesc.iri(), null);
+        }
+
+        return parameterValues;
+    }
+
+    private String toStringValue(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Value rdfValue) {
+            return rdfValue.stringValue();
+        }
+        return value.toString();
+    }
+
+    private Object applyReturnMap(Object result) {
+        var returnMap = expressionMap.getReturnMap();
+        if (returnMap == null) {
+            return result;
+        }
+
+        if (!(result instanceof Map<?, ?> resultMap)) {
+            // Single-return function with ReturnMap: just return as-is
+            return result;
+        }
+
+        IRI returnIri = resolveIriFromExpressionMap(returnMap, Rdf.Rml.ReturnMap);
+
+        var selected = resultMap.get(returnIri);
+        if (selected == null) {
+            LOG.warn("ReturnMap IRI {} not found in function result keys {}", returnIri, resultMap.keySet());
+        }
+        return selected;
+    }
+
+    private Optional<Object> mapLegacyFunctionExecution(ExpressionMap expressionMap, TriplesMap executionMap) {
         MappedValue<Resource> functionExecution = RdfMappedValue.of(bnode());
 
         var executionStatements = executionMap.getPredicateObjectMaps().stream()

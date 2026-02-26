@@ -284,19 +284,23 @@ class DefaultMappingExecutionTest {
 
     @Test
     void givenNullSourceFlux_whenOf_thenThrowsNullPointerException() {
-        assertThrows(
-                NullPointerException.class, () -> MappingExecution.of(null, NoOpObserver.getInstance(), List.of()));
+        var observer = NoOpObserver.getInstance();
+        var mappings = List.<ResolvedMapping>of();
+        assertThrows(NullPointerException.class, () -> MappingExecution.of(null, observer, mappings));
     }
 
     @Test
     void givenNullObserver_whenOf_thenThrowsNullPointerException() {
-        assertThrows(NullPointerException.class, () -> MappingExecution.of(Flux.empty(), null, List.of()));
+        var flux = Flux.<Statement>empty();
+        var mappings = List.<ResolvedMapping>of();
+        assertThrows(NullPointerException.class, () -> MappingExecution.of(flux, null, mappings));
     }
 
     @Test
     void givenNullResolvedMappings_whenOf_thenThrowsNullPointerException() {
-        assertThrows(
-                NullPointerException.class, () -> MappingExecution.of(Flux.empty(), NoOpObserver.getInstance(), null));
+        var flux = Flux.<Statement>empty();
+        var observer = NoOpObserver.getInstance();
+        assertThrows(NullPointerException.class, () -> MappingExecution.of(flux, observer, null));
     }
 
     @Test
