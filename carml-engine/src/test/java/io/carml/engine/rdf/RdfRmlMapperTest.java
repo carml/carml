@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
 import io.carml.engine.CompositeObserver;
+import io.carml.engine.MappingExecution;
 import io.carml.engine.MappingExecutionObserver;
 import io.carml.engine.NoOpObserver;
 import io.carml.engine.RmlMapperException;
@@ -520,6 +521,78 @@ class RdfRmlMapperTest {
         var builder = RdfRmlMapper.builder();
         var result = builder.limit(10);
         assertThat(result, is(notNullValue()));
+    }
+
+    // --- start() ---
+
+    @Test
+    void givenMappingExpectingFileSource_whenStart_thenReturnsMappingExecution() {
+        // Given
+        var rmlMapper = RdfRmlMapper.builder()
+                .mapping(Mapping.of(RDFFormat.TURTLE, this.getClass(), "cars-file-input.rml.ttl"))
+                .classPathResolver(ClassPathResolver.of(RdfRmlMapperTest.class))
+                .build();
+
+        // When
+        var execution = rmlMapper.start();
+
+        // Then
+        assertThat(execution, is(notNullValue()));
+        assertThat(execution, is(instanceOf(MappingExecution.class)));
+    }
+
+    @Test
+    void givenMappingExpectingFileSource_whenStartAndConsumeStatements_thenProducesStatements() {
+        // Given
+        var rmlMapper = RdfRmlMapper.builder()
+                .mapping(Mapping.of(RDFFormat.TURTLE, this.getClass(), "cars-file-input.rml.ttl"))
+                .classPathResolver(ClassPathResolver.of(RdfRmlMapperTest.class))
+                .build();
+
+        // When
+        var execution = rmlMapper.start();
+
+        // Then
+        StepVerifier.create(execution.statements())
+                .expectNextCount(22)
+                .expectComplete()
+                .verify();
+    }
+
+    @Test
+    void givenMappingExpectingFileSource_whenStartAndConsumeStatements_thenMetricsReflectCount() {
+        // Given
+        var rmlMapper = RdfRmlMapper.builder()
+                .mapping(Mapping.of(RDFFormat.TURTLE, this.getClass(), "cars-file-input.rml.ttl"))
+                .classPathResolver(ClassPathResolver.of(RdfRmlMapperTest.class))
+                .build();
+
+        var execution = rmlMapper.start();
+        execution.statements().blockLast();
+
+        // When
+        var metrics = execution.currentMetrics();
+
+        // Then
+        assertThat(metrics.statementsProduced(), is(22L));
+        assertThat(metrics.errorsEncountered(), is(0L));
+    }
+
+    @Test
+    void givenMappingExpectingFileSource_whenStartAndCancelBeforeSubscribe_thenFluxCompletesImmediately() {
+        // Given
+        var rmlMapper = RdfRmlMapper.builder()
+                .mapping(Mapping.of(RDFFormat.TURTLE, this.getClass(), "cars-file-input.rml.ttl"))
+                .classPathResolver(ClassPathResolver.of(RdfRmlMapperTest.class))
+                .build();
+
+        var execution = rmlMapper.start();
+
+        // When — cancel before subscribing to statements
+        execution.cancel().block();
+
+        // Then — flux completes immediately with no elements
+        StepVerifier.create(execution.statements()).expectComplete().verify();
     }
 
     // --- Observer wiring ---

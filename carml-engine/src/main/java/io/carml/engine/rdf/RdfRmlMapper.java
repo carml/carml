@@ -6,6 +6,7 @@ import static org.eclipse.rdf4j.model.util.Values.iri;
 
 import io.carml.engine.CompositeObserver;
 import io.carml.engine.MappedValue;
+import io.carml.engine.MappingExecution;
 import io.carml.engine.MappingExecutionObserver;
 import io.carml.engine.MappingPipeline;
 import io.carml.engine.MappingResolver;
@@ -546,6 +547,20 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
             });
             return parent;
         }
+    }
+
+    /**
+     * Starts a mapping execution and returns a lifecycle handle for the resulting statement stream.
+     * The handle provides access to the reactive statement flux, cancellation, checkpointing, and
+     * runtime metrics.
+     *
+     * <p>For batch mode, this is equivalent to {@link #map()} wrapped in a lifecycle handle — the
+     * flux completes when all source data is exhausted.
+     *
+     * @return a {@link MappingExecution} lifecycle handle
+     */
+    public MappingExecution start() {
+        return MappingExecution.of(map(), observer, getResolvedMappings());
     }
 
     public Model mapToModel() {

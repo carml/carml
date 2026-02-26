@@ -1,5 +1,6 @@
 package io.carml.engine;
 
+import java.util.List;
 import org.eclipse.rdf4j.model.Statement;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -12,6 +13,21 @@ import reactor.core.publisher.Mono;
  * checkpointing (for streaming fault tolerance), and runtime metrics inspection.
  */
 public interface MappingExecution {
+
+    /**
+     * Creates a new {@link MappingExecution} wrapping the given statement flux with lifecycle
+     * management. The returned handle tracks statement and error counts, supports cancellation, and
+     * fires observer checkpoint callbacks.
+     *
+     * @param statements the reactive stream of RDF statements to wrap
+     * @param observer the observer to receive checkpoint callbacks
+     * @param resolvedMappings the resolved mappings for checkpoint context
+     * @return a new {@link MappingExecution} lifecycle handle
+     */
+    static MappingExecution of(
+            Flux<Statement> statements, MappingExecutionObserver observer, List<ResolvedMapping> resolvedMappings) {
+        return new DefaultMappingExecution(statements, observer, resolvedMappings);
+    }
 
     /**
      * The reactive stream of RDF statements produced by this execution.
