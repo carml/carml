@@ -58,6 +58,18 @@ public interface DedupStrategy {
     }
 
     /**
+     * Returns a simple equality deduplication strategy that assumes all key fields are non-null.
+     * Uses {@code orElseThrow()} instead of {@code orElse(null)} for key extraction, avoiding
+     * null-safe comparison overhead. Suitable when all projected fields are covered by
+     * {@link io.carml.model.NotNullAnnotation}.
+     *
+     * @return a simple equality dedup strategy
+     */
+    static DedupStrategy simpleEquality() {
+        return new SimpleEqualityDedupStrategy();
+    }
+
+    /**
      * Returns a no-op deduplication strategy that passes all iterations through unchanged.
      *
      * @return a pass-through dedup strategy

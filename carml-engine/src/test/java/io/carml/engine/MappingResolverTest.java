@@ -17,6 +17,7 @@ import static org.mockito.Mockito.when;
 import io.carml.logicalview.DedupStrategy;
 import io.carml.model.ExpressionField;
 import io.carml.model.Field;
+import io.carml.model.ForeignKeyAnnotation;
 import io.carml.model.IriSafeAnnotation;
 import io.carml.model.IterableField;
 import io.carml.model.LogicalSource;
@@ -1170,6 +1171,98 @@ class MappingResolverTest {
             when(view.getStructuralAnnotations()).thenReturn(Set.of(unique, notNull));
 
             var result = MappingResolver.selectDedupStrategy(view, Set.of("name", "age"));
+
+            assertThat(result, is(instanceOf(DedupStrategy.exact().getClass())));
+        }
+
+        @Test
+        void selectDedupStrategy_givenNotNullOnAllProjected_returnsSimpleEquality() {
+            var view = mock(LogicalView.class);
+            var notNull = mock(NotNullAnnotation.class);
+            var nameField = mock(Field.class);
+            var ageField = mock(Field.class);
+            when(nameField.getFieldName()).thenReturn("name");
+            when(ageField.getFieldName()).thenReturn("age");
+            when(notNull.getOnFields()).thenReturn(List.of(nameField, ageField));
+            var iriSafe = mock(IriSafeAnnotation.class);
+            when(view.getStructuralAnnotations()).thenReturn(Set.of(notNull, iriSafe));
+
+            var result = MappingResolver.selectDedupStrategy(view, Set.of("name", "age"));
+
+            assertThat(result, is(instanceOf(DedupStrategy.simpleEquality().getClass())));
+        }
+
+        @Test
+        void selectDedupStrategy_givenNotNullPartialCoverage_returnsExact() {
+            var view = mock(LogicalView.class);
+            var notNull = mock(NotNullAnnotation.class);
+            var nameField = mock(Field.class);
+            when(nameField.getFieldName()).thenReturn("name");
+            when(notNull.getOnFields()).thenReturn(List.of(nameField));
+            var iriSafe = mock(IriSafeAnnotation.class);
+            when(view.getStructuralAnnotations()).thenReturn(Set.of(notNull, iriSafe));
+
+            var result = MappingResolver.selectDedupStrategy(view, Set.of("name", "age"));
+
+            assertThat(result, is(instanceOf(DedupStrategy.exact().getClass())));
+        }
+
+        @Test
+        void selectDedupStrategy_givenFkJoinAndPkOnOwnFields_returnsNone() {
+            var view = mock(LogicalView.class);
+            var parentView = mock(LogicalView.class);
+
+            // PK on own field "id" — but "id" is NOT in projected set
+            var pk = mock(PrimaryKeyAnnotation.class);
+            var idField = mock(Field.class);
+            lenient().when(idField.getFieldName()).thenReturn("id");
+            when(pk.getOnFields()).thenReturn(List.of(idField));
+
+            // FK referencing parentView
+            var fk = mock(ForeignKeyAnnotation.class);
+            when(fk.getTargetView()).thenReturn(parentView);
+
+            when(view.getStructuralAnnotations()).thenReturn(Set.of(pk, fk));
+
+            // Join with parentView contributing "parentName" data field
+            var join = mock(LogicalViewJoin.class);
+            when(join.getParentLogicalView()).thenReturn(parentView);
+            var joinField = mock(ExpressionField.class);
+            when(joinField.getFieldName()).thenReturn("parentName");
+            when(join.getFields()).thenReturn(Set.of(joinField));
+
+            when(view.getLeftJoins()).thenReturn(Set.of(join));
+            lenient().when(view.getInnerJoins()).thenReturn(null);
+
+            // Projected: only "parentName" — PK(id) fails because "id" not projected
+            // FK strips "parentName" → effective is empty → none()
+            var result = MappingResolver.selectDedupStrategy(view, Set.of("parentName"));
+
+            assertThat(result, is(instanceOf(DedupStrategy.none().getClass())));
+        }
+
+        @Test
+        void selectDedupStrategy_givenFkJoinButNoOwnFieldCoverage_returnsExact() {
+            var view = mock(LogicalView.class);
+            var parentView = mock(LogicalView.class);
+
+            // No PK or Unique covering own fields — only FK + IriSafe
+            var fk = mock(ForeignKeyAnnotation.class);
+            when(fk.getTargetView()).thenReturn(parentView);
+            var iriSafe = mock(IriSafeAnnotation.class);
+            when(view.getStructuralAnnotations()).thenReturn(Set.of(fk, iriSafe));
+
+            var join = mock(LogicalViewJoin.class);
+            when(join.getParentLogicalView()).thenReturn(parentView);
+            var joinField = mock(ExpressionField.class);
+            when(joinField.getFieldName()).thenReturn("parentName");
+            when(join.getFields()).thenReturn(Set.of(joinField));
+
+            when(view.getLeftJoins()).thenReturn(Set.of(join));
+            lenient().when(view.getInnerJoins()).thenReturn(null);
+
+            // FK strips "parentName" → effective is {"ownField"}, but no PK/Unique covers it
+            var result = MappingResolver.selectDedupStrategy(view, Set.of("ownField", "parentName"));
 
             assertThat(result, is(instanceOf(DedupStrategy.exact().getClass())));
         }

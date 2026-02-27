@@ -8,7 +8,9 @@ import io.carml.logicalview.ImplicitViewFactory;
 import io.carml.model.ExpressionField;
 import io.carml.model.ExpressionMap;
 import io.carml.model.Field;
+import io.carml.model.ForeignKeyAnnotation;
 import io.carml.model.LogicalView;
+import io.carml.model.LogicalViewJoin;
 import io.carml.model.NotNullAnnotation;
 import io.carml.model.ObjectMap;
 import io.carml.model.PredicateObjectMap;
@@ -122,7 +124,32 @@ public final class MappingResolver {
                 .map(Field::getFieldName)
                 .collect(toUnmodifiableSet());
 
-        var hasCoveringPk = annotations.stream()
+        if (hasCoveringPkOrUnique(annotations, notNullFields, projectedFields)) {
+            return DedupStrategy.none();
+        }
+
+        // FK on joins → strip FK-guaranteed join fields from effective projection, re-check
+        var fkJoinFieldNames = collectFkGuaranteedJoinFieldNames(logicalView);
+        if (!fkJoinFieldNames.isEmpty()) {
+            var effectiveProjected = projectedFields.stream()
+                    .filter(f -> !fkJoinFieldNames.contains(f))
+                    .collect(toUnmodifiableSet());
+            if (hasCoveringPkOrUnique(annotations, notNullFields, effectiveProjected)) {
+                return DedupStrategy.none();
+            }
+        }
+
+        // NotNull on all projected fields → simpleEquality()
+        if (!projectedFields.isEmpty() && notNullFields.containsAll(projectedFields)) {
+            return DedupStrategy.simpleEquality();
+        }
+
+        return DedupStrategy.exact();
+    }
+
+    private static boolean hasCoveringPkOrUnique(
+            Set<StructuralAnnotation> annotations, Set<String> notNullFields, Set<String> projectedFields) {
+        var hasPk = annotations.stream()
                 .filter(PrimaryKeyAnnotation.class::isInstance)
                 .anyMatch(a -> {
                     var pkFields = nullSafeOnFields(a).stream()
@@ -131,26 +158,43 @@ public final class MappingResolver {
                     return !pkFields.isEmpty() && projectionCovers(projectedFields, pkFields);
                 });
 
-        if (hasCoveringPk) {
-            return DedupStrategy.none();
+        if (hasPk) {
+            return true;
         }
 
-        var hasCoveringUnique = annotations.stream()
-                .filter(UniqueAnnotation.class::isInstance)
-                .anyMatch(a -> {
-                    var uniqueFields = nullSafeOnFields(a).stream()
-                            .map(Field::getFieldName)
-                            .collect(toUnmodifiableSet());
-                    return !uniqueFields.isEmpty()
-                            && projectionCovers(projectedFields, uniqueFields)
-                            && notNullFields.containsAll(uniqueFields);
-                });
+        return annotations.stream().filter(UniqueAnnotation.class::isInstance).anyMatch(a -> {
+            var uniqueFields =
+                    nullSafeOnFields(a).stream().map(Field::getFieldName).collect(toUnmodifiableSet());
+            return !uniqueFields.isEmpty()
+                    && projectionCovers(projectedFields, uniqueFields)
+                    && notNullFields.containsAll(uniqueFields);
+        });
+    }
 
-        if (hasCoveringUnique) {
-            return DedupStrategy.none();
+    private static Set<String> collectFkGuaranteedJoinFieldNames(LogicalView logicalView) {
+        var fkFieldNames = new HashSet<String>();
+        var annotations = logicalView.getStructuralAnnotations();
+        if (annotations == null) {
+            return Set.of();
         }
+        collectFkJoinFieldNamesFromJoins(logicalView.getLeftJoins(), annotations, fkFieldNames);
+        collectFkJoinFieldNamesFromJoins(logicalView.getInnerJoins(), annotations, fkFieldNames);
+        return fkFieldNames;
+    }
 
-        return DedupStrategy.exact();
+    private static void collectFkJoinFieldNamesFromJoins(
+            Set<LogicalViewJoin> joins, Set<StructuralAnnotation> annotations, Set<String> fkFieldNames) {
+        if (joins == null) {
+            return;
+        }
+        for (var join : joins) {
+            var hasFk = annotations.stream()
+                    .anyMatch(a ->
+                            a instanceof ForeignKeyAnnotation fk && fk.getTargetView() == join.getParentLogicalView());
+            if (hasFk && join.getFields() != null) {
+                join.getFields().stream().map(ExpressionField::getFieldName).forEach(fkFieldNames::add);
+            }
+        }
     }
 
     /** Empty projectedFields means "all fields", so any required set is covered. */

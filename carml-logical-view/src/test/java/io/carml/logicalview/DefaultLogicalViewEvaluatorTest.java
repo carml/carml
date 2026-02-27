@@ -4140,4 +4140,89 @@ class DefaultLogicalViewEvaluatorTest {
         assertThat(iterations.get(0).getValue("a"), is(Optional.of("99")));
         assertThat(iterations.get(0).getValue("city"), is(Optional.empty()));
     }
+
+    // --- Dedup key narrowing tests ---
+
+    @Test
+    void givenProjectedFields_whenDedupApplied_thenNarrowedToProjectedFieldsOnly() {
+        var fieldA = mockExpressionField("a");
+        when(fieldA.getReference()).thenReturn("$.a");
+        var fieldB = mockExpressionField("b");
+        when(fieldB.getReference()).thenReturn("$.b");
+        when(logicalView.getFields()).thenReturn(Set.of(fieldA, fieldB));
+
+        // Two records: same "a" value, different "b" value
+        var record1 = createRecord("record-1");
+        var record2 = createRecord("record-2");
+
+        setupMocksWithPerRecordEval(Flux.just(record1, record2), rec -> {
+            if (rec == record1.getSourceRecord()) {
+                return expression -> switch (expression) {
+                    case "$.a" -> Optional.of("x");
+                    case "$.b" -> Optional.of("1");
+                    default -> Optional.empty();
+                };
+            }
+            if (rec == record2.getSourceRecord()) {
+                return expression -> switch (expression) {
+                    case "$.a" -> Optional.of("x");
+                    case "$.b" -> Optional.of("2");
+                    default -> Optional.empty();
+                };
+            }
+            return expression -> Optional.empty();
+        });
+
+        // Projected only "a" → dedup key is narrowed to {a, a.#} → duplicate on "a" is eliminated
+        var context = EvaluationContext.of(Set.of("a"), DedupStrategy.exact(), null);
+
+        var iterations = evaluator
+                .evaluate(logicalView, sourceResolver, context)
+                .collectList()
+                .block();
+
+        assertThat(iterations, hasSize(1));
+        assertThat(iterations.get(0).getValue("a"), is(Optional.of("x")));
+    }
+
+    @Test
+    void givenEmptyProjectedFields_whenDedupApplied_thenUsesAllFields() {
+        var fieldA = mockExpressionField("a");
+        when(fieldA.getReference()).thenReturn("$.a");
+        var fieldB = mockExpressionField("b");
+        when(fieldB.getReference()).thenReturn("$.b");
+        when(logicalView.getFields()).thenReturn(Set.of(fieldA, fieldB));
+
+        // Two records: same "a" value, different "b" value
+        var record1 = createRecord("record-1");
+        var record2 = createRecord("record-2");
+
+        setupMocksWithPerRecordEval(Flux.just(record1, record2), rec -> {
+            if (rec == record1.getSourceRecord()) {
+                return expression -> switch (expression) {
+                    case "$.a" -> Optional.of("x");
+                    case "$.b" -> Optional.of("1");
+                    default -> Optional.empty();
+                };
+            }
+            if (rec == record2.getSourceRecord()) {
+                return expression -> switch (expression) {
+                    case "$.a" -> Optional.of("x");
+                    case "$.b" -> Optional.of("2");
+                    default -> Optional.empty();
+                };
+            }
+            return expression -> Optional.empty();
+        });
+
+        // Empty projected → dedup key uses all fields → different "b" means both rows kept
+        var context = EvaluationContext.of(Set.of(), DedupStrategy.exact(), null);
+
+        var iterations = evaluator
+                .evaluate(logicalView, sourceResolver, context)
+                .collectList()
+                .block();
+
+        assertThat(iterations, hasSize(2));
+    }
 }

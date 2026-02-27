@@ -183,8 +183,9 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
         Flux<ViewIteration> viewIterations = evaluatedFlux.map(
                 ev -> new DefaultViewIteration(0, ev.values(), ev.referenceFormulations(), ev.naturalDatatypes()));
 
-        // Apply dedup strategy
-        var keyFields = collectDedupKeyFields(view);
+        // Apply dedup strategy — narrow key to projected fields when available
+        var keyFields =
+                projectedFields.isEmpty() ? collectDedupKeyFields(view) : expandWithIndexKeys(projectedFields, view);
         viewIterations = context.getDedupStrategy().deduplicate(viewIterations, keyFields);
 
         // Assign sequential # index after dedup
@@ -198,6 +199,19 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
 
     private Set<String> collectDedupKeyFields(LogicalView view) {
         return collectAllFieldKeys(view);
+    }
+
+    private static Set<String> expandWithIndexKeys(Set<String> projectedFields, LogicalView view) {
+        var allKeys = collectAllFieldKeys(view);
+        var expanded = new LinkedHashSet<String>();
+        for (var projectedField : projectedFields) {
+            expanded.add(projectedField);
+            var indexKey = projectedField + INDEX_KEY_SUFFIX;
+            if (allKeys.contains(indexKey)) {
+                expanded.add(indexKey);
+            }
+        }
+        return expanded;
     }
 
     private static void collectFieldKeys(Set<Field> fields, String prefix, Set<String> keys) {
