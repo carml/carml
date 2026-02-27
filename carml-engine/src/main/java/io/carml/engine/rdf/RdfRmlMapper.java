@@ -14,6 +14,7 @@ import io.carml.engine.ResolvedMapping;
 import io.carml.engine.RmlMapper;
 import io.carml.engine.RmlMapperException;
 import io.carml.engine.TermGeneratorFactory;
+import io.carml.engine.TriplesMapper;
 import io.carml.engine.function.AnnotatedFunctionProvider;
 import io.carml.engine.function.BuiltInFunctionProvider;
 import io.carml.engine.function.FnoDescriptionProvider;
@@ -32,6 +33,10 @@ import io.carml.logicalsourceresolver.sourceresolver.FileResolver;
 import io.carml.logicalsourceresolver.sourceresolver.SourceResolver;
 import io.carml.logicalsourceresolver.sql.sourceresolver.DatabaseConnectionOptions;
 import io.carml.logicalsourceresolver.sql.sourceresolver.DatabaseSourceResolver;
+import io.carml.logicalview.DefaultLogicalViewEvaluator;
+import io.carml.logicalview.LogicalViewEvaluator;
+import io.carml.model.LogicalSource;
+import io.carml.model.LogicalView;
 import io.carml.model.Mapping;
 import io.carml.model.TriplesMap;
 import io.carml.util.Mappings;
@@ -42,6 +47,7 @@ import java.text.Normalizer;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +56,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -72,6 +79,7 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
 
     private static final long SECONDS_TO_TIMEOUT = 30;
 
+    @Getter
     private final MappingExecutionObserver observer;
 
     private RdfRmlMapper(
@@ -79,19 +87,11 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
             MappingPipeline<Statement> mappingPipeline,
             Set<SourceResolver<?>> sourceResolvers,
             List<ResolvedMapping> resolvedMappings,
-            MappingExecutionObserver observer) {
-        super(triplesMaps, mappingPipeline, sourceResolvers, resolvedMappings);
+            MappingExecutionObserver observer,
+            Map<TriplesMap, TriplesMapper<Statement>> lvTriplesMappers,
+            LogicalViewEvaluator logicalViewEvaluator) {
+        super(triplesMaps, mappingPipeline, sourceResolvers, resolvedMappings, lvTriplesMappers, logicalViewEvaluator);
         this.observer = observer;
-    }
-
-    /**
-     * Returns the observer associated with this mapper. Useful for downstream components that need
-     * to fire observer callbacks (e.g., view evaluation wiring).
-     *
-     * @return the mapping execution observer, never {@code null}
-     */
-    public MappingExecutionObserver getObserver() {
-        return observer;
     }
 
     public static Builder builder() {
@@ -357,24 +357,67 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
         }
 
         public RdfRmlMapper build() {
-            var matchingLogicalSourceResolverFactories =
-                    ServiceLoader.load(MatchingLogicalSourceResolverFactory.class).stream()
-                            .map(ServiceLoader.Provider::get)
-                            .filter(not(factory -> excludeLogicalSourceResolvers.contains(factory.getResolverName())))
-                            .collect(toUnmodifiableSet());
-
-            if (matchingLogicalSourceResolverFactories.isEmpty()) {
-                throw new RmlMapperException("No logical source resolver suppliers specified.");
-            }
+            var resolverFactories = loadResolverFactories();
 
             var triplesMaps = mapping != null ? mapping.getTriplesMaps() : providedTriplesMaps;
             if (triplesMaps == null) {
                 throw new RmlMapperException("No mappings provided.");
             }
 
+            var rdfMapperConfig = buildRdfMapperConfig();
+
+            var mappableTriplesMaps = Mappings.filterMappable(triplesMaps);
+            var resolvedMappings = MappingResolver.resolve(mappableTriplesMaps, limit);
+            var observer = CompositeObserver.of(observers);
+
+            // Partition into LS-based and LV-based TriplesMap sets
+            var lsTriplesMaps = mappableTriplesMaps.stream()
+                    .filter(tm -> tm.getLogicalSource() instanceof LogicalSource)
+                    .collect(toUnmodifiableSet());
+
+            var lvTriplesMaps = mappableTriplesMaps.stream()
+                    .filter(tm -> tm.getLogicalSource() instanceof LogicalView)
+                    .collect(toUnmodifiableSet());
+
+            if (lsTriplesMaps.isEmpty() && lvTriplesMaps.isEmpty()) {
+                throw new RmlMapperException("No executable triples maps found.");
+            }
+
+            var mappingPipeline =
+                    buildLsPipeline(lsTriplesMaps, rdfMapperConfig, resolverFactories, resolvedMappings, observer);
+            var lvResult =
+                    buildLvMappers(lvTriplesMaps, rdfMapperConfig, resolverFactories, resolvedMappings, observer);
+            registerSourceResolvers();
+
+            return new RdfRmlMapper(
+                    triplesMaps,
+                    mappingPipeline,
+                    sourceResolvers,
+                    resolvedMappings,
+                    observer,
+                    lvResult.mappers(),
+                    lvResult.evaluator());
+        }
+
+        private record LvPipelineResult(
+                Map<TriplesMap, TriplesMapper<Statement>> mappers, LogicalViewEvaluator evaluator) {}
+
+        private Set<MatchingLogicalSourceResolverFactory> loadResolverFactories() {
+            var factories = ServiceLoader.load(MatchingLogicalSourceResolverFactory.class).stream()
+                    .map(ServiceLoader.Provider::get)
+                    .filter(not(factory -> excludeLogicalSourceResolvers.contains(factory.getResolverName())))
+                    .collect(toUnmodifiableSet());
+
+            if (factories.isEmpty()) {
+                throw new RmlMapperException("No logical source resolver suppliers specified.");
+            }
+            return factories;
+        }
+
+        private RdfMapperConfig buildRdfMapperConfig() {
             var functionRegistry = buildFunctionRegistry();
 
-            RdfTermGeneratorConfig rdfTermGeneratorConfig = RdfTermGeneratorConfig.builder()
+            var rdfTermGeneratorConfig = RdfTermGeneratorConfig.builder()
                     .baseIri(baseIri)
                     .valueFactory(valueFactorySupplier.get())
                     .normalizationForm(normalizationForm)
@@ -382,7 +425,7 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
                     .functionRegistry(functionRegistry)
                     .build();
 
-            var rdfMapperConfig = RdfMapperConfig.builder()
+            return RdfMapperConfig.builder()
                     .valueFactorySupplier(valueFactorySupplier)
                     .termGeneratorFactory(termGeneratorFactory)
                     .rdfTermGeneratorConfig(rdfTermGeneratorConfig)
@@ -390,44 +433,84 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
                     .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                     .strictMode(strictMode)
                     .build();
+        }
 
-            var pipelineFactory = RdfMappingPipelineFactory.getInstance();
+        private MappingPipeline<Statement> buildLsPipeline(
+                Set<TriplesMap> lsTriplesMaps,
+                RdfMapperConfig rdfMapperConfig,
+                Set<MatchingLogicalSourceResolverFactory> resolverFactories,
+                List<ResolvedMapping> resolvedMappings,
+                MappingExecutionObserver observer) {
+            var mappingPipeline = lsTriplesMaps.isEmpty()
+                    ? MappingPipeline.<Statement>of(Set.of(), Map.of(), Map.of())
+                    : RdfMappingPipelineFactory.getInstance()
+                            .getMappingPipeline(lsTriplesMaps, rdfMapperConfig, resolverFactories);
 
-            var mappableTriplesMaps = Mappings.filterMappable(triplesMaps);
-            var resolvedMappings = MappingResolver.resolve(mappableTriplesMaps, limit);
+            wireMappers(mappingPipeline.getTriplesMappers(), resolvedMappings, observer);
+            return mappingPipeline;
+        }
 
-            var observer = CompositeObserver.of(observers);
+        private LvPipelineResult buildLvMappers(
+                Set<TriplesMap> lvTriplesMaps,
+                RdfMapperConfig rdfMapperConfig,
+                Set<MatchingLogicalSourceResolverFactory> resolverFactories,
+                List<ResolvedMapping> resolvedMappings,
+                MappingExecutionObserver observer) {
+            if (lvTriplesMaps.isEmpty()) {
+                return new LvPipelineResult(Map.of(), null);
+            }
 
-            var mappingPipeline = pipelineFactory.getMappingPipeline(
-                    mappableTriplesMaps, rdfMapperConfig, matchingLogicalSourceResolverFactories);
+            var evaluator = new DefaultLogicalViewEvaluator(resolverFactories);
 
-            // Wire each TriplesMapper with its corresponding ResolvedMapping for error context
-            // enrichment via FieldOrigin provenance, and with the observer for pipeline callbacks.
+            Map<TriplesMap, TriplesMapper<Statement>> lvMappers = new HashMap<>();
+            for (var tm : lvTriplesMaps) {
+                lvMappers.put(tm, RdfTriplesMapper.ofForView(tm, getEffectiveMapperConfig(tm, rdfMapperConfig)));
+            }
+
+            wireMappers(lvMappers.values(), resolvedMappings, observer);
+            return new LvPipelineResult(Map.copyOf(lvMappers), evaluator);
+        }
+
+        private void wireMappers(
+                Iterable<? extends TriplesMapper<Statement>> mappers,
+                List<ResolvedMapping> resolvedMappings,
+                MappingExecutionObserver observer) {
             for (var resolvedMapping : resolvedMappings) {
-                mappingPipeline.getTriplesMappers().stream()
-                        .filter(RdfTriplesMapper.class::isInstance)
-                        .map(RdfTriplesMapper.class::cast)
-                        .filter(rtm -> rtm.getTriplesMap().equals(resolvedMapping.getOriginalTriplesMap()))
-                        .findFirst()
-                        .ifPresent(rtm -> {
-                            rtm.setResolvedMapping(resolvedMapping);
-                            rtm.setObserver(observer);
-                        });
+                for (var mapper : mappers) {
+                    if (mapper instanceof RdfTriplesMapper<?> rtm
+                            && rtm.getTriplesMap().equals(resolvedMapping.getOriginalTriplesMap())) {
+                        rtm.setResolvedMapping(resolvedMapping);
+                        rtm.setObserver(observer);
+                        break;
+                    }
+                }
             }
+        }
 
+        private void registerSourceResolvers() {
             sourceResolvers.add(fileResolverBuilder.build());
-
-            if (databaseConnectionOptions != null) {
-                sourceResolvers.add(DatabaseSourceResolver.of(databaseConnectionOptions));
-            } else {
-                sourceResolvers.add(DatabaseSourceResolver.of());
-            }
-
+            sourceResolvers.add(
+                    databaseConnectionOptions != null
+                            ? DatabaseSourceResolver.of(databaseConnectionOptions)
+                            : DatabaseSourceResolver.of());
             ServiceLoader.load(SourceResolver.class).stream()
                     .<SourceResolver<?>>map(ServiceLoader.Provider::get)
                     .forEach(sourceResolvers::add);
+        }
 
-            return new RdfRmlMapper(triplesMaps, mappingPipeline, sourceResolvers, resolvedMappings, observer);
+        private RdfMapperConfig getEffectiveMapperConfig(TriplesMap triplesMap, RdfMapperConfig rdfMapperConfig) {
+            IRI triplesMapBaseIri = triplesMap.getBaseIri();
+            if (triplesMapBaseIri == null) {
+                return rdfMapperConfig;
+            }
+
+            var overriddenTermGenConfig = rdfMapperConfig.getRdfTermGeneratorConfig().toBuilder()
+                    .baseIri(triplesMapBaseIri)
+                    .build();
+
+            return rdfMapperConfig.toBuilder()
+                    .rdfTermGeneratorConfig(overriddenTermGenConfig)
+                    .build();
         }
 
         private FunctionRegistry buildFunctionRegistry() {

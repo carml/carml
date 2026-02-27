@@ -35,6 +35,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -168,6 +169,44 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
                 isStrictMode,
                 refExpressions,
                 matched);
+    }
+
+    /**
+     * Creates a {@link RdfTriplesMapper} for a LogicalView-based TriplesMap. LV mappers only use
+     * {@link #map(ViewIteration)}; the {@link LogicalSourceResolver.ExpressionEvaluationFactory}
+     * is a no-op stub and must never be invoked.
+     *
+     * @param triplesMap the LV-based TriplesMap
+     * @param rdfMapperConfig the mapper configuration
+     * @return a mapper wired for view iteration mapping only
+     */
+    static RdfTriplesMapper<Object> ofForView(
+            @NonNull TriplesMap triplesMap, @NonNull RdfMapperConfig rdfMapperConfig) {
+
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Creating LV mapper for TriplesMap {}", triplesMap.getResourceName());
+        }
+
+        var subjectMappers = createSubjectMappers(triplesMap, rdfMapperConfig);
+        var predicateObjectMappers = createPredicateObjectMappers(triplesMap, rdfMapperConfig, Set.of());
+
+        // No-op factory — never invoked; only map(ViewIteration) is called on LV mappers.
+        LogicalSourceResolver.ExpressionEvaluationFactory<Object> noOpFactory =
+                sourceRecord -> expression -> Optional.empty();
+
+        return new RdfTriplesMapper<>(
+                triplesMap,
+                subjectMappers,
+                predicateObjectMappers,
+                Set.of(), // no incoming ref object mappers — LV joins handled by evaluator
+                noOpFactory,
+                null, // no datatype mapper factory
+                rdfMapperConfig
+                        .getParentSideJoinConditionStoreProvider()
+                        .createParentSideJoinConditionStore(triplesMap.getId()),
+                false,
+                Set.of(),
+                Set.of());
     }
 
     static Set<TermGenerator<Resource>> createGraphGenerators(

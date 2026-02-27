@@ -177,7 +177,11 @@ public class RdfPredicateObjectMapper {
     private static Stream<TermGenerator<? extends Value>> createJoinlessRefObjectMapGenerators(
             Set<BaseObjectMap> objectMaps, TriplesMap triplesMap, RdfTermGeneratorFactory termGeneratorFactory) {
 
-        var logicalSource = (LogicalSource) triplesMap.getLogicalSource();
+        // LogicalView-based TMs do not support joinless RefObjectMaps — joins are handled by the
+        // LogicalView evaluator. Skip the cast and return an empty stream.
+        if (!(triplesMap.getLogicalSource() instanceof LogicalSource logicalSource)) {
+            return Stream.empty();
+        }
 
         return objectMaps.stream()
                 .filter(RefObjectMap.class::isInstance)

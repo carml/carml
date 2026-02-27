@@ -8,6 +8,7 @@ import com.google.common.collect.Iterables;
 import io.carml.logicalsourceresolver.LogicalSourceRecord;
 import io.carml.logicalsourceresolver.ResolvedSource;
 import io.carml.logicalsourceresolver.sourceresolver.SourceResolver;
+import io.carml.logicalview.LogicalViewEvaluator;
 import io.carml.model.LogicalSource;
 import io.carml.model.NameableStream;
 import io.carml.model.Source;
@@ -19,7 +20,6 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.AccessLevel;
@@ -54,16 +54,31 @@ public abstract class RmlMapper<T, K> {
     @Getter
     private final List<ResolvedMapping> resolvedMappings;
 
+    /**
+     * LV-based triples mappers, keyed by TriplesMap. Empty when no TriplesMap uses an explicit
+     * LogicalView.
+     */
+    private final Map<TriplesMap, TriplesMapper<T>> lvTriplesMappers;
+
+    /**
+     * Evaluator for LogicalView-based TriplesMap instances. Null when no LV TMs exist.
+     */
+    private final LogicalViewEvaluator logicalViewEvaluator;
+
     protected RmlMapper(
             @NonNull Set<TriplesMap> triplesMaps,
             @NonNull MappingPipeline<T> mappingPipeline,
             @NonNull Set<SourceResolver<?>> sourceResolvers,
-            @NonNull List<ResolvedMapping> resolvedMappings) {
+            @NonNull List<ResolvedMapping> resolvedMappings,
+            @NonNull Map<TriplesMap, TriplesMapper<T>> lvTriplesMappers,
+            LogicalViewEvaluator logicalViewEvaluator) {
         this.triplesMaps = triplesMaps;
         this.sourceResolvers = sourceResolvers;
         this.mappingPipeline = mappingPipeline;
         this.mergeables = new HashMap<>();
         this.resolvedMappings = resolvedMappings;
+        this.lvTriplesMappers = lvTriplesMappers;
+        this.logicalViewEvaluator = logicalViewEvaluator;
     }
 
     public <R> Flux<T> mapRecord(R providedRecord, Class<R> providedRecordClass) {
@@ -118,14 +133,24 @@ public abstract class RmlMapper<T, K> {
                 .mappingPipeline(mappingPipeline)
                 .build();
 
-        return Flux.fromIterable(getSources(mappingContext, namedInputStreams, providedRecord, providedRecordTypeRef))
+        var lsFlow = Flux.fromIterable(
+                        getSources(mappingContext, namedInputStreams, providedRecord, providedRecordTypeRef))
                 .flatMap(resolvedSourceEntry ->
-                        mapSource(resolvedSourceEntry.getLeft(), mappingContext, resolvedSourceEntry.getRight()))
+                        mapSource(resolvedSourceEntry.getLeft(), mappingContext, resolvedSourceEntry.getRight()));
+
+        // LV flow: skip when using providedRecord (not supported for LV mappers)
+        var lvFlow = providedRecord != null
+                ? Flux.<MappingResult<T>>empty()
+                : mapLogicalViews(namedInputStreams, triplesMapFilter);
+
+        return Flux.merge(lsFlow, lvFlow)
                 .mapNotNull(this::handleCompletable)
-                .filter(Objects::nonNull)
                 .concatWith(resolveFinishers(mappingContext))
                 .concatWith(validateTriplesMappers(mappingContext))
-                .doOnTerminate(() -> mappingPipeline.getTriplesMappers().forEach(TriplesMapper::cleanup));
+                .doOnTerminate(() -> {
+                    mappingPipeline.getTriplesMappers().forEach(TriplesMapper::cleanup);
+                    lvTriplesMappers.values().forEach(TriplesMapper::cleanup);
+                });
     }
 
     @SuppressWarnings("unchecked")
@@ -216,6 +241,48 @@ public abstract class RmlMapper<T, K> {
                 .flatMap(triplesMapper -> triplesMapper.map(logicalSourceRecord));
     }
 
+    private Flux<MappingResult<T>> mapLogicalViews(
+            Map<String, InputStream> namedInputStreams, Set<TriplesMap> triplesMapFilter) {
+        if (logicalViewEvaluator == null || lvTriplesMappers.isEmpty()) {
+            return Flux.empty();
+        }
+
+        return Flux.fromIterable(resolvedMappings.stream()
+                        .filter(rm -> !rm.isImplicitView())
+                        .filter(rm ->
+                                triplesMapFilter.isEmpty() || triplesMapFilter.contains(rm.getOriginalTriplesMap()))
+                        .toList())
+                .flatMap(rm -> {
+                    var mapper = lvTriplesMappers.get(rm.getOriginalTriplesMap());
+                    if (mapper == null) {
+                        return Flux.empty();
+                    }
+                    return logicalViewEvaluator
+                            .evaluate(
+                                    rm.getEffectiveView(),
+                                    source -> resolveSourceForView(source, namedInputStreams),
+                                    rm.getEvaluationContext())
+                            .flatMap(mapper::map);
+                });
+    }
+
+    private ResolvedSource<?> resolveSourceForView(Source source, Map<String, InputStream> namedInputStreams) {
+        if (source instanceof NameableStream stream) {
+            var name = StringUtils.isBlank(stream.getStreamName()) ? DEFAULT_STREAM_NAME : stream.getStreamName();
+            if (namedInputStreams != null && namedInputStreams.containsKey(name)) {
+                return ResolvedSource.of(Mono.just(namedInputStreams.get(name)), new TypeRef<>() {});
+            }
+            throw new RmlMapperException(
+                    "Could not resolve input stream with name %s for logical view source".formatted(name));
+        }
+
+        return sourceResolvers.stream()
+                .filter(resolver -> resolver.supportsSource(source))
+                .findFirst()
+                .flatMap(resolver -> resolver.apply(source))
+                .orElseThrow(() -> new RmlMapperException("No source resolver found for logical view source"));
+    }
+
     private Flux<MappingResult<T>> resolveFinishers(MappingContext<T> mappingContext) {
         return Flux.merge(resolveJoins(mappingContext), mergeMergeables());
     }
@@ -224,7 +291,7 @@ public abstract class RmlMapper<T, K> {
         Flux<TriplesMapper<T>> mappers = Flux.fromIterable(
                         mappingContext.getTriplesMapperPerLogicalSource().values())
                 .flatMapIterable(triplesMappers -> triplesMappers);
-        return mappers.concatMap(triplesMapper -> triplesMapper.validate().then(Mono.<MappingResult<T>>empty()));
+        return mappers.concatMap(triplesMapper -> triplesMapper.validate().then(Mono.empty()));
     }
 
     private Flux<MappingResult<T>> resolveJoins(MappingContext<T> mappingContext) {
