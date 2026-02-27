@@ -39,12 +39,7 @@ class TestRmlLvTestCases extends RmlTestCaseSuite {
                 "RMLLVTC0006f", // Index key of field in join
                 "RMLLVTC0007a", // Change reference formulations: CSV including JSON array
                 "RMLLVTC0007b", // Change reference formulations: CSV including JSON object
-                "RMLLVTC0007c", // Change reference formulations: JSON including CSV
-
-                // --- Cycle detection: StackOverflowError instead of RuntimeException (Phase 3) ---
-                "RMLLVTC0008a", // Cycle: abstract logical source (viewOn)
-                "RMLLVTC0008b", // Cycle: joins
-                "RMLLVTC0008c" // Cycle: self-join
+                "RMLLVTC0007c" // Change reference formulations: JSON including CSV
                 );
     }
 }

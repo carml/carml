@@ -89,28 +89,35 @@ public class RmlMappingLoader {
     public Set<TriplesMap> load(Model... models) {
         Model model = Arrays.stream(models).flatMap(Collection::stream).collect(ModelCollector.toModel());
 
-        return Set.copyOf(RdfObjectLoader.load(
-                RmlMappingLoader::selectTriplesMaps,
-                CarmlTriplesMap.class,
-                model,
-                shorthandExpander,
-                this::addTermTypes,
-                mapper -> mapper.addDecidableType(Rdf.Carml.Stream, NameableStream.class)
-                        .bindInterfaceImplementation(NameableStream.class, CarmlStream.class)
-                        .addDecidableType(Rdf.Carml.XmlDocument, XmlSource.class)
-                        .bindInterfaceImplementation(XmlSource.class, CarmlXmlSource.class)
-                        .addDecidableType(Rdf.Carml.FileSource, FileSource.class)
-                        .bindInterfaceImplementation(FileSource.class, CarmlFileSource.class)
-                        .addDecidableType(Rdf.D2rq.Database, DatabaseSource.class)
-                        .bindInterfaceImplementation(DatabaseSource.class, CarmlDatabaseSource.class)
-                        .addDecidableType(Rdf.Rml.FilePath, FilePath.class)
-                        .addDecidableType(Rdf.Rml.RelativePathSource, FilePath.class)
-                        .bindInterfaceImplementation(FilePath.class, CarmlFilePath.class)
-                        .addDecidableType(DCAT.DISTRIBUTION, DcatDistribution.class)
-                        .bindInterfaceImplementation(DcatDistribution.class, CarmlDcatDistribution.class)
-                        .addDecidableType(Csvw.Table, CsvwTable.class)
-                        .bindInterfaceImplementation(CsvwTable.class, CarmlCsvwTable.class),
-                RmlNamespaces.RML_NAMESPACES));
+        try {
+            return Set.copyOf(RdfObjectLoader.load(
+                    RmlMappingLoader::selectTriplesMaps,
+                    CarmlTriplesMap.class,
+                    model,
+                    shorthandExpander,
+                    this::addTermTypes,
+                    mapper -> mapper.addDecidableType(Rdf.Carml.Stream, NameableStream.class)
+                            .bindInterfaceImplementation(NameableStream.class, CarmlStream.class)
+                            .addDecidableType(Rdf.Carml.XmlDocument, XmlSource.class)
+                            .bindInterfaceImplementation(XmlSource.class, CarmlXmlSource.class)
+                            .addDecidableType(Rdf.Carml.FileSource, FileSource.class)
+                            .bindInterfaceImplementation(FileSource.class, CarmlFileSource.class)
+                            .addDecidableType(Rdf.D2rq.Database, DatabaseSource.class)
+                            .bindInterfaceImplementation(DatabaseSource.class, CarmlDatabaseSource.class)
+                            .addDecidableType(Rdf.Rml.FilePath, FilePath.class)
+                            .addDecidableType(Rdf.Rml.RelativePathSource, FilePath.class)
+                            .bindInterfaceImplementation(FilePath.class, CarmlFilePath.class)
+                            .addDecidableType(DCAT.DISTRIBUTION, DcatDistribution.class)
+                            .bindInterfaceImplementation(DcatDistribution.class, CarmlDcatDistribution.class)
+                            .addDecidableType(Csvw.Table, CsvwTable.class)
+                            .bindInterfaceImplementation(CsvwTable.class, CarmlCsvwTable.class),
+                    RmlNamespaces.RML_NAMESPACES));
+        } catch (StackOverflowError e) {
+            throw new RmlMappingLoaderException(
+                    "Circular reference detected in RML mapping. Check for cycles in logical view"
+                            + " viewOn references, join parentLogicalView references, or field hierarchies.",
+                    e);
+        }
     }
 
     private static Set<Resource> selectTriplesMaps(Model model) {

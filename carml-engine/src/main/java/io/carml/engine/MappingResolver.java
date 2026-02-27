@@ -11,10 +11,13 @@ import io.carml.model.PredicateObjectMap;
 import io.carml.model.RefObjectMap;
 import io.carml.model.TermMap;
 import io.carml.model.TriplesMap;
+import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 /**
  * Resolves a set of {@link TriplesMap} instances into {@link ResolvedMapping} instances.
@@ -68,6 +71,7 @@ public final class MappingResolver {
     }
 
     private static ResolvedMapping resolveExplicit(TriplesMap triplesMap, LogicalView logicalView, Long limit) {
+        validateNoCycles(logicalView);
         var fieldOrigins = buildFieldOrigins(triplesMap, logicalView);
         var evaluationContext =
                 EvaluationContext.withProjectedFieldsAndLimit(triplesMap.getReferenceExpressionSet(), limit);
@@ -177,5 +181,86 @@ public final class MappingResolver {
                 result.putIfAbsent(expression, termMap);
             }
         }
+    }
+
+    /**
+     * Validates that a {@link LogicalView} contains no circular references. Checks both the view
+     * structure (viewOn and join edges) and the field tree for cycles.
+     *
+     * @param view the logical view to validate
+     * @throws RmlMapperException if a cycle is detected
+     */
+    static void validateNoCycles(LogicalView view) {
+        validateViewNoCycles(view, new IdentityHashMap<>(), new ArrayList<>());
+        validateFieldNoCycles(view.getFields(), new IdentityHashMap<>(), new ArrayList<>());
+    }
+
+    /**
+     * Performs a depth-first search through viewOn and join parentLogicalView edges to detect cycles
+     * in the logical view graph. Uses identity-based comparison since view objects may not have
+     * meaningful equals/hashCode for cycle detection purposes.
+     */
+    private static void validateViewNoCycles(
+            LogicalView view, IdentityHashMap<LogicalView, Boolean> visited, List<String> path) {
+        var viewName = view.getResourceName();
+
+        if (visited.containsKey(view)) {
+            path.add(viewName);
+            throw new RmlMapperException(
+                    "Cycle detected in logical view structure: %s".formatted(String.join(" -> ", path)));
+        }
+
+        visited.put(view, Boolean.TRUE);
+        path.add(viewName);
+
+        // Follow the viewOn edge if it leads to another LogicalView
+        var viewOn = view.getViewOn();
+        if (viewOn instanceof LogicalView parentView) {
+            validateViewNoCycles(parentView, visited, path);
+        }
+
+        // Follow join parentLogicalView edges (both left joins and inner joins)
+        var allJoins = Stream.concat(nullSafe(view.getLeftJoins()).stream(), nullSafe(view.getInnerJoins()).stream())
+                .toList();
+
+        for (var join : allJoins) {
+            var parentView = join.getParentLogicalView();
+            if (parentView != null) {
+                validateViewNoCycles(parentView, visited, path);
+            }
+        }
+
+        path.remove(path.size() - 1);
+        visited.remove(view);
+    }
+
+    /**
+     * Performs a depth-first search through child field edges to detect cycles in the field tree.
+     * Uses identity-based comparison since field objects may not have meaningful equals/hashCode.
+     */
+    private static void validateFieldNoCycles(
+            Set<Field> fields, IdentityHashMap<Field, Boolean> visited, List<String> path) {
+        if (fields == null) {
+            return;
+        }
+
+        for (var field : fields) {
+            var fieldName = field.getFieldName();
+
+            if (visited.containsKey(field)) {
+                path.add(fieldName);
+                throw new RmlMapperException("Cycle detected in field tree: %s".formatted(String.join(" -> ", path)));
+            }
+
+            visited.put(field, Boolean.TRUE);
+            path.add(fieldName);
+            validateFieldNoCycles(field.getFields(), visited, path);
+            path.remove(path.size() - 1);
+            visited.remove(field);
+        }
+    }
+
+    private static <T> Set<T> nullSafe(Set<T> set) {
+        return set != null ? set : Set.of();
     }
 }

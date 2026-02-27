@@ -1,21 +1,26 @@
 package io.carml.engine;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.carml.logicalview.DedupStrategy;
 import io.carml.model.ExpressionField;
+import io.carml.model.Field;
 import io.carml.model.IterableField;
 import io.carml.model.LogicalSource;
 import io.carml.model.LogicalView;
+import io.carml.model.LogicalViewJoin;
 import io.carml.model.ObjectMap;
 import io.carml.model.PredicateObjectMap;
 import io.carml.model.SubjectMap;
@@ -553,12 +558,215 @@ class MappingResolverTest {
     }
 
     @Test
-    void resolve_noArgOverload_evaluationContextLimitIsEmpty() {
+    void resolve_noArgOverload_delegatesToResolveWithNullLimit() {
         when(triplesMap.getLogicalSource()).thenReturn(logicalView);
         when(triplesMap.getReferenceExpressionSet()).thenReturn(Set.of());
 
-        var result = MappingResolver.resolve(Set.of(triplesMap));
+        var triplesMaps = Set.of(triplesMap);
+        var noArgResult = MappingResolver.resolve(triplesMaps);
+        var nullLimitResult = MappingResolver.resolve(triplesMaps, null);
 
-        assertThat(result.get(0).getEvaluationContext().getLimit().isPresent(), is(false));
+        assertThat(noArgResult.size(), is(nullLimitResult.size()));
+        assertThat(
+                noArgResult.get(0).getEvaluationContext().getLimit(),
+                is(nullLimitResult.get(0).getEvaluationContext().getLimit()));
+    }
+
+    // --- Cycle detection: viewOn cycles ---
+
+    @Test
+    void validateNoCycles_givenViewOnCycle_throwsRuntimeException() {
+        var viewA = mock(LogicalView.class);
+        var viewB = mock(LogicalView.class);
+
+        when(viewA.getResourceName()).thenReturn("viewA");
+        when(viewA.getViewOn()).thenReturn(viewB);
+        lenient().when(viewA.getLeftJoins()).thenReturn(Set.of());
+        lenient().when(viewA.getInnerJoins()).thenReturn(Set.of());
+        lenient().when(viewA.getFields()).thenReturn(Set.of());
+
+        when(viewB.getResourceName()).thenReturn("viewB");
+        when(viewB.getViewOn()).thenReturn(viewA);
+        lenient().when(viewB.getLeftJoins()).thenReturn(Set.of());
+        lenient().when(viewB.getInnerJoins()).thenReturn(Set.of());
+
+        var exception = assertThrows(RmlMapperException.class, () -> MappingResolver.validateNoCycles(viewA));
+
+        assertThat(exception.getMessage(), containsString("Cycle detected in logical view structure"));
+        assertThat(exception.getMessage(), containsString("viewA"));
+        assertThat(exception.getMessage(), containsString("viewB"));
+    }
+
+    // --- Cycle detection: join cycles ---
+
+    @Test
+    void validateNoCycles_givenJoinCycle_throwsRuntimeException() {
+        var viewA = mock(LogicalView.class);
+        var viewB = mock(LogicalView.class);
+        var joinAtoB = mock(LogicalViewJoin.class);
+        var joinBtoA = mock(LogicalViewJoin.class);
+
+        when(viewA.getResourceName()).thenReturn("viewA");
+        when(viewA.getViewOn()).thenReturn(mock(LogicalSource.class));
+        when(viewA.getLeftJoins()).thenReturn(Set.of(joinAtoB));
+        when(viewA.getInnerJoins()).thenReturn(Set.of());
+        lenient().when(viewA.getFields()).thenReturn(Set.of());
+
+        when(joinAtoB.getParentLogicalView()).thenReturn(viewB);
+
+        when(viewB.getResourceName()).thenReturn("viewB");
+        when(viewB.getViewOn()).thenReturn(mock(LogicalSource.class));
+        when(viewB.getLeftJoins()).thenReturn(Set.of(joinBtoA));
+        lenient().when(viewB.getInnerJoins()).thenReturn(Set.of());
+
+        when(joinBtoA.getParentLogicalView()).thenReturn(viewA);
+
+        var exception = assertThrows(RmlMapperException.class, () -> MappingResolver.validateNoCycles(viewA));
+
+        assertThat(exception.getMessage(), containsString("Cycle detected in logical view structure"));
+        assertThat(exception.getMessage(), containsString("viewA"));
+        assertThat(exception.getMessage(), containsString("viewB"));
+    }
+
+    // --- Cycle detection: self-join cycles ---
+
+    @Test
+    void validateNoCycles_givenSelfJoin_throwsRuntimeException() {
+        var view = mock(LogicalView.class);
+        var selfJoin = mock(LogicalViewJoin.class);
+
+        when(view.getResourceName()).thenReturn("selfView");
+        when(view.getViewOn()).thenReturn(mock(LogicalSource.class));
+        when(view.getLeftJoins()).thenReturn(Set.of(selfJoin));
+        lenient().when(view.getInnerJoins()).thenReturn(Set.of());
+        lenient().when(view.getFields()).thenReturn(Set.of());
+
+        when(selfJoin.getParentLogicalView()).thenReturn(view);
+
+        var exception = assertThrows(RmlMapperException.class, () -> MappingResolver.validateNoCycles(view));
+
+        assertThat(exception.getMessage(), containsString("Cycle detected in logical view structure"));
+        assertThat(exception.getMessage(), containsString("selfView"));
+    }
+
+    // --- Cycle detection: field cycles ---
+
+    @Test
+    void validateNoCycles_givenFieldCycle_throwsRuntimeException() {
+        var view = mock(LogicalView.class);
+        var field1 = mock(Field.class);
+        var field2 = mock(Field.class);
+
+        when(view.getViewOn()).thenReturn(mock(LogicalSource.class));
+        when(view.getLeftJoins()).thenReturn(Set.of());
+        when(view.getInnerJoins()).thenReturn(Set.of());
+        when(view.getFields()).thenReturn(Set.of(field1));
+
+        when(field1.getFieldName()).thenReturn("field1");
+        when(field1.getFields()).thenReturn(Set.of(field2));
+
+        when(field2.getFieldName()).thenReturn("field2");
+        when(field2.getFields()).thenReturn(Set.of(field1));
+
+        var exception = assertThrows(RmlMapperException.class, () -> MappingResolver.validateNoCycles(view));
+
+        assertThat(exception.getMessage(), containsString("Cycle detected in field tree"));
+        assertThat(exception.getMessage(), containsString("field1"));
+        assertThat(exception.getMessage(), containsString("field2"));
+    }
+
+    // --- Cycle detection: valid view (no cycle) ---
+
+    @Test
+    void validateNoCycles_givenValidView_doesNotThrow() {
+        var view = mock(LogicalView.class);
+        var field = mock(Field.class);
+
+        when(view.getViewOn()).thenReturn(mock(LogicalSource.class));
+        when(view.getLeftJoins()).thenReturn(Set.of());
+        when(view.getInnerJoins()).thenReturn(Set.of());
+        when(view.getFields()).thenReturn(Set.of(field));
+
+        when(field.getFieldName()).thenReturn("name");
+        when(field.getFields()).thenReturn(Set.of());
+
+        assertDoesNotThrow(() -> MappingResolver.validateNoCycles(view));
+    }
+
+    // --- Cycle detection: deep chain without cycle ---
+
+    @Test
+    void validateNoCycles_givenDeepViewOnChainWithoutCycle_doesNotThrow() {
+        var viewA = mock(LogicalView.class);
+        var viewB = mock(LogicalView.class);
+        var viewC = mock(LogicalView.class);
+
+        when(viewA.getResourceName()).thenReturn("viewA");
+        when(viewA.getViewOn()).thenReturn(viewB);
+        when(viewA.getLeftJoins()).thenReturn(Set.of());
+        when(viewA.getInnerJoins()).thenReturn(Set.of());
+        when(viewA.getFields()).thenReturn(Set.of());
+
+        when(viewB.getResourceName()).thenReturn("viewB");
+        when(viewB.getViewOn()).thenReturn(viewC);
+        when(viewB.getLeftJoins()).thenReturn(Set.of());
+        when(viewB.getInnerJoins()).thenReturn(Set.of());
+
+        when(viewC.getResourceName()).thenReturn("viewC");
+        when(viewC.getViewOn()).thenReturn(mock(LogicalSource.class));
+        when(viewC.getLeftJoins()).thenReturn(Set.of());
+        when(viewC.getInnerJoins()).thenReturn(Set.of());
+
+        assertDoesNotThrow(() -> MappingResolver.validateNoCycles(viewA));
+    }
+
+    @Test
+    void validateNoCycles_givenDeepFieldTreeWithoutCycle_doesNotThrow() {
+        var view = mock(LogicalView.class);
+        var parent = mock(Field.class);
+        var child = mock(Field.class);
+        var grandchild = mock(Field.class);
+
+        when(view.getViewOn()).thenReturn(mock(LogicalSource.class));
+        when(view.getLeftJoins()).thenReturn(Set.of());
+        when(view.getInnerJoins()).thenReturn(Set.of());
+        when(view.getFields()).thenReturn(Set.of(parent));
+
+        when(parent.getFieldName()).thenReturn("parent");
+        when(parent.getFields()).thenReturn(Set.of(child));
+
+        when(child.getFieldName()).thenReturn("child");
+        when(child.getFields()).thenReturn(Set.of(grandchild));
+
+        when(grandchild.getFieldName()).thenReturn("grandchild");
+        when(grandchild.getFields()).thenReturn(Set.of());
+
+        assertDoesNotThrow(() -> MappingResolver.validateNoCycles(view));
+    }
+
+    // --- Cycle detection: inner join cycle ---
+
+    @Test
+    void validateNoCycles_givenInnerJoinCycle_throwsRuntimeException() {
+        var viewA = mock(LogicalView.class);
+        var viewB = mock(LogicalView.class);
+        var innerJoin = mock(LogicalViewJoin.class);
+
+        when(viewA.getResourceName()).thenReturn("viewA");
+        when(viewA.getViewOn()).thenReturn(mock(LogicalSource.class));
+        when(viewA.getLeftJoins()).thenReturn(Set.of());
+        when(viewA.getInnerJoins()).thenReturn(Set.of(innerJoin));
+        lenient().when(viewA.getFields()).thenReturn(Set.of());
+
+        when(innerJoin.getParentLogicalView()).thenReturn(viewB);
+
+        when(viewB.getResourceName()).thenReturn("viewB");
+        when(viewB.getViewOn()).thenReturn(viewA);
+        lenient().when(viewB.getLeftJoins()).thenReturn(Set.of());
+        lenient().when(viewB.getInnerJoins()).thenReturn(Set.of());
+
+        var exception = assertThrows(RmlMapperException.class, () -> MappingResolver.validateNoCycles(viewA));
+
+        assertThat(exception.getMessage(), containsString("Cycle detected in logical view structure"));
     }
 }
