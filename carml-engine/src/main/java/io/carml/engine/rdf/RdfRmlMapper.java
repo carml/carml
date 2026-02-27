@@ -35,6 +35,8 @@ import io.carml.logicalsourceresolver.sql.sourceresolver.DatabaseConnectionOptio
 import io.carml.logicalsourceresolver.sql.sourceresolver.DatabaseSourceResolver;
 import io.carml.logicalview.DefaultLogicalViewEvaluator;
 import io.carml.logicalview.LogicalViewEvaluator;
+import io.carml.model.Field;
+import io.carml.model.IriSafeAnnotation;
 import io.carml.model.LogicalSource;
 import io.carml.model.LogicalView;
 import io.carml.model.Mapping;
@@ -55,6 +57,7 @@ import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -464,7 +467,37 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
 
             Map<TriplesMap, TriplesMapper<Statement>> lvMappers = new HashMap<>();
             for (var tm : lvTriplesMaps) {
-                lvMappers.put(tm, RdfTriplesMapper.ofForView(tm, getEffectiveMapperConfig(tm, rdfMapperConfig)));
+                var effectiveConfig = getEffectiveMapperConfig(tm, rdfMapperConfig);
+
+                var iriSafeFieldNames = resolvedMappings.stream()
+                        .filter(rm -> rm.getOriginalTriplesMap().equals(tm))
+                        .findFirst()
+                        .map(rm -> {
+                            var annotations = rm.getEffectiveView().getStructuralAnnotations();
+                            if (annotations == null) {
+                                return Set.<String>of();
+                            }
+                            return annotations.stream()
+                                    .filter(IriSafeAnnotation.class::isInstance)
+                                    .flatMap(a -> {
+                                        var fields = a.getOnFields();
+                                        return fields == null ? Stream.<Field>empty() : fields.stream();
+                                    })
+                                    .map(Field::getFieldName)
+                                    .collect(toUnmodifiableSet());
+                        })
+                        .orElse(Set.of());
+
+                if (!iriSafeFieldNames.isEmpty()) {
+                    var overriddenTermGenConfig = effectiveConfig.getRdfTermGeneratorConfig().toBuilder()
+                            .iriSafeFieldNames(iriSafeFieldNames)
+                            .build();
+                    effectiveConfig = effectiveConfig.toBuilder()
+                            .rdfTermGeneratorConfig(overriddenTermGenConfig)
+                            .build();
+                }
+
+                lvMappers.put(tm, RdfTriplesMapper.ofForView(tm, effectiveConfig));
             }
 
             wireMappers(lvMappers.values(), resolvedMappings, observer);

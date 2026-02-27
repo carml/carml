@@ -207,6 +207,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
                     .expressionEvaluation(expressionEvaluation)
                     .datatypeMapper(datatypeMapper)
                     .templateReferenceValueTransformingFunction(valueTransformingFunction)
+                    .iriSafeFieldNames(rdfTermGeneratorConfig.getIriSafeFieldNames())
                     .build()
                     .evaluate(Object.class);
 

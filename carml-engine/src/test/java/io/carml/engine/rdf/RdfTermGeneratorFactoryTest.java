@@ -34,12 +34,14 @@ import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.model.vocabulary.XSD;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -313,5 +315,149 @@ class RdfTermGeneratorFactoryTest {
 
         // Then
         assertThat(terms, containsInAnyOrder(expectedTerms.toArray()));
+    }
+
+    @Nested
+    class IriSafeFieldTests {
+
+        @Test
+        void givenIriSafeField_whenPreEncodedValue_thenNotDoubleEncoded() {
+            // Given — field is IRI-safe, value is already percent-encoded
+            var config = RdfTermGeneratorConfig.builder()
+                    .baseIri(iri("http://example.org/"))
+                    .valueFactory(SimpleValueFactory.getInstance())
+                    .normalizationForm(Normalizer.Form.NFC)
+                    .iriSafeFieldNames(Set.of("city"))
+                    .build();
+            var factory = RdfTermGeneratorFactory.of(config);
+
+            var subjectMap = CarmlSubjectMap.builder()
+                    .template(TemplateParser.getInstance().parse("http://example.org/{city}"))
+                    .build();
+
+            var generator = factory.getSubjectGenerator(subjectMap);
+
+            // Value is already encoded — IriSafe should prevent double-encoding
+            when(expressionEvaluation.apply("city")).thenReturn(Optional.of(List.of("New%20York")));
+            when(datatypeMapper.apply(any())).thenReturn(Optional.empty());
+
+            // When
+            var terms = generator.apply(expressionEvaluation, datatypeMapper);
+
+            // Then — %20 preserved as-is, not double-encoded to %2520
+            assertThat(terms, containsInAnyOrder(RdfMappedValue.of(iri("http://example.org/New%20York"))));
+        }
+
+        @Test
+        void givenNonIriSafeField_whenPreEncodedValue_thenDoubleEncoded() {
+            // Given — default empty iriSafeFieldNames (same as non-LV path)
+            var config = RdfTermGeneratorConfig.builder()
+                    .baseIri(iri("http://example.org/"))
+                    .valueFactory(SimpleValueFactory.getInstance())
+                    .normalizationForm(Normalizer.Form.NFC)
+                    .build();
+            var factory = RdfTermGeneratorFactory.of(config);
+
+            var subjectMap = CarmlSubjectMap.builder()
+                    .template(TemplateParser.getInstance().parse("http://example.org/{city}"))
+                    .build();
+
+            var generator = factory.getSubjectGenerator(subjectMap);
+
+            // Value is already encoded — without IriSafe, makeIriSafe will double-encode
+            when(expressionEvaluation.apply("city")).thenReturn(Optional.of(List.of("New%20York")));
+            when(datatypeMapper.apply(any())).thenReturn(Optional.empty());
+
+            // When
+            var terms = generator.apply(expressionEvaluation, datatypeMapper);
+
+            // Then — % is encoded to %25, resulting in double-encoding
+            assertThat(terms, containsInAnyOrder(RdfMappedValue.of(iri("http://example.org/New%2520York"))));
+        }
+
+        @Test
+        void givenMixedIriSafeAndNormalFields_thenOnlyNormalFieldEncoded() {
+            // Given — safe_field is IRI-safe, normal_field is not
+            var config = RdfTermGeneratorConfig.builder()
+                    .baseIri(iri("http://example.org/"))
+                    .valueFactory(SimpleValueFactory.getInstance())
+                    .normalizationForm(Normalizer.Form.NFC)
+                    .iriSafeFieldNames(Set.of("safe_field"))
+                    .build();
+            var factory = RdfTermGeneratorFactory.of(config);
+
+            var subjectMap = CarmlSubjectMap.builder()
+                    .template(TemplateParser.getInstance().parse("http://example.org/{safe_field}/{normal_field}"))
+                    .build();
+
+            var generator = factory.getSubjectGenerator(subjectMap);
+
+            // safe_field has pre-encoded value, normal_field has raw value needing encoding
+            when(expressionEvaluation.apply("safe_field")).thenReturn(Optional.of(List.of("New%20York")));
+            when(expressionEvaluation.apply("normal_field")).thenReturn(Optional.of(List.of("hello world")));
+            when(datatypeMapper.apply(any())).thenReturn(Optional.empty());
+
+            // When
+            var terms = generator.apply(expressionEvaluation, datatypeMapper);
+
+            // Then — safe_field keeps %20 (not double-encoded), normal_field encodes space to %20
+            assertThat(
+                    terms, containsInAnyOrder(RdfMappedValue.of(iri("http://example.org/New%20York/hello%20world"))));
+        }
+
+        @Test
+        void givenIriSafeFieldWithUnicodeValue_whenTemplate_thenUnicodePreserved() {
+            // Given — IRI-safe field with Unicode value (valid in IRIs per RFC 3987)
+            var config = RdfTermGeneratorConfig.builder()
+                    .baseIri(iri("http://example.org/"))
+                    .valueFactory(SimpleValueFactory.getInstance())
+                    .normalizationForm(Normalizer.Form.NFC)
+                    .iriSafeFieldNames(Set.of("name"))
+                    .build();
+            var factory = RdfTermGeneratorFactory.of(config);
+
+            var subjectMap = CarmlSubjectMap.builder()
+                    .template(TemplateParser.getInstance().parse("http://example.org/{name}"))
+                    .build();
+
+            var generator = factory.getSubjectGenerator(subjectMap);
+
+            // Unicode characters are valid in IRIs — IriSafe means don't encode them
+            when(expressionEvaluation.apply("name")).thenReturn(Optional.of(List.of("Zoë")));
+            when(datatypeMapper.apply(any())).thenReturn(Optional.empty());
+
+            // When
+            var terms = generator.apply(expressionEvaluation, datatypeMapper);
+
+            // Then — Unicode preserved as-is (Zoë not encoded to Zo%C3%AB)
+            assertThat(terms, containsInAnyOrder(RdfMappedValue.of(iri("http://example.org/Zoë"))));
+        }
+
+        @Test
+        void givenEmptyIriSafeFieldNames_whenTemplate_thenAllFieldsEncoded() {
+            // Given — explicit empty set
+            var config = RdfTermGeneratorConfig.builder()
+                    .baseIri(iri("http://example.org/"))
+                    .valueFactory(SimpleValueFactory.getInstance())
+                    .normalizationForm(Normalizer.Form.NFC)
+                    .iriSafeFieldNames(Set.of())
+                    .build();
+            var factory = RdfTermGeneratorFactory.of(config);
+
+            var subjectMap = CarmlSubjectMap.builder()
+                    .template(TemplateParser.getInstance().parse("http://example.org/{city}"))
+                    .build();
+
+            var generator = factory.getSubjectGenerator(subjectMap);
+
+            when(expressionEvaluation.apply("city")).thenReturn(Optional.of(List.of("New York")));
+            when(datatypeMapper.apply(any())).thenReturn(Optional.empty());
+
+            // When
+            var terms = generator.apply(expressionEvaluation, datatypeMapper);
+
+            // Then — behaves identically to default (all encoded)
+            assertThat(terms, containsInAnyOrder(RdfMappedValue.of(iri("http://example.org/New%20York"))));
+        }
     }
 }

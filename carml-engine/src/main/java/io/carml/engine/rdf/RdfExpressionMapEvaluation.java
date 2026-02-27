@@ -73,6 +73,9 @@ public class RdfExpressionMapEvaluation {
     private final UnaryOperator<String> templateReferenceValueTransformingFunction = UnaryOperator.identity();
 
     @Default
+    private final Set<String> iriSafeFieldNames = Set.of();
+
+    @Default
     private final BiFunction<Object, IRI, String> rdfLexicalForm = CanonicalRdfLexicalForm.get();
 
     @SuppressWarnings("unchecked")
@@ -133,28 +136,30 @@ public class RdfExpressionMapEvaluation {
                 ? XSD.STRING
                 : datatypeMapper.apply(expression.getValue()).orElse(XSD.STRING);
 
+        var effectiveTransform = iriSafeFieldNames.contains(expression.getValue())
+                ? UnaryOperator.<String>identity()
+                : templateReferenceValueTransformingFunction;
+
         templateEvaluatorBuilder.bind(expression, expr -> expressionEvaluation
                 .apply(expr.getValue())
-                .map(result -> prepareValueForTemplate(result, datatype))
+                .map(result -> prepareValueForTemplate(result, datatype, effectiveTransform))
                 .orElse(List.of()));
     }
 
-    private List<String> prepareValueForTemplate(Object result, IRI datatype) {
+    private List<String> prepareValueForTemplate(Object result, IRI datatype, UnaryOperator<String> transform) {
         if (result instanceof Collection<?>) {
             return ((Collection<?>) result)
                     .stream()
                             .filter(Objects::nonNull)
-                            .map(rawValue -> transformValueForTemplate(rawValue, datatype))
+                            .map(rawValue -> transformValueForTemplate(rawValue, datatype, transform))
                             .toList();
         } else {
-            return List.of(transformValueForTemplate(result, datatype));
+            return List.of(transformValueForTemplate(result, datatype, transform));
         }
     }
 
-    private String transformValueForTemplate(Object result, IRI datatype) {
-        return rdfLexicalForm
-                .andThen(templateReferenceValueTransformingFunction)
-                .apply(result, datatype);
+    private String transformValueForTemplate(Object result, IRI datatype, UnaryOperator<String> transform) {
+        return rdfLexicalForm.andThen(transform).apply(result, datatype);
     }
 
     private List<Object> evaluateFunctionValue() {

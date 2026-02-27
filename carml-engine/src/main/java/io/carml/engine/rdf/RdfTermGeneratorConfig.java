@@ -2,9 +2,11 @@ package io.carml.engine.rdf;
 
 import io.carml.engine.function.FunctionRegistry;
 import java.text.Normalizer;
+import java.util.Set;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Builder.Default;
 import lombok.Getter;
 import lombok.NonNull;
 import org.eclipse.rdf4j.model.IRI;
@@ -27,4 +29,7 @@ public class RdfTermGeneratorConfig {
     private final boolean iriUpperCasePercentEncoding;
 
     private final FunctionRegistry functionRegistry;
+
+    @Default
+    private final Set<String> iriSafeFieldNames = Set.of();
 }
