@@ -5,6 +5,7 @@ import static java.util.stream.Collectors.toUnmodifiableSet;
 import io.carml.logicalview.DedupStrategy;
 import io.carml.logicalview.EvaluationContext;
 import io.carml.logicalview.ImplicitViewFactory;
+import io.carml.model.AbstractLogicalSource;
 import io.carml.model.ExpressionField;
 import io.carml.model.ExpressionMap;
 import io.carml.model.Field;
@@ -20,13 +21,18 @@ import io.carml.model.StructuralAnnotation;
 import io.carml.model.TermMap;
 import io.carml.model.TriplesMap;
 import io.carml.model.UniqueAnnotation;
+import io.carml.model.impl.CarmlExpressionField;
+import io.carml.model.impl.CarmlLogicalView;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -83,11 +89,12 @@ public final class MappingResolver {
     private static ResolvedMapping resolveExplicit(TriplesMap triplesMap, LogicalView logicalView, Long limit) {
         validateNoCycles(logicalView);
         validateNoNameCollisions(logicalView);
-        var fieldOrigins = buildFieldOrigins(triplesMap, logicalView);
+        var optimizedView = eliminateSelfJoins(logicalView);
+        var fieldOrigins = buildFieldOrigins(triplesMap, optimizedView);
         var projectedFields = triplesMap.getReferenceExpressionSet();
-        var dedupStrategy = selectDedupStrategy(logicalView, projectedFields);
+        var dedupStrategy = selectDedupStrategy(optimizedView, projectedFields);
         var evaluationContext = EvaluationContext.of(projectedFields, dedupStrategy, limit);
-        return ResolvedMapping.of(triplesMap, logicalView, false, fieldOrigins, evaluationContext);
+        return ResolvedMapping.of(triplesMap, optimizedView, false, fieldOrigins, evaluationContext);
     }
 
     private static ResolvedMapping resolveImplicit(TriplesMap triplesMap, Long limit) {
@@ -205,6 +212,149 @@ public final class MappingResolver {
     private static List<Field> nullSafeOnFields(StructuralAnnotation annotation) {
         var fields = annotation.getOnFields();
         return fields != null ? fields : List.of();
+    }
+
+    /**
+     * Detects and eliminates self-joins from a {@link LogicalView}. A self-join is a join where the
+     * child and parent views share the same underlying {@code viewOn} source (by identity), the join
+     * conditions are identity conditions (child and parent fields resolve to the same source
+     * expression), and the parent view has a PK or Unique+NotNull annotation covering the join
+     * condition fields.
+     *
+     * <p>When a self-join is eliminated, the parent's data fields are inlined as child fields with
+     * their source expressions resolved from the parent field index.
+     *
+     * @param view the logical view to optimize
+     * @return an optimized view with self-joins eliminated, or the original view if no self-joins
+     *     were found
+     */
+    static LogicalView eliminateSelfJoins(LogicalView view) {
+        var viewOn = view.getViewOn();
+        var childFields = nullSafe(view.getFields());
+        var childFieldIndex = buildFieldIndex(childFields);
+        boolean anyEliminated = false;
+
+        var retainedLeftJoins = new LinkedHashSet<LogicalViewJoin>();
+        var retainedInnerJoins = new LinkedHashSet<LogicalViewJoin>();
+        var inlinedFields = new LinkedHashSet<Field>();
+
+        for (var join : nullSafe(view.getLeftJoins())) {
+            if (isSelfJoinEliminable(viewOn, childFieldIndex, join)) {
+                inlineJoinFields(join, inlinedFields);
+                anyEliminated = true;
+            } else {
+                retainedLeftJoins.add(join);
+            }
+        }
+        for (var join : nullSafe(view.getInnerJoins())) {
+            if (isSelfJoinEliminable(viewOn, childFieldIndex, join)) {
+                inlineJoinFields(join, inlinedFields);
+                anyEliminated = true;
+            } else {
+                retainedInnerJoins.add(join);
+            }
+        }
+
+        if (!anyEliminated) {
+            return view;
+        }
+
+        var newFields = new LinkedHashSet<>(childFields);
+        newFields.addAll(inlinedFields);
+
+        return CarmlLogicalView.builder()
+                .viewOn(viewOn)
+                .fields(newFields)
+                .leftJoins(retainedLeftJoins)
+                .innerJoins(retainedInnerJoins)
+                .structuralAnnotations(nullSafe(view.getStructuralAnnotations()))
+                .build();
+    }
+
+    private static boolean isSelfJoinEliminable(
+            AbstractLogicalSource childViewOn, Map<String, ExpressionField> childFieldIndex, LogicalViewJoin join) {
+        var parentView = join.getParentLogicalView();
+
+        // Same underlying source (identity comparison)
+        if (childViewOn != parentView.getViewOn()) {
+            return false;
+        }
+
+        var conditions = join.getJoinConditions();
+        if (conditions == null || conditions.isEmpty()) {
+            return false;
+        }
+
+        // Build parent field index
+        var parentFieldIndex = buildFieldIndex(nullSafe(parentView.getFields()));
+
+        // Check all join conditions use simple references resolving to the same source expression
+        var parentJoinFieldNames = new LinkedHashSet<String>();
+        for (var condition : conditions) {
+            var childMap = condition.getChildMap();
+            var parentMap = condition.getParentMap();
+            if (childMap == null
+                    || parentMap == null
+                    || childMap.getReference() == null
+                    || parentMap.getReference() == null) {
+                return false;
+            }
+
+            var childField = childFieldIndex.get(childMap.getReference());
+            var parentField = parentFieldIndex.get(parentMap.getReference());
+            if (childField == null
+                    || parentField == null
+                    || childField.getReference() == null
+                    || parentField.getReference() == null) {
+                return false;
+            }
+
+            // Same source expression → identity join condition
+            if (!childField.getReference().equals(parentField.getReference())) {
+                return false;
+            }
+
+            parentJoinFieldNames.add(parentMap.getReference());
+        }
+
+        // PK or Unique+NotNull on parent covering join condition fields
+        var parentAnnotations = parentView.getStructuralAnnotations();
+        if (parentAnnotations == null || parentAnnotations.isEmpty()) {
+            return false;
+        }
+        var parentNotNullFields = parentAnnotations.stream()
+                .filter(NotNullAnnotation.class::isInstance)
+                .flatMap(a -> nullSafeOnFields(a).stream())
+                .map(Field::getFieldName)
+                .collect(toUnmodifiableSet());
+
+        return hasCoveringPkOrUnique(parentAnnotations, parentNotNullFields, parentJoinFieldNames);
+    }
+
+    private static Map<String, ExpressionField> buildFieldIndex(Set<Field> fields) {
+        return fields.stream()
+                .filter(ExpressionField.class::isInstance)
+                .map(ExpressionField.class::cast)
+                .collect(Collectors.toMap(
+                        ExpressionField::getFieldName, Function.identity(), (existing, duplicate) -> existing));
+    }
+
+    private static void inlineJoinFields(LogicalViewJoin join, Set<Field> inlinedFields) {
+        var parentFieldIndex =
+                buildFieldIndex(nullSafe(join.getParentLogicalView().getFields()));
+        for (var joinField : nullSafe(join.getFields())) {
+            var parentFieldName = joinField.getReference();
+            var parentField = parentFieldIndex.get(parentFieldName);
+            if (parentField == null || parentField.getReference() == null) {
+                throw new RmlMapperException(
+                        "Cannot inline join field '%s': parent field '%s' not found or has no reference"
+                                .formatted(joinField.getFieldName(), parentFieldName));
+            }
+            inlinedFields.add(CarmlExpressionField.builder()
+                    .fieldName(joinField.getFieldName())
+                    .reference(parentField.getReference())
+                    .build());
+        }
     }
 
     /**

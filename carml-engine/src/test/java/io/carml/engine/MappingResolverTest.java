@@ -15,16 +15,19 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.carml.logicalview.DedupStrategy;
+import io.carml.model.ChildMap;
 import io.carml.model.ExpressionField;
 import io.carml.model.Field;
 import io.carml.model.ForeignKeyAnnotation;
 import io.carml.model.IriSafeAnnotation;
 import io.carml.model.IterableField;
+import io.carml.model.Join;
 import io.carml.model.LogicalSource;
 import io.carml.model.LogicalView;
 import io.carml.model.LogicalViewJoin;
 import io.carml.model.NotNullAnnotation;
 import io.carml.model.ObjectMap;
+import io.carml.model.ParentMap;
 import io.carml.model.PredicateObjectMap;
 import io.carml.model.PrimaryKeyAnnotation;
 import io.carml.model.SubjectMap;
@@ -1265,6 +1268,366 @@ class MappingResolverTest {
             var result = MappingResolver.selectDedupStrategy(view, Set.of("ownField", "parentName"));
 
             assertThat(result, is(instanceOf(DedupStrategy.exact().getClass())));
+        }
+    }
+
+    // --- Self-join elimination ---
+
+    @Nested
+    class SelfJoinEliminationTests {
+
+        @Test
+        void eliminateSelfJoins_givenSameSourcePkAndIdentityConditions_eliminatesJoin() {
+            var sharedSource = mock(LogicalSource.class);
+
+            // Child fields: id → $.id, name → $.name
+            var childIdField = mock(ExpressionField.class);
+            when(childIdField.getFieldName()).thenReturn("id");
+            when(childIdField.getReference()).thenReturn("$.id");
+
+            var childNameField = mock(ExpressionField.class);
+            when(childNameField.getFieldName()).thenReturn("name");
+            lenient().when(childNameField.getReference()).thenReturn("$.name");
+
+            // Parent fields: id → $.id, age → $.age
+            var parentIdField = mock(ExpressionField.class);
+            when(parentIdField.getFieldName()).thenReturn("id");
+            when(parentIdField.getReference()).thenReturn("$.id");
+
+            var parentAgeField = mock(ExpressionField.class);
+            when(parentAgeField.getFieldName()).thenReturn("age");
+            when(parentAgeField.getReference()).thenReturn("$.age");
+
+            // PK on parent covering "id"
+            var pk = mock(PrimaryKeyAnnotation.class);
+            var pkField = mock(Field.class);
+            when(pkField.getFieldName()).thenReturn("id");
+            when(pk.getOnFields()).thenReturn(List.of(pkField));
+
+            // Parent view
+            var parentView = mock(LogicalView.class);
+            when(parentView.getViewOn()).thenReturn(sharedSource);
+            when(parentView.getFields()).thenReturn(Set.of(parentIdField, parentAgeField));
+            when(parentView.getStructuralAnnotations()).thenReturn(Set.of(pk));
+
+            // Join condition: child("id") = parent("id")
+            var childMap = mock(ChildMap.class);
+            when(childMap.getReference()).thenReturn("id");
+            var parentMap = mock(ParentMap.class);
+            when(parentMap.getReference()).thenReturn("id");
+            var joinCondition = mock(Join.class);
+            when(joinCondition.getChildMap()).thenReturn(childMap);
+            when(joinCondition.getParentMap()).thenReturn(parentMap);
+
+            // Join data field: "parentAge" referencing "age" on parent
+            var joinDataField = mock(ExpressionField.class);
+            when(joinDataField.getFieldName()).thenReturn("parentAge");
+            when(joinDataField.getReference()).thenReturn("age");
+
+            // LogicalViewJoin
+            var join = mock(LogicalViewJoin.class);
+            when(join.getParentLogicalView()).thenReturn(parentView);
+            when(join.getJoinConditions()).thenReturn(Set.of(joinCondition));
+            when(join.getFields()).thenReturn(Set.of(joinDataField));
+
+            // Child view
+            var childView = mock(LogicalView.class);
+            when(childView.getViewOn()).thenReturn(sharedSource);
+            when(childView.getFields()).thenReturn(Set.of(childIdField, childNameField));
+            when(childView.getLeftJoins()).thenReturn(Set.of(join));
+            when(childView.getInnerJoins()).thenReturn(Set.of());
+            when(childView.getStructuralAnnotations()).thenReturn(Set.of());
+
+            var result = MappingResolver.eliminateSelfJoins(childView);
+
+            assertThat(nullSafe(result.getLeftJoins()), is(empty()));
+            assertThat(result.getFields(), hasSize(3));
+
+            var inlinedField = result.getFields().stream()
+                    .filter(f -> f.getFieldName().equals("parentAge"))
+                    .findFirst();
+            assertThat(inlinedField.isPresent(), is(true));
+            assertThat(((ExpressionField) inlinedField.get()).getReference(), is("$.age"));
+        }
+
+        @Test
+        void eliminateSelfJoins_givenDifferentSources_preservesJoin() {
+            var source1 = mock(LogicalSource.class);
+            var source2 = mock(LogicalSource.class);
+
+            var childIdField = mock(ExpressionField.class);
+            when(childIdField.getFieldName()).thenReturn("id");
+            lenient().when(childIdField.getReference()).thenReturn("$.id");
+
+            var parentIdField = mock(ExpressionField.class);
+            lenient().when(parentIdField.getFieldName()).thenReturn("id");
+            lenient().when(parentIdField.getReference()).thenReturn("$.id");
+
+            var parentView = mock(LogicalView.class);
+            when(parentView.getViewOn()).thenReturn(source2);
+            lenient().when(parentView.getFields()).thenReturn(Set.of(parentIdField));
+            lenient().when(parentView.getStructuralAnnotations()).thenReturn(Set.of());
+
+            var childMap = mock(ChildMap.class);
+            lenient().when(childMap.getReference()).thenReturn("id");
+            var parentMap = mock(ParentMap.class);
+            lenient().when(parentMap.getReference()).thenReturn("id");
+            var joinCondition = mock(Join.class);
+            lenient().when(joinCondition.getChildMap()).thenReturn(childMap);
+            lenient().when(joinCondition.getParentMap()).thenReturn(parentMap);
+
+            var join = mock(LogicalViewJoin.class);
+            when(join.getParentLogicalView()).thenReturn(parentView);
+            lenient().when(join.getJoinConditions()).thenReturn(Set.of(joinCondition));
+            lenient().when(join.getFields()).thenReturn(Set.of());
+
+            var childView = mock(LogicalView.class);
+            when(childView.getViewOn()).thenReturn(source1);
+            when(childView.getFields()).thenReturn(Set.of(childIdField));
+            when(childView.getLeftJoins()).thenReturn(Set.of(join));
+            when(childView.getInnerJoins()).thenReturn(Set.of());
+
+            var result = MappingResolver.eliminateSelfJoins(childView);
+
+            assertThat(result, is(sameInstance(childView)));
+        }
+
+        @Test
+        void eliminateSelfJoins_givenNoPkOnParent_preservesJoin() {
+            var sharedSource = mock(LogicalSource.class);
+
+            var childIdField = mock(ExpressionField.class);
+            when(childIdField.getFieldName()).thenReturn("id");
+            when(childIdField.getReference()).thenReturn("$.id");
+
+            var parentIdField = mock(ExpressionField.class);
+            when(parentIdField.getFieldName()).thenReturn("id");
+            when(parentIdField.getReference()).thenReturn("$.id");
+
+            // No annotations on parent
+            var parentView = mock(LogicalView.class);
+            when(parentView.getViewOn()).thenReturn(sharedSource);
+            when(parentView.getFields()).thenReturn(Set.of(parentIdField));
+            when(parentView.getStructuralAnnotations()).thenReturn(Set.of());
+
+            var childMap = mock(ChildMap.class);
+            when(childMap.getReference()).thenReturn("id");
+            var parentMap = mock(ParentMap.class);
+            when(parentMap.getReference()).thenReturn("id");
+            var joinCondition = mock(Join.class);
+            when(joinCondition.getChildMap()).thenReturn(childMap);
+            when(joinCondition.getParentMap()).thenReturn(parentMap);
+
+            var join = mock(LogicalViewJoin.class);
+            when(join.getParentLogicalView()).thenReturn(parentView);
+            when(join.getJoinConditions()).thenReturn(Set.of(joinCondition));
+            lenient().when(join.getFields()).thenReturn(Set.of());
+
+            var childView = mock(LogicalView.class);
+            when(childView.getViewOn()).thenReturn(sharedSource);
+            when(childView.getFields()).thenReturn(Set.of(childIdField));
+            when(childView.getLeftJoins()).thenReturn(Set.of(join));
+            when(childView.getInnerJoins()).thenReturn(Set.of());
+
+            var result = MappingResolver.eliminateSelfJoins(childView);
+
+            assertThat(result, is(sameInstance(childView)));
+        }
+
+        @Test
+        void eliminateSelfJoins_givenDifferentSourceExpressions_preservesJoin() {
+            var sharedSource = mock(LogicalSource.class);
+
+            // Child "id" has reference "$.id"
+            var childIdField = mock(ExpressionField.class);
+            when(childIdField.getFieldName()).thenReturn("id");
+            when(childIdField.getReference()).thenReturn("$.id");
+
+            // Parent "id" has reference "$.identifier" (different!)
+            var parentIdField = mock(ExpressionField.class);
+            when(parentIdField.getFieldName()).thenReturn("id");
+            when(parentIdField.getReference()).thenReturn("$.identifier");
+
+            var pk = mock(PrimaryKeyAnnotation.class);
+            var pkField = mock(Field.class);
+            lenient().when(pkField.getFieldName()).thenReturn("id");
+            lenient().when(pk.getOnFields()).thenReturn(List.of(pkField));
+
+            var parentView = mock(LogicalView.class);
+            when(parentView.getViewOn()).thenReturn(sharedSource);
+            when(parentView.getFields()).thenReturn(Set.of(parentIdField));
+            lenient().when(parentView.getStructuralAnnotations()).thenReturn(Set.of(pk));
+
+            var childMap = mock(ChildMap.class);
+            when(childMap.getReference()).thenReturn("id");
+            var parentMap = mock(ParentMap.class);
+            when(parentMap.getReference()).thenReturn("id");
+            var joinCondition = mock(Join.class);
+            when(joinCondition.getChildMap()).thenReturn(childMap);
+            when(joinCondition.getParentMap()).thenReturn(parentMap);
+
+            var join = mock(LogicalViewJoin.class);
+            when(join.getParentLogicalView()).thenReturn(parentView);
+            when(join.getJoinConditions()).thenReturn(Set.of(joinCondition));
+            lenient().when(join.getFields()).thenReturn(Set.of());
+
+            var childView = mock(LogicalView.class);
+            when(childView.getViewOn()).thenReturn(sharedSource);
+            when(childView.getFields()).thenReturn(Set.of(childIdField));
+            when(childView.getLeftJoins()).thenReturn(Set.of(join));
+            when(childView.getInnerJoins()).thenReturn(Set.of());
+
+            var result = MappingResolver.eliminateSelfJoins(childView);
+
+            assertThat(result, is(sameInstance(childView)));
+        }
+
+        @Test
+        void eliminateSelfJoins_givenUniqueAndNotNullOnParent_eliminatesJoin() {
+            var sharedSource = mock(LogicalSource.class);
+
+            var childIdField = mock(ExpressionField.class);
+            when(childIdField.getFieldName()).thenReturn("id");
+            when(childIdField.getReference()).thenReturn("$.id");
+
+            var parentIdField = mock(ExpressionField.class);
+            when(parentIdField.getFieldName()).thenReturn("id");
+            when(parentIdField.getReference()).thenReturn("$.id");
+
+            var parentAgeField = mock(ExpressionField.class);
+            when(parentAgeField.getFieldName()).thenReturn("age");
+            when(parentAgeField.getReference()).thenReturn("$.age");
+
+            // Unique + NotNull instead of PK
+            var unique = mock(UniqueAnnotation.class);
+            var uniqueField = mock(Field.class);
+            when(uniqueField.getFieldName()).thenReturn("id");
+            when(unique.getOnFields()).thenReturn(List.of(uniqueField));
+
+            var notNull = mock(NotNullAnnotation.class);
+            var notNullField = mock(Field.class);
+            when(notNullField.getFieldName()).thenReturn("id");
+            when(notNull.getOnFields()).thenReturn(List.of(notNullField));
+
+            var parentView = mock(LogicalView.class);
+            when(parentView.getViewOn()).thenReturn(sharedSource);
+            when(parentView.getFields()).thenReturn(Set.of(parentIdField, parentAgeField));
+            when(parentView.getStructuralAnnotations()).thenReturn(Set.of(unique, notNull));
+
+            var childMap = mock(ChildMap.class);
+            when(childMap.getReference()).thenReturn("id");
+            var parentMap = mock(ParentMap.class);
+            when(parentMap.getReference()).thenReturn("id");
+            var joinCondition = mock(Join.class);
+            when(joinCondition.getChildMap()).thenReturn(childMap);
+            when(joinCondition.getParentMap()).thenReturn(parentMap);
+
+            var joinDataField = mock(ExpressionField.class);
+            when(joinDataField.getFieldName()).thenReturn("parentAge");
+            when(joinDataField.getReference()).thenReturn("age");
+
+            var join = mock(LogicalViewJoin.class);
+            when(join.getParentLogicalView()).thenReturn(parentView);
+            when(join.getJoinConditions()).thenReturn(Set.of(joinCondition));
+            when(join.getFields()).thenReturn(Set.of(joinDataField));
+
+            var childView = mock(LogicalView.class);
+            when(childView.getViewOn()).thenReturn(sharedSource);
+            when(childView.getFields()).thenReturn(Set.of(childIdField));
+            when(childView.getLeftJoins()).thenReturn(Set.of(join));
+            when(childView.getInnerJoins()).thenReturn(Set.of());
+            when(childView.getStructuralAnnotations()).thenReturn(Set.of());
+
+            var result = MappingResolver.eliminateSelfJoins(childView);
+
+            assertThat(nullSafe(result.getLeftJoins()), is(empty()));
+            assertThat(result.getFields(), hasSize(2));
+
+            var inlinedField = result.getFields().stream()
+                    .filter(f -> f.getFieldName().equals("parentAge"))
+                    .findFirst();
+            assertThat(inlinedField.isPresent(), is(true));
+            assertThat(((ExpressionField) inlinedField.get()).getReference(), is("$.age"));
+        }
+
+        @Test
+        void eliminateSelfJoins_givenInnerJoin_eliminatesJoin() {
+            var sharedSource = mock(LogicalSource.class);
+
+            var childIdField = mock(ExpressionField.class);
+            when(childIdField.getFieldName()).thenReturn("id");
+            when(childIdField.getReference()).thenReturn("$.id");
+
+            var parentIdField = mock(ExpressionField.class);
+            when(parentIdField.getFieldName()).thenReturn("id");
+            when(parentIdField.getReference()).thenReturn("$.id");
+
+            var parentAgeField = mock(ExpressionField.class);
+            when(parentAgeField.getFieldName()).thenReturn("age");
+            when(parentAgeField.getReference()).thenReturn("$.age");
+
+            var pk = mock(PrimaryKeyAnnotation.class);
+            var pkField = mock(Field.class);
+            when(pkField.getFieldName()).thenReturn("id");
+            when(pk.getOnFields()).thenReturn(List.of(pkField));
+
+            var parentView = mock(LogicalView.class);
+            when(parentView.getViewOn()).thenReturn(sharedSource);
+            when(parentView.getFields()).thenReturn(Set.of(parentIdField, parentAgeField));
+            when(parentView.getStructuralAnnotations()).thenReturn(Set.of(pk));
+
+            var childMap = mock(ChildMap.class);
+            when(childMap.getReference()).thenReturn("id");
+            var parentMap = mock(ParentMap.class);
+            when(parentMap.getReference()).thenReturn("id");
+            var joinCondition = mock(Join.class);
+            when(joinCondition.getChildMap()).thenReturn(childMap);
+            when(joinCondition.getParentMap()).thenReturn(parentMap);
+
+            var joinDataField = mock(ExpressionField.class);
+            when(joinDataField.getFieldName()).thenReturn("parentAge");
+            when(joinDataField.getReference()).thenReturn("age");
+
+            var join = mock(LogicalViewJoin.class);
+            when(join.getParentLogicalView()).thenReturn(parentView);
+            when(join.getJoinConditions()).thenReturn(Set.of(joinCondition));
+            when(join.getFields()).thenReturn(Set.of(joinDataField));
+
+            // Inner join instead of left join
+            var childView = mock(LogicalView.class);
+            when(childView.getViewOn()).thenReturn(sharedSource);
+            when(childView.getFields()).thenReturn(Set.of(childIdField));
+            when(childView.getLeftJoins()).thenReturn(Set.of());
+            when(childView.getInnerJoins()).thenReturn(Set.of(join));
+            when(childView.getStructuralAnnotations()).thenReturn(Set.of());
+
+            var result = MappingResolver.eliminateSelfJoins(childView);
+
+            assertThat(nullSafe(result.getInnerJoins()), is(empty()));
+            assertThat(result.getFields(), hasSize(2));
+
+            var inlinedField = result.getFields().stream()
+                    .filter(f -> f.getFieldName().equals("parentAge"))
+                    .findFirst();
+            assertThat(inlinedField.isPresent(), is(true));
+            assertThat(((ExpressionField) inlinedField.get()).getReference(), is("$.age"));
+        }
+
+        @Test
+        void eliminateSelfJoins_givenNoJoins_returnsOriginalView() {
+            var childView = mock(LogicalView.class);
+            when(childView.getViewOn()).thenReturn(mock(LogicalSource.class));
+            when(childView.getFields()).thenReturn(Set.of());
+            when(childView.getLeftJoins()).thenReturn(Set.of());
+            when(childView.getInnerJoins()).thenReturn(Set.of());
+
+            var result = MappingResolver.eliminateSelfJoins(childView);
+
+            assertThat(result, is(sameInstance(childView)));
+        }
+
+        private static <T> Set<T> nullSafe(Set<T> set) {
+            return set != null ? set : Set.of();
         }
     }
 }
