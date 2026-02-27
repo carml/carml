@@ -1,6 +1,7 @@
 package io.carml.logicalview;
 
 import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toUnmodifiableSet;
 
 import io.carml.logicalsourceresolver.DatatypeMapper;
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
@@ -13,14 +14,19 @@ import io.carml.model.AbstractLogicalSource;
 import io.carml.model.ExpressionField;
 import io.carml.model.ExpressionMap;
 import io.carml.model.Field;
+import io.carml.model.ForeignKeyAnnotation;
 import io.carml.model.IterableField;
 import io.carml.model.Join;
 import io.carml.model.LogicalSource;
 import io.carml.model.LogicalView;
 import io.carml.model.LogicalViewJoin;
+import io.carml.model.NotNullAnnotation;
+import io.carml.model.PrimaryKeyAnnotation;
 import io.carml.model.ReferenceFormulation;
 import io.carml.model.Source;
+import io.carml.model.StructuralAnnotation;
 import io.carml.model.Template;
+import io.carml.model.UniqueAnnotation;
 import io.carml.model.impl.CarmlLogicalSource;
 import io.carml.model.impl.CarmlTemplate.ExpressionSegment;
 import io.carml.model.impl.CarmlTemplate.TextSegment;
@@ -66,6 +72,8 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
             Map<String, IRI> naturalDatatypes) {}
 
     private record ExprEvalWithDatatypeMapper(ExpressionEvaluation exprEval, DatatypeMapper datatypeMapper) {}
+
+    private record JoinOptimizations(boolean singleMatch, boolean eliminate, boolean effectiveInnerJoin) {}
 
     @Override
     public Flux<ViewIteration> evaluate(
@@ -130,7 +138,12 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
         } else {
             var parentReferenceableKeys = collectReferenceableKeys((LogicalView) viewOn);
             exprEvalFlux = evaluateView(
-                            (LogicalView) viewOn, sourceResolver, context, rootRefForm, factoryCache, factoryResolver)
+                            (LogicalView) viewOn,
+                            sourceResolver,
+                            EvaluationContext.defaults(),
+                            rootRefForm,
+                            factoryCache,
+                            factoryResolver)
                     .map(vi -> {
                         var viewExprEval = new ViewIterationExpressionEvaluation(vi, parentReferenceableKeys);
                         DatatypeMapper viewDatatypeMapper = vi::getNaturalDatatype;
@@ -144,15 +157,25 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
         // Apply joins: left joins first, then inner joins
         var leftJoins = view.getLeftJoins();
         var innerJoins = view.getInnerJoins();
+        var projectedFields = context.getProjectedFields();
 
         if (leftJoins != null) {
             for (var join : leftJoins) {
-                evaluatedFlux = applyJoin(evaluatedFlux, join, true, sourceResolver);
+                var opts = analyzeJoinOptimizations(view, join, true, projectedFields);
+                if (opts.eliminate()) {
+                    continue;
+                }
+                evaluatedFlux =
+                        applyJoin(evaluatedFlux, join, !opts.effectiveInnerJoin(), opts.singleMatch(), sourceResolver);
             }
         }
         if (innerJoins != null) {
             for (var join : innerJoins) {
-                evaluatedFlux = applyJoin(evaluatedFlux, join, false, sourceResolver);
+                var opts = analyzeJoinOptimizations(view, join, false, projectedFields);
+                if (opts.eliminate()) {
+                    continue;
+                }
+                evaluatedFlux = applyJoin(evaluatedFlux, join, false, opts.singleMatch(), sourceResolver);
             }
         }
 
@@ -423,6 +446,7 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
             Flux<EvaluatedValues> childFlux,
             LogicalViewJoin join,
             boolean isLeftJoin,
+            boolean singleMatch,
             Function<Source, ResolvedSource<?>> sourceResolver) {
 
         var parentView = join.getParentLogicalView();
@@ -436,7 +460,7 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                     .toList();
             var joinIndex = buildJoinIndex(conditions, parentIterations, parentReferenceableKeys);
             return childFlux.flatMapIterable(child -> matchAndExtend(
-                    child, conditions, join.getFields(), isLeftJoin, joinIndex, parentReferenceableKeys));
+                    child, conditions, join.getFields(), isLeftJoin, singleMatch, joinIndex, parentReferenceableKeys));
         });
     }
 
@@ -472,6 +496,7 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
             List<Join> conditions,
             Set<ExpressionField> joinFields,
             boolean isLeftJoin,
+            boolean singleMatch,
             JoinIndex<List<Object>, ViewIteration> joinIndex,
             Set<String> parentReferenceableKeys) {
 
@@ -490,12 +515,14 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
             return isLeftJoin ? List.of(child) : List.of();
         }
 
+        var effectiveParents = singleMatch ? matchedParents.subList(0, 1) : matchedParents;
+
         var sortedJoinFields = joinFields.stream()
                 .sorted(Comparator.comparing(ExpressionField::getFieldName))
                 .toList();
 
         var result = new ArrayList<EvaluatedValues>();
-        for (var parentIteration : matchedParents) {
+        for (var parentIteration : effectiveParents) {
             var parentExprEval = new ViewIterationExpressionEvaluation(parentIteration, parentReferenceableKeys);
 
             // Evaluate join fields from the parent iteration, producing per-field value lists
@@ -537,6 +564,140 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
         }
 
         return result;
+    }
+
+    private JoinOptimizations analyzeJoinOptimizations(
+            LogicalView childView, LogicalViewJoin join, boolean isLeftJoin, Set<String> projectedFields) {
+        var childAnnotations = nullSafeAnnotations(childView);
+        var parentAnnotations = nullSafeAnnotations(join.getParentLogicalView());
+
+        var singleMatch = isSingleMatchJoin(join, childAnnotations, parentAnnotations);
+        var eliminate = isEliminableJoin(join, childAnnotations, projectedFields);
+        var effectiveInnerJoin = isLeftJoin && isLeftToInnerConvertible(join, childAnnotations);
+
+        return new JoinOptimizations(singleMatch, eliminate, effectiveInnerJoin);
+    }
+
+    private boolean isSingleMatchJoin(
+            LogicalViewJoin join,
+            Set<StructuralAnnotation> childAnnotations,
+            Set<StructuralAnnotation> parentAnnotations) {
+        var parentConditionFields = collectParentConditionFieldNames(join);
+
+        // Path 1: Parent condition fields are covered by a PK
+        if (hasPrimaryKeyCovering(parentAnnotations, parentConditionFields)) {
+            return true;
+        }
+
+        // Path 2: FK on child referencing the parent view, and parent target fields are PK or Unique+NotNull
+        for (var annotation : childAnnotations) {
+            if (annotation instanceof ForeignKeyAnnotation fk && fk.getTargetView() == join.getParentLogicalView()) {
+                var targetFieldNames = fieldNames(fk.getTargetFields());
+                if (targetFieldNames.containsAll(parentConditionFields)
+                        && parentConditionFields.containsAll(targetFieldNames)
+                        && (hasPrimaryKeyCovering(parentAnnotations, targetFieldNames)
+                                || hasUniqueOrPkCovering(parentAnnotations, targetFieldNames))) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private boolean isEliminableJoin(
+            LogicalViewJoin join, Set<StructuralAnnotation> childAnnotations, Set<String> projectedFields) {
+        // Empty projectedFields means all fields are projected — cannot eliminate
+        if (projectedFields.isEmpty()) {
+            return false;
+        }
+
+        // Check for FK on child referencing the parent view
+        boolean hasFk = childAnnotations.stream()
+                .anyMatch(
+                        a -> a instanceof ForeignKeyAnnotation fk && fk.getTargetView() == join.getParentLogicalView());
+        if (!hasFk) {
+            return false;
+        }
+
+        // Check that none of the join's data fields are in the projected set
+        var joinDataFields = join.getFields();
+        if (joinDataFields == null || joinDataFields.isEmpty()) {
+            return true;
+        }
+
+        return joinDataFields.stream().map(ExpressionField::getFieldName).noneMatch(projectedFields::contains);
+    }
+
+    private boolean isLeftToInnerConvertible(LogicalViewJoin join, Set<StructuralAnnotation> childAnnotations) {
+        var childConditionFields = collectChildConditionFieldNames(join);
+
+        // All child condition fields must have NotNull annotations
+        return childAnnotations.stream()
+                .filter(NotNullAnnotation.class::isInstance)
+                .anyMatch(nn -> {
+                    var nnFields = nullSafeOnFields(nn);
+                    return nnFields.containsAll(childConditionFields);
+                });
+    }
+
+    private Set<String> collectChildConditionFieldNames(LogicalViewJoin join) {
+        return join.getJoinConditions().stream()
+                .flatMap(c -> c.getChildMap().getExpressionMapExpressionSet().stream())
+                .collect(toUnmodifiableSet());
+    }
+
+    private Set<String> collectParentConditionFieldNames(LogicalViewJoin join) {
+        return join.getJoinConditions().stream()
+                .flatMap(c -> c.getParentMap().getExpressionMapExpressionSet().stream())
+                .collect(toUnmodifiableSet());
+    }
+
+    private static Set<String> fieldNames(List<Field> fields) {
+        if (fields == null) {
+            return Set.of();
+        }
+        return fields.stream().map(Field::getFieldName).collect(toUnmodifiableSet());
+    }
+
+    private static boolean hasPrimaryKeyCovering(Set<StructuralAnnotation> annotations, Set<String> fieldNames) {
+        return annotations.stream()
+                .filter(PrimaryKeyAnnotation.class::isInstance)
+                .anyMatch(pk -> {
+                    var pkFields = nullSafeOnFields(pk);
+                    return pkFields.containsAll(fieldNames) && fieldNames.containsAll(pkFields);
+                });
+    }
+
+    private static boolean hasUniqueOrPkCovering(Set<StructuralAnnotation> annotations, Set<String> fieldNames) {
+        boolean hasUniqueCovering = annotations.stream()
+                .filter(a -> a instanceof UniqueAnnotation || a instanceof PrimaryKeyAnnotation)
+                .anyMatch(u -> {
+                    var uFields = nullSafeOnFields(u);
+                    return uFields.containsAll(fieldNames) && fieldNames.containsAll(uFields);
+                });
+        if (!hasUniqueCovering) {
+            return false;
+        }
+
+        // Also require NotNull on the same fields
+        return annotations.stream().filter(NotNullAnnotation.class::isInstance).anyMatch(nn -> {
+            var nnFields = nullSafeOnFields(nn);
+            return nnFields.containsAll(fieldNames);
+        });
+    }
+
+    private static Set<String> nullSafeOnFields(StructuralAnnotation annotation) {
+        var fields = annotation.getOnFields();
+        if (fields == null) {
+            return Set.of();
+        }
+        return fields.stream().map(Field::getFieldName).collect(toUnmodifiableSet());
+    }
+
+    private static Set<StructuralAnnotation> nullSafeAnnotations(LogicalView view) {
+        var annotations = view.getStructuralAnnotations();
+        return annotations != null ? annotations : Set.of();
     }
 
     private List<Object> evaluateExpressionMap(ExpressionMap field, ExpressionEvaluation exprEval) {
