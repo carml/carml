@@ -12,6 +12,7 @@ import io.carml.model.RefObjectMap;
 import io.carml.model.TermMap;
 import io.carml.model.TriplesMap;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -72,6 +73,7 @@ public final class MappingResolver {
 
     private static ResolvedMapping resolveExplicit(TriplesMap triplesMap, LogicalView logicalView, Long limit) {
         validateNoCycles(logicalView);
+        validateNoNameCollisions(logicalView);
         var fieldOrigins = buildFieldOrigins(triplesMap, logicalView);
         var evaluationContext =
                 EvaluationContext.withProjectedFieldsAndLimit(triplesMap.getReferenceExpressionSet(), limit);
@@ -257,6 +259,51 @@ public final class MappingResolver {
             validateFieldNoCycles(field.getFields(), visited, path);
             path.remove(path.size() - 1);
             visited.remove(field);
+        }
+    }
+
+    /**
+     * Validates that a {@link LogicalView} contains no duplicate absolute field names. Checks the
+     * view's own field tree (recursively, using dot-separated paths) and all join fields (left joins
+     * and inner joins). Duplicate names across any of these sources are rejected.
+     *
+     * @param view the logical view to validate
+     * @throws RmlMapperException if a duplicate field name is detected
+     */
+    static void validateNoNameCollisions(LogicalView view) {
+        var seen = new HashSet<String>();
+        collectFieldNamesForCollisionCheck(view.getFields(), "", seen, view);
+
+        var allJoins = Stream.concat(nullSafe(view.getLeftJoins()).stream(), nullSafe(view.getInnerJoins()).stream())
+                .toList();
+
+        for (var join : allJoins) {
+            for (var field : nullSafe(join.getFields())) {
+                var fieldName = field.getFieldName();
+                if (!seen.add(fieldName)) {
+                    throw new RmlMapperException("Name collision detected in logical view %s: duplicate field name '%s'"
+                            .formatted(view.getResourceName(), fieldName));
+                }
+            }
+        }
+    }
+
+    /**
+     * Recursively collects absolute field names from the view's field tree for collision detection.
+     * Uses dot-separated paths for nested fields (e.g. "parent.child").
+     */
+    private static void collectFieldNamesForCollisionCheck(
+            Set<Field> fields, String prefix, Set<String> seen, LogicalView view) {
+        if (fields == null) {
+            return;
+        }
+        for (var field : fields) {
+            var absoluteName = prefix.isEmpty() ? field.getFieldName() : prefix + "." + field.getFieldName();
+            if (!seen.add(absoluteName)) {
+                throw new RmlMapperException("Name collision detected in logical view %s: duplicate field name '%s'"
+                        .formatted(view.getResourceName(), absoluteName));
+            }
+            collectFieldNamesForCollisionCheck(field.getFields(), absoluteName, seen, view);
         }
     }
 

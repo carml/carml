@@ -744,6 +744,188 @@ class MappingResolverTest {
         assertDoesNotThrow(() -> MappingResolver.validateNoCycles(view));
     }
 
+    // --- Name collision detection ---
+
+    @Test
+    void validateNoNameCollisions_givenDuplicateFieldsOnSameParent_throws() {
+        var view = mock(LogicalView.class);
+        var field1 = mock(Field.class);
+        var field2 = mock(Field.class);
+
+        when(view.getResourceName()).thenReturn("testView");
+        when(field1.getFieldName()).thenReturn("name");
+        lenient().when(field1.getFields()).thenReturn(Set.of());
+        when(field2.getFieldName()).thenReturn("name");
+        lenient().when(field2.getFields()).thenReturn(Set.of());
+        when(view.getFields()).thenReturn(Set.of(field1, field2));
+        lenient().when(view.getLeftJoins()).thenReturn(Set.of());
+        lenient().when(view.getInnerJoins()).thenReturn(Set.of());
+
+        var exception = assertThrows(RmlMapperException.class, () -> MappingResolver.validateNoNameCollisions(view));
+
+        assertThat(exception.getMessage(), containsString("collision"));
+        assertThat(exception.getMessage(), containsString("name"));
+    }
+
+    @Test
+    void validateNoNameCollisions_givenJoinFieldCollidesWithBaseField_throws() {
+        var view = mock(LogicalView.class);
+        var baseField = mock(Field.class);
+        var joinField = mock(ExpressionField.class);
+        var join = mock(LogicalViewJoin.class);
+
+        when(view.getResourceName()).thenReturn("csvView");
+        when(baseField.getFieldName()).thenReturn("name");
+        when(baseField.getFields()).thenReturn(Set.of());
+        when(view.getFields()).thenReturn(Set.of(baseField));
+        when(joinField.getFieldName()).thenReturn("name");
+        when(join.getFields()).thenReturn(Set.of(joinField));
+        when(view.getLeftJoins()).thenReturn(Set.of(join));
+        when(view.getInnerJoins()).thenReturn(Set.of());
+
+        var exception = assertThrows(RmlMapperException.class, () -> MappingResolver.validateNoNameCollisions(view));
+
+        assertThat(exception.getMessage(), containsString("collision"));
+        assertThat(exception.getMessage(), containsString("name"));
+    }
+
+    @Test
+    void validateNoNameCollisions_givenCrossJoinCollision_throws() {
+        var view = mock(LogicalView.class);
+        var baseField = mock(Field.class);
+        var joinField1 = mock(ExpressionField.class);
+        var joinField2 = mock(ExpressionField.class);
+        var join1 = mock(LogicalViewJoin.class);
+        var join2 = mock(LogicalViewJoin.class);
+
+        when(view.getResourceName()).thenReturn("csvView");
+        when(baseField.getFieldName()).thenReturn("id");
+        when(baseField.getFields()).thenReturn(Set.of());
+        when(view.getFields()).thenReturn(Set.of(baseField));
+        when(joinField1.getFieldName()).thenReturn("item");
+        when(join1.getFields()).thenReturn(Set.of(joinField1));
+        when(joinField2.getFieldName()).thenReturn("item");
+        when(join2.getFields()).thenReturn(Set.of(joinField2));
+        when(view.getLeftJoins()).thenReturn(Set.of(join1, join2));
+        when(view.getInnerJoins()).thenReturn(Set.of());
+
+        var exception = assertThrows(RmlMapperException.class, () -> MappingResolver.validateNoNameCollisions(view));
+
+        assertThat(exception.getMessage(), containsString("collision"));
+        assertThat(exception.getMessage(), containsString("item"));
+    }
+
+    @Test
+    void validateNoNameCollisions_givenNestedDuplicates_throws() {
+        var view = mock(LogicalView.class);
+        var parent1 = mock(Field.class);
+        var parent2 = mock(Field.class);
+        var child1 = mock(Field.class);
+        var child2 = mock(Field.class);
+
+        when(view.getResourceName()).thenReturn("testView");
+        when(parent1.getFieldName()).thenReturn("parent");
+        lenient().when(child1.getFieldName()).thenReturn("child");
+        lenient().when(child1.getFields()).thenReturn(Set.of());
+        lenient().when(parent1.getFields()).thenReturn(Set.of(child1));
+
+        when(parent2.getFieldName()).thenReturn("parent");
+        lenient().when(child2.getFieldName()).thenReturn("child");
+        lenient().when(child2.getFields()).thenReturn(Set.of());
+        lenient().when(parent2.getFields()).thenReturn(Set.of(child2));
+
+        when(view.getFields()).thenReturn(Set.of(parent1, parent2));
+        lenient().when(view.getLeftJoins()).thenReturn(Set.of());
+        lenient().when(view.getInnerJoins()).thenReturn(Set.of());
+
+        var exception = assertThrows(RmlMapperException.class, () -> MappingResolver.validateNoNameCollisions(view));
+
+        assertThat(exception.getMessage(), containsString("collision"));
+        // Should detect duplicate at "parent" level already
+        assertThat(exception.getMessage(), containsString("parent"));
+    }
+
+    @Test
+    void validateNoNameCollisions_givenDuplicateChildrenUnderSameParent_throws() {
+        var view = mock(LogicalView.class);
+        var parent = mock(Field.class);
+        var child1 = mock(Field.class);
+        var child2 = mock(Field.class);
+
+        when(view.getResourceName()).thenReturn("testView");
+        when(parent.getFieldName()).thenReturn("address");
+        when(child1.getFieldName()).thenReturn("street");
+        lenient().when(child1.getFields()).thenReturn(Set.of());
+        when(child2.getFieldName()).thenReturn("street");
+        lenient().when(child2.getFields()).thenReturn(Set.of());
+        when(parent.getFields()).thenReturn(Set.of(child1, child2));
+        when(view.getFields()).thenReturn(Set.of(parent));
+        lenient().when(view.getLeftJoins()).thenReturn(Set.of());
+        lenient().when(view.getInnerJoins()).thenReturn(Set.of());
+
+        var exception = assertThrows(RmlMapperException.class, () -> MappingResolver.validateNoNameCollisions(view));
+
+        assertThat(exception.getMessage(), containsString("collision"));
+        assertThat(exception.getMessage(), containsString("address.street"));
+    }
+
+    @Test
+    void validateNoNameCollisions_givenInnerJoinFieldCollidesWithBaseField_throws() {
+        var view = mock(LogicalView.class);
+        var baseField = mock(Field.class);
+        var joinField = mock(ExpressionField.class);
+        var join = mock(LogicalViewJoin.class);
+
+        when(view.getResourceName()).thenReturn("testView");
+        when(baseField.getFieldName()).thenReturn("name");
+        when(baseField.getFields()).thenReturn(Set.of());
+        when(view.getFields()).thenReturn(Set.of(baseField));
+        when(joinField.getFieldName()).thenReturn("name");
+        when(join.getFields()).thenReturn(Set.of(joinField));
+        when(view.getLeftJoins()).thenReturn(Set.of());
+        when(view.getInnerJoins()).thenReturn(Set.of(join));
+
+        var exception = assertThrows(RmlMapperException.class, () -> MappingResolver.validateNoNameCollisions(view));
+
+        assertThat(exception.getMessage(), containsString("collision"));
+        assertThat(exception.getMessage(), containsString("name"));
+    }
+
+    @Test
+    void validateNoNameCollisions_givenUniqueFields_doesNotThrow() {
+        var view = mock(LogicalView.class);
+        var field1 = mock(Field.class);
+        var field2 = mock(Field.class);
+
+        when(field1.getFieldName()).thenReturn("name");
+        when(field1.getFields()).thenReturn(Set.of());
+        when(field2.getFieldName()).thenReturn("age");
+        when(field2.getFields()).thenReturn(Set.of());
+        when(view.getFields()).thenReturn(Set.of(field1, field2));
+        when(view.getLeftJoins()).thenReturn(Set.of());
+        when(view.getInnerJoins()).thenReturn(Set.of());
+
+        assertDoesNotThrow(() -> MappingResolver.validateNoNameCollisions(view));
+    }
+
+    @Test
+    void validateNoNameCollisions_givenJoinFieldsUniqueFromBaseFields_doesNotThrow() {
+        var view = mock(LogicalView.class);
+        var baseField = mock(Field.class);
+        var joinField = mock(ExpressionField.class);
+        var join = mock(LogicalViewJoin.class);
+
+        when(baseField.getFieldName()).thenReturn("name");
+        when(baseField.getFields()).thenReturn(Set.of());
+        when(view.getFields()).thenReturn(Set.of(baseField));
+        when(joinField.getFieldName()).thenReturn("familyName");
+        when(join.getFields()).thenReturn(Set.of(joinField));
+        when(view.getLeftJoins()).thenReturn(Set.of(join));
+        when(view.getInnerJoins()).thenReturn(Set.of());
+
+        assertDoesNotThrow(() -> MappingResolver.validateNoNameCollisions(view));
+    }
+
     // --- Cycle detection: inner join cycle ---
 
     @Test

@@ -39,7 +39,14 @@ class TestRmlLvTestCases extends RmlTestCaseSuite {
                 "RMLLVTC0006f", // Index key of field in join
                 "RMLLVTC0007a", // Change reference formulations: CSV including JSON array
                 "RMLLVTC0007b", // Change reference formulations: CSV including JSON object
-                "RMLLVTC0007c" // Change reference formulations: JSON including CSV
+                "RMLLVTC0007c", // Change reference formulations: JSON including CSV
+                // --- Collision detection implemented, but tests pass for the wrong reason ---
+                // These hasError=true tests currently throw "Expected LogicalSource but found
+                // CarmlLogicalView" (the LV pipeline isn't wired yet), not our RmlMapperException
+                // from validateNoNameCollisions. Skip until the full LV engine pipeline is active.
+                "RMLLVTC0009a", // Name collision: same-parent fields
+                "RMLLVTC0009b", // Name collision: join field vs base field
+                "RMLLVTC0009c" // Name collision: cross-join fields
                 );
     }
 }
