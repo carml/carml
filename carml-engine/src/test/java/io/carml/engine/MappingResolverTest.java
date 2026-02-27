@@ -17,17 +17,23 @@ import static org.mockito.Mockito.when;
 import io.carml.logicalview.DedupStrategy;
 import io.carml.model.ExpressionField;
 import io.carml.model.Field;
+import io.carml.model.IriSafeAnnotation;
 import io.carml.model.IterableField;
 import io.carml.model.LogicalSource;
 import io.carml.model.LogicalView;
 import io.carml.model.LogicalViewJoin;
+import io.carml.model.NotNullAnnotation;
 import io.carml.model.ObjectMap;
 import io.carml.model.PredicateObjectMap;
+import io.carml.model.PrimaryKeyAnnotation;
 import io.carml.model.SubjectMap;
 import io.carml.model.TriplesMap;
+import io.carml.model.UniqueAnnotation;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -950,5 +956,222 @@ class MappingResolverTest {
         var exception = assertThrows(RmlMapperException.class, () -> MappingResolver.validateNoCycles(viewA));
 
         assertThat(exception.getMessage(), containsString("Cycle detected in logical view structure"));
+    }
+
+    // --- Dedup strategy selection ---
+
+    @Nested
+    class DedupStrategySelectionTests {
+
+        @Test
+        void selectDedupStrategy_givenNoAnnotations_returnsNone() {
+            var view = mock(LogicalView.class);
+            when(view.getStructuralAnnotations()).thenReturn(Set.of());
+
+            var result = MappingResolver.selectDedupStrategy(view, Set.of("name"));
+
+            assertThat(result, is(instanceOf(DedupStrategy.none().getClass())));
+        }
+
+        @Test
+        void selectDedupStrategy_givenNullAnnotations_returnsNone() {
+            var view = mock(LogicalView.class);
+            when(view.getStructuralAnnotations()).thenReturn(null);
+
+            var result = MappingResolver.selectDedupStrategy(view, Set.of("name"));
+
+            assertThat(result, is(instanceOf(DedupStrategy.none().getClass())));
+        }
+
+        @Test
+        void selectDedupStrategy_givenPkCoveringProjectedFields_returnsNone() {
+            var view = mock(LogicalView.class);
+            var pk = mock(PrimaryKeyAnnotation.class);
+            var idField = mock(Field.class);
+            when(idField.getFieldName()).thenReturn("id");
+            when(pk.getOnFields()).thenReturn(List.of(idField));
+            when(view.getStructuralAnnotations()).thenReturn(Set.of(pk));
+
+            var result = MappingResolver.selectDedupStrategy(view, Set.of("id", "name"));
+
+            assertThat(result, is(instanceOf(DedupStrategy.none().getClass())));
+        }
+
+        @Test
+        void selectDedupStrategy_givenPkNotCoveringProjectedFields_returnsExact() {
+            var view = mock(LogicalView.class);
+            var pk = mock(PrimaryKeyAnnotation.class);
+            var idField = mock(Field.class);
+            when(idField.getFieldName()).thenReturn("id");
+            when(pk.getOnFields()).thenReturn(List.of(idField));
+            when(view.getStructuralAnnotations()).thenReturn(Set.of(pk));
+
+            var result = MappingResolver.selectDedupStrategy(view, Set.of("name"));
+
+            assertThat(result, is(instanceOf(DedupStrategy.exact().getClass())));
+        }
+
+        @Test
+        void selectDedupStrategy_givenEmptyProjectedFieldsWithPk_returnsNone() {
+            var view = mock(LogicalView.class);
+            var pk = mock(PrimaryKeyAnnotation.class);
+            var idField = mock(Field.class);
+            when(idField.getFieldName()).thenReturn("id");
+            when(pk.getOnFields()).thenReturn(List.of(idField));
+            when(view.getStructuralAnnotations()).thenReturn(Set.of(pk));
+
+            var result = MappingResolver.selectDedupStrategy(view, Set.of());
+
+            assertThat(result, is(instanceOf(DedupStrategy.none().getClass())));
+        }
+
+        @Test
+        void selectDedupStrategy_givenUniquePlusNotNullCoveringProjectedFields_returnsNone() {
+            var view = mock(LogicalView.class);
+            var unique = mock(UniqueAnnotation.class);
+            var notNull = mock(NotNullAnnotation.class);
+            var emailField = mock(Field.class);
+            when(emailField.getFieldName()).thenReturn("email");
+            when(unique.getOnFields()).thenReturn(List.of(emailField));
+            when(notNull.getOnFields()).thenReturn(List.of(emailField));
+            when(view.getStructuralAnnotations()).thenReturn(Set.of(unique, notNull));
+
+            var result = MappingResolver.selectDedupStrategy(view, Set.of("email", "name"));
+
+            assertThat(result, is(instanceOf(DedupStrategy.none().getClass())));
+        }
+
+        @Test
+        void selectDedupStrategy_givenUniqueWithoutNotNull_returnsExact() {
+            var view = mock(LogicalView.class);
+            var unique = mock(UniqueAnnotation.class);
+            var emailField = mock(Field.class);
+            when(emailField.getFieldName()).thenReturn("email");
+            when(unique.getOnFields()).thenReturn(List.of(emailField));
+            when(view.getStructuralAnnotations()).thenReturn(Set.of(unique));
+
+            var result = MappingResolver.selectDedupStrategy(view, Set.of("email", "name"));
+
+            assertThat(result, is(instanceOf(DedupStrategy.exact().getClass())));
+        }
+
+        @Test
+        void selectDedupStrategy_givenOnlyIriSafeAnnotation_returnsExact() {
+            var view = mock(LogicalView.class);
+            var iriSafe = mock(IriSafeAnnotation.class);
+            when(view.getStructuralAnnotations()).thenReturn(Set.of(iriSafe));
+
+            var result = MappingResolver.selectDedupStrategy(view, Set.of("name"));
+
+            assertThat(result, is(instanceOf(DedupStrategy.exact().getClass())));
+        }
+
+        @Test
+        void resolve_givenExplicitViewWithPkAnnotation_dedupStrategyIsNone() {
+            var pk = mock(PrimaryKeyAnnotation.class);
+            var idField = mock(Field.class);
+            when(idField.getFieldName()).thenReturn("id");
+            when(pk.getOnFields()).thenReturn(List.of(idField));
+
+            when(logicalView.getStructuralAnnotations()).thenReturn(Set.of(pk));
+            when(triplesMap.getLogicalSource()).thenReturn(logicalView);
+            when(triplesMap.getReferenceExpressionSet()).thenReturn(Set.of("id", "name"));
+
+            var result = MappingResolver.resolve(Set.of(triplesMap));
+
+            assertThat(
+                    result.get(0).getEvaluationContext().getDedupStrategy(),
+                    is(instanceOf(DedupStrategy.none().getClass())));
+        }
+
+        @Test
+        void resolve_givenExplicitViewWithoutCoveringAnnotation_dedupStrategyIsExact() {
+            var pk = mock(PrimaryKeyAnnotation.class);
+            var idField = mock(Field.class);
+            when(idField.getFieldName()).thenReturn("id");
+            when(pk.getOnFields()).thenReturn(List.of(idField));
+
+            when(logicalView.getStructuralAnnotations()).thenReturn(Set.of(pk));
+            when(triplesMap.getLogicalSource()).thenReturn(logicalView);
+            when(triplesMap.getReferenceExpressionSet()).thenReturn(Set.of("name"));
+
+            var result = MappingResolver.resolve(Set.of(triplesMap));
+
+            assertThat(
+                    result.get(0).getEvaluationContext().getDedupStrategy(),
+                    is(instanceOf(DedupStrategy.exact().getClass())));
+        }
+
+        @Test
+        void selectDedupStrategy_givenPkWithEmptyOnFields_returnsExact() {
+            var view = mock(LogicalView.class);
+            var pk = mock(PrimaryKeyAnnotation.class);
+            when(pk.getOnFields()).thenReturn(List.of());
+            when(view.getStructuralAnnotations()).thenReturn(Set.of(pk));
+
+            var result = MappingResolver.selectDedupStrategy(view, Set.of("id"));
+
+            assertThat(result, is(instanceOf(DedupStrategy.exact().getClass())));
+        }
+
+        @Test
+        void selectDedupStrategy_givenUniqueWithEmptyOnFields_returnsExact() {
+            var view = mock(LogicalView.class);
+            var unique = mock(UniqueAnnotation.class);
+            var notNull = mock(NotNullAnnotation.class);
+            when(unique.getOnFields()).thenReturn(List.of());
+            when(notNull.getOnFields()).thenReturn(List.of());
+            when(view.getStructuralAnnotations()).thenReturn(Set.of(unique, notNull));
+
+            var result = MappingResolver.selectDedupStrategy(view, Set.of("email"));
+
+            assertThat(result, is(instanceOf(DedupStrategy.exact().getClass())));
+        }
+
+        @Test
+        void selectDedupStrategy_givenPkWithNullOnFields_returnsExact() {
+            var view = mock(LogicalView.class);
+            var pk = mock(PrimaryKeyAnnotation.class);
+            when(pk.getOnFields()).thenReturn(null);
+            when(view.getStructuralAnnotations()).thenReturn(Set.of(pk));
+
+            var result = MappingResolver.selectDedupStrategy(view, Set.of("id"));
+
+            assertThat(result, is(instanceOf(DedupStrategy.exact().getClass())));
+        }
+
+        @Test
+        void selectDedupStrategy_givenUniqueWithPartialNotNullCoverage_returnsExact() {
+            var view = mock(LogicalView.class);
+            var unique = mock(UniqueAnnotation.class);
+            var notNull = mock(NotNullAnnotation.class);
+            var emailField = mock(Field.class);
+            var usernameField = mock(Field.class);
+            when(emailField.getFieldName()).thenReturn("email");
+            when(usernameField.getFieldName()).thenReturn("username");
+            when(unique.getOnFields()).thenReturn(List.of(emailField, usernameField));
+            when(notNull.getOnFields()).thenReturn(List.of(emailField));
+            when(view.getStructuralAnnotations()).thenReturn(Set.of(unique, notNull));
+
+            var result = MappingResolver.selectDedupStrategy(view, Set.of("email", "username", "name"));
+
+            assertThat(result, is(instanceOf(DedupStrategy.exact().getClass())));
+        }
+
+        @Test
+        void selectDedupStrategy_givenUniqueNotCoveringProjectedFields_returnsExact() {
+            var view = mock(LogicalView.class);
+            var unique = mock(UniqueAnnotation.class);
+            var notNull = mock(NotNullAnnotation.class);
+            var emailField = mock(Field.class);
+            when(emailField.getFieldName()).thenReturn("email");
+            when(unique.getOnFields()).thenReturn(List.of(emailField));
+            when(notNull.getOnFields()).thenReturn(List.of(emailField));
+            when(view.getStructuralAnnotations()).thenReturn(Set.of(unique, notNull));
+
+            var result = MappingResolver.selectDedupStrategy(view, Set.of("name", "age"));
+
+            assertThat(result, is(instanceOf(DedupStrategy.exact().getClass())));
+        }
     }
 }

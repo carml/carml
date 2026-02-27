@@ -11,6 +11,9 @@ import java.util.Set;
  */
 public interface EvaluationContext {
 
+    String PROJECTED_FIELDS_NOT_NULL = "projectedFields must not be null";
+    String LIMIT_MUST_BE_POSITIVE = "limit must be positive, but was: %s";
+
     /**
      * Returns the set of fields to project from the view. An empty set indicates all fields should
      * be projected.
@@ -65,7 +68,7 @@ public interface EvaluationContext {
      * @return a new evaluation context with the specified projected fields
      */
     static EvaluationContext withProjectedFields(Set<String> projectedFields) {
-        Objects.requireNonNull(projectedFields, "projectedFields must not be null");
+        Objects.requireNonNull(projectedFields, PROJECTED_FIELDS_NOT_NULL);
         return DefaultEvaluationContext.builder()
                 .projectedFields(Set.copyOf(projectedFields))
                 .build();
@@ -81,12 +84,35 @@ public interface EvaluationContext {
      * @throws IllegalArgumentException if limit is non-null and not positive
      */
     static EvaluationContext withProjectedFieldsAndLimit(Set<String> projectedFields, Long limit) {
-        Objects.requireNonNull(projectedFields, "projectedFields must not be null");
+        Objects.requireNonNull(projectedFields, PROJECTED_FIELDS_NOT_NULL);
         if (limit != null && limit <= 0) {
-            throw new IllegalArgumentException("limit must be positive, but was: %s".formatted(limit));
+            throw new IllegalArgumentException(LIMIT_MUST_BE_POSITIVE.formatted(limit));
         }
         return DefaultEvaluationContext.builder()
                 .projectedFields(Set.copyOf(projectedFields))
+                .limit(limit)
+                .build();
+    }
+
+    /**
+     * Creates an evaluation context with the given projected fields, dedup strategy, and optional
+     * limit.
+     *
+     * @param projectedFields the field names to project; an empty set means all fields
+     * @param dedupStrategy the deduplication strategy to apply
+     * @param limit the maximum number of iterations to produce, or {@code null} for no limit
+     * @return a new evaluation context
+     * @throws IllegalArgumentException if limit is non-null and not positive
+     */
+    static EvaluationContext of(Set<String> projectedFields, DedupStrategy dedupStrategy, Long limit) {
+        Objects.requireNonNull(projectedFields, PROJECTED_FIELDS_NOT_NULL);
+        Objects.requireNonNull(dedupStrategy, "dedupStrategy must not be null");
+        if (limit != null && limit <= 0) {
+            throw new IllegalArgumentException(LIMIT_MUST_BE_POSITIVE.formatted(limit));
+        }
+        return DefaultEvaluationContext.builder()
+                .projectedFields(Set.copyOf(projectedFields))
+                .dedupStrategy(dedupStrategy)
                 .limit(limit)
                 .build();
     }

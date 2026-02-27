@@ -1,16 +1,23 @@
 package io.carml.engine;
 
+import static java.util.stream.Collectors.toUnmodifiableSet;
+
+import io.carml.logicalview.DedupStrategy;
 import io.carml.logicalview.EvaluationContext;
 import io.carml.logicalview.ImplicitViewFactory;
 import io.carml.model.ExpressionField;
 import io.carml.model.ExpressionMap;
 import io.carml.model.Field;
 import io.carml.model.LogicalView;
+import io.carml.model.NotNullAnnotation;
 import io.carml.model.ObjectMap;
 import io.carml.model.PredicateObjectMap;
+import io.carml.model.PrimaryKeyAnnotation;
 import io.carml.model.RefObjectMap;
+import io.carml.model.StructuralAnnotation;
 import io.carml.model.TermMap;
 import io.carml.model.TriplesMap;
+import io.carml.model.UniqueAnnotation;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -75,8 +82,9 @@ public final class MappingResolver {
         validateNoCycles(logicalView);
         validateNoNameCollisions(logicalView);
         var fieldOrigins = buildFieldOrigins(triplesMap, logicalView);
-        var evaluationContext =
-                EvaluationContext.withProjectedFieldsAndLimit(triplesMap.getReferenceExpressionSet(), limit);
+        var projectedFields = triplesMap.getReferenceExpressionSet();
+        var dedupStrategy = selectDedupStrategy(logicalView, projectedFields);
+        var evaluationContext = EvaluationContext.of(projectedFields, dedupStrategy, limit);
         return ResolvedMapping.of(triplesMap, logicalView, false, fieldOrigins, evaluationContext);
     }
 
@@ -86,6 +94,73 @@ public final class MappingResolver {
         var fieldOrigins = buildFieldOrigins(triplesMap, syntheticView, expressionToTermMap);
         var evaluationContext = EvaluationContext.withProjectedFieldsAndLimit(Set.of(), limit);
         return ResolvedMapping.of(triplesMap, syntheticView, true, fieldOrigins, evaluationContext);
+    }
+
+    /**
+     * Selects the appropriate {@link DedupStrategy} based on the structural annotations of a
+     * {@link LogicalView} and the set of projected fields.
+     *
+     * <p>Returns {@link DedupStrategy#none()} (no dedup needed) when:
+     * <ul>
+     *   <li>No structural annotations exist</li>
+     *   <li>A {@link PrimaryKeyAnnotation} covers the projected fields</li>
+     *   <li>A {@link UniqueAnnotation} covers the projected fields and all its fields are also
+     *       covered by a {@link NotNullAnnotation}</li>
+     * </ul>
+     *
+     * <p>Otherwise returns {@link DedupStrategy#exact()}.
+     */
+    static DedupStrategy selectDedupStrategy(LogicalView logicalView, Set<String> projectedFields) {
+        var annotations = logicalView.getStructuralAnnotations();
+        if (annotations == null || annotations.isEmpty()) {
+            return DedupStrategy.none();
+        }
+
+        var notNullFields = annotations.stream()
+                .filter(NotNullAnnotation.class::isInstance)
+                .flatMap(a -> nullSafeOnFields(a).stream())
+                .map(Field::getFieldName)
+                .collect(toUnmodifiableSet());
+
+        var hasCoveringPk = annotations.stream()
+                .filter(PrimaryKeyAnnotation.class::isInstance)
+                .anyMatch(a -> {
+                    var pkFields = nullSafeOnFields(a).stream()
+                            .map(Field::getFieldName)
+                            .collect(toUnmodifiableSet());
+                    return !pkFields.isEmpty() && projectionCovers(projectedFields, pkFields);
+                });
+
+        if (hasCoveringPk) {
+            return DedupStrategy.none();
+        }
+
+        var hasCoveringUnique = annotations.stream()
+                .filter(UniqueAnnotation.class::isInstance)
+                .anyMatch(a -> {
+                    var uniqueFields = nullSafeOnFields(a).stream()
+                            .map(Field::getFieldName)
+                            .collect(toUnmodifiableSet());
+                    return !uniqueFields.isEmpty()
+                            && projectionCovers(projectedFields, uniqueFields)
+                            && notNullFields.containsAll(uniqueFields);
+                });
+
+        if (hasCoveringUnique) {
+            return DedupStrategy.none();
+        }
+
+        return DedupStrategy.exact();
+    }
+
+    /** Empty projectedFields means "all fields", so any required set is covered. */
+    private static boolean projectionCovers(Set<String> projectedFields, Set<String> required) {
+        return projectedFields.isEmpty() || projectedFields.containsAll(required);
+    }
+
+    private static List<Field> nullSafeOnFields(StructuralAnnotation annotation) {
+        var fields = annotation.getOnFields();
+        return fields != null ? fields : List.of();
     }
 
     /**
