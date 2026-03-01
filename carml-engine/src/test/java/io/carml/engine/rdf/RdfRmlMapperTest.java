@@ -78,6 +78,7 @@ class RdfRmlMapperTest {
         var mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
         var builder = RdfRmlMapper.builder()
                 .triplesMaps(mapping)
+                .allowMultipleSubjectMaps(true)
                 .valueFactorySupplier(ValidatingValueFactory::new)
                 .classPathResolver("classpath")
                 .fileResolver(Path.of("file"))
@@ -322,6 +323,7 @@ class RdfRmlMapperTest {
         var fnoModel = createMinimalFnoModel();
         var rmlMapper = RdfRmlMapper.builder()
                 .triplesMaps(mapping)
+                .allowMultipleSubjectMaps(true)
                 .addFunctionDescriptions(fnoModel)
                 .build();
 
@@ -356,6 +358,7 @@ class RdfRmlMapperTest {
         var inputStream = new java.io.ByteArrayInputStream(turtle.getBytes(java.nio.charset.StandardCharsets.UTF_8));
         var rmlMapper = RdfRmlMapper.builder()
                 .triplesMaps(mapping)
+                .allowMultipleSubjectMaps(true)
                 .addFunctionDescriptions(inputStream, RDFFormat.TURTLE)
                 .build();
 
@@ -377,6 +380,7 @@ class RdfRmlMapperTest {
         var mapping = loadMapping("mapping.rml.ttl");
         var rmlMapper = RdfRmlMapper.builder()
                 .triplesMaps(mapping)
+                .allowMultipleSubjectMaps(true)
                 .addFunctionClasses("io.carml.engine.iotests.RmlFunctions")
                 .build();
 
@@ -392,8 +396,11 @@ class RdfRmlMapperTest {
     @Test
     void addFunctionClasses_buildsSuccessfully_givenEmptyArray() {
         var mapping = loadMapping("mapping.rml.ttl");
-        var rmlMapper =
-                RdfRmlMapper.builder().triplesMaps(mapping).addFunctionClasses().build();
+        var rmlMapper = RdfRmlMapper.builder()
+                .triplesMaps(mapping)
+                .allowMultipleSubjectMaps(true)
+                .addFunctionClasses()
+                .build();
 
         assertThat(rmlMapper, is(notNullValue()));
     }
@@ -405,6 +412,7 @@ class RdfRmlMapperTest {
         var mapping = loadMapping("mapping.rml.ttl");
         var rmlMapper = RdfRmlMapper.builder()
                 .triplesMaps(mapping)
+                .allowMultipleSubjectMaps(true)
                 .function("http://example.org/fn")
                 .param("http://example.org/p", String.class)
                 .returns(String.class)
@@ -419,6 +427,7 @@ class RdfRmlMapperTest {
         var mapping = loadMapping("mapping.rml.ttl");
         var rmlMapper = RdfRmlMapper.builder()
                 .triplesMaps(mapping)
+                .allowMultipleSubjectMaps(true)
                 .function("http://example.org/fn")
                 .param("http://example.org/required", String.class)
                 .optionalParam("http://example.org/optional", String.class)
@@ -604,7 +613,10 @@ class RdfRmlMapperTest {
         var mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
 
         // When
-        var rmlMapper = RdfRmlMapper.builder().triplesMaps(mapping).build();
+        var rmlMapper = RdfRmlMapper.builder()
+                .triplesMaps(mapping)
+                .allowMultipleSubjectMaps(true)
+                .build();
 
         // Then
         assertThat(rmlMapper.getObserver(), is(instanceOf(NoOpObserver.class)));
@@ -618,8 +630,11 @@ class RdfRmlMapperTest {
         var observer = mock(MappingExecutionObserver.class);
 
         // When
-        var rmlMapper =
-                RdfRmlMapper.builder().triplesMaps(mapping).observer(observer).build();
+        var rmlMapper = RdfRmlMapper.builder()
+                .triplesMaps(mapping)
+                .allowMultipleSubjectMaps(true)
+                .observer(observer)
+                .build();
 
         // Then
         assertThat(rmlMapper.getObserver(), is(sameInstance(observer)));
@@ -636,6 +651,7 @@ class RdfRmlMapperTest {
         // When
         var rmlMapper = RdfRmlMapper.builder()
                 .triplesMaps(mapping)
+                .allowMultipleSubjectMaps(true)
                 .observer(observer1)
                 .observer(observer2)
                 .build();

@@ -18,10 +18,6 @@ class TestRmlCoreTestCases extends RmlTestCaseSuite {
     @Override
     protected List<String> getSkipTests() {
         return List.of(
-                // Spec mandates exactly one rml:subjectMap per TriplesMap (hasError=true), but CARML
-                // intentionally supports multiple subject maps and produces output for both
-                "RMLTC0012d",
-
                 // rml:reference resolves to a JSON array ($.amounts → [30,40,50]); spec requires an
                 // error (hasError=true), but CARML's JsonPathResolver unwraps arrays into individual
                 // scalar values, producing multiple triples instead of throwing

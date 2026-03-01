@@ -430,6 +430,7 @@ class RdfTriplesMapperTest {
                 .termGeneratorFactory(rdfTermGeneratorFactory)
                 .childSideJoinStoreProvider(childSideJoinStoreProvider)
                 .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
+                .allowMultipleSubjectMaps(true)
                 .build();
 
         RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(

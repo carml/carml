@@ -223,6 +223,12 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
                     "Subject map must be specified in triples map %s", exception(triplesMap, triplesMap)));
         }
 
+        if (subjectMaps.size() > 1 && !rdfMapperConfig.isAllowMultipleSubjectMaps()) {
+            throw new TriplesMapperException(
+                    "TriplesMap %s has %s subject maps, but only one is allowed. Use allowMultipleSubjectMaps(true) to enable multiple subject maps."
+                            .formatted(exception(triplesMap, triplesMap), subjectMaps.size()));
+        }
+
         return subjectMaps.stream()
                 .peek(sm -> LOG.debug("Creating mapper for SubjectMap {}", sm.getResourceName()))
                 .map(sm -> RdfSubjectMapper.of(sm, triplesMap, rdfMapperConfig))

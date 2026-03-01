@@ -121,12 +121,6 @@ public class TestRmlTestCases {
             // joining on different datatypes, not supported in PostgreSql
             .add("RMLTC0009a-PostgreSQL")
             .add("RMLTC0009b-PostgreSQL")
-            // CARML supports multiple subjectMaps
-            .add("RMLTC0012d-CSV")
-            .add("RMLTC0012d-JSON")
-            .add("RMLTC0012d-XML")
-            .add("RMLTC0012d-MySQL")
-            .add("RMLTC0012d-PostgreSQL")
             // blank node id issue double
             .add("RMLTC0012e-MySQL") // value generated is correct according to natural RDF lexical form
             .add("RMLTC0012e-PostgreSQL") // value generated is correct according to natural RDF lexical form

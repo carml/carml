@@ -140,6 +140,8 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
 
         private boolean strictMode = false;
 
+        private boolean allowMultipleSubjectMaps = false;
+
         private Long limit;
 
         private Set<String> excludeLogicalSourceResolvers = new HashSet<>();
@@ -320,6 +322,20 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
         }
 
         /**
+         * Enables or disables support for multiple subject maps per TriplesMap. The RML spec mandates
+         * exactly one {@code rml:subjectMap} per TriplesMap. When disabled (the default), the mapper
+         * throws an error if a TriplesMap has more than one subject map. When enabled, the mapper
+         * processes all subject maps and produces output for each.
+         *
+         * @param allowMultipleSubjectMaps true to allow multiple subject maps, false to reject them
+         * @return {@link Builder}
+         */
+        public Builder allowMultipleSubjectMaps(boolean allowMultipleSubjectMaps) {
+            this.allowMultipleSubjectMaps = allowMultipleSubjectMaps;
+            return this;
+        }
+
+        /**
          * Sets the maximum number of iterations (records) to process per logical source. When set,
          * each mapping will produce at most this many iterations. By default, no limit is applied.
          *
@@ -435,6 +451,7 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
                     .childSideJoinStoreProvider(childSideJoinCacheProvider)
                     .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                     .strictMode(strictMode)
+                    .allowMultipleSubjectMaps(allowMultipleSubjectMaps)
                     .build();
         }
 

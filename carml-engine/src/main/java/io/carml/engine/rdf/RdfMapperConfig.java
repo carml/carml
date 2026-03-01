@@ -39,4 +39,7 @@ public class RdfMapperConfig {
 
     @Builder.Default
     private final boolean strictMode = false;
+
+    @Builder.Default
+    private final boolean allowMultipleSubjectMaps = false;
 }
