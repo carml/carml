@@ -3,8 +3,11 @@ package io.carml.engine;
 import io.carml.logicalview.EvaluationContext;
 import io.carml.model.LogicalView;
 import io.carml.model.TriplesMap;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -38,18 +41,26 @@ class DefaultResolvedMapping implements ResolvedMapping {
     @ToString.Exclude
     private final Map<String, FieldOrigin> fieldOrigins;
 
+    @NonNull
+    private final Set<TriplesMap> dependencies;
+
     @Override
     public Optional<FieldOrigin> getFieldOrigin(String fieldName) {
         return Optional.ofNullable(fieldOrigins.get(fieldName));
     }
 
     /**
-     * Custom builder that stores an unmodifiable copy of the field origins map.
+     * Custom builder that stores unmodifiable copies of the field origins map and dependencies set.
      */
     static class DefaultResolvedMappingBuilder {
 
         DefaultResolvedMappingBuilder fieldOrigins(Map<String, FieldOrigin> fieldOrigins) {
             this.fieldOrigins = Map.copyOf(fieldOrigins);
+            return this;
+        }
+
+        DefaultResolvedMappingBuilder dependencies(Set<TriplesMap> dependencies) {
+            this.dependencies = Collections.unmodifiableSet(new LinkedHashSet<>(dependencies));
             return this;
         }
     }

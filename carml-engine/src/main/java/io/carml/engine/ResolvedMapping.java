@@ -5,6 +5,7 @@ import io.carml.model.LogicalView;
 import io.carml.model.TriplesMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Pairs a user-authored TriplesMap with the effective LogicalView the engine processes. Provides
@@ -33,12 +34,36 @@ public interface ResolvedMapping {
             boolean implicitView,
             Map<String, FieldOrigin> fieldOrigins,
             EvaluationContext evaluationContext) {
+        return of(originalTriplesMap, effectiveView, implicitView, fieldOrigins, evaluationContext, Set.of());
+    }
+
+    /**
+     * Creates a ResolvedMapping from a TriplesMap with the given effective LogicalView and
+     * dependency information.
+     *
+     * @param originalTriplesMap the TriplesMap as authored by the user
+     * @param effectiveView the effective LogicalView the engine processes
+     * @param implicitView whether the effective view was synthetically derived from a bare
+     *     LogicalSource
+     * @param fieldOrigins mapping from field names to their provenance information
+     * @param evaluationContext the evaluation context controlling field projection and limits
+     * @param dependencies the set of TriplesMaps that this mapping depends on via RefObjectMaps
+     * @return a new ResolvedMapping instance
+     */
+    static ResolvedMapping of(
+            TriplesMap originalTriplesMap,
+            LogicalView effectiveView,
+            boolean implicitView,
+            Map<String, FieldOrigin> fieldOrigins,
+            EvaluationContext evaluationContext,
+            Set<TriplesMap> dependencies) {
         return DefaultResolvedMapping.builder()
                 .originalTriplesMap(originalTriplesMap)
                 .effectiveView(effectiveView)
                 .implicitView(implicitView)
                 .fieldOrigins(fieldOrigins)
                 .evaluationContext(evaluationContext)
+                .dependencies(dependencies)
                 .build();
     }
 
@@ -74,4 +99,15 @@ public interface ResolvedMapping {
      *     given field name
      */
     Optional<FieldOrigin> getFieldOrigin(String fieldName);
+
+    /**
+     * The set of TriplesMaps that this mapping depends on via RefObjectMaps. Dependencies are other
+     * TriplesMaps in the input set that are referenced as parent TriplesMaps. Used for
+     * topological ordering and future RML-star support.
+     *
+     * @return the set of dependency TriplesMaps, or an empty set if there are no dependencies
+     */
+    default Set<TriplesMap> getDependencies() {
+        return Set.of();
+    }
 }

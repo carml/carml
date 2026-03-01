@@ -23,6 +23,7 @@ import io.carml.model.TriplesMap;
 import io.carml.model.UniqueAnnotation;
 import io.carml.model.impl.CarmlExpressionField;
 import io.carml.model.impl.CarmlLogicalView;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -61,6 +62,10 @@ public final class MappingResolver {
     /**
      * Resolves a set of TriplesMaps into ResolvedMapping instances.
      *
+     * <p>Builds a dependency graph from RefObjectMap parent references, validates that no cycles
+     * exist between TriplesMaps, and returns mappings in topological order (dependencies before
+     * dependents).
+     *
      * <p>For each TriplesMap:
      * <ul>
      *   <li>If its logicalSource is a {@link LogicalView}, the view is used directly (explicit view)
@@ -70,39 +75,170 @@ public final class MappingResolver {
      *
      * @param triplesMaps the set of TriplesMaps to resolve
      * @param limit the maximum number of iterations to produce per mapping, or {@code null} for no limit
-     * @return a list of ResolvedMapping instances, one per TriplesMap
+     * @return a list of ResolvedMapping instances in topological order, one per TriplesMap
+     * @throws RmlMapperException if a cycle is detected between TriplesMaps
      */
     public static List<ResolvedMapping> resolve(Set<TriplesMap> triplesMaps, Long limit) {
-        return triplesMaps.stream().map(tm -> resolveOne(tm, limit)).toList();
+        var dependencies = buildDependencyGraph(triplesMaps);
+        validateTriplesMapNoCycles(dependencies);
+        var sorted = topologicalSort(dependencies);
+        return sorted.stream()
+                .map(tm -> resolveOne(tm, limit, dependencies.getOrDefault(tm, Set.of())))
+                .toList();
     }
 
-    private static ResolvedMapping resolveOne(TriplesMap triplesMap, Long limit) {
+    private static ResolvedMapping resolveOne(TriplesMap triplesMap, Long limit, Set<TriplesMap> dependencies) {
         var logicalSource = triplesMap.getLogicalSource();
 
         if (logicalSource instanceof LogicalView logicalView) {
-            return resolveExplicit(triplesMap, logicalView, limit);
+            return resolveExplicit(triplesMap, logicalView, limit, dependencies);
         }
 
-        return resolveImplicit(triplesMap, limit);
+        return resolveImplicit(triplesMap, limit, dependencies);
     }
 
-    private static ResolvedMapping resolveExplicit(TriplesMap triplesMap, LogicalView logicalView, Long limit) {
-        validateNoCycles(logicalView);
+    private static ResolvedMapping resolveExplicit(
+            TriplesMap triplesMap, LogicalView logicalView, Long limit, Set<TriplesMap> dependencies) {
+        validateViewAndFieldNoCycles(logicalView);
         validateNoNameCollisions(logicalView);
         var optimizedView = eliminateSelfJoins(logicalView);
         var fieldOrigins = buildFieldOrigins(triplesMap, optimizedView);
         var projectedFields = triplesMap.getReferenceExpressionSet();
         var dedupStrategy = selectDedupStrategy(optimizedView, projectedFields);
         var evaluationContext = EvaluationContext.of(projectedFields, dedupStrategy, limit);
-        return ResolvedMapping.of(triplesMap, optimizedView, false, fieldOrigins, evaluationContext);
+        return ResolvedMapping.of(triplesMap, optimizedView, false, fieldOrigins, evaluationContext, dependencies);
     }
 
-    private static ResolvedMapping resolveImplicit(TriplesMap triplesMap, Long limit) {
+    private static ResolvedMapping resolveImplicit(TriplesMap triplesMap, Long limit, Set<TriplesMap> dependencies) {
         var syntheticView = ImplicitViewFactory.wrap(triplesMap);
         var expressionToTermMap = buildExpressionToTermMap(triplesMap);
         var fieldOrigins = buildFieldOrigins(triplesMap, syntheticView, expressionToTermMap);
         var evaluationContext = EvaluationContext.withProjectedFieldsAndLimit(Set.of(), limit);
-        return ResolvedMapping.of(triplesMap, syntheticView, true, fieldOrigins, evaluationContext);
+        return ResolvedMapping.of(triplesMap, syntheticView, true, fieldOrigins, evaluationContext, dependencies);
+    }
+
+    /**
+     * Builds an adjacency list representing the dependency graph between TriplesMaps. A dependency
+     * edge from TriplesMap A to TriplesMap B exists when A contains a RefObjectMap whose
+     * parentTriplesMap is B and B is in the input set.
+     *
+     * @param triplesMaps the set of TriplesMaps to analyze
+     * @return an identity-based map from each TriplesMap to the set of TriplesMaps it depends on
+     */
+    static Map<TriplesMap, Set<TriplesMap>> buildDependencyGraph(Set<TriplesMap> triplesMaps) {
+        var inputIdentity = new IdentityHashMap<TriplesMap, Boolean>();
+        triplesMaps.forEach(tm -> inputIdentity.put(tm, Boolean.TRUE));
+
+        var graph = new IdentityHashMap<TriplesMap, Set<TriplesMap>>();
+        for (var tm : triplesMaps) {
+            var deps = new LinkedHashSet<TriplesMap>();
+            for (var pom : tm.getPredicateObjectMaps()) {
+                for (var objectMap : pom.getObjectMaps()) {
+                    if (objectMap instanceof RefObjectMap rom) {
+                        var parent = rom.getParentTriplesMap();
+                        if (inputIdentity.containsKey(parent)) {
+                            deps.add(parent);
+                        }
+                    }
+                }
+            }
+            graph.put(tm, deps);
+        }
+        return graph;
+    }
+
+    /**
+     * Validates that no cycles exist in the TriplesMap dependency graph. Uses DFS with path
+     * tracking, the same approach used for view structure cycle detection.
+     *
+     * @param dependencies the dependency graph to validate
+     * @throws RmlMapperException if a cycle is detected, with a message describing the cycle path
+     */
+    static void validateTriplesMapNoCycles(Map<TriplesMap, Set<TriplesMap>> dependencies) {
+        var visited = new IdentityHashMap<TriplesMap, Boolean>();
+        var inStack = new IdentityHashMap<TriplesMap, Boolean>();
+        var path = new ArrayList<String>();
+
+        for (var tm : dependencies.keySet()) {
+            if (!visited.containsKey(tm)) {
+                validateTriplesMapNoCyclesDfs(tm, dependencies, visited, inStack, path);
+            }
+        }
+    }
+
+    private static void validateTriplesMapNoCyclesDfs(
+            TriplesMap tm,
+            Map<TriplesMap, Set<TriplesMap>> dependencies,
+            IdentityHashMap<TriplesMap, Boolean> visited,
+            IdentityHashMap<TriplesMap, Boolean> inStack,
+            List<String> path) {
+        var name = tm.getResourceName();
+
+        if (inStack.containsKey(tm)) {
+            path.add(name);
+            throw new RmlMapperException(
+                    "Cycle detected in TriplesMap dependencies: %s".formatted(String.join(" -> ", path)));
+        }
+
+        if (visited.containsKey(tm)) {
+            return;
+        }
+
+        inStack.put(tm, Boolean.TRUE);
+        path.add(name);
+
+        for (var dep : dependencies.getOrDefault(tm, Set.of())) {
+            validateTriplesMapNoCyclesDfs(dep, dependencies, visited, inStack, path);
+        }
+
+        path.remove(path.size() - 1);
+        inStack.remove(tm);
+        visited.put(tm, Boolean.TRUE);
+    }
+
+    /**
+     * Produces a topological ordering of TriplesMaps using Kahn's algorithm. Dependencies appear
+     * before dependents. When multiple nodes have zero remaining dependencies, their relative order
+     * is unspecified.
+     *
+     * @param dependencies the dependency graph (adjacency list)
+     * @return a list of TriplesMaps in topological order
+     */
+    static List<TriplesMap> topologicalSort(Map<TriplesMap, Set<TriplesMap>> dependencies) {
+        // In-degree = number of dependencies (things this node depends on that must come first)
+        var inDegree = new IdentityHashMap<TriplesMap, Integer>();
+        for (var entry : dependencies.entrySet()) {
+            inDegree.put(entry.getKey(), entry.getValue().size());
+        }
+
+        // Reverse adjacency: from dependency to dependents
+        var dependents = new IdentityHashMap<TriplesMap, List<TriplesMap>>();
+        for (var entry : dependencies.entrySet()) {
+            for (var dep : entry.getValue()) {
+                dependents.computeIfAbsent(dep, k -> new ArrayList<>()).add(entry.getKey());
+            }
+        }
+
+        var queue = new ArrayDeque<TriplesMap>();
+        for (var entry : inDegree.entrySet()) {
+            if (entry.getValue() == 0) {
+                queue.add(entry.getKey());
+            }
+        }
+
+        var sorted = new ArrayList<TriplesMap>();
+        while (!queue.isEmpty()) {
+            var tm = queue.poll();
+            sorted.add(tm);
+            for (var dependent : dependents.getOrDefault(tm, List.of())) {
+                var newDegree = inDegree.merge(dependent, -1, Integer::sum);
+                if (newDegree == 0) {
+                    queue.add(dependent);
+                }
+            }
+        }
+
+        return sorted;
     }
 
     /**
@@ -461,7 +597,7 @@ public final class MappingResolver {
      * @param view the logical view to validate
      * @throws RmlMapperException if a cycle is detected
      */
-    static void validateNoCycles(LogicalView view) {
+    static void validateViewAndFieldNoCycles(LogicalView view) {
         validateViewNoCycles(view, new IdentityHashMap<>(), new ArrayList<>());
         validateFieldNoCycles(view.getFields(), new IdentityHashMap<>(), new ArrayList<>());
     }

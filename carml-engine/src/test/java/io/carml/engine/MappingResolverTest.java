@@ -15,6 +15,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.carml.logicalview.DedupStrategy;
+import io.carml.model.BaseObjectMap;
 import io.carml.model.ChildMap;
 import io.carml.model.ExpressionField;
 import io.carml.model.Field;
@@ -30,6 +31,7 @@ import io.carml.model.ObjectMap;
 import io.carml.model.ParentMap;
 import io.carml.model.PredicateObjectMap;
 import io.carml.model.PrimaryKeyAnnotation;
+import io.carml.model.RefObjectMap;
 import io.carml.model.SubjectMap;
 import io.carml.model.TriplesMap;
 import io.carml.model.UniqueAnnotation;
@@ -585,7 +587,7 @@ class MappingResolverTest {
     // --- Cycle detection: viewOn cycles ---
 
     @Test
-    void validateNoCycles_givenViewOnCycle_throwsRuntimeException() {
+    void validateViewAndFieldNoCycles_givenViewOnCycle_throwsRuntimeException() {
         var viewA = mock(LogicalView.class);
         var viewB = mock(LogicalView.class);
 
@@ -600,7 +602,8 @@ class MappingResolverTest {
         lenient().when(viewB.getLeftJoins()).thenReturn(Set.of());
         lenient().when(viewB.getInnerJoins()).thenReturn(Set.of());
 
-        var exception = assertThrows(RmlMapperException.class, () -> MappingResolver.validateNoCycles(viewA));
+        var exception =
+                assertThrows(RmlMapperException.class, () -> MappingResolver.validateViewAndFieldNoCycles(viewA));
 
         assertThat(exception.getMessage(), containsString("Cycle detected in logical view structure"));
         assertThat(exception.getMessage(), containsString("viewA"));
@@ -610,7 +613,7 @@ class MappingResolverTest {
     // --- Cycle detection: join cycles ---
 
     @Test
-    void validateNoCycles_givenJoinCycle_throwsRuntimeException() {
+    void validateViewAndFieldNoCycles_givenJoinCycle_throwsRuntimeException() {
         var viewA = mock(LogicalView.class);
         var viewB = mock(LogicalView.class);
         var joinAtoB = mock(LogicalViewJoin.class);
@@ -631,7 +634,8 @@ class MappingResolverTest {
 
         when(joinBtoA.getParentLogicalView()).thenReturn(viewA);
 
-        var exception = assertThrows(RmlMapperException.class, () -> MappingResolver.validateNoCycles(viewA));
+        var exception =
+                assertThrows(RmlMapperException.class, () -> MappingResolver.validateViewAndFieldNoCycles(viewA));
 
         assertThat(exception.getMessage(), containsString("Cycle detected in logical view structure"));
         assertThat(exception.getMessage(), containsString("viewA"));
@@ -641,7 +645,7 @@ class MappingResolverTest {
     // --- Cycle detection: self-join cycles ---
 
     @Test
-    void validateNoCycles_givenSelfJoin_throwsRuntimeException() {
+    void validateViewAndFieldNoCycles_givenSelfJoin_throwsRuntimeException() {
         var view = mock(LogicalView.class);
         var selfJoin = mock(LogicalViewJoin.class);
 
@@ -653,7 +657,8 @@ class MappingResolverTest {
 
         when(selfJoin.getParentLogicalView()).thenReturn(view);
 
-        var exception = assertThrows(RmlMapperException.class, () -> MappingResolver.validateNoCycles(view));
+        var exception =
+                assertThrows(RmlMapperException.class, () -> MappingResolver.validateViewAndFieldNoCycles(view));
 
         assertThat(exception.getMessage(), containsString("Cycle detected in logical view structure"));
         assertThat(exception.getMessage(), containsString("selfView"));
@@ -662,7 +667,7 @@ class MappingResolverTest {
     // --- Cycle detection: field cycles ---
 
     @Test
-    void validateNoCycles_givenFieldCycle_throwsRuntimeException() {
+    void validateViewAndFieldNoCycles_givenFieldCycle_throwsRuntimeException() {
         var view = mock(LogicalView.class);
         var field1 = mock(Field.class);
         var field2 = mock(Field.class);
@@ -678,7 +683,8 @@ class MappingResolverTest {
         when(field2.getFieldName()).thenReturn("field2");
         when(field2.getFields()).thenReturn(Set.of(field1));
 
-        var exception = assertThrows(RmlMapperException.class, () -> MappingResolver.validateNoCycles(view));
+        var exception =
+                assertThrows(RmlMapperException.class, () -> MappingResolver.validateViewAndFieldNoCycles(view));
 
         assertThat(exception.getMessage(), containsString("Cycle detected in field tree"));
         assertThat(exception.getMessage(), containsString("field1"));
@@ -688,7 +694,7 @@ class MappingResolverTest {
     // --- Cycle detection: valid view (no cycle) ---
 
     @Test
-    void validateNoCycles_givenValidView_doesNotThrow() {
+    void validateViewAndFieldNoCycles_givenValidView_doesNotThrow() {
         var view = mock(LogicalView.class);
         var field = mock(Field.class);
 
@@ -700,13 +706,13 @@ class MappingResolverTest {
         when(field.getFieldName()).thenReturn("name");
         when(field.getFields()).thenReturn(Set.of());
 
-        assertDoesNotThrow(() -> MappingResolver.validateNoCycles(view));
+        assertDoesNotThrow(() -> MappingResolver.validateViewAndFieldNoCycles(view));
     }
 
     // --- Cycle detection: deep chain without cycle ---
 
     @Test
-    void validateNoCycles_givenDeepViewOnChainWithoutCycle_doesNotThrow() {
+    void validateViewAndFieldNoCycles_givenDeepViewOnChainWithoutCycle_doesNotThrow() {
         var viewA = mock(LogicalView.class);
         var viewB = mock(LogicalView.class);
         var viewC = mock(LogicalView.class);
@@ -727,11 +733,11 @@ class MappingResolverTest {
         when(viewC.getLeftJoins()).thenReturn(Set.of());
         when(viewC.getInnerJoins()).thenReturn(Set.of());
 
-        assertDoesNotThrow(() -> MappingResolver.validateNoCycles(viewA));
+        assertDoesNotThrow(() -> MappingResolver.validateViewAndFieldNoCycles(viewA));
     }
 
     @Test
-    void validateNoCycles_givenDeepFieldTreeWithoutCycle_doesNotThrow() {
+    void validateViewAndFieldNoCycles_givenDeepFieldTreeWithoutCycle_doesNotThrow() {
         var view = mock(LogicalView.class);
         var parent = mock(Field.class);
         var child = mock(Field.class);
@@ -751,7 +757,7 @@ class MappingResolverTest {
         when(grandchild.getFieldName()).thenReturn("grandchild");
         when(grandchild.getFields()).thenReturn(Set.of());
 
-        assertDoesNotThrow(() -> MappingResolver.validateNoCycles(view));
+        assertDoesNotThrow(() -> MappingResolver.validateViewAndFieldNoCycles(view));
     }
 
     // --- Name collision detection ---
@@ -939,7 +945,7 @@ class MappingResolverTest {
     // --- Cycle detection: inner join cycle ---
 
     @Test
-    void validateNoCycles_givenInnerJoinCycle_throwsRuntimeException() {
+    void validateViewAndFieldNoCycles_givenInnerJoinCycle_throwsRuntimeException() {
         var viewA = mock(LogicalView.class);
         var viewB = mock(LogicalView.class);
         var innerJoin = mock(LogicalViewJoin.class);
@@ -957,7 +963,8 @@ class MappingResolverTest {
         lenient().when(viewB.getLeftJoins()).thenReturn(Set.of());
         lenient().when(viewB.getInnerJoins()).thenReturn(Set.of());
 
-        var exception = assertThrows(RmlMapperException.class, () -> MappingResolver.validateNoCycles(viewA));
+        var exception =
+                assertThrows(RmlMapperException.class, () -> MappingResolver.validateViewAndFieldNoCycles(viewA));
 
         assertThat(exception.getMessage(), containsString("Cycle detected in logical view structure"));
     }
@@ -1628,6 +1635,204 @@ class MappingResolverTest {
 
         private static <T> Set<T> nullSafe(Set<T> set) {
             return set != null ? set : Set.of();
+        }
+    }
+
+    // --- TriplesMap dependency graph ---
+
+    @Nested
+    class DependencyGraphTests {
+
+        private TriplesMap createTriplesMapWithDeps(String name, TriplesMap... parentTriplesMaps) {
+            var tm = mock(TriplesMap.class);
+            when(tm.getLogicalSource()).thenReturn(mock(LogicalSource.class));
+            when(tm.getReferenceExpressionSet()).thenReturn(Set.of());
+            when(tm.getResourceName()).thenReturn(name);
+
+            when(tm.getSubjectMaps()).thenReturn(Set.of());
+
+            if (parentTriplesMaps.length == 0) {
+                when(tm.getPredicateObjectMaps()).thenReturn(Set.of());
+            } else {
+                var pom = mock(PredicateObjectMap.class);
+                var objectMaps = new java.util.LinkedHashSet<BaseObjectMap>();
+                for (var parent : parentTriplesMaps) {
+                    var rom = mock(RefObjectMap.class);
+                    when(rom.getParentTriplesMap()).thenReturn(parent);
+                    objectMaps.add(rom);
+                }
+                when(pom.getObjectMaps()).thenReturn(objectMaps);
+                when(pom.getPredicateMaps()).thenReturn(Set.of());
+                when(pom.getGraphMaps()).thenReturn(Set.of());
+                when(tm.getPredicateObjectMaps()).thenReturn(Set.of(pom));
+            }
+
+            return tm;
+        }
+
+        @Test
+        void resolve_givenIndependentTriplesMaps_allHaveEmptyDependencies() {
+            var tmA = createTriplesMapWithDeps("A");
+            var tmB = createTriplesMapWithDeps("B");
+
+            var result = MappingResolver.resolve(Set.of(tmA, tmB));
+
+            assertThat(result, hasSize(2));
+            for (var mapping : result) {
+                assertThat(mapping.getDependencies(), is(empty()));
+            }
+        }
+
+        @Test
+        void resolve_givenLinearChain_ordersInDependencyOrder() {
+            // C has no deps, B depends on C, A depends on B
+            var tmC = createTriplesMapWithDeps("C");
+            var tmB = createTriplesMapWithDeps("B", tmC);
+            var tmA = createTriplesMapWithDeps("A", tmB);
+
+            var result = MappingResolver.resolve(Set.of(tmA, tmB, tmC));
+
+            assertThat(result, hasSize(3));
+
+            // C must come before B, B must come before A
+            var order = result.stream().map(m -> m.getOriginalTriplesMap()).toList();
+            assertThat(order.indexOf(tmC) < order.indexOf(tmB), is(true));
+            assertThat(order.indexOf(tmB) < order.indexOf(tmA), is(true));
+        }
+
+        @Test
+        void resolve_givenDiamond_ordersDFirst_aLast() {
+            // D has no deps, B depends on D, C depends on D, A depends on B and C
+            var tmD = createTriplesMapWithDeps("D");
+            var tmB = createTriplesMapWithDeps("B", tmD);
+            var tmC = createTriplesMapWithDeps("C", tmD);
+            var tmA = createTriplesMapWithDeps("A", tmB, tmC);
+
+            var result = MappingResolver.resolve(Set.of(tmA, tmB, tmC, tmD));
+
+            assertThat(result, hasSize(4));
+
+            var order = result.stream().map(m -> m.getOriginalTriplesMap()).toList();
+            // D must come before B and C
+            assertThat(order.indexOf(tmD) < order.indexOf(tmB), is(true));
+            assertThat(order.indexOf(tmD) < order.indexOf(tmC), is(true));
+            // B and C must come before A
+            assertThat(order.indexOf(tmB) < order.indexOf(tmA), is(true));
+            assertThat(order.indexOf(tmC) < order.indexOf(tmA), is(true));
+        }
+
+        @Test
+        void resolve_givenTwoWayCycle_throwsWithCyclePath() {
+            // A -> B -> A
+            var tmA = mock(TriplesMap.class);
+            var tmB = mock(TriplesMap.class);
+            when(tmA.getResourceName()).thenReturn("A");
+            when(tmB.getResourceName()).thenReturn("B");
+
+            var romAtoB = mock(RefObjectMap.class);
+            when(romAtoB.getParentTriplesMap()).thenReturn(tmB);
+            var pomA = mock(PredicateObjectMap.class);
+            when(pomA.getObjectMaps()).thenReturn(Set.of(romAtoB));
+            when(tmA.getPredicateObjectMaps()).thenReturn(Set.of(pomA));
+
+            var romBtoA = mock(RefObjectMap.class);
+            when(romBtoA.getParentTriplesMap()).thenReturn(tmA);
+            var pomB = mock(PredicateObjectMap.class);
+            when(pomB.getObjectMaps()).thenReturn(Set.of(romBtoA));
+            when(tmB.getPredicateObjectMaps()).thenReturn(Set.of(pomB));
+
+            var exception = assertThrows(RmlMapperException.class, () -> MappingResolver.resolve(Set.of(tmA, tmB)));
+
+            assertThat(exception.getMessage(), containsString("Cycle detected in TriplesMap dependencies"));
+            assertThat(exception.getMessage(), containsString("A"));
+            assertThat(exception.getMessage(), containsString("B"));
+        }
+
+        @Test
+        void resolve_givenThreeWayCycle_throwsWithCyclePath() {
+            // A -> B -> C -> A
+            var tmA = mock(TriplesMap.class);
+            var tmB = mock(TriplesMap.class);
+            var tmC = mock(TriplesMap.class);
+            when(tmA.getResourceName()).thenReturn("A");
+            when(tmB.getResourceName()).thenReturn("B");
+            when(tmC.getResourceName()).thenReturn("C");
+
+            var romAtoB = mock(RefObjectMap.class);
+            when(romAtoB.getParentTriplesMap()).thenReturn(tmB);
+            var pomA = mock(PredicateObjectMap.class);
+            when(pomA.getObjectMaps()).thenReturn(Set.of(romAtoB));
+            when(tmA.getPredicateObjectMaps()).thenReturn(Set.of(pomA));
+
+            var romBtoC = mock(RefObjectMap.class);
+            when(romBtoC.getParentTriplesMap()).thenReturn(tmC);
+            var pomB = mock(PredicateObjectMap.class);
+            when(pomB.getObjectMaps()).thenReturn(Set.of(romBtoC));
+            when(tmB.getPredicateObjectMaps()).thenReturn(Set.of(pomB));
+
+            var romCtoA = mock(RefObjectMap.class);
+            when(romCtoA.getParentTriplesMap()).thenReturn(tmA);
+            var pomC = mock(PredicateObjectMap.class);
+            when(pomC.getObjectMaps()).thenReturn(Set.of(romCtoA));
+            when(tmC.getPredicateObjectMaps()).thenReturn(Set.of(pomC));
+
+            var exception =
+                    assertThrows(RmlMapperException.class, () -> MappingResolver.resolve(Set.of(tmA, tmB, tmC)));
+
+            assertThat(exception.getMessage(), containsString("Cycle detected in TriplesMap dependencies"));
+        }
+
+        @Test
+        void resolve_givenSelfReferencingTriplesMap_throwsWithCyclePath() {
+            // A -> A
+            var tmA = mock(TriplesMap.class);
+            when(tmA.getResourceName()).thenReturn("A");
+
+            var romSelf = mock(RefObjectMap.class);
+            when(romSelf.getParentTriplesMap()).thenReturn(tmA);
+            var pomA = mock(PredicateObjectMap.class);
+            when(pomA.getObjectMaps()).thenReturn(Set.of(romSelf));
+            when(tmA.getPredicateObjectMaps()).thenReturn(Set.of(pomA));
+
+            var exception = assertThrows(RmlMapperException.class, () -> MappingResolver.resolve(Set.of(tmA)));
+
+            assertThat(exception.getMessage(), containsString("Cycle detected in TriplesMap dependencies"));
+            assertThat(exception.getMessage(), containsString("A"));
+        }
+
+        @Test
+        void resolve_givenExternalParent_doesNotTreatAsDependency() {
+            var externalTm = mock(TriplesMap.class);
+            lenient().when(externalTm.getResourceName()).thenReturn("External");
+
+            // tmA references externalTm, but externalTm is NOT in the input set
+            var tmA = createTriplesMapWithDeps("A", externalTm);
+
+            var result = MappingResolver.resolve(Set.of(tmA));
+
+            assertThat(result, hasSize(1));
+            assertThat(result.get(0).getDependencies(), is(empty()));
+        }
+
+        @Test
+        void resolve_givenDependency_dependenciesStoredOnResolvedMapping() {
+            var tmB = createTriplesMapWithDeps("B");
+            var tmA = createTriplesMapWithDeps("A", tmB);
+
+            var result = MappingResolver.resolve(Set.of(tmA, tmB));
+
+            var mappingA = result.stream()
+                    .filter(m -> m.getOriginalTriplesMap() == tmA)
+                    .findFirst()
+                    .orElseThrow();
+            var mappingB = result.stream()
+                    .filter(m -> m.getOriginalTriplesMap() == tmB)
+                    .findFirst()
+                    .orElseThrow();
+
+            assertThat(mappingA.getDependencies(), hasSize(1));
+            assertThat(mappingA.getDependencies().contains(tmB), is(true));
+            assertThat(mappingB.getDependencies(), is(empty()));
         }
     }
 }
