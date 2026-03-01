@@ -3,7 +3,6 @@ package io.carml.logicalsourceresolver;
 import static io.carml.util.LogUtil.exception;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.auto.service.AutoService;
@@ -25,8 +24,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.Charset;
-import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -371,26 +368,31 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
         }
         var resultNode = resultNodeOpt.get();
 
-        try {
-            if (resultNode.isArray()) {
-                return Optional.of(OBJECT_MAPPER.treeToValue(resultNode, List.class));
+        if (resultNode.isArray()) {
+            if (JsonPath.compile(expression).isDefinite()) {
+                throw new LogicalSourceResolverException(
+                        "JSONPath expression '%s' evaluated to an array, but only scalar values are allowed. Use an iterator to process array data."
+                                .formatted(expression));
             }
-            if (resultNode.isObject()) {
-                return Optional.of(OBJECT_MAPPER.treeToValue(resultNode, Map.class));
-            }
-            if (resultNode.isValueNode()) {
-                var textResult = resultNode.asText();
-                if (source.getNulls().contains(textResult)) {
-                    return Optional.empty();
-                }
-                return Optional.of(textResult);
-            }
-
-            throw new LogicalSourceResolverException(ERROR_INTERPRETING_RESULT.formatted(resultNode));
-        } catch (JsonProcessingException jsonProcessingException) {
-            throw new LogicalSourceResolverException(
-                    "Error processing expression result %s".formatted(resultNode), jsonProcessingException);
+            return Optional.of(StreamSupport.stream(resultNode.spliterator(), false)
+                    .map(JsonNode::asText)
+                    .filter(text -> !source.getNulls().contains(text))
+                    .toList());
         }
+        if (resultNode.isObject()) {
+            throw new LogicalSourceResolverException(
+                    "JSONPath expression '%s' evaluated to an object, but only scalar values are allowed."
+                            .formatted(expression));
+        }
+        if (resultNode.isValueNode()) {
+            var textResult = resultNode.asText();
+            if (source.getNulls().contains(textResult)) {
+                return Optional.empty();
+            }
+            return Optional.of(textResult);
+        }
+
+        throw new LogicalSourceResolverException(ERROR_INTERPRETING_RESULT.formatted(resultNode));
     }
 
     // Note: unlike getExpressionEvaluationFactory(), this does not check source.getNulls() —

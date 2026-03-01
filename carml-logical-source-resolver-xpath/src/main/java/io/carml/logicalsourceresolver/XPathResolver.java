@@ -9,7 +9,6 @@ import io.carml.model.XPathReferenceFormulation;
 import io.carml.model.XmlSource;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -259,14 +258,9 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
                 var value = selector.evaluate();
 
                 if (value.size() > 1) {
-                    var results = new ArrayList<>();
-                    value.forEach(item -> {
-                        var stringValue = getItemStringValue(item, value);
-                        if (stringValue != null) {
-                            results.add(stringValue);
-                        }
-                    });
-                    return Optional.of(results);
+                    throw new LogicalSourceResolverException(
+                            "XPath expression '%s' evaluated to multiple items, but only scalar values are allowed. Use an iterator to process multiple items."
+                                    .formatted(expression));
                 } else if (value.isEmptySequence()) {
                     return Optional.empty();
                 }

@@ -1,8 +1,6 @@
 package io.carml.logicalsourceresolver;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasItems;
-import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -21,7 +19,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -403,7 +400,8 @@ class JsonPathResolverTest {
     }
 
     @Test
-    void givenInputAndJsonPathExpression_whenEvaluateExpressionApply_executesJsonPathCorrectly() throws IOException {
+    void givenExpressionResolvingToArray_whenEvaluateExpression_thenThrowLogicalSourceResolverException()
+            throws IOException {
         // Given
         var foodSource = CarmlLogicalSource.builder()
                 .source(CarmlFilePath.of("food.json"))
@@ -421,15 +419,9 @@ class JsonPathResolverTest {
         var expressionEvaluationFactory = jsonPathResolver.getExpressionEvaluationFactory();
         var expressionEvaluation = expressionEvaluationFactory.apply(objectMapper.readTree(food));
 
-        // When
-        var evaluationResult = expressionEvaluation.apply("$.food[*].name");
-
-        // Then
-        var results =
-                evaluationResult.map(ExpressionEvaluation::extractStringValues).orElse(List.of());
-
-        assertThat(results, hasSize(3));
-        assertThat(results, hasItems("Belgian Waffles", "French Toast", "Dutch Pancakes"));
+        // When / Then — definite path returning an array should throw
+        var exception = assertThrows(LogicalSourceResolverException.class, () -> expressionEvaluation.apply("$.food"));
+        assertThat(exception.getMessage(), startsWith("JSONPath expression '$.food' evaluated to an array"));
     }
 
     @Test

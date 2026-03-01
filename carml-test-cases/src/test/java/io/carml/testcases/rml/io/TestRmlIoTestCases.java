@@ -61,6 +61,10 @@ class TestRmlIoTestCases extends RmlTestCaseSuite {
                 "RMLSTC0012c", // ../../../@id (grandparent company id from employees)
                 "RMLSTC0012d", // ../../@id (grandparent company id from department)
 
+                // Multi-item XPath reference: skills/skill selects multiple nodes; RML spec requires
+                // scalar reference values. Nested data should use rml:LogicalView instead.
+                "RMLSTC0012e",
+
                 // Target tests (rml:Target) — not yet supported
                 "RMLTTC" // all target test cases
                 );

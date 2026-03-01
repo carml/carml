@@ -2,7 +2,6 @@ package io.carml.logicalsourceresolver;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -304,7 +303,7 @@ class XPathResolverTest {
     }
 
     @Test
-    void givenExpressionWithMultipleResults_whenExpressionEvaluationApplied_thenReturnCorrectValue()
+    void givenExpressionResolvingToMultipleItems_whenExpressionEvaluationApplied_thenThrowException()
             throws SaxonApiException {
         // Given
         var expression = "tokenize(book/price, '\\.')";
@@ -318,14 +317,14 @@ class XPathResolverTest {
         var expressionEvaluation = evaluationFactory.apply(item);
 
         // When
-        var values = expressionEvaluation
-                .apply(expression)
-                .map(ExpressionEvaluation::extractStringValues)
-                .orElse(List.of());
+        var exception =
+                assertThrows(LogicalSourceResolverException.class, () -> expressionEvaluation.apply(expression));
 
         // Then
-        assertThat(values, hasSize(2));
-        assertThat(values, hasItems("30", "00"));
+        assertThat(
+                exception.getMessage(),
+                is(
+                        "XPath expression 'tokenize(book/price, '\\.')' evaluated to multiple items, but only scalar values are allowed. Use an iterator to process multiple items."));
     }
 
     @Test
