@@ -12,6 +12,7 @@ import io.carml.engine.TemplateEvaluation.TemplateEvaluationBuilder;
 import io.carml.engine.function.BuiltInFunctionProvider;
 import io.carml.engine.function.FunctionDescriptor;
 import io.carml.engine.function.FunctionRegistry;
+import io.carml.engine.function.ParameterDescriptor;
 import io.carml.engine.function.TypeCoercer;
 import io.carml.logicalsourceresolver.DatatypeMapper;
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
@@ -171,6 +172,24 @@ public class RdfExpressionMapEvaluation {
     }
 
     private List<Object> evaluateFnmlFunctionExecution() {
+        try {
+            return doEvaluateFnmlFunctionExecution();
+        } catch (RdfExpressionMapEvaluationException exception) {
+            // Graceful degradation per RML-FNML spec: unknown function, unknown parameter,
+            // or unknown return IRI produces empty output rather than an error.
+            LOG.warn("Function execution produced no result: {}", exception.getMessage());
+            return List.of();
+        } catch (IllegalStateException exception) {
+            // Graceful degradation: function invocation failures (e.g. null parameter due to
+            // unknown parameter binding, type mismatch, NPE inside the function) produce
+            // empty output. ReflectiveFunctionDescriptor wraps invocation errors in
+            // IllegalStateException.
+            LOG.warn("Function execution failed: {}", exception.getMessage());
+            return List.of();
+        }
+    }
+
+    private List<Object> doEvaluateFnmlFunctionExecution() {
         var fnExecution = expressionMap.getFunctionExecution();
         var termType = determineTermType(expressionMap);
         UnaryOperator<Object> returnValueAdapter =
@@ -189,6 +208,13 @@ public class RdfExpressionMapEvaluation {
 
         // 3. Resolve input bindings
         Map<IRI, Object> parameterValues = resolveInputBindings(fnExecution.getInputs(), descriptor);
+        LOG.debug(
+                "Function {}: parameterValues = {}, descriptor paramIris = {}",
+                functionIri,
+                parameterValues,
+                descriptor.getParameters().stream()
+                        .map(ParameterDescriptor::predicateIri)
+                        .toList());
 
         // 4. Execute
         Object result = descriptor.execute(parameterValues);
@@ -197,7 +223,7 @@ public class RdfExpressionMapEvaluation {
         }
 
         // 5. Apply ReturnMap if present
-        result = applyReturnMap(result);
+        result = applyReturnMap(result, descriptor);
         if (result == null) {
             return List.of();
         }
@@ -237,40 +263,49 @@ public class RdfExpressionMapEvaluation {
         for (var input : inputs) {
             // Resolve parameter IRI from ParameterMap
             IRI parameterIri = resolveIriFromExpressionMap(input.getParameterMap(), Rdf.Rml.ParameterMap);
+            LOG.debug("Resolved parameter IRI: {}", parameterIri);
 
             // Resolve value from InputValueMap using a child evaluation
             var valueEvaluation =
                     this.toBuilder().expressionMap(input.getInputValueMap()).build();
             var values = valueEvaluation.evaluate(Object.class);
+            LOG.debug("Resolved values for parameter {}: {}", parameterIri, values);
 
-            // Find matching parameter descriptor for type coercion
+            // Find matching parameter descriptor for type coercion.
+            // Match by both fno:predicate IRI and parameter resource IRI (e.g., rml:parameter
+            // may reference the fno:Parameter resource IRI rather than the fno:predicate value).
             var paramDesc = descriptor.getParameters().stream()
-                    .filter(pd -> pd.iri().equals(parameterIri))
+                    .filter(pd -> pd.matches(parameterIri))
                     .findFirst();
 
+            // Use the descriptor's canonical predicate IRI as map key so that
+            // FunctionDescriptor.execute() can find the value. Fall back to the mapping IRI
+            // when no descriptor matches (unknown parameter -- graceful degradation).
+            IRI effectiveKey = paramDesc.map(ParameterDescriptor::predicateIri).orElse(parameterIri);
+
             if (values.isEmpty()) {
-                parameterValues.put(parameterIri, null);
+                parameterValues.put(effectiveKey, null);
             } else if (paramDesc.isPresent()
                     && Collection.class.isAssignableFrom(paramDesc.get().type())) {
                 // Collection parameter: pass all values as list of strings
                 parameterValues.put(
-                        parameterIri, values.stream().map(this::toStringValue).toList());
+                        effectiveKey, values.stream().map(this::toStringValue).toList());
             } else {
                 // Single value: coerce to expected type
                 var stringValue = toStringValue(values.get(0));
                 if (paramDesc.isPresent()) {
                     parameterValues.put(
-                            parameterIri,
+                            effectiveKey,
                             TYPE_COERCER.coerce(stringValue, paramDesc.get().type()));
                 } else {
-                    parameterValues.put(parameterIri, stringValue);
+                    parameterValues.put(effectiveKey, stringValue);
                 }
             }
         }
 
         // Fill in nulls for any parameters not provided by inputs
         for (var paramDesc : descriptor.getParameters()) {
-            parameterValues.putIfAbsent(paramDesc.iri(), null);
+            parameterValues.putIfAbsent(paramDesc.predicateIri(), null);
         }
 
         return parameterValues;
@@ -286,24 +321,32 @@ public class RdfExpressionMapEvaluation {
         return value.toString();
     }
 
-    private Object applyReturnMap(Object result) {
+    private Object applyReturnMap(Object result, FunctionDescriptor descriptor) {
         var returnMap = expressionMap.getReturnMap();
         if (returnMap == null) {
             return result;
         }
 
-        if (!(result instanceof Map<?, ?> resultMap)) {
-            // Single-return function with ReturnMap: just return as-is
+        IRI returnIri = resolveIriFromExpressionMap(returnMap, Rdf.Rml.ReturnMap);
+
+        if (result instanceof Map<?, ?> resultMap) {
+            // Multi-return function: select the requested return value from the map
+            var selected = resultMap.get(returnIri);
+            if (selected == null) {
+                LOG.warn("ReturnMap IRI {} not found in function result keys {}", returnIri, resultMap.keySet());
+            }
+            return selected;
+        }
+
+        // Single-return function: verify the return IRI is a declared output of this
+        // function (matched by fno:predicate or resource IRI). An IRI not declared as an
+        // output produces empty output (graceful degradation per RML-FNML spec).
+        if (descriptor.getReturns().stream().anyMatch(rd -> rd.matches(returnIri))) {
             return result;
         }
 
-        IRI returnIri = resolveIriFromExpressionMap(returnMap, Rdf.Rml.ReturnMap);
-
-        var selected = resultMap.get(returnIri);
-        if (selected == null) {
-            LOG.warn("ReturnMap IRI {} not found in function result keys {}", returnIri, resultMap.keySet());
-        }
-        return selected;
+        LOG.warn("ReturnMap IRI {} is not a known FnO output; producing empty result", returnIri);
+        return null;
     }
 
     private Optional<Object> mapLegacyFunctionExecution(ExpressionMap expressionMap, TriplesMap executionMap) {
@@ -376,20 +419,23 @@ public class RdfExpressionMapEvaluation {
         var params = new HashMap<IRI, Object>();
 
         for (var paramDesc : descriptor.getParameters()) {
-            var values = model.filter(execution, paramDesc.iri(), null).stream()
+            var values = model.filter(execution, paramDesc.predicateIri(), null).stream()
                     .map(Statement::getObject)
                     .toList();
 
             if (values.isEmpty()) {
-                params.put(paramDesc.iri(), null);
+                params.put(paramDesc.predicateIri(), null);
                 continue;
             }
 
             if (Collection.class.isAssignableFrom(paramDesc.type())) {
                 params.put(
-                        paramDesc.iri(), values.stream().map(Value::stringValue).toList());
+                        paramDesc.predicateIri(),
+                        values.stream().map(Value::stringValue).toList());
             } else {
-                params.put(paramDesc.iri(), TYPE_COERCER.coerce(values.get(0).stringValue(), paramDesc.type()));
+                params.put(
+                        paramDesc.predicateIri(),
+                        TYPE_COERCER.coerce(values.get(0).stringValue(), paramDesc.type()));
             }
         }
 

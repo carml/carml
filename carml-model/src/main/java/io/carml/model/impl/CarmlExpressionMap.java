@@ -93,7 +93,6 @@ abstract class CarmlExpressionMap extends CarmlResource implements ExpressionMap
     }
 
     @RdfProperty(Rml.returnMap)
-    @RdfProperty(Rml.returnProperty)
     @RdfType(CarmlReturnMap.class)
     @Override
     public ReturnMap getReturnMap() {

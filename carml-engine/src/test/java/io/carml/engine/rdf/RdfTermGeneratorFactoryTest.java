@@ -318,6 +318,102 @@ class RdfTermGeneratorFactoryTest {
     }
 
     @Nested
+    class NativeTypedLiteralTests {
+
+        @Test
+        void givenIntegerValue_whenLiteralGenerated_thenXsdInteger() {
+            var objectMap = CarmlObjectMap.builder().reference("foo").build();
+            var generator = rdfTermGeneratorFactory.getObjectGenerator(objectMap);
+
+            when(expressionEvaluation.apply("foo")).thenReturn(Optional.of(List.of(42)));
+            when(datatypeMapper.apply(any())).thenReturn(Optional.empty());
+
+            var terms = generator.apply(expressionEvaluation, datatypeMapper);
+
+            assertThat(terms, containsInAnyOrder(RdfMappedValue.of(literal("42", XSD.INTEGER))));
+        }
+
+        @Test
+        void givenLongValue_whenLiteralGenerated_thenXsdInteger() {
+            var objectMap = CarmlObjectMap.builder().reference("foo").build();
+            var generator = rdfTermGeneratorFactory.getObjectGenerator(objectMap);
+
+            when(expressionEvaluation.apply("foo")).thenReturn(Optional.of(List.of(123456789L)));
+            when(datatypeMapper.apply(any())).thenReturn(Optional.empty());
+
+            var terms = generator.apply(expressionEvaluation, datatypeMapper);
+
+            assertThat(terms, containsInAnyOrder(RdfMappedValue.of(literal("123456789", XSD.INTEGER))));
+        }
+
+        @Test
+        void givenDoubleValue_whenLiteralGenerated_thenXsdDouble() {
+            var objectMap = CarmlObjectMap.builder().reference("foo").build();
+            var generator = rdfTermGeneratorFactory.getObjectGenerator(objectMap);
+
+            when(expressionEvaluation.apply("foo")).thenReturn(Optional.of(List.of(3.14)));
+            when(datatypeMapper.apply(any())).thenReturn(Optional.empty());
+
+            var terms = generator.apply(expressionEvaluation, datatypeMapper);
+
+            assertThat(terms, containsInAnyOrder(RdfMappedValue.of(literal(3.14))));
+        }
+
+        @Test
+        void givenFloatValue_whenLiteralGenerated_thenXsdFloat() {
+            var objectMap = CarmlObjectMap.builder().reference("foo").build();
+            var generator = rdfTermGeneratorFactory.getObjectGenerator(objectMap);
+
+            when(expressionEvaluation.apply("foo")).thenReturn(Optional.of(List.of(2.5f)));
+            when(datatypeMapper.apply(any())).thenReturn(Optional.empty());
+
+            var terms = generator.apply(expressionEvaluation, datatypeMapper);
+
+            assertThat(terms, containsInAnyOrder(RdfMappedValue.of(literal(2.5f))));
+        }
+
+        @Test
+        void givenBooleanValue_whenLiteralGenerated_thenXsdBoolean() {
+            var objectMap = CarmlObjectMap.builder().reference("foo").build();
+            var generator = rdfTermGeneratorFactory.getObjectGenerator(objectMap);
+
+            when(expressionEvaluation.apply("foo")).thenReturn(Optional.of(List.of(true)));
+            when(datatypeMapper.apply(any())).thenReturn(Optional.empty());
+
+            var terms = generator.apply(expressionEvaluation, datatypeMapper);
+
+            assertThat(terms, containsInAnyOrder(RdfMappedValue.of(literal(true))));
+        }
+
+        @Test
+        void givenStringValue_whenLiteralGenerated_thenXsdString() {
+            var objectMap = CarmlObjectMap.builder().reference("foo").build();
+            var generator = rdfTermGeneratorFactory.getObjectGenerator(objectMap);
+
+            when(expressionEvaluation.apply("foo")).thenReturn(Optional.of(List.of("hello")));
+            when(datatypeMapper.apply(any())).thenReturn(Optional.empty());
+
+            var terms = generator.apply(expressionEvaluation, datatypeMapper);
+
+            assertThat(terms, containsInAnyOrder(RdfMappedValue.of(literal("hello"))));
+        }
+
+        @Test
+        void givenMappedDatatype_whenLiteralGenerated_thenMappedDatatypeUsed() {
+            var objectMap = CarmlObjectMap.builder().reference("foo").build();
+            var generator = rdfTermGeneratorFactory.getObjectGenerator(objectMap);
+
+            when(expressionEvaluation.apply("foo")).thenReturn(Optional.of(List.of(42)));
+            when(datatypeMapper.apply(any())).thenReturn(Optional.of(XSD.INT));
+
+            var terms = generator.apply(expressionEvaluation, datatypeMapper);
+
+            // When mappedDatatype is present, it takes precedence over native type
+            assertThat(terms, containsInAnyOrder(RdfMappedValue.of(literal("42", XSD.INT))));
+        }
+    }
+
+    @Nested
     class IriSafeFieldTests {
 
         @Test

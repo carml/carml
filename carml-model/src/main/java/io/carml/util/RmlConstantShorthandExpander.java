@@ -45,7 +45,11 @@ public class RmlConstantShorthandExpander implements UnaryOperator<Model> {
             entry(Rml.child, new PredicateExpansion(Rml.childMap, Rml.reference)),
             entry(Rr.child, new PredicateExpansion(Rml.childMap, Rml.reference)),
             entry(Rml.parent, new PredicateExpansion(Rml.parentMap, Rml.reference)),
-            entry(Rr.parent, new PredicateExpansion(Rml.parentMap, Rml.reference)));
+            entry(Rr.parent, new PredicateExpansion(Rml.parentMap, Rml.reference)),
+            entry(Rml.function, new PredicateExpansion(Rml.functionMap, Rml.constant)),
+            entry(Rml.parameter, new PredicateExpansion(Rml.parameterMap, Rml.constant)),
+            entry(Rml.inputValue, new PredicateExpansion(Rml.inputValueMap, Rml.constant)),
+            entry(Rml.returnProperty, new PredicateExpansion(Rml.returnMap, Rml.constant)));
 
     private record PredicateExpansion(IRI expandedPredicate, IRI expressionPredicate) {}
 

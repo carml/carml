@@ -30,7 +30,6 @@ public class CarmlInput extends CarmlResource implements Input {
     private ExpressionMap inputValueMap;
 
     @RdfProperty(Rml.parameterMap)
-    @RdfProperty(Rml.parameter)
     @RdfType(CarmlParameterMap.class)
     @Override
     public ParameterMap getParameterMap() {
@@ -38,7 +37,6 @@ public class CarmlInput extends CarmlResource implements Input {
     }
 
     @RdfProperty(Rml.inputValueMap)
-    @RdfProperty(Rml.inputValue)
     @RdfType(CarmlObjectMap.class)
     @Override
     public ExpressionMap getInputValueMap() {

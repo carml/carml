@@ -34,8 +34,22 @@ class ParameterDescriptorTest {
     void accessors_returnCorrectValues() {
         var descriptor = new ParameterDescriptor(PARAM_IRI, Integer.class, false);
 
-        assertThat(descriptor.iri(), is(PARAM_IRI));
+        assertThat(descriptor.predicateIri(), is(PARAM_IRI));
         assertThat(descriptor.type(), is(Integer.class));
         assertThat(descriptor.required(), is(false));
+    }
+
+    @Test
+    void matches_returnsTrue_givenPredicateIri() {
+        var descriptor = new ParameterDescriptor(PARAM_IRI, String.class, true);
+
+        assertThat(descriptor.matches(PARAM_IRI), is(true));
+    }
+
+    @Test
+    void matches_returnsFalse_givenUnrelatedIri() {
+        var descriptor = new ParameterDescriptor(PARAM_IRI, String.class, true);
+
+        assertThat(descriptor.matches(iri("http://example.org/other")), is(false));
     }
 }

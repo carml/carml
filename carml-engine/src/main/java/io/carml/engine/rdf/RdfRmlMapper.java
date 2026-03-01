@@ -558,8 +558,14 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
                     .forEach(registry::registerAll);
 
             // 3a. FnO description-based registrations (override SPI)
-            for (var fnoModel : pendingFnoDescriptions) {
-                registry.registerAll(new FnoDescriptionProvider(fnoModel));
+            // Merge all FnO description models into a single model so that cross-file
+            // references (e.g. function mappings referencing implementation classes defined
+            // in a separate file) are resolved correctly.
+            if (!pendingFnoDescriptions.isEmpty()) {
+                var mergedModel =
+                        pendingFnoDescriptions.stream().flatMap(Model::stream).collect(ModelCollector.toModel());
+
+                registry.registerAll(new FnoDescriptionProvider(mergedModel));
             }
 
             // 3b. Programmatic registrations via addFunctions/addFunctionClasses (override 3a for same IRI)

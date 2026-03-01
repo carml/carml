@@ -64,7 +64,7 @@ class BuiltInFunctionProviderTest {
     void isNull_hasOneOptionalParameter() {
         var descriptor = findDescriptor(IdlabFn.isNull);
         assertThat(descriptor.getParameters(), hasSize(1));
-        assertThat(descriptor.getParameters().get(0).iri(), is(IdlabFn.str));
+        assertThat(descriptor.getParameters().get(0).predicateIri(), is(IdlabFn.str));
         assertThat(descriptor.getParameters().get(0).required(), is(false));
     }
 
@@ -97,7 +97,7 @@ class BuiltInFunctionProviderTest {
     void isNotNull_hasOneOptionalParameter() {
         var descriptor = findDescriptor(IdlabFn.isNotNull);
         assertThat(descriptor.getParameters(), hasSize(1));
-        assertThat(descriptor.getParameters().get(0).iri(), is(IdlabFn.str));
+        assertThat(descriptor.getParameters().get(0).predicateIri(), is(IdlabFn.str));
         assertThat(descriptor.getParameters().get(0).required(), is(false));
     }
 
@@ -130,9 +130,9 @@ class BuiltInFunctionProviderTest {
     void equals_hasTwoRequiredParameters() {
         var descriptor = findDescriptor(IdlabFn.equal);
         assertThat(descriptor.getParameters(), hasSize(2));
-        assertThat(descriptor.getParameters().get(0).iri(), is(Grel.valueParam));
+        assertThat(descriptor.getParameters().get(0).predicateIri(), is(Grel.valueParam));
         assertThat(descriptor.getParameters().get(0).required(), is(true));
-        assertThat(descriptor.getParameters().get(1).iri(), is(Grel.valueParam2));
+        assertThat(descriptor.getParameters().get(1).predicateIri(), is(Grel.valueParam2));
         assertThat(descriptor.getParameters().get(1).required(), is(true));
     }
 
@@ -166,9 +166,9 @@ class BuiltInFunctionProviderTest {
     void notEquals_hasTwoRequiredParameters() {
         var descriptor = findDescriptor(IdlabFn.notEqual);
         assertThat(descriptor.getParameters(), hasSize(2));
-        assertThat(descriptor.getParameters().get(0).iri(), is(Grel.valueParam));
+        assertThat(descriptor.getParameters().get(0).predicateIri(), is(Grel.valueParam));
         assertThat(descriptor.getParameters().get(0).required(), is(true));
-        assertThat(descriptor.getParameters().get(1).iri(), is(Grel.valueParam2));
+        assertThat(descriptor.getParameters().get(1).predicateIri(), is(Grel.valueParam2));
         assertThat(descriptor.getParameters().get(1).required(), is(true));
     }
 
@@ -202,11 +202,11 @@ class BuiltInFunctionProviderTest {
     void if_hasThreeParameters_firstRequiredOthersOptional() {
         var descriptor = findDescriptor(Grel.controls_if);
         assertThat(descriptor.getParameters(), hasSize(3));
-        assertThat(descriptor.getParameters().get(0).iri(), is(Grel.bool_b));
+        assertThat(descriptor.getParameters().get(0).predicateIri(), is(Grel.bool_b));
         assertThat(descriptor.getParameters().get(0).required(), is(true));
-        assertThat(descriptor.getParameters().get(1).iri(), is(Grel.any_true));
+        assertThat(descriptor.getParameters().get(1).predicateIri(), is(Grel.any_true));
         assertThat(descriptor.getParameters().get(1).required(), is(false));
-        assertThat(descriptor.getParameters().get(2).iri(), is(Grel.any_false));
+        assertThat(descriptor.getParameters().get(2).predicateIri(), is(Grel.any_false));
         assertThat(descriptor.getParameters().get(2).required(), is(false));
     }
 

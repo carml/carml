@@ -31,8 +31,8 @@ class TestRmlLvTestCases extends RmlTestCaseSuite {
                 "RMLLVTC0007a", // Change reference formulations: CSV including JSON array
                 "RMLLVTC0007b", // Change reference formulations: CSV including JSON object
                 "RMLLVTC0007c", // Change reference formulations: JSON including CSV
-                // --- Name collision detection: expected error not thrown ---
-                "RMLLVTC0009a" // Name collision: same-parent fields
+                // --- Name collision: same-parent fields silently deduped by Set<Field> equals/hashCode ---
+                "RMLLVTC0009a" // Name collision: same-parent fields (collision invisible due to Set dedup)
                 );
     }
 }

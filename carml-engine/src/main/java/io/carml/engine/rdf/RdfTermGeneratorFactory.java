@@ -34,6 +34,7 @@ import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
+import org.eclipse.rdf4j.model.vocabulary.XSD;
 
 @Slf4j
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -82,7 +83,9 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
         return subjectMap == null
                 || (subjectMap.getConstant() == null
                         && subjectMap.getReferenceExpressionSet().isEmpty()
-                        && subjectMap.getGathers().isEmpty());
+                        && subjectMap.getGathers().isEmpty()
+                        && subjectMap.getFunctionExecution() == null
+                        && subjectMap.getFunctionValue() == null);
     }
 
     @Override
@@ -161,6 +164,11 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
         return (expressionEvaluation, datatypeMapper) -> {
             var values = RdfExpressionMapEvaluation.builder()
                     .expressionMap(termMap)
+                    .expressionEvaluation(expressionEvaluation)
+                    .datatypeMapper(datatypeMapper)
+                    .functionRegistry(rdfTermGeneratorConfig.getFunctionRegistry())
+                    .normalizationForm(rdfTermGeneratorConfig.getNormalizationForm())
+                    .rdfTermGeneratorFactory(this)
                     .build()
                     .evaluate(Value.class);
 
@@ -178,6 +186,10 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
             var referenceValues = RdfExpressionMapEvaluation.builder()
                     .expressionMap(termMap)
                     .expressionEvaluation(expressionEvaluation)
+                    .datatypeMapper(datatypeMapper)
+                    .functionRegistry(rdfTermGeneratorConfig.getFunctionRegistry())
+                    .normalizationForm(rdfTermGeneratorConfig.getNormalizationForm())
+                    .rdfTermGeneratorFactory(this)
                     .build()
                     .evaluate(Object.class);
 
@@ -206,6 +218,9 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
                     .expressionMap(termMap)
                     .expressionEvaluation(expressionEvaluation)
                     .datatypeMapper(datatypeMapper)
+                    .functionRegistry(rdfTermGeneratorConfig.getFunctionRegistry())
+                    .normalizationForm(rdfTermGeneratorConfig.getNormalizationForm())
+                    .rdfTermGeneratorFactory(this)
                     .templateReferenceValueTransformingFunction(valueTransformingFunction)
                     .iriSafeFieldNames(rdfTermGeneratorConfig.getIriSafeFieldNames())
                     .build()
@@ -262,6 +277,9 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
                 .expressionMap(languageMap)
                 .expressionEvaluation(expressionEvaluation)
                 .datatypeMapper(datatypeMapper)
+                .functionRegistry(rdfTermGeneratorConfig.getFunctionRegistry())
+                .normalizationForm(rdfTermGeneratorConfig.getNormalizationForm())
+                .rdfTermGeneratorFactory(this)
                 .build()
                 .evaluate(String.class);
     }
@@ -350,11 +368,33 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
         }
 
         return values.stream()
-                .map(Objects::toString)
-                .map(valueFactory::createLiteral)
-                .map(Value.class::cast)
+                .map(this::createNativeTypedLiteral)
                 .map(value -> RdfMappedValue.of(value, termMap.getTargets()))
                 .toList();
+    }
+
+    /**
+     * Creates a literal that preserves the Java type of the value. For example, an {@link Integer}
+     * value produces a {@code xsd:integer} literal rather than a plain string literal. This is
+     * important for function execution results where the Java return type carries datatype info.
+     */
+    private Value createNativeTypedLiteral(Object value) {
+        if (value instanceof Integer intVal) {
+            return valueFactory.createLiteral(intVal.toString(), XSD.INTEGER);
+        }
+        if (value instanceof Long longVal) {
+            return valueFactory.createLiteral(longVal.toString(), XSD.INTEGER);
+        }
+        if (value instanceof Double doubleVal) {
+            return valueFactory.createLiteral(doubleVal);
+        }
+        if (value instanceof Float floatVal) {
+            return valueFactory.createLiteral(floatVal);
+        }
+        if (value instanceof Boolean boolVal) {
+            return valueFactory.createLiteral(boolVal);
+        }
+        return valueFactory.createLiteral(Objects.toString(value));
     }
 
     private List<MappedValue<Value>> generateDatatypedLiterals(

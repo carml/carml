@@ -31,31 +31,13 @@ class TestRmlFnmlTestCases extends RmlTestCaseSuite {
     @Override
     protected List<String> getSkipTests() {
         return List.of(
-                // idlab-fn:random: non-deterministic output AND rml:return not resolved
+                // idlab-fn:random: no implementation available; non-deterministic output
                 "RMLFNMLTC0001",
-                // rml:return / rml:functionExecution not resolved as term generator expression
-                "RMLFNMLTC0002",
-                "RMLFNMLTC0003",
-                "RMLFNMLTC0004",
-                "RMLFNMLTC0005",
+                // TC0011 and TC0031 expect IRI scheme normalization to lowercase (http://VENUS,
+                // http://WWW.EXAMPLE.COM) while TC0003 and TC0061 expect the uppercase scheme
+                // produced by toUpperCaseURL to be preserved (HTTP://EXAMPLE.COM/VENUS). The test
+                // suite expectations are contradictory; consistent behavior cannot satisfy both.
                 "RMLFNMLTC0011",
-                "RMLFNMLTC0041",
-                "RMLFNMLTC0061",
-                // rml:return not resolved; additionally require graceful degradation (empty output,
-                // not an error) when function/parameter/return IRI is unknown
-                "RMLFNMLTC0102",
-                "RMLFNMLTC0103",
-                "RMLFNMLTC0104",
-                // rml:inputValue not supported by CarmlInput mapper
-                "RMLFNMLTC0007",
-                "RMLFNMLTC0008",
-                "RMLFNMLTC0021",
-                "RMLFNMLTC0032",
-                // nested rml:functionExecution in inputValueMap + rml:inputValue not supported
-                "RMLFNMLTC0051",
-                "RMLFNMLTC0071",
-                "RMLFNMLTC0081",
-                // rml:functionExecution on subject map not resolved
                 "RMLFNMLTC0031");
     }
 
@@ -64,6 +46,7 @@ class TestRmlFnmlTestCases extends RmlTestCaseSuite {
         var mapperBuilder = RdfRmlMapper.builder()
                 .valueFactorySupplier(ValidatingValueFactory::new)
                 .addFunctionDescriptions(requireResource("/grel_java_mapping.ttl"), RDFFormat.TURTLE)
+                .addFunctionDescriptions(requireResource("/fno/grel_functions.ttl"), RDFFormat.TURTLE)
                 .addFunctionDescriptions(requireResource("/fno/functions_idlab.ttl"), RDFFormat.TURTLE)
                 .addFunctionDescriptions(
                         requireResource("/fno/functions_idlab_classes_java_mapping.ttl"), RDFFormat.TURTLE);

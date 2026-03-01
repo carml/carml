@@ -23,6 +23,7 @@ class AnnotatedFunctionProviderTest {
 
     // -- Test fixtures using @RmlFunction / @RmlParam --
 
+    @SuppressWarnings("unused") // methods are discovered reflectively by AnnotatedFunctionProvider
     static class RmlAnnotatedFunctions {
 
         @RmlFunction("http://example.org/toUpperCase")
@@ -44,7 +45,7 @@ class AnnotatedFunctionProviderTest {
 
     // -- Test fixtures using @FnoFunction / @FnoParam (legacy) --
 
-    @SuppressWarnings("deprecation")
+    @SuppressWarnings({"deprecation", "unused"}) // methods are discovered reflectively
     static class FnoAnnotatedFunctions {
 
         @FnoFunction("http://example.org/toUpperCase")
@@ -55,7 +56,7 @@ class AnnotatedFunctionProviderTest {
 
     // -- Test fixture with both annotations (precedence test) --
 
-    @SuppressWarnings("deprecation")
+    @SuppressWarnings({"deprecation", "unused"}) // methods are discovered reflectively
     static class DualAnnotatedFunctions {
 
         @RmlFunction("http://example.org/rmlIri")
@@ -68,6 +69,7 @@ class AnnotatedFunctionProviderTest {
 
     // -- Test fixture with throwing method --
 
+    @SuppressWarnings("unused") // methods are discovered reflectively
     static class ThrowingFunctions {
 
         @RmlFunction("http://example.org/throws")
@@ -78,6 +80,7 @@ class AnnotatedFunctionProviderTest {
 
     // -- Test fixture with missing param annotation --
 
+    @SuppressWarnings("unused") // methods are discovered reflectively
     static class MissingParamAnnotation {
 
         @RmlFunction("http://example.org/bad")
@@ -88,6 +91,7 @@ class AnnotatedFunctionProviderTest {
 
     // -- Test fixture with no annotated methods --
 
+    @SuppressWarnings("unused") // methods are discovered reflectively
     static class NoAnnotatedMethods {
 
         public String notAFunction(String input) {
@@ -157,7 +161,7 @@ class AnnotatedFunctionProviderTest {
 
         assertThat(descriptor.getParameters(), hasSize(1));
         var param = descriptor.getParameters().get(0);
-        assertThat(param.iri(), is(INPUT_IRI));
+        assertThat(param.predicateIri(), is(INPUT_IRI));
         assertThat(param.type(), is(String.class));
         assertThat(param.required(), is(true));
     }
@@ -173,7 +177,7 @@ class AnnotatedFunctionProviderTest {
 
         assertThat(descriptor.getParameters(), hasSize(1));
         var param = descriptor.getParameters().get(0);
-        assertThat(param.iri(), is(INPUT_IRI));
+        assertThat(param.predicateIri(), is(INPUT_IRI));
         assertThat(param.type(), is(String.class));
         assertThat(param.required(), is(true));
     }
@@ -189,7 +193,7 @@ class AnnotatedFunctionProviderTest {
 
         assertThat(descriptor.getReturns(), hasSize(1));
         var ret = descriptor.getReturns().get(0);
-        assertThat(ret.iri(), is(nullValue()));
+        assertThat(ret.predicateIri(), is(nullValue()));
         assertThat(ret.type(), is(String.class));
     }
 
@@ -259,7 +263,7 @@ class AnnotatedFunctionProviderTest {
         var descriptor = provider.getFunctions().stream().findFirst().orElseThrow();
         var param = descriptor.getParameters().get(0);
 
-        assertThat(param.iri(), is(iri("http://example.org/rmlParam")));
+        assertThat(param.predicateIri(), is(iri("http://example.org/rmlParam")));
     }
 
     @Test

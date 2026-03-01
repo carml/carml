@@ -41,6 +41,7 @@ class FnoDescriptionProviderTest {
 
     // -- Test function class --
 
+    @SuppressWarnings("unused") // methods are discovered reflectively by FnoDescriptionProvider
     public static class TestFunctions {
 
         public String toUpperCase(String value) {
@@ -53,6 +54,7 @@ class FnoDescriptionProviderTest {
     }
 
     /** A class with only a parameterized constructor (no default constructor). */
+    @SuppressWarnings("unused") // methods are discovered reflectively by FnoDescriptionProvider
     public static class NoDefaultConstructorFunctions {
 
         private final String config;
@@ -80,7 +82,7 @@ class FnoDescriptionProviderTest {
         var descriptor = functions.iterator().next();
         assertThat(descriptor.getFunctionIri(), is(TO_UPPER_IRI));
         assertThat(descriptor.getParameters(), hasSize(1));
-        assertThat(descriptor.getParameters().get(0).iri(), is(VALUE_PARAM_IRI));
+        assertThat(descriptor.getParameters().get(0).predicateIri(), is(VALUE_PARAM_IRI));
         assertThat(descriptor.getParameters().get(0).type(), is(String.class));
         assertThat(descriptor.getParameters().get(0).required(), is(true));
     }
@@ -96,8 +98,8 @@ class FnoDescriptionProviderTest {
 
         var descriptor = functions.iterator().next();
         assertThat(descriptor.getParameters(), hasSize(2));
-        assertThat(descriptor.getParameters().get(0).iri(), is(LEFT_PARAM_IRI));
-        assertThat(descriptor.getParameters().get(1).iri(), is(RIGHT_PARAM_IRI));
+        assertThat(descriptor.getParameters().get(0).predicateIri(), is(LEFT_PARAM_IRI));
+        assertThat(descriptor.getParameters().get(1).predicateIri(), is(RIGHT_PARAM_IRI));
     }
 
     @Test
@@ -109,7 +111,7 @@ class FnoDescriptionProviderTest {
 
         assertThat(descriptor.getReturns(), hasSize(1));
         var ret = descriptor.getReturns().get(0);
-        assertThat(ret.iri(), is(STRING_OUTPUT_IRI));
+        assertThat(ret.predicateIri(), is(STRING_OUTPUT_IRI));
         assertThat(ret.type(), is(String.class));
     }
 
@@ -262,7 +264,7 @@ class FnoDescriptionProviderTest {
 
         assertThat(descriptor, is(notNullValue()));
         assertThat(descriptor.getReturns(), hasSize(1));
-        assertThat(descriptor.getReturns().get(0).iri(), is(nullValue()));
+        assertThat(descriptor.getReturns().get(0).predicateIri(), is(nullValue()));
         assertThat(descriptor.getReturns().get(0).type(), is(Object.class));
     }
 

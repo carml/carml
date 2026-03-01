@@ -94,7 +94,8 @@ public class FnoDescriptionProvider implements FunctionProvider {
     private static FunctionDescriptor createDescriptor(Model model, IRI functionIri, MappingBinding binding) {
         var parameters = parseParameters(model, functionIri);
         var returns = parseReturns(model, functionIri);
-        var paramIris = parameters.stream().map(ParameterDescriptor::iri).toList();
+        var paramIris =
+                parameters.stream().map(ParameterDescriptor::predicateIri).toList();
 
         var clazz = loadClass(binding.className(), functionIri);
         var target = instantiate(clazz, functionIri);

@@ -24,14 +24,35 @@ class ReturnDescriptorTest {
         var descriptor = new ReturnDescriptor(null, String.class);
 
         assertThat(descriptor, is(notNullValue()));
-        assertThat(descriptor.iri(), is(nullValue()));
+        assertThat(descriptor.predicateIri(), is(nullValue()));
     }
 
     @Test
     void constructor_createsInstance_givenValidArguments() {
         var descriptor = new ReturnDescriptor(RETURN_IRI, String.class);
 
-        assertThat(descriptor.iri(), is(RETURN_IRI));
+        assertThat(descriptor.predicateIri(), is(RETURN_IRI));
         assertThat(descriptor.type(), is(String.class));
+    }
+
+    @Test
+    void matches_returnsTrue_givenPredicateIri() {
+        var descriptor = new ReturnDescriptor(RETURN_IRI, String.class);
+
+        assertThat(descriptor.matches(RETURN_IRI), is(true));
+    }
+
+    @Test
+    void matches_returnsFalse_givenUnrelatedIri() {
+        var descriptor = new ReturnDescriptor(RETURN_IRI, String.class);
+
+        assertThat(descriptor.matches(iri("http://example.org/other")), is(false));
+    }
+
+    @Test
+    void matches_returnsFalse_whenPredicateIriIsNull() {
+        var descriptor = new ReturnDescriptor(null, String.class);
+
+        assertThat(descriptor.matches(iri("http://example.org/other")), is(false));
     }
 }

@@ -32,7 +32,6 @@ public class CarmlFunctionExecution extends CarmlResource implements FunctionExe
     private Set<Input> inputs;
 
     @RdfProperty(Rml.functionMap)
-    @RdfProperty(Rml.function)
     @RdfType(CarmlFunctionMap.class)
     @Override
     public FunctionMap getFunctionMap() {

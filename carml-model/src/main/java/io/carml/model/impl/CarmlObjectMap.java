@@ -57,7 +57,10 @@ public class CarmlObjectMap extends CarmlGatherMap implements ObjectMap {
             return super.getTermType();
         }
 
-        if (getReference() != null || getLanguageMap() != null || getDatatypeMap() != null) {
+        if (getReference() != null
+                || getLanguageMap() != null
+                || getDatatypeMap() != null
+                || getFunctionExecution() != null) {
             return TermType.LITERAL;
         }
 
