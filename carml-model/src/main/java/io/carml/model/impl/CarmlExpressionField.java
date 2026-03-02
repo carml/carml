@@ -22,7 +22,7 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 @NoArgsConstructor
 @Setter
 @ToString(callSuper = true)
-@EqualsAndHashCode(callSuper = false)
+@EqualsAndHashCode(callSuper = true)
 public class CarmlExpressionField extends CarmlExpressionMap implements ExpressionField {
 
     private String fieldName;

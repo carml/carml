@@ -174,4 +174,30 @@ class CsvResolverTest {
         // Then
         StepVerifier.create(recordFlux).expectNextCount(1).verifyComplete();
     }
+
+    @Test
+    void getInlineRecordParser_givenCsvWithHeader_returnsDataRows() {
+        var csvResolver = csvResolverFactory.apply(RML_SOURCE);
+        var parser = csvResolver.getInlineRecordParser().orElseThrow();
+
+        var result = parser.apply("name,age\nalice,30\nbob,25");
+
+        assertThat(result.size(), is(2));
+        assertThat(result.get(0).getField("name"), is("alice"));
+        assertThat(result.get(0).getField("age"), is("30"));
+        assertThat(result.get(1).getField("name"), is("bob"));
+        assertThat(result.get(1).getField("age"), is("25"));
+    }
+
+    @Test
+    void getInlineRecordParser_givenSingleRowCsv_returnsSingleRecord() {
+        var csvResolver = csvResolverFactory.apply(RML_SOURCE);
+        var parser = csvResolver.getInlineRecordParser().orElseThrow();
+
+        var result = parser.apply("item,price\nsword,1500");
+
+        assertThat(result.size(), is(1));
+        assertThat(result.get(0).getField("item"), is("sword"));
+        assertThat(result.get(0).getField("price"), is("1500"));
+    }
 }

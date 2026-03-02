@@ -24,6 +24,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.Charset;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -375,14 +376,25 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
                                 .formatted(expression));
             }
             return Optional.of(StreamSupport.stream(resultNode.spliterator(), false)
-                    .map(JsonNode::asText)
-                    .filter(text -> !source.getNulls().contains(text))
+                    .filter(node -> !node.isNull())
+                    .map(node -> {
+                        if (node.isValueNode()) {
+                            var text = node.asText();
+                            if (source.getNulls().contains(text)) {
+                                return null;
+                            }
+                            return text;
+                        }
+                        // Return raw JsonNode for objects/arrays — needed for iterable field evaluation
+                        return node;
+                    })
+                    .filter(Objects::nonNull)
                     .toList());
         }
         if (resultNode.isObject()) {
-            throw new LogicalSourceResolverException(
-                    "JSONPath expression '%s' evaluated to an object, but only scalar values are allowed."
-                            .formatted(expression));
+            // Return raw JsonNode — needed for iterable field evaluation where the iterator
+            // expression targets a single nested object (e.g. "$.measures" → {"weight": 1500})
+            return Optional.of(resultNode);
         }
         if (resultNode.isValueNode()) {
             var textResult = resultNode.asText();
@@ -393,6 +405,18 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
         }
 
         throw new LogicalSourceResolverException(ERROR_INTERPRETING_RESULT.formatted(resultNode));
+    }
+
+    @Override
+    public Optional<Function<String, List<JsonNode>>> getInlineRecordParser() {
+        return Optional.of(text -> {
+            try {
+                return List.of(OBJECT_MAPPER.readTree(text));
+            } catch (IOException e) {
+                throw new LogicalSourceResolverException(
+                        "Error parsing inline JSON text for iterable field evaluation", e);
+            }
+        });
     }
 
     // Note: unlike getExpressionEvaluationFactory(), this does not check source.getNulls() —
@@ -437,6 +461,7 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
 
     @ToString
     @AutoService(MatchingLogicalSourceResolverFactory.class)
+    @SuppressWarnings("unused")
     public static class Matcher implements MatchingLogicalSourceResolverFactory {
 
         @Override

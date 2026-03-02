@@ -9,12 +9,17 @@ import io.carml.model.XPathReferenceFormulation;
 import io.carml.model.XmlSource;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringReader;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+import javax.xml.transform.stream.StreamSource;
 import javax.xml.xpath.XPathException;
 import jlibs.xml.DefaultNamespaceContext;
 import jlibs.xml.sax.dog.NodeItem;
@@ -27,11 +32,14 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
+import net.sf.saxon.s9api.Axis;
 import net.sf.saxon.s9api.DocumentBuilder;
 import net.sf.saxon.s9api.Processor;
 import net.sf.saxon.s9api.SaxonApiException;
 import net.sf.saxon.s9api.XPathCompiler;
 import net.sf.saxon.s9api.XdmItem;
+import net.sf.saxon.s9api.XdmNode;
+import net.sf.saxon.s9api.XdmNodeKind;
 import net.sf.saxon.s9api.XdmValue;
 import org.jaxen.saxpath.SAXPathException;
 import org.xml.sax.InputSource;
@@ -77,6 +85,11 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
     private final boolean autoNodeTextExtraction;
 
     private final Map<Set<LogicalSource>, XMLDog> xmlDogCache;
+
+    @Override
+    public void configure(LogicalSource logicalSource) {
+        setNamespaces(logicalSource);
+    }
 
     private void setNamespaces(LogicalSource logicalSource) {
         if (source instanceof XmlSource xmlSource) {
@@ -255,23 +268,47 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
             try {
                 var selector = xpathCompiler.compile(expression).load();
                 selector.setContextItem(entry);
-                var value = selector.evaluate();
 
-                if (value.size() > 1) {
-                    throw new LogicalSourceResolverException(
-                            "XPath expression '%s' evaluated to multiple items, but only scalar values are allowed. Use an iterator to process multiple items."
-                                    .formatted(expression));
-                } else if (value.isEmptySequence()) {
-                    return Optional.empty();
-                }
-
-                var item = value.itemAt(0);
-                return Optional.ofNullable(getItemStringValue(item, value));
+                return evaluateXdmValue(selector.evaluate());
             } catch (SaxonApiException e) {
                 throw new LogicalSourceResolverException(
                         "Error applying XPath expression [%s] to entry [%s]".formatted(expression, entry), e);
             }
         };
+    }
+
+    private Optional<Object> evaluateXdmValue(XdmValue value) {
+        if (value.size() > 1) {
+            return Optional.of(evaluateMultiItemValue(value));
+        } else if (value.isEmptySequence()) {
+            return Optional.empty();
+        }
+
+        return Optional.ofNullable(getItemStringValue(value.itemAt(0), value));
+    }
+
+    private List<Object> evaluateMultiItemValue(XdmValue value) {
+        return StreamSupport.stream(value.spliterator(), false)
+                .map(this::resolveXdmItem)
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
+    private Object resolveXdmItem(XdmItem item) {
+        // Return raw XdmItem only for element nodes — needed for
+        // iterable field evaluation where nested expressions are
+        // evaluated against the element
+        if (item instanceof XdmNode node && node.getNodeKind() == XdmNodeKind.ELEMENT) {
+            return item;
+        }
+        // For atomic values, attribute nodes, text nodes, etc.,
+        // return the string value
+        var text = item.getStringValue();
+        if (source.getNulls().contains(text)) {
+            return null;
+        }
+
+        return text;
     }
 
     private String getItemStringValue(XdmItem item, XdmValue value) {
@@ -281,6 +318,27 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
         }
 
         return autoNodeTextExtraction ? stringValue : value.toString();
+    }
+
+    @Override
+    public Optional<Function<String, List<XdmItem>>> getInlineRecordParser() {
+        return Optional.of(text -> {
+            try {
+                var doc = xpathProcessor.newDocumentBuilder().build(new StreamSource(new StringReader(text)));
+                // Return the document element so child expression evaluation targets an element
+                // node, consistent with the streaming path where each record is an element-level
+                // XdmNode.
+                var childIter = doc.axisIterator(Axis.CHILD);
+                if (childIter.hasNext()) {
+                    return List.of(childIter.next());
+                }
+
+                return List.of();
+            } catch (SaxonApiException e) {
+                throw new LogicalSourceResolverException(
+                        "Error parsing inline XML text for iterable field evaluation", e);
+            }
+        });
     }
 
     @Override
@@ -328,6 +386,7 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
 
     @ToString
     @AutoService(MatchingLogicalSourceResolverFactory.class)
+    @SuppressWarnings("unused")
     public static class Matcher implements MatchingLogicalSourceResolverFactory {
 
         @Override

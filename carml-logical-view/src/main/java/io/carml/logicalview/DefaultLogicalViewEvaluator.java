@@ -75,6 +75,12 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
 
     private record JoinOptimizations(boolean singleMatch, boolean eliminate, boolean effectiveInnerJoin) {}
 
+    private record FieldEvaluationContext(
+            ReferenceFormulation currentRefForm,
+            DatatypeMapper datatypeMapper,
+            Function<ReferenceFormulation, LogicalSourceResolver.ExpressionEvaluationFactory<Object>> factoryResolver,
+            Function<ReferenceFormulation, Optional<Function<String, List<Object>>>> inlineRecordParserResolver) {}
+
     @Override
     public Flux<ViewIteration> evaluate(
             LogicalView view, Function<Source, ResolvedSource<?>> sourceResolver, EvaluationContext context) {
@@ -101,7 +107,12 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                 refForm ->
                         factoryCache.computeIfAbsent(refForm, rf -> resolveExpressionEvaluationFactory(rf, rootSource));
 
-        return evaluateView(view, sourceResolver, context, rootRefForm, factoryCache, factoryResolver);
+        var inlineRecordParserCache = new HashMap<ReferenceFormulation, Optional<Function<String, List<Object>>>>();
+        Function<ReferenceFormulation, Optional<Function<String, List<Object>>>> inlineRecordParserResolver = refForm ->
+                inlineRecordParserCache.computeIfAbsent(refForm, rf -> resolveInlineRecordParser(rf, rootSource));
+
+        return evaluateView(
+                view, sourceResolver, context, rootRefForm, factoryCache, factoryResolver, inlineRecordParserResolver);
     }
 
     @SuppressWarnings("unchecked")
@@ -111,7 +122,8 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
             EvaluationContext context,
             ReferenceFormulation rootRefForm,
             Map<ReferenceFormulation, LogicalSourceResolver.ExpressionEvaluationFactory<Object>> factoryCache,
-            Function<ReferenceFormulation, LogicalSourceResolver.ExpressionEvaluationFactory<Object>> factoryResolver) {
+            Function<ReferenceFormulation, LogicalSourceResolver.ExpressionEvaluationFactory<Object>> factoryResolver,
+            Function<ReferenceFormulation, Optional<Function<String, List<Object>>>> inlineRecordParserResolver) {
 
         var viewOn = view.getViewOn();
         var fields = view.getFields();
@@ -143,7 +155,8 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                             EvaluationContext.defaults(),
                             rootRefForm,
                             factoryCache,
-                            factoryResolver)
+                            factoryResolver,
+                            inlineRecordParserResolver)
                     .map(vi -> {
                         var viewExprEval = new ViewIterationExpressionEvaluation(vi, parentReferenceableKeys);
                         DatatypeMapper viewDatatypeMapper = vi::getNaturalDatatype;
@@ -151,8 +164,17 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                     });
         }
 
-        Flux<EvaluatedValues> evaluatedFlux = exprEvalFlux.flatMapIterable(pair ->
-                evaluateFields(fields, pair.exprEval(), pair.datatypeMapper(), rootRefForm, "", factoryResolver));
+        // Assign root # per source record BEFORE joins — so joined iterations share the
+        // source record index. This preserves the source position semantics of # even when
+        // joins expand one record into multiple iterations or filter records out.
+        var sourceIndex = new AtomicInteger(0);
+        Flux<EvaluatedValues> evaluatedFlux = exprEvalFlux.flatMapIterable(pair -> {
+            var idx = sourceIndex.getAndIncrement();
+            var fieldCtx = new FieldEvaluationContext(
+                    rootRefForm, pair.datatypeMapper(), factoryResolver, inlineRecordParserResolver);
+            var fieldEvals = evaluateFields(fields, pair.exprEval(), "", fieldCtx);
+            return fieldEvals.stream().map(ev -> withIndex(ev, INDEX_KEY, idx)).toList();
+        });
 
         // Apply joins: left joins first, then inner joins
         var leftJoins = view.getLeftJoins();
@@ -179,19 +201,14 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
             }
         }
 
-        // Convert to ViewIteration without root # for dedup
-        Flux<ViewIteration> viewIterations = evaluatedFlux.map(
-                ev -> new DefaultViewIteration(0, ev.values(), ev.referenceFormulations(), ev.naturalDatatypes()));
+        // Convert to ViewIteration — root # already assigned before joins
+        Flux<ViewIteration> viewIterations = evaluatedFlux.map(ev -> new DefaultViewIteration(
+                (int) ev.values().get(INDEX_KEY), ev.values(), ev.referenceFormulations(), ev.naturalDatatypes()));
 
         // Apply dedup strategy — narrow key to projected fields when available
         var keyFields =
                 projectedFields.isEmpty() ? collectDedupKeyFields(view) : expandWithIndexKeys(projectedFields, view);
-        viewIterations = context.getDedupStrategy().deduplicate(viewIterations, keyFields);
-
-        // Assign sequential # index after dedup
-        var index = new AtomicInteger(0);
-        var iterations = viewIterations.map(
-                vi -> (ViewIteration) ((DefaultViewIteration) vi).withIndex(index.getAndIncrement()));
+        var iterations = context.getDedupStrategy().deduplicate(viewIterations, keyFields);
 
         // Apply limit
         return context.getLimit().map(iterations::take).orElse(iterations);
@@ -318,16 +335,12 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                 .referenceFormulation(referenceFormulation)
                 .build();
         var resolver = (LogicalSourceResolver<Object>) findResolver(syntheticLogicalSource, source);
+        resolver.configure(syntheticLogicalSource);
         return resolver.getExpressionEvaluationFactory();
     }
 
-    private List<EvaluatedValues> evaluateFields(
-            Set<Field> fields,
-            ExpressionEvaluation exprEval,
-            DatatypeMapper datatypeMapper,
-            ReferenceFormulation currentRefForm,
-            String prefix,
-            Function<ReferenceFormulation, LogicalSourceResolver.ExpressionEvaluationFactory<Object>> factoryResolver) {
+    private static List<EvaluatedValues> evaluateFields(
+            Set<Field> fields, ExpressionEvaluation exprEval, String prefix, FieldEvaluationContext fieldCtx) {
 
         var fieldContributions = fields.stream()
                 .sorted(Comparator.comparing(Field::getFieldName))
@@ -336,12 +349,26 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                         var values = evaluateExpressionMap(ef, exprEval);
                         var absoluteName = prefix + ef.getFieldName();
                         var indexKey = absoluteName + INDEX_KEY_SUFFIX;
-                        var refFormMap = currentRefForm != null
-                                ? Map.of(absoluteName, currentRefForm)
+                        var refFormMap = fieldCtx.currentRefForm() != null
+                                ? Map.of(absoluteName, fieldCtx.currentRefForm())
                                 : Map.<String, ReferenceFormulation>of();
 
                         // Resolve natural datatype for reference expressions
-                        var naturalDatatypeMap = resolveNaturalDatatypes(ef, absoluteName, indexKey, datatypeMapper);
+                        var naturalDatatypeMap =
+                                resolveNaturalDatatypes(ef, absoluteName, indexKey, fieldCtx.datatypeMapper());
+
+                        // Check for child fields (e.g., IterableField with a different ref formulation)
+                        var childFields = ef.getFields();
+                        if (childFields != null && !childFields.isEmpty()) {
+                            return evaluateExpressionFieldWithChildren(
+                                    values,
+                                    absoluteName,
+                                    indexKey,
+                                    refFormMap,
+                                    naturalDatatypeMap,
+                                    childFields,
+                                    fieldCtx);
+                        }
 
                         return IntStream.range(0, values.size())
                                 .mapToObj(i -> new EvaluatedValues(
@@ -350,8 +377,7 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                                         naturalDatatypeMap))
                                 .toList();
                     } else if (field instanceof IterableField itf) {
-                        return evaluateIterableField(
-                                itf, exprEval, datatypeMapper, currentRefForm, prefix, factoryResolver);
+                        return evaluateIterableField(itf, exprEval, prefix, fieldCtx);
                     } else {
                         throw new UnsupportedOperationException("Unsupported field type: %s"
                                 .formatted(field.getClass().getSimpleName()));
@@ -360,21 +386,48 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                 .toList();
 
         return CartesianProduct.listCartesianProduct(fieldContributions).stream()
-                .map(combo -> {
-                    var mergedValues = new LinkedHashMap<String, Object>();
-                    var mergedRefForms = new LinkedHashMap<String, ReferenceFormulation>();
-                    var mergedNaturalDatatypes = new LinkedHashMap<String, IRI>();
-                    combo.forEach(ev -> {
-                        mergedValues.putAll(ev.values());
-                        mergedRefForms.putAll(ev.referenceFormulations());
-                        mergedNaturalDatatypes.putAll(ev.naturalDatatypes());
-                    });
-                    return new EvaluatedValues(mergedValues, mergedRefForms, mergedNaturalDatatypes);
+                .map(DefaultLogicalViewEvaluator::mergeEvaluatedValues)
+                .toList();
+    }
+
+    private static EvaluatedValues mergeEvaluatedValues(List<EvaluatedValues> parts) {
+        var mergedValues = new LinkedHashMap<String, Object>();
+        var mergedRefForms = new LinkedHashMap<String, ReferenceFormulation>();
+        var mergedNaturalDatatypes = new LinkedHashMap<String, IRI>();
+        parts.forEach(ev -> {
+            mergedValues.putAll(ev.values());
+            mergedRefForms.putAll(ev.referenceFormulations());
+            mergedNaturalDatatypes.putAll(ev.naturalDatatypes());
+        });
+        return new EvaluatedValues(mergedValues, mergedRefForms, mergedNaturalDatatypes);
+    }
+
+    private static List<EvaluatedValues> stampIndexOnSubRecords(
+            List<Object> subRecords,
+            String iterableIndexKey,
+            LogicalSourceResolver.ExpressionEvaluationFactory<Object> nestedFactory,
+            Set<Field> nestedFields,
+            String subPrefix,
+            FieldEvaluationContext fieldCtx) {
+        return IntStream.range(0, subRecords.size())
+                .boxed()
+                .flatMap(i -> {
+                    var subExprEval = nestedFactory.apply(subRecords.get(i));
+                    return evaluateFields(nestedFields, subExprEval, subPrefix, fieldCtx).stream()
+                            .map(ev -> withIndex(ev, iterableIndexKey, i));
                 })
                 .toList();
     }
 
-    private Map<String, IRI> resolveNaturalDatatypes(
+    private static EvaluatedValues withIndex(EvaluatedValues ev, String indexKey, int index) {
+        var values = new LinkedHashMap<>(ev.values());
+        values.put(indexKey, index);
+        var datatypes = new LinkedHashMap<>(ev.naturalDatatypes());
+        datatypes.put(indexKey, XSD.INTEGER);
+        return new EvaluatedValues(values, ev.referenceFormulations(), datatypes);
+    }
+
+    private static Map<String, IRI> resolveNaturalDatatypes(
             ExpressionField ef, String absoluteName, String indexKey, DatatypeMapper datatypeMapper) {
         var naturalDatatypes = new LinkedHashMap<String, IRI>();
 
@@ -391,13 +444,8 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
         return naturalDatatypes;
     }
 
-    private List<EvaluatedValues> evaluateIterableField(
-            IterableField field,
-            ExpressionEvaluation exprEval,
-            DatatypeMapper datatypeMapper,
-            ReferenceFormulation currentRefForm,
-            String prefix,
-            Function<ReferenceFormulation, LogicalSourceResolver.ExpressionEvaluationFactory<Object>> factoryResolver) {
+    private static List<EvaluatedValues> evaluateIterableField(
+            IterableField field, ExpressionEvaluation exprEval, String prefix, FieldEvaluationContext fieldCtx) {
 
         var subRecords = exprEval.apply(field.getIterator())
                 .map(ExpressionEvaluation::extractValues)
@@ -419,41 +467,151 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                     .orElse(null);
         }
         if (nestedRefForm == null) {
-            nestedRefForm = currentRefForm;
+            nestedRefForm = fieldCtx.currentRefForm();
         }
 
-        var nestedFactory = factoryResolver.apply(nestedRefForm);
-
+        var nestedFactory = fieldCtx.factoryResolver().apply(nestedRefForm);
         var subPrefix = prefix + field.getFieldName() + ".";
-
         var iterableIndexKey = prefix + field.getFieldName() + INDEX_KEY_SUFFIX;
 
-        var effectiveNestedRefForm = nestedRefForm;
-        return IntStream.range(0, subRecords.size())
+        var nestedFieldCtx = new FieldEvaluationContext(
+                nestedRefForm,
+                fieldCtx.datatypeMapper(),
+                fieldCtx.factoryResolver(),
+                fieldCtx.inlineRecordParserResolver());
+
+        return stampIndexOnSubRecords(
+                subRecords, iterableIndexKey, nestedFactory, nestedFields, subPrefix, nestedFieldCtx);
+    }
+
+    /**
+     * Evaluates an ExpressionField that has child fields (typically IterableFields with a different
+     * reference formulation). For each expression value, merges the base ExpressionField evaluation
+     * with the results of evaluating child fields via inline text parsing.
+     */
+    private static List<EvaluatedValues> evaluateExpressionFieldWithChildren(
+            List<Object> values,
+            String absoluteName,
+            String indexKey,
+            Map<String, ReferenceFormulation> refFormMap,
+            Map<String, IRI> naturalDatatypeMap,
+            Set<Field> childFields,
+            FieldEvaluationContext fieldCtx) {
+
+        var childPrefix = absoluteName + ".";
+
+        return IntStream.range(0, values.size())
                 .boxed()
                 .flatMap(i -> {
-                    var subExprEval = nestedFactory.apply(subRecords.get(i));
-                    // For nested iterables, the datatype mapper is inherited from the parent
-                    // evaluation context. Each sub-record uses the same mapper since the source
-                    // format determines natural datatypes, not individual record content.
-                    return evaluateFields(
-                                    nestedFields,
-                                    subExprEval,
-                                    datatypeMapper,
-                                    effectiveNestedRefForm,
-                                    subPrefix,
-                                    factoryResolver)
-                            .stream()
-                            .map(ev -> {
-                                var mergedValues = new LinkedHashMap<>(ev.values());
-                                mergedValues.put(iterableIndexKey, i);
-                                var mergedNaturalDatatypes = new LinkedHashMap<>(ev.naturalDatatypes());
-                                mergedNaturalDatatypes.put(iterableIndexKey, XSD.INTEGER);
-                                return new EvaluatedValues(
-                                        mergedValues, ev.referenceFormulations(), mergedNaturalDatatypes);
-                            });
+                    var value = values.get(i);
+                    var baseEv = new EvaluatedValues(
+                            Map.of(absoluteName, value, indexKey, i), refFormMap, naturalDatatypeMap);
+
+                    // Process child IterableFields via inline text parsing
+                    var childContributions = childFields.stream()
+                            .sorted(Comparator.comparing(Field::getFieldName))
+                            .map(childField -> {
+                                if (childField instanceof IterableField itf) {
+                                    return evaluateInlineIterableField(itf, value, childPrefix, fieldCtx);
+                                }
+                                return List.<EvaluatedValues>of();
+                            })
+                            .toList();
+
+                    var childCombos = CartesianProduct.listCartesianProduct(childContributions);
+
+                    return childCombos.stream().map(combo -> {
+                        var withBase = new ArrayList<EvaluatedValues>(combo.size() + 1);
+                        withBase.add(baseEv);
+                        withBase.addAll(combo);
+                        return mergeEvaluatedValues(withBase);
+                    });
                 })
                 .toList();
+    }
+
+    /**
+     * Evaluates an IterableField that is a child of an ExpressionField, using inline text parsing
+     * to convert the parent field's text value into the target format's native records. This handles
+     * mixed reference formulations (e.g., CSV field containing JSON, or JSON field containing CSV).
+     */
+    private static List<EvaluatedValues> evaluateInlineIterableField(
+            IterableField field, Object parentValue, String prefix, FieldEvaluationContext fieldCtx) {
+
+        var nestedRefForm = field.getReferenceFormulation();
+        if (nestedRefForm == null) {
+            nestedRefForm = fieldCtx.currentRefForm();
+        }
+
+        if (parentValue == null) {
+            return List.of();
+        }
+
+        // Parse the parent's text value into the target format's native records
+        var effectiveNestedRefForm = nestedRefForm;
+        var inlineRecordParser = fieldCtx.inlineRecordParserResolver()
+                .apply(nestedRefForm)
+                .orElseThrow(() -> new LogicalSourceResolverException(
+                        ("No inline record parser available for reference formulation %s; "
+                                        + "cannot evaluate iterable field with mixed reference formulations")
+                                .formatted(effectiveNestedRefForm)));
+
+        var parsedRecords = inlineRecordParser.apply(parentValue.toString());
+
+        if (parsedRecords.isEmpty()) {
+            return List.of();
+        }
+
+        var nestedFactory = fieldCtx.factoryResolver().apply(nestedRefForm);
+
+        // If the iterable field has an iterator, apply it to extract sub-records from each parsed
+        // record. For JSON: parse text → one JsonNode, apply "$[*]" → array elements.
+        // If no iterator (e.g., CSV): each parsed record is already a sub-record.
+        List<Object> subRecords;
+        if (field.getIterator() != null) {
+            subRecords = new ArrayList<>();
+            for (var rec : parsedRecords) {
+                var recordExprEval = nestedFactory.apply(rec);
+                recordExprEval
+                        .apply(field.getIterator())
+                        .map(ExpressionEvaluation::extractValues)
+                        .ifPresent(subRecords::addAll);
+            }
+        } else {
+            subRecords = new ArrayList<>(parsedRecords);
+        }
+
+        if (subRecords.isEmpty()) {
+            return List.of();
+        }
+
+        var nestedFields = field.getFields();
+        if (nestedFields == null || nestedFields.isEmpty()) {
+            return List.of();
+        }
+
+        var subPrefix = prefix + field.getFieldName() + ".";
+        var iterableIndexKey = prefix + field.getFieldName() + INDEX_KEY_SUFFIX;
+
+        var nestedFieldCtx = new FieldEvaluationContext(
+                nestedRefForm,
+                fieldCtx.datatypeMapper(),
+                fieldCtx.factoryResolver(),
+                fieldCtx.inlineRecordParserResolver());
+
+        return stampIndexOnSubRecords(
+                subRecords, iterableIndexKey, nestedFactory, nestedFields, subPrefix, nestedFieldCtx);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Optional<Function<String, List<Object>>> resolveInlineRecordParser(
+            ReferenceFormulation referenceFormulation, Source source) {
+        var syntheticLogicalSource = CarmlLogicalSource.builder()
+                .referenceFormulation(referenceFormulation)
+                .build();
+        var resolver = (LogicalSourceResolver<Object>) findResolver(syntheticLogicalSource, source);
+        resolver.configure(syntheticLogicalSource);
+        return resolver.getInlineRecordParser();
     }
 
     private Flux<EvaluatedValues> applyJoin(
@@ -521,12 +679,12 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
 
         var childKey = evaluateJoinKey(conditions, childExprEval, false);
         if (childKey.isEmpty()) {
-            return isLeftJoin ? List.of(child) : List.of();
+            return isLeftJoin ? List.of(extendWithNullJoinFields(child, joinFields)) : List.of();
         }
 
         var matchedParents = joinIndex.get(childKey);
         if (matchedParents.isEmpty()) {
-            return isLeftJoin ? List.of(child) : List.of();
+            return isLeftJoin ? List.of(extendWithNullJoinFields(child, joinFields)) : List.of();
         }
 
         var effectiveParents = singleMatch ? matchedParents.subList(0, 1) : matchedParents;
@@ -536,6 +694,13 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                 .toList();
 
         var result = new ArrayList<EvaluatedValues>();
+        // Track running index per join field across all parent matches so that
+        // json_item.# counts 0, 1, 2, ... across parent iterations (not resetting per parent)
+        var runningIndex = new LinkedHashMap<String, Integer>();
+        for (var joinField : sortedJoinFields) {
+            runningIndex.put(joinField.getFieldName(), 0);
+        }
+
         for (var parentIteration : effectiveParents) {
             var parentExprEval = new ViewIterationExpressionEvaluation(parentIteration, parentReferenceableKeys);
 
@@ -555,29 +720,41 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                                     .ifPresent(iri -> joinNaturalDatatypes.put(fieldName, iri));
                         }
 
-                        return IntStream.range(0, values.size())
+                        var baseIdx = runningIndex.get(fieldName);
+                        var evList = IntStream.range(0, values.size())
                                 .mapToObj(i -> new EvaluatedValues(
-                                        Map.of(fieldName, values.get(i), indexKey, i), Map.of(), joinNaturalDatatypes))
+                                        Map.of(fieldName, values.get(i), indexKey, baseIdx + i),
+                                        Map.of(),
+                                        joinNaturalDatatypes))
                                 .toList();
+                        runningIndex.put(fieldName, baseIdx + values.size());
+                        return evList;
                     })
                     .toList();
 
             // Cartesian product of join field values, merged with child values
             var combinations = CartesianProduct.listCartesianProduct(fieldContributions);
             for (var combo : combinations) {
-                var mergedValues = new LinkedHashMap<>(child.values());
-                var mergedRefForms = new LinkedHashMap<>(child.referenceFormulations());
-                var mergedNaturalDatatypes = new LinkedHashMap<>(child.naturalDatatypes());
-                combo.forEach(ev -> {
-                    mergedValues.putAll(ev.values());
-                    mergedRefForms.putAll(ev.referenceFormulations());
-                    mergedNaturalDatatypes.putAll(ev.naturalDatatypes());
-                });
-                result.add(new EvaluatedValues(mergedValues, mergedRefForms, mergedNaturalDatatypes));
+                var withChild = new ArrayList<EvaluatedValues>(combo.size() + 1);
+                withChild.add(child);
+                withChild.addAll(combo);
+                result.add(mergeEvaluatedValues(withChild));
             }
         }
 
         return result;
+    }
+
+    private static EvaluatedValues extendWithNullJoinFields(EvaluatedValues child, Set<ExpressionField> joinFields) {
+        if (joinFields == null || joinFields.isEmpty()) {
+            return child;
+        }
+        var extendedValues = new LinkedHashMap<>(child.values());
+        for (var joinField : joinFields) {
+            extendedValues.put(joinField.getFieldName(), null);
+            extendedValues.put(joinField.getFieldName() + INDEX_KEY_SUFFIX, null);
+        }
+        return new EvaluatedValues(extendedValues, child.referenceFormulations(), child.naturalDatatypes());
     }
 
     private JoinOptimizations analyzeJoinOptimizations(
@@ -714,7 +891,7 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
         return annotations != null ? annotations : Set.of();
     }
 
-    private List<Object> evaluateExpressionMap(ExpressionMap field, ExpressionEvaluation exprEval) {
+    private static List<Object> evaluateExpressionMap(ExpressionMap field, ExpressionEvaluation exprEval) {
         if (field.getReference() != null) {
             return evaluateReference(field.getReference(), exprEval);
         }
@@ -734,13 +911,13 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
         return List.of();
     }
 
-    private List<Object> evaluateReference(String reference, ExpressionEvaluation exprEval) {
+    private static List<Object> evaluateReference(String reference, ExpressionEvaluation exprEval) {
         return exprEval.apply(reference)
                 .map(ExpressionEvaluation::extractValues)
                 .orElse(List.of());
     }
 
-    private List<Object> evaluateTemplate(Template template, ExpressionEvaluation exprEval) {
+    private static List<Object> evaluateTemplate(Template template, ExpressionEvaluation exprEval) {
         var segmentValueLists = new ArrayList<List<String>>();
 
         for (var segment : template.getSegments()) {

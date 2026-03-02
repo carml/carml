@@ -1,6 +1,7 @@
 package io.carml.logicalview;
 
 import io.carml.model.ReferenceFormulation;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -24,7 +25,8 @@ class DefaultViewIteration implements ViewIteration {
             Map<String, ReferenceFormulation> referenceFormulations,
             Map<String, IRI> naturalDatatypes) {
         this.index = index;
-        this.values = Map.copyOf(values);
+        // Use Collections.unmodifiableMap to support null values (left join no-match fields)
+        this.values = Collections.unmodifiableMap(new LinkedHashMap<>(values));
         this.referenceFormulations = Map.copyOf(referenceFormulations);
         this.naturalDatatypes = Map.copyOf(naturalDatatypes);
     }

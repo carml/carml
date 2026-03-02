@@ -5,6 +5,7 @@ import io.carml.model.IterableField;
 import io.carml.model.ReferenceFormulation;
 import io.carml.model.Resource;
 import io.carml.rdfmapper.annotations.RdfProperty;
+import io.carml.rdfmapper.annotations.RdfTypeDecider;
 import io.carml.vocab.Rdf;
 import io.carml.vocab.Rml;
 import java.util.Set;
@@ -28,6 +29,7 @@ public class CarmlIterableField extends CarmlField implements IterableField {
     private String iterator;
 
     @RdfProperty(Rml.referenceFormulation)
+    @RdfTypeDecider(LogicalSourceReferenceFormulationTypeDecider.class)
     @Override
     public ReferenceFormulation getReferenceFormulation() {
         return referenceFormulation;

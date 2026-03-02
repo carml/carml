@@ -194,9 +194,10 @@ class DefaultLogicalViewEvaluatorTest {
                 .block();
 
         assertThat(iterations, hasSize(2));
+        // Both expansions share the same source record, so both have root # = 0
         assertThat(iterations.get(0).getIndex(), is(0));
         assertThat(iterations.get(0).getValue("color"), is(Optional.of("red")));
-        assertThat(iterations.get(1).getIndex(), is(1));
+        assertThat(iterations.get(1).getIndex(), is(0));
         assertThat(iterations.get(1).getValue("color"), is(Optional.of("blue")));
     }
 
@@ -2694,7 +2695,7 @@ class DefaultLogicalViewEvaluatorTest {
     }
 
     @Test
-    void givenInnerJoinDroppingIterations_whenEvaluated_thenIndexIsReassignedWithoutGaps() {
+    void givenInnerJoinDroppingIterations_whenEvaluated_thenSourceRecordIndexIsPreserved() {
         var idField = mockExpressionField("id");
         when(idField.getReference()).thenReturn("id");
         when(logicalView.getFields()).thenReturn(Set.of(idField));
@@ -2733,10 +2734,12 @@ class DefaultLogicalViewEvaluatorTest {
                 .block();
 
         assertThat(iterations, hasSize(2));
+        // Root # reflects source record position, not sequential post-join index.
+        // Records 1 and 3 match (source indices 0 and 2); record 2 is dropped by inner join.
         assertThat(iterations.get(0).getIndex(), is(0));
         assertThat(iterations.get(0).getValue("#"), is(Optional.of(0)));
-        assertThat(iterations.get(1).getIndex(), is(1));
-        assertThat(iterations.get(1).getValue("#"), is(Optional.of(1)));
+        assertThat(iterations.get(1).getIndex(), is(2));
+        assertThat(iterations.get(1).getValue("#"), is(Optional.of(2)));
     }
 
     @Test
@@ -2901,9 +2904,9 @@ class DefaultLogicalViewEvaluatorTest {
                 .toList();
         assertThat(tagValues, containsInAnyOrder("a", "b"));
 
-        // Each parent iteration contributes a single "tags" value, so tags.# is 0 for both
+        // Running index counts across parent matches: first match → tags.#=0, second → tags.#=1
         assertThat(iterations.get(0).getValue("tags.#"), is(Optional.of(0)));
-        assertThat(iterations.get(1).getValue("tags.#"), is(Optional.of(0)));
+        assertThat(iterations.get(1).getValue("tags.#"), is(Optional.of(1)));
     }
 
     // --- Deduplication tests ---
@@ -3081,11 +3084,13 @@ class DefaultLogicalViewEvaluatorTest {
             return Optional.empty();
         };
 
-        var rec = createRecord("record-1");
-        setupChildView(Flux.just(rec), exprEval);
+        // Two child records both producing id=1 → duplicates after join extension
+        var rec1 = createRecord("record-1");
+        var rec2 = createRecord("record-2");
+        setupChildView(Flux.just(rec1, rec2), exprEval);
 
-        // Two parent rows with identical join field values: both pid=1, city=NYC
-        var parentView = setupParentView(List.of(Map.of("pid", "1", "city", "NYC"), Map.of("pid", "1", "city", "NYC")));
+        // One parent row: pid=1, city=NYC — matches both child records
+        var parentView = setupParentView(List.of(Map.of("pid", "1", "city", "NYC")));
         buildJoinEvaluator();
 
         var cityJoinField = mockExpressionField("city");
@@ -3104,7 +3109,7 @@ class DefaultLogicalViewEvaluatorTest {
                 .collectList()
                 .block();
 
-        // Two parent matches both produce id=1, city=NYC → exact dedup keeps only 1
+        // Both child records produce id=1, city=NYC, city.#=0 → exact dedup keeps only 1
         assertThat(iterations, hasSize(1));
         assertThat(iterations.get(0).getIndex(), is(0));
         assertThat(iterations.get(0).getValue("id"), is(Optional.of("1")));

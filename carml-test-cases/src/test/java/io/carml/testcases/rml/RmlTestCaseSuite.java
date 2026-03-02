@@ -53,7 +53,9 @@ public abstract class RmlTestCaseSuite {
 
     protected abstract String getBasePath();
 
-    protected abstract List<String> getSkipTests();
+    protected List<String> getSkipTests() {
+        return List.of();
+    }
 
     /**
      * Returns test identifier prefixes whose expected output requires lenient URI syntax verification.

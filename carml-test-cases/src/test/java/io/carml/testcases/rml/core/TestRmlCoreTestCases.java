@@ -14,9 +14,4 @@ class TestRmlCoreTestCases extends RmlTestCaseSuite {
     protected List<String> getLenientOutputTests() {
         return List.of("RMLTC0027b"); // rml:UnsafeIRI produces IRIs with unencoded characters
     }
-
-    @Override
-    protected List<String> getSkipTests() {
-        return List.of();
-    }
 }

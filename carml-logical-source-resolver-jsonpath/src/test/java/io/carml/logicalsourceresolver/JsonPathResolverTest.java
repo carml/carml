@@ -742,6 +742,38 @@ class JsonPathResolverTest {
                 .verify();
     }
 
+    @Test
+    void getInlineRecordParser_givenJsonObject_returnsSingleNode() {
+        var jsonPathResolver = jsonPathResolverFactory.apply(CarmlFilePath.of("inline.json"));
+        var parser = jsonPathResolver.getInlineRecordParser().orElseThrow();
+
+        var result = parser.apply("{\"name\":\"alice\"}");
+
+        assertThat(result.size(), is(1));
+        assertThat(result.get(0).isObject(), is(true));
+        assertThat(result.get(0).get("name").asText(), is("alice"));
+    }
+
+    @Test
+    void getInlineRecordParser_givenJsonArray_returnsSingleArrayNode() {
+        var jsonPathResolver = jsonPathResolverFactory.apply(CarmlFilePath.of("inline.json"));
+        var parser = jsonPathResolver.getInlineRecordParser().orElseThrow();
+
+        var result = parser.apply("[{\"a\":1},{\"b\":2}]");
+
+        assertThat(result.size(), is(1));
+        assertThat(result.get(0).isArray(), is(true));
+    }
+
+    @Test
+    void getInlineRecordParser_givenMalformedJson_throwsException() {
+        var jsonPathResolver = jsonPathResolverFactory.apply(CarmlFilePath.of("inline.json"));
+        var parser = jsonPathResolver.getInlineRecordParser().orElseThrow();
+
+        var exception = assertThrows(LogicalSourceResolverException.class, () -> parser.apply("{malformed"));
+        assertThat(exception.getMessage(), is("Error parsing inline JSON text for iterable field evaluation"));
+    }
+
     private DatatypeMapper createDatatypeMapper(JsonNode jsonNode) {
         var foodSource = CarmlLogicalSource.builder()
                 .source(CarmlFilePath.of("food.json"))

@@ -19,8 +19,11 @@ import io.carml.util.TypeRef;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -71,7 +74,7 @@ public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
                     String.format("No source provided for logical sources:%n%s", exception(logicalSources)));
         }
 
-        var resolved = resolvedSource.getResolved().get();
+        var resolved = resolvedSource.getResolved().orElseThrow();
 
         var encoding = source.getEncoding();
 
@@ -198,12 +201,22 @@ public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
     }
 
     @Override
+    public Optional<Function<String, List<NamedCsvRecord>>> getInlineRecordParser() {
+        return Optional.of(text -> {
+            var records = new ArrayList<NamedCsvRecord>();
+            CsvReader.builder().ofNamedCsvRecord(new StringReader(text)).forEach(records::add);
+            return List.copyOf(records);
+        });
+    }
+
+    @Override
     public Optional<DatatypeMapperFactory<NamedCsvRecord>> getDatatypeMapperFactory() {
         return Optional.empty();
     }
 
     @ToString
     @AutoService(MatchingLogicalSourceResolverFactory.class)
+    @SuppressWarnings("unused")
     public static class Matcher implements MatchingLogicalSourceResolverFactory {
 
         @Override

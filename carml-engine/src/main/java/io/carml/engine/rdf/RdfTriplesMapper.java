@@ -315,7 +315,8 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
         // referenced keys eagerly in apply(), so unmatched references are caught immediately.
         var baseEvaluation = new ViewIterationExpressionEvaluation(viewIteration, viewIteration.getKeys());
         var expressionEvaluation = resolvedMapping != null ? enrichingEvaluation(baseEvaluation) : baseEvaluation;
-        return mapEvaluation(expressionEvaluation, null).doOnError(ex -> fireError(viewIteration, ex));
+        return mapEvaluation(expressionEvaluation, viewIteration::getNaturalDatatype)
+                .doOnError(ex -> fireError(viewIteration, ex));
     }
 
     private void fireMappingStartOnce() {

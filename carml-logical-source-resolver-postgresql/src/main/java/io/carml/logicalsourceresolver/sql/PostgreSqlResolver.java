@@ -94,6 +94,7 @@ public class PostgreSqlResolver extends SqlResolver {
 
     @ToString
     @AutoService(MatchingLogicalSourceResolverFactory.class)
+    @SuppressWarnings("unused")
     public static class Matcher implements MatchingLogicalSourceResolverFactory {
 
         private final List<IRI> matchingReferenceFormulations = Stream.concat(

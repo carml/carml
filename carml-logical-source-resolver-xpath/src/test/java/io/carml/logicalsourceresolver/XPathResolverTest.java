@@ -11,6 +11,7 @@ import io.carml.logicalsourceresolver.LogicalSourceResolver.LogicalSourceResolve
 import io.carml.model.LogicalSource;
 import io.carml.model.Source;
 import io.carml.model.XPathReferenceFormulation;
+import io.carml.model.XmlNamespace;
 import io.carml.model.impl.CarmlFilePath;
 import io.carml.model.impl.CarmlLogicalSource;
 import io.carml.util.RmlMappingLoader;
@@ -303,7 +304,7 @@ class XPathResolverTest {
     }
 
     @Test
-    void givenExpressionResolvingToMultipleItems_whenExpressionEvaluationApplied_thenThrowException()
+    void givenExpressionResolvingToMultipleItems_whenExpressionEvaluationApplied_thenReturnListOfValues()
             throws SaxonApiException {
         // Given
         var expression = "tokenize(book/price, '\\.')";
@@ -317,14 +318,15 @@ class XPathResolverTest {
         var expressionEvaluation = evaluationFactory.apply(item);
 
         // When
-        var exception =
-                assertThrows(LogicalSourceResolverException.class, () -> expressionEvaluation.apply(expression));
+        var values = expressionEvaluation
+                .apply(expression)
+                .map(ExpressionEvaluation::extractStringValues)
+                .orElse(List.of());
 
-        // Then
-        assertThat(
-                exception.getMessage(),
-                is(
-                        "XPath expression 'tokenize(book/price, '\\.')' evaluated to multiple items, but only scalar values are allowed. Use an iterator to process multiple items."));
+        // Then — tokenize("30.00", ".") produces ["30", "00"]
+        assertThat(values, hasSize(2));
+        assertThat(values, hasItem("30"));
+        assertThat(values, hasItem("00"));
     }
 
     @Test
@@ -430,5 +432,64 @@ class XPathResolverTest {
         // Then
         assertThat(evaluationResult.isPresent(), is(true));
         assertThat(evaluationResult.get(), is("j k. rowling"));
+    }
+
+    @Test
+    void getInlineRecordParser_givenValidXml_returnsDocumentElement() {
+        var xpathResolver = xpathResolverFactory.apply(LSOURCE.getSource());
+        var parser = xpathResolver.getInlineRecordParser().orElseThrow();
+
+        var result = parser.apply("<root><item>hello</item></root>");
+
+        assertThat(result, hasSize(1));
+        assertThat(result.get(0), org.hamcrest.Matchers.instanceOf(XdmItem.class));
+
+        // Verify that child expressions can be evaluated against the parsed element
+        var evalFactory = xpathResolver.getExpressionEvaluationFactory();
+        var eval = evalFactory.apply(result.get(0));
+        assertThat(eval.apply("./item").orElseThrow(), is("hello"));
+    }
+
+    @Test
+    void getInlineRecordParser_givenMalformedXml_throwsException() {
+        var xpathResolver = xpathResolverFactory.apply(LSOURCE.getSource());
+        var parser = xpathResolver.getInlineRecordParser().orElseThrow();
+
+        var exception = assertThrows(LogicalSourceResolverException.class, () -> parser.apply("<unclosed"));
+        assertThat(exception.getMessage(), is("Error parsing inline XML text for iterable field evaluation"));
+    }
+
+    @Test
+    void givenConfigureWithNamespaces_whenInlineXmlParsedAndEvaluated_thenNamespaceQualifiedExpressionsWork() {
+        // Build an XPathReferenceFormulation with namespace declaration
+        var namespace = XmlNamespace.builder()
+                .namespacePrefix("ex")
+                .namespaceUrl("http://www.example.com/books/1.0/")
+                .build();
+        var xpathRefForm = XPathReferenceFormulation.builder()
+                .id(Rml.XPath.stringValue())
+                .namespace(namespace)
+                .build();
+        var syntheticLogicalSource =
+                CarmlLogicalSource.builder().referenceFormulation(xpathRefForm).build();
+
+        // Create resolver and configure via the SPI method (mimics evaluator's inline path)
+        var xpathResolver = xpathResolverFactory.apply(LSOURCE.getSource());
+        xpathResolver.configure(syntheticLogicalSource);
+
+        // Parse inline XML with the 'ex' namespace
+        var parser = xpathResolver.getInlineRecordParser().orElseThrow();
+        var xml = "<ex:book xmlns:ex=\"http://www.example.com/books/1.0/\">"
+                + "<ex:title>Harry Potter</ex:title>"
+                + "<ex:author>J K. Rowling</ex:author>"
+                + "</ex:book>";
+        var result = parser.apply(xml);
+        assertThat(result, hasSize(1));
+
+        // Namespace-qualified expression must resolve after configure()
+        var evalFactory = xpathResolver.getExpressionEvaluationFactory();
+        var eval = evalFactory.apply(result.get(0));
+        assertThat(eval.apply("./ex:title").orElseThrow(), is("Harry Potter"));
+        assertThat(eval.apply("./ex:author").orElseThrow(), is("J K. Rowling"));
     }
 }

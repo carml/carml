@@ -136,7 +136,9 @@ public final class MappingResolver {
                 for (var objectMap : pom.getObjectMaps()) {
                     if (objectMap instanceof RefObjectMap rom) {
                         var parent = rom.getParentTriplesMap();
-                        if (inputIdentity.containsKey(parent)) {
+                        // Self-referencing joins are valid — exclude self-edges from the
+                        // dependency graph so they are not flagged as cycles.
+                        if (parent != tm && inputIdentity.containsKey(parent)) {
                             deps.add(parent);
                         }
                     }
