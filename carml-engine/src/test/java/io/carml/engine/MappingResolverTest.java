@@ -1783,21 +1783,23 @@ class MappingResolverTest {
         }
 
         @Test
-        void resolve_givenSelfReferencingTriplesMap_throwsWithCyclePath() {
-            // A -> A
-            var tmA = mock(TriplesMap.class);
-            when(tmA.getResourceName()).thenReturn("A");
+        void resolve_givenSelfReferencingTriplesMap_succeedsWithNoDependencies() {
+            // A -> A (self-referencing join is valid in RML)
+            var tmA = createTriplesMapWithDeps("A");
 
+            // Add a self-referencing RefObjectMap
             var romSelf = mock(RefObjectMap.class);
             when(romSelf.getParentTriplesMap()).thenReturn(tmA);
             var pomA = mock(PredicateObjectMap.class);
             when(pomA.getObjectMaps()).thenReturn(Set.of(romSelf));
+            when(pomA.getPredicateMaps()).thenReturn(Set.of());
+            when(pomA.getGraphMaps()).thenReturn(Set.of());
             when(tmA.getPredicateObjectMaps()).thenReturn(Set.of(pomA));
 
-            var exception = assertThrows(RmlMapperException.class, () -> MappingResolver.resolve(Set.of(tmA)));
+            var result = MappingResolver.resolve(Set.of(tmA));
 
-            assertThat(exception.getMessage(), containsString("Cycle detected in TriplesMap dependencies"));
-            assertThat(exception.getMessage(), containsString("A"));
+            assertThat(result, hasSize(1));
+            assertThat(result.get(0).getDependencies(), is(empty()));
         }
 
         @Test

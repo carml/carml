@@ -12,11 +12,11 @@ import org.junit.jupiter.api.Test;
 
 class ReturnDescriptorTest {
 
-    private static final IRI RETURN_IRI = iri("http://example.org/return1");
+    private static final IRI OUTPUT_IRI = iri("http://example.org/output1");
 
     @Test
     void constructor_throwsIllegalArgument_givenNullType() {
-        assertThrows(IllegalArgumentException.class, () -> new ReturnDescriptor(RETURN_IRI, null));
+        assertThrows(IllegalArgumentException.class, () -> new ReturnDescriptor(OUTPUT_IRI, null));
     }
 
     @Test
@@ -24,33 +24,33 @@ class ReturnDescriptorTest {
         var descriptor = new ReturnDescriptor(null, String.class);
 
         assertThat(descriptor, is(notNullValue()));
-        assertThat(descriptor.predicateIri(), is(nullValue()));
+        assertThat(descriptor.outputIri(), is(nullValue()));
     }
 
     @Test
     void constructor_createsInstance_givenValidArguments() {
-        var descriptor = new ReturnDescriptor(RETURN_IRI, String.class);
+        var descriptor = new ReturnDescriptor(OUTPUT_IRI, String.class);
 
-        assertThat(descriptor.predicateIri(), is(RETURN_IRI));
+        assertThat(descriptor.outputIri(), is(OUTPUT_IRI));
         assertThat(descriptor.type(), is(String.class));
     }
 
     @Test
-    void matches_returnsTrue_givenPredicateIri() {
-        var descriptor = new ReturnDescriptor(RETURN_IRI, String.class);
+    void matches_returnsTrue_givenOutputIri() {
+        var descriptor = new ReturnDescriptor(OUTPUT_IRI, String.class);
 
-        assertThat(descriptor.matches(RETURN_IRI), is(true));
+        assertThat(descriptor.matches(OUTPUT_IRI), is(true));
     }
 
     @Test
     void matches_returnsFalse_givenUnrelatedIri() {
-        var descriptor = new ReturnDescriptor(RETURN_IRI, String.class);
+        var descriptor = new ReturnDescriptor(OUTPUT_IRI, String.class);
 
         assertThat(descriptor.matches(iri("http://example.org/other")), is(false));
     }
 
     @Test
-    void matches_returnsFalse_whenPredicateIriIsNull() {
+    void matches_returnsFalse_whenOutputIriIsNull() {
         var descriptor = new ReturnDescriptor(null, String.class);
 
         assertThat(descriptor.matches(iri("http://example.org/other")), is(false));

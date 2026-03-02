@@ -32,12 +32,12 @@ class FnoDescriptionProviderTest {
     private static final String GREL = "http://example.org/grel/";
 
     private static final IRI TO_UPPER_IRI = VF.createIRI(GREL + "toUpperCase");
-    private static final IRI VALUE_PARAM_IRI = VF.createIRI(GREL + "valueParameter");
-    private static final IRI STRING_OUTPUT_IRI = VF.createIRI(GREL + "stringOutput");
+    private static final IRI VALUE_PARAM_IRI = VF.createIRI(GREL + "valueParam");
+    private static final IRI STRING_OUT_RESOURCE_IRI = VF.createIRI(GREL + "stringOut");
 
     private static final IRI CONCAT_IRI = VF.createIRI(GREL + "concat");
-    private static final IRI LEFT_PARAM_IRI = VF.createIRI(GREL + "leftParameter");
-    private static final IRI RIGHT_PARAM_IRI = VF.createIRI(GREL + "rightParameter");
+    private static final IRI LEFT_PARAM_IRI = VF.createIRI(GREL + "leftParam");
+    private static final IRI RIGHT_PARAM_IRI = VF.createIRI(GREL + "rightParam");
 
     // -- Test function class --
 
@@ -82,7 +82,7 @@ class FnoDescriptionProviderTest {
         var descriptor = functions.iterator().next();
         assertThat(descriptor.getFunctionIri(), is(TO_UPPER_IRI));
         assertThat(descriptor.getParameters(), hasSize(1));
-        assertThat(descriptor.getParameters().get(0).predicateIri(), is(VALUE_PARAM_IRI));
+        assertThat(descriptor.getParameters().get(0).parameterIri(), is(VALUE_PARAM_IRI));
         assertThat(descriptor.getParameters().get(0).type(), is(String.class));
         assertThat(descriptor.getParameters().get(0).required(), is(true));
     }
@@ -98,8 +98,8 @@ class FnoDescriptionProviderTest {
 
         var descriptor = functions.iterator().next();
         assertThat(descriptor.getParameters(), hasSize(2));
-        assertThat(descriptor.getParameters().get(0).predicateIri(), is(LEFT_PARAM_IRI));
-        assertThat(descriptor.getParameters().get(1).predicateIri(), is(RIGHT_PARAM_IRI));
+        assertThat(descriptor.getParameters().get(0).parameterIri(), is(LEFT_PARAM_IRI));
+        assertThat(descriptor.getParameters().get(1).parameterIri(), is(RIGHT_PARAM_IRI));
     }
 
     @Test
@@ -111,7 +111,7 @@ class FnoDescriptionProviderTest {
 
         assertThat(descriptor.getReturns(), hasSize(1));
         var ret = descriptor.getReturns().get(0);
-        assertThat(ret.predicateIri(), is(STRING_OUTPUT_IRI));
+        assertThat(ret.outputIri(), is(STRING_OUT_RESOURCE_IRI));
         assertThat(ret.type(), is(String.class));
     }
 
@@ -264,7 +264,7 @@ class FnoDescriptionProviderTest {
 
         assertThat(descriptor, is(notNullValue()));
         assertThat(descriptor.getReturns(), hasSize(1));
-        assertThat(descriptor.getReturns().get(0).predicateIri(), is(nullValue()));
+        assertThat(descriptor.getReturns().get(0).outputIri(), is(nullValue()));
         assertThat(descriptor.getReturns().get(0).type(), is(Object.class));
     }
 
@@ -280,14 +280,14 @@ class FnoDescriptionProviderTest {
         // Parameter resource
         var valueParam = VF.createIRI(GREL + "valueParam");
         model.add(valueParam, RDF.TYPE, Fno.Parameter);
-        model.add(valueParam, Fno.predicate, VALUE_PARAM_IRI);
+
         model.add(valueParam, Fno.type, XSD.STRING);
         model.add(valueParam, Fno.required, VF.createLiteral(true));
 
         // Output resource
         var stringOut = VF.createIRI(GREL + "stringOut");
         model.add(stringOut, RDF.TYPE, Fno.Output);
-        model.add(stringOut, Fno.predicate, STRING_OUTPUT_IRI);
+
         model.add(stringOut, Fno.type, XSD.STRING);
 
         // Build expects RDF list (single element)
@@ -334,14 +334,14 @@ class FnoDescriptionProviderTest {
         // Left parameter
         var leftParam = VF.createIRI(GREL + "leftParam");
         model.add(leftParam, RDF.TYPE, Fno.Parameter);
-        model.add(leftParam, Fno.predicate, LEFT_PARAM_IRI);
+
         model.add(leftParam, Fno.type, XSD.STRING);
         model.add(leftParam, Fno.required, VF.createLiteral(true));
 
         // Right parameter
         var rightParam = VF.createIRI(GREL + "rightParam");
         model.add(rightParam, RDF.TYPE, Fno.Parameter);
-        model.add(rightParam, Fno.predicate, RIGHT_PARAM_IRI);
+
         model.add(rightParam, Fno.type, XSD.STRING);
         model.add(rightParam, Fno.required, VF.createLiteral(true));
 
@@ -384,7 +384,7 @@ class FnoDescriptionProviderTest {
         // Optional parameter
         var valueParam = VF.createIRI(GREL + "valueParam");
         model.add(valueParam, RDF.TYPE, Fno.Parameter);
-        model.add(valueParam, Fno.predicate, VALUE_PARAM_IRI);
+
         model.add(valueParam, Fno.type, XSD.STRING);
         model.add(valueParam, Fno.required, VF.createLiteral(false));
 
@@ -422,7 +422,7 @@ class FnoDescriptionProviderTest {
 
         var valueParam = VF.createIRI(GREL + "valueParam");
         model.add(valueParam, RDF.TYPE, Fno.Parameter);
-        model.add(valueParam, Fno.predicate, VALUE_PARAM_IRI);
+
         model.add(valueParam, Fno.type, XSD.STRING);
 
         var expectsList = buildRdfList(model, valueParam);
@@ -455,7 +455,7 @@ class FnoDescriptionProviderTest {
 
         var valueParam = VF.createIRI(GREL + "valueParam");
         model.add(valueParam, RDF.TYPE, Fno.Parameter);
-        model.add(valueParam, Fno.predicate, VALUE_PARAM_IRI);
+
         model.add(valueParam, Fno.type, XSD.STRING);
 
         var expectsList = buildRdfList(model, valueParam);
@@ -491,7 +491,7 @@ class FnoDescriptionProviderTest {
 
         var valueParam = VF.createIRI(GREL + "valueParam");
         model.add(valueParam, RDF.TYPE, Fno.Parameter);
-        model.add(valueParam, Fno.predicate, VALUE_PARAM_IRI);
+
         model.add(valueParam, Fno.type, XSD.STRING);
 
         var expectsList = buildRdfList(model, valueParam);
@@ -510,7 +510,7 @@ class FnoDescriptionProviderTest {
 
         var valueParam = VF.createIRI(GREL + "valueParam");
         model.add(valueParam, RDF.TYPE, Fno.Parameter);
-        model.add(valueParam, Fno.predicate, VALUE_PARAM_IRI);
+
         model.add(valueParam, Fno.type, XSD.STRING);
 
         var expectsList = buildRdfList(model, valueParam);
@@ -549,7 +549,7 @@ class FnoDescriptionProviderTest {
 
         var valueParam = VF.createIRI(GREL + "valueParam");
         model.add(valueParam, RDF.TYPE, Fno.Parameter);
-        model.add(valueParam, Fno.predicate, VALUE_PARAM_IRI);
+
         model.add(valueParam, Fno.type, XSD.STRING);
 
         var expectsList1 = buildRdfList(model, valueParam);
@@ -578,12 +578,12 @@ class FnoDescriptionProviderTest {
 
         var leftParam = VF.createIRI(GREL + "leftParam");
         model.add(leftParam, RDF.TYPE, Fno.Parameter);
-        model.add(leftParam, Fno.predicate, LEFT_PARAM_IRI);
+
         model.add(leftParam, Fno.type, XSD.STRING);
 
         var rightParam = VF.createIRI(GREL + "rightParam");
         model.add(rightParam, RDF.TYPE, Fno.Parameter);
-        model.add(rightParam, Fno.predicate, RIGHT_PARAM_IRI);
+
         model.add(rightParam, Fno.type, XSD.STRING);
 
         var expectsList2 = buildRdfList(model, leftParam, rightParam);
@@ -619,7 +619,7 @@ class FnoDescriptionProviderTest {
 
         var valueParam = VF.createIRI(GREL + "valueParam");
         model.add(valueParam, RDF.TYPE, Fno.Parameter);
-        model.add(valueParam, Fno.predicate, VALUE_PARAM_IRI);
+
         model.add(valueParam, Fno.type, XSD.STRING);
 
         var expectsList = buildRdfList(model, valueParam);

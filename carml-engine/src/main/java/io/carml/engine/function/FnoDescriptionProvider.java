@@ -95,7 +95,7 @@ public class FnoDescriptionProvider implements FunctionProvider {
         var parameters = parseParameters(model, functionIri);
         var returns = parseReturns(model, functionIri);
         var paramIris =
-                parameters.stream().map(ParameterDescriptor::predicateIri).toList();
+                parameters.stream().map(ParameterDescriptor::parameterIri).toList();
 
         var clazz = loadClass(binding.className(), functionIri);
         var target = instantiate(clazz, functionIri);
@@ -124,11 +124,10 @@ public class FnoDescriptionProvider implements FunctionProvider {
     }
 
     private static ParameterDescriptor parseParameter(Model model, Resource paramResource) {
-        var predicateIri = getRequiredObjectIri(
-                model,
-                paramResource,
-                Fno.predicate,
-                "fno:predicate missing for parameter '%s'".formatted(paramResource));
+        if (!(paramResource instanceof IRI parameterIri)) {
+            throw new FnoDescriptionException(
+                    "fno:Parameter must be an IRI resource, got blank node '%s'".formatted(paramResource));
+        }
 
         var javaType = getObjectIri(model, paramResource, Fno.type)
                 .<Class<?>>map(FnoDescriptionProvider::mapXsdType)
@@ -138,7 +137,7 @@ public class FnoDescriptionProvider implements FunctionProvider {
                 .map(lit -> Boolean.parseBoolean(lit.getLabel()))
                 .orElse(true);
 
-        return new ParameterDescriptor(predicateIri, javaType, required);
+        return new ParameterDescriptor(parameterIri, javaType, required);
     }
 
     private static List<ReturnDescriptor> parseReturns(Model model, IRI functionIri) {
@@ -161,13 +160,13 @@ public class FnoDescriptionProvider implements FunctionProvider {
     }
 
     private static ReturnDescriptor parseReturn(Model model, Resource outputResource) {
-        var predicateIri = getObjectIri(model, outputResource, Fno.predicate).orElse(null);
+        var outputIri = outputResource instanceof IRI iri ? iri : null;
 
         var javaType = getObjectIri(model, outputResource, Fno.type)
                 .<Class<?>>map(FnoDescriptionProvider::mapXsdType)
                 .orElse(Object.class);
 
-        return new ReturnDescriptor(predicateIri, javaType);
+        return new ReturnDescriptor(outputIri, javaType);
     }
 
     private static List<MappingBinding> parseMappingBindings(Model model) {

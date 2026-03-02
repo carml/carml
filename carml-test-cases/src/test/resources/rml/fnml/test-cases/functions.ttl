@@ -1,0 +1,102 @@
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix fno:     <https://w3id.org/function/ontology#> .
+@prefix fns:     <http://example.com/functions/> .
+@prefix grel:    <http://users.ugent.be/~bjdmeest/function/grel.ttl#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+
+grel:toUpperCase
+    a                   fno:Function ;
+    fno:name            "to Uppercase" ;
+    rdfs:label          "to Uppercase" ;
+    dcterms:description "Returns the input with all letters in upper case." ;
+    fno:expects         ( grel:valueParam ) ;
+    fno:returns         ( grel:stringOut ) .
+
+grel:valueParam
+    a             fno:Parameter ;
+    fno:name      "input value" ;
+    rdfs:label    "input value" ;
+    fno:predicate grel:valueParameter ;
+    fno:type      xsd:string ;
+    fno:required  "true"^^xsd:boolean .
+
+grel:stringOut
+    a             fno:Output ;
+    fno:name      "output string" ;
+    rdfs:label    "output string" ;
+    fno:predicate grel:stringOutput ;
+    fno:type      xsd:string .
+
+grel:string_replace
+   a                   fno:Function ;
+   fno:name            "replace" ;
+   dcterms:description "replace" ;
+   fno:expects         ( grel:valueParam grel:param_find grel:param_replace ) ;
+   fno:returns         ( grel:stringOut ) .
+
+grel:param_find
+    a             fno:Parameter ;
+    fno:name      "f" ;
+    rdfs:label    "f" ;
+    fno:predicate grel:p_string_find ;
+    fno:type      xsd:string ;
+    fno:required  "true"^^xsd:boolean .
+
+grel:param_replace
+    a             fno:Parameter ;
+    fno:name      "r" ;
+    rdfs:label    "r" ;
+    fno:predicate grel:p_string_replace ;
+    fno:type      xsd:string ;
+    fno:required  "true"^^xsd:boolean .
+   
+fns:helloworld
+   a                   fno:Function ;
+   fno:name            "hello world" ;
+   dcterms:description "The hello world function has no parameters and always returns the string 'Hello World!'" ;
+   fno:expects         ( ) ;
+   fno:returns         ( fns:stringOutput ) .
+
+fns:stringOutput
+    a             fno:Output ;
+    fno:name      "output string" ;
+    rdfs:label    "output string" ;
+    fno:predicate fns:hasStringOutput ;
+    fno:type      xsd:string .
+   
+fns:schema
+   a                   fno:Function ;
+   fno:name            "schema term generator" ;
+   dcterms:description "The schema term generator function returns a string of the form 'https://schema.org/{stringParameter}'" ;
+   fno:expects         ( fns:stringParameter ) ;
+   fno:returns         ( fns:stringOutput ) .
+
+fns:stringParameter
+    a             fno:Parameter ;
+    fno:name      "input string" ;
+    rdfs:label    "input string" ;
+    fno:predicate fns:hasStringParameter ;
+    fno:type      xsd:string .
+
+fns:parseURL
+   a                   fno:Function ;
+   fno:name            "parse URL" ;
+   dcterms:description "The parse URL function returns the protocol, domain, and path as strings of a URL of the form '{protocolOutput}://{domainOutput}/{stringOutput}'" ;
+   fno:expects         ( fns:stringParameter ) ;
+   fno:returns         ( fns:protocolOutput fns:domainOutput fns:stringOutput ) .
+
+fns:protocolOutput
+    a             fno:Output ;
+    fno:name      "protocol output string" ;
+    rdfs:label    "protocol output string" ;
+    fno:predicate fns:hasProtocolOutput ;
+    fno:type      xsd:string .
+
+fns:domainOutput
+    a             fno:Output ;
+    fno:name      "domain output string" ;
+    rdfs:label    "domain output string" ;
+    fno:predicate fns:hasDomainOutput ;
+    fno:type      xsd:string .

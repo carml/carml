@@ -213,7 +213,7 @@ public class RdfExpressionMapEvaluation {
                 functionIri,
                 parameterValues,
                 descriptor.getParameters().stream()
-                        .map(ParameterDescriptor::predicateIri)
+                        .map(ParameterDescriptor::parameterIri)
                         .toList());
 
         // 4. Execute
@@ -278,10 +278,10 @@ public class RdfExpressionMapEvaluation {
                     .filter(pd -> pd.matches(parameterIri))
                     .findFirst();
 
-            // Use the descriptor's canonical predicate IRI as map key so that
+            // Use the descriptor's canonical parameter IRI as map key so that
             // FunctionDescriptor.execute() can find the value. Fall back to the mapping IRI
             // when no descriptor matches (unknown parameter -- graceful degradation).
-            IRI effectiveKey = paramDesc.map(ParameterDescriptor::predicateIri).orElse(parameterIri);
+            IRI effectiveKey = paramDesc.map(ParameterDescriptor::parameterIri).orElse(parameterIri);
 
             if (values.isEmpty()) {
                 parameterValues.put(effectiveKey, null);
@@ -305,7 +305,7 @@ public class RdfExpressionMapEvaluation {
 
         // Fill in nulls for any parameters not provided by inputs
         for (var paramDesc : descriptor.getParameters()) {
-            parameterValues.putIfAbsent(paramDesc.predicateIri(), null);
+            parameterValues.putIfAbsent(paramDesc.parameterIri(), null);
         }
 
         return parameterValues;
@@ -338,9 +338,9 @@ public class RdfExpressionMapEvaluation {
             return selected;
         }
 
-        // Single-return function: verify the return IRI is a declared output of this
-        // function (matched by fno:predicate or resource IRI). An IRI not declared as an
-        // output produces empty output (graceful degradation per RML-FNML spec).
+        // Single-return function: verify the return IRI matches a declared fno:Output
+        // resource. An IRI not declared as an output produces empty output (graceful
+        // degradation per RML-FNML spec).
         if (descriptor.getReturns().stream().anyMatch(rd -> rd.matches(returnIri))) {
             return result;
         }
@@ -419,22 +419,22 @@ public class RdfExpressionMapEvaluation {
         var params = new HashMap<IRI, Object>();
 
         for (var paramDesc : descriptor.getParameters()) {
-            var values = model.filter(execution, paramDesc.predicateIri(), null).stream()
+            var values = model.filter(execution, paramDesc.parameterIri(), null).stream()
                     .map(Statement::getObject)
                     .toList();
 
             if (values.isEmpty()) {
-                params.put(paramDesc.predicateIri(), null);
+                params.put(paramDesc.parameterIri(), null);
                 continue;
             }
 
             if (Collection.class.isAssignableFrom(paramDesc.type())) {
                 params.put(
-                        paramDesc.predicateIri(),
+                        paramDesc.parameterIri(),
                         values.stream().map(Value::stringValue).toList());
             } else {
                 params.put(
-                        paramDesc.predicateIri(),
+                        paramDesc.parameterIri(),
                         TYPE_COERCER.coerce(values.get(0).stringValue(), paramDesc.type()));
             }
         }

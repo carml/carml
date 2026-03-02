@@ -161,7 +161,7 @@ class AnnotatedFunctionProviderTest {
 
         assertThat(descriptor.getParameters(), hasSize(1));
         var param = descriptor.getParameters().get(0);
-        assertThat(param.predicateIri(), is(INPUT_IRI));
+        assertThat(param.parameterIri(), is(INPUT_IRI));
         assertThat(param.type(), is(String.class));
         assertThat(param.required(), is(true));
     }
@@ -177,7 +177,7 @@ class AnnotatedFunctionProviderTest {
 
         assertThat(descriptor.getParameters(), hasSize(1));
         var param = descriptor.getParameters().get(0);
-        assertThat(param.predicateIri(), is(INPUT_IRI));
+        assertThat(param.parameterIri(), is(INPUT_IRI));
         assertThat(param.type(), is(String.class));
         assertThat(param.required(), is(true));
     }
@@ -193,7 +193,7 @@ class AnnotatedFunctionProviderTest {
 
         assertThat(descriptor.getReturns(), hasSize(1));
         var ret = descriptor.getReturns().get(0);
-        assertThat(ret.predicateIri(), is(nullValue()));
+        assertThat(ret.outputIri(), is(nullValue()));
         assertThat(ret.type(), is(String.class));
     }
 
@@ -263,7 +263,7 @@ class AnnotatedFunctionProviderTest {
         var descriptor = provider.getFunctions().stream().findFirst().orElseThrow();
         var param = descriptor.getParameters().get(0);
 
-        assertThat(param.predicateIri(), is(iri("http://example.org/rmlParam")));
+        assertThat(param.parameterIri(), is(iri("http://example.org/rmlParam")));
     }
 
     @Test

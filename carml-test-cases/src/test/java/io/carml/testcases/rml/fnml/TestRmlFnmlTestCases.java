@@ -38,7 +38,21 @@ class TestRmlFnmlTestCases extends RmlTestCaseSuite {
                 // produced by toUpperCaseURL to be preserved (HTTP://EXAMPLE.COM/VENUS). The test
                 // suite expectations are contradictory; consistent behavior cannot satisfy both.
                 "RMLFNMLTC0011",
-                "RMLFNMLTC0031");
+                "RMLFNMLTC0031",
+                // Bug in external functions_idlab.ttl: the parameter resource IRI is
+                // idlab-fn:_str but the test case mappings reference idlab-fn:str (the
+                // fno:predicate value). Per the RML-FNML spec, rml:parameter should reference
+                // the fno:Parameter resource IRI, not the fno:predicate value.
+                "RMLFNMLTC0003",
+                "RMLFNMLTC0061",
+                // Missing GREL function descriptions: the official functions.ttl only defines
+                // grel:toUpperCase and grel:string_replace. The grel-functions-java JAR provides
+                // Java implementation bindings but no fno:Function descriptions with parameter
+                // definitions for grel:length, grel:string_substring, and grel:escape.
+                "RMLFNMLTC0004",
+                "RMLFNMLTC0007",
+                "RMLFNMLTC0021",
+                "RMLFNMLTC0081");
     }
 
     @Override
@@ -46,7 +60,7 @@ class TestRmlFnmlTestCases extends RmlTestCaseSuite {
         var mapperBuilder = RdfRmlMapper.builder()
                 .valueFactorySupplier(ValidatingValueFactory::new)
                 .addFunctionDescriptions(requireResource("/grel_java_mapping.ttl"), RDFFormat.TURTLE)
-                .addFunctionDescriptions(requireResource("/fno/grel_functions.ttl"), RDFFormat.TURTLE)
+                .addFunctionDescriptions(requireResource("/rml/fnml/test-cases/functions.ttl"), RDFFormat.TURTLE)
                 .addFunctionDescriptions(requireResource("/fno/functions_idlab.ttl"), RDFFormat.TURTLE)
                 .addFunctionDescriptions(
                         requireResource("/fno/functions_idlab_classes_java_mapping.ttl"), RDFFormat.TURTLE);

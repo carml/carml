@@ -5,10 +5,10 @@ import org.eclipse.rdf4j.model.IRI;
 /**
  * Describes a return value of a {@link FunctionDescriptor}.
  *
- * @param predicateIri the predicate IRI from {@code fno:predicate}, may be {@code null} for single-return functions
+ * @param outputIri the IRI of the {@code fno:Output} resource, may be {@code null} for single-return functions
  * @param type the Java type of the return value
  */
-public record ReturnDescriptor(IRI predicateIri, Class<?> type) {
+public record ReturnDescriptor(IRI outputIri, Class<?> type) {
 
     public ReturnDescriptor {
         if (type == null) {
@@ -17,12 +17,12 @@ public record ReturnDescriptor(IRI predicateIri, Class<?> type) {
     }
 
     /**
-     * Checks whether the given IRI matches this return descriptor's {@code fno:predicate} IRI.
+     * Checks whether the given IRI matches this return descriptor's output resource IRI.
      */
     public boolean matches(IRI candidate) {
         if (candidate == null) {
             return false;
         }
-        return candidate.equals(predicateIri);
+        return candidate.equals(outputIri);
     }
 }

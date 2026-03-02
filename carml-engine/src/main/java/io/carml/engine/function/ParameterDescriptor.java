@@ -5,14 +5,14 @@ import org.eclipse.rdf4j.model.IRI;
 /**
  * Describes a parameter accepted by a {@link FunctionDescriptor}.
  *
- * @param predicateIri the predicate IRI from {@code fno:predicate} on the parameter resource
+ * @param parameterIri the IRI of the {@code fno:Parameter} resource
  * @param type the Java type of the parameter
  * @param required whether this parameter is required
  */
-public record ParameterDescriptor(IRI predicateIri, Class<?> type, boolean required) {
+public record ParameterDescriptor(IRI parameterIri, Class<?> type, boolean required) {
 
     public ParameterDescriptor {
-        if (predicateIri == null) {
+        if (parameterIri == null) {
             throw new IllegalArgumentException("Parameter IRI must not be null");
         }
         if (type == null) {
@@ -21,12 +21,12 @@ public record ParameterDescriptor(IRI predicateIri, Class<?> type, boolean requi
     }
 
     /**
-     * Checks whether the given IRI matches this parameter's {@code fno:predicate} IRI.
+     * Checks whether the given IRI matches this parameter's resource IRI.
      */
     public boolean matches(IRI candidate) {
         if (candidate == null) {
             return false;
         }
-        return candidate.equals(predicateIri);
+        return candidate.equals(parameterIri);
     }
 }

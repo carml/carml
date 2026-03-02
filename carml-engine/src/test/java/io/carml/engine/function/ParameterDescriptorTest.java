@@ -34,7 +34,7 @@ class ParameterDescriptorTest {
     void accessors_returnCorrectValues() {
         var descriptor = new ParameterDescriptor(PARAM_IRI, Integer.class, false);
 
-        assertThat(descriptor.predicateIri(), is(PARAM_IRI));
+        assertThat(descriptor.parameterIri(), is(PARAM_IRI));
         assertThat(descriptor.type(), is(Integer.class));
         assertThat(descriptor.required(), is(false));
     }

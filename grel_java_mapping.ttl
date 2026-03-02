@@ -1,0 +1,1285 @@
+@prefix cc:      <http://creativecommons.org/ns#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix doap:    <http://usefulinc.com/ns/doap#> .
+@prefix fno:     <https://w3id.org/function/ontology#> .
+@prefix fnoi:    <https://w3id.org/function/vocabulary/implementation#> .
+@prefix fnom:    <https://w3id.org/function/vocabulary/mapping#> .
+@prefix foaf:    <http://xmlns.com/foaf/0.1/> .
+@prefix grel:    <http://users.ugent.be/~bjdmeest/function/grel.ttl#> .
+@prefix grelm:   <http://fno.io/grel/rmlmapping#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix void:    <http://rdfs.org/ns/void#> .
+@prefix woc:     <http://rdf.webofcode.org/woc/> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+
+grelm:void
+    a                 void:DatasetDescription ;
+    dcterms:title     "A VoID Description of the GREL Fno JAVA Mapping Descriptions Dataset" ;
+    dcterms:creator   <https://ben.de-meester.org/#me> ;
+    foaf:primaryTopic grelm:dataset ;
+.
+
+<https://ben.de-meester.org/#me>
+    rdf:type  foaf:Person ;
+    foaf:mbox "mailto:Ben.DeMeester@UGent.be" ;
+    foaf:name "Ben De Meester"@en .
+
+grelm:dataset
+    a                    void:Dataset ;
+    foaf:homepage        <https://github.com/OpenRefine/OpenRefine/wiki/General-Refine-Expression-Language> ;
+    foaf:homepage        <https://fno.io> ;
+    dcterms:title        "GREL Fno JAVA Mapping Descriptions"@en ;
+    dcterms:description  "The FnO JAVA mapping descriptions of the GREL functions" ;
+    dcterms:contributor  <https://ben.de-meester.org/#me> ;
+    dcterms:modified     "2020-01-21"^^xsd:date ;
+    cc:license           <http://creativecommons.org/license/by/3.0/> ;
+    dcterms:issued       "2020-01-21"^^xsd:date ;
+    dcterms:rights       "Copyright © Ghent University – imec – IDLab"@en ;
+    dcterms:subject      <http://dbpedia.org/resource/Function_(mathematics)> ;
+    dcterms:subject      <http://dbpedia.org/resource/Function_model> ;
+    void:feature         <http://www.w3.org/ns/formats/Turtle> ;
+    void:exampleResource grelm:boolean_and ;
+    void:vocabulary      <https://w3id.org/function/ontology#>, <https://w3id.org/function/vocabulary/implementation#>,
+                         <https://w3id.org/function/vocabulary/mapping#> .
+
+# Contents:
+# - Parameters (per java) param_{var} with predicate p_{type}_{var}
+# - Outputs (per java) output_{type} with predicate o_{type}
+# - Problems (per java) prob_{var}
+#   - Functions (per java)
+
+grelm:javaArray
+    a                  fnoi:JavaClass ;
+    doap:download-page "GrelFunctions.jar" ;
+    fnoi:class-name    "io.fno.grel.ArrayFunctions" .
+
+#GET
+
+grelm:getMapping
+    a                    fno:Mapping ;
+    fno:function         grel:array_get ;
+    fno:implementation   grelm:javaArray ;
+# TODO if not clear
+    fno:parameterMapping [ fnom:functionParameter                 grel:param_a ;
+                           <http://rdf.webofcode.org/woc/hasType> <http://rdf.webofcode.org/woc/Wildcard> ] ;
+    fno:parameterMapping [ fnom:functionParameter                 grel:p_int_i_from ;
+                           <http://rdf.webofcode.org/woc/hasType> <http://rdf.webofcode.org/woc/Wildcard> ] ;
+# TODO if not clear
+#    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "get" ] ;
+.
+
+#JOIN
+
+grelm:array_joinMapping
+    a                    fno:Mapping ;
+    fno:function         grel:array_join ;
+    fno:implementation   grelm:javaArray ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "join" ] ;
+.
+
+#LENGTH
+
+grelm:array_lengthMapping
+    a                    fno:Mapping ;
+    fno:function         grel:array_length ;
+    fno:implementation   grelm:javaArray ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "length" ] ;
+.
+
+#SLICE
+
+grelm:sliceMapping
+    a                    fno:Mapping ;
+    fno:function         grel:array_slice ;
+    fno:implementation   grelm:javaArray ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "slice" ] ;
+.
+
+#REVERSE
+
+grelm:array_reverseMapping
+    a                    fno:Mapping ;
+    fno:function         grel:array_reverse ;
+    fno:implementation   grelm:javaArray ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "reverse" ] ;
+.
+
+#SORT
+
+grelm:array_sortMapping
+    a                    fno:Mapping ;
+    fno:function         grel:array_sort ;
+    fno:implementation   grelm:javaArray ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "sort" ] ;
+.
+
+#SUM
+
+grelm:array_sumMapping
+    a                    fno:Mapping ;
+    fno:function         grel:array_sum ;
+    fno:implementation   grelm:javaArray ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "sum" ] ;
+.
+
+#UNIQUES
+
+grelm:array_uniquesMapping
+    a                    fno:Mapping ;
+    fno:function         grel:array_uniques ;
+    fno:implementation   grelm:javaArray ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "uniques" ] ;
+.
+
+grelm:javaBoolean
+    a                  fnoi:JavaClass ;
+    doap:download-page "GrelFunctions.jar" ;
+    fnoi:class-name    "io.fno.grel.BooleanFunctions" .
+
+#AND
+
+grelm:andMapping
+    a                    fno:Mapping ;
+    fno:function         grel:boolean_and ;
+    fno:implementation   grelm:javaBoolean ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "and" ] ;
+.
+
+#OR
+
+grelm:orMapping
+    a                    fno:Mapping ;
+    fno:function         grel:boolean_or ;
+    fno:implementation   grelm:javaBoolean ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "or" ] ;
+.
+
+#NOT
+
+grelm:notMapping
+    a                    fno:Mapping ;
+    fno:function         grel:boolean_not ;
+    fno:implementation   grelm:javaBoolean ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "not" ] ;
+.
+
+#XOR
+
+grelm:xorMapping
+    a                    fno:Mapping ;
+    fno:function         grel:boolean_xor ;
+    fno:implementation   grelm:javaBoolean ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "xor" ] ;
+.
+
+grelm:javaControls
+    a                  fnoi:JavaClass ;
+    doap:download-page "GrelFunctions.jar" ;
+    fnoi:class-name    "io.fno.grel.ControlsFunctions" .
+
+#IFTHENELSE
+
+grelm:ifthenelseMapping
+    a                    fno:Mapping ;
+    fno:function         grel:controls_if ;
+    fno:implementation   grelm:javaControls ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "ifThenElse" ] ;
+.
+
+grelm:javaString
+    a                  fnoi:JavaClass ;
+    doap:download-page "GrelFunctions.jar" ;
+    fnoi:class-name    "io.fno.grel.StringFunctions" .
+
+#STRING_LENGTH
+
+grelm:lengthMapping
+    a                    fno:Mapping ;
+    fno:function         grel:string_length ;
+    fno:implementation   grelm:javaString ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "length" ] ;
+.
+
+#STRING_LENGTH
+
+grelm:string_toStringMapping
+    a                    fno:Mapping ;
+    fno:function         grel:string_toString ;
+    fno:implementation   grelm:javaString ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "toString" ] ;
+.
+
+#STARTSWITH
+
+grelm:startsWithMapping
+    a                    fno:Mapping ;
+    fno:function         grel:string_startsWith ;
+    fno:implementation   grelm:javaString ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "startsWith" ] ;
+.
+
+#ENDSWITH
+
+grelm:endsWithMapping
+    a                    fno:Mapping ;
+    fno:function         grel:string_endsWith ;
+    fno:implementation   grelm:javaString ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "endsWith" ] ;
+.
+
+#CONTAINS
+
+grelm:containsMapping
+    a                    fno:Mapping ;
+    fno:function         grel:string_contains ;
+    fno:implementation   grelm:javaString ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "contains" ] ;
+.
+
+
+#INDEXOF
+
+grelm:indexOfMapping
+    a                    fno:Mapping ;
+    fno:function         grel:string_indexOf ;
+    fno:implementation   grelm:javaString ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "indexOf" ] ;
+.
+
+#TOLOWERCASE
+
+grelm:lowercaseMapping
+    a                    fno:Mapping ;
+    fno:function         grel:toLowerCase ;
+    fno:implementation   grelm:javaString ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "toLowercase" ] ;
+.
+
+#TOUPPERCASE
+
+grelm:uppercaseMapping
+    a                    fno:Mapping ;
+    fno:function         grel:toUpperCase ;
+    fno:implementation   grelm:javaString ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "toUppercase" ] ;
+.
+
+#TOTITLECASE
+
+grelm:titlecaseMapping
+    a                    fno:Mapping ;
+    fno:function         grel:string_toTitlecase ;
+    fno:implementation   grelm:javaString ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "toTitlecase" ] ;
+.
+
+#TRIM
+
+grelm:trimMapping
+    a                    fno:Mapping ;
+    fno:function         grel:string_trim ;
+    fno:implementation   grelm:javaString ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "trim" ] ;
+.
+
+#CHOMP
+
+grelm:chompMapping
+    a                    fno:Mapping ;
+    fno:function         grel:string_chomp ;
+    fno:implementation   grelm:javaString ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "chomp" ] ;
+.
+
+#SUBSTRING
+
+grelm:substringMapping
+    a                    fno:Mapping ;
+    fno:function         grel:string_substring ;
+    fno:implementation   grelm:javaString ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "substring" ] ;
+.
+
+#LASTINDEXOF
+
+grelm:lastIndexOfMapping
+    a                    fno:Mapping ;
+    fno:function         grel:string_lastIndexOf ;
+    fno:implementation   grelm:javaString ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "lastIndexOf" ] ;
+.
+
+#REPLACE
+
+grelm:string_replaceMapping
+    a                    fno:Mapping ;
+    fno:function         grel:string_replace ;
+    fno:implementation   grelm:javaString ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "replace" ] ;
+.
+
+#REPLACEHCARS
+
+grelm:string_replaceCharsMapping
+    a                    fno:Mapping ;
+    fno:function         grel:string_replaceChars ;
+    fno:implementation   grelm:javaString ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "replaceChars" ] ;
+.
+
+#MATCH
+
+grelm:string_matchMapping
+    a                    fno:Mapping ;
+    fno:function         grel:string_match ;
+    fno:implementation   grelm:javaString ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "match" ] ;
+.
+
+#TONUMBER
+
+grelm:string_toNumberMapping
+    a                    fno:Mapping ;
+    fno:function         grel:string_toNumber ;
+    fno:implementation   grelm:javaString ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "toNumber" ] ;
+.
+
+#SPLIT
+
+grelm:splitMapping
+    a                    fno:Mapping ;
+    fno:function         grel:string_split ;
+    fno:implementation   grelm:javaString ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "split" ] ;
+.
+
+#SPLITBYLENGTHS
+
+grelm:string_splitByLengthsMapping
+    a                    fno:Mapping ;
+    fno:function         grel:string_splitByLengths ;
+    fno:implementation   grelm:javaString ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "splitByLengths" ] ;
+.
+
+#SMARTSPLIT
+
+grelm:string_smartSplitMapping
+    a                    fno:Mapping ;
+    fno:function         grel:string_smartSplit ;
+    fno:implementation   grelm:javaString ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "smartSplit" ] ;
+.
+
+#SPLITBYCHARTYPE
+
+grelm:string_splitByCharTypeMapping
+    a                    fno:Mapping ;
+    fno:function         grel:string_splitByCharType ;
+    fno:implementation   grelm:javaString ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "splitByCharType" ] ;
+.
+
+#PARTITION
+
+grelm:string_partitionMapping
+    a                    fno:Mapping ;
+    fno:function         grel:string_partition ;
+    fno:implementation   grelm:javaString ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "partition" ] ;
+.
+
+#RPARTITION
+
+grelm:string_rpartitionMapping
+    a                    fno:Mapping ;
+    fno:function         grel:string_rpartition ;
+    fno:implementation   grelm:javaString ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "rpartition" ] ;
+.
+
+#DIFF
+
+grelm:string_diffMapping
+    a                    fno:Mapping ;
+    fno:function         grel:string_diff ;
+    fno:implementation   grelm:javaString ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "diff" ] ;
+.
+
+#ESCAPE
+
+grelm:escapeMapping
+    a                    fno:Mapping ;
+    fno:function         grel:escape ;
+    fno:implementation   grelm:javaString ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "escape" ] ;
+.
+
+#UNESCAPE
+
+grelm:string_unescapeMapping
+    a                    fno:Mapping ;
+    fno:function         grel:string_unescape ;
+    fno:implementation   grelm:javaString ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "unescape" ] ;
+.
+
+#MD5
+
+grelm:md5Mapping
+    a                    fno:Mapping ;
+    fno:function         grel:string_md5 ;
+    fno:implementation   grelm:javaString ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "md5" ] ;
+.
+
+#SHA1
+
+grelm:sha1Mapping
+    a                    fno:Mapping ;
+    fno:function         grel:string_sha1 ;
+    fno:implementation   grelm:javaString ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "sha1" ] ;
+.
+
+#PHONETIC
+
+grelm:string_phoneticMapping
+    a                    fno:Mapping ;
+    fno:function         grel:string_phonetic ;
+    fno:implementation   grelm:javaString ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "phonetic" ] ;
+.
+
+#REINTERPRET
+
+grelm:string_reinterpretMapping
+    a                    fno:Mapping ;
+    fno:function         grel:string_reinterpret ;
+    fno:implementation   grelm:javaString ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "reinterpret" ] ;
+.
+
+#UNICODE
+
+grelm:string_unicodeMapping
+    a                    fno:Mapping ;
+    fno:function         grel:string_unicode ;
+    fno:implementation   grelm:javaString ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "unicode" ] ;
+.
+
+grelm:javaDate
+    a                  fnoi:JavaClass ;
+    doap:download-page "GrelFunctions.jar" ;
+    fnoi:class-name    "io.fno.grel.DateFunctions" .
+
+#NOW
+
+grelm:date_nowMapping
+    a                    fno:Mapping ;
+    fno:function         grel:date_now ;
+    fno:implementation   grelm:javaDate ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "now" ] ;
+.
+
+#TODATE
+
+grelm:date_toDateMapping
+    a                    fno:Mapping ;
+    fno:function         grel:date_toDate ;
+    fno:implementation   grelm:javaDate ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "toDate" ] ;
+.
+
+#DIFF
+
+grelm:date_diffMapping
+    a                    fno:Mapping ;
+    fno:function         grel:date_diff ;
+    fno:implementation   grelm:javaDate ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "diff" ] ;
+.
+
+#INC
+
+grelm:date_incMapping
+    a                    fno:Mapping ;
+    fno:function         grel:date_inc ;
+    fno:implementation   grelm:javaDate ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "inc" ] ;
+.
+
+#DATEPART
+
+grelm:date_datePartMapping
+    a                    fno:Mapping ;
+    fno:function         grel:date_datePart ;
+    fno:implementation   grelm:javaDate ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "datePart" ] ;
+.
+
+grelm:javaMath
+    a                  fnoi:JavaClass ;
+    doap:download-page "GrelFunctions.jar" ;
+    fnoi:class-name    "io.fno.grel.MathFunctions" .
+
+#FLOOR
+
+grelm:math_floorMapping
+    a                    fno:Mapping ;
+    fno:function         grel:math_floor ;
+    fno:implementation   grelm:javaMath ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "floor" ] ;
+.
+
+#CEIL
+
+grelm:math_ceilMapping
+    a                    fno:Mapping ;
+    fno:function         grel:math_ceil ;
+    fno:implementation   grelm:javaMath ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "ceil" ] ;
+.
+
+#ROUND
+
+grelm:math_roundMapping
+    a                    fno:Mapping ;
+    fno:function         grel:math_round ;
+    fno:implementation   grelm:javaMath ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "round" ] ;
+.
+
+#MIN
+
+grelm:math_minMapping
+    a                    fno:Mapping ;
+    fno:function         grel:math_min ;
+    fno:implementation   grelm:javaMath ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "min" ] ;
+.
+
+#MAX
+
+grelm:math_maxMapping
+    a                    fno:Mapping ;
+    fno:function         grel:math_max ;
+    fno:implementation   grelm:javaMath ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "max" ] ;
+.
+
+#MOD
+
+grelm:math_modMapping
+    a                    fno:Mapping ;
+    fno:function         grel:math_mod ;
+    fno:implementation   grelm:javaMath ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "mod" ] ;
+.
+
+#LN
+
+grelm:math_lnMapping
+    a                    fno:Mapping ;
+    fno:function         grel:math_ln ;
+    fno:implementation   grelm:javaMath ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "ln" ] ;
+.
+
+#LOG
+
+grelm:math_logMapping
+    a                    fno:Mapping ;
+    fno:function         grel:math_log ;
+    fno:implementation   grelm:javaMath ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "log" ] ;
+.
+
+#EXP
+
+grelm:math_expMapping
+    a                    fno:Mapping ;
+    fno:function         grel:math_exp ;
+    fno:implementation   grelm:javaMath ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "exp" ] ;
+.
+
+#POW
+
+grelm:math_powMapping
+    a                    fno:Mapping ;
+    fno:function         grel:math_pow ;
+    fno:implementation   grelm:javaMath ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "pow" ] ;
+.
+
+#ABS
+
+grelm:math_absMapping
+    a                    fno:Mapping ;
+    fno:function         grel:math_abs ;
+    fno:implementation   grelm:javaMath ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "abs" ] ;
+.
+
+#ACOS
+
+grelm:math_acosMapping
+    a                    fno:Mapping ;
+    fno:function         grel:math_acos ;
+    fno:implementation   grelm:javaMath ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "acos" ] ;
+.
+
+#ASIN
+
+grelm:math_asinMapping
+    a                    fno:Mapping ;
+    fno:function         grel:math_asin ;
+    fno:implementation   grelm:javaMath ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "asin" ] ;
+.
+
+#ATAN
+
+grelm:math_atanMapping
+    a                    fno:Mapping ;
+    fno:function         grel:math_atan ;
+    fno:implementation   grelm:javaMath ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "atan" ] ;
+.
+
+#ATAN2
+
+grelm:math_atan2Mapping
+    a                    fno:Mapping ;
+    fno:function         grel:math_atan2 ;
+    fno:implementation   grelm:javaMath ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "atan2" ] ;
+.
+
+#COMBIN
+
+grelm:math_combinMapping
+    a                    fno:Mapping ;
+    fno:function         grel:math_combin ;
+    fno:implementation   grelm:javaMath ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "combin" ] ;
+.
+
+#COS
+
+grelm:math_cosMapping
+    a                    fno:Mapping ;
+    fno:function         grel:math_cos ;
+    fno:implementation   grelm:javaMath ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "cos" ] ;
+.
+
+#COSH
+
+grelm:math_coshMapping
+    a                    fno:Mapping ;
+    fno:function         grel:math_cosh ;
+    fno:implementation   grelm:javaMath ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "cosh" ] ;
+.
+
+
+#SIN
+
+grelm:math_sinMapping
+    a                    fno:Mapping ;
+    fno:function         grel:math_sin ;
+    fno:implementation   grelm:javaMath ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "sin" ] ;
+.
+
+#SINH
+
+grelm:math_sinhMapping
+    a                    fno:Mapping ;
+    fno:function         grel:math_sinh ;
+    fno:implementation   grelm:javaMath ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "sinh" ] ;
+.
+
+#TAN
+
+grelm:math_tanMapping
+    a                    fno:Mapping ;
+    fno:function         grel:math_tan ;
+    fno:implementation   grelm:javaMath ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "tan" ] ;
+.
+
+#TANH
+
+grelm:math_tanhMapping
+    a                    fno:Mapping ;
+    fno:function         grel:math_tanh ;
+    fno:implementation   grelm:javaMath ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "tanh" ] ;
+.
+
+#DEGREES
+
+grelm:math_degreesMapping
+    a                   fno:Mapping;
+    fno:function        grel:math_degrees;
+    fno:implementation  grelm:javaMath;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "degrees" ] ;
+    .
+
+#RADIANS
+
+grelm:math_radiansMapping
+    a                   fno:Mapping;
+    fno:function        grel:math_radians;
+    fno:implementation  grelm:javaMath;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "radians" ] ;
+    .
+
+#EVEN
+
+grelm:math_evenMapping
+    a                    fno:Mapping ;
+    fno:function         grel:math_even ;
+    fno:implementation   grelm:javaMath ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "even" ] ;
+.
+
+#ODD
+
+grelm:math_oddMapping
+    a                    fno:Mapping ;
+    fno:function         grel:math_odd ;
+    fno:implementation   grelm:javaMath ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "odd" ] ;
+.
+
+#FACT
+
+grelm:math_factMapping
+    a                    fno:Mapping ;
+    fno:function         grel:math_fact ;
+    fno:implementation   grelm:javaMath ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "fact" ] ;
+.
+
+#FACTN
+
+grelm:math_factnMapping
+    a                    fno:Mapping ;
+    fno:function         grel:math_factn ;
+    fno:implementation   grelm:javaMath ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "factn" ] ;
+.
+
+#GCD
+
+grelm:math_gcdMapping
+    a                    fno:Mapping ;
+    fno:function         grel:math_gcd ;
+    fno:implementation   grelm:javaMath ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "gcd" ] ;
+.
+
+
+#LCM
+
+grelm:math_lcmMapping
+    a                    fno:Mapping ;
+    fno:function         grel:math_lcm ;
+    fno:implementation   grelm:javaMath ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "lcm" ] ;
+.
+
+
+#QUOTIENT
+
+grelm:math_quotientMapping
+    a                    fno:Mapping ;
+    fno:function         grel:math_quotient ;
+    fno:implementation   grelm:javaMath ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "quotient" ] ;
+.
+
+
+#RANDOMNUMBER
+
+grelm:math_randomNumberMapping
+    a                    fno:Mapping ;
+    fno:function         grel:math_randomNumber ;
+    fno:implementation   grelm:javaMath ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "randomNumber" ] ;
+.
+
+
+#MULTINOMIAL
+
+grelm:math_multinomialMapping
+    a                    fno:Mapping ;
+    fno:function         grel:math_multinomial ;
+    fno:implementation   grelm:javaMath ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "multinomial" ] ;
+.
+
+
+grelm:javaOther
+    a                  fnoi:JavaClass ;
+    doap:download-page "GrelFunctions.jar" ;
+    fnoi:class-name    "io.fno.grel.OtherFunctions" .
+
+#TYPE
+
+grelm:other_typeMapping
+    a                    fno:Mapping ;
+    fno:function         grel:other_type ;
+    fno:implementation   grelm:javaOther ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "type" ] ;
+.
+
+#HASFIELD
+
+grelm:other_hasFieldMapping
+    a                    fno:Mapping ;
+    fno:function         grel:other_hasField ;
+    fno:implementation   grelm:javaOther ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "hasField" ] ;
+.
+
+#COALESCE
+
+grelm:other_coalesceMapping
+    a                    fno:Mapping ;
+    fno:function         grel:other_coalesce ;
+    fno:implementation   grelm:javaOther ;
+# TODO if not clear
+    fno:parameterMapping [ ] ;
+# TODO if not clear
+    fno:returnMapping    [ ] ;
+    fno:methodMapping    [ a                fnom:StringMethodMapping ;
+                           fnom:method-name "coalesce" ] ;
+.
