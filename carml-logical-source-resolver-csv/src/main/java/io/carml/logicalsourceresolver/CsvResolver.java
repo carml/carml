@@ -9,6 +9,7 @@ import de.siegmar.fastcsv.reader.CommentStrategy;
 import de.siegmar.fastcsv.reader.CsvReader;
 import de.siegmar.fastcsv.reader.CsvReader.CsvReaderBuilder;
 import de.siegmar.fastcsv.reader.NamedCsvRecord;
+import de.siegmar.fastcsv.reader.NamedCsvRecordHandler;
 import io.carml.logicalsourceresolver.sourceresolver.Encodings;
 import io.carml.model.CsvReferenceFormulation;
 import io.carml.model.LogicalSource;
@@ -27,8 +28,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
+import java.util.function.Supplier;
+import lombok.Builder;
+import lombok.Getter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.input.BOMInputStream;
@@ -37,16 +39,75 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Slf4j
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
 
     public static final String NAME = "CsvResolver";
 
     public static LogicalSourceResolverFactory<NamedCsvRecord> factory() {
-        return CsvResolver::new;
+        return factory(Options.builder().build());
+    }
+
+    public static LogicalSourceResolverFactory<NamedCsvRecord> factory(Options options) {
+        return source -> new CsvResolver(source, options);
     }
 
     private final Source source;
+
+    private final Options options;
+
+    private CsvResolver(Source source, Options options) {
+        this.source = source;
+        this.options = options;
+    }
+
+    /**
+     * Configuration options for {@link CsvResolver}.
+     *
+     * <p>Use {@link Options#builder()} to construct an instance. All fields have sensible defaults
+     * that enforce strict, RML-spec-compliant CSV parsing.
+     */
+    @Builder
+    @Getter
+    @ToString
+    public static class Options {
+
+        /**
+         * Factory for creating a fresh {@link CsvReaderBuilder} per source resolution. A new builder
+         * is requested each time because CSVW dialect settings (delimiter, quote character, etc.)
+         * mutate the builder, so each resolution needs its own instance.
+         *
+         * <p>Override this to customize FastCSV parsing behavior, for example to allow extra
+         * characters after closing quotes via
+         * {@link CsvReaderBuilder#allowExtraCharsAfterClosingQuote(boolean)}.
+         *
+         * <p>Defaults to {@link CsvReader#builder}.
+         */
+        @Builder.Default
+        private final Supplier<CsvReaderBuilder> csvReaderBuilderFactory = CsvReader::builder;
+
+        /**
+         * Whether to validate that each data record has the same number of fields as the header.
+         * When enabled, a {@link LogicalSourceResolverException} is thrown for any record whose
+         * field count differs from the header count.
+         *
+         * <p>Note: FastCSV 4.x only checks data-vs-data field count consistency internally; it does
+         * not validate data records against the header for {@link NamedCsvRecord}. This option fills
+         * that gap.
+         *
+         * <p>Defaults to {@code true} (strict, RML-spec-compliant).
+         */
+        @Builder.Default
+        private final boolean strictFieldCount = true;
+
+        /**
+         * Whether to allow duplicate column names in the CSV header row. When {@code false},
+         * duplicate header names cause a parse error.
+         *
+         * <p>Defaults to {@code false} (duplicates rejected).
+         */
+        @Builder.Default
+        private final boolean allowDuplicateHeaders = false;
+    }
 
     @Override
     public Function<ResolvedSource<?>, Flux<LogicalSourceRecord<NamedCsvRecord>>> getLogicalSourceRecords(
@@ -58,9 +119,9 @@ public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
     private Flux<LogicalSourceRecord<NamedCsvRecord>> getCsvRecordFlux(
             ResolvedSource<?> resolvedSource, Set<LogicalSource> logicalSources) {
         if (logicalSources.size() > 1) {
-            throw new LogicalSourceResolverException(String.format(
-                    "Multiple logical sources found, but only one supported. Logical sources: %n%s",
-                    exception(logicalSources)));
+            throw new LogicalSourceResolverException(
+                    "Multiple logical sources found, but only one supported. Logical sources: %n%s"
+                            .formatted(exception(logicalSources)));
         }
 
         if (logicalSources.isEmpty()) {
@@ -71,7 +132,7 @@ public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
 
         if (resolvedSource == null || resolvedSource.getResolved().isEmpty()) {
             throw new LogicalSourceResolverException(
-                    String.format("No source provided for logical sources:%n%s", exception(logicalSources)));
+                    "No source provided for logical sources:%n%s".formatted(exception(logicalSources)));
         }
 
         var resolved = resolvedSource.getResolved().orElseThrow();
@@ -84,13 +145,13 @@ public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
         } else if (resolved instanceof NamedCsvRecord resolvedRecord) {
             return Flux.just(LogicalSourceRecord.of(logicalSource, resolvedRecord));
         } else {
-            throw new LogicalSourceResolverException(String.format(
-                    "Unsupported source object provided for logical sources:%n%s", exception(logicalSources)));
+            throw new LogicalSourceResolverException(
+                    "Unsupported source object provided for logical sources:%n%s".formatted(exception(logicalSources)));
         }
     }
 
     private Flux<NamedCsvRecord> getCsvRecordFlux(InputStream inputStream, IRI encoding) {
-        var csvReaderBuilder = CsvReader.builder();
+        var csvReaderBuilder = options.getCsvReaderBuilderFactory().get();
 
         Charset charset;
         if (source instanceof CsvwTable csvwTable) {
@@ -102,7 +163,7 @@ public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
             if (encoding != null) {
                 charset = Encodings.resolveCharset(encoding)
                         .orElseThrow(() -> new LogicalSourceResolverException(
-                                String.format("Unsupported encoding provided: %s", encoding)));
+                                "Unsupported encoding provided: %s".formatted(encoding)));
             } else if (csvwDialect != null && csvwDialect.getEncoding() != null) {
                 charset = Charset.forName(csvwDialect.getEncoding());
             } else {
@@ -122,10 +183,30 @@ public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
             // detectBomHeader only works with Path-based input, not Reader.
             var bomFreeInputStream =
                     BOMInputStream.builder().setInputStream(inputStream).get();
-            return Flux.fromIterable(
-                    csvReaderBuilder.ofNamedCsvRecord(new InputStreamReader(bomFreeInputStream, charset)));
+            var flux = Flux.fromIterable(csvReaderBuilder.build(
+                    buildNamedCsvRecordHandler(), new InputStreamReader(bomFreeInputStream, charset)));
+            if (options.isStrictFieldCount()) {
+                flux = flux.doOnNext(CsvResolver::validateFieldCount);
+            }
+            return flux;
         } catch (IOException ioException) {
             throw new LogicalSourceResolverException("Failed to create BOM-free input stream", ioException);
+        }
+    }
+
+    private NamedCsvRecordHandler buildNamedCsvRecordHandler() {
+        return NamedCsvRecordHandler.builder()
+                .allowDuplicateHeaderFields(options.isAllowDuplicateHeaders())
+                .build();
+    }
+
+    private static void validateFieldCount(NamedCsvRecord rec) {
+        var headerSize = rec.getHeader().size();
+        var fieldCount = rec.getFieldCount();
+        if (fieldCount != headerSize) {
+            throw new LogicalSourceResolverException(
+                    "CSV record starting at line %d has %d field(s), but the header has %d"
+                            .formatted(rec.getStartingLineNumber(), fieldCount, headerSize));
         }
     }
 
@@ -158,7 +239,7 @@ public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
         }
         if (string.length() > 1) {
             throw new LogicalSourceResolverException(
-                    String.format("%s must be a single character, but was %s", errorSubject, string));
+                    "%s must be a single character, but was %s".formatted(errorSubject, string));
         }
 
         return Optional.of(string.charAt(0));
@@ -204,7 +285,15 @@ public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
     public Optional<Function<String, List<NamedCsvRecord>>> getInlineRecordParser() {
         return Optional.of(text -> {
             var records = new ArrayList<NamedCsvRecord>();
-            CsvReader.builder().ofNamedCsvRecord(new StringReader(text)).forEach(records::add);
+            options.getCsvReaderBuilderFactory()
+                    .get()
+                    .build(buildNamedCsvRecordHandler(), new StringReader(text))
+                    .forEach(rec -> {
+                        if (options.isStrictFieldCount()) {
+                            validateFieldCount(rec);
+                        }
+                        records.add(rec);
+                    });
             return List.copyOf(records);
         });
     }

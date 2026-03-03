@@ -52,12 +52,6 @@ class TestRmlIoTestCases extends RmlTestCaseSuite {
                 // by declaring hasError=true while providing an output.nq with valid expected output.
                 "RMLSTC0009a",
 
-                // CSV malformed row with fewer fields than header, but mapping only references existing
-                // columns; FastCSV lenient mode returns null for missing fields silently.
-                // Spec requires an error whenever any row has fewer fields than the header, regardless
-                // of which columns the mapping references
-                "RMLSTC0010b",
-
                 // XPath parent axis navigation (../@id, ../../@id, ../../../@id): XMLDog builds detached
                 // DOM subtrees for matched iterator nodes, so parent axis evaluates to empty sequence
                 // when Saxon navigates above the subtree root

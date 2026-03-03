@@ -79,7 +79,7 @@
 		<netty.version>4.2.10.Final</netty.version>
 		<jakarta.xml.bind-api.version>4.0.5</jakarta.xml.bind-api.version>
 		<lombok.version>1.18.42</lombok.version>
-		<fastcsv.version>3.3.1</fastcsv.version>
+		<fastcsv.version>4.0.0</fastcsv.version>
 		<jayway.version>2.10.0</jayway.version>
 		<jsurfer.version>1.6.5</jsurfer.version>
 		<saxon.version>12.9</saxon.version>

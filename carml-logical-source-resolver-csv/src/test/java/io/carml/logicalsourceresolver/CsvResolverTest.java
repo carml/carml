@@ -1,8 +1,12 @@
 package io.carml.logicalsourceresolver;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import de.siegmar.fastcsv.reader.CsvParseException;
+import de.siegmar.fastcsv.reader.CsvReader;
 import de.siegmar.fastcsv.reader.NamedCsvRecord;
 import io.carml.logicalsourceresolver.LogicalSourceResolver.LogicalSourceResolverFactory;
 import io.carml.model.CsvReferenceFormulation;
@@ -17,6 +21,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -199,5 +204,111 @@ class CsvResolverTest {
         assertThat(result.size(), is(1));
         assertThat(result.get(0).getField("item"), is("sword"));
         assertThat(result.get(0).getField("price"), is("1500"));
+    }
+
+    @Test
+    void givenFewerFieldsThanHeader_whenStrictFieldCount_thenError() {
+        // Given
+        var csv = "id,name,age\n6,Phoebe Buffay\n";
+        var csvResolver = csvResolverFactory.apply(RML_SOURCE);
+        var recordResolver = csvResolver.getLogicalSourceRecords(Set.of(LSOURCE));
+        var resolvedSource = ResolvedSource.of(sourceResolver.apply(csv), new TypeRef<>() {});
+
+        // When / Then
+        StepVerifier.create(recordResolver.apply(resolvedSource))
+                .expectErrorMatches(e -> e instanceof LogicalSourceResolverException
+                        && e.getMessage().contains("has 2 field(s), but the header has 3"))
+                .verify();
+    }
+
+    @Test
+    void givenMoreFieldsThanHeader_whenStrictFieldCount_thenError() {
+        // Given
+        var csv = "id,name\n1,Alice,extra\n";
+        var csvResolver = csvResolverFactory.apply(RML_SOURCE);
+        var recordResolver = csvResolver.getLogicalSourceRecords(Set.of(LSOURCE));
+        var resolvedSource = ResolvedSource.of(sourceResolver.apply(csv), new TypeRef<>() {});
+
+        // When / Then
+        StepVerifier.create(recordResolver.apply(resolvedSource))
+                .expectErrorMatches(e -> e instanceof LogicalSourceResolverException
+                        && e.getMessage().contains("has 3 field(s), but the header has 2"))
+                .verify();
+    }
+
+    @Test
+    void givenFewerFieldsThanHeader_whenStrictFieldCountDisabled_thenRecordEmitted() {
+        // Given
+        var csv = "id,name,age\n6,Phoebe Buffay\n";
+        var options = CsvResolver.Options.builder().strictFieldCount(false).build();
+        var csvResolver = CsvResolver.factory(options).apply(RML_SOURCE);
+        var recordResolver = csvResolver.getLogicalSourceRecords(Set.of(LSOURCE));
+        var resolvedSource = ResolvedSource.of(sourceResolver.apply(csv), new TypeRef<>() {});
+
+        // When / Then
+        StepVerifier.create(recordResolver.apply(resolvedSource))
+                .expectNextCount(1)
+                .verifyComplete();
+    }
+
+    @Test
+    void givenCustomCsvReaderBuilderFactory_whenApplied_thenCustomFactoryIsUsed() {
+        // Given
+        var customFactoryUsed = new AtomicBoolean(false);
+        var options = CsvResolver.Options.builder()
+                .csvReaderBuilderFactory(() -> {
+                    customFactoryUsed.set(true);
+                    return CsvReader.builder();
+                })
+                .build();
+        var csvResolver = CsvResolver.factory(options).apply(RML_SOURCE);
+        var recordResolver = csvResolver.getLogicalSourceRecords(Set.of(LSOURCE));
+        var resolvedSource = ResolvedSource.of(sourceResolver.apply(SOURCE), new TypeRef<>() {});
+
+        // When
+        recordResolver.apply(resolvedSource).blockLast();
+
+        // Then
+        assertThat(customFactoryUsed.get(), is(true));
+    }
+
+    @Test
+    void getInlineRecordParser_givenFewerFieldsThanHeader_whenStrictFieldCount_thenError() {
+        // Given
+        var csvResolver = csvResolverFactory.apply(RML_SOURCE);
+        var parser = csvResolver.getInlineRecordParser().orElseThrow();
+
+        // When / Then
+        var exception = assertThrows(LogicalSourceResolverException.class, () -> parser.apply("id,name,age\n6,Phoebe"));
+        assertThat(exception.getMessage(), containsString("has 2 field(s), but the header has 3"));
+    }
+
+    @Test
+    void givenDuplicateHeaders_whenAllowDuplicateHeaders_thenRecordEmitted() {
+        // Given
+        var csv = "id,name,id\n1,Alice,2\n";
+        var options = CsvResolver.Options.builder().allowDuplicateHeaders(true).build();
+        var csvResolver = CsvResolver.factory(options).apply(RML_SOURCE);
+        var recordResolver = csvResolver.getLogicalSourceRecords(Set.of(LSOURCE));
+        var resolvedSource = ResolvedSource.of(sourceResolver.apply(csv), new TypeRef<>() {});
+
+        // When / Then
+        StepVerifier.create(recordResolver.apply(resolvedSource))
+                .expectNextCount(1)
+                .verifyComplete();
+    }
+
+    @Test
+    void givenDuplicateHeaders_whenDefaultOptions_thenError() {
+        // Given
+        var csv = "id,name,id\n1,Alice,2\n";
+        var csvResolver = csvResolverFactory.apply(RML_SOURCE);
+        var recordResolver = csvResolver.getLogicalSourceRecords(Set.of(LSOURCE));
+        var resolvedSource = ResolvedSource.of(sourceResolver.apply(csv), new TypeRef<>() {});
+
+        // When / Then
+        StepVerifier.create(recordResolver.apply(resolvedSource))
+                .expectError(CsvParseException.class)
+                .verify();
     }
 }
