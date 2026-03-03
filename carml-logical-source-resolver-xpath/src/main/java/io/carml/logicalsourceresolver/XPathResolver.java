@@ -24,7 +24,6 @@ import javax.xml.xpath.XPathException;
 import jlibs.xml.DefaultNamespaceContext;
 import jlibs.xml.sax.dog.NodeItem;
 import jlibs.xml.sax.dog.XMLDog;
-import jlibs.xml.sax.dog.expr.Expression;
 import jlibs.xml.sax.dog.expr.InstantEvaluationListener;
 import jlibs.xml.sax.dog.sniff.DOMBuilder;
 import jlibs.xml.sax.dog.sniff.Event;
@@ -32,6 +31,9 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
+import net.sf.saxon.expr.AxisExpression;
+import net.sf.saxon.expr.Expression;
+import net.sf.saxon.om.AxisInfo;
 import net.sf.saxon.s9api.Axis;
 import net.sf.saxon.s9api.DocumentBuilder;
 import net.sf.saxon.s9api.Processor;
@@ -51,6 +53,9 @@ import reactor.core.publisher.Mono;
 public class XPathResolver implements LogicalSourceResolver<XdmItem> {
 
     public static final String NAME = "XPathResolver";
+
+    private static final Set<Integer> PARENT_AXES =
+            Set.of(AxisInfo.PARENT, AxisInfo.ANCESTOR, AxisInfo.ANCESTOR_OR_SELF);
 
     public static LogicalSourceResolverFactory<XdmItem> factory() {
         return factory(true);
@@ -150,6 +155,14 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
 
     private Flux<LogicalSourceRecord<XdmItem>> getXpathResultFlux(
             InputStream inputStream, Set<LogicalSource> logicalSources) {
+        if (requiresParentAxisNavigation(logicalSources)) {
+            LOG.warn("Parent axis navigation detected in XPath expressions. "
+                    + "Falling back to full-document DOM parsing. This disables streaming and loads "
+                    + "the entire XML document into memory. For large documents, consider using "
+                    + "rml:LogicalView to avoid parent axis expressions (../, parent::, ancestor::).");
+            return parseFullDocumentAndResolve(inputStream, logicalSources);
+        }
+
         return PausableFluxBridge.<LogicalSourceRecord<XdmItem>>builder()
                 .sourceFactory(emitter -> {
                     var pausableReader = new PausableStaxXmlReader();
@@ -174,6 +187,54 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
     private Flux<LogicalSourceRecord<XdmItem>> getXpathResultFlux(XdmItem xdmItem, Set<LogicalSource> logicalSources) {
         return Flux.fromIterable(logicalSources)
                 .flatMap(logicalSource -> getXpathResultFluxForLogicalSource(xdmItem, logicalSource));
+    }
+
+    private Flux<LogicalSourceRecord<XdmItem>> parseFullDocumentAndResolve(
+            InputStream inputStream, Set<LogicalSource> logicalSources) {
+        try (inputStream) {
+            var document = xpathProcessor.newDocumentBuilder().build(new StreamSource(inputStream));
+            return getXpathResultFlux(document, logicalSources);
+        } catch (SaxonApiException e) {
+            throw new LogicalSourceResolverException(
+                    "Error parsing XML document for full-document XPath evaluation", e);
+        } catch (IOException ioException) {
+            throw new LogicalSourceResolverException("Error closing input stream.", ioException);
+        }
+    }
+
+    private boolean requiresParentAxisNavigation(Set<LogicalSource> logicalSources) {
+        return logicalSources.stream()
+                .map(LogicalSource::getExpressions)
+                .filter(Objects::nonNull)
+                .flatMap(Set::stream)
+                .anyMatch(this::usesParentAxis);
+    }
+
+    private boolean usesParentAxis(String expression) {
+        try {
+            var internalExpr =
+                    xpathCompiler.compile(expression).getUnderlyingExpression().getInternalExpression();
+            return containsParentAxis(internalExpr);
+        } catch (SaxonApiException e) {
+            LOG.debug(
+                    "XPath expression '{}' failed to compile during parent axis check; "
+                            + "deferring to evaluation phase",
+                    expression,
+                    e);
+            return false;
+        }
+    }
+
+    private static boolean containsParentAxis(Expression expression) {
+        if (expression instanceof AxisExpression axisExpr && PARENT_AXES.contains(axisExpr.getAxis())) {
+            return true;
+        }
+        for (var operand : expression.operands()) {
+            if (containsParentAxis(operand.getChildExpression())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private XMLDog prepareXmlDog(
@@ -219,13 +280,13 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
             private final DocumentBuilder docBuilder = xpathProcessor.newDocumentBuilder();
 
             @Override
-            public void onNodeHit(Expression expression, NodeItem nodeItem) {
+            public void onNodeHit(jlibs.xml.sax.dog.expr.Expression expression, NodeItem nodeItem) {
                 var logicalSource = logicalSourceByExpression.get(expression.getXPath());
                 emitter.next(LogicalSourceRecord.of(logicalSource, (XdmItem) docBuilder.wrap(nodeItem.xml)));
             }
 
             @Override
-            public void finishedNodeSet(Expression expression) {
+            public void finishedNodeSet(jlibs.xml.sax.dog.expr.Expression expression) {
                 expressionCompletion.put(expression.getXPath(), true);
                 if (expressionCompletion.values().stream().allMatch(Boolean::valueOf)) {
                     emitter.complete();
@@ -233,7 +294,7 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
             }
 
             @Override
-            public void onResult(Expression expression, Object object) {
+            public void onResult(jlibs.xml.sax.dog.expr.Expression expression, Object object) {
                 var logicalSource = logicalSourceByExpression.get(expression.getXPath());
                 emitter.next(LogicalSourceRecord.of(logicalSource, (XdmItem) docBuilder.wrap(object)));
             }
@@ -295,14 +356,12 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
     }
 
     private Object resolveXdmItem(XdmItem item) {
-        // Return raw XdmItem only for element nodes — needed for
-        // iterable field evaluation where nested expressions are
+        // Return raw XdmItem only for element nodes when auto text extraction is disabled —
+        // needed for iterable field evaluation where nested expressions are
         // evaluated against the element
-        if (item instanceof XdmNode node && node.getNodeKind() == XdmNodeKind.ELEMENT) {
+        if (item instanceof XdmNode node && node.getNodeKind() == XdmNodeKind.ELEMENT && !autoNodeTextExtraction) {
             return item;
         }
-        // For atomic values, attribute nodes, text nodes, etc.,
-        // return the string value
         var text = item.getStringValue();
         if (source.getNulls().contains(text)) {
             return null;

@@ -59,7 +59,7 @@ public class RdfMappingPipelineFactory {
         var tmToRoMappers = new HashMap<TriplesMap, Set<RdfRefObjectMapper>>();
         var roMapperToParentTm = new HashMap<RdfRefObjectMapper, TriplesMap>();
 
-        prepareDatabaseTriplesMaps(triplesMaps);
+        populateLogicalSourceExpressions(triplesMaps);
 
         for (TriplesMap triplesMap : triplesMaps) {
             var roMappers = new HashSet<RdfRefObjectMapper>();
@@ -115,10 +115,9 @@ public class RdfMappingPipelineFactory {
         return MappingPipeline.of(triplesMappers, roMapperToParentTriplesMapper, sourceToLogicalSourceResolver);
     }
 
-    private void prepareDatabaseTriplesMaps(Set<TriplesMap> triplesMaps) {
-        var groupedTriplesMaps = triplesMaps.stream()
-                .filter(this::isDatabaseTriplesMap)
-                .collect(groupingBy(TriplesMap::getLogicalSource, toUnmodifiableSet()));
+    private void populateLogicalSourceExpressions(Set<TriplesMap> triplesMaps) {
+        var groupedTriplesMaps =
+                triplesMaps.stream().collect(groupingBy(TriplesMap::getLogicalSource, toUnmodifiableSet()));
 
         var lsExpressions = groupedTriplesMaps.entrySet().stream()
                 .collect(toUnmodifiableMap(Entry::getKey, entry -> entry.getValue().stream()

@@ -435,6 +435,53 @@ class XPathResolverTest {
     }
 
     @Test
+    void givenXmlWithParentAxisExpression_whenRecordResolverApplied_thenParentAxisNavigationWorks() {
+        var xml = "<companies><company id=\"25\"><departments><department>"
+                + "<name>Engineering</name></department></departments></company></companies>";
+        var inputStream = IOUtils.toInputStream(xml, StandardCharsets.UTF_8);
+
+        var logicalSource = CarmlLogicalSource.builder()
+                .source(RML_SOURCE)
+                .iterator("/companies/company/departments/department")
+                .referenceFormulation(XPATH)
+                .build();
+        logicalSource.setExpressions(Set.of("../../@id", "name"));
+
+        var resolvedSource = ResolvedSource.of(inputStream, new TypeRef<>() {});
+        var xpathResolver = xpathResolverFactory.apply(logicalSource.getSource());
+        var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(logicalSource));
+        var records = recordResolver.apply(resolvedSource).collectList().block();
+
+        assertThat(records, hasSize(1));
+
+        var eval = xpathResolver
+                .getExpressionEvaluationFactory()
+                .apply(records.get(0).getSourceRecord());
+        assertThat(eval.apply("../../@id").orElseThrow(), is("25"));
+        assertThat(eval.apply("name").orElseThrow(), is("Engineering"));
+    }
+
+    @Test
+    void givenXmlWithoutParentAxisExpression_whenRecordResolverApplied_thenStreamingPathUsed() {
+        var inputStream = IOUtils.toInputStream(SOURCE, StandardCharsets.UTF_8);
+
+        var logicalSource = CarmlLogicalSource.builder()
+                .source(RML_SOURCE)
+                .iterator("/bookstore/book")
+                .referenceFormulation(XPATH)
+                .build();
+        logicalSource.setExpressions(Set.of("title", "author"));
+
+        var resolvedSource = ResolvedSource.of(inputStream, new TypeRef<>() {});
+        var xpathResolver = xpathResolverFactory.apply(logicalSource.getSource());
+        var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(logicalSource));
+
+        StepVerifier.create(recordResolver.apply(resolvedSource))
+                .expectNextCount(2)
+                .verifyComplete();
+    }
+
+    @Test
     void getInlineRecordParser_givenValidXml_returnsDocumentElement() {
         var xpathResolver = xpathResolverFactory.apply(LSOURCE.getSource());
         var parser = xpathResolver.getInlineRecordParser().orElseThrow();

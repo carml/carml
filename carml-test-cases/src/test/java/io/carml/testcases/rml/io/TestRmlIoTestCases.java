@@ -52,14 +52,7 @@ class TestRmlIoTestCases extends RmlTestCaseSuite {
                 // by declaring hasError=true while providing an output.nq with valid expected output.
                 "RMLSTC0009a",
 
-                // XPath parent axis navigation (../@id, ../../@id, ../../../@id): XMLDog builds detached
-                // DOM subtrees for matched iterator nodes, so parent axis evaluates to empty sequence
-                // when Saxon navigates above the subtree root
-                "RMLSTC0012b", // ../@id (parent company id from departments)
-                "RMLSTC0012c", // ../../../@id (grandparent company id from employees)
-                "RMLSTC0012d", // ../../@id (grandparent company id from department)
-
-                // Multi-item XPath reference: skills/skill selects multiple nodes; RML spec requires
+                // Test case bug: Multi-item XPath reference: skills/skill selects multiple nodes; RML spec requires
                 // scalar reference values. Nested data should use rml:LogicalView instead.
                 "RMLSTC0012e",
 
