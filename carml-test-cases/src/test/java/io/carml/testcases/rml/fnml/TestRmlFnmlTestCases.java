@@ -31,21 +31,21 @@ class TestRmlFnmlTestCases extends RmlTestCaseSuite {
     @Override
     protected List<String> getSkipTests() {
         return List.of(
-                // idlab-fn:random: no implementation available; non-deterministic output
+                // Test case bug: idlab-fn:random: no implementation available; non-deterministic output
                 "RMLFNMLTC0001",
-                // TC0011 and TC0031 expect IRI scheme normalization to lowercase (http://VENUS,
+                // Test case bug: TC0011 and TC0031 expect IRI scheme normalization to lowercase (http://VENUS,
                 // http://WWW.EXAMPLE.COM) while TC0003 and TC0061 expect the uppercase scheme
                 // produced by toUpperCaseURL to be preserved (HTTP://EXAMPLE.COM/VENUS). The test
                 // suite expectations are contradictory; consistent behavior cannot satisfy both.
                 "RMLFNMLTC0011",
                 "RMLFNMLTC0031",
-                // Bug in external functions_idlab.ttl: the parameter resource IRI is
+                // Test case bug: Bug in external functions_idlab.ttl: the parameter resource IRI is
                 // idlab-fn:_str but the test case mappings reference idlab-fn:str (the
                 // fno:predicate value). Per the RML-FNML spec, rml:parameter should reference
                 // the fno:Parameter resource IRI, not the fno:predicate value.
                 "RMLFNMLTC0003",
                 "RMLFNMLTC0061",
-                // Missing GREL function descriptions: the official functions.ttl only defines
+                // Test ase bug: Missing GREL function descriptions: the official functions.ttl only defines
                 // grel:toUpperCase and grel:string_replace. The grel-functions-java JAR provides
                 // Java implementation bindings but no fno:Function descriptions with parameter
                 // definitions for grel:length, grel:string_substring, and grel:escape.

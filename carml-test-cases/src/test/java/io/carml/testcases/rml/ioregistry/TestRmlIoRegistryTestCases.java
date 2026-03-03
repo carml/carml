@@ -88,9 +88,14 @@ class TestRmlIoRegistryTestCases extends RmlTestCaseSuite {
     @Override
     protected List<String> getSkipTests() {
         return List.of(
-                // Missing JSON/XML references produce NULL instead of error (hasError=true but CARML doesn't throw)
-                "RMLIOREGTC0002b", // JSON: $.THIS_VALUE_DOES_NOT_EXIST
-                "RMLIOREGTC0003b", // XML: NON_EXISTING element
+                // Test case bug: hasError=true but the spec says non-matching references produce NULL, not
+                // an error. The JSONPath IO-Registry spec (section "Generation of null values") states that
+                // selectors referring to non-existent JSON names result in NULL. The XPath IO-Registry spec
+                // (section "Handling absence of values") states that non-existent XPath evaluates to NULL.
+                // RML-Core term generation rule 1: "If the value is null, empty or missing, then no RDF term
+                // is generated." The output algorithm then skips the triple — no error is raised.
+                "RMLIOREGTC0002b", // JSON: $.THIS_VALUE_DOES_NOT_EXIST → NULL, not error
+                "RMLIOREGTC0003b", // XML: NON_EXISTING → NULL, not error
 
                 // Test case bug: namespace URL mismatch ("http://example.org" vs XML's "http://example.org/")
                 // and unprefixed names in iterator/references for elements in the default namespace.
@@ -102,13 +107,13 @@ class TestRmlIoRegistryTestCases extends RmlTestCaseSuite {
                 "RMLIOREGTC0005d", // PostgreSQL
                 "RMLIOREGTC0006d", // SQL Server
 
-                // Test case expected output has plain string "10" for SQL integer column
+                // Test case bug: expected output has plain string "10" for SQL integer column
                 // engine correctly produces "10"^^xsd:integer
                 "RMLIOREGTC0004k", // MySQL
                 "RMLIOREGTC0005k", // PostgreSQL
                 "RMLIOREGTC0006k", // SQL Server
 
-                // Test case expected output has non-canonical xsd:double ("30.0" vs canonical "3.0E1")
+                // Test case bug: expected output has non-canonical xsd:double ("30.0" vs canonical "3.0E1")
                 // engine uses XMLDatatypeUtil.normalize which produces canonical scientific notation
                 "RMLIOREGTC0004o", // MySQL: FLOAT amount column
                 "RMLIOREGTC0004t", // MySQL: FLOAT amount column (two-table join)
@@ -116,18 +121,22 @@ class TestRmlIoRegistryTestCases extends RmlTestCaseSuite {
                 "RMLIOREGTC0005t", // PostgreSQL: FLOAT amount column (two-table join)
                 "RMLIOREGTC0006t", // SQL Server: FLOAT amount column (two-table join)
 
-                // Test case expected output has non-canonical xsd:double for REAL/FLOAT Patient columns
-                // (e.g. "80.25" vs canonical "8.025E1", "1.7" vs "1.7E0")
+                // Test case bug: expected output has non-canonical xsd:double for REAL/FLOAT Patient columns
+                // (e.g. "80.25" vs canonical "8.025E1", "1.7" vs "1.7E0"). XML Schema Part 2 section
+                // 3.2.5.2 (https://www.w3.org/TR/xmlschema-2/#double) requires canonical double
+                // representation to be normalized scientific notation: "a single digit which is non-zero
+                // to the left of the decimal point" with exponent indicated by "E".
                 "RMLIOREGTC0004w", // MySQL
                 "RMLIOREGTC0005w", // PostgreSQL
                 "RMLIOREGTC0006w", // SQL Server
 
-                // SQL query references non-existent column "NoColumnName" but hasError=false (test case bug)
+                // Test case bug: SQL query references non-existent column "NoColumnName" but hasError=false (test case
+                // bug)
                 "RMLIOREGTC0004l", // MySQL
                 "RMLIOREGTC0005l", // PostgreSQL
                 "RMLIOREGTC0006l", // SQL Server
 
-                // Test case expected output has plain "33" for JSON integer; engine produces "33"^^xsd:integer
+                // Test case bug: expected output has plain "33" for JSON integer; engine produces "33"^^xsd:integer
                 "RMLIOREGTC0007a",
 
                 // Unsupported source type: WoT (td:Thing) source descriptions
@@ -138,8 +147,8 @@ class TestRmlIoRegistryTestCases extends RmlTestCaseSuite {
                 // Unsupported source type: SPARQL endpoint (sd:Service)
                 "RMLIOREGTC0011a",
 
-                // CSVW quoteChar test case bug: mapping references uppercase {ID}/{Name} but CSV headers are
-                // lowercase id/name/age
+                // Test case bug: CSVW quoteChar test case bug: mapping references uppercase {ID}/{Name} but CSV headers
+                // are lowercase id/name/age
                 "RMLIOREGTC0012i",
 
                 // SQL Server test case bug: invalid iterator "dsfjdlfjks;fkstudent" and output.nq references
