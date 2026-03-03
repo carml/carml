@@ -3,9 +3,13 @@ package io.carml.engine.rdf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.stream.Stream;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.vocabulary.XSD;
@@ -35,12 +39,19 @@ class CanonicalRdfLexicalFormTest {
                 Arguments.of(0, XSD.BOOLEAN, "false"),
                 Arguments.of(OffsetTime.parse("22:17:34.885+00:00"), XSD.TIME, "22:17:34.885Z"),
                 Arguments.of(LocalTime.parse("22:17:34.000"), XSD.TIME, "22:17:34.0"),
-                // different from https://www.w3.org/TR/r2rml/#xsd-summary
                 Arguments.of(OffsetTime.parse("22:17:34.1+01:00"), XSD.TIME, "22:17:34.1+01:00"),
                 Arguments.of(
-                        OffsetDateTime.parse("2011-08-23T22:17:00.000+00:00"), XSD.DATETIME, "2011-08-23T22:17:00.0Z")
-                // different from https://www.w3.org/TR/r2rml/#xsd-summary
-                );
+                        OffsetDateTime.parse("2011-08-23T22:17:00.000+00:00"), XSD.DATETIME, "2011-08-23T22:17:00Z"),
+                Arguments.of(
+                        OffsetDateTime.parse("2011-08-23T22:17:00.885+05:30"),
+                        XSD.DATETIME,
+                        "2011-08-23T16:47:00.885Z"),
+                Arguments.of(
+                        ZonedDateTime.of(2009, 10, 10, 12, 12, 22, 0, ZoneId.of("Europe/Berlin")),
+                        XSD.DATETIME,
+                        "2009-10-10T12:12:22"),
+                Arguments.of(LocalDateTime.of(2009, 10, 10, 12, 12, 22), XSD.DATETIME, "2009-10-10T12:12:22"),
+                Arguments.of(LocalDate.of(1981, 10, 10), XSD.DATE, "1981-10-10"));
     }
 
     @ParameterizedTest

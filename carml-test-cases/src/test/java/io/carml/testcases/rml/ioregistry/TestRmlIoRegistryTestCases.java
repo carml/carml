@@ -97,7 +97,8 @@ class TestRmlIoRegistryTestCases extends RmlTestCaseSuite {
                 // CARML's namespace pipeline works correctly (verified with corrected test case data).
                 "RMLIOREGTC0003d",
 
-                // Expected error for invalid table not thrown (jOOQ generates valid query for non-existent table)
+                // Test case bug: hasError=true but mapping iterator "Person" matches the table created by
+                // resource.sql — unlike 0004d (MySQL) which correctly uses non-existent "sdfdfsstudent"
                 "RMLIOREGTC0005d", // PostgreSQL
                 "RMLIOREGTC0006d", // SQL Server
 
@@ -120,11 +121,6 @@ class TestRmlIoRegistryTestCases extends RmlTestCaseSuite {
                 "RMLIOREGTC0004w", // MySQL
                 "RMLIOREGTC0005w", // PostgreSQL
                 "RMLIOREGTC0006w", // SQL Server
-
-                // DateTime formatting mismatch (driver-specific temporal serialization)
-                "RMLIOREGTC0004x", // MySQL
-                "RMLIOREGTC0005x", // PostgreSQL
-                "RMLIOREGTC0006x", // SQL Server: trailing .0 (2009-10-10T12:12:22.0 vs 2009-10-10T12:12:22)
 
                 // SQL query references non-existent column "NoColumnName" but hasError=false (test case bug)
                 "RMLIOREGTC0004l", // MySQL
@@ -150,7 +146,11 @@ class TestRmlIoRegistryTestCases extends RmlTestCaseSuite {
                 // unrelated Person/BirthDay data
                 "RMLIOREGTC0006c",
 
-                // SQL Server: binary hex encoding mismatch (ByteBuffer to hex string double-encoding)
+                // Test case bug: resource.sql uses CAST('89504E47...' AS VARBINARY) which treats the hex
+                // string as character data, storing ASCII bytes (0x38 0x39 0x35 ...) instead of the intended
+                // raw binary (0x89 0x50 0x4E ...). This causes double-encoding when printHexBinary() hex-encodes
+                // the ASCII bytes. The correct SQL Server syntax is a bare binary literal: 0x89504E470D0A...
+                // (MySQL uses X'...' and PostgreSQL uses '\x...' which both work correctly)
                 "RMLIOREGTC0006z");
     }
 

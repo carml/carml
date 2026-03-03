@@ -3,6 +3,7 @@ package io.carml.engine.rdf;
 import io.carml.rdfmapper.impl.CarmlMapperException;
 import jakarta.xml.bind.DatatypeConverter;
 import java.nio.ByteBuffer;
+import java.time.ZonedDateTime;
 import java.time.temporal.TemporalAccessor;
 import java.util.function.BiFunction;
 import lombok.NoArgsConstructor;
@@ -22,14 +23,21 @@ public final class CanonicalRdfLexicalForm implements BiFunction<Object, IRI, St
                 if (datatype.equals(XSD.HEXBINARY) && value instanceof ByteBuffer byteBuffer) {
                     return DatatypeConverter.printHexBinary(byteBuffer.array());
                 } else if (value instanceof TemporalAccessor temporalAccessor) {
-                    return Values.literal(temporalAccessor).stringValue();
+                    // MySQL R2DBC wraps TIMESTAMP values in ZonedDateTime with the session
+                    // timezone, but TIMESTAMP is semantically timezone-unaware. Strip the zone
+                    // to produce timezone-free xsd:dateTime canonical form.
+                    if (temporalAccessor instanceof ZonedDateTime zdt) {
+                        temporalAccessor = zdt.toLocalDateTime();
+                    }
+                    var lexicalForm = Values.literal(temporalAccessor).stringValue();
+                    return XMLDatatypeUtil.normalize(lexicalForm, datatype);
                 } else if (CoreDatatype.from(datatype).isXSDDatatype()) {
                     return XMLDatatypeUtil.normalize(value.toString(), datatype);
                 }
             }
         } catch (RuntimeException exception) {
             throw new CarmlMapperException(
-                    String.format("Failed to normalize value '%s' with datatype '%s'", value, datatype), exception);
+                    "Failed to normalize value '%s' with datatype '%s'".formatted(value, datatype), exception);
         }
 
         return value.toString();
