@@ -1,36 +1,9 @@
 package io.carml.testcases.rml.io;
 
-import io.carml.engine.rdf.RdfRmlMapper;
-import io.carml.logicalsourceresolver.sourceresolver.ClassPathResolver;
-import io.carml.logicalsourceresolver.sql.MySqlResolver;
-import io.carml.logicalsourceresolver.sql.SqlServerResolver;
-import io.carml.logicalsourceresolver.sql.sourceresolver.DatabaseConnectionOptions;
-import io.carml.model.TriplesMap;
-import io.carml.testcases.model.TestCase;
 import io.carml.testcases.rml.RmlTestCaseSuite;
-import io.carml.util.RmlMappingLoader;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
 import java.util.List;
-import java.util.Set;
-import org.eclipse.rdf4j.model.Model;
-import org.eclipse.rdf4j.model.impl.ValidatingValueFactory;
-import org.eclipse.rdf4j.model.util.ModelCollector;
-import org.eclipse.rdf4j.rio.RDFFormat;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.containers.PostgreSQLR2DBCDatabaseContainer;
-import org.testcontainers.junit.jupiter.Container;
 
 class TestRmlIoTestCases extends RmlTestCaseSuite {
-
-    @SuppressWarnings("resource")
-    @Container
-    private static final PostgreSQLContainer<?> POSTGRESQL =
-            new PostgreSQLContainer<>("postgres:latest").withUsername("root");
 
     @Override
     protected String getBasePath() {
@@ -52,6 +25,12 @@ class TestRmlIoTestCases extends RmlTestCaseSuite {
                 "RMLSTC0004b",
                 "RMLSTC0004c",
 
+                // Test case bug: D2RQ SQL source test provides only Friends.csv but no resource.sql to
+                // create/populate the database table. Unlike the ioregistry SQL test cases
+                // (RMLIOREGTC0004-0006) which include resource.sql files, this test case has no SQL
+                // schema or data loading mechanism.
+                "RMLSTC0006a",
+
                 // rml:CurrentWorkingDirectory resolves against JVM working dir, not classpath; Friends.csv
                 // is only on the classpath. Also affected by test case bug: xsd:integer for CSV values.
                 "RMLSTC0006b",
@@ -68,8 +47,9 @@ class TestRmlIoTestCases extends RmlTestCaseSuite {
                 // Test case bug: expected output has xsd:integer for CSV values (same as 0004a/b/c)
                 "RMLSTC0008b",
 
-                // CSV quoted column headers ("id","name","age"): FastCSV strips quotes transparently,
-                // so references resolve successfully; spec requires an error for quoted CSV headers
+                // Probable test case bug: expects an error for quoted CSV headers ("id","name","age"),
+                // but quoting header fields is valid per RFC 4180. The manifest also contradicts itself
+                // by declaring hasError=true while providing an output.nq with valid expected output.
                 "RMLSTC0009a",
 
                 // CSV malformed row with fewer fields than header, but mapping only references existing
@@ -92,51 +72,5 @@ class TestRmlIoTestCases extends RmlTestCaseSuite {
                 // Target tests (rml:Target) — not yet supported
                 "RMLTTC" // all target test cases
                 );
-    }
-
-    @Override
-    protected Model executeMapping(TestCase testCase, String testCaseIdentifier) {
-        var mapperBuilder = RdfRmlMapper.builder().valueFactorySupplier(ValidatingValueFactory::new);
-
-        byte[] mappingBytes;
-        try {
-            mappingBytes = getTestCaseFileInputStream(getBasePath(), testCaseIdentifier, testCase.getMappingDocument())
-                    .readAllBytes();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
-        var mappingContent = new String(mappingBytes, StandardCharsets.UTF_8);
-
-        if (mappingContent.contains("d2rq:jdbcDSN")) {
-            Set<TriplesMap> mapping =
-                    RmlMappingLoader.build().load(RDFFormat.TURTLE, new ByteArrayInputStream(mappingBytes));
-
-            var sqlStream = getTestCaseFileInputStream(getBasePath(), testCaseIdentifier, "resource.sql");
-            if (sqlStream != null) {
-                try (Connection conn = DriverManager.getConnection(
-                        POSTGRESQL.getJdbcUrl(), POSTGRESQL.getUsername(), POSTGRESQL.getPassword())) {
-                    var sql = new String(sqlStream.readAllBytes(), StandardCharsets.UTF_8);
-                    conn.createStatement().execute(sql);
-                } catch (SQLException | IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-
-            mapperBuilder.excludeLogicalSourceResolver(MySqlResolver.NAME);
-            mapperBuilder.excludeLogicalSourceResolver(SqlServerResolver.NAME);
-            mapperBuilder.databaseConnectionOptions(
-                    DatabaseConnectionOptions.of(PostgreSQLR2DBCDatabaseContainer.getOptions(POSTGRESQL)));
-
-            RdfRmlMapper mapper = mapperBuilder
-                    .triplesMaps(mapping)
-                    .classPathResolver(ClassPathResolver.of(
-                            "%s/%s".formatted(getBasePath(), testCase.getIdentifier()), RmlTestCaseSuite.class))
-                    .build();
-
-            return mapper.map().collect(ModelCollector.toTreeModel()).block();
-        }
-
-        return super.executeMapping(testCase, testCaseIdentifier);
     }
 }
