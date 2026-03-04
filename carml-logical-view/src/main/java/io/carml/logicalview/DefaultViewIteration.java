@@ -1,5 +1,6 @@
 package io.carml.logicalview;
 
+import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.model.ReferenceFormulation;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -19,16 +20,28 @@ class DefaultViewIteration implements ViewIteration {
 
     private final Map<String, IRI> naturalDatatypes;
 
+    private final ExpressionEvaluation sourceEvaluation;
+
     DefaultViewIteration(
             int index,
             Map<String, Object> values,
             Map<String, ReferenceFormulation> referenceFormulations,
             Map<String, IRI> naturalDatatypes) {
+        this(index, values, referenceFormulations, naturalDatatypes, null);
+    }
+
+    DefaultViewIteration(
+            int index,
+            Map<String, Object> values,
+            Map<String, ReferenceFormulation> referenceFormulations,
+            Map<String, IRI> naturalDatatypes,
+            ExpressionEvaluation sourceEvaluation) {
         this.index = index;
         // Use Collections.unmodifiableMap to support null values (left join no-match fields)
         this.values = Collections.unmodifiableMap(new LinkedHashMap<>(values));
         this.referenceFormulations = Map.copyOf(referenceFormulations);
         this.naturalDatatypes = Map.copyOf(naturalDatatypes);
+        this.sourceEvaluation = sourceEvaluation;
     }
 
     @Override
@@ -56,11 +69,17 @@ class DefaultViewIteration implements ViewIteration {
         return Optional.ofNullable(naturalDatatypes.get(key));
     }
 
+    @Override
+    public Optional<ExpressionEvaluation> getSourceEvaluation() {
+        return Optional.ofNullable(sourceEvaluation);
+    }
+
     DefaultViewIteration withIndex(int newIndex) {
         var newValues = new LinkedHashMap<>(this.values);
         newValues.put(DefaultLogicalViewEvaluator.INDEX_KEY, newIndex);
         var newNaturalDatatypes = new LinkedHashMap<>(this.naturalDatatypes);
         newNaturalDatatypes.put(DefaultLogicalViewEvaluator.INDEX_KEY, XSD.INTEGER);
-        return new DefaultViewIteration(newIndex, newValues, this.referenceFormulations, newNaturalDatatypes);
+        return new DefaultViewIteration(
+                newIndex, newValues, this.referenceFormulations, newNaturalDatatypes, this.sourceEvaluation);
     }
 }

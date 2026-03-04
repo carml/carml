@@ -2,6 +2,7 @@ package io.carml.engine;
 
 import io.carml.logicalview.EvaluationContext;
 import io.carml.model.LogicalView;
+import io.carml.model.RefObjectMap;
 import io.carml.model.TriplesMap;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -44,6 +45,11 @@ class DefaultResolvedMapping implements ResolvedMapping {
     @NonNull
     private final Set<TriplesMap> dependencies;
 
+    @NonNull
+    @Builder.Default
+    @ToString.Exclude
+    private final Map<RefObjectMap, String> refObjectMapPrefixes = Map.of();
+
     @Override
     public Optional<FieldOrigin> getFieldOrigin(String fieldName) {
         return Optional.ofNullable(fieldOrigins.get(fieldName));
@@ -61,6 +67,12 @@ class DefaultResolvedMapping implements ResolvedMapping {
 
         DefaultResolvedMappingBuilder dependencies(Set<TriplesMap> dependencies) {
             this.dependencies = Collections.unmodifiableSet(new LinkedHashSet<>(dependencies));
+            return this;
+        }
+
+        DefaultResolvedMappingBuilder refObjectMapPrefixes(Map<RefObjectMap, String> refObjectMapPrefixes) {
+            this.refObjectMapPrefixes$value = Map.copyOf(refObjectMapPrefixes);
+            this.refObjectMapPrefixes$set = true;
             return this;
         }
     }

@@ -69,7 +69,16 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
     private record EvaluatedValues(
             Map<String, Object> values,
             Map<String, ReferenceFormulation> referenceFormulations,
-            Map<String, IRI> naturalDatatypes) {}
+            Map<String, IRI> naturalDatatypes,
+            ExpressionEvaluation sourceEvaluation) {
+
+        EvaluatedValues(
+                Map<String, Object> values,
+                Map<String, ReferenceFormulation> referenceFormulations,
+                Map<String, IRI> naturalDatatypes) {
+            this(values, referenceFormulations, naturalDatatypes, null);
+        }
+    }
 
     private record ExprEvalWithDatatypeMapper(ExpressionEvaluation exprEval, DatatypeMapper datatypeMapper) {}
 
@@ -115,7 +124,6 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                 view, sourceResolver, context, rootRefForm, factoryCache, factoryResolver, inlineRecordParserResolver);
     }
 
-    @SuppressWarnings("unchecked")
     private Flux<ViewIteration> evaluateView(
             LogicalView view,
             Function<Source, ResolvedSource<?>> sourceResolver,
@@ -125,10 +133,43 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
             Function<ReferenceFormulation, LogicalSourceResolver.ExpressionEvaluationFactory<Object>> factoryResolver,
             Function<ReferenceFormulation, Optional<Function<String, List<Object>>>> inlineRecordParserResolver) {
 
-        var viewOn = view.getViewOn();
-        var fields = view.getFields();
+        var exprEvalFlux = resolveExpressionEvaluations(
+                view, sourceResolver, rootRefForm, factoryCache, factoryResolver, inlineRecordParserResolver);
 
-        Flux<ExprEvalWithDatatypeMapper> exprEvalFlux;
+        var evaluatedFlux = evaluateFieldsAndIndex(
+                exprEvalFlux, view.getFields(), rootRefForm, context, factoryResolver, inlineRecordParserResolver);
+
+        evaluatedFlux = applyJoins(evaluatedFlux, view, context.getProjectedFields(), sourceResolver);
+
+        // Convert to ViewIteration — root # already assigned before joins
+        Flux<ViewIteration> viewIterations = evaluatedFlux.map(ev -> new DefaultViewIteration(
+                (int) ev.values().get(INDEX_KEY),
+                ev.values(),
+                ev.referenceFormulations(),
+                ev.naturalDatatypes(),
+                ev.sourceEvaluation()));
+
+        // Apply dedup strategy — narrow key to projected fields when available
+        var projectedFields = context.getProjectedFields();
+        var keyFields =
+                projectedFields.isEmpty() ? collectDedupKeyFields(view) : expandWithIndexKeys(projectedFields, view);
+        var iterations = context.getDedupStrategy().deduplicate(viewIterations, keyFields);
+
+        // Apply limit
+        return context.getLimit().map(iterations::take).orElse(iterations);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Flux<ExprEvalWithDatatypeMapper> resolveExpressionEvaluations(
+            LogicalView view,
+            Function<Source, ResolvedSource<?>> sourceResolver,
+            ReferenceFormulation rootRefForm,
+            Map<ReferenceFormulation, LogicalSourceResolver.ExpressionEvaluationFactory<Object>> factoryCache,
+            Function<ReferenceFormulation, LogicalSourceResolver.ExpressionEvaluationFactory<Object>> factoryResolver,
+            Function<ReferenceFormulation, Optional<Function<String, List<Object>>>> inlineRecordParserResolver) {
+
+        var viewOn = view.getViewOn();
+
         if (viewOn instanceof LogicalSource logicalSource) {
             var rootSource = logicalSource.getSource();
             var resolver = (LogicalSourceResolver<Object>) findResolver(logicalSource, rootSource);
@@ -139,7 +180,7 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                     resolver.getDatatypeMapperFactory().orElse(r -> value -> Optional.empty());
 
             var resolvedSource = sourceResolver.apply(rootSource);
-            exprEvalFlux = resolver.getLogicalSourceRecords(Set.of(logicalSource))
+            return resolver.getLogicalSourceRecords(Set.of(logicalSource))
                     .apply(resolvedSource)
                     .map(rec -> {
                         var sourceRecord = rec.getSourceRecord();
@@ -147,71 +188,82 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                                 expressionEvaluationFactory.apply(sourceRecord),
                                 datatypeMapperFactory.apply(sourceRecord));
                     });
-        } else {
-            var parentReferenceableKeys = collectReferenceableKeys((LogicalView) viewOn);
-            exprEvalFlux = evaluateView(
-                            (LogicalView) viewOn,
-                            sourceResolver,
-                            EvaluationContext.defaults(),
-                            rootRefForm,
-                            factoryCache,
-                            factoryResolver,
-                            inlineRecordParserResolver)
-                    .map(vi -> {
-                        var viewExprEval = new ViewIterationExpressionEvaluation(vi, parentReferenceableKeys);
-                        DatatypeMapper viewDatatypeMapper = vi::getNaturalDatatype;
-                        return new ExprEvalWithDatatypeMapper(viewExprEval, viewDatatypeMapper);
-                    });
         }
+
+        var parentReferenceableKeys = collectReferenceableKeys((LogicalView) viewOn);
+        return evaluateView(
+                        (LogicalView) viewOn,
+                        sourceResolver,
+                        EvaluationContext.defaults(),
+                        rootRefForm,
+                        factoryCache,
+                        factoryResolver,
+                        inlineRecordParserResolver)
+                .map(vi -> {
+                    var viewExprEval = new ViewIterationExpressionEvaluation(vi, parentReferenceableKeys);
+                    DatatypeMapper viewDatatypeMapper = vi::getNaturalDatatype;
+                    return new ExprEvalWithDatatypeMapper(viewExprEval, viewDatatypeMapper);
+                });
+    }
+
+    private Flux<EvaluatedValues> evaluateFieldsAndIndex(
+            Flux<ExprEvalWithDatatypeMapper> exprEvalFlux,
+            Set<Field> fields,
+            ReferenceFormulation rootRefForm,
+            EvaluationContext context,
+            Function<ReferenceFormulation, LogicalSourceResolver.ExpressionEvaluationFactory<Object>> factoryResolver,
+            Function<ReferenceFormulation, Optional<Function<String, List<Object>>>> inlineRecordParserResolver) {
 
         // Assign root # per source record BEFORE joins — so joined iterations share the
         // source record index. This preserves the source position semantics of # even when
         // joins expand one record into multiple iterations or filter records out.
         var sourceIndex = new AtomicInteger(0);
-        Flux<EvaluatedValues> evaluatedFlux = exprEvalFlux.flatMapIterable(pair -> {
+        return exprEvalFlux.flatMapIterable(pair -> {
             var idx = sourceIndex.getAndIncrement();
             var fieldCtx = new FieldEvaluationContext(
                     rootRefForm, pair.datatypeMapper(), factoryResolver, inlineRecordParserResolver);
             var fieldEvals = evaluateFields(fields, pair.exprEval(), "", fieldCtx);
-            return fieldEvals.stream().map(ev -> withIndex(ev, INDEX_KEY, idx)).toList();
+            var evaluatedStream = fieldEvals.stream();
+            if (context.retainSourceEvaluation()) {
+                var sourceEval = pair.exprEval();
+                evaluatedStream = evaluatedStream.map(ev -> withSourceEvaluation(ev, sourceEval));
+            }
+            return evaluatedStream.map(ev -> withIndex(ev, INDEX_KEY, idx)).toList();
         });
+    }
 
-        // Apply joins: left joins first, then inner joins
-        var leftJoins = view.getLeftJoins();
-        var innerJoins = view.getInnerJoins();
-        var projectedFields = context.getProjectedFields();
+    private Flux<EvaluatedValues> applyJoins(
+            Flux<EvaluatedValues> evaluatedFlux,
+            LogicalView view,
+            Set<String> projectedFields,
+            Function<Source, ResolvedSource<?>> sourceResolver) {
+        evaluatedFlux = applyJoinSet(evaluatedFlux, view.getLeftJoins(), true, view, projectedFields, sourceResolver);
+        evaluatedFlux = applyJoinSet(evaluatedFlux, view.getInnerJoins(), false, view, projectedFields, sourceResolver);
+        return evaluatedFlux;
+    }
 
-        if (leftJoins != null) {
-            for (var join : leftJoins) {
-                var opts = analyzeJoinOptimizations(view, join, true, projectedFields);
-                if (opts.eliminate()) {
-                    continue;
-                }
-                evaluatedFlux =
-                        applyJoin(evaluatedFlux, join, !opts.effectiveInnerJoin(), opts.singleMatch(), sourceResolver);
+    private Flux<EvaluatedValues> applyJoinSet(
+            Flux<EvaluatedValues> evaluatedFlux,
+            Set<LogicalViewJoin> joins,
+            boolean leftJoin,
+            LogicalView view,
+            Set<String> projectedFields,
+            Function<Source, ResolvedSource<?>> sourceResolver) {
+        if (joins == null) {
+            return evaluatedFlux;
+        }
+        for (var join : joins) {
+            var opts = analyzeJoinOptimizations(view, join, leftJoin, projectedFields);
+            if (!opts.eliminate()) {
+                evaluatedFlux = applyJoin(
+                        evaluatedFlux,
+                        join,
+                        leftJoin && !opts.effectiveInnerJoin(),
+                        opts.singleMatch(),
+                        sourceResolver);
             }
         }
-        if (innerJoins != null) {
-            for (var join : innerJoins) {
-                var opts = analyzeJoinOptimizations(view, join, false, projectedFields);
-                if (opts.eliminate()) {
-                    continue;
-                }
-                evaluatedFlux = applyJoin(evaluatedFlux, join, false, opts.singleMatch(), sourceResolver);
-            }
-        }
-
-        // Convert to ViewIteration — root # already assigned before joins
-        Flux<ViewIteration> viewIterations = evaluatedFlux.map(ev -> new DefaultViewIteration(
-                (int) ev.values().get(INDEX_KEY), ev.values(), ev.referenceFormulations(), ev.naturalDatatypes()));
-
-        // Apply dedup strategy — narrow key to projected fields when available
-        var keyFields =
-                projectedFields.isEmpty() ? collectDedupKeyFields(view) : expandWithIndexKeys(projectedFields, view);
-        var iterations = context.getDedupStrategy().deduplicate(viewIterations, keyFields);
-
-        // Apply limit
-        return context.getLimit().map(iterations::take).orElse(iterations);
+        return evaluatedFlux;
     }
 
     private Set<String> collectDedupKeyFields(LogicalView view) {
@@ -370,6 +422,17 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                                     fieldCtx);
                         }
 
+                        if (values.isEmpty()) {
+                            // Field evaluates to null — still contribute a single entry
+                            // with the field key mapped to null and the index key set to 0,
+                            // so the Cartesian product does not collapse the entire row.
+                            // Use LinkedHashMap because Map.of() does not support null values.
+                            var nullMap = new LinkedHashMap<String, Object>();
+                            nullMap.put(absoluteName, null);
+                            nullMap.put(indexKey, 0);
+                            return List.of(new EvaluatedValues(nullMap, refFormMap, naturalDatatypeMap));
+                        }
+
                         return IntStream.range(0, values.size())
                                 .mapToObj(i -> new EvaluatedValues(
                                         Map.of(absoluteName, values.get(i), indexKey, i),
@@ -394,12 +457,17 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
         var mergedValues = new LinkedHashMap<String, Object>();
         var mergedRefForms = new LinkedHashMap<String, ReferenceFormulation>();
         var mergedNaturalDatatypes = new LinkedHashMap<String, IRI>();
-        parts.forEach(ev -> {
+        // Preserve the source evaluation from the first part that has one (typically the child)
+        ExpressionEvaluation sourceEval = null;
+        for (var ev : parts) {
             mergedValues.putAll(ev.values());
             mergedRefForms.putAll(ev.referenceFormulations());
             mergedNaturalDatatypes.putAll(ev.naturalDatatypes());
-        });
-        return new EvaluatedValues(mergedValues, mergedRefForms, mergedNaturalDatatypes);
+            if (sourceEval == null && ev.sourceEvaluation() != null) {
+                sourceEval = ev.sourceEvaluation();
+            }
+        }
+        return new EvaluatedValues(mergedValues, mergedRefForms, mergedNaturalDatatypes, sourceEval);
     }
 
     private static List<EvaluatedValues> stampIndexOnSubRecords(
@@ -424,7 +492,11 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
         values.put(indexKey, index);
         var datatypes = new LinkedHashMap<>(ev.naturalDatatypes());
         datatypes.put(indexKey, XSD.INTEGER);
-        return new EvaluatedValues(values, ev.referenceFormulations(), datatypes);
+        return new EvaluatedValues(values, ev.referenceFormulations(), datatypes, ev.sourceEvaluation());
+    }
+
+    private static EvaluatedValues withSourceEvaluation(EvaluatedValues ev, ExpressionEvaluation sourceEval) {
+        return new EvaluatedValues(ev.values(), ev.referenceFormulations(), ev.naturalDatatypes(), sourceEval);
     }
 
     private static Map<String, IRI> resolveNaturalDatatypes(
@@ -657,8 +729,11 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
             if (values.isEmpty()) {
                 return List.of();
             }
-            // Use the first value of each condition as the key component
-            key.add(values.get(0));
+            // Use the first value of each condition as the key component.
+            // Normalize to String for consistent cross-source comparison — SQL resolvers
+            // may return Integer/Long while the child field stores String values, causing
+            // Integer.equals(String) to fail.
+            key.add(values.get(0).toString());
         }
         return key;
     }
@@ -754,7 +829,8 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
             extendedValues.put(joinField.getFieldName(), null);
             extendedValues.put(joinField.getFieldName() + INDEX_KEY_SUFFIX, null);
         }
-        return new EvaluatedValues(extendedValues, child.referenceFormulations(), child.naturalDatatypes());
+        return new EvaluatedValues(
+                extendedValues, child.referenceFormulations(), child.naturalDatatypes(), child.sourceEvaluation());
     }
 
     private JoinOptimizations analyzeJoinOptimizations(

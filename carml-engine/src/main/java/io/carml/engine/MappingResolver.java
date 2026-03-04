@@ -110,11 +110,14 @@ public final class MappingResolver {
     }
 
     private static ResolvedMapping resolveImplicit(TriplesMap triplesMap, Long limit, Set<TriplesMap> dependencies) {
-        var syntheticView = ImplicitViewFactory.wrap(triplesMap);
+        var wrapResult = ImplicitViewFactory.wrap(triplesMap);
+        var syntheticView = wrapResult.view();
+        var refObjectMapPrefixes = wrapResult.refObjectMapPrefixes();
         var expressionToTermMap = buildExpressionToTermMap(triplesMap);
         var fieldOrigins = buildFieldOrigins(triplesMap, syntheticView, expressionToTermMap);
-        var evaluationContext = EvaluationContext.withProjectedFieldsAndLimit(Set.of(), limit);
-        return ResolvedMapping.of(triplesMap, syntheticView, true, fieldOrigins, evaluationContext, dependencies);
+        var evaluationContext = EvaluationContext.forImplicitView(limit);
+        return ResolvedMapping.of(
+                triplesMap, syntheticView, true, fieldOrigins, evaluationContext, dependencies, refObjectMapPrefixes);
     }
 
     /**
@@ -131,22 +134,22 @@ public final class MappingResolver {
 
         var graph = new IdentityHashMap<TriplesMap, Set<TriplesMap>>();
         for (var tm : triplesMaps) {
-            var deps = new LinkedHashSet<TriplesMap>();
-            for (var pom : tm.getPredicateObjectMaps()) {
-                for (var objectMap : pom.getObjectMaps()) {
-                    if (objectMap instanceof RefObjectMap rom) {
-                        var parent = rom.getParentTriplesMap();
-                        // Self-referencing joins are valid — exclude self-edges from the
-                        // dependency graph so they are not flagged as cycles.
-                        if (parent != tm && inputIdentity.containsKey(parent)) {
-                            deps.add(parent);
-                        }
-                    }
-                }
-            }
-            graph.put(tm, deps);
+            graph.put(tm, collectDependencies(tm, inputIdentity));
         }
         return graph;
+    }
+
+    private static Set<TriplesMap> collectDependencies(
+            TriplesMap tm, IdentityHashMap<TriplesMap, Boolean> inputIdentity) {
+        return tm.getPredicateObjectMaps().stream()
+                .flatMap(pom -> pom.getObjectMaps().stream())
+                .filter(RefObjectMap.class::isInstance)
+                .map(RefObjectMap.class::cast)
+                .map(RefObjectMap::getParentTriplesMap)
+                // Self-referencing joins are valid — exclude self-edges from the
+                // dependency graph so they are not flagged as cycles.
+                .filter(parent -> parent != tm && inputIdentity.containsKey(parent))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     /**

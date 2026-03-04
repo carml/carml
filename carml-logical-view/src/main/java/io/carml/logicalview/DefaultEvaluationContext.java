@@ -20,6 +20,9 @@ class DefaultEvaluationContext implements EvaluationContext {
 
     private final Long limit;
 
+    @Builder.Default
+    private final boolean retainSourceEvaluation = false;
+
     @Override
     public Set<String> getProjectedFields() {
         return projectedFields;
@@ -43,5 +46,10 @@ class DefaultEvaluationContext implements EvaluationContext {
     @Override
     public Optional<Long> getLimit() {
         return Optional.ofNullable(limit);
+    }
+
+    @Override
+    public boolean retainSourceEvaluation() {
+        return retainSourceEvaluation;
     }
 }

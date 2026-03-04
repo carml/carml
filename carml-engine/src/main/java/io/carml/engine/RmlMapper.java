@@ -4,7 +4,6 @@ import static io.carml.util.LogUtil.exception;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toSet;
 
-import com.google.common.collect.Iterables;
 import io.carml.logicalsourceresolver.LogicalSourceRecord;
 import io.carml.logicalsourceresolver.ResolvedSource;
 import io.carml.logicalsourceresolver.sourceresolver.SourceResolver;
@@ -15,12 +14,15 @@ import io.carml.model.Source;
 import io.carml.model.TriplesMap;
 import io.carml.util.Mappings;
 import io.carml.util.TypeRef;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -128,29 +130,29 @@ public abstract class RmlMapper<T, K> {
             V providedRecord,
             TypeRef<V> providedRecordTypeRef,
             Set<TriplesMap> triplesMapFilter) {
-        var mappingContext = MappingContext.<T>builder()
-                .triplesMapFilter(triplesMapFilter)
-                .mappingPipeline(mappingPipeline)
-                .build();
 
-        var lsFlow = Flux.fromIterable(
-                        getSources(mappingContext, namedInputStreams, providedRecord, providedRecordTypeRef))
-                .flatMap(resolvedSourceEntry ->
-                        mapSource(resolvedSourceEntry.getLeft(), mappingContext, resolvedSourceEntry.getRight()));
+        if (providedRecord != null) {
+            // mapRecord() path — uses LS pipeline
+            var mappingContext = MappingContext.<T>builder()
+                    .triplesMapFilter(triplesMapFilter)
+                    .mappingPipeline(mappingPipeline)
+                    .build();
+            return Flux.fromIterable(
+                            getSources(mappingContext, namedInputStreams, providedRecord, providedRecordTypeRef))
+                    .flatMap(resolvedSourceEntry ->
+                            mapSource(resolvedSourceEntry.getLeft(), mappingContext, resolvedSourceEntry.getRight()))
+                    .mapNotNull(this::handleCompletable)
+                    .concatWith(resolveJoins(mappingContext))
+                    .concatWith(mergeMergeables())
+                    .concatWith(checkStrictModeExpressions(mappingContext))
+                    .doOnTerminate(() -> mappingPipeline.getTriplesMappers().forEach(TriplesMapper::cleanup));
+        }
 
-        // LV flow: skip when using providedRecord (not supported for LV mappers)
-        var lvFlow = providedRecord != null
-                ? Flux.<MappingResult<T>>empty()
-                : mapLogicalViews(namedInputStreams, triplesMapFilter);
-
-        return Flux.merge(lsFlow, lvFlow)
+        // Normal map() path — uses view pipeline exclusively
+        return mapLogicalViews(namedInputStreams, triplesMapFilter)
                 .mapNotNull(this::handleCompletable)
-                .concatWith(resolveFinishers(mappingContext))
-                .concatWith(validateTriplesMappers(mappingContext))
-                .doOnTerminate(() -> {
-                    mappingPipeline.getTriplesMappers().forEach(TriplesMapper::cleanup);
-                    lvTriplesMappers.values().forEach(TriplesMapper::cleanup);
-                });
+                .concatWith(mergeMergeables())
+                .doOnTerminate(() -> lvTriplesMappers.values().forEach(TriplesMapper::cleanup));
     }
 
     @SuppressWarnings("unchecked")
@@ -187,7 +189,7 @@ public abstract class RmlMapper<T, K> {
             }
 
             return Set.of(Pair.of(
-                    Iterables.getFirst(logicalSourcesPerSource.keySet(), null),
+                    logicalSourcesPerSource.keySet().iterator().next(),
                     ResolvedSource.of(providedRecord, providedRecordTypeRef)));
         }
 
@@ -205,7 +207,7 @@ public abstract class RmlMapper<T, K> {
             if (!namedInputStreams.containsKey(name)) {
                 throw new RmlMapperException(String.format(
                         "Could not resolve input stream with name %s for logical source: %s",
-                        name, exception(Iterables.getFirst(inCaseOfException, null))));
+                        name, exception(inCaseOfException.iterator().next())));
             }
 
             return Pair.of(source, ResolvedSource.of(Mono.just(namedInputStreams.get(name)), new TypeRef<>() {}));
@@ -217,10 +219,10 @@ public abstract class RmlMapper<T, K> {
                 .map(resolver -> resolver.apply(source)
                         .orElseThrow(() -> new RmlMapperException(String.format(
                                 "Could not resolve source: %s",
-                                exception(Iterables.getFirst(inCaseOfException, null))))))
+                                exception(inCaseOfException.iterator().next())))))
                 .orElseThrow(() -> new RmlMapperException(String.format(
                         "No source resolver found for source: %s",
-                        exception(Iterables.getFirst(inCaseOfException, null)))));
+                        exception(inCaseOfException.iterator().next()))));
 
         return Pair.of(source, resolvedSource);
     }
@@ -247,23 +249,54 @@ public abstract class RmlMapper<T, K> {
             return Flux.empty();
         }
 
-        return Flux.fromIterable(resolvedMappings.stream()
-                        .filter(rm -> !rm.isImplicitView())
-                        .filter(rm ->
-                                triplesMapFilter.isEmpty() || triplesMapFilter.contains(rm.getOriginalTriplesMap()))
-                        .toList())
-                .flatMap(rm -> {
-                    var mapper = lvTriplesMappers.get(rm.getOriginalTriplesMap());
-                    if (mapper == null) {
-                        return Flux.empty();
-                    }
-                    return logicalViewEvaluator
-                            .evaluate(
-                                    rm.getEffectiveView(),
-                                    source -> resolveSourceForView(source, namedInputStreams),
-                                    rm.getEvaluationContext())
-                            .flatMap(mapper::map);
-                });
+        var filteredMappings = resolvedMappings.stream()
+                .filter(rm -> triplesMapFilter.isEmpty() || triplesMapFilter.contains(rm.getOriginalTriplesMap()))
+                .filter(rm -> lvTriplesMappers.containsKey(rm.getOriginalTriplesMap()))
+                .toList();
+
+        if (filteredMappings.isEmpty()) {
+            return Flux.empty();
+        }
+
+        // Cache resolved sources by Source identity. Sources are buffered into replayable
+        // form so that the same source (e.g. an InputStream or classpath resource) can be
+        // consumed multiple times — once for the view's own records and again for each left
+        // join's parent records.
+        var sourceCache = new HashMap<Source, ResolvedSource<?>>();
+        Function<Source, ResolvedSource<?>> cachingSourceResolver = source -> sourceCache.computeIfAbsent(
+                source, s -> bufferResolvedSource(resolveSourceForView(s, namedInputStreams)));
+
+        return Flux.fromIterable(filteredMappings).flatMap(rm -> {
+            var mapper = lvTriplesMappers.get(rm.getOriginalTriplesMap());
+            return logicalViewEvaluator
+                    .evaluate(rm.getEffectiveView(), cachingSourceResolver, rm.getEvaluationContext())
+                    .flatMap(mapper::map);
+        });
+    }
+
+    /**
+     * Buffers an InputStream-based ResolvedSource into a replayable form. If the resolved value
+     * is a {@code Mono<InputStream>}, reads the stream into a byte array and wraps it in a Mono
+     * that creates a fresh {@code ByteArrayInputStream} on each subscription.
+     */
+    @SuppressWarnings("unchecked")
+    private ResolvedSource<?> bufferResolvedSource(ResolvedSource<?> resolvedSource) {
+        var resolved = resolvedSource.getResolved().orElse(null);
+        if (resolved instanceof Mono<?> mono) {
+            // Block to get the value, and if it's an InputStream, buffer it.
+            var value = mono.block();
+            if (value instanceof InputStream inputStream) {
+                try {
+                    var bytes = inputStream.readAllBytes();
+                    Mono<InputStream> replayableMono = Mono.fromSupplier(() -> new ByteArrayInputStream(bytes));
+                    return ResolvedSource.of(
+                            replayableMono, (TypeRef<Mono<InputStream>>) resolvedSource.getResolvedTypeRef());
+                } catch (IOException e) {
+                    throw new RmlMapperException("Failed to buffer input stream for reuse", e);
+                }
+            }
+        }
+        return resolvedSource;
     }
 
     private ResolvedSource<?> resolveSourceForView(Source source, Map<String, InputStream> namedInputStreams) {
@@ -283,15 +316,17 @@ public abstract class RmlMapper<T, K> {
                 .orElseThrow(() -> new RmlMapperException("No source resolver found for logical view source"));
     }
 
-    private Flux<MappingResult<T>> resolveFinishers(MappingContext<T> mappingContext) {
-        return Flux.merge(resolveJoins(mappingContext), mergeMergeables());
-    }
-
-    private Flux<MappingResult<T>> validateTriplesMappers(MappingContext<T> mappingContext) {
+    /**
+     * Runs strict-mode expression checks on all LS-pipeline TriplesMappers. Only relevant for the
+     * {@code mapRecord()} path; the view pipeline validates field existence eagerly during
+     * evaluation.
+     */
+    private Flux<MappingResult<T>> checkStrictModeExpressions(MappingContext<T> mappingContext) {
         Flux<TriplesMapper<T>> mappers = Flux.fromIterable(
                         mappingContext.getTriplesMapperPerLogicalSource().values())
                 .flatMapIterable(triplesMappers -> triplesMappers);
-        return mappers.concatMap(triplesMapper -> triplesMapper.validate().then(Mono.empty()));
+        return mappers.concatMap(
+                triplesMapper -> triplesMapper.checkStrictModeExpressions().then(Mono.empty()));
     }
 
     private Flux<MappingResult<T>> resolveJoins(MappingContext<T> mappingContext) {

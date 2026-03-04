@@ -3,6 +3,7 @@ package io.carml.logicalview;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -381,19 +382,24 @@ class DefaultLogicalViewEvaluatorTest {
     }
 
     @Test
-    void givenFieldWithEmptyReference_whenEvaluated_thenEmptyIterationSkipped() {
+    void givenFieldWithEmptyReference_whenEvaluated_thenIterationEmittedWithNullValue() {
         var emptyField = mockExpressionField("missing");
         when(emptyField.getReference()).thenReturn("$.missing");
         when(logicalView.getFields()).thenReturn(Set.of(emptyField));
 
-        // Expression evaluation returns empty for the reference, which produces an empty value list.
-        // CartesianProduct with an empty list yields no combinations, so no ViewIterations.
+        // Expression evaluation returns empty for the reference. The field contributes a
+        // single null-valued entry so the Cartesian product still produces an iteration —
+        // the engine will simply not generate a term for this field.
         ExpressionEvaluation exprEval = expression -> Optional.empty();
 
         var rec = createRecord("record-1");
         setupMocks(Flux.just(rec), exprEval);
 
         StepVerifier.create(evaluator.evaluate(logicalView, sourceResolver, EvaluationContext.defaults()))
+                .assertNext(iteration -> {
+                    assertThat(iteration.getValue("missing"), is(Optional.empty()));
+                    assertThat(iteration.getKeys(), hasItem("missing"));
+                })
                 .verifyComplete();
     }
 
@@ -451,7 +457,7 @@ class DefaultLogicalViewEvaluatorTest {
     }
 
     @Test
-    void givenTemplateWithEmptyExpression_whenEvaluated_thenNoIterationsEmitted() {
+    void givenTemplateWithEmptyExpression_whenEvaluated_thenIterationEmittedWithNullValue() {
         var field = mockExpressionField("greeting");
         Template template = CarmlTemplate.of(List.of(new TextSegment("Hello "), new ExpressionSegment(0, "name")));
         when(field.getReference()).thenReturn(null);
@@ -461,7 +467,13 @@ class DefaultLogicalViewEvaluatorTest {
         var rec = createRecord("record-1");
         setupMocks(Flux.just(rec), expression -> Optional.empty());
 
+        // Template with an empty expression segment evaluates to no value. The field contributes
+        // a null entry so the iteration is still emitted — the engine will not generate a term.
         StepVerifier.create(evaluator.evaluate(logicalView, sourceResolver, EvaluationContext.defaults()))
+                .assertNext(iteration -> {
+                    assertThat(iteration.getValue("greeting"), is(Optional.empty()));
+                    assertThat(iteration.getKeys(), hasItem("greeting"));
+                })
                 .verifyComplete();
     }
 

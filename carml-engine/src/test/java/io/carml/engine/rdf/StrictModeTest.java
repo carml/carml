@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.carml.engine.NonExistentReferenceException;
 import io.carml.util.RmlMappingLoader;
+import io.carml.util.TypeRef;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -16,6 +17,7 @@ import java.util.Objects;
 import org.eclipse.rdf4j.model.util.ModelCollector;
 import org.eclipse.rdf4j.rio.RDFFormat;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Mono;
 
 class StrictModeTest {
 
@@ -26,11 +28,11 @@ class StrictModeTest {
         var rmlMapper =
                 RdfRmlMapper.builder().triplesMaps(mapping).strictMode(true).build();
 
-        // When / Then
-        var exception = assertThrows(NonExistentReferenceException.class, () -> rmlMapper
-                .map(resource("strict-mode-data.json"))
-                .collect(ModelCollector.toTreeModel())
-                .block());
+        // When / Then — use mapRecord (LS path) so strict mode validation fires
+        var resultMono = rmlMapper
+                .mapRecord(Mono.just(resource("strict-mode-data.json")), new TypeRef<>() {})
+                .collect(ModelCollector.toTreeModel());
+        var exception = assertThrows(NonExistentReferenceException.class, resultMono::block);
 
         assertThat(exception.getMessage(), containsString("$.THIS_VALUE_DOES_NOT_EXIST"));
         assertThat(exception.getMessage(), containsString("never produced a non-null result"));

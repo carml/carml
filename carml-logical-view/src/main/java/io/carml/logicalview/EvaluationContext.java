@@ -51,6 +51,19 @@ public interface EvaluationContext {
     Optional<Long> getLimit();
 
     /**
+     * Returns whether the source-level expression evaluation should be retained in view iterations.
+     * When {@code true}, the source evaluation is attached to each view iteration, allowing
+     * expressions not captured as view fields (e.g., gather map references) to be evaluated
+     * from the source data. This is intended for synthetic (implicit) views; explicit views
+     * should return {@code false} to enforce strict field validation.
+     *
+     * @return {@code true} if source evaluations should be retained
+     */
+    default boolean retainSourceEvaluation() {
+        return false;
+    }
+
+    /**
      * Returns a default batch evaluation context with all fields projected, no deduplication, no
      * join window, and no limit.
      *
@@ -90,6 +103,26 @@ public interface EvaluationContext {
         }
         return DefaultEvaluationContext.builder()
                 .projectedFields(Set.copyOf(projectedFields))
+                .limit(limit)
+                .build();
+    }
+
+    /**
+     * Creates an evaluation context for an implicit (synthetic) view. All fields are projected,
+     * source evaluations are retained, and an optional limit is applied. Retaining source
+     * evaluations allows expressions not captured as view fields (e.g., gather map references)
+     * to be evaluated from the source data.
+     *
+     * @param limit the maximum number of iterations to produce, or {@code null} for no limit
+     * @return a new evaluation context for an implicit view
+     * @throws IllegalArgumentException if limit is non-null and not positive
+     */
+    static EvaluationContext forImplicitView(Long limit) {
+        if (limit != null && limit <= 0) {
+            throw new IllegalArgumentException(LIMIT_MUST_BE_POSITIVE.formatted(limit));
+        }
+        return DefaultEvaluationContext.builder()
+                .retainSourceEvaluation(true)
                 .limit(limit)
                 .build();
     }

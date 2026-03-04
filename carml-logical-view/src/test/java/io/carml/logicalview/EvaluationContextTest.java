@@ -57,13 +57,16 @@ class EvaluationContextTest {
 
     @Test
     void withProjectedFieldsAndLimit_givenZeroLimit_throwsIllegalArgumentException() {
-        assertThrows(IllegalArgumentException.class, () -> EvaluationContext.withProjectedFieldsAndLimit(Set.of(), 0L));
+        var set = Set.<String>of();
+
+        assertThrows(IllegalArgumentException.class, () -> EvaluationContext.withProjectedFieldsAndLimit(set, 0L));
     }
 
     @Test
     void withProjectedFieldsAndLimit_givenNegativeLimit_throwsIllegalArgumentException() {
-        assertThrows(
-                IllegalArgumentException.class, () -> EvaluationContext.withProjectedFieldsAndLimit(Set.of(), -5L));
+        var set = Set.<String>of();
+
+        assertThrows(IllegalArgumentException.class, () -> EvaluationContext.withProjectedFieldsAndLimit(set, -5L));
     }
 
     @Test
@@ -78,5 +81,32 @@ class EvaluationContextTest {
         var ctx = EvaluationContext.withProjectedFieldsAndLimit(mutable, 5L);
         mutable.add("c");
         assertThat(ctx.getProjectedFields(), is(Set.of("a", "b")));
+    }
+
+    // --- forImplicitView ---
+
+    @Test
+    void forImplicitView_givenNullLimit_thenRetainSourceEvaluationTrueAndLimitEmpty() {
+        var ctx = EvaluationContext.forImplicitView(null);
+        assertThat(ctx.retainSourceEvaluation(), is(true));
+        assertThat(ctx.getLimit(), is(Optional.empty()));
+        assertThat(ctx.getProjectedFields().isEmpty(), is(true));
+    }
+
+    @Test
+    void forImplicitView_givenPositiveLimit_thenLimitPresent() {
+        var ctx = EvaluationContext.forImplicitView(5L);
+        assertThat(ctx.getLimit(), is(Optional.of(5L)));
+        assertThat(ctx.retainSourceEvaluation(), is(true));
+    }
+
+    @Test
+    void forImplicitView_givenZeroLimit_thenThrowsIllegalArgumentException() {
+        assertThrows(IllegalArgumentException.class, () -> EvaluationContext.forImplicitView(0L));
+    }
+
+    @Test
+    void forImplicitView_givenNegativeLimit_thenThrowsIllegalArgumentException() {
+        assertThrows(IllegalArgumentException.class, () -> EvaluationContext.forImplicitView(-3L));
     }
 }

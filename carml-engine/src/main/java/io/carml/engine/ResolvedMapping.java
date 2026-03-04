@@ -2,6 +2,7 @@ package io.carml.engine;
 
 import io.carml.logicalview.EvaluationContext;
 import io.carml.model.LogicalView;
+import io.carml.model.RefObjectMap;
 import io.carml.model.TriplesMap;
 import java.util.Map;
 import java.util.Optional;
@@ -68,6 +69,39 @@ public interface ResolvedMapping {
     }
 
     /**
+     * Creates a ResolvedMapping from a TriplesMap with the given effective LogicalView, dependency
+     * information, and RefObjectMap prefix mappings.
+     *
+     * @param originalTriplesMap the TriplesMap as authored by the user
+     * @param effectiveView the effective LogicalView the engine processes
+     * @param implicitView whether the effective view was synthetically derived from a bare
+     *     LogicalSource
+     * @param fieldOrigins mapping from field names to their provenance information
+     * @param evaluationContext the evaluation context controlling field projection and limits
+     * @param dependencies the set of TriplesMaps that this mapping depends on via RefObjectMaps
+     * @param refObjectMapPrefixes mapping from each handled RefObjectMap to its expression prefix
+     * @return a new ResolvedMapping instance
+     */
+    static ResolvedMapping of(
+            TriplesMap originalTriplesMap,
+            LogicalView effectiveView,
+            boolean implicitView,
+            Map<String, FieldOrigin> fieldOrigins,
+            EvaluationContext evaluationContext,
+            Set<TriplesMap> dependencies,
+            Map<RefObjectMap, String> refObjectMapPrefixes) {
+        return DefaultResolvedMapping.builder()
+                .originalTriplesMap(originalTriplesMap)
+                .effectiveView(effectiveView)
+                .implicitView(implicitView)
+                .fieldOrigins(fieldOrigins)
+                .evaluationContext(evaluationContext)
+                .dependencies(dependencies)
+                .refObjectMapPrefixes(refObjectMapPrefixes)
+                .build();
+    }
+
+    /**
      * The TriplesMap as authored by the user. Used for error reporting and diagnostics.
      */
     TriplesMap getOriginalTriplesMap();
@@ -109,5 +143,17 @@ public interface ResolvedMapping {
      */
     default Set<TriplesMap> getDependencies() {
         return Set.of();
+    }
+
+    /**
+     * Returns the mapping from RefObjectMaps to their expression prefixes. For implicit views, each
+     * RefObjectMap with join conditions is assigned a prefix (e.g. {@code "_ref0."}) that
+     * corresponds to a left join on the synthetic view. The prefix is used by term generators to
+     * resolve parent-side expressions from the joined view iteration.
+     *
+     * @return the RefObjectMap prefix mapping, or an empty map if no prefixes are assigned
+     */
+    default Map<RefObjectMap, String> getRefObjectMapPrefixes() {
+        return Map.of();
     }
 }

@@ -1,5 +1,6 @@
 package io.carml.logicalview;
 
+import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.model.ReferenceFormulation;
 import java.util.Optional;
 import java.util.Set;
@@ -50,4 +51,15 @@ public interface ViewIteration {
      * @return an {@link Optional} containing the natural datatype IRI, or empty
      */
     Optional<IRI> getNaturalDatatype(String key);
+
+    /**
+     * Returns the source-level expression evaluation for this iteration's underlying source record,
+     * if available. This allows expressions that are NOT view fields (e.g., gather map references)
+     * to be evaluated directly from the source data.
+     *
+     * @return the source expression evaluation, or empty if not available
+     */
+    default Optional<ExpressionEvaluation> getSourceEvaluation() {
+        return Optional.empty();
+    }
 }

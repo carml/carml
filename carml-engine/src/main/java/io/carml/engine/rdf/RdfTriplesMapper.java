@@ -24,9 +24,11 @@ import io.carml.logicalsourceresolver.LogicalSourceRecord;
 import io.carml.logicalsourceresolver.LogicalSourceResolver;
 import io.carml.logicalview.ViewIteration;
 import io.carml.logicalview.ViewIterationExpressionEvaluation;
+import io.carml.logicalview.ViewIterationExpressionEvaluationException;
 import io.carml.model.GraphMap;
 import io.carml.model.Join;
 import io.carml.model.LogicalSource;
+import io.carml.model.RefObjectMap;
 import io.carml.model.SubjectMap;
 import io.carml.model.TriplesMap;
 import io.carml.vocab.Rdf.Rml;
@@ -178,17 +180,23 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
      *
      * @param triplesMap the LV-based TriplesMap
      * @param rdfMapperConfig the mapper configuration
+     * @param refObjectMapPrefixes mapping from RefObjectMaps to their expression prefixes for
+     *     joined RefObjectMap resolution via view left joins
      * @return a mapper wired for view iteration mapping only
      */
     static RdfTriplesMapper<Object> ofForView(
-            @NonNull TriplesMap triplesMap, @NonNull RdfMapperConfig rdfMapperConfig) {
+            @NonNull TriplesMap triplesMap,
+            @NonNull RdfMapperConfig rdfMapperConfig,
+            Map<RefObjectMap, String> refObjectMapPrefixes) {
 
         if (LOG.isDebugEnabled()) {
             LOG.debug("Creating LV mapper for TriplesMap {}", triplesMap.getResourceName());
         }
 
         var subjectMappers = createSubjectMappers(triplesMap, rdfMapperConfig);
-        var predicateObjectMappers = createPredicateObjectMappers(triplesMap, rdfMapperConfig, Set.of());
+        var predicateObjectMappers = triplesMap.getPredicateObjectMaps().stream()
+                .map(pom -> RdfPredicateObjectMapper.forView(pom, triplesMap, rdfMapperConfig, refObjectMapPrefixes))
+                .collect(toUnmodifiableSet());
 
         // No-op factory — never invoked; only map(ViewIteration) is called on LV mappers.
         LogicalSourceResolver.ExpressionEvaluationFactory<Object> noOpFactory =
@@ -313,10 +321,27 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
         viewIterationUsed = true;
         // Strict mode tracking is not applied here — ViewIterationExpressionEvaluation validates
         // referenced keys eagerly in apply(), so unmatched references are caught immediately.
-        var baseEvaluation = new ViewIterationExpressionEvaluation(viewIteration, viewIteration.getKeys());
+        var viewEvaluation = new ViewIterationExpressionEvaluation(viewIteration, viewIteration.getKeys());
+        // Fall back to the source-level expression evaluation for expressions not captured as
+        // view fields (e.g., gather map references that must retain multi-valued results).
+        ExpressionEvaluation baseEvaluation = viewIteration
+                .getSourceEvaluation()
+                .<ExpressionEvaluation>map(sourceEval -> withSourceFallback(viewEvaluation, sourceEval))
+                .orElse(viewEvaluation);
         var expressionEvaluation = resolvedMapping != null ? enrichingEvaluation(baseEvaluation) : baseEvaluation;
         return mapEvaluation(expressionEvaluation, viewIteration::getNaturalDatatype)
                 .doOnError(ex -> fireError(viewIteration, ex));
+    }
+
+    private static ExpressionEvaluation withSourceFallback(
+            ViewIterationExpressionEvaluation viewEvaluation, ExpressionEvaluation sourceEvaluation) {
+        return expression -> {
+            try {
+                return viewEvaluation.apply(expression);
+            } catch (ViewIterationExpressionEvaluationException ex) {
+                return sourceEvaluation.apply(expression);
+            }
+        };
     }
 
     private void fireMappingStartOnce() {
@@ -438,7 +463,7 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
     }
 
     @Override
-    public Mono<Void> validate() {
+    public Mono<Void> checkStrictModeExpressions() {
         if (!strictMode || !recordsProcessed || viewIterationUsed) {
             return Mono.empty();
         }

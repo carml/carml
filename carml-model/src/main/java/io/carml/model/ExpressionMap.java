@@ -48,35 +48,48 @@ public interface ExpressionMap extends Resource {
     }
 
     default Set<String> getExpressionMapExpressionSet() {
+        Stream<String> ownExpressions;
+
         if (getReference() != null) {
-            return Set.of(getReference());
-        }
-
-        if (getTemplate() != null) {
-            return getTemplate().getReferenceExpressions().stream()
-                    .map(ReferenceExpression::getValue)
-                    .collect(Collectors.toUnmodifiableSet());
-        }
-
-        if (getFunctionValue() != null) {
-            return getFunctionValue().getPredicateObjectMaps().stream()
+            ownExpressions = Stream.of(getReference());
+        } else if (getTemplate() != null) {
+            ownExpressions = getTemplate().getReferenceExpressions().stream().map(ReferenceExpression::getValue);
+        } else if (getFunctionValue() != null) {
+            ownExpressions = getFunctionValue().getPredicateObjectMaps().stream()
                     .flatMap(predicateObjectMap -> Stream.concat(
                             predicateObjectMap.getPredicateMaps().stream()
                                     .flatMap(predicateMap -> predicateMap.getExpressionMapExpressionSet().stream()),
                             predicateObjectMap.getObjectMaps().stream()
                                     .filter(ObjectMap.class::isInstance)
                                     .map(ObjectMap.class::cast)
-                                    .flatMap(objectMap -> objectMap.getExpressionMapExpressionSet().stream())))
-                    .collect(Collectors.toUnmodifiableSet());
-        }
-
-        if (getFunctionExecution() != null) {
-            return getFunctionExecution().getInputs().stream()
+                                    .flatMap(objectMap -> objectMap.getExpressionMapExpressionSet().stream())));
+        } else if (getFunctionExecution() != null) {
+            ownExpressions = getFunctionExecution().getInputs().stream()
                     .map(Input::getInputValueMap)
-                    .flatMap(inputValueMap -> inputValueMap.getExpressionMapExpressionSet().stream())
-                    .collect(Collectors.toUnmodifiableSet());
+                    .flatMap(inputValueMap -> inputValueMap.getExpressionMapExpressionSet().stream());
+        } else {
+            ownExpressions = Stream.empty();
         }
 
-        return Set.of();
+        var conditionExpressions = getConditions().stream().flatMap(ExpressionMap::collectConditionExpressions);
+
+        return Stream.concat(ownExpressions, conditionExpressions).collect(Collectors.toUnmodifiableSet());
+    }
+
+    private static Stream<String> collectConditionExpressions(Condition condition) {
+        var shortcutRefs = Stream.of(
+                        condition.getIsNull() != null ? Stream.of(condition.getIsNull()) : Stream.<String>empty(),
+                        condition.getIsNotNull() != null ? Stream.of(condition.getIsNotNull()) : Stream.<String>empty(),
+                        condition.getEquals().stream(),
+                        condition.getNotEquals().stream())
+                .flatMap(s -> s);
+
+        var fnExecRefs = condition.getFunctionExecution() != null
+                ? condition.getFunctionExecution().getInputs().stream()
+                        .map(Input::getInputValueMap)
+                        .flatMap(inputValueMap -> inputValueMap.getExpressionMapExpressionSet().stream())
+                : Stream.<String>empty();
+
+        return Stream.concat(shortcutRefs, fnExecRefs);
     }
 }

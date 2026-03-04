@@ -630,7 +630,7 @@ class RdfTriplesMapperTest {
     }
 
     @Test
-    void givenStrictModeAndViewIteration_whenValidate_thenCompleteWithoutError() {
+    void givenStrictModeAndViewIteration_whenCheckStrictModeExpressions_thenCompleteWithoutError() {
         // Given — strict mode is active, so referenceExpressions is populated
         when(triplesMap.getReferenceExpressionSet()).thenReturn(Set.of("name"));
         when(subjectGenerator.apply(any(), any()))
@@ -655,7 +655,7 @@ class RdfTriplesMapperTest {
         StepVerifier.create(rdfTriplesMapper.map(viewIteration)).verifyComplete();
 
         // Then — validate must not produce a false-positive NonExistentReferenceException
-        StepVerifier.create(rdfTriplesMapper.validate()).verifyComplete();
+        StepVerifier.create(rdfTriplesMapper.checkStrictModeExpressions()).verifyComplete();
     }
 
     @Test

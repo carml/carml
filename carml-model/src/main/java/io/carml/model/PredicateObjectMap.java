@@ -1,5 +1,6 @@
 package io.carml.model;
 
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -17,10 +18,25 @@ public interface PredicateObjectMap extends Resource {
                 .map(PredicateMap::getExpressionMapExpressionSet)
                 .flatMap(Set::stream);
 
-        var objectMapExpressions = getObjectMaps().stream()
+        var objectMaps = getObjectMaps().stream()
                 .filter(ObjectMap.class::isInstance)
                 .map(ObjectMap.class::cast)
+                .toList();
+
+        var objectMapExpressions = objectMaps.stream()
                 .map(ObjectMap::getExpressionMapExpressionSet)
+                .flatMap(Set::stream);
+
+        var languageMapExpressions = objectMaps.stream()
+                .map(ObjectMap::getLanguageMap)
+                .filter(Objects::nonNull)
+                .map(LanguageMap::getExpressionMapExpressionSet)
+                .flatMap(Set::stream);
+
+        var datatypeMapExpressions = objectMaps.stream()
+                .map(ObjectMap::getDatatypeMap)
+                .filter(Objects::nonNull)
+                .map(DatatypeMap::getExpressionMapExpressionSet)
                 .flatMap(Set::stream);
 
         var refObjectMapExpressions = getObjectMaps().stream()
@@ -36,10 +52,14 @@ public interface PredicateObjectMap extends Resource {
                 .map(GraphMap::getExpressionMapExpressionSet)
                 .flatMap(Set::stream);
 
-        return Stream.concat(
+        return Stream.of(
                         predicateMapExpressions,
-                        Stream.concat(
-                                objectMapExpressions, Stream.concat(refObjectMapExpressions, graphMapExpressions)))
+                        objectMapExpressions,
+                        languageMapExpressions,
+                        datatypeMapExpressions,
+                        refObjectMapExpressions,
+                        graphMapExpressions)
+                .flatMap(s -> s)
                 .collect(Collectors.toUnmodifiableSet());
     }
 }

@@ -108,14 +108,13 @@ class RdfRmlMapperTest {
         var mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
         var rmlMapper = RdfRmlMapper.builder().triplesMaps(mapping).build();
 
-        // When
-        var rmlMapperException = assertThrows(RmlMapperException.class, rmlMapper::map);
+        // When — map() returns a lazy Flux; the error surfaces during subscription
+        var rmlMapperException = assertThrows(RmlMapperException.class, rmlMapper::mapToModel);
 
         // Then
         assertThat(
                 rmlMapperException.getMessage(),
-                is("Could not resolve input stream with name DEFAULT for logical"
-                        + " source: resource <http://example.com/mapping/LogicalSource>"));
+                is("Could not resolve input stream with name DEFAULT for logical view source"));
     }
 
     @Test
@@ -238,8 +237,7 @@ class RdfRmlMapperTest {
         // Then
         assertThat(
                 rmlMapperException.getMessage(),
-                is("Could not resolve input stream with name cars for logical"
-                        + " source: resource <http://example.com/mapping/LogicalSource>"));
+                is("Could not resolve input stream with name cars for logical view source"));
     }
 
     @Test
@@ -308,8 +306,8 @@ class RdfRmlMapperTest {
                 .fileResolver(Paths.get("bar"))
                 .build();
 
-        // When
-        var rmlMapperException = assertThrows(SourceResolverException.class, rmlMapper::map);
+        // When — map() returns a lazy Flux; the error surfaces during subscription
+        var rmlMapperException = assertThrows(SourceResolverException.class, rmlMapper::mapToModel);
 
         // Then
         assertThat(rmlMapperException.getMessage(), startsWith("File does not exist at path bar/cars.csv for source"));
@@ -368,9 +366,9 @@ class RdfRmlMapperTest {
     @Test
     void addFunctionDescriptions_throwsRmlMapperException_givenInvalidRdf() {
         var invalidRdf = new java.io.ByteArrayInputStream("this is not valid RDF".getBytes());
+        var builder = RdfRmlMapper.builder();
 
-        assertThrows(RmlMapperException.class, () -> RdfRmlMapper.builder()
-                .addFunctionDescriptions(invalidRdf, RDFFormat.TURTLE));
+        assertThrows(RmlMapperException.class, () -> builder.addFunctionDescriptions(invalidRdf, RDFFormat.TURTLE));
     }
 
     // -- addFunctionClasses --
@@ -389,8 +387,9 @@ class RdfRmlMapperTest {
 
     @Test
     void addFunctionClasses_throwsRmlMapperException_givenNonExistentClass() {
-        assertThrows(
-                RmlMapperException.class, () -> RdfRmlMapper.builder().addFunctionClasses("com.example.DoesNotExist"));
+        var builder = RdfRmlMapper.builder();
+
+        assertThrows(RmlMapperException.class, () -> builder.addFunctionClasses("com.example.DoesNotExist"));
     }
 
     @Test

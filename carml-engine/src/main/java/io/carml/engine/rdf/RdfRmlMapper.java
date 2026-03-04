@@ -1,6 +1,8 @@
 package io.carml.engine.rdf;
 
 import static java.util.function.Predicate.not;
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.toUnmodifiableMap;
 import static java.util.stream.Collectors.toUnmodifiableSet;
 import static org.eclipse.rdf4j.model.util.Values.iri;
 
@@ -38,8 +40,8 @@ import io.carml.logicalview.LogicalViewEvaluator;
 import io.carml.model.Field;
 import io.carml.model.IriSafeAnnotation;
 import io.carml.model.LogicalSource;
-import io.carml.model.LogicalView;
 import io.carml.model.Mapping;
+import io.carml.model.RefObjectMap;
 import io.carml.model.TriplesMap;
 import io.carml.util.Mappings;
 import io.carml.util.TypeRef;
@@ -386,26 +388,31 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
             var rdfMapperConfig = buildRdfMapperConfig();
 
             var mappableTriplesMaps = Mappings.filterMappable(triplesMaps);
+
+            // Populate LogicalSource expressions before resolving mappings (needed for SQL
+            // column projection). This was previously done inside RdfMappingPipelineFactory
+            // but is now called here so that ImplicitViewFactory.wrap() sees the populated
+            // expressions when constructing synthetic views.
+            populateLogicalSourceExpressions(mappableTriplesMaps);
+
             var resolvedMappings = MappingResolver.resolve(mappableTriplesMaps, limit);
             var observer = CompositeObserver.of(observers);
 
-            // Partition into LS-based and LV-based TriplesMap sets
             var lsTriplesMaps = mappableTriplesMaps.stream()
                     .filter(tm -> tm.getLogicalSource() instanceof LogicalSource)
                     .collect(toUnmodifiableSet());
 
-            var lvTriplesMaps = mappableTriplesMaps.stream()
-                    .filter(tm -> tm.getLogicalSource() instanceof LogicalView)
-                    .collect(toUnmodifiableSet());
-
-            if (lsTriplesMaps.isEmpty() && lvTriplesMaps.isEmpty()) {
+            if (mappableTriplesMaps.isEmpty()) {
                 throw new RmlMapperException("No executable triples maps found.");
             }
 
+            // LS pipeline: built for LS-based TMs (for mapRecord() API support)
             var mappingPipeline =
                     buildLsPipeline(lsTriplesMaps, rdfMapperConfig, resolverFactories, resolvedMappings, observer);
+
+            // LV mappers: built for ALL TMs (both LS-based via implicit views AND LV-based)
             var lvResult =
-                    buildLvMappers(lvTriplesMaps, rdfMapperConfig, resolverFactories, resolvedMappings, observer);
+                    buildLvMappers(mappableTriplesMaps, rdfMapperConfig, resolverFactories, resolvedMappings, observer);
             registerSourceResolvers();
 
             return new RdfRmlMapper(
@@ -416,6 +423,26 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
                     observer,
                     lvResult.mappers(),
                     lvResult.evaluator());
+        }
+
+        private void populateLogicalSourceExpressions(Set<TriplesMap> triplesMaps) {
+            var groupedTriplesMaps = triplesMaps.stream()
+                    .filter(tm -> tm.getLogicalSource() instanceof LogicalSource)
+                    .collect(groupingBy(TriplesMap::getLogicalSource, toUnmodifiableSet()));
+
+            var lsExpressions = groupedTriplesMaps.entrySet().stream()
+                    .collect(toUnmodifiableMap(Map.Entry::getKey, entry -> entry.getValue().stream()
+                            .map(TriplesMap::getReferenceExpressionSet)
+                            .flatMap(Set::stream)
+                            .collect(toUnmodifiableSet())));
+
+            lsExpressions.forEach((logicalSource, expressions) -> groupedTriplesMaps
+                    .get(logicalSource)
+                    .forEach(triplesMap -> {
+                        if (triplesMap.getLogicalSource() instanceof LogicalSource ls) {
+                            ls.setExpressions(expressions);
+                        }
+                    }));
         }
 
         private record LvPipelineResult(
@@ -471,39 +498,26 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
         }
 
         private LvPipelineResult buildLvMappers(
-                Set<TriplesMap> lvTriplesMaps,
+                Set<TriplesMap> allTriplesMaps,
                 RdfMapperConfig rdfMapperConfig,
                 Set<MatchingLogicalSourceResolverFactory> resolverFactories,
                 List<ResolvedMapping> resolvedMappings,
                 MappingExecutionObserver observer) {
-            if (lvTriplesMaps.isEmpty()) {
-                return new LvPipelineResult(Map.of(), null);
-            }
 
             var evaluator = new DefaultLogicalViewEvaluator(resolverFactories);
 
-            Map<TriplesMap, TriplesMapper<Statement>> lvMappers = new HashMap<>();
-            for (var tm : lvTriplesMaps) {
-                var effectiveConfig = getEffectiveMapperConfig(tm, rdfMapperConfig);
+            // Build an index for O(1) lookup of ResolvedMapping by TriplesMap
+            var resolvedMappingIndex = new HashMap<TriplesMap, ResolvedMapping>();
+            for (var rm : resolvedMappings) {
+                resolvedMappingIndex.putIfAbsent(rm.getOriginalTriplesMap(), rm);
+            }
 
-                var iriSafeFieldNames = resolvedMappings.stream()
-                        .filter(rm -> rm.getOriginalTriplesMap().equals(tm))
-                        .findFirst()
-                        .map(rm -> {
-                            var annotations = rm.getEffectiveView().getStructuralAnnotations();
-                            if (annotations == null) {
-                                return Set.<String>of();
-                            }
-                            return annotations.stream()
-                                    .filter(IriSafeAnnotation.class::isInstance)
-                                    .flatMap(a -> {
-                                        var fields = a.getOnFields();
-                                        return fields == null ? Stream.<Field>empty() : fields.stream();
-                                    })
-                                    .map(Field::getFieldName)
-                                    .collect(toUnmodifiableSet());
-                        })
-                        .orElse(Set.of());
+            Map<TriplesMap, TriplesMapper<Statement>> lvMappers = new HashMap<>();
+            for (var tm : allTriplesMaps) {
+                var effectiveConfig = getEffectiveMapperConfig(tm, rdfMapperConfig);
+                var rm = resolvedMappingIndex.get(tm);
+
+                var iriSafeFieldNames = extractIriSafeFieldNames(rm);
 
                 if (!iriSafeFieldNames.isEmpty()) {
                     var overriddenTermGenConfig = effectiveConfig.getRdfTermGeneratorConfig().toBuilder()
@@ -514,7 +528,9 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
                             .build();
                 }
 
-                lvMappers.put(tm, RdfTriplesMapper.ofForView(tm, effectiveConfig));
+                Map<RefObjectMap, String> prefixes = rm != null ? rm.getRefObjectMapPrefixes() : Map.of();
+
+                lvMappers.put(tm, RdfTriplesMapper.ofForView(tm, effectiveConfig, prefixes));
             }
 
             wireMappers(lvMappers.values(), resolvedMappings, observer);
@@ -546,6 +562,24 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
             ServiceLoader.load(SourceResolver.class).stream()
                     .<SourceResolver<?>>map(ServiceLoader.Provider::get)
                     .forEach(sourceResolvers::add);
+        }
+
+        private static Set<String> extractIriSafeFieldNames(ResolvedMapping rm) {
+            if (rm == null) {
+                return Set.of();
+            }
+            var annotations = rm.getEffectiveView().getStructuralAnnotations();
+            if (annotations == null) {
+                return Set.of();
+            }
+            return annotations.stream()
+                    .filter(IriSafeAnnotation.class::isInstance)
+                    .flatMap(a -> {
+                        var fields = a.getOnFields();
+                        return fields == null ? Stream.<Field>empty() : fields.stream();
+                    })
+                    .map(Field::getFieldName)
+                    .collect(toUnmodifiableSet());
         }
 
         private RdfMapperConfig getEffectiveMapperConfig(TriplesMap triplesMap, RdfMapperConfig rdfMapperConfig) {

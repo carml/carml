@@ -97,6 +97,81 @@ public class RdfPredicateObjectMapper {
                 rdfMapperConfig.getValueFactorySupplier().get());
     }
 
+    /**
+     * Creates an {@link RdfPredicateObjectMapper} for the unified view path. Joinless RefObjectMaps
+     * are handled inline (same as the LS path), while joined RefObjectMaps use the expression prefix
+     * from the view left joins.
+     *
+     * @param pom the predicate-object map
+     * @param triplesMap the TriplesMap containing the POM
+     * @param rdfMapperConfig the mapper configuration
+     * @param refObjectMapPrefixes mapping from each handled RefObjectMap to its expression prefix
+     * @return a new {@link RdfPredicateObjectMapper} for the view path
+     */
+    public static RdfPredicateObjectMapper forView(
+            PredicateObjectMap pom,
+            TriplesMap triplesMap,
+            RdfMapperConfig rdfMapperConfig,
+            Map<RefObjectMap, String> refObjectMapPrefixes) {
+
+        var rdfTermGeneratorFactory = (RdfTermGeneratorFactory) rdfMapperConfig.getTermGeneratorFactory();
+        var graphGenerators = RdfTriplesMapper.createGraphGenerators(pom.getGraphMaps(), rdfTermGeneratorFactory);
+        var predicateGenerators = createPredicateGenerators(pom, triplesMap, rdfTermGeneratorFactory);
+        var objectMaps = pom.getObjectMaps();
+
+        Set<TermGenerator<? extends Value>> objectGenerators = Stream.concat(
+                        Stream.concat(
+                                createObjectMapGenerators(objectMaps, triplesMap, rdfTermGeneratorFactory),
+                                createJoinlessRefObjectMapGeneratorsForView(
+                                        objectMaps, triplesMap, rdfTermGeneratorFactory)),
+                        createJoinedRefObjectMapGenerators(
+                                objectMaps, triplesMap, rdfTermGeneratorFactory, refObjectMapPrefixes))
+                .collect(toUnmodifiableSet());
+
+        return new RdfPredicateObjectMapper(
+                graphGenerators,
+                predicateGenerators,
+                objectGenerators,
+                Set.of(),
+                rdfMapperConfig.getValueFactorySupplier().get());
+    }
+
+    /**
+     * Creates term generators for joinless RefObjectMaps in the view path. Works when the TriplesMap
+     * logicalSource is still a LogicalSource (pre-wrapping).
+     */
+    private static Stream<TermGenerator<? extends Value>> createJoinlessRefObjectMapGeneratorsForView(
+            Set<BaseObjectMap> objectMaps, TriplesMap triplesMap, RdfTermGeneratorFactory termGeneratorFactory) {
+        var logicalSource = triplesMap.getLogicalSource();
+        if (!(logicalSource instanceof LogicalSource ls)) {
+            return Stream.empty();
+        }
+        return objectMaps.stream()
+                .filter(RefObjectMap.class::isInstance)
+                .map(RefObjectMap.class::cast)
+                .filter(rom -> rom.getJoinConditions().isEmpty() || rom.isSelfJoining(triplesMap))
+                .map(rom -> checkLogicalSource(rom, ls, triplesMap))
+                .flatMap(rom -> createRefObjectJoinlessMapper(rom, triplesMap, termGeneratorFactory, null));
+    }
+
+    /**
+     * Creates term generators for joined RefObjectMaps using the expression prefix from view left
+     * joins.
+     */
+    private static Stream<TermGenerator<? extends Value>> createJoinedRefObjectMapGenerators(
+            Set<BaseObjectMap> objectMaps,
+            TriplesMap triplesMap,
+            RdfTermGeneratorFactory termGeneratorFactory,
+            Map<RefObjectMap, String> refObjectMapPrefixes) {
+        return objectMaps.stream()
+                .filter(RefObjectMap.class::isInstance)
+                .map(RefObjectMap.class::cast)
+                .filter(rom -> !rom.getJoinConditions().isEmpty() && !rom.isSelfJoining(triplesMap))
+                .filter(refObjectMapPrefixes::containsKey)
+                .flatMap(rom -> createRefObjectJoinlessMapper(
+                        rom, triplesMap, termGeneratorFactory, refObjectMapPrefixes.get(rom)));
+    }
+
     static Set<TermGenerator<IRI>> createPredicateGenerators(
             PredicateObjectMap pom, TriplesMap triplesMap, RdfTermGeneratorFactory termGeneratorFactory) {
         return pom.getPredicateMaps().stream()

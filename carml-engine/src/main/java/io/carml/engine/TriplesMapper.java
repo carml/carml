@@ -37,13 +37,19 @@ public interface TriplesMapper<V> {
     ParentSideJoinConditionStore<MappedValue<Resource>> getParentSideJoinConditions();
 
     /**
-     * Validates the mapping results after all records have been processed. In strict mode, this
-     * checks whether all reference expressions produced at least one non-null result. Returns an
-     * error signal if validation fails.
+     * When strict mode is enabled, checks that every reference expression in this TriplesMap produced
+     * at least one non-null result across all processed records. Returns an error signal with a
+     * {@link NonExistentReferenceException} if any expression never matched.
      *
-     * @return a {@link Mono} that completes empty on success, or errors on validation failure
+     * <p>This check is only meaningful for the LogicalSource record-based pipeline. The LogicalView
+     * pipeline does not need it because {@code ViewIterationExpressionEvaluation} validates field
+     * existence eagerly during evaluation — a missing field fails immediately rather than silently
+     * returning empty.
+     *
+     * @return a {@link Mono} that completes empty if all expressions matched (or strict mode is
+     *     off), or errors if unmatched expressions are found
      */
-    default Mono<Void> validate() {
+    default Mono<Void> checkStrictModeExpressions() {
         return Mono.empty();
     }
 
