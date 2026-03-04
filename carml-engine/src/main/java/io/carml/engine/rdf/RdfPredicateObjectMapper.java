@@ -64,26 +64,6 @@ public class RdfPredicateObjectMapper {
                 rdfMapperConfig.getValueFactorySupplier().get());
     }
 
-    public static RdfPredicateObjectMapper forTableJoining(
-            @NonNull PredicateObjectMap pom,
-            @NonNull TriplesMap triplesMap,
-            @NonNull RdfMapperConfig rdfMapperConfig,
-            String parentExpressionPrefix) {
-        var rdfTermGeneratorFactory = (RdfTermGeneratorFactory) rdfMapperConfig.getTermGeneratorFactory();
-
-        var graphGenerators = RdfTriplesMapper.createGraphGenerators(pom.getGraphMaps(), rdfTermGeneratorFactory);
-        var predicateGenerators = createPredicateGenerators(pom, triplesMap, rdfTermGeneratorFactory);
-        var objectMaps = pom.getObjectMaps();
-        var objectGenerators = createTableJoiningRefObjectMapGenerators(
-                objectMaps, triplesMap, rdfTermGeneratorFactory, parentExpressionPrefix);
-
-        return new RdfPredicateObjectMapper(
-                graphGenerators,
-                predicateGenerators,
-                objectGenerators,
-                rdfMapperConfig.getValueFactorySupplier().get());
-    }
-
     /**
      * Creates an {@link RdfPredicateObjectMapper} for the unified view path. Joinless RefObjectMaps
      * are handled inline (same as the LS path), while joined RefObjectMaps use the expression prefix
@@ -252,22 +232,6 @@ public class RdfPredicateObjectMapper {
                 // ref object maps without joins MUST have an identical logical source.
                 .map(refObjMap -> checkLogicalSource(refObjMap, logicalSource, triplesMap))
                 .flatMap(refObjMap -> createRefObjectJoinlessMapper(refObjMap, triplesMap, termGeneratorFactory, null));
-    }
-
-    @SuppressWarnings("java:S3864")
-    private static Set<TermGenerator<? extends Value>> createTableJoiningRefObjectMapGenerators(
-            Set<BaseObjectMap> objectMaps,
-            TriplesMap triplesMap,
-            RdfTermGeneratorFactory termGeneratorFactory,
-            String expressionPrefix) {
-
-        return objectMaps.stream()
-                .filter(RefObjectMap.class::isInstance)
-                .peek(objectMap -> LOG.debug("Creating mapper for RefObjectMap {}", objectMap.getResourceName()))
-                .map(RefObjectMap.class::cast)
-                .flatMap(refObjMap ->
-                        createRefObjectJoinlessMapper(refObjMap, triplesMap, termGeneratorFactory, expressionPrefix))
-                .collect(toUnmodifiableSet());
     }
 
     private static Stream<TermGenerator<? extends Value>> createRefObjectJoinlessMapper(

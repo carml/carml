@@ -122,24 +122,6 @@ class RdfPredicateObjectMapperTest {
     }
 
     @Test
-    void givenAllParams_whenForTableJoiningCalled_thenConstructRdfPredicateObjectMapper() {
-        // Given
-        RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
-                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
-                .valueFactorySupplier(Values::getValueFactory)
-                .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
-                .build();
-
-        // When
-        RdfPredicateObjectMapper rdfPredicateObjectMapper =
-                RdfPredicateObjectMapper.forTableJoining(pom, triplesMap, rdfMappingConfig, "foo");
-
-        // Then
-        assertThat(rdfPredicateObjectMapper, is(not(nullValue())));
-    }
-
-    @Test
     void givenSingleJoinlessRefObjectMapWithDifferentLogicalSource_whenOfCalled_thenThrowException() {
         // Given
         when(triplesMap.getLogicalSource()).thenReturn(logicalSource);

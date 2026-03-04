@@ -16,7 +16,6 @@ import static io.r2dbc.postgresql.codec.PostgresqlObjectId.TIMESTAMPTZ;
 import com.google.auto.service.AutoService;
 import io.carml.logicalsourceresolver.MatchedLogicalSourceResolverFactory;
 import io.carml.logicalsourceresolver.MatchingLogicalSourceResolverFactory;
-import io.carml.logicalsourceresolver.sql.sourceresolver.JoiningDatabaseSource;
 import io.carml.model.DatabaseSource;
 import io.carml.model.LogicalSource;
 import io.carml.model.Source;
@@ -50,11 +49,6 @@ public class PostgreSqlResolver extends SqlResolver {
     @Override
     public String getQuery(LogicalSource logicalSource) {
         return SqlResolver.getQuery(SQLDialect.POSTGRES, logicalSource);
-    }
-
-    @Override
-    public String getJointSqlQuery(JoiningDatabaseSource joiningDatabaseSourceSupplier) {
-        return SqlResolver.getJointSqlQuery(SQLDialect.POSTGRES, joiningDatabaseSourceSupplier);
     }
 
     @SuppressWarnings("checkstyle:CyclomaticComplexity")

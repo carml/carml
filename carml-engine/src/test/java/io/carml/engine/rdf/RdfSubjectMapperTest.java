@@ -108,43 +108,6 @@ class RdfSubjectMapperTest {
     }
 
     @Test
-    void givenAllParams_whenOfJoiningCalled_thenConstructRdfSubjectMapper() {
-        // Given
-        when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
-        RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
-                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
-                .valueFactorySupplier(Values::getValueFactory)
-                .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
-                .build();
-
-        // When
-        RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.ofJoining(subjectMap, triplesMap, rdfMappingConfig);
-
-        // Then
-        assertThat(rdfSubjectMapper, is(not(nullValue())));
-    }
-
-    @Test
-    void givenExceptionThrowingSubjectGenerator_whenOfJoiningCalled_thenRethrowException() {
-        // Given
-        when(triplesMap.asRdf()).thenReturn(new ModelBuilder().build());
-        when(subjectMap.getAsResource()).thenReturn(bnode("subject"));
-        RdfMapperConfig rdfMappingConfig = mock(RdfMapperConfig.class);
-
-        // When
-        Throwable exception = assertThrows(
-                TriplesMapperException.class,
-                () -> RdfSubjectMapper.ofJoining(subjectMap, triplesMap, rdfMappingConfig));
-
-        // Then
-        assertThat(
-                exception.getMessage(),
-                startsWith(
-                        "Exception occurred while creating subject generator for blank node resource _:subject in:"));
-    }
-
-    @Test
     void givenSingleSubjectGenerator_whenMap_thenReturnGeneratedSubject() {
         // Given
         var subject = iri("http://foo.bar/subject");

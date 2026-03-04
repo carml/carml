@@ -2,7 +2,6 @@ package io.carml.logicalsourceresolver.sql;
 
 import static io.carml.util.LogUtil.exception;
 import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.toSet;
 import static java.util.stream.Collectors.toUnmodifiableSet;
 import static org.jooq.impl.DSL.field;
 import static org.jooq.impl.DSL.name;
@@ -11,13 +10,8 @@ import io.carml.logicalsourceresolver.LogicalSourceRecord;
 import io.carml.logicalsourceresolver.LogicalSourceResolver;
 import io.carml.logicalsourceresolver.LogicalSourceResolverException;
 import io.carml.logicalsourceresolver.ResolvedSource;
-import io.carml.logicalsourceresolver.sql.sourceresolver.JoiningDatabaseSource;
-import io.carml.model.ChildMap;
 import io.carml.model.DatabaseSource;
-import io.carml.model.Join;
 import io.carml.model.LogicalSource;
-import io.carml.model.ParentMap;
-import io.carml.model.RefObjectMap;
 import io.carml.model.Source;
 import io.r2dbc.pool.ConnectionPool;
 import io.r2dbc.pool.ConnectionPoolConfiguration;
@@ -32,11 +26,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.eclipse.rdf4j.model.IRI;
-import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.SQLDialect;
@@ -47,10 +39,6 @@ import reactor.core.publisher.Mono;
 
 @Slf4j
 public abstract class SqlResolver implements LogicalSourceResolver<RowData> {
-
-    public static final String CHILD_ALIAS = "child";
-
-    public static final String PARENT_ALIAS = "parent";
 
     static {
         System.getProperties().setProperty("org.jooq.no-logo", "true");
@@ -130,9 +118,7 @@ public abstract class SqlResolver implements LogicalSourceResolver<RowData> {
     }
 
     private String getSelectQueryString(LogicalSource logicalSource) {
-        if (source instanceof JoiningDatabaseSource joiningDatabaseSource) {
-            return getJointSqlQuery(joiningDatabaseSource);
-        } else if (logicalSource.getSource() instanceof DatabaseSource) {
+        if (logicalSource.getSource() instanceof DatabaseSource) {
             if (logicalSource.getQuery() != null) {
                 return logicalSource.getQuery();
             } else if (logicalSource.getTableName() != null) {
@@ -205,49 +191,6 @@ public abstract class SqlResolver implements LogicalSourceResolver<RowData> {
         return sql;
     }
 
-    public abstract String getJointSqlQuery(JoiningDatabaseSource joiningDatabaseSourceSupplier);
-
-    public static String getJointSqlQuery(SQLDialect sqlDialect, JoiningDatabaseSource joiningDatabaseSourceSupplier) {
-
-        var childTmExpressions = joiningDatabaseSourceSupplier.getChildExpressions();
-        var childProjection = getFields(childTmExpressions, null, null);
-        var qualifiedChildProjection = getFields(childTmExpressions, CHILD_ALIAS, null);
-
-        var parentTmExpressions = joiningDatabaseSourceSupplier.getParentExpressions();
-        var parentProjection = getFields(parentTmExpressions, null, null);
-        var qualifiedParentProjection = getFields(parentTmExpressions, PARENT_ALIAS, PARENT_ALIAS);
-
-        var ctx = DSL.using(sqlDialect);
-
-        var childSelect = getSelect(ctx, joiningDatabaseSourceSupplier.getChildLogicalSource(), childProjection);
-        var parentSelect = getSelect(ctx, joiningDatabaseSourceSupplier.getParentLogicalSource(), parentProjection);
-
-        var refObjectMaps = joiningDatabaseSourceSupplier.getRefObjectMaps();
-
-        childSelect.addConditions(toChildNotNullConditions(refObjectMaps));
-        var childTable = childSelect.asTable().as(CHILD_ALIAS);
-
-        // TODO: is it safe to add parentTmExpressions?
-        parentSelect.addConditions(toParentNotNullConditions(refObjectMaps, parentTmExpressions));
-        var parentTable = parentSelect.asTable().as(PARENT_ALIAS);
-
-        var projection = Stream.concat(qualifiedChildProjection.stream(), qualifiedParentProjection.stream())
-                .toList();
-
-        return ctx.select(projection)
-                .from(childTable)
-                .innerJoin(parentTable)
-                .on(toJoinConditions(refObjectMaps))
-                .getSQL();
-    }
-
-    private static Set<Field<Object>> getFields(Set<String> expressions, String qualifier, String alias) {
-        return expressions.stream()
-                .map(expr -> qualifier != null ? field(name(qualifier, expr)) : field(name(expr)))
-                .map(field -> alias != null ? field.as(String.format("%s.%s", alias, field.getName())) : field)
-                .collect(toUnmodifiableSet());
-    }
-
     private static SelectQuery<?> getSelect(
             DSLContext ctx, LogicalSource logicalSource, Set<Field<Object>> projection) {
         if (logicalSource.getQuery() != null) {
@@ -255,46 +198,6 @@ public abstract class SqlResolver implements LogicalSourceResolver<RowData> {
         } else {
             return ctx.select(projection).from(logicalSource.getTableName()).getQuery();
         }
-    }
-
-    private static Condition[] toChildNotNullConditions(Set<RefObjectMap> refObjectMaps) {
-        var childJoinExpressions = refObjectMaps.stream()
-                .map(RefObjectMap::getJoinConditions)
-                .flatMap(Set::stream)
-                .map(Join::getChildMap)
-                .map(ChildMap::getExpressionMapExpressionSet) // TODO template and functionvalue?
-                .flatMap(Set::stream)
-                .collect(toSet());
-
-        return toNotNullConditions(childJoinExpressions, Set.of());
-    }
-
-    private static Condition[] toParentNotNullConditions(Set<RefObjectMap> refObjectMaps, Set<String> extraFields) {
-        var parentJoinExpressions = refObjectMaps.stream()
-                .map(RefObjectMap::getJoinConditions)
-                .flatMap(Set::stream)
-                .map(Join::getParentMap)
-                .map(ParentMap::getExpressionMapExpressionSet) // TODO template and functionvalue?
-                .flatMap(Set::stream)
-                .collect(toSet());
-
-        return toNotNullConditions(parentJoinExpressions, extraFields);
-    }
-
-    private static Condition[] toNotNullConditions(Set<String> joiningFields, Set<String> extraFields) {
-        return Stream.concat(joiningFields.stream(), extraFields.stream())
-                .distinct()
-                .map(field -> field(name(field)).isNotNull())
-                .toArray(Condition[]::new);
-    }
-
-    private static Condition[] toJoinConditions(Set<RefObjectMap> refObjectMaps) {
-        return refObjectMaps.stream()
-                .map(RefObjectMap::getJoinConditions)
-                .flatMap(Set::stream)
-                .map(join -> field(name(CHILD_ALIAS, join.getChildMap().getReference()))
-                        .eq(field(name(PARENT_ALIAS, join.getParentMap().getReference())))) // TODO other expressions?
-                .toArray(Condition[]::new);
     }
 
     @Override

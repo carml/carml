@@ -37,14 +37,7 @@ public class DatabaseSourceResolver implements SourceResolver<ConnectionFactoryO
 
     @Override
     public Optional<ResolvedSource<ConnectionFactoryOptions>> apply(Source source) {
-        DatabaseSource resolvableSource;
-
-        if (source instanceof JoiningDatabaseSource joiningSourceSupplier) {
-            resolvableSource = (DatabaseSource)
-                    joiningSourceSupplier.getChildLogicalSource().getSource();
-        } else {
-            resolvableSource = (DatabaseSource) source;
-        }
+        var resolvableSource = (DatabaseSource) source;
 
         var connectionOpts = getDatabaseConnectionOptions(resolvableSource);
         var connectionFactoryOptions = connectionOpts.getConnectionFactoryOptions();

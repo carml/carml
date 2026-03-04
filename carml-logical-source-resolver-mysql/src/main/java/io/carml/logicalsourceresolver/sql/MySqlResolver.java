@@ -5,7 +5,6 @@ import io.asyncer.r2dbc.mysql.constant.MySqlType;
 import io.carml.logicalsourceresolver.LogicalSourceResolverException;
 import io.carml.logicalsourceresolver.MatchedLogicalSourceResolverFactory;
 import io.carml.logicalsourceresolver.MatchingLogicalSourceResolverFactory;
-import io.carml.logicalsourceresolver.sql.sourceresolver.JoiningDatabaseSource;
 import io.carml.model.DatabaseSource;
 import io.carml.model.LogicalSource;
 import io.carml.model.Source;
@@ -39,11 +38,6 @@ public class MySqlResolver extends SqlResolver {
     @Override
     public String getQuery(LogicalSource logicalSource) {
         return SqlResolver.getQuery(SQLDialect.MYSQL, logicalSource);
-    }
-
-    @Override
-    public String getJointSqlQuery(JoiningDatabaseSource joiningDatabaseSourceSupplier) {
-        return SqlResolver.getJointSqlQuery(SQLDialect.MYSQL, joiningDatabaseSourceSupplier);
     }
 
     @Override

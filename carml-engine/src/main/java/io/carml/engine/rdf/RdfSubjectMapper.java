@@ -76,33 +76,6 @@ public class RdfSubjectMapper {
                 rdfMapperConfig.getValueFactorySupplier().get());
     }
 
-    public static RdfSubjectMapper ofJoining(
-            @NonNull SubjectMap subjectMap, @NonNull TriplesMap triplesMap, @NonNull RdfMapperConfig rdfMapperConfig) {
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("Creating mapper for SubjectMap {}", log(triplesMap, subjectMap));
-        }
-
-        RdfTermGeneratorFactory rdfTermGeneratorFactory =
-                (RdfTermGeneratorFactory) rdfMapperConfig.getTermGeneratorFactory();
-
-        TermGenerator<Resource> subjectGenerator;
-        try {
-            subjectGenerator = rdfTermGeneratorFactory.getSubjectGenerator(subjectMap);
-        } catch (RuntimeException ex) {
-            throw new TriplesMapperException(
-                    String.format(
-                            "Exception occurred while creating subject generator for %s",
-                            exception(triplesMap, subjectMap)),
-                    ex);
-        }
-
-        return new RdfSubjectMapper(
-                subjectGenerator,
-                RdfTriplesMapper.createGraphGenerators(subjectMap.getGraphMaps(), rdfTermGeneratorFactory),
-                Set.of(),
-                rdfMapperConfig.getValueFactorySupplier().get());
-    }
-
     public Result map(ExpressionEvaluation expressionEvaluation, DatatypeMapper datatypeMapper) {
         LOG.debug("Determining subjects ...");
 

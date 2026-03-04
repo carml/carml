@@ -8,38 +8,21 @@ import static java.util.stream.Collectors.toSet;
 import static java.util.stream.Collectors.toUnmodifiableMap;
 import static java.util.stream.Collectors.toUnmodifiableSet;
 
-import com.google.common.collect.Sets;
 import io.carml.engine.MappingPipeline;
 import io.carml.engine.RmlMapperException;
 import io.carml.engine.TriplesMapper;
 import io.carml.logicalsourceresolver.LogicalSourceResolver;
 import io.carml.logicalsourceresolver.MatchedLogicalSourceResolverFactory;
 import io.carml.logicalsourceresolver.MatchingLogicalSourceResolverFactory;
-import io.carml.logicalsourceresolver.sql.sourceresolver.JoiningDatabaseSource;
-import io.carml.model.DatabaseSource;
-import io.carml.model.Join;
 import io.carml.model.LogicalSource;
-import io.carml.model.ParentMap;
-import io.carml.model.PredicateObjectMap;
-import io.carml.model.RefObjectMap;
 import io.carml.model.Source;
-import io.carml.model.SubjectMap;
 import io.carml.model.TriplesMap;
-import io.carml.model.impl.CarmlLogicalSource;
-import io.carml.model.impl.CarmlPredicateObjectMap;
-import io.carml.model.impl.CarmlReferenceFormulation;
-import io.carml.vocab.Rdf.Rml;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Statement;
@@ -55,27 +38,15 @@ public class RdfMappingPipelineFactory {
 
         populateLogicalSourceExpressions(triplesMaps);
 
-        var tableJoiningGroups = getTableJoiningGroups(triplesMaps);
         var sourceToLogicalSourceResolver =
-                buildLogicalSourceResolvers(triplesMaps, tableJoiningGroups, matchingLogicalSourceResolverFactories);
+                buildLogicalSourceResolvers(triplesMaps, matchingLogicalSourceResolverFactories);
 
-        var triplesMapperStream = triplesMaps.stream()
+        Set<TriplesMapper<Statement>> triplesMappers = triplesMaps.stream()
                 .map(triplesMap -> RdfTriplesMapper.of(
                         triplesMap,
                         getTriplesMapLogicalSourceResolver(triplesMap, sourceToLogicalSourceResolver),
-                        getEffectiveMapperConfig(triplesMap, rdfMapperConfig)));
-
-        var joiningTriplesMapperStream = tableJoiningGroups.stream()
-                .map(tableJoiningGroup -> RdfJoiningTriplesMapper.of(
-                        tableJoiningGroup.getTriplesMap(),
-                        tableJoiningGroup.getReferencingPredicateObjectMaps(),
-                        tableJoiningGroup.getJoiningLogicalSource(),
-                        getTriplesMapLogicalSourceResolver(
-                                tableJoiningGroup.getTriplesMap(), sourceToLogicalSourceResolver),
-                        getEffectiveMapperConfig(tableJoiningGroup.getTriplesMap(), rdfMapperConfig)));
-
-        Set<TriplesMapper<Statement>> triplesMappers =
-                Stream.concat(triplesMapperStream, joiningTriplesMapperStream).collect(toUnmodifiableSet());
+                        getEffectiveMapperConfig(triplesMap, rdfMapperConfig)))
+                .collect(toUnmodifiableSet());
 
         return MappingPipeline.of(triplesMappers, sourceToLogicalSourceResolver);
     }
@@ -95,141 +66,16 @@ public class RdfMappingPipelineFactory {
                 .forEach(triplesMap -> requireLogicalSource(triplesMap).setExpressions(expressions)));
     }
 
-    private Set<TableJoiningGroup> getTableJoiningGroups(Set<TriplesMap> triplesMaps) {
-        return triplesMaps.stream()
-                .filter(this::isTableJoiningTriplesMap)
-                .flatMap(this::toTableJoiningGroupStream)
-                .collect(toUnmodifiableSet());
-    }
-
-    private Stream<TableJoiningGroup> toTableJoiningGroupStream(TriplesMap triplesMap) {
-
-        var filteredPomsByParentLogicalSourceAndJoins =
-                new HashMap<ParentLogicalSourceAndJoins, Set<PredicateObjectMap>>();
-        for (var pom : triplesMap.getPredicateObjectMaps()) {
-            var refObjectMapsByParentLogicalSourceAndJoins = pom.getObjectMaps().stream()
-                    .filter(RefObjectMap.class::isInstance)
-                    .map(RefObjectMap.class::cast)
-                    .filter(rom -> !rom.getJoinConditions().isEmpty() && !rom.isSelfJoining(triplesMap))
-                    .filter(rom -> isTableJoiningRefObjectMap(rom, triplesMap))
-                    .collect(groupingBy(
-                            rom -> ParentLogicalSourceAndJoins.of(
-                                    requireLogicalSource(rom.getParentTriplesMap()), rom.getJoinConditions()),
-                            toUnmodifiableSet()));
-
-            refObjectMapsByParentLogicalSourceAndJoins.entrySet().stream()
-                    .map(refObjectMapsGroup -> Map.entry(
-                            refObjectMapsGroup.getKey(), Set.of((PredicateObjectMap) CarmlPredicateObjectMap.builder()
-                                    .graphMaps(pom.getGraphMaps())
-                                    .predicateMaps(pom.getPredicateMaps())
-                                    .objectMaps(refObjectMapsGroup.getValue())
-                                    .build())))
-                    .forEach(pomsByParentLogicalSource -> filteredPomsByParentLogicalSourceAndJoins.merge(
-                            pomsByParentLogicalSource.getKey(), pomsByParentLogicalSource.getValue(), Sets::union));
-        }
-
-        return filteredPomsByParentLogicalSourceAndJoins.entrySet().stream()
-                .map(pomsByLogicalSourceAndJoins -> toTableJoiningGroup(
-                        triplesMap,
-                        pomsByLogicalSourceAndJoins.getKey().getParentLogicalSource(),
-                        pomsByLogicalSourceAndJoins.getValue()));
-    }
-
-    private TableJoiningGroup toTableJoiningGroup(
-            TriplesMap triplesMap, LogicalSource parentLogicalSource, Set<PredicateObjectMap> predicateObjectMaps) {
-        var refObjectMaps = predicateObjectMaps.stream()
-                .map(PredicateObjectMap::getObjectMaps)
-                .flatMap(Set::stream)
-                .filter(RefObjectMap.class::isInstance)
-                .map(RefObjectMap.class::cast)
-                .collect(toUnmodifiableSet());
-
-        var childExpressions = triplesMap.getReferenceExpressionSet(predicateObjectMaps);
-
-        var parentTmExpressions = refObjectMaps.stream()
-                .map(RefObjectMap::getParentTriplesMap)
-                .map(TriplesMap::getSubjectMaps)
-                .flatMap(Set::stream)
-                .map(SubjectMap::getReferenceExpressionSet)
-                .flatMap(Set::stream);
-
-        var joinParentExpressions = refObjectMaps.stream()
-                .map(RefObjectMap::getJoinConditions)
-                .flatMap(Set::stream)
-                .map(Join::getParentMap)
-                .map(ParentMap::getExpressionMapExpressionSet) // TODO
-                .flatMap(Set::stream);
-
-        var parentExpressions =
-                Stream.concat(parentTmExpressions, joinParentExpressions).collect(toUnmodifiableSet());
-
-        var joiningLogicalSource = CarmlLogicalSource.builder()
-                .source(JoiningDatabaseSource.builder()
-                        .childLogicalSource(requireLogicalSource(triplesMap))
-                        .parentLogicalSource(parentLogicalSource)
-                        .refObjectMaps(refObjectMaps)
-                        .childExpressions(childExpressions)
-                        .parentExpressions(parentExpressions)
-                        .build())
-                .referenceFormulation(CarmlReferenceFormulation.builder()
-                        .id(Rml.SQL2008Query.stringValue())
-                        .build())
-                .build();
-
-        return TableJoiningGroup.of(triplesMap, joiningLogicalSource, predicateObjectMaps);
-    }
-
-    private boolean isTableJoiningTriplesMap(TriplesMap triplesMap) {
-        return triplesMap.getPredicateObjectMaps().stream().anyMatch(pom -> pom.getObjectMaps().stream()
-                .filter(RefObjectMap.class::isInstance)
-                .map(RefObjectMap.class::cast)
-                .filter(rom -> !rom.getJoinConditions().isEmpty() && !rom.isSelfJoining(triplesMap))
-                .anyMatch(rom -> isTableJoiningRefObjectMap(rom, triplesMap)));
-    }
-
-    private boolean isTableJoiningRefObjectMap(RefObjectMap refObjectMap, TriplesMap triplesMap) {
-        return isDatabaseTriplesMap(triplesMap)
-                && isDatabaseTriplesMap(refObjectMap.getParentTriplesMap())
-                && isSameDatabase(triplesMap, refObjectMap.getParentTriplesMap());
-    }
-
-    private boolean isDatabaseTriplesMap(TriplesMap triplesMap) {
-        return triplesMap.getLogicalTable() != null
-                || requireLogicalSource(triplesMap).getSource() instanceof DatabaseSource;
-    }
-
-    private boolean isSameDatabase(TriplesMap child, TriplesMap parent) {
-        var childSource = requireLogicalSource(child).getSource();
-        var parentSource = requireLogicalSource(parent).getSource();
-        if (childSource instanceof DatabaseSource childDbSource
-                && parentSource instanceof DatabaseSource parentDbSource) {
-            var childJdbcDsn = childDbSource.getJdbcDsn();
-            var parentJdbcDsn = parentDbSource.getJdbcDsn();
-
-            if (childJdbcDsn != null && parentJdbcDsn != null) {
-                return childJdbcDsn.equals(parentJdbcDsn);
-            }
-
-            return childJdbcDsn == null && parentJdbcDsn == null;
-        }
-
-        return false;
-    }
-
     private Map<Source, LogicalSourceResolver<?>> buildLogicalSourceResolvers(
             Set<TriplesMap> triplesMaps,
-            Set<TableJoiningGroup> tableJoiningGroups,
             Set<MatchingLogicalSourceResolverFactory> matchingLogicalSourceResolverFactories) {
 
         if (triplesMaps.isEmpty()) {
             throw new RmlMapperException("No executable triples maps found.");
         }
 
-        var triplesMapLogicalSources = triplesMaps.stream().map(RdfMappingPipelineFactory::requireLogicalSource);
-
-        var tableJoiningLogicalSources = tableJoiningGroups.stream().map(TableJoiningGroup::getJoiningLogicalSource);
-
-        var sourceToLogicalSources = Stream.concat(triplesMapLogicalSources, tableJoiningLogicalSources)
+        var sourceToLogicalSources = triplesMaps.stream()
+                .map(RdfMappingPipelineFactory::requireLogicalSource)
                 .collect(groupingBy(LogicalSource::getSource, toSet()));
 
         return sourceToLogicalSources.entrySet().stream()
@@ -307,20 +153,6 @@ public class RdfMappingPipelineFactory {
                         String.format("LogicalSourceResolver not found for TriplesMap:%n%s", exception(triplesMap))));
     }
 
-    @AllArgsConstructor(staticName = "of")
-    @Getter
-    private static class TableJoiningGroup {
-
-        @NonNull
-        private TriplesMap triplesMap;
-
-        @NonNull
-        private LogicalSource joiningLogicalSource;
-
-        @NonNull
-        private Set<PredicateObjectMap> referencingPredicateObjectMaps;
-    }
-
     private static LogicalSource requireLogicalSource(TriplesMap triplesMap) {
         if (triplesMap.getLogicalSource() instanceof LogicalSource logicalSource) {
             return logicalSource;
@@ -328,16 +160,5 @@ public class RdfMappingPipelineFactory {
         throw new RmlMapperException(String.format(
                 "Expected LogicalSource but found %s for TriplesMap %s",
                 triplesMap.getLogicalSource().getClass().getSimpleName(), triplesMap.getResourceName()));
-    }
-
-    @AllArgsConstructor(staticName = "of")
-    @Getter
-    private static class ParentLogicalSourceAndJoins {
-
-        @NonNull
-        private LogicalSource parentLogicalSource;
-
-        @NonNull
-        private Set<Join> joinConditions;
     }
 }

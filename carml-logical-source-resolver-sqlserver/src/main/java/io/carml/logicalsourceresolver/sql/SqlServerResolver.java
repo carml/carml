@@ -3,7 +3,6 @@ package io.carml.logicalsourceresolver.sql;
 import com.google.auto.service.AutoService;
 import io.carml.logicalsourceresolver.MatchedLogicalSourceResolverFactory;
 import io.carml.logicalsourceresolver.MatchingLogicalSourceResolverFactory;
-import io.carml.logicalsourceresolver.sql.sourceresolver.JoiningDatabaseSource;
 import io.carml.model.DatabaseSource;
 import io.carml.model.LogicalSource;
 import io.carml.model.Source;
@@ -38,11 +37,6 @@ public class SqlServerResolver extends SqlResolver {
     @Override
     public String getQuery(LogicalSource logicalSource) {
         return SqlResolver.getQuery(SQLDialect.DEFAULT, logicalSource);
-    }
-
-    @Override
-    public String getJointSqlQuery(JoiningDatabaseSource joiningDatabaseSourceSupplier) {
-        return SqlResolver.getJointSqlQuery(SQLDialect.DEFAULT, joiningDatabaseSourceSupplier);
     }
 
     // Datatype mapping per https://www.w3.org/TR/r2rml/#dfn-natural-rdf-literal
