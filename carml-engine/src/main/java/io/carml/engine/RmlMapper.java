@@ -142,7 +142,6 @@ public abstract class RmlMapper<T, K> {
                     .flatMap(resolvedSourceEntry ->
                             mapSource(resolvedSourceEntry.getLeft(), mappingContext, resolvedSourceEntry.getRight()))
                     .mapNotNull(this::handleCompletable)
-                    .concatWith(resolveJoins(mappingContext))
                     .concatWith(mergeMergeables())
                     .concatWith(checkStrictModeExpressions(mappingContext))
                     .doOnTerminate(() -> mappingPipeline.getTriplesMappers().forEach(TriplesMapper::cleanup));
@@ -329,12 +328,6 @@ public abstract class RmlMapper<T, K> {
                 triplesMapper -> triplesMapper.checkStrictModeExpressions().then(Mono.empty()));
     }
 
-    private Flux<MappingResult<T>> resolveJoins(MappingContext<T> mappingContext) {
-        return Flux.fromIterable(
-                        mappingContext.getRefObjectMapperToParentTriplesMapper().entrySet())
-                .flatMap(romMapperPtMapper -> romMapperPtMapper.getKey().resolveJoins(romMapperPtMapper.getValue()));
-    }
-
     private Flux<MappingResult<T>> mergeMergeables() {
         return Flux.fromIterable(mergeables.values()).flatMap(values -> values.stream()
                 .reduce(MergeableMappingResult::merge)
@@ -350,8 +343,6 @@ public abstract class RmlMapper<T, K> {
         private Map<LogicalSource, Set<TriplesMapper<T>>> triplesMapperPerLogicalSource;
 
         private Map<Source, Set<LogicalSource>> logicalSourcesPerSource;
-
-        private Map<RefObjectMapper<T>, TriplesMapper<T>> refObjectMapperToParentTriplesMapper;
 
         public Set<TriplesMapper<T>> getTriplesMappersForLogicalSource(LogicalSource logicalSource) {
             return triplesMapperPerLogicalSource.get(logicalSource);
@@ -396,19 +387,8 @@ public abstract class RmlMapper<T, K> {
                 var filteredLogicalSourcesPerSource = filteredTriplesMappersPerLogicalSource.keySet().stream()
                         .collect(groupingBy(LogicalSource::getSource, toSet()));
 
-                var refObjectMapperToParentTriplesMapper = mappingPipeline.getRefObjectMapperToTriplesMapper();
-
-                Map<RefObjectMapper<U>, TriplesMapper<U>> filteredRefObjectMapperToParentTriplesMapper =
-                        refObjectMapperToParentTriplesMapper.entrySet().stream()
-                                .filter(entry -> actionableTriplesMaps.contains(
-                                        entry.getKey().getTriplesMap()))
-                                .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, Map.Entry::getValue));
-
                 return new MappingContext<>(
-                        actionableTriplesMaps,
-                        filteredTriplesMappersPerLogicalSource,
-                        filteredLogicalSourcesPerSource,
-                        filteredRefObjectMapperToParentTriplesMapper);
+                        actionableTriplesMaps, filteredTriplesMappersPerLogicalSource, filteredLogicalSourcesPerSource);
             }
         }
     }

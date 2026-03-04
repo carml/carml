@@ -489,7 +489,7 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
                 List<ResolvedMapping> resolvedMappings,
                 MappingExecutionObserver observer) {
             var mappingPipeline = lsTriplesMaps.isEmpty()
-                    ? MappingPipeline.<Statement>of(Set.of(), Map.of(), Map.of())
+                    ? MappingPipeline.<Statement>of(Set.of(), Map.of())
                     : RdfMappingPipelineFactory.getInstance()
                             .getMappingPipeline(lsTriplesMaps, rdfMapperConfig, resolverFactories);
 

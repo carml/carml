@@ -16,8 +16,5 @@ public class MappingPipeline<T> {
     private Set<TriplesMapper<T>> triplesMappers;
 
     @NonNull
-    private Map<RefObjectMapper<T>, TriplesMapper<T>> refObjectMapperToTriplesMapper;
-
-    @NonNull
     private Map<Source, LogicalSourceResolver<?>> sourceToLogicalSourceResolver;
 }

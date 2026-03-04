@@ -5,7 +5,6 @@ import static org.eclipse.rdf4j.model.util.Values.bnode;
 import static org.eclipse.rdf4j.model.util.Values.iri;
 import static org.eclipse.rdf4j.model.util.Values.literal;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -13,8 +12,6 @@ import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.carml.engine.MappedValue;
@@ -22,9 +19,7 @@ import io.carml.engine.MappingResult;
 import io.carml.engine.TermGenerator;
 import io.carml.engine.TriplesMapperException;
 import io.carml.engine.join.ChildSideJoinStoreProvider;
-import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.model.GraphMap;
-import io.carml.model.Join;
 import io.carml.model.LogicalSource;
 import io.carml.model.ObjectMap;
 import io.carml.model.PredicateMap;
@@ -33,7 +28,6 @@ import io.carml.model.RefObjectMap;
 import io.carml.model.SubjectMap;
 import io.carml.model.TriplesMap;
 import io.carml.vocab.Rdf.Rml;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -45,7 +39,6 @@ import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
 import org.eclipse.rdf4j.model.util.Values;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -99,9 +92,6 @@ class RdfPredicateObjectMapperTest {
     private RefObjectMap refObjectMap1;
 
     @Mock
-    private Join join1;
-
-    @Mock
     private TriplesMap triplesMap2;
 
     @Mock
@@ -112,16 +102,6 @@ class RdfPredicateObjectMapperTest {
 
     @Mock
     private TermGenerator<Resource> subjectGenerator2;
-
-    private Set<RdfRefObjectMapper> rdfRefObjectMappers;
-
-    @Mock
-    private RdfRefObjectMapper rdfRefObjectMapper1;
-
-    @BeforeEach
-    void setup() {
-        rdfRefObjectMappers = new HashSet<>();
-    }
 
     @Test
     void givenAllParams_whenOfCalled_thenConstructRdfPredicateObjectMapper() {
@@ -135,11 +115,10 @@ class RdfPredicateObjectMapperTest {
 
         // When
         RdfPredicateObjectMapper rdfPredicateObjectMapper =
-                RdfPredicateObjectMapper.of(pom, triplesMap, rdfRefObjectMappers, rdfMappingConfig);
+                RdfPredicateObjectMapper.of(pom, triplesMap, rdfMappingConfig);
 
         // Then
         assertThat(rdfPredicateObjectMapper, is(not(nullValue())));
-        assertThat(rdfPredicateObjectMapper.getRdfRefObjectMappers(), is(empty()));
     }
 
     @Test
@@ -158,7 +137,6 @@ class RdfPredicateObjectMapperTest {
 
         // Then
         assertThat(rdfPredicateObjectMapper, is(not(nullValue())));
-        assertThat(rdfPredicateObjectMapper.getRdfRefObjectMappers(), is(empty()));
     }
 
     @Test
@@ -195,8 +173,7 @@ class RdfPredicateObjectMapperTest {
 
         // When
         Throwable exception = assertThrows(
-                TriplesMapperException.class,
-                () -> RdfPredicateObjectMapper.of(pom, triplesMap, rdfRefObjectMappers, rdfMappingConfig));
+                TriplesMapperException.class, () -> RdfPredicateObjectMapper.of(pom, triplesMap, rdfMappingConfig));
 
         // Then
         assertThat(exception.getMessage(), startsWith("Logical sources are not equal."));
@@ -217,7 +194,7 @@ class RdfPredicateObjectMapperTest {
                 .build();
 
         RdfPredicateObjectMapper rdfPredicateObjectMapper =
-                RdfPredicateObjectMapper.of(pom, triplesMap, rdfRefObjectMappers, rdfMappingConfig);
+                RdfPredicateObjectMapper.of(pom, triplesMap, rdfMappingConfig);
 
         var subjectsAndSubjectGraphs = Map.of(subjects, subjectGraphs);
 
@@ -252,7 +229,7 @@ class RdfPredicateObjectMapperTest {
                 .build();
 
         RdfPredicateObjectMapper rdfPredicateObjectMapper =
-                RdfPredicateObjectMapper.of(pom, triplesMap, rdfRefObjectMappers, rdfMappingConfig);
+                RdfPredicateObjectMapper.of(pom, triplesMap, rdfMappingConfig);
 
         var subjectsAndSubjectGraphs = Map.of(subjects, subjectGraphs);
 
@@ -299,7 +276,7 @@ class RdfPredicateObjectMapperTest {
                 .build();
 
         RdfPredicateObjectMapper rdfPredicateObjectMapper =
-                RdfPredicateObjectMapper.of(pom, triplesMap, rdfRefObjectMappers, rdfMappingConfig);
+                RdfPredicateObjectMapper.of(pom, triplesMap, rdfMappingConfig);
 
         var subjectsAndSubjectGraphs = Map.of(subjects, subjectGraphs);
 
@@ -352,7 +329,7 @@ class RdfPredicateObjectMapperTest {
                 .build();
 
         RdfPredicateObjectMapper rdfPredicateObjectMapper =
-                RdfPredicateObjectMapper.of(pom, triplesMap, rdfRefObjectMappers, rdfMappingConfig);
+                RdfPredicateObjectMapper.of(pom, triplesMap, rdfMappingConfig);
 
         var subjectsAndSubjectGraphs = Map.of(subjects, subjectGraphs);
 
@@ -409,7 +386,7 @@ class RdfPredicateObjectMapperTest {
                 .build();
 
         RdfPredicateObjectMapper rdfPredicateObjectMapper =
-                RdfPredicateObjectMapper.of(pom, triplesMap, rdfRefObjectMappers, rdfMappingConfig);
+                RdfPredicateObjectMapper.of(pom, triplesMap, rdfMappingConfig);
 
         var subjectsAndSubjectGraphs = Map.of(subjects, subjectGraphs);
 
@@ -423,52 +400,5 @@ class RdfPredicateObjectMapperTest {
                 Mono.from(mappedTriple.getResults()).block());
 
         StepVerifier.create(pomStatements).expectNextMatches(expectedStatement).verifyComplete();
-    }
-
-    @Test
-    void givenSingleJoinSingleConditionedRefObjectMap_whenMap_thenChildSideJoinConditionCached() {
-        // Given
-        when(triplesMap.getLogicalSource()).thenReturn(logicalSource);
-
-        IRI subject1 = iri("http://foo.bar/subject1");
-        subjects = Set.of(RdfMappedValue.of(subject1));
-
-        when(pom.getPredicateMaps()).thenReturn(Set.of(predicateMap1));
-        when(pom.getObjectMaps()).thenReturn(Set.of(refObjectMap1));
-
-        when(rdfTermGeneratorFactory.getPredicateGenerator(predicateMap1)).thenReturn(predicateGenerator1);
-        IRI predicate1 = iri("http://foo.bar/predicate1");
-        when(predicateGenerator1.apply(any(), any())).thenReturn(List.of(RdfMappedValue.of(predicate1)));
-
-        when(refObjectMap1.getJoinConditions()).thenReturn(Set.of(join1));
-
-        IRI subjectGraph1 = iri("http://foo.bar/subjectGraph1");
-        subjectGraphs = Set.of(RdfMappedValue.of(subjectGraph1));
-
-        rdfRefObjectMappers = Set.of(rdfRefObjectMapper1);
-        when(rdfRefObjectMapper1.getRefObjectMap()).thenReturn(refObjectMap1);
-
-        RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
-                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
-                .valueFactorySupplier(Values::getValueFactory)
-                .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
-                .build();
-
-        RdfPredicateObjectMapper rdfPredicateObjectMapper =
-                RdfPredicateObjectMapper.of(pom, triplesMap, rdfRefObjectMappers, rdfMappingConfig);
-
-        ExpressionEvaluation expressionEvaluation = mock(ExpressionEvaluation.class);
-
-        var subjectsAndSubjectGraphs = Map.of(subjects, subjectGraphs);
-
-        // When
-        var pomStatements = rdfPredicateObjectMapper.map(expressionEvaluation, null, subjectsAndSubjectGraphs);
-
-        // Then
-        verify(rdfRefObjectMapper1, times(1))
-                .map(subjectsAndSubjectGraphs, Set.of(RdfMappedValue.of(predicate1)), expressionEvaluation);
-
-        StepVerifier.create(pomStatements).verifyComplete();
     }
 }

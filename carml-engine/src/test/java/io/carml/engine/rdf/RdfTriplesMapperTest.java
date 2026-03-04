@@ -6,7 +6,6 @@ import static org.eclipse.rdf4j.model.util.Values.getValueFactory;
 import static org.eclipse.rdf4j.model.util.Values.iri;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -33,7 +32,6 @@ import io.carml.engine.TermGenerator;
 import io.carml.engine.TriplesMapperException;
 import io.carml.engine.join.ChildSideJoinStoreProvider;
 import io.carml.engine.join.ParentSideJoinConditionStoreProvider;
-import io.carml.engine.join.ParentSideJoinKey;
 import io.carml.engine.join.impl.CarmlParentSideJoinConditionStoreProvider;
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.logicalsourceresolver.LogicalSourceRecord;
@@ -41,17 +39,12 @@ import io.carml.logicalsourceresolver.LogicalSourceResolver;
 import io.carml.logicalview.ViewIteration;
 import io.carml.model.Field;
 import io.carml.model.GraphMap;
-import io.carml.model.Join;
-import io.carml.model.LogicalTable;
 import io.carml.model.ObjectMap;
-import io.carml.model.ParentMap;
 import io.carml.model.PredicateMap;
 import io.carml.model.PredicateObjectMap;
-import io.carml.model.RefObjectMap;
 import io.carml.model.SubjectMap;
 import io.carml.model.TriplesMap;
 import io.carml.vocab.Rdf.Rml;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -85,9 +78,6 @@ class RdfTriplesMapperTest {
     private SubjectMap subjectMap;
 
     @Mock
-    private LogicalTable logicalTable;
-
-    @Mock
     private TriplesMap triplesMap2;
 
     @Mock
@@ -107,8 +97,6 @@ class RdfTriplesMapperTest {
 
     @Mock
     private ObjectMap objectMap1;
-
-    private Set<RdfRefObjectMapper> refObjectMappers;
 
     @Mock
     private PredicateObjectMap pom;
@@ -132,20 +120,6 @@ class RdfTriplesMapperTest {
     private GraphMap graphMap3;
 
     @Mock
-    private RefObjectMap refObjectMap1;
-
-    @Mock
-    private RefObjectMap refObjectMap2;
-
-    @Mock
-    private RdfRefObjectMapper rdfRefObjectMapper1;
-
-    @Mock
-    private RdfRefObjectMapper rdfRefObjectMapper2;
-
-    private Set<RdfRefObjectMapper> incomingRefObjectMappers;
-
-    @Mock
     private LogicalSourceResolver<String> logicalSourceResolver;
 
     @Mock
@@ -158,27 +132,6 @@ class RdfTriplesMapperTest {
     private ChildSideJoinStoreProvider<MappedValue<Resource>, MappedValue<IRI>> childSideJoinStoreProvider;
 
     @Mock
-    private ExpressionEvaluation expressionEvaluation;
-
-    @Mock
-    private Join join1;
-
-    @Mock
-    private ParentMap parentMap1;
-
-    @Mock
-    private Join join2;
-
-    @Mock
-    private ParentMap parentMap2;
-
-    @Mock
-    private Join join3;
-
-    @Mock
-    private ParentMap parentMap3;
-
-    @Mock
     private LogicalSourceRecord<?> logicalSourceRecord;
 
     @Mock
@@ -188,8 +141,6 @@ class RdfTriplesMapperTest {
 
     @BeforeEach
     void setup() {
-        refObjectMappers = new HashSet<>();
-        incomingRefObjectMappers = new HashSet<>();
         lenient().when(logicalSourceResolver.getExpressionEvaluationFactory()).thenReturn(expressionEvaluationFactory);
         when(triplesMap.getSubjectMaps()).thenReturn(Set.of(subjectMap));
         lenient().when(triplesMap.getId()).thenReturn("triples-map-1");
@@ -210,23 +161,16 @@ class RdfTriplesMapperTest {
                 .build();
 
         // When
-        RdfTriplesMapper<?> rdfTriplesMapper = RdfTriplesMapper.of(
-                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMappingConfig);
+        RdfTriplesMapper<?> rdfTriplesMapper = RdfTriplesMapper.of(triplesMap, logicalSourceResolver, rdfMappingConfig);
 
         // Then
         assertThat(rdfTriplesMapper, is(not(nullValue())));
-        assertThat(rdfTriplesMapper.getRefObjectMappers(), is(empty()));
-        assertThat(rdfTriplesMapper.getConnectedRefObjectMappers(), is(empty()));
         assertThat(rdfTriplesMapper.getTriplesMap(), is(triplesMap));
     }
 
     @Test
     void givenAllParams_whenOfCalled_thenConstructRdfTriplesMapper() {
         // Given
-        when(triplesMap.getLogicalTable()).thenReturn(logicalTable);
-        when(rdfRefObjectMapper1.getTriplesMap()).thenReturn(triplesMap2);
-        when(triplesMap2.getLogicalTable()).thenReturn(logicalTable);
-
         var rdfMapperConfig = RdfMapperConfig.builder()
                 .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
@@ -235,16 +179,11 @@ class RdfTriplesMapperTest {
                 .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
-        incomingRefObjectMappers.add(rdfRefObjectMapper1);
-
         // When
-        RdfTriplesMapper<?> rdfTriplesMapper = RdfTriplesMapper.of(
-                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+        RdfTriplesMapper<?> rdfTriplesMapper = RdfTriplesMapper.of(triplesMap, logicalSourceResolver, rdfMapperConfig);
 
         // Then
         assertThat(rdfTriplesMapper, is(not(nullValue())));
-        assertThat(rdfTriplesMapper.getRefObjectMappers(), is(empty()));
-        assertThat(rdfTriplesMapper.getConnectedRefObjectMappers(), is(Set.of(rdfRefObjectMapper1)));
         assertThat(rdfTriplesMapper.getTriplesMap(), is(triplesMap));
     }
 
@@ -259,12 +198,7 @@ class RdfTriplesMapperTest {
         // When
         Throwable exception = assertThrows(
                 TriplesMapperException.class,
-                () -> RdfTriplesMapper.of(
-                        triplesMap,
-                        refObjectMappers,
-                        incomingRefObjectMappers,
-                        logicalSourceResolver,
-                        rdfMapperConfig));
+                () -> RdfTriplesMapper.of(triplesMap, logicalSourceResolver, rdfMapperConfig));
 
         // Then
         assertThat(
@@ -290,8 +224,8 @@ class RdfTriplesMapperTest {
                 .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
-        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
-                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+        RdfTriplesMapper<String> rdfTriplesMapper =
+                RdfTriplesMapper.of(triplesMap, logicalSourceResolver, rdfMapperConfig);
 
         // When
         var statements = rdfTriplesMapper.map(logicalSourceRecord);
@@ -317,8 +251,8 @@ class RdfTriplesMapperTest {
                 .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
-        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
-                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+        RdfTriplesMapper<String> rdfTriplesMapper =
+                RdfTriplesMapper.of(triplesMap, logicalSourceResolver, rdfMapperConfig);
 
         // When
         var statements = rdfTriplesMapper.map(logicalSourceRecord);
@@ -364,8 +298,8 @@ class RdfTriplesMapperTest {
                 .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
-        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
-                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+        RdfTriplesMapper<String> rdfTriplesMapper =
+                RdfTriplesMapper.of(triplesMap, logicalSourceResolver, rdfMapperConfig);
 
         // When
         var statements = rdfTriplesMapper.map(logicalSourceRecord);
@@ -433,8 +367,8 @@ class RdfTriplesMapperTest {
                 .allowMultipleSubjectMaps(true)
                 .build();
 
-        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
-                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+        RdfTriplesMapper<String> rdfTriplesMapper =
+                RdfTriplesMapper.of(triplesMap, logicalSourceResolver, rdfMapperConfig);
 
         // When
         var statements = rdfTriplesMapper.map(logicalSourceRecord);
@@ -458,117 +392,6 @@ class RdfTriplesMapperTest {
     }
 
     @Test
-    void givenSubjectMapAndIncomingRefObjectMappers_whenMap_thenCacheParentSideJoinConditions() {
-        // Given
-        var subject1 = iri("http://foo.bar/subject1");
-        MappedValue<Resource> mappedSubject1 = RdfMappedValue.of(subject1);
-        when(subjectGenerator.apply(any(), any())).thenReturn(List.of(mappedSubject1));
-        when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
-
-        when(rdfRefObjectMapper1.getRefObjectMap()).thenReturn(refObjectMap1);
-        when(refObjectMap1.getJoinConditions()).thenReturn(Set.of(join1));
-        when(join1.getParentMap()).thenReturn(parentMap1);
-        when(parentMap1.getReference()).thenReturn("bar1");
-
-        when(rdfRefObjectMapper2.getRefObjectMap()).thenReturn(refObjectMap2);
-
-        when(refObjectMap2.getJoinConditions()).thenReturn(Set.of(join2, join3));
-        when(join2.getParentMap()).thenReturn(parentMap2);
-        when(parentMap2.getReference()).thenReturn("bar2");
-        when(join3.getParentMap()).thenReturn(parentMap3);
-        when(parentMap3.getReference()).thenReturn("bar3");
-
-        incomingRefObjectMappers = Set.of(rdfRefObjectMapper1, rdfRefObjectMapper2);
-
-        when(logicalSourceResolver.getExpressionEvaluationFactory()).thenReturn(expressionEvaluationFactory);
-        when(expressionEvaluationFactory.apply(any())).thenReturn(expressionEvaluation);
-        when(expressionEvaluation.apply(any())).thenReturn(Optional.of(List.of("baz")));
-
-        var rdfMapperConfig = RdfMapperConfig.builder()
-                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
-                .valueFactorySupplier(Values::getValueFactory)
-                .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
-                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
-                .build();
-
-        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
-                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
-
-        // When
-        var statements = rdfTriplesMapper.map(logicalSourceRecord);
-
-        // Then
-        StepVerifier.create(statements).verifyComplete();
-
-        var joinConditions = rdfTriplesMapper.getParentSideJoinConditions();
-
-        assertThat(joinConditions.get(ParentSideJoinKey.of("bar1", "baz")), is(Set.of(mappedSubject1)));
-        assertThat(joinConditions.get(ParentSideJoinKey.of("bar2", "baz")), is(Set.of(mappedSubject1)));
-        assertThat(joinConditions.get(ParentSideJoinKey.of("bar3", "baz")), is(Set.of(mappedSubject1)));
-    }
-
-    @Test
-    void
-            givenIncomingRefObjectMapperWithSameParentKeyInMultipleMaps_whenMap_thenAddToExistingParentSideJoinConditions() {
-        // Given
-        var subject1 = iri("http://foo.bar/subject1");
-        MappedValue<Resource> mappedSubject1 = RdfMappedValue.of(subject1);
-        var subject2 = iri("http://foo.bar/subject2");
-        MappedValue<Resource> mappedSubject2 = RdfMappedValue.of(subject2);
-        var subject3 = iri("http://foo.bar/subject3");
-        MappedValue<Resource> mappedSubject3 = RdfMappedValue.of(subject3);
-
-        when(subjectGenerator.apply(any(), any()))
-                .thenReturn(List.of(mappedSubject1))
-                .thenReturn(List.of(mappedSubject2))
-                .thenReturn(List.of(mappedSubject3));
-        when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
-
-        when(rdfRefObjectMapper1.getRefObjectMap()).thenReturn(refObjectMap1);
-        when(refObjectMap1.getJoinConditions()).thenReturn(Set.of(join1));
-        when(join1.getParentMap()).thenReturn(parentMap1);
-        when(parentMap1.getReference()).thenReturn("bar1");
-
-        incomingRefObjectMappers = Set.of(rdfRefObjectMapper1);
-
-        when(expressionEvaluationFactory.apply(any())).thenReturn(expressionEvaluation);
-        when(expressionEvaluation.apply(any())).thenReturn(Optional.of(List.of("baz")));
-
-        var rdfMapperConfig = RdfMapperConfig.builder()
-                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
-                .valueFactorySupplier(Values::getValueFactory)
-                .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
-                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
-                .build();
-
-        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
-                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
-
-        // When
-        rdfTriplesMapper.map(logicalSourceRecord);
-
-        // Then
-        var joinConditions = rdfTriplesMapper.getParentSideJoinConditions();
-        assertThat(joinConditions.get(ParentSideJoinKey.of("bar1", "baz")), is(Set.of(mappedSubject1)));
-
-        // When
-        rdfTriplesMapper.map(logicalSourceRecord);
-
-        // Then
-        assertThat(joinConditions.get(ParentSideJoinKey.of("bar1", "baz")), is(Set.of(mappedSubject1, mappedSubject2)));
-
-        // When
-        rdfTriplesMapper.map(logicalSourceRecord);
-
-        // Then
-        assertThat(
-                joinConditions.get(ParentSideJoinKey.of("bar1", "baz")),
-                is(Set.of(mappedSubject1, mappedSubject2, mappedSubject3)));
-    }
-
-    @Test
     void givenOnlySubjectMapWithClass_whenMapViewIteration_thenReturnTypeStatement() {
         // Given
         var subject = iri("http://foo.bar/subject");
@@ -589,8 +412,8 @@ class RdfTriplesMapperTest {
                 .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
-        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
-                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+        RdfTriplesMapper<String> rdfTriplesMapper =
+                RdfTriplesMapper.of(triplesMap, logicalSourceResolver, rdfMapperConfig);
 
         // When
         var statements = rdfTriplesMapper.map(viewIteration);
@@ -619,8 +442,8 @@ class RdfTriplesMapperTest {
                 .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
-        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
-                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+        RdfTriplesMapper<String> rdfTriplesMapper =
+                RdfTriplesMapper.of(triplesMap, logicalSourceResolver, rdfMapperConfig);
 
         // When
         var statements = rdfTriplesMapper.map(viewIteration);
@@ -648,8 +471,8 @@ class RdfTriplesMapperTest {
                 .strictMode(true)
                 .build();
 
-        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
-                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+        RdfTriplesMapper<String> rdfTriplesMapper =
+                RdfTriplesMapper.of(triplesMap, logicalSourceResolver, rdfMapperConfig);
 
         // When — map via ViewIteration path, then validate
         StepVerifier.create(rdfTriplesMapper.map(viewIteration)).verifyComplete();
@@ -689,8 +512,8 @@ class RdfTriplesMapperTest {
                 .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
-        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
-                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+        RdfTriplesMapper<String> rdfTriplesMapper =
+                RdfTriplesMapper.of(triplesMap, logicalSourceResolver, rdfMapperConfig);
         rdfTriplesMapper.setResolvedMapping(resolvedMapping);
 
         // When
@@ -733,8 +556,8 @@ class RdfTriplesMapperTest {
                 .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
-        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
-                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+        RdfTriplesMapper<String> rdfTriplesMapper =
+                RdfTriplesMapper.of(triplesMap, logicalSourceResolver, rdfMapperConfig);
         rdfTriplesMapper.setResolvedMapping(resolvedMapping);
 
         // When
@@ -774,8 +597,8 @@ class RdfTriplesMapperTest {
                 .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
-        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
-                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+        RdfTriplesMapper<String> rdfTriplesMapper =
+                RdfTriplesMapper.of(triplesMap, logicalSourceResolver, rdfMapperConfig);
         rdfTriplesMapper.setResolvedMapping(resolvedMapping);
 
         // When
@@ -811,8 +634,8 @@ class RdfTriplesMapperTest {
                 .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
-        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
-                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+        RdfTriplesMapper<String> rdfTriplesMapper =
+                RdfTriplesMapper.of(triplesMap, logicalSourceResolver, rdfMapperConfig);
 
         // When & Then — the original error propagates unchanged (not a TriplesMapperException)
         var exception = assertThrows(RuntimeException.class, () -> rdfTriplesMapper.map(viewIteration));
@@ -843,8 +666,8 @@ class RdfTriplesMapperTest {
                 .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
-        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
-                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+        RdfTriplesMapper<String> rdfTriplesMapper =
+                RdfTriplesMapper.of(triplesMap, logicalSourceResolver, rdfMapperConfig);
         rdfTriplesMapper.setResolvedMapping(resolvedMapping);
 
         // When & Then — no FieldOrigin match, so original error propagates unchanged
@@ -868,8 +691,8 @@ class RdfTriplesMapperTest {
                 .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
-        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
-                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+        RdfTriplesMapper<String> rdfTriplesMapper =
+                RdfTriplesMapper.of(triplesMap, logicalSourceResolver, rdfMapperConfig);
 
         var observer = mock(MappingExecutionObserver.class);
         var resolvedMapping = mock(ResolvedMapping.class);
@@ -896,8 +719,8 @@ class RdfTriplesMapperTest {
                 .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
-        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
-                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+        RdfTriplesMapper<String> rdfTriplesMapper =
+                RdfTriplesMapper.of(triplesMap, logicalSourceResolver, rdfMapperConfig);
 
         var observer = mock(MappingExecutionObserver.class);
         var resolvedMapping = mock(ResolvedMapping.class);
@@ -925,8 +748,8 @@ class RdfTriplesMapperTest {
                 .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
-        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
-                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+        RdfTriplesMapper<String> rdfTriplesMapper =
+                RdfTriplesMapper.of(triplesMap, logicalSourceResolver, rdfMapperConfig);
 
         var observer = mock(MappingExecutionObserver.class);
         rdfTriplesMapper.setObserver(observer);
@@ -954,8 +777,8 @@ class RdfTriplesMapperTest {
                 .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
-        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
-                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+        RdfTriplesMapper<String> rdfTriplesMapper =
+                RdfTriplesMapper.of(triplesMap, logicalSourceResolver, rdfMapperConfig);
 
         var observer = mock(MappingExecutionObserver.class);
         var resolvedMapping = mock(ResolvedMapping.class);
@@ -982,8 +805,8 @@ class RdfTriplesMapperTest {
                 .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
-        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
-                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+        RdfTriplesMapper<String> rdfTriplesMapper =
+                RdfTriplesMapper.of(triplesMap, logicalSourceResolver, rdfMapperConfig);
 
         var resolvedMapping = mock(ResolvedMapping.class);
         rdfTriplesMapper.setResolvedMapping(resolvedMapping);
@@ -1009,8 +832,8 @@ class RdfTriplesMapperTest {
                 .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
-        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
-                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+        RdfTriplesMapper<String> rdfTriplesMapper =
+                RdfTriplesMapper.of(triplesMap, logicalSourceResolver, rdfMapperConfig);
 
         var observer = mock(MappingExecutionObserver.class);
         rdfTriplesMapper.setObserver(observer);
@@ -1034,8 +857,8 @@ class RdfTriplesMapperTest {
                 .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
-        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
-                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+        RdfTriplesMapper<String> rdfTriplesMapper =
+                RdfTriplesMapper.of(triplesMap, logicalSourceResolver, rdfMapperConfig);
 
         var observer = mock(MappingExecutionObserver.class);
         var resolvedMapping = mock(ResolvedMapping.class);
@@ -1068,8 +891,8 @@ class RdfTriplesMapperTest {
                 .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
-        RdfTriplesMapper<String> rdfTriplesMapper = RdfTriplesMapper.of(
-                triplesMap, refObjectMappers, incomingRefObjectMappers, logicalSourceResolver, rdfMapperConfig);
+        RdfTriplesMapper<String> rdfTriplesMapper =
+                RdfTriplesMapper.of(triplesMap, logicalSourceResolver, rdfMapperConfig);
 
         var observer = mock(MappingExecutionObserver.class);
         rdfTriplesMapper.setObserver(observer);

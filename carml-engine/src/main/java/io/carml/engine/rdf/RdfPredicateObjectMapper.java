@@ -27,7 +27,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.rdf4j.model.IRI;
@@ -47,32 +46,21 @@ public class RdfPredicateObjectMapper {
 
     private final Set<TermGenerator<? extends Value>> objectGenerators;
 
-    @Getter(AccessLevel.PACKAGE)
-    private final Set<RdfRefObjectMapper> rdfRefObjectMappers;
-
     @NonNull
     private final ValueFactory valueFactory;
 
     public static RdfPredicateObjectMapper of(
-            @NonNull PredicateObjectMap pom,
-            @NonNull TriplesMap triplesMap,
-            Set<RdfRefObjectMapper> refObjectMappers,
-            @NonNull RdfMapperConfig rdfMapperConfig) {
+            @NonNull PredicateObjectMap pom, @NonNull TriplesMap triplesMap, @NonNull RdfMapperConfig rdfMapperConfig) {
         var rdfTermGeneratorFactory = (RdfTermGeneratorFactory) rdfMapperConfig.getTermGeneratorFactory();
         var graphGenerators = RdfTriplesMapper.createGraphGenerators(pom.getGraphMaps(), rdfTermGeneratorFactory);
         var predicateGenerators = createPredicateGenerators(pom, triplesMap, rdfTermGeneratorFactory);
         var objectMaps = pom.getObjectMaps();
         var objectGenerators = createObjectGenerators(objectMaps, triplesMap, rdfTermGeneratorFactory);
 
-        var filteredRefObjectMappers = refObjectMappers.stream()
-                .filter(rom -> pom.getObjectMaps().contains(rom.getRefObjectMap()))
-                .collect(toUnmodifiableSet());
-
         return new RdfPredicateObjectMapper(
                 graphGenerators,
                 predicateGenerators,
                 objectGenerators,
-                filteredRefObjectMappers,
                 rdfMapperConfig.getValueFactorySupplier().get());
     }
 
@@ -93,7 +81,6 @@ public class RdfPredicateObjectMapper {
                 graphGenerators,
                 predicateGenerators,
                 objectGenerators,
-                Set.of(),
                 rdfMapperConfig.getValueFactorySupplier().get());
     }
 
@@ -132,7 +119,6 @@ public class RdfPredicateObjectMapper {
                 graphGenerators,
                 predicateGenerators,
                 objectGenerators,
-                Set.of(),
                 rdfMapperConfig.getValueFactorySupplier().get());
     }
 
@@ -325,10 +311,6 @@ public class RdfPredicateObjectMapper {
                 .collect(toUnmodifiableSet());
 
         var subjectsAndAllGraphs = addPomGraphsToSubjectsAndSubjectGraphs(subjectsAndSubjectGraphs, pomGraphs);
-
-        // process RefObjectMaps for resolving later
-        rdfRefObjectMappers.forEach(
-                rdfRefObjectMapper -> rdfRefObjectMapper.map(subjectsAndAllGraphs, predicates, expressionEvaluation));
 
         if (objects.isEmpty()) {
             return Flux.empty();

@@ -4,14 +4,12 @@ import static io.carml.util.LogUtil.exception;
 import static io.carml.util.LogUtil.log;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.joining;
-import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toSet;
 import static java.util.stream.Collectors.toUnmodifiableMap;
 import static java.util.stream.Collectors.toUnmodifiableSet;
 
 import com.google.common.collect.Sets;
 import io.carml.engine.MappingPipeline;
-import io.carml.engine.RefObjectMapper;
 import io.carml.engine.RmlMapperException;
 import io.carml.engine.TriplesMapper;
 import io.carml.logicalsourceresolver.LogicalSourceResolver;
@@ -32,7 +30,6 @@ import io.carml.model.impl.CarmlPredicateObjectMap;
 import io.carml.model.impl.CarmlReferenceFormulation;
 import io.carml.vocab.Rdf.Rml;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -56,32 +53,7 @@ public class RdfMappingPipelineFactory {
             RdfMapperConfig rdfMapperConfig,
             Set<MatchingLogicalSourceResolverFactory> matchingLogicalSourceResolverFactories) {
 
-        var tmToRoMappers = new HashMap<TriplesMap, Set<RdfRefObjectMapper>>();
-        var roMapperToParentTm = new HashMap<RdfRefObjectMapper, TriplesMap>();
-
         populateLogicalSourceExpressions(triplesMaps);
-
-        for (TriplesMap triplesMap : triplesMaps) {
-            var roMappers = new HashSet<RdfRefObjectMapper>();
-            triplesMap.getPredicateObjectMaps().stream()
-                    .flatMap(pom -> pom.getObjectMaps().stream())
-                    .filter(RefObjectMap.class::isInstance)
-                    .map(RefObjectMap.class::cast)
-                    .filter(rom -> !rom.getJoinConditions().isEmpty() && !rom.isSelfJoining(triplesMap))
-                    .forEach(rom -> {
-                        if (!isTableJoiningRefObjectMap(rom, triplesMap)) {
-                            // RdfRefObjectMapper only uses join store and value factory from config,
-                            // not the termGeneratorFactory, so no per-TriplesMap baseIRI override needed.
-                            var roMapper = RdfRefObjectMapper.of(rom, triplesMap, rdfMapperConfig);
-                            roMappers.add(roMapper);
-                            roMapperToParentTm.put(roMapper, rom.getParentTriplesMap());
-                        }
-                    });
-            tmToRoMappers.put(triplesMap, roMappers);
-        }
-
-        var parentTmToRoMappers = roMapperToParentTm.entrySet().stream()
-                .collect(groupingBy(Entry::getValue, mapping(Entry::getKey, toSet())));
 
         var tableJoiningGroups = getTableJoiningGroups(triplesMaps);
         var sourceToLogicalSourceResolver =
@@ -90,8 +62,6 @@ public class RdfMappingPipelineFactory {
         var triplesMapperStream = triplesMaps.stream()
                 .map(triplesMap -> RdfTriplesMapper.of(
                         triplesMap,
-                        tmToRoMappers.get(triplesMap),
-                        !parentTmToRoMappers.containsKey(triplesMap) ? Set.of() : parentTmToRoMappers.get(triplesMap),
                         getTriplesMapLogicalSourceResolver(triplesMap, sourceToLogicalSourceResolver),
                         getEffectiveMapperConfig(triplesMap, rdfMapperConfig)));
 
@@ -107,12 +77,7 @@ public class RdfMappingPipelineFactory {
         Set<TriplesMapper<Statement>> triplesMappers =
                 Stream.concat(triplesMapperStream, joiningTriplesMapperStream).collect(toUnmodifiableSet());
 
-        Map<RefObjectMapper<Statement>, TriplesMapper<Statement>> roMapperToParentTriplesMapper =
-                roMapperToParentTm.entrySet().stream()
-                        .collect(Collectors.toUnmodifiableMap(
-                                Entry::getKey, entry -> getTriplesMapper(entry.getValue(), triplesMappers)));
-
-        return MappingPipeline.of(triplesMappers, roMapperToParentTriplesMapper, sourceToLogicalSourceResolver);
+        return MappingPipeline.of(triplesMappers, sourceToLogicalSourceResolver);
     }
 
     private void populateLogicalSourceExpressions(Set<TriplesMap> triplesMaps) {
@@ -340,15 +305,6 @@ public class RdfMappingPipelineFactory {
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException(
                         String.format("LogicalSourceResolver not found for TriplesMap:%n%s", exception(triplesMap))));
-    }
-
-    private TriplesMapper<Statement> getTriplesMapper(
-            TriplesMap triplesMap, Set<TriplesMapper<Statement>> triplesMappers) {
-        return triplesMappers.stream()
-                .filter(triplesMapper -> triplesMapper.getTriplesMap().equals(triplesMap))
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException(
-                        String.format("TriplesMapper not found for TriplesMap:%n%s", exception(triplesMap))));
     }
 
     @AllArgsConstructor(staticName = "of")
