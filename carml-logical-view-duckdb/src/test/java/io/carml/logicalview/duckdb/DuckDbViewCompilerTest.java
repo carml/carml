@@ -1180,7 +1180,7 @@ class DuckDbViewCompilerTest {
         var view = mock(LogicalView.class);
         lenient().when(view.getViewOn()).thenReturn(logicalSource);
         @SuppressWarnings("unchecked")
-        var fieldSet = (Set<Field>) fields;
+        var fieldSet = (Set<Field>) (Set<?>) fields;
         lenient().when(view.getFields()).thenReturn(fieldSet);
         lenient().when(view.getResourceName()).thenReturn("testView");
         lenient().when(view.getStructuralAnnotations()).thenReturn(Set.of());
