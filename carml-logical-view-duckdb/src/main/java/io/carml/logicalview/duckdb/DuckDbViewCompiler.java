@@ -16,19 +16,26 @@ import io.carml.model.ExpressionField;
 import io.carml.model.Field;
 import io.carml.model.FilePath;
 import io.carml.model.FileSource;
+import io.carml.model.ForeignKeyAnnotation;
 import io.carml.model.IterableField;
 import io.carml.model.Join;
 import io.carml.model.LogicalSource;
 import io.carml.model.LogicalView;
 import io.carml.model.LogicalViewJoin;
+import io.carml.model.NotNullAnnotation;
+import io.carml.model.PrimaryKeyAnnotation;
 import io.carml.model.Source;
+import io.carml.model.StructuralAnnotation;
 import io.carml.model.Template;
+import io.carml.model.UniqueAnnotation;
 import io.carml.model.impl.CarmlTemplate;
 import io.carml.vocab.Rdf;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -49,7 +56,14 @@ import org.jooq.impl.DSL;
  * <p>Uses jOOQ's type-safe DSL for SQL construction with {@link SQLDialect#DUCKDB}.
  *
  * <p>Supports expression fields (mapped to SELECT columns), iterable fields (UNNEST cross-joins),
- * and logical view joins (LEFT JOIN / INNER JOIN with recursive parent view compilation).
+ * logical view joins (LEFT JOIN / INNER JOIN with recursive parent view compilation), and
+ * structural annotation-based optimizations (DISTINCT elimination, JOIN elimination, LEFT to INNER
+ * JOIN upgrade).
+ *
+ * <p><b>IriSafe annotation note:</b> {@code IriSafeAnnotation} does not currently affect SQL
+ * compilation. Templates already use raw {@code CONCAT} without percent-encoding. When IRI encoding
+ * support is added to the DuckDB evaluator (e.g., via a UDF), IriSafe annotations should be used
+ * to skip that encoding step for annotated fields.
  */
 @Slf4j
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
@@ -97,6 +111,13 @@ public final class DuckDbViewCompiler {
     /**
      * Compiles a {@link LogicalView} into a DuckDB SQL query string.
      *
+     * <p>Applies structural annotation optimizations:
+     * <ul>
+     *   <li>PrimaryKey or Unique+NotNull covering selected fields: omits DISTINCT</li>
+     *   <li>ForeignKey with no projected parent fields: eliminates JOIN entirely</li>
+     *   <li>NotNull on child join keys: upgrades LEFT JOIN to INNER JOIN</li>
+     * </ul>
+     *
      * @param view the logical view defining fields and the underlying data source
      * @param context the evaluation context controlling projection, dedup, and limits
      * @return a DuckDB-compatible SQL query string
@@ -120,8 +141,16 @@ public final class DuckDbViewCompiler {
         var sourceTable = compileSourceClause(logicalSource);
         var expressionFields = resolveExpressionFields(view.getFields(), context.getProjectedFields());
         var unnestDescriptors = resolveUnnestDescriptors(view.getFields(), context.getProjectedFields());
-        var joinDescriptors = compileJoins(view);
-        var useDistinct = !NONE_DEDUP_CLASS.isInstance(context.getDedupStrategy());
+
+        // Extract structural annotations for optimization decisions
+        var annotations = view.getStructuralAnnotations();
+        var notNullFieldNames = extractNotNullFieldNames(annotations);
+
+        var joinDescriptors = compileJoins(view, annotations, notNullFieldNames, context.getProjectedFields());
+
+        // Determine whether DISTINCT is needed, considering annotation-based optimization
+        var dedupRequested = !NONE_DEDUP_CLASS.isInstance(context.getDedupStrategy());
+        var useDistinct = dedupRequested && !canSkipDistinct(annotations, notNullFieldNames, view, context);
 
         var viewSourceCte = name(CTE_ALIAS).as(CTX.select(asterisk()).from(sql(sourceTable)));
 
@@ -158,6 +187,205 @@ public final class DuckDbViewCompiler {
         LOG.debug("Compiled DuckDB SQL for view [{}]:\n{}", view.getResourceName(), result);
         return result;
     }
+
+    // --- Structural annotation optimization helpers ---
+
+    /**
+     * Extracts the set of field names that are covered by {@link NotNullAnnotation}s.
+     *
+     * @param annotations the structural annotations declared on the view
+     * @return a set of field names guaranteed to be non-null
+     */
+    private static Set<String> extractNotNullFieldNames(Set<StructuralAnnotation> annotations) {
+        if (annotations == null || annotations.isEmpty()) {
+            return Set.of();
+        }
+
+        return annotations.stream()
+                .filter(NotNullAnnotation.class::isInstance)
+                .flatMap(annotation -> annotation.getOnFields().stream())
+                .map(Field::getFieldName)
+                .collect(Collectors.toUnmodifiableSet());
+    }
+
+    /**
+     * Determines whether DISTINCT can be omitted based on structural annotations. DISTINCT can be
+     * skipped when a {@link PrimaryKeyAnnotation} or a {@link UniqueAnnotation} (with all its
+     * fields also covered by {@link NotNullAnnotation}) covers all the fields being selected.
+     *
+     * <p>"Covers" means every field name in the PK/Unique annotation is present in the set of
+     * fields being selected, or the projection is empty (meaning all fields are selected).
+     *
+     * @param annotations the structural annotations declared on the view
+     * @param notNullFieldNames the set of field names known to be non-null
+     * @param view the logical view
+     * @param context the evaluation context
+     * @return {@code true} if DISTINCT can be safely omitted
+     */
+    private static boolean canSkipDistinct(
+            Set<StructuralAnnotation> annotations,
+            Set<String> notNullFieldNames,
+            LogicalView view,
+            EvaluationContext context) {
+        if (annotations == null || annotations.isEmpty()) {
+            return false;
+        }
+
+        // Determine the set of field names being selected
+        var selectedFields = resolveSelectedFieldNames(view, context);
+
+        return hasCoveringUniqueConstraint(annotations, notNullFieldNames, selectedFields);
+    }
+
+    /**
+     * Resolves the set of field names that will appear in the SELECT clause. If projection is empty
+     * (all fields), collects all field names from the view's fields. Otherwise, returns the
+     * projected field names.
+     */
+    private static Set<String> resolveSelectedFieldNames(LogicalView view, EvaluationContext context) {
+        var projectedFields = context.getProjectedFields();
+        if (!projectedFields.isEmpty()) {
+            return projectedFields;
+        }
+
+        // All fields are selected: collect all field names including nested fields
+        return view.getFields().stream()
+                .flatMap(field -> {
+                    if (field instanceof IterableField iterableField) {
+                        return iterableField.getFields().stream().map(Field::getFieldName);
+                    }
+                    return Stream.of(field.getFieldName());
+                })
+                .collect(Collectors.toUnmodifiableSet());
+    }
+
+    /**
+     * Checks whether any PrimaryKey annotation or Unique+NotNull annotation combination covers
+     * (i.e., is a subset of) the selected fields. If so, uniqueness is guaranteed and DISTINCT
+     * is unnecessary.
+     *
+     * @param annotations the structural annotations
+     * @param notNullFieldNames field names covered by NotNull annotations
+     * @param selectedFields the field names being selected
+     * @return {@code true} if a covering unique constraint exists
+     */
+    private static boolean hasCoveringUniqueConstraint(
+            Set<StructuralAnnotation> annotations, Set<String> notNullFieldNames, Set<String> selectedFields) {
+        for (var annotation : annotations) {
+            if (annotation instanceof PrimaryKeyAnnotation) {
+                var pkFieldNames = annotation.getOnFields().stream()
+                        .map(Field::getFieldName)
+                        .collect(Collectors.toUnmodifiableSet());
+
+                if (!pkFieldNames.isEmpty() && selectedFields.containsAll(pkFieldNames)) {
+                    LOG.debug("PrimaryKey annotation covers selected fields {} - omitting DISTINCT", pkFieldNames);
+                    return true;
+                }
+            }
+
+            if (annotation instanceof UniqueAnnotation) {
+                var uniqueFieldNames = annotation.getOnFields().stream()
+                        .map(Field::getFieldName)
+                        .collect(Collectors.toUnmodifiableSet());
+
+                // Unique is only sufficient for dedup skip when all unique fields are also NotNull
+                if (!uniqueFieldNames.isEmpty()
+                        && notNullFieldNames.containsAll(uniqueFieldNames)
+                        && selectedFields.containsAll(uniqueFieldNames)) {
+                    LOG.debug(
+                            "Unique+NotNull annotation covers selected fields {} - omitting DISTINCT",
+                            uniqueFieldNames);
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Determines whether a join can be eliminated entirely. A join can be eliminated when a
+     * {@link ForeignKeyAnnotation} on the child view points to the join's parent view, AND none
+     * of the join's projected fields appear in the context's projected fields (or the join has no
+     * projected fields). The FK guarantees referential integrity, so the join does not affect
+     * cardinality when no parent fields are needed.
+     *
+     * @param viewJoin the logical view join to check
+     * @param annotations the structural annotations on the child view
+     * @param projectedFields the context's projected fields (empty means all)
+     * @return {@code true} if the join can be eliminated
+     */
+    private static boolean canEliminateJoin(
+            LogicalViewJoin viewJoin, Set<StructuralAnnotation> annotations, Set<String> projectedFields) {
+        if (annotations == null || annotations.isEmpty()) {
+            return false;
+        }
+
+        var parentView = viewJoin.getParentLogicalView();
+        var joinProjectedFieldNames = viewJoin.getFields().stream()
+                .map(ExpressionField::getFieldName)
+                .collect(Collectors.toUnmodifiableSet());
+
+        // If the join has no projected fields, it's a candidate for elimination
+        // If it has projected fields but none are in the context projection, also a candidate
+        boolean parentFieldsNotProjected;
+        if (joinProjectedFieldNames.isEmpty()) {
+            parentFieldsNotProjected = true;
+        } else if (projectedFields.isEmpty()) {
+            // Empty projection means "all fields" — parent fields ARE projected
+            parentFieldsNotProjected = false;
+        } else {
+            parentFieldsNotProjected = joinProjectedFieldNames.stream().noneMatch(projectedFields::contains);
+        }
+
+        if (!parentFieldsNotProjected) {
+            return false;
+        }
+
+        // Check if there is a ForeignKeyAnnotation pointing to this join's parent view
+        for (var annotation : annotations) {
+            if (annotation instanceof ForeignKeyAnnotation fkAnnotation && fkAnnotation.getTargetView() == parentView) {
+                LOG.debug(
+                        "ForeignKey annotation to parent view [{}] with no projected parent fields - eliminating JOIN",
+                        parentView.getResourceName());
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Determines whether a LEFT JOIN can be upgraded to an INNER JOIN. This is possible when all
+     * child-side join key fields are covered by {@link NotNullAnnotation}s. When child keys are
+     * guaranteed non-null, every child row either matches or doesn't match in the parent, which
+     * produces identical results for LEFT JOIN and INNER JOIN. INNER JOIN allows better query
+     * optimization by DuckDB.
+     *
+     * @param viewJoin the logical view join to check
+     * @param notNullFieldNames the set of field names known to be non-null
+     * @return {@code true} if the LEFT JOIN can be upgraded to INNER JOIN
+     */
+    private static boolean canUpgradeToInnerJoin(LogicalViewJoin viewJoin, Set<String> notNullFieldNames) {
+        if (notNullFieldNames.isEmpty()) {
+            return false;
+        }
+
+        var childJoinKeyRefs = viewJoin.getJoinConditions().stream()
+                .map(join -> join.getChildMap().getReference())
+                .collect(Collectors.toUnmodifiableSet());
+
+        if (notNullFieldNames.containsAll(childJoinKeyRefs)) {
+            LOG.debug(
+                    "NotNull annotation covers child join keys {} - upgrading LEFT JOIN to INNER JOIN",
+                    childJoinKeyRefs);
+            return true;
+        }
+
+        return false;
+    }
+
+    // --- SQL compilation methods ---
 
     /**
      * Builds the FROM clause including the base view_source table, any UNNEST cross-joins, and any
@@ -413,23 +641,46 @@ public final class DuckDbViewCompiler {
 
     /**
      * Compiles all {@link LogicalViewJoin}s from the view's left joins and inner joins into
-     * {@link JoinDescriptor}s. Each join descriptor contains a subquery table for the recursively
-     * compiled parent view, the ON condition, and the projected fields.
+     * {@link JoinDescriptor}s. Applies annotation-based optimizations:
+     * <ul>
+     *   <li>FK + not projected: eliminates the join entirely</li>
+     *   <li>NotNull on child join keys: upgrades LEFT JOIN to INNER JOIN</li>
+     * </ul>
+     *
+     * @param view the logical view containing joins
+     * @param annotations the structural annotations on the view
+     * @param notNullFieldNames field names covered by NotNull annotations
+     * @param projectedFields the context's projected fields
+     * @return the list of compiled join descriptors (excluding eliminated joins)
      */
-    private static List<JoinDescriptor> compileJoins(LogicalView view) {
+    private static List<JoinDescriptor> compileJoins(
+            LogicalView view,
+            Set<StructuralAnnotation> annotations,
+            Set<String> notNullFieldNames,
+            Set<String> projectedFields) {
         var joinDescriptors = new ArrayList<JoinDescriptor>();
         int parentIndex = 0;
 
         var leftJoins = view.getLeftJoins();
         if (leftJoins != null) {
             for (var viewJoin : leftJoins) {
-                joinDescriptors.add(compileJoinDescriptor(viewJoin, parentIndex++, true));
+                if (canEliminateJoin(viewJoin, annotations, projectedFields)) {
+                    continue;
+                }
+
+                // Check if LEFT JOIN can be upgraded to INNER JOIN
+                var effectivelyLeftJoin = !canUpgradeToInnerJoin(viewJoin, notNullFieldNames);
+                joinDescriptors.add(compileJoinDescriptor(viewJoin, parentIndex++, effectivelyLeftJoin));
             }
         }
 
         var innerJoins = view.getInnerJoins();
         if (innerJoins != null) {
             for (var viewJoin : innerJoins) {
+                if (canEliminateJoin(viewJoin, annotations, projectedFields)) {
+                    continue;
+                }
+
                 joinDescriptors.add(compileJoinDescriptor(viewJoin, parentIndex++, false));
             }
         }

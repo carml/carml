@@ -15,22 +15,29 @@ import io.carml.model.AbstractLogicalSource;
 import io.carml.model.ChildMap;
 import io.carml.model.DatabaseSource;
 import io.carml.model.ExpressionField;
+import io.carml.model.Field;
 import io.carml.model.FilePath;
 import io.carml.model.FileSource;
+import io.carml.model.ForeignKeyAnnotation;
 import io.carml.model.FunctionExecution;
 import io.carml.model.IterableField;
 import io.carml.model.Join;
 import io.carml.model.LogicalSource;
 import io.carml.model.LogicalView;
 import io.carml.model.LogicalViewJoin;
+import io.carml.model.NotNullAnnotation;
 import io.carml.model.ParentMap;
+import io.carml.model.PrimaryKeyAnnotation;
 import io.carml.model.ReferenceFormulation;
+import io.carml.model.StructuralAnnotation;
 import io.carml.model.TriplesMap;
+import io.carml.model.UniqueAnnotation;
 import io.carml.model.impl.CarmlTemplate;
 import io.carml.vocab.Rdf;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -597,7 +604,7 @@ class DuckDbViewCompilerTest {
 
         @Test
         void compile_filePathSource_resolvesPath() {
-            var fields = Set.<io.carml.model.Field>of(expressionField("id", "id"));
+            var fields = Set.<Field>of(expressionField("id", "id"));
 
             var filePath = mock(FilePath.class);
             when(filePath.getPath()).thenReturn("data/people.json");
@@ -858,7 +865,7 @@ class DuckDbViewCompilerTest {
             var iterableField = iterableField("item", "items", Set.of(nestedField));
 
             // Use LinkedHashSet to preserve order for deterministic assertion
-            var fields = new LinkedHashSet<io.carml.model.Field>();
+            var fields = new LinkedHashSet<Field>();
             fields.add(topLevelField);
             fields.add(iterableField);
 
@@ -1056,7 +1063,7 @@ class DuckDbViewCompilerTest {
             var nestedField = expressionField("item_type", "type");
             var iterableField = iterableField("item", "items", Set.of(nestedField));
 
-            var fields = new LinkedHashSet<io.carml.model.Field>();
+            var fields = new LinkedHashSet<Field>();
             fields.add(expressionField("emp_name", "name"));
             fields.add(iterableField);
 
@@ -1086,7 +1093,7 @@ class DuckDbViewCompilerTest {
         var field = mock(IterableField.class);
         lenient().when(field.getFieldName()).thenReturn(fieldName);
         lenient().when(field.getIterator()).thenReturn(iterator);
-        lenient().when(field.getFields()).thenReturn((Set<io.carml.model.Field>) (Set<?>) nestedFields);
+        lenient().when(field.getFields()).thenReturn((Set<Field>) (Set<?>) nestedFields);
         return field;
     }
 
@@ -1117,8 +1124,7 @@ class DuckDbViewCompilerTest {
         return createViewWithRefFormulationAndIterator(Rdf.Ql.JsonPath, fileName, iterator, fields);
     }
 
-    private static LogicalView createJsonViewWithFields(
-            String fileName, String iterator, Set<io.carml.model.Field> fields) {
+    private static LogicalView createJsonViewWithFields(String fileName, String iterator, Set<Field> fields) {
         return createViewWithRefFormulationAndIteratorMixed(Rdf.Ql.JsonPath, fileName, iterator, fields);
     }
 
@@ -1137,7 +1143,7 @@ class DuckDbViewCompilerTest {
     private static LogicalView createJsonViewWithFieldsAndJoins(
             String fileName,
             String iterator,
-            Set<io.carml.model.Field> fields,
+            Set<Field> fields,
             Set<LogicalViewJoin> leftJoins,
             Set<LogicalViewJoin> innerJoins) {
         var view = createViewWithRefFormulationAndIteratorMixed(Rdf.Ql.JsonPath, fileName, iterator, fields);
@@ -1161,46 +1167,45 @@ class DuckDbViewCompilerTest {
             String iterator,
             Set<? extends ExpressionField> fields) {
         var fileSource = mock(FileSource.class);
-        when(fileSource.getUrl()).thenReturn(fileName);
+        lenient().when(fileSource.getUrl()).thenReturn(fileName);
 
         var refFormulation = mock(ReferenceFormulation.class);
-        when(refFormulation.getAsResource()).thenReturn(refIri);
+        lenient().when(refFormulation.getAsResource()).thenReturn(refIri);
 
         var logicalSource = mock(LogicalSource.class);
-        when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
-        when(logicalSource.getSource()).thenReturn(fileSource);
+        lenient().when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
+        lenient().when(logicalSource.getSource()).thenReturn(fileSource);
         lenient().when(logicalSource.getIterator()).thenReturn(iterator);
 
         var view = mock(LogicalView.class);
-        when(view.getViewOn()).thenReturn(logicalSource);
+        lenient().when(view.getViewOn()).thenReturn(logicalSource);
         @SuppressWarnings("unchecked")
-        var fieldSet = (Set<io.carml.model.Field>) (Set<?>) fields;
-        when(view.getFields()).thenReturn(fieldSet);
+        var fieldSet = (Set<Field>) fields;
+        lenient().when(view.getFields()).thenReturn(fieldSet);
         lenient().when(view.getResourceName()).thenReturn("testView");
+        lenient().when(view.getStructuralAnnotations()).thenReturn(Set.of());
 
         return view;
     }
 
     private static LogicalView createViewWithRefFormulationAndIteratorMixed(
-            org.eclipse.rdf4j.model.Resource refIri,
-            String fileName,
-            String iterator,
-            Set<io.carml.model.Field> fields) {
+            Resource refIri, String fileName, String iterator, Set<Field> fields) {
         var fileSource = mock(FileSource.class);
-        when(fileSource.getUrl()).thenReturn(fileName);
+        lenient().when(fileSource.getUrl()).thenReturn(fileName);
 
         var refFormulation = mock(ReferenceFormulation.class);
-        when(refFormulation.getAsResource()).thenReturn(refIri);
+        lenient().when(refFormulation.getAsResource()).thenReturn(refIri);
 
         var logicalSource = mock(LogicalSource.class);
-        when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
-        when(logicalSource.getSource()).thenReturn(fileSource);
+        lenient().when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
+        lenient().when(logicalSource.getSource()).thenReturn(fileSource);
         lenient().when(logicalSource.getIterator()).thenReturn(iterator);
 
         var view = mock(LogicalView.class);
-        when(view.getViewOn()).thenReturn(logicalSource);
-        when(view.getFields()).thenReturn(fields);
+        lenient().when(view.getViewOn()).thenReturn(logicalSource);
+        lenient().when(view.getFields()).thenReturn(fields);
         lenient().when(view.getResourceName()).thenReturn("testView");
+        lenient().when(view.getStructuralAnnotations()).thenReturn(Set.of());
 
         return view;
     }
@@ -1217,6 +1222,7 @@ class DuckDbViewCompilerTest {
         when(view.getViewOn()).thenReturn(logicalSource);
         when(view.getFields()).thenReturn(castFieldSet(fields));
         lenient().when(view.getResourceName()).thenReturn("testView");
+        lenient().when(view.getStructuralAnnotations()).thenReturn(Set.of());
 
         return view;
     }
@@ -1234,6 +1240,7 @@ class DuckDbViewCompilerTest {
         when(view.getViewOn()).thenReturn(logicalSource);
         when(view.getFields()).thenReturn(castFieldSet(fields));
         lenient().when(view.getResourceName()).thenReturn("testView");
+        lenient().when(view.getStructuralAnnotations()).thenReturn(Set.of());
 
         return view;
     }
@@ -1252,6 +1259,7 @@ class DuckDbViewCompilerTest {
         when(view.getViewOn()).thenReturn(logicalSource);
         when(view.getFields()).thenReturn(castFieldSet(fields));
         lenient().when(view.getResourceName()).thenReturn("testView");
+        lenient().when(view.getStructuralAnnotations()).thenReturn(Set.of());
 
         return view;
     }
@@ -1270,12 +1278,357 @@ class DuckDbViewCompilerTest {
         when(view.getViewOn()).thenReturn(logicalSource);
         when(view.getFields()).thenReturn(castFieldSet(fields));
         lenient().when(view.getResourceName()).thenReturn("testView");
+        lenient().when(view.getStructuralAnnotations()).thenReturn(Set.of());
 
         return view;
     }
 
     @SuppressWarnings("unchecked")
-    private static Set<io.carml.model.Field> castFieldSet(Set<ExpressionField> fields) {
-        return (Set<io.carml.model.Field>) (Set<?>) fields;
+    private static Set<Field> castFieldSet(Set<ExpressionField> fields) {
+        return (Set<Field>) (Set<?>) fields;
+    }
+
+    // --- Annotation mock helpers ---
+
+    private static PrimaryKeyAnnotation primaryKeyAnnotation(ExpressionField... fields) {
+        var annotation = mock(PrimaryKeyAnnotation.class);
+        lenient().when(annotation.getOnFields()).thenReturn(List.of(fields));
+        return annotation;
+    }
+
+    private static UniqueAnnotation uniqueAnnotation(ExpressionField... fields) {
+        var annotation = mock(UniqueAnnotation.class);
+        lenient().when(annotation.getOnFields()).thenReturn(List.of(fields));
+        return annotation;
+    }
+
+    private static NotNullAnnotation notNullAnnotation(ExpressionField... fields) {
+        var annotation = mock(NotNullAnnotation.class);
+        lenient().when(annotation.getOnFields()).thenReturn(List.of(fields));
+        return annotation;
+    }
+
+    private static ForeignKeyAnnotation foreignKeyAnnotation(
+            LogicalView targetView, List<ExpressionField> onFields, List<ExpressionField> targetFields) {
+        var annotation = mock(ForeignKeyAnnotation.class);
+        lenient().when(annotation.getOnFields()).thenReturn(List.copyOf(onFields));
+        lenient().when(annotation.getTargetView()).thenReturn(targetView);
+        lenient().when(annotation.getTargetFields()).thenReturn(List.copyOf(targetFields));
+        return annotation;
+    }
+
+    private static LogicalView createJsonViewWithAnnotations(
+            String fileName, String iterator, Set<ExpressionField> fields, Set<StructuralAnnotation> annotations) {
+        var view = createViewWithRefFormulationAndIterator(Rdf.Ql.JsonPath, fileName, iterator, fields);
+        lenient().when(view.getStructuralAnnotations()).thenReturn(annotations);
+        return view;
+    }
+
+    private static LogicalView createJsonViewWithJoinsAndAnnotations(
+            String fileName,
+            String iterator,
+            Set<ExpressionField> fields,
+            Set<LogicalViewJoin> leftJoins,
+            Set<LogicalViewJoin> innerJoins,
+            Set<StructuralAnnotation> annotations) {
+        var view = createViewWithRefFormulationAndIterator(Rdf.Ql.JsonPath, fileName, iterator, fields);
+        lenient().when(view.getLeftJoins()).thenReturn(leftJoins);
+        lenient().when(view.getInnerJoins()).thenReturn(innerJoins);
+        lenient().when(view.getStructuralAnnotations()).thenReturn(annotations);
+        return view;
+    }
+
+    // --- Structural annotation optimization tests ---
+
+    @Nested
+    class AnnotationOptimizations {
+
+        @Test
+        void compile_primaryKeyCoveringAllFields_omitsDistinct() {
+            var idField = expressionField("id", "id");
+            var nameField = expressionField("name", "name");
+
+            var pkAnnotation = primaryKeyAnnotation(idField, nameField);
+            var view =
+                    createJsonViewWithAnnotations("data.json", null, Set.of(idField, nameField), Set.of(pkAnnotation));
+            var context = EvaluationContext.of(Set.of(), DedupStrategy.exact(), null);
+
+            var sql = DuckDbViewCompiler.compile(view, context);
+
+            // PK covers all selected fields, so DISTINCT should be omitted
+            assertThat(sql, not(containsString("select distinct")));
+            assertThat(sql, not(containsString("\"deduped\"")));
+        }
+
+        @Test
+        void compile_uniquePlusNotNullCoveringAllFields_omitsDistinct() {
+            var idField = expressionField("id", "id");
+            var nameField = expressionField("name", "name");
+
+            var uniqueAnnotation = uniqueAnnotation(idField);
+            var notNullAnnotation = notNullAnnotation(idField);
+            var view = createJsonViewWithAnnotations(
+                    "data.json", null, Set.of(idField, nameField), Set.of(uniqueAnnotation, notNullAnnotation));
+            var context = EvaluationContext.of(Set.of(), DedupStrategy.exact(), null);
+
+            var sql = DuckDbViewCompiler.compile(view, context);
+
+            // Unique + NotNull covers all selected fields (unique field "id" is in selected fields
+            // and is NotNull), so DISTINCT should be omitted
+            assertThat(sql, not(containsString("select distinct")));
+            assertThat(sql, not(containsString("\"deduped\"")));
+        }
+
+        @Test
+        void compile_uniqueWithoutNotNull_retainsDistinct() {
+            var idField = expressionField("id", "id");
+            var nameField = expressionField("name", "name");
+
+            // Unique on "id" but no NotNull — cannot skip DISTINCT
+            var uniqueAnnotation = uniqueAnnotation(idField);
+            var view = createJsonViewWithAnnotations(
+                    "data.json", null, Set.of(idField, nameField), Set.of(uniqueAnnotation));
+            var context = EvaluationContext.of(Set.of(), DedupStrategy.exact(), null);
+
+            var sql = DuckDbViewCompiler.compile(view, context);
+
+            // Without NotNull, Unique alone is insufficient — DISTINCT must remain
+            assertThat(sql, containsString("select distinct"));
+            assertThat(sql, containsString("\"deduped\""));
+        }
+
+        @Test
+        void compile_foreignKeyNotProjected_eliminatesJoin() {
+            var parentView = createJsonView(
+                    "departments.json",
+                    null,
+                    Set.of(expressionField("dept_id", "id"), expressionField("dept_name", "name")));
+
+            var joinField = expressionField("department_name", "dept_name");
+            var joinCond = joinCondition("dept_id", "dept_id");
+            var viewJoin = logicalViewJoin(parentView, Set.of(joinCond), Set.of(joinField));
+
+            // FK annotation from child field "dept_id" to the parent view
+            var childFkField = expressionField("dept_id", "dept_id");
+            var parentFkField = expressionField("dept_id", "id");
+            var fkAnnotation = foreignKeyAnnotation(parentView, List.of(childFkField), List.of(parentFkField));
+
+            // Only project "emp_name" — the join's "department_name" is NOT projected
+            var view = createJsonViewWithJoinsAndAnnotations(
+                    "employees.json",
+                    null,
+                    Set.of(expressionField("emp_name", "name")),
+                    Set.of(viewJoin),
+                    Set.of(),
+                    Set.of(fkAnnotation));
+            var context = EvaluationContext.withProjectedFields(Set.of("emp_name"));
+
+            var sql = DuckDbViewCompiler.compile(view, context);
+
+            // FK guarantees referential integrity and parent fields are not needed
+            assertThat(sql, not(containsString("left outer join")));
+            assertThat(sql, not(containsString("join (")));
+            assertThat(sql, not(containsString("\"parent_0\"")));
+        }
+
+        @Test
+        void compile_foreignKeyWithProjectedParentFields_retainsJoin() {
+            var parentView = createJsonView(
+                    "departments.json",
+                    null,
+                    Set.of(expressionField("dept_id", "id"), expressionField("dept_name", "name")));
+
+            var joinField = expressionField("department_name", "dept_name");
+            var joinCond = joinCondition("dept_id", "dept_id");
+            var viewJoin = logicalViewJoin(parentView, Set.of(joinCond), Set.of(joinField));
+
+            var childFkField = expressionField("dept_id", "dept_id");
+            var parentFkField = expressionField("dept_id", "id");
+            var fkAnnotation = foreignKeyAnnotation(parentView, List.of(childFkField), List.of(parentFkField));
+
+            // Project both "emp_name" AND "department_name" — parent field IS projected
+            var view = createJsonViewWithJoinsAndAnnotations(
+                    "employees.json",
+                    null,
+                    Set.of(expressionField("emp_name", "name")),
+                    Set.of(viewJoin),
+                    Set.of(),
+                    Set.of(fkAnnotation));
+            var context = EvaluationContext.withProjectedFields(Set.of("emp_name", "department_name"));
+
+            var sql = DuckDbViewCompiler.compile(view, context);
+
+            // Parent fields are projected — join must be retained
+            assertThat(sql, containsString("left outer join"));
+            assertThat(sql, containsString("\"parent_0\""));
+        }
+
+        @Test
+        void compile_notNullOnChildJoinKeys_upgradesLeftToInner() {
+            var parentView = createJsonView(
+                    "departments.json",
+                    null,
+                    Set.of(expressionField("dept_id", "id"), expressionField("dept_name", "name")));
+
+            var joinField = expressionField("department_name", "dept_name");
+            var joinCond = joinCondition("dept_id", "dept_id");
+            var viewJoin = logicalViewJoin(parentView, Set.of(joinCond), Set.of(joinField));
+
+            // NotNull on the child join key field "dept_id"
+            var deptIdField = expressionField("dept_id", "dept_id");
+            var notNullAnnotation = notNullAnnotation(deptIdField);
+
+            var view = createJsonViewWithJoinsAndAnnotations(
+                    "employees.json",
+                    null,
+                    Set.of(expressionField("emp_name", "name")),
+                    Set.of(viewJoin),
+                    Set.of(),
+                    Set.of(notNullAnnotation));
+            var context = EvaluationContext.defaults();
+
+            var sql = DuckDbViewCompiler.compile(view, context);
+
+            // NotNull on child join keys means LEFT JOIN can be upgraded to INNER JOIN
+            assertThat(sql, not(containsString("left outer join")));
+            assertThat(sql, containsString("join ("));
+            assertThat(sql, containsString("\"parent_0\""));
+        }
+
+        @Test
+        void compile_noNotNullOnChildJoinKeys_keepsLeftJoin() {
+            var parentView = createJsonView(
+                    "departments.json",
+                    null,
+                    Set.of(expressionField("dept_id", "id"), expressionField("dept_name", "name")));
+
+            var joinField = expressionField("department_name", "dept_name");
+            var joinCond = joinCondition("dept_id", "dept_id");
+            var viewJoin = logicalViewJoin(parentView, Set.of(joinCond), Set.of(joinField));
+
+            // No NotNull annotations at all
+            var view = createJsonViewWithJoinsAndAnnotations(
+                    "employees.json",
+                    null,
+                    Set.of(expressionField("emp_name", "name")),
+                    Set.of(viewJoin),
+                    Set.of(),
+                    Set.of());
+            var context = EvaluationContext.defaults();
+
+            var sql = DuckDbViewCompiler.compile(view, context);
+
+            // Without NotNull, LEFT JOIN stays as LEFT JOIN
+            assertThat(sql, containsString("left outer join"));
+        }
+
+        @Test
+        void compile_primaryKeyNotInProjection_retainsDistinct() {
+            var idField = expressionField("id", "id");
+            var nameField = expressionField("name", "name");
+
+            // PK on {id, name}, but only "name" is projected — PK not fully covered
+            var pkAnnotation = primaryKeyAnnotation(idField, nameField);
+            var view =
+                    createJsonViewWithAnnotations("data.json", null, Set.of(idField, nameField), Set.of(pkAnnotation));
+            var context = EvaluationContext.of(Set.of("name"), DedupStrategy.exact(), null);
+
+            var sql = DuckDbViewCompiler.compile(view, context);
+
+            assertThat(sql, containsString("select distinct"));
+        }
+
+        @Test
+        void compile_foreignKeyWithEmptyProjection_retainsJoin() {
+            var parentView = createJsonView(
+                    "departments.json",
+                    null,
+                    Set.of(expressionField("dept_id", "id"), expressionField("dept_name", "name")));
+
+            var joinField = expressionField("department_name", "dept_name");
+            var joinCond = joinCondition("dept_id", "dept_id");
+            var viewJoin = logicalViewJoin(parentView, Set.of(joinCond), Set.of(joinField));
+
+            var childFkField = expressionField("dept_id", "dept_id");
+            var parentFkField = expressionField("dept_id", "id");
+            var fkAnnotation = foreignKeyAnnotation(parentView, List.of(childFkField), List.of(parentFkField));
+
+            // Empty projection = "all fields" — parent fields ARE implicitly projected
+            var view = createJsonViewWithJoinsAndAnnotations(
+                    "employees.json",
+                    null,
+                    Set.of(expressionField("emp_name", "name")),
+                    Set.of(viewJoin),
+                    Set.of(),
+                    Set.of(fkAnnotation));
+            var context = EvaluationContext.defaults();
+
+            var sql = DuckDbViewCompiler.compile(view, context);
+
+            assertThat(sql, containsString("left outer join"));
+            assertThat(sql, containsString("\"parent_0\""));
+        }
+
+        @Test
+        void compile_foreignKeyTargetingDifferentParent_retainsJoin() {
+            var actualParent = createJsonView(
+                    "departments.json",
+                    null,
+                    Set.of(expressionField("dept_id", "id"), expressionField("dept_name", "name")));
+            var differentParent = createJsonView("offices.json", null, Set.of(expressionField("office_id", "id")));
+
+            var joinField = expressionField("department_name", "dept_name");
+            var joinCond = joinCondition("dept_id", "dept_id");
+            var viewJoin = logicalViewJoin(actualParent, Set.of(joinCond), Set.of(joinField));
+
+            // FK points to differentParent, NOT actualParent
+            var childFkField = expressionField("office_id", "office_id");
+            var parentFkField = expressionField("office_id", "id");
+            var fkAnnotation = foreignKeyAnnotation(differentParent, List.of(childFkField), List.of(parentFkField));
+
+            var view = createJsonViewWithJoinsAndAnnotations(
+                    "employees.json",
+                    null,
+                    Set.of(expressionField("emp_name", "name")),
+                    Set.of(viewJoin),
+                    Set.of(),
+                    Set.of(fkAnnotation));
+            var context = EvaluationContext.withProjectedFields(Set.of("emp_name"));
+
+            var sql = DuckDbViewCompiler.compile(view, context);
+
+            // FK does not match this join's parent — join must be retained
+            assertThat(sql, containsString("left outer join"));
+            assertThat(sql, containsString("\"parent_0\""));
+        }
+
+        @Test
+        void compile_notNullOnPartialChildJoinKeys_keepsLeftJoin() {
+            var parentView = createJsonView(
+                    "details.json", null, Set.of(expressionField("id", "id"), expressionField("region", "region")));
+
+            var joinField = expressionField("detail_region", "region");
+            var cond1 = joinCondition("id", "id");
+            var cond2 = joinCondition("region", "region");
+            var viewJoin = logicalViewJoin(parentView, Set.of(cond1, cond2), Set.of(joinField));
+
+            // NotNull only covers "id", not "region"
+            var idField = expressionField("id", "id");
+            var notNullAnnotation = notNullAnnotation(idField);
+
+            var view = createJsonViewWithJoinsAndAnnotations(
+                    "main.json",
+                    null,
+                    Set.of(expressionField("name", "name")),
+                    Set.of(viewJoin),
+                    Set.of(),
+                    Set.of(notNullAnnotation));
+            var context = EvaluationContext.defaults();
+
+            var sql = DuckDbViewCompiler.compile(view, context);
+
+            // "region" is not NotNull — LEFT JOIN must be retained
+            assertThat(sql, containsString("left outer join"));
+        }
     }
 }
