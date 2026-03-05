@@ -12,17 +12,23 @@ import static org.mockito.Mockito.when;
 import io.carml.logicalview.DedupStrategy;
 import io.carml.logicalview.EvaluationContext;
 import io.carml.model.AbstractLogicalSource;
+import io.carml.model.ChildMap;
 import io.carml.model.DatabaseSource;
 import io.carml.model.ExpressionField;
 import io.carml.model.FilePath;
 import io.carml.model.FileSource;
 import io.carml.model.FunctionExecution;
+import io.carml.model.IterableField;
+import io.carml.model.Join;
 import io.carml.model.LogicalSource;
 import io.carml.model.LogicalView;
+import io.carml.model.LogicalViewJoin;
+import io.carml.model.ParentMap;
 import io.carml.model.ReferenceFormulation;
 import io.carml.model.TriplesMap;
 import io.carml.model.impl.CarmlTemplate;
 import io.carml.vocab.Rdf;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
@@ -448,10 +454,9 @@ class DuckDbViewCompilerTest {
             var unknownTarget = mock(AbstractLogicalSource.class);
             var view = mock(LogicalView.class);
             when(view.getViewOn()).thenReturn(unknownTarget);
+            var context = EvaluationContext.defaults();
 
-            assertThrows(
-                    IllegalArgumentException.class,
-                    () -> DuckDbViewCompiler.compile(view, EvaluationContext.defaults()));
+            assertThrows(IllegalArgumentException.class, () -> DuckDbViewCompiler.compile(view, context));
         }
 
         @Test
@@ -465,10 +470,9 @@ class DuckDbViewCompilerTest {
 
             var view = mock(LogicalView.class);
             when(view.getViewOn()).thenReturn(logicalSource);
+            var context = EvaluationContext.defaults();
 
-            assertThrows(
-                    IllegalArgumentException.class,
-                    () -> DuckDbViewCompiler.compile(view, EvaluationContext.defaults()));
+            assertThrows(IllegalArgumentException.class, () -> DuckDbViewCompiler.compile(view, context));
         }
 
         @Test
@@ -481,10 +485,9 @@ class DuckDbViewCompilerTest {
             when(field.getFunctionValue()).thenReturn(mock(TriplesMap.class));
 
             var view = createJsonView("data.json", null, Set.of(field));
+            var context = EvaluationContext.defaults();
 
-            assertThrows(
-                    UnsupportedOperationException.class,
-                    () -> DuckDbViewCompiler.compile(view, EvaluationContext.defaults()));
+            assertThrows(UnsupportedOperationException.class, () -> DuckDbViewCompiler.compile(view, context));
         }
 
         @Test
@@ -498,10 +501,9 @@ class DuckDbViewCompilerTest {
             when(field.getFunctionExecution()).thenReturn(mock(FunctionExecution.class));
 
             var view = createJsonView("data.json", null, Set.of(field));
+            var context = EvaluationContext.defaults();
 
-            assertThrows(
-                    UnsupportedOperationException.class,
-                    () -> DuckDbViewCompiler.compile(view, EvaluationContext.defaults()));
+            assertThrows(UnsupportedOperationException.class, () -> DuckDbViewCompiler.compile(view, context));
         }
 
         @Test
@@ -515,10 +517,9 @@ class DuckDbViewCompilerTest {
             when(field.getFunctionExecution()).thenReturn(null);
 
             var view = createJsonView("data.json", null, Set.of(field));
+            var context = EvaluationContext.defaults();
 
-            assertThrows(
-                    IllegalArgumentException.class,
-                    () -> DuckDbViewCompiler.compile(view, EvaluationContext.defaults()));
+            assertThrows(IllegalArgumentException.class, () -> DuckDbViewCompiler.compile(view, context));
         }
 
         @Test
@@ -538,6 +539,54 @@ class DuckDbViewCompilerTest {
             var context = EvaluationContext.defaults();
 
             assertThrows(IllegalArgumentException.class, () -> DuckDbViewCompiler.compile(view, context));
+        }
+
+        @Test
+        void compile_iterableFieldWithNullIterator_throwsIllegalArgumentException() {
+            var nestedField = expressionField("item_type", "type");
+            var iterableField = iterableField("items", null, Set.of(nestedField));
+            var view = createJsonViewWithFields("data.json", null, Set.of(iterableField));
+            var context = EvaluationContext.defaults();
+
+            assertThrows(IllegalArgumentException.class, () -> DuckDbViewCompiler.compile(view, context));
+        }
+
+        @Test
+        void compile_iterableNestedFieldWithNoReference_throwsUnsupportedOperationException() {
+            var nestedField = mock(ExpressionField.class);
+            when(nestedField.getFieldName()).thenReturn("item_type");
+            when(nestedField.getReference()).thenReturn(null);
+            var iterableField = iterableField("items", "items", Set.of(nestedField));
+            var view = createJsonViewWithFields("data.json", null, Set.of(iterableField));
+            var context = EvaluationContext.defaults();
+
+            assertThrows(UnsupportedOperationException.class, () -> DuckDbViewCompiler.compile(view, context));
+        }
+
+        @Test
+        void compile_joinWithNoConditions_throwsIllegalArgumentException() {
+            var parentView = createJsonView("departments.json", null, Set.of(expressionField("dept_id", "id")));
+            var viewJoin = logicalViewJoin(parentView, Set.of(), Set.of(expressionField("dept_name", "name")));
+            var view = createJsonViewWithJoins(
+                    "employees.json", null, Set.of(expressionField("name", "name")), Set.of(viewJoin), Set.of());
+            var context = EvaluationContext.defaults();
+
+            assertThrows(IllegalArgumentException.class, () -> DuckDbViewCompiler.compile(view, context));
+        }
+
+        @Test
+        void compile_joinProjectedFieldWithNoReference_throwsUnsupportedOperationException() {
+            var parentView = createJsonView("departments.json", null, Set.of(expressionField("dept_id", "id")));
+            var brokenField = mock(ExpressionField.class);
+            when(brokenField.getFieldName()).thenReturn("dept_name");
+            when(brokenField.getReference()).thenReturn(null);
+            var viewJoin =
+                    logicalViewJoin(parentView, Set.of(joinCondition("dept_id", "dept_id")), Set.of(brokenField));
+            var view = createJsonViewWithJoins(
+                    "employees.json", null, Set.of(expressionField("name", "name")), Set.of(viewJoin), Set.of());
+            var context = EvaluationContext.defaults();
+
+            assertThrows(UnsupportedOperationException.class, () -> DuckDbViewCompiler.compile(view, context));
         }
     }
 
@@ -708,10 +757,9 @@ class DuckDbViewCompilerTest {
 
             var view = mock(LogicalView.class);
             when(view.getViewOn()).thenReturn(logicalSource);
+            var context = EvaluationContext.defaults();
 
-            assertThrows(
-                    UnsupportedOperationException.class,
-                    () -> DuckDbViewCompiler.compile(view, EvaluationContext.defaults()));
+            assertThrows(UnsupportedOperationException.class, () -> DuckDbViewCompiler.compile(view, context));
         }
 
         @Test
@@ -767,6 +815,263 @@ class DuckDbViewCompilerTest {
         }
     }
 
+    // --- IterableField / UNNEST compilation tests ---
+
+    @Nested
+    class IterableFieldCompilation {
+
+        @Test
+        void compile_iterableFieldWithNestedExpressionFields_producesUnnest() {
+            var nestedField = expressionField("item_type", "type");
+            var iterableField = iterableField("item", "items", Set.of(nestedField));
+
+            var view = createJsonViewWithFields("data.json", null, Set.of(iterableField));
+            var context = EvaluationContext.defaults();
+
+            var sql = DuckDbViewCompiler.compile(view, context);
+
+            assertThat(sql, containsString("unnest(\"view_source\".\"items\")"));
+            assertThat(sql, containsString("\"item\""));
+            assertThat(sql, containsString("\"item\".\"type\" \"item_type\""));
+        }
+
+        @Test
+        void compile_iterableFieldWithMultipleNestedFields_producesUnnest() {
+            var nestedType = expressionField("item_type", "type");
+            var nestedName = expressionField("item_name", "name");
+            var iterableField = iterableField("item", "items", Set.of(nestedType, nestedName));
+
+            var view = createJsonViewWithFields("data.json", null, Set.of(iterableField));
+            var context = EvaluationContext.defaults();
+
+            var sql = DuckDbViewCompiler.compile(view, context);
+
+            assertThat(sql, containsString("unnest(\"view_source\".\"items\")"));
+            assertThat(sql, containsString("\"item\".\"type\" \"item_type\""));
+            assertThat(sql, containsString("\"item\".\"name\" \"item_name\""));
+        }
+
+        @Test
+        void compile_mixedExpressionAndIterableFields_producesCorrectSql() {
+            var topLevelField = expressionField("person_name", "name");
+            var nestedField = expressionField("item_type", "type");
+            var iterableField = iterableField("item", "items", Set.of(nestedField));
+
+            // Use LinkedHashSet to preserve order for deterministic assertion
+            var fields = new LinkedHashSet<io.carml.model.Field>();
+            fields.add(topLevelField);
+            fields.add(iterableField);
+
+            var view = createJsonViewWithFields("data.json", null, fields);
+            var context = EvaluationContext.defaults();
+
+            var sql = DuckDbViewCompiler.compile(view, context);
+
+            // Top-level expression field
+            assertThat(sql, containsString("\"name\" \"person_name\""));
+            // UNNEST for iterable field
+            assertThat(sql, containsString("unnest(\"view_source\".\"items\")"));
+            // Nested field qualified by unnest alias
+            assertThat(sql, containsString("\"item\".\"type\" \"item_type\""));
+            // FROM clause has both view_source and unnest
+            assertThat(sql, containsString("from \"view_source\", unnest("));
+        }
+
+        @Test
+        void compile_iterableFieldWithProjection_selectsOnlyProjectedNestedFields() {
+            var nested1 = expressionField("item_type", "type");
+            var nested2 = expressionField("item_name", "name");
+            var iterableField = iterableField("item", "items", Set.of(nested1, nested2));
+
+            var view = createJsonViewWithFields("data.json", null, Set.of(iterableField));
+            var context = EvaluationContext.withProjectedFields(Set.of("item_type"));
+
+            var sql = DuckDbViewCompiler.compile(view, context);
+
+            assertThat(sql, containsString("\"item\".\"type\" \"item_type\""));
+            assertThat(sql, not(containsString("\"item\".\"name\" \"item_name\"")));
+        }
+
+        @Test
+        void compile_iterableFieldWithDedup_producesUnnestInDistinctCte() {
+            var nestedField = expressionField("item_type", "type");
+            var iterableField = iterableField("item", "items", Set.of(nestedField));
+
+            var view = createJsonViewWithFields("data.json", null, Set.of(iterableField));
+            var context = EvaluationContext.of(Set.of(), DedupStrategy.exact(), null);
+
+            var sql = DuckDbViewCompiler.compile(view, context);
+
+            assertThat(sql, containsString("\"deduped\" as ("));
+            assertThat(sql, containsString("select distinct"));
+            assertThat(sql, containsString("unnest(\"view_source\".\"items\")"));
+            assertThat(sql, containsString("\"item\".\"type\" \"item_type\""));
+        }
+    }
+
+    // --- LogicalViewJoin / SQL JOIN compilation tests ---
+
+    @Nested
+    class JoinCompilation {
+
+        @Test
+        void compile_leftJoinWithSingleCondition_producesLeftJoin() {
+            var parentView = createJsonView(
+                    "departments.json",
+                    null,
+                    Set.of(expressionField("dept_id", "id"), expressionField("dept_name", "name")));
+
+            var joinField = expressionField("department_name", "dept_name");
+            var joinCondition = joinCondition("dept_id", "dept_id");
+            var viewJoin = logicalViewJoin(parentView, Set.of(joinCondition), Set.of(joinField));
+
+            var view = createJsonViewWithJoins(
+                    "employees.json", null, Set.of(expressionField("emp_name", "name")), Set.of(viewJoin), Set.of());
+            var context = EvaluationContext.defaults();
+
+            var sql = DuckDbViewCompiler.compile(view, context);
+
+            assertThat(sql, containsString("left outer join"));
+            assertThat(sql, containsString("\"parent_0\""));
+            assertThat(sql, containsString("\"view_source\".\"dept_id\" = \"parent_0\".\"dept_id\""));
+            assertThat(sql, containsString("\"parent_0\".\"dept_name\" \"department_name\""));
+        }
+
+        @Test
+        void compile_innerJoinWithSingleCondition_producesInnerJoin() {
+            var parentView = createJsonView(
+                    "departments.json",
+                    null,
+                    Set.of(expressionField("dept_id", "id"), expressionField("dept_name", "name")));
+
+            var joinField = expressionField("department_name", "dept_name");
+            var joinCondition = joinCondition("dept_id", "dept_id");
+            var viewJoin = logicalViewJoin(parentView, Set.of(joinCondition), Set.of(joinField));
+
+            var view = createJsonViewWithJoins(
+                    "employees.json", null, Set.of(expressionField("emp_name", "name")), Set.of(), Set.of(viewJoin));
+            var context = EvaluationContext.defaults();
+
+            var sql = DuckDbViewCompiler.compile(view, context);
+
+            assertThat(sql, containsString("join ("));
+            assertThat(sql, not(containsString("left outer join")));
+            assertThat(sql, containsString("\"parent_0\""));
+            assertThat(sql, containsString("\"view_source\".\"dept_id\" = \"parent_0\".\"dept_id\""));
+        }
+
+        @Test
+        void compile_multipleJoinConditions_producesCompoundOnClause() {
+            var parentView = createJsonView(
+                    "details.json", null, Set.of(expressionField("id", "id"), expressionField("region", "region")));
+
+            var joinField = expressionField("detail_region", "region");
+            var condition1 = joinCondition("id", "id");
+            var condition2 = joinCondition("region", "region");
+            var viewJoin = logicalViewJoin(parentView, Set.of(condition1, condition2), Set.of(joinField));
+
+            var view = createJsonViewWithJoins(
+                    "main.json", null, Set.of(expressionField("name", "name")), Set.of(viewJoin), Set.of());
+            var context = EvaluationContext.defaults();
+
+            var sql = DuckDbViewCompiler.compile(view, context);
+
+            // Both conditions should appear in the ON clause
+            assertThat(sql, containsString("\"view_source\".\"id\" = \"parent_0\".\"id\""));
+            assertThat(sql, containsString("\"view_source\".\"region\" = \"parent_0\".\"region\""));
+            // They should be ANDed together
+            assertThat(sql, containsString("and"));
+        }
+
+        @Test
+        void compile_joinWithProjectedFields_selectsJoinFields() {
+            var parentView = createJsonView(
+                    "countries.json",
+                    null,
+                    Set.of(expressionField("code", "code"), expressionField("country_name", "name")));
+
+            var projectedField1 = expressionField("country_code", "code");
+            var projectedField2 = expressionField("country_name", "country_name");
+            var joinCondition = joinCondition("country_code", "code");
+            var viewJoin = logicalViewJoin(parentView, Set.of(joinCondition), Set.of(projectedField1, projectedField2));
+
+            var view = createJsonViewWithJoins(
+                    "cities.json", null, Set.of(expressionField("city_name", "name")), Set.of(viewJoin), Set.of());
+            var context = EvaluationContext.defaults();
+
+            var sql = DuckDbViewCompiler.compile(view, context);
+
+            assertThat(sql, containsString("\"parent_0\".\"code\" \"country_code\""));
+            assertThat(sql, containsString("\"parent_0\".\"country_name\" \"country_name\""));
+        }
+
+        @Test
+        void compile_multipleJoins_producesMultipleJoinClauses() {
+            var parentView1 = createJsonView(
+                    "departments.json",
+                    null,
+                    Set.of(expressionField("dept_id", "id"), expressionField("dept_name", "name")));
+            var parentView2 = createJsonView(
+                    "offices.json",
+                    null,
+                    Set.of(expressionField("office_id", "id"), expressionField("office_city", "city")));
+
+            var joinField1 = expressionField("department_name", "dept_name");
+            var joinCondition1 = joinCondition("dept_id", "dept_id");
+            var viewJoin1 = logicalViewJoin(parentView1, Set.of(joinCondition1), Set.of(joinField1));
+
+            var joinField2 = expressionField("office_city", "office_city");
+            var joinCondition2 = joinCondition("office_id", "office_id");
+            var viewJoin2 = logicalViewJoin(parentView2, Set.of(joinCondition2), Set.of(joinField2));
+
+            // Use LinkedHashSet to preserve ordering for deterministic aliases
+            var leftJoins = new LinkedHashSet<LogicalViewJoin>();
+            leftJoins.add(viewJoin1);
+            leftJoins.add(viewJoin2);
+
+            var view = createJsonViewWithJoins(
+                    "employees.json", null, Set.of(expressionField("emp_name", "name")), leftJoins, Set.of());
+            var context = EvaluationContext.defaults();
+
+            var sql = DuckDbViewCompiler.compile(view, context);
+
+            // Two left joins with sequential parent aliases
+            assertThat(sql, containsString("\"parent_0\""));
+            assertThat(sql, containsString("\"parent_1\""));
+            assertThat(sql, containsString("\"parent_0\".\"dept_name\" \"department_name\""));
+            assertThat(sql, containsString("\"parent_1\".\"office_city\" \"office_city\""));
+        }
+
+        @Test
+        void compile_iterableFieldAndJoin_producesUnnestAndJoin() {
+            var parentView = createJsonView(
+                    "departments.json",
+                    null,
+                    Set.of(expressionField("dept_id", "id"), expressionField("dept_name", "name")));
+
+            var joinField = expressionField("department_name", "dept_name");
+            var joinCond = joinCondition("dept_id", "dept_id");
+            var viewJoin = logicalViewJoin(parentView, Set.of(joinCond), Set.of(joinField));
+
+            var nestedField = expressionField("item_type", "type");
+            var iterableField = iterableField("item", "items", Set.of(nestedField));
+
+            var fields = new LinkedHashSet<io.carml.model.Field>();
+            fields.add(expressionField("emp_name", "name"));
+            fields.add(iterableField);
+
+            var view = createJsonViewWithFieldsAndJoins("employees.json", null, fields, Set.of(viewJoin), Set.of());
+            var context = EvaluationContext.defaults();
+
+            var sql = DuckDbViewCompiler.compile(view, context);
+
+            assertThat(sql, containsString("unnest(\"view_source\".\"items\")"));
+            assertThat(sql, containsString("left outer join"));
+            assertThat(sql, containsString("\"item\".\"type\" \"item_type\""));
+            assertThat(sql, containsString("\"parent_0\".\"dept_name\" \"department_name\""));
+        }
+    }
+
     // --- Helper methods ---
 
     private static ExpressionField expressionField(String fieldName, String reference) {
@@ -776,8 +1081,69 @@ class DuckDbViewCompilerTest {
         return field;
     }
 
+    @SuppressWarnings("unchecked")
+    private static IterableField iterableField(String fieldName, String iterator, Set<ExpressionField> nestedFields) {
+        var field = mock(IterableField.class);
+        lenient().when(field.getFieldName()).thenReturn(fieldName);
+        lenient().when(field.getIterator()).thenReturn(iterator);
+        lenient().when(field.getFields()).thenReturn((Set<io.carml.model.Field>) (Set<?>) nestedFields);
+        return field;
+    }
+
+    private static Join joinCondition(String childRef, String parentRef) {
+        var childMap = mock(ChildMap.class);
+        lenient().when(childMap.getReference()).thenReturn(childRef);
+
+        var parentMap = mock(ParentMap.class);
+        lenient().when(parentMap.getReference()).thenReturn(parentRef);
+
+        var join = mock(Join.class);
+        lenient().when(join.getChildMap()).thenReturn(childMap);
+        lenient().when(join.getParentMap()).thenReturn(parentMap);
+
+        return join;
+    }
+
+    private static LogicalViewJoin logicalViewJoin(
+            LogicalView parentView, Set<Join> joinConditions, Set<ExpressionField> fields) {
+        var viewJoin = mock(LogicalViewJoin.class);
+        lenient().when(viewJoin.getParentLogicalView()).thenReturn(parentView);
+        lenient().when(viewJoin.getJoinConditions()).thenReturn(joinConditions);
+        lenient().when(viewJoin.getFields()).thenReturn(fields);
+        return viewJoin;
+    }
+
     private static LogicalView createJsonView(String fileName, String iterator, Set<ExpressionField> fields) {
         return createViewWithRefFormulationAndIterator(Rdf.Ql.JsonPath, fileName, iterator, fields);
+    }
+
+    private static LogicalView createJsonViewWithFields(
+            String fileName, String iterator, Set<io.carml.model.Field> fields) {
+        return createViewWithRefFormulationAndIteratorMixed(Rdf.Ql.JsonPath, fileName, iterator, fields);
+    }
+
+    private static LogicalView createJsonViewWithJoins(
+            String fileName,
+            String iterator,
+            Set<ExpressionField> fields,
+            Set<LogicalViewJoin> leftJoins,
+            Set<LogicalViewJoin> innerJoins) {
+        var view = createViewWithRefFormulationAndIterator(Rdf.Ql.JsonPath, fileName, iterator, fields);
+        lenient().when(view.getLeftJoins()).thenReturn(leftJoins);
+        lenient().when(view.getInnerJoins()).thenReturn(innerJoins);
+        return view;
+    }
+
+    private static LogicalView createJsonViewWithFieldsAndJoins(
+            String fileName,
+            String iterator,
+            Set<io.carml.model.Field> fields,
+            Set<LogicalViewJoin> leftJoins,
+            Set<LogicalViewJoin> innerJoins) {
+        var view = createViewWithRefFormulationAndIteratorMixed(Rdf.Ql.JsonPath, fileName, iterator, fields);
+        lenient().when(view.getLeftJoins()).thenReturn(leftJoins);
+        lenient().when(view.getInnerJoins()).thenReturn(innerJoins);
+        return view;
     }
 
     private static LogicalView createCsvView(String fileName, Set<ExpressionField> fields) {
@@ -789,7 +1155,6 @@ class DuckDbViewCompilerTest {
         return createViewWithRefFormulationAndIterator(refIri, fileName, null, fields);
     }
 
-    @SuppressWarnings("unchecked")
     private static LogicalView createViewWithRefFormulationAndIterator(
             org.eclipse.rdf4j.model.Resource refIri,
             String fileName,
@@ -808,7 +1173,33 @@ class DuckDbViewCompilerTest {
 
         var view = mock(LogicalView.class);
         when(view.getViewOn()).thenReturn(logicalSource);
-        when(view.getFields()).thenReturn((Set<io.carml.model.Field>) (Set<?>) fields);
+        @SuppressWarnings("unchecked")
+        var fieldSet = (Set<io.carml.model.Field>) (Set<?>) fields;
+        when(view.getFields()).thenReturn(fieldSet);
+        lenient().when(view.getResourceName()).thenReturn("testView");
+
+        return view;
+    }
+
+    private static LogicalView createViewWithRefFormulationAndIteratorMixed(
+            org.eclipse.rdf4j.model.Resource refIri,
+            String fileName,
+            String iterator,
+            Set<io.carml.model.Field> fields) {
+        var fileSource = mock(FileSource.class);
+        when(fileSource.getUrl()).thenReturn(fileName);
+
+        var refFormulation = mock(ReferenceFormulation.class);
+        when(refFormulation.getAsResource()).thenReturn(refIri);
+
+        var logicalSource = mock(LogicalSource.class);
+        when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
+        when(logicalSource.getSource()).thenReturn(fileSource);
+        lenient().when(logicalSource.getIterator()).thenReturn(iterator);
+
+        var view = mock(LogicalView.class);
+        when(view.getViewOn()).thenReturn(logicalSource);
+        when(view.getFields()).thenReturn(fields);
         lenient().when(view.getResourceName()).thenReturn("testView");
 
         return view;
