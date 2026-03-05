@@ -56,6 +56,7 @@
 		<module>carml-logical-source-resolver-jsonpath</module>
 		<module>carml-logical-source-resolver-csv</module>
 		<module>carml-logical-view</module>
+		<module>carml-logical-view-duckdb</module>
 		<module>carml-converters-jena</module>
     <module>carml-test-cases</module>
   </modules>
@@ -88,6 +89,8 @@
 		<auto-service.version>1.1.1</auto-service.version>
 		<spotbugs-annotations.version>4.9.3</spotbugs-annotations.version>
 		<commons-csv.version>1.14.1</commons-csv.version>
+		<jooq.version>3.19.28</jooq.version>
+		<duckdb.version>1.4.4.0</duckdb.version>
 		<testcontainers.version>1.21.4</testcontainers.version>
 		<spotless.version>3.2.1</spotless.version>
 		<palantir.version>2.87.0</palantir.version>
@@ -150,6 +153,24 @@
 				<groupId>io.carml</groupId>
 				<artifactId>carml-logical-view</artifactId>
 				<version>${project.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>io.carml</groupId>
+				<artifactId>carml-logical-view-duckdb</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.duckdb</groupId>
+				<artifactId>duckdb_jdbc</artifactId>
+				<version>${duckdb.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.jooq</groupId>
+				<artifactId>jooq</artifactId>
+				<version>${jooq.version}</version>
 			</dependency>
 
 			<dependency>
