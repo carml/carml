@@ -1,8 +1,6 @@
 package io.carml.engine.rdf;
 
 import static java.util.function.Predicate.not;
-import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.toUnmodifiableMap;
 import static java.util.stream.Collectors.toUnmodifiableSet;
 import static org.eclipse.rdf4j.model.util.Values.iri;
 
@@ -389,12 +387,6 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
 
             var mappableTriplesMaps = Mappings.filterMappable(triplesMaps);
 
-            // Populate LogicalSource expressions before resolving mappings (needed for SQL
-            // column projection). This was previously done inside RdfMappingPipelineFactory
-            // but is now called here so that ImplicitViewFactory.wrap() sees the populated
-            // expressions when constructing synthetic views.
-            populateLogicalSourceExpressions(mappableTriplesMaps);
-
             var resolvedMappings = MappingResolver.resolve(mappableTriplesMaps, limit);
             var observer = CompositeObserver.of(observers);
 
@@ -423,26 +415,6 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
                     observer,
                     lvResult.mappers(),
                     lvResult.evaluator());
-        }
-
-        private void populateLogicalSourceExpressions(Set<TriplesMap> triplesMaps) {
-            var groupedTriplesMaps = triplesMaps.stream()
-                    .filter(tm -> tm.getLogicalSource() instanceof LogicalSource)
-                    .collect(groupingBy(TriplesMap::getLogicalSource, toUnmodifiableSet()));
-
-            var lsExpressions = groupedTriplesMaps.entrySet().stream()
-                    .collect(toUnmodifiableMap(Map.Entry::getKey, entry -> entry.getValue().stream()
-                            .map(TriplesMap::getReferenceExpressionSet)
-                            .flatMap(Set::stream)
-                            .collect(toUnmodifiableSet())));
-
-            lsExpressions.forEach((logicalSource, expressions) -> groupedTriplesMaps
-                    .get(logicalSource)
-                    .forEach(triplesMap -> {
-                        if (triplesMap.getLogicalSource() instanceof LogicalSource ls) {
-                            ls.setExpressions(expressions);
-                        }
-                    }));
         }
 
         private record LvPipelineResult(
@@ -489,7 +461,7 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
                 List<ResolvedMapping> resolvedMappings,
                 MappingExecutionObserver observer) {
             var mappingPipeline = lsTriplesMaps.isEmpty()
-                    ? MappingPipeline.<Statement>of(Set.of(), Map.of())
+                    ? MappingPipeline.<Statement>of(Set.of(), Map.of(), Map.of())
                     : RdfMappingPipelineFactory.getInstance()
                             .getMappingPipeline(lsTriplesMaps, rdfMapperConfig, resolverFactories);
 

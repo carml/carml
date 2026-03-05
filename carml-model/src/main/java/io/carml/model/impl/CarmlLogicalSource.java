@@ -40,8 +40,6 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
 
     private IRI sqlVersion;
 
-    private Set<String> expressions;
-
     @RdfProperty(value = Rml.source, handler = LogicalSourceSourcePropertyHandler.class)
     @RdfProperty(value = OldRml.source, handler = LogicalSourceSourcePropertyHandler.class)
     @Override
@@ -140,11 +138,6 @@ public class CarmlLogicalSource extends CarmlResource implements LogicalSource {
             return in.substring(0, in.length() - 1);
         }
         return in;
-    }
-
-    @Override
-    public Set<String> getExpressions() {
-        return expressions;
     }
 
     public Set<Resource> getReferencedResources() {

@@ -1,6 +1,7 @@
 package io.carml.engine;
 
 import io.carml.logicalsourceresolver.LogicalSourceResolver;
+import io.carml.model.LogicalSource;
 import io.carml.model.Source;
 import java.util.Map;
 import java.util.Set;
@@ -17,4 +18,7 @@ public class MappingPipeline<T> {
 
     @NonNull
     private Map<Source, LogicalSourceResolver<?>> sourceToLogicalSourceResolver;
+
+    @NonNull
+    private Map<LogicalSource, Set<String>> expressionsPerLogicalSource;
 }

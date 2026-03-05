@@ -180,7 +180,8 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                     resolver.getDatatypeMapperFactory().orElse(r -> value -> Optional.empty());
 
             var resolvedSource = sourceResolver.apply(rootSource);
-            return resolver.getLogicalSourceRecords(Set.of(logicalSource))
+            var expressions = collectViewExpressions(view, logicalSource);
+            return resolver.getLogicalSourceRecords(Set.of(logicalSource), expressions)
                     .apply(resolvedSource)
                     .map(rec -> {
                         var sourceRecord = rec.getSourceRecord();
@@ -1020,5 +1021,40 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
         return segmentCombinations.stream()
                 .map(combination -> (Object) String.join("", combination))
                 .toList();
+    }
+
+    private static Map<LogicalSource, Set<String>> collectViewExpressions(
+            LogicalView view, LogicalSource logicalSource) {
+        var expressions = new LinkedHashSet<String>();
+        collectFieldExpressions(view.getFields(), expressions);
+        if (view.getLeftJoins() != null) {
+            for (var join : view.getLeftJoins()) {
+                join.getJoinConditions().stream()
+                        .flatMap(c -> c.getChildMap().getExpressionMapExpressionSet().stream())
+                        .forEach(expressions::add);
+            }
+        }
+        if (view.getInnerJoins() != null) {
+            for (var join : view.getInnerJoins()) {
+                join.getJoinConditions().stream()
+                        .flatMap(c -> c.getChildMap().getExpressionMapExpressionSet().stream())
+                        .forEach(expressions::add);
+            }
+        }
+        return Map.of(logicalSource, Set.copyOf(expressions));
+    }
+
+    private static void collectFieldExpressions(Set<Field> fields, Set<String> expressions) {
+        if (fields == null) {
+            return;
+        }
+        for (var field : fields) {
+            if (field instanceof ExpressionField expressionField) {
+                expressions.addAll(expressionField.getExpressionMapExpressionSet());
+            }
+            if (field instanceof IterableField iterableField) {
+                collectFieldExpressions(iterableField.getFields(), expressions);
+            }
+        }
     }
 }

@@ -13,6 +13,7 @@ import io.carml.vocab.Rdf.Rr;
 import io.r2dbc.spi.Type;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 import lombok.ToString;
 import org.eclipse.rdf4j.model.IRI;
@@ -36,8 +37,8 @@ public class MySqlResolver extends SqlResolver {
     }
 
     @Override
-    public String getQuery(LogicalSource logicalSource) {
-        return SqlResolver.getQuery(SQLDialect.MYSQL, logicalSource);
+    public String getQuery(LogicalSource logicalSource, Set<String> expressions) {
+        return SqlResolver.getQuery(SQLDialect.MYSQL, logicalSource, expressions);
     }
 
     @Override

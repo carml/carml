@@ -57,6 +57,15 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
     private static final Set<Integer> PARENT_AXES =
             Set.of(AxisInfo.PARENT, AxisInfo.ANCESTOR, AxisInfo.ANCESTOR_OR_SELF);
 
+    private static final String NO_SOURCE_MSG = "No source provided for logical sources:%n%s";
+
+    private static final String UNSUPPORTED_SOURCE_MSG = "Unsupported source object provided for logical sources:%n%s";
+
+    private static final String PARENT_AXIS_WARN = "Parent axis navigation detected in XPath expressions. "
+            + "Falling back to full-document DOM parsing. This disables streaming and loads "
+            + "the entire XML document into memory. For large documents, consider using "
+            + "rml:LogicalView to avoid parent axis expressions (../, parent::, ancestor::).";
+
     public static LogicalSourceResolverFactory<XdmItem> factory() {
         return factory(true);
     }
@@ -118,48 +127,59 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
         return resolvedSource -> getLogicalSourceRecordFlux(resolvedSource, logicalSources);
     }
 
+    @Override
+    public Function<ResolvedSource<?>, Flux<LogicalSourceRecord<XdmItem>>> getLogicalSourceRecords(
+            Set<LogicalSource> logicalSources, Map<LogicalSource, Set<String>> expressionsPerLogicalSource) {
+        return resolvedSource ->
+                getLogicalSourceRecordFlux(resolvedSource, logicalSources, expressionsPerLogicalSource);
+    }
+
     private Flux<LogicalSourceRecord<XdmItem>> getLogicalSourceRecordFlux(
             ResolvedSource<?> resolvedSource, Set<LogicalSource> logicalSources) {
+        return getLogicalSourceRecordFlux(resolvedSource, logicalSources, Map.of());
+    }
+
+    private Flux<LogicalSourceRecord<XdmItem>> getLogicalSourceRecordFlux(
+            ResolvedSource<?> resolvedSource,
+            Set<LogicalSource> logicalSources,
+            Map<LogicalSource, Set<String>> expressionsPerLogicalSource) {
         if (logicalSources.isEmpty()) {
             throw new IllegalStateException("No logical sources registered");
         }
 
         if (resolvedSource == null) {
-            throw new LogicalSourceResolverException(
-                    "No source provided for logical sources:%n%s".formatted(exception(logicalSources)));
+            throw new LogicalSourceResolverException(NO_SOURCE_MSG.formatted(exception(logicalSources)));
         }
 
         var resolved = resolvedSource
                 .getResolved()
-                .orElseThrow(() -> new LogicalSourceResolverException(
-                        "No source provided for logical sources:%n%s".formatted(exception(logicalSources))));
+                .orElseThrow(
+                        () -> new LogicalSourceResolverException(NO_SOURCE_MSG.formatted(exception(logicalSources))));
 
         if (resolved instanceof InputStream resolvedInputStream) {
-            return getXpathResultFlux(resolvedInputStream, logicalSources);
+            return getXpathResultFlux(resolvedInputStream, logicalSources, expressionsPerLogicalSource);
         } else if (resolved instanceof Mono<?> mono) {
             return mono.flatMapMany(resolvedMono -> {
                 if (resolvedMono instanceof InputStream resolvedInputStreamMono) {
-                    return getXpathResultFlux(resolvedInputStreamMono, logicalSources);
+                    return getXpathResultFlux(resolvedInputStreamMono, logicalSources, expressionsPerLogicalSource);
                 } else {
-                    throw new LogicalSourceResolverException(String.format(
-                            "Unsupported source object provided for logical sources:%n%s", exception(logicalSources)));
+                    throw new LogicalSourceResolverException(
+                            UNSUPPORTED_SOURCE_MSG.formatted(exception(logicalSources)));
                 }
             });
         } else if (resolved instanceof XdmItem resolvedXdmItem) {
             return getXpathResultFlux(resolvedXdmItem, logicalSources);
         } else {
-            throw new LogicalSourceResolverException(String.format(
-                    "Unsupported source object provided for logical sources:%n%s", exception(logicalSources)));
+            throw new LogicalSourceResolverException(UNSUPPORTED_SOURCE_MSG.formatted(exception(logicalSources)));
         }
     }
 
     private Flux<LogicalSourceRecord<XdmItem>> getXpathResultFlux(
-            InputStream inputStream, Set<LogicalSource> logicalSources) {
-        if (requiresParentAxisNavigation(logicalSources)) {
-            LOG.warn("Parent axis navigation detected in XPath expressions. "
-                    + "Falling back to full-document DOM parsing. This disables streaming and loads "
-                    + "the entire XML document into memory. For large documents, consider using "
-                    + "rml:LogicalView to avoid parent axis expressions (../, parent::, ancestor::).");
+            InputStream inputStream,
+            Set<LogicalSource> logicalSources,
+            Map<LogicalSource, Set<String>> expressionsPerLogicalSource) {
+        if (requiresParentAxisNavigation(logicalSources, expressionsPerLogicalSource)) {
+            LOG.warn(PARENT_AXIS_WARN);
             return parseFullDocumentAndResolve(inputStream, logicalSources);
         }
 
@@ -202,10 +222,10 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
         }
     }
 
-    private boolean requiresParentAxisNavigation(Set<LogicalSource> logicalSources) {
+    private boolean requiresParentAxisNavigation(
+            Set<LogicalSource> logicalSources, Map<LogicalSource, Set<String>> expressionsPerLogicalSource) {
         return logicalSources.stream()
-                .map(LogicalSource::getExpressions)
-                .filter(Objects::nonNull)
+                .map(ls -> expressionsPerLogicalSource.getOrDefault(ls, Set.of()))
                 .flatMap(Set::stream)
                 .anyMatch(this::usesParentAxis);
     }

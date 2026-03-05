@@ -13,8 +13,6 @@ import io.carml.logicalsourceresolver.ResolvedSource;
 import io.carml.model.DatabaseSource;
 import io.carml.model.LogicalSource;
 import io.carml.model.Source;
-import io.r2dbc.pool.ConnectionPool;
-import io.r2dbc.pool.ConnectionPoolConfiguration;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactories;
 import io.r2dbc.spi.ConnectionFactory;
@@ -22,6 +20,7 @@ import io.r2dbc.spi.ConnectionFactoryOptions;
 import io.r2dbc.spi.Row;
 import io.r2dbc.spi.RowMetadata;
 import io.r2dbc.spi.Type;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -49,6 +48,8 @@ public abstract class SqlResolver implements LogicalSourceResolver<RowData> {
 
     private final boolean isStrict;
 
+    private Map<LogicalSource, Set<String>> expressionsPerLogicalSource = Map.of();
+
     SqlResolver(Source source, boolean isStrict) {
         this.source = source;
         this.isStrict = isStrict;
@@ -57,6 +58,13 @@ public abstract class SqlResolver implements LogicalSourceResolver<RowData> {
     @Override
     public Function<ResolvedSource<?>, Flux<LogicalSourceRecord<RowData>>> getLogicalSourceRecords(
             Set<LogicalSource> logicalSources) {
+        return resolvedSource -> getLogicalSourceRecordFlux(resolvedSource, logicalSources);
+    }
+
+    @Override
+    public Function<ResolvedSource<?>, Flux<LogicalSourceRecord<RowData>>> getLogicalSourceRecords(
+            Set<LogicalSource> logicalSources, Map<LogicalSource, Set<String>> expressionsPerLogicalSource) {
+        this.expressionsPerLogicalSource = expressionsPerLogicalSource;
         return resolvedSource -> getLogicalSourceRecordFlux(resolvedSource, logicalSources);
     }
 
@@ -84,37 +92,14 @@ public abstract class SqlResolver implements LogicalSourceResolver<RowData> {
         }
     }
 
-    private ConnectionFactory getPooledConnectionFactory(ConnectionFactory connectionFactory, int size) {
-        var poolConfiguration = ConnectionPoolConfiguration.builder(connectionFactory)
-                // .initialSize(size)
-                .initialSize(size)
-                .maxSize(size * 2)
-                // .maxIdleTime(null)
-                // .maxIdleTime(Duration.ZERO)
-                // .maxSize(100)
-                .build();
-
-        return new ConnectionPool(poolConfiguration);
-    }
-
     private Flux<LogicalSourceRecord<RowData>> getResultFlux(
             ConnectionFactory connectionFactory, Set<LogicalSource> logicalSources) {
         var logicalSourcesGroupedByQuery =
                 logicalSources.stream().collect(groupingBy(this::getSelectQueryString, toUnmodifiableSet()));
 
-        // return Flux.merge(logicalSourcesGroupedByQuery.entrySet()
-        // .stream()
-        // .map(queryEntry -> getResultFluxForQueryString(
-        // /* getPooledConnectionFactory( */connectionFactory/* , logicalSources.size()) */,
-        // queryEntry.getKey(),
-        // queryEntry.getValue()))
-        // .collect(toUnmodifiableSet()));
-
         return Flux.fromIterable(logicalSourcesGroupedByQuery.entrySet())
-                .concatMap(queryEntry -> getResultFluxForQueryString(
-                        /* getPooledConnectionFactory( */ connectionFactory /* , logicalSources.size()) */,
-                        queryEntry.getKey(),
-                        queryEntry.getValue()));
+                .concatMap(queryEntry ->
+                        getResultFluxForQueryString(connectionFactory, queryEntry.getKey(), queryEntry.getValue()));
     }
 
     private String getSelectQueryString(LogicalSource logicalSource) {
@@ -122,7 +107,7 @@ public abstract class SqlResolver implements LogicalSourceResolver<RowData> {
             if (logicalSource.getQuery() != null) {
                 return logicalSource.getQuery();
             } else if (logicalSource.getTableName() != null) {
-                return getQuery(logicalSource);
+                return getQuery(logicalSource, expressionsPerLogicalSource.getOrDefault(logicalSource, Set.of()));
             } else {
                 throw new LogicalSourceResolverException(
                         String.format("No query or table name found for logical source %s", exception(logicalSource)));
@@ -135,10 +120,8 @@ public abstract class SqlResolver implements LogicalSourceResolver<RowData> {
 
     private Flux<LogicalSourceRecord<RowData>> getResultFluxForQueryString(
             ConnectionFactory connectionFactory, String selectQuery, Set<LogicalSource> logicalSources) {
-        // if (LOG.isDebugEnabled()) {
-        LOG.info("Executing query:");
-        LOG.info("{}", selectQuery);
-        // }
+        LOG.debug("Executing query:");
+        LOG.debug("{}", selectQuery);
 
         return Flux.fromIterable(logicalSources).concatMap(logicalSource -> Flux.usingWhen(
                         connectionFactory.create(),
@@ -150,10 +133,10 @@ public abstract class SqlResolver implements LogicalSourceResolver<RowData> {
     }
 
     private Mono<Void> closeConnection(Connection connection) {
-        LOG.info("Closing connection...");
+        LOG.debug("Closing connection...");
         return Mono.from(connection.close())
                 .doOnError(error -> LOG.error("Connection close failed: {}", error.getMessage()))
-                .doOnSuccess(success -> LOG.info("Successfully closed connection."));
+                .doOnSuccess(success -> LOG.debug("Successfully closed connection."));
     }
 
     private RowData toRowData(Row row, RowMetadata rowMetadata) {
@@ -171,24 +154,19 @@ public abstract class SqlResolver implements LogicalSourceResolver<RowData> {
         return RowData.of(data, columnTypes);
     }
 
-    // private static DSLContext asteriskReplacingDslContext(SQLDialect sqlDialect,
-    // SelectAsteriskReplacer selectAsteriskReplacer) {
-    // var configuration = new DefaultConfiguration().set(sqlDialect)
-    // .set(selectAsteriskReplacer);
-    //
-    // return DSL.using(configuration);
-    // }
+    public abstract String getQuery(LogicalSource logicalSource, Set<String> expressions);
 
-    public abstract String getQuery(LogicalSource logicalSource);
+    public static String getQuery(SQLDialect sqlDialect, LogicalSource logicalSource, Set<String> expressions) {
+        if (expressions == null || expressions.isEmpty()) {
+            return DSL.using(sqlDialect)
+                    .select()
+                    .from(logicalSource.getTableName())
+                    .getSQL();
+        }
 
-    public static String getQuery(SQLDialect sqlDialect, LogicalSource logicalSource) {
-        var fields = logicalSource.getExpressions().stream()
-                .map(expr -> field(name(expr)))
-                .collect(toUnmodifiableSet());
+        var fields = expressions.stream().map(expr -> field(name(expr))).collect(toUnmodifiableSet());
 
-        var sql = getSelect(DSL.using(sqlDialect), logicalSource, fields).getSQL();
-
-        return sql;
+        return getSelect(DSL.using(sqlDialect), logicalSource, fields).getSQL();
     }
 
     private static SelectQuery<?> getSelect(

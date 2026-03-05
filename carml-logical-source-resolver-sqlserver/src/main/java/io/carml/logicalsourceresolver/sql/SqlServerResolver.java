@@ -12,6 +12,7 @@ import io.r2dbc.mssql.message.type.SqlServerType;
 import io.r2dbc.spi.Type;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 import lombok.ToString;
 import org.eclipse.rdf4j.model.IRI;
@@ -35,8 +36,8 @@ public class SqlServerResolver extends SqlResolver {
     }
 
     @Override
-    public String getQuery(LogicalSource logicalSource) {
-        return SqlResolver.getQuery(SQLDialect.DEFAULT, logicalSource);
+    public String getQuery(LogicalSource logicalSource, Set<String> expressions) {
+        return SqlResolver.getQuery(SQLDialect.DEFAULT, logicalSource, expressions);
     }
 
     // Datatype mapping per https://www.w3.org/TR/r2rml/#dfn-natural-rdf-literal

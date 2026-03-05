@@ -21,6 +21,7 @@ import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import javax.xml.transform.stream.StreamSource;
 import net.sf.saxon.s9api.DocumentBuilder;
@@ -445,11 +446,11 @@ class XPathResolverTest {
                 .iterator("/companies/company/departments/department")
                 .referenceFormulation(XPATH)
                 .build();
-        logicalSource.setExpressions(Set.of("../../@id", "name"));
 
         var resolvedSource = ResolvedSource.of(inputStream, new TypeRef<>() {});
         var xpathResolver = xpathResolverFactory.apply(logicalSource.getSource());
-        var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(logicalSource));
+        Map<LogicalSource, Set<String>> expressions = Map.of(logicalSource, Set.of("../../@id", "name"));
+        var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(logicalSource), expressions);
         var records = recordResolver.apply(resolvedSource).collectList().block();
 
         assertThat(records, hasSize(1));
@@ -470,11 +471,11 @@ class XPathResolverTest {
                 .iterator("/bookstore/book")
                 .referenceFormulation(XPATH)
                 .build();
-        logicalSource.setExpressions(Set.of("title", "author"));
 
         var resolvedSource = ResolvedSource.of(inputStream, new TypeRef<>() {});
         var xpathResolver = xpathResolverFactory.apply(logicalSource.getSource());
-        var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(logicalSource));
+        Map<LogicalSource, Set<String>> expressions = Map.of(logicalSource, Set.of("title", "author"));
+        var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(logicalSource), expressions);
 
         StepVerifier.create(recordResolver.apply(resolvedSource))
                 .expectNextCount(2)

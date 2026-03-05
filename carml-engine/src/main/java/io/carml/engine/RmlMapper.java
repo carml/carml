@@ -5,6 +5,7 @@ import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toSet;
 
 import io.carml.logicalsourceresolver.LogicalSourceRecord;
+import io.carml.logicalsourceresolver.LogicalSourceResolver;
 import io.carml.logicalsourceresolver.ResolvedSource;
 import io.carml.logicalsourceresolver.sourceresolver.SourceResolver;
 import io.carml.logicalview.LogicalViewEvaluator;
@@ -226,12 +227,15 @@ public abstract class RmlMapper<T, K> {
         return Pair.of(source, resolvedSource);
     }
 
+    @SuppressWarnings("unchecked")
     private Flux<MappingResult<T>> mapSource(
             Source source, MappingContext<T> mappingContext, ResolvedSource<?> resolvedSource) {
         return Flux.just(mappingPipeline.getSourceToLogicalSourceResolver().get(source))
-                .flatMap(
-                        resolver -> resolver.getLogicalSourceRecords(mappingContext.logicalSourcesPerSource.get(source))
-                                .apply(resolvedSource))
+                .flatMap(resolver -> ((LogicalSourceResolver<Object>) resolver)
+                        .getLogicalSourceRecords(
+                                mappingContext.logicalSourcesPerSource.get(source),
+                                mappingPipeline.getExpressionsPerLogicalSource())
+                        .apply(resolvedSource))
                 .flatMap(logicalSourceRecord -> mapTriples(mappingContext, logicalSourceRecord));
     }
 

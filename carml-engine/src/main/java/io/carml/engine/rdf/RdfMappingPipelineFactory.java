@@ -36,7 +36,7 @@ public class RdfMappingPipelineFactory {
             RdfMapperConfig rdfMapperConfig,
             Set<MatchingLogicalSourceResolverFactory> matchingLogicalSourceResolverFactories) {
 
-        populateLogicalSourceExpressions(triplesMaps);
+        var expressionsPerLogicalSource = collectExpressionsPerLogicalSource(triplesMaps);
 
         var sourceToLogicalSourceResolver =
                 buildLogicalSourceResolvers(triplesMaps, matchingLogicalSourceResolverFactories);
@@ -48,22 +48,19 @@ public class RdfMappingPipelineFactory {
                         getEffectiveMapperConfig(triplesMap, rdfMapperConfig)))
                 .collect(toUnmodifiableSet());
 
-        return MappingPipeline.of(triplesMappers, sourceToLogicalSourceResolver);
+        return MappingPipeline.of(triplesMappers, sourceToLogicalSourceResolver, expressionsPerLogicalSource);
     }
 
-    private void populateLogicalSourceExpressions(Set<TriplesMap> triplesMaps) {
+    private Map<LogicalSource, Set<String>> collectExpressionsPerLogicalSource(Set<TriplesMap> triplesMaps) {
         var groupedTriplesMaps =
                 triplesMaps.stream().collect(groupingBy(TriplesMap::getLogicalSource, toUnmodifiableSet()));
 
-        var lsExpressions = groupedTriplesMaps.entrySet().stream()
-                .collect(toUnmodifiableMap(Entry::getKey, entry -> entry.getValue().stream()
+        return groupedTriplesMaps.entrySet().stream()
+                .filter(entry -> entry.getKey() instanceof LogicalSource)
+                .collect(toUnmodifiableMap(entry -> (LogicalSource) entry.getKey(), entry -> entry.getValue().stream()
                         .map(TriplesMap::getReferenceExpressionSet)
                         .flatMap(Set::stream)
                         .collect(toUnmodifiableSet())));
-
-        lsExpressions.forEach((logicalSource, expressions) -> groupedTriplesMaps
-                .get(logicalSource)
-                .forEach(triplesMap -> requireLogicalSource(triplesMap).setExpressions(expressions)));
     }
 
     private Map<Source, LogicalSourceResolver<?>> buildLogicalSourceResolvers(

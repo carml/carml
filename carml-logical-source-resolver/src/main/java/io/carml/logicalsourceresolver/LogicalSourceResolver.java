@@ -3,6 +3,7 @@ package io.carml.logicalsourceresolver;
 import io.carml.model.LogicalSource;
 import io.carml.model.Source;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -13,6 +14,19 @@ public interface LogicalSourceResolver<R> {
 
     Function<ResolvedSource<?>, Flux<LogicalSourceRecord<R>>> getLogicalSourceRecords(
             Set<LogicalSource> logicalSources);
+
+    /**
+     * Returns a function that resolves logical source records, with access to pre-collected
+     * reference expressions per logical source. Resolvers that need expression metadata
+     * (e.g. SQL column projection, XPath parent-axis detection) should override this method.
+     *
+     * <p>The default implementation ignores the expressions and delegates to
+     * {@link #getLogicalSourceRecords(Set)}.
+     */
+    default Function<ResolvedSource<?>, Flux<LogicalSourceRecord<R>>> getLogicalSourceRecords(
+            Set<LogicalSource> logicalSources, Map<LogicalSource, Set<String>> expressionsPerLogicalSource) {
+        return getLogicalSourceRecords(logicalSources);
+    }
 
     LogicalSourceResolver.ExpressionEvaluationFactory<R> getExpressionEvaluationFactory();
 

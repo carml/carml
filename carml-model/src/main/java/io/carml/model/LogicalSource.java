@@ -1,6 +1,5 @@
 package io.carml.model;
 
-import java.util.Set;
 import org.eclipse.rdf4j.model.IRI;
 
 public interface LogicalSource extends AbstractLogicalSource {
@@ -18,8 +17,4 @@ public interface LogicalSource extends AbstractLogicalSource {
     IRI getSqlVersion();
 
     String getQuery();
-
-    Set<String> getExpressions();
-
-    void setExpressions(Set<String> expressions);
 }
