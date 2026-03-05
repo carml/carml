@@ -144,15 +144,13 @@ public abstract class RmlMapper<T, K> {
                             mapSource(resolvedSourceEntry.getLeft(), mappingContext, resolvedSourceEntry.getRight()))
                     .mapNotNull(this::handleCompletable)
                     .concatWith(mergeMergeables())
-                    .concatWith(checkStrictModeExpressions(mappingContext))
-                    .doOnTerminate(() -> mappingPipeline.getTriplesMappers().forEach(TriplesMapper::cleanup));
+                    .concatWith(checkStrictModeExpressions(mappingContext));
         }
 
         // Normal map() path — uses view pipeline exclusively
         return mapLogicalViews(namedInputStreams, triplesMapFilter)
                 .mapNotNull(this::handleCompletable)
-                .concatWith(mergeMergeables())
-                .doOnTerminate(() -> lvTriplesMappers.values().forEach(TriplesMapper::cleanup));
+                .concatWith(mergeMergeables());
     }
 
     @SuppressWarnings("unchecked")

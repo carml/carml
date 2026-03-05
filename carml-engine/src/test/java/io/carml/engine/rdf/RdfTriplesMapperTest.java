@@ -30,9 +30,6 @@ import io.carml.engine.MappingResult;
 import io.carml.engine.ResolvedMapping;
 import io.carml.engine.TermGenerator;
 import io.carml.engine.TriplesMapperException;
-import io.carml.engine.join.ChildSideJoinStoreProvider;
-import io.carml.engine.join.ParentSideJoinConditionStoreProvider;
-import io.carml.engine.join.impl.CarmlParentSideJoinConditionStoreProvider;
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.logicalsourceresolver.LogicalSourceRecord;
 import io.carml.logicalsourceresolver.LogicalSourceResolver;
@@ -129,24 +126,17 @@ class RdfTriplesMapperTest {
     private RdfTermGeneratorFactory rdfTermGeneratorFactory;
 
     @Mock
-    private ChildSideJoinStoreProvider<MappedValue<Resource>, MappedValue<IRI>> childSideJoinStoreProvider;
-
-    @Mock
     private LogicalSourceRecord<?> logicalSourceRecord;
 
     @Mock
     private ViewIteration viewIteration;
 
-    private ParentSideJoinConditionStoreProvider<MappedValue<Resource>> parentSideJoinConditionStoreProvider;
-
     @BeforeEach
     void setup() {
         lenient().when(logicalSourceResolver.getExpressionEvaluationFactory()).thenReturn(expressionEvaluationFactory);
         when(triplesMap.getSubjectMaps()).thenReturn(Set.of(subjectMap));
-        lenient().when(triplesMap.getId()).thenReturn("triples-map-1");
         lenient().when(rdfTermGeneratorFactory.getSubjectGenerator(subjectMap)).thenReturn(subjectGenerator);
         lenient().when(triplesMap.getPredicateObjectMaps()).thenReturn(Set.of(pom));
-        parentSideJoinConditionStoreProvider = CarmlParentSideJoinConditionStoreProvider.of();
     }
 
     @Test
@@ -156,8 +146,6 @@ class RdfTriplesMapperTest {
                 .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
-                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
         // When
@@ -175,8 +163,6 @@ class RdfTriplesMapperTest {
                 .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
-                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
         // When
@@ -220,8 +206,6 @@ class RdfTriplesMapperTest {
                 .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
-                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
         RdfTriplesMapper<String> rdfTriplesMapper =
@@ -247,8 +231,6 @@ class RdfTriplesMapperTest {
                 .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
-                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
         RdfTriplesMapper<String> rdfTriplesMapper =
@@ -294,8 +276,6 @@ class RdfTriplesMapperTest {
                 .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
-                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
         RdfTriplesMapper<String> rdfTriplesMapper =
@@ -362,8 +342,6 @@ class RdfTriplesMapperTest {
                 .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
-                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .allowMultipleSubjectMaps(true)
                 .build();
 
@@ -408,8 +386,6 @@ class RdfTriplesMapperTest {
                 .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
-                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
         RdfTriplesMapper<String> rdfTriplesMapper =
@@ -438,8 +414,6 @@ class RdfTriplesMapperTest {
                 .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
-                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
         RdfTriplesMapper<String> rdfTriplesMapper =
@@ -466,8 +440,6 @@ class RdfTriplesMapperTest {
                 .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
-                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .strictMode(true)
                 .build();
 
@@ -508,8 +480,6 @@ class RdfTriplesMapperTest {
                 .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
-                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
         RdfTriplesMapper<String> rdfTriplesMapper =
@@ -552,8 +522,6 @@ class RdfTriplesMapperTest {
                 .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
-                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
         RdfTriplesMapper<String> rdfTriplesMapper =
@@ -593,8 +561,6 @@ class RdfTriplesMapperTest {
                 .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
-                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
         RdfTriplesMapper<String> rdfTriplesMapper =
@@ -630,8 +596,6 @@ class RdfTriplesMapperTest {
                 .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
-                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
         RdfTriplesMapper<String> rdfTriplesMapper =
@@ -662,8 +626,6 @@ class RdfTriplesMapperTest {
                 .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
-                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
         RdfTriplesMapper<String> rdfTriplesMapper =
@@ -687,8 +649,6 @@ class RdfTriplesMapperTest {
                 .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
-                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
         RdfTriplesMapper<String> rdfTriplesMapper =
@@ -715,8 +675,6 @@ class RdfTriplesMapperTest {
                 .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
-                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
         RdfTriplesMapper<String> rdfTriplesMapper =
@@ -744,8 +702,6 @@ class RdfTriplesMapperTest {
                 .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
-                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
         RdfTriplesMapper<String> rdfTriplesMapper =
@@ -773,8 +729,6 @@ class RdfTriplesMapperTest {
                 .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
-                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
         RdfTriplesMapper<String> rdfTriplesMapper =
@@ -801,8 +755,6 @@ class RdfTriplesMapperTest {
                 .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
-                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
         RdfTriplesMapper<String> rdfTriplesMapper =
@@ -828,8 +780,6 @@ class RdfTriplesMapperTest {
                 .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
-                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
         RdfTriplesMapper<String> rdfTriplesMapper =
@@ -853,8 +803,6 @@ class RdfTriplesMapperTest {
                 .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
-                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
         RdfTriplesMapper<String> rdfTriplesMapper =
@@ -887,8 +835,6 @@ class RdfTriplesMapperTest {
                 .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
-                .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                 .build();
 
         RdfTriplesMapper<String> rdfTriplesMapper =

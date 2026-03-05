@@ -20,7 +20,6 @@ import io.carml.engine.MappedValue;
 import io.carml.engine.MappingResult;
 import io.carml.engine.TermGenerator;
 import io.carml.engine.TriplesMapperException;
-import io.carml.engine.join.ChildSideJoinStoreProvider;
 import io.carml.model.GraphMap;
 import io.carml.model.SubjectMap;
 import io.carml.model.TriplesMap;
@@ -51,9 +50,6 @@ class RdfSubjectMapperTest {
     private SubjectMap subjectMap;
 
     @Mock
-    private ChildSideJoinStoreProvider<MappedValue<Resource>, MappedValue<IRI>> childSideJoinStoreProvider;
-
-    @Mock
     private TermGenerator<Resource> subjectGenerator;
 
     @Mock
@@ -79,7 +75,6 @@ class RdfSubjectMapperTest {
                 .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
                 .build();
 
         // When
@@ -119,7 +114,6 @@ class RdfSubjectMapperTest {
                 .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
                 .build();
 
         RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingConfig);
@@ -145,7 +139,6 @@ class RdfSubjectMapperTest {
                 .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
                 .build();
 
         RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingConfig);
@@ -176,7 +169,6 @@ class RdfSubjectMapperTest {
                 .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
                 .build();
 
         RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingConfig);
@@ -221,7 +213,6 @@ class RdfSubjectMapperTest {
                 .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
                 .build();
 
         RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingConfig);
@@ -279,7 +270,6 @@ class RdfSubjectMapperTest {
                 .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
                 .build();
 
         RdfSubjectMapper rdfSubjectMapper = RdfSubjectMapper.of(subjectMap, triplesMap, rdfMappingConfig);

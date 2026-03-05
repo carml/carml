@@ -1,13 +1,11 @@
 package io.carml.engine;
 
-import io.carml.engine.join.ParentSideJoinConditionStore;
 import io.carml.logicalsourceresolver.DatatypeMapper;
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.logicalsourceresolver.LogicalSourceRecord;
 import io.carml.logicalview.ViewIteration;
 import io.carml.model.LogicalSource;
 import io.carml.model.TriplesMap;
-import org.eclipse.rdf4j.model.Resource;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -34,8 +32,6 @@ public interface TriplesMapper<V> {
 
     LogicalSource getLogicalSource();
 
-    ParentSideJoinConditionStore<MappedValue<Resource>> getParentSideJoinConditions();
-
     /**
      * When strict mode is enabled, checks that every reference expression in this TriplesMap produced
      * at least one non-null result across all processed records. Returns an error signal with a
@@ -52,6 +48,4 @@ public interface TriplesMapper<V> {
     default Mono<Void> checkStrictModeExpressions() {
         return Mono.empty();
     }
-
-    void cleanup();
 }

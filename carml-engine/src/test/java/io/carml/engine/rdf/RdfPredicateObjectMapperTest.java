@@ -18,7 +18,6 @@ import io.carml.engine.MappedValue;
 import io.carml.engine.MappingResult;
 import io.carml.engine.TermGenerator;
 import io.carml.engine.TriplesMapperException;
-import io.carml.engine.join.ChildSideJoinStoreProvider;
 import io.carml.model.GraphMap;
 import io.carml.model.LogicalSource;
 import io.carml.model.ObjectMap;
@@ -57,9 +56,6 @@ class RdfPredicateObjectMapperTest {
 
     @Mock
     private LogicalSource logicalSource;
-
-    @Mock
-    private ChildSideJoinStoreProvider<MappedValue<Resource>, MappedValue<IRI>> childSideJoinStoreProvider;
 
     @Mock
     private RdfTermGeneratorFactory rdfTermGeneratorFactory;
@@ -110,7 +106,6 @@ class RdfPredicateObjectMapperTest {
                 .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
                 .build();
 
         // When
@@ -150,7 +145,6 @@ class RdfPredicateObjectMapperTest {
                 .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
                 .build();
 
         // When
@@ -172,7 +166,6 @@ class RdfPredicateObjectMapperTest {
                 .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
                 .build();
 
         RdfPredicateObjectMapper rdfPredicateObjectMapper =
@@ -207,7 +200,6 @@ class RdfPredicateObjectMapperTest {
                 .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
                 .build();
 
         RdfPredicateObjectMapper rdfPredicateObjectMapper =
@@ -254,7 +246,6 @@ class RdfPredicateObjectMapperTest {
                 .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
                 .build();
 
         RdfPredicateObjectMapper rdfPredicateObjectMapper =
@@ -307,7 +298,6 @@ class RdfPredicateObjectMapperTest {
                 .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
                 .build();
 
         RdfPredicateObjectMapper rdfPredicateObjectMapper =
@@ -364,7 +354,6 @@ class RdfPredicateObjectMapperTest {
                 .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
                 .valueFactorySupplier(Values::getValueFactory)
                 .termGeneratorFactory(rdfTermGeneratorFactory)
-                .childSideJoinStoreProvider(childSideJoinStoreProvider)
                 .build();
 
         RdfPredicateObjectMapper rdfPredicateObjectMapper =

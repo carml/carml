@@ -15,7 +15,6 @@ import io.carml.engine.ResolvedMapping;
 import io.carml.engine.TermGenerator;
 import io.carml.engine.TriplesMapper;
 import io.carml.engine.TriplesMapperException;
-import io.carml.engine.join.ParentSideJoinConditionStore;
 import io.carml.logicalsourceresolver.DatatypeMapper;
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.logicalsourceresolver.LogicalSourceRecord;
@@ -74,9 +73,6 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
 
     private final LogicalSourceResolver.DatatypeMapperFactory<R> datatypeMapperFactory;
 
-    @NonNull
-    private final ParentSideJoinConditionStore<MappedValue<Resource>> parentSideJoinConditions;
-
     private final boolean strictMode;
 
     private final Set<String> referenceExpressions;
@@ -101,7 +97,6 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
             Set<RdfPredicateObjectMapper> predicateObjectMappers,
             @NonNull LogicalSourceResolver.ExpressionEvaluationFactory<R> expressionEvaluationFactory,
             LogicalSourceResolver.DatatypeMapperFactory<R> datatypeMapperFactory,
-            @NonNull ParentSideJoinConditionStore<MappedValue<Resource>> parentSideJoinConditions,
             boolean strictMode,
             Set<String> referenceExpressions,
             Set<String> matchedExpressions) {
@@ -110,7 +105,6 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
         this.predicateObjectMappers = predicateObjectMappers;
         this.expressionEvaluationFactory = expressionEvaluationFactory;
         this.datatypeMapperFactory = datatypeMapperFactory;
-        this.parentSideJoinConditions = parentSideJoinConditions;
         this.strictMode = strictMode;
         this.referenceExpressions = referenceExpressions;
         this.matchedExpressions = matchedExpressions;
@@ -144,9 +138,6 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
                 predicateObjectMappers,
                 effectiveFactory,
                 logicalSourceResolver.getDatatypeMapperFactory().orElse(null),
-                rdfMapperConfig
-                        .getParentSideJoinConditionStoreProvider()
-                        .createParentSideJoinConditionStore(triplesMap.getId()),
                 isStrictMode,
                 refExpressions,
                 matched);
@@ -187,9 +178,6 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
                 predicateObjectMappers,
                 noOpFactory,
                 null, // no datatype mapper factory
-                rdfMapperConfig
-                        .getParentSideJoinConditionStoreProvider()
-                        .createParentSideJoinConditionStore(triplesMap.getId()),
                 false,
                 Set.of(),
                 Set.of());
@@ -238,11 +226,6 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
     @Override
     public LogicalSource getLogicalSource() {
         return (LogicalSource) triplesMap.getLogicalSource();
-    }
-
-    @Override
-    public ParentSideJoinConditionStore<MappedValue<Resource>> getParentSideJoinConditions() {
-        return parentSideJoinConditions;
     }
 
     /**
@@ -414,9 +397,5 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
                 triplesMap.getResourceName(), String.join(", ", unmatchedExpressions));
 
         return Mono.error(new NonExistentReferenceException(message));
-    }
-
-    public void cleanup() {
-        parentSideJoinConditions.clear();
     }
 }

@@ -14,8 +14,6 @@ import io.carml.engine.MappingExecution;
 import io.carml.engine.MappingExecutionObserver;
 import io.carml.engine.NoOpObserver;
 import io.carml.engine.RmlMapperException;
-import io.carml.engine.join.impl.CarmlChildSideJoinStoreProvider;
-import io.carml.engine.join.impl.CarmlParentSideJoinConditionStoreProvider;
 import io.carml.logicalsourceresolver.sourceresolver.ClassPathResolver;
 import io.carml.logicalsourceresolver.sourceresolver.SourceResolverException;
 import io.carml.logicalsourceresolver.sql.sourceresolver.DatabaseConnectionOptions;
@@ -84,8 +82,6 @@ class RdfRmlMapperTest {
                 .fileResolver(Path.of("file"))
                 .iriUpperCasePercentEncoding(true)
                 .iriUnicodeNormalization(Normalizer.Form.NFKC)
-                .childSideJoinStoreProvider(CarmlChildSideJoinStoreProvider.of())
-                .parentSideJoinConditionStoreProvider(CarmlParentSideJoinConditionStoreProvider.of())
                 .addFunctions(new Object())
                 .baseIri("https://example.com/")
                 .databaseConnectionOptions(DatabaseConnectionOptions.builder()

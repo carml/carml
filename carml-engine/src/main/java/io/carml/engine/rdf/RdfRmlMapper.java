@@ -23,10 +23,6 @@ import io.carml.engine.function.FunctionProvider;
 import io.carml.engine.function.FunctionRegistry;
 import io.carml.engine.function.ParameterDescriptor;
 import io.carml.engine.function.ReturnDescriptor;
-import io.carml.engine.join.ChildSideJoinStoreProvider;
-import io.carml.engine.join.ParentSideJoinConditionStoreProvider;
-import io.carml.engine.join.impl.CarmlChildSideJoinStoreProvider;
-import io.carml.engine.join.impl.CarmlParentSideJoinConditionStoreProvider;
 import io.carml.logicalsourceresolver.MatchingLogicalSourceResolverFactory;
 import io.carml.logicalsourceresolver.sourceresolver.ClassPathResolver;
 import io.carml.logicalsourceresolver.sourceresolver.FileResolver;
@@ -65,7 +61,6 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
-import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.ValueFactory;
@@ -127,12 +122,6 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
         private boolean iriUpperCasePercentEncoding = true;
 
         private TermGeneratorFactory<Value> termGeneratorFactory;
-
-        private ChildSideJoinStoreProvider<MappedValue<Resource>, MappedValue<IRI>> childSideJoinCacheProvider =
-                CarmlChildSideJoinStoreProvider.of();
-
-        private ParentSideJoinConditionStoreProvider<MappedValue<Resource>> parentSideJoinConditionStoreProvider =
-                CarmlParentSideJoinConditionStoreProvider.of();
 
         private DatabaseConnectionOptions databaseConnectionOptions;
 
@@ -290,18 +279,6 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
             return this;
         }
 
-        public Builder childSideJoinStoreProvider(
-                ChildSideJoinStoreProvider<MappedValue<Resource>, MappedValue<IRI>> childSideJoinCacheProvider) {
-            this.childSideJoinCacheProvider = childSideJoinCacheProvider;
-            return this;
-        }
-
-        public Builder parentSideJoinConditionStoreProvider(
-                ParentSideJoinConditionStoreProvider<MappedValue<Resource>> parentSideJoinConditionStoreProvider) {
-            this.parentSideJoinConditionStoreProvider = parentSideJoinConditionStoreProvider;
-            return this;
-        }
-
         // Will override all connections
         public Builder databaseConnectionOptions(DatabaseConnectionOptions databaseConnectionOptions) {
             this.databaseConnectionOptions = databaseConnectionOptions;
@@ -447,8 +424,6 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
                     .valueFactorySupplier(valueFactorySupplier)
                     .termGeneratorFactory(termGeneratorFactory)
                     .rdfTermGeneratorConfig(rdfTermGeneratorConfig)
-                    .childSideJoinStoreProvider(childSideJoinCacheProvider)
-                    .parentSideJoinConditionStoreProvider(parentSideJoinConditionStoreProvider)
                     .strictMode(strictMode)
                     .allowMultipleSubjectMaps(allowMultipleSubjectMaps)
                     .build();

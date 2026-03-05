@@ -36,11 +36,6 @@
 
 		<dependency>
 			<groupId>io.carml</groupId>
-			<artifactId>carml-join-storage</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>io.carml</groupId>
 			<artifactId>carml-logical-view</artifactId>
 		</dependency>
 
