@@ -12,6 +12,9 @@ public class TestReferenceFormulationTypeDecider implements ReferenceFormulation
 
     @Override
     public Set<Type> decide(Model model, Resource resource) {
+        if (SqlReferenceFormulation.IRIS.contains(resource)) {
+            return Set.of();
+        }
         return Set.of(TestReferenceFormulation.class);
     }
 }

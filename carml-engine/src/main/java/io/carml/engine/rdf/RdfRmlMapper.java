@@ -27,8 +27,6 @@ import io.carml.logicalsourceresolver.MatchingLogicalSourceResolverFactory;
 import io.carml.logicalsourceresolver.sourceresolver.ClassPathResolver;
 import io.carml.logicalsourceresolver.sourceresolver.FileResolver;
 import io.carml.logicalsourceresolver.sourceresolver.SourceResolver;
-import io.carml.logicalsourceresolver.sql.sourceresolver.DatabaseConnectionOptions;
-import io.carml.logicalsourceresolver.sql.sourceresolver.DatabaseSourceResolver;
 import io.carml.logicalview.DefaultLogicalViewEvaluator;
 import io.carml.logicalview.LogicalViewEvaluator;
 import io.carml.model.Field;
@@ -122,8 +120,6 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
         private boolean iriUpperCasePercentEncoding = true;
 
         private TermGeneratorFactory<Value> termGeneratorFactory;
-
-        private DatabaseConnectionOptions databaseConnectionOptions;
 
         private final List<MappingExecutionObserver> observers = new ArrayList<>();
 
@@ -276,12 +272,6 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
 
         public Builder triplesMaps(Set<TriplesMap> triplesMaps) {
             this.providedTriplesMaps = triplesMaps;
-            return this;
-        }
-
-        // Will override all connections
-        public Builder databaseConnectionOptions(DatabaseConnectionOptions databaseConnectionOptions) {
-            this.databaseConnectionOptions = databaseConnectionOptions;
             return this;
         }
 
@@ -502,10 +492,6 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
 
         private void registerSourceResolvers() {
             sourceResolvers.add(fileResolverBuilder.build());
-            sourceResolvers.add(
-                    databaseConnectionOptions != null
-                            ? DatabaseSourceResolver.of(databaseConnectionOptions)
-                            : DatabaseSourceResolver.of());
             ServiceLoader.load(SourceResolver.class).stream()
                     .<SourceResolver<?>>map(ServiceLoader.Provider::get)
                     .forEach(sourceResolvers::add);

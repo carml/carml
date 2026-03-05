@@ -1,6 +1,7 @@
-package io.carml.model;
+package io.carml.model.impl;
 
 import com.google.auto.service.AutoService;
+import io.carml.model.ReferenceFormulationTypeDecider;
 import java.lang.reflect.Type;
 import java.util.Set;
 import org.eclipse.rdf4j.model.Model;

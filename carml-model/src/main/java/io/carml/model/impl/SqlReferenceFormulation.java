@@ -1,6 +1,7 @@
-package io.carml.model;
+package io.carml.model.impl;
 
-import io.carml.model.impl.CarmlResource;
+import io.carml.model.ReferenceFormulation;
+import io.carml.model.Resource;
 import io.carml.vocab.Rdf.Ql;
 import io.carml.vocab.Rdf.Rml;
 import io.carml.vocab.Rdf.Rr;

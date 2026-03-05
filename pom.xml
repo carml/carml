@@ -55,10 +55,6 @@
 		<module>carml-logical-source-resolver-xpath</module>
 		<module>carml-logical-source-resolver-jsonpath</module>
 		<module>carml-logical-source-resolver-csv</module>
-		<module>carml-logical-source-resolver-sql</module>
-		<module>carml-logical-source-resolver-mysql</module>
-		<module>carml-logical-source-resolver-postgresql</module>
-		<module>carml-logical-source-resolver-sqlserver</module>
 		<module>carml-logical-view</module>
 		<module>carml-converters-jena</module>
     <module>carml-test-cases</module>
@@ -71,7 +67,6 @@
 		<rdf4j.version>5.2.2</rdf4j.version>
 		<commons-lang3.version>3.20.0</commons-lang3.version>
 		<commons-io.version>2.21.0</commons-io.version>
-		<commons-collections4.version>4.5.0</commons-collections4.version>
 		<slf4j.version>2.0.17</slf4j.version>
 		<guava.version>33.5.0-jre</guava.version>
 		<reactor.version>2025.0.3</reactor.version>
@@ -84,12 +79,6 @@
 		<saxon.version>12.9</saxon.version>
 		<xmldog.version>3.0.1</xmldog.version>
 		<jena.version>5.1.0</jena.version>
-		<jooq.version>3.19.22</jooq.version>
-		<r2dbc-spi.version>1.0.0.RELEASE</r2dbc-spi.version>
-		<r2dbc-pool.version>1.0.2.RELEASE</r2dbc-pool.version>
-		<r2dbc-mysql.version>1.4.1</r2dbc-mysql.version>
-		<r2dbc-postgresql.version>1.1.1.RELEASE</r2dbc-postgresql.version>
-		<r2dbc-mssql.version>1.0.4.RELEASE</r2dbc-mssql.version>
 		<commons-compress.version>1.28.0</commons-compress.version>
 		<xz.version>1.11</xz.version>
 		<mockito.version>5.21.0</mockito.version>
@@ -100,9 +89,6 @@
 		<spotbugs-annotations.version>4.9.3</spotbugs-annotations.version>
 		<commons-csv.version>1.14.1</commons-csv.version>
 		<testcontainers.version>1.21.4</testcontainers.version>
-		<mysql-connector-j.version>9.6.0</mysql-connector-j.version>
-		<postgresql.version>42.7.10</postgresql.version>
-		<mssql-jdbc.version>12.8.1.jre11</mssql-jdbc.version>
 		<spotless.version>3.2.1</spotless.version>
 		<palantir.version>2.87.0</palantir.version>
 		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
@@ -162,30 +148,6 @@
 
 			<dependency>
 				<groupId>io.carml</groupId>
-				<artifactId>carml-logical-source-resolver-sql</artifactId>
-				<version>${project.version}</version>
-			</dependency>
-
-			<dependency>
-				<groupId>io.carml</groupId>
-				<artifactId>carml-logical-source-resolver-mysql</artifactId>
-				<version>${project.version}</version>
-			</dependency>
-
-			<dependency>
-				<groupId>io.carml</groupId>
-				<artifactId>carml-logical-source-resolver-postgresql</artifactId>
-				<version>${project.version}</version>
-			</dependency>
-
-			<dependency>
-				<groupId>io.carml</groupId>
-				<artifactId>carml-logical-source-resolver-sqlserver</artifactId>
-				<version>${project.version}</version>
-			</dependency>
-
-			<dependency>
-				<groupId>io.carml</groupId>
 				<artifactId>carml-logical-view</artifactId>
 				<version>${project.version}</version>
 			</dependency>
@@ -224,12 +186,6 @@
 				<groupId>commons-io</groupId>
 				<artifactId>commons-io</artifactId>
 				<version>${commons-io.version}</version>
-			</dependency>
-
-			<dependency>
-				<groupId>org.apache.commons</groupId>
-				<artifactId>commons-collections4</artifactId>
-				<version>${commons-collections4.version}</version>
 			</dependency>
 
 			<dependency>
@@ -306,42 +262,6 @@
 				<groupId>org.apache.jena</groupId>
 				<artifactId>jena-arq</artifactId>
 				<version>${jena.version}</version>
-			</dependency>
-
-			<dependency>
-				<groupId>org.jooq</groupId>
-				<artifactId>jooq</artifactId>
-				<version>${jooq.version}</version>
-			</dependency>
-
-			<dependency>
-				<groupId>io.r2dbc</groupId>
-				<artifactId>r2dbc-spi</artifactId>
-				<version>${r2dbc-spi.version}</version>
-			</dependency>
-
-			<dependency>
-				<groupId>io.r2dbc</groupId>
-				<artifactId>r2dbc-pool</artifactId>
-				<version>${r2dbc-pool.version}</version>
-			</dependency>
-
-			<dependency>
-				<groupId>io.asyncer</groupId>
-				<artifactId>r2dbc-mysql</artifactId>
-				<version>${r2dbc-mysql.version}</version>
-			</dependency>
-
-			<dependency>
-				<groupId>org.postgresql</groupId>
-				<artifactId>r2dbc-postgresql</artifactId>
-				<version>${r2dbc-postgresql.version}</version>
-			</dependency>
-
-			<dependency>
-				<groupId>io.r2dbc</groupId>
-				<artifactId>r2dbc-mssql</artifactId>
-				<version>${r2dbc-mssql.version}</version>
 			</dependency>
 
 			<dependency>
@@ -433,26 +353,6 @@
 			</dependency>
 
 			<dependency>
-				<groupId>com.mysql</groupId>
-				<artifactId>mysql-connector-j</artifactId>
-				<version>${mysql-connector-j.version}</version>
-				<scope>test</scope>
-			</dependency>
-
-			<dependency>
-				<groupId>org.postgresql</groupId>
-				<artifactId>postgresql</artifactId>
-				<version>${postgresql.version}</version>
-			</dependency>
-
-			<dependency>
-				<groupId>com.microsoft.sqlserver</groupId>
-				<artifactId>mssql-jdbc</artifactId>
-				<version>${mssql-jdbc.version}</version>
-				<scope>test</scope>
-			</dependency>
-
-			<dependency>
 				<groupId>org.testcontainers</groupId>
 				<artifactId>testcontainers</artifactId>
 				<version>${testcontainers.version}</version>
@@ -461,35 +361,7 @@
 
 			<dependency>
 				<groupId>org.testcontainers</groupId>
-				<artifactId>r2dbc</artifactId>
-				<version>${testcontainers.version}</version>
-				<scope>test</scope>
-			</dependency>
-
-			<dependency>
-				<groupId>org.testcontainers</groupId>
 				<artifactId>junit-jupiter</artifactId>
-				<version>${testcontainers.version}</version>
-				<scope>test</scope>
-			</dependency>
-
-			<dependency>
-				<groupId>org.testcontainers</groupId>
-				<artifactId>mssqlserver</artifactId>
-				<version>${testcontainers.version}</version>
-				<scope>test</scope>
-			</dependency>
-
-			<dependency>
-				<groupId>org.testcontainers</groupId>
-				<artifactId>mysql</artifactId>
-				<version>${testcontainers.version}</version>
-				<scope>test</scope>
-			</dependency>
-
-			<dependency>
-				<groupId>org.testcontainers</groupId>
-				<artifactId>postgresql</artifactId>
 				<version>${testcontainers.version}</version>
 				<scope>test</scope>
             </dependency>

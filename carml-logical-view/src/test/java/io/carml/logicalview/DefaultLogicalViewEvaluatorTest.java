@@ -8,6 +8,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
@@ -106,7 +107,7 @@ class DefaultLogicalViewEvaluatorTest {
 
         when(matchingFactory.apply(logicalSource)).thenReturn(Optional.of(matchedFactory));
         when(resolverFactory.apply(source)).thenReturn(resolver);
-        when(resolver.getLogicalSourceRecords(anySet())).thenReturn(rs -> recordFlux);
+        when(resolver.getLogicalSourceRecords(anySet(), anyMap())).thenReturn(rs -> recordFlux);
         when(resolver.getExpressionEvaluationFactory()).thenReturn(rec -> exprEval);
     }
 
@@ -566,7 +567,7 @@ class DefaultLogicalViewEvaluatorTest {
 
         when(matchingFactory.apply(logicalSource)).thenReturn(Optional.of(matchedFactory));
         when(resolverFactory.apply(source)).thenReturn(resolver);
-        when(resolver.getLogicalSourceRecords(anySet())).thenReturn(rs -> recordFlux);
+        when(resolver.getLogicalSourceRecords(anySet(), anyMap())).thenReturn(rs -> recordFlux);
         when(resolver.getExpressionEvaluationFactory()).thenReturn(perRecordEvalFactory::apply);
     }
 
@@ -1268,7 +1269,8 @@ class DefaultLogicalViewEvaluatorTest {
                 LogicalSourceResolver.LogicalSourceResolverFactory<Object> resolverFactory = mock();
                 var matched = MatchedLogicalSourceResolverFactory.of(matchScore, resolverFactory);
                 when(resolverFactory.apply(source)).thenReturn(resolver);
-                when(resolver.getLogicalSourceRecords(anySet())).thenReturn(rs -> Flux.just(createRecord("r1")));
+                when(resolver.getLogicalSourceRecords(anySet(), anyMap()))
+                        .thenReturn(rs -> Flux.just(createRecord("r1")));
                 Function<Object, ExpressionEvaluation> parentEvalFactory = rec -> expression -> {
                     if ("$.items[*]".equals(expression)) {
                         return Optional.of(List.of(subRecord1));
@@ -2167,7 +2169,7 @@ class DefaultLogicalViewEvaluatorTest {
     private void setupChildView(Flux<LogicalSourceRecord<Object>> recordFlux, ExpressionEvaluation exprEval) {
         when(logicalView.getViewOn()).thenReturn(logicalSource);
         when(logicalSource.getSource()).thenReturn(source);
-        when(resolver.getLogicalSourceRecords(anySet())).thenReturn(rs -> recordFlux);
+        when(resolver.getLogicalSourceRecords(anySet(), anyMap())).thenReturn(rs -> recordFlux);
         when(resolver.getExpressionEvaluationFactory()).thenReturn(rec -> exprEval);
     }
 
@@ -2178,7 +2180,7 @@ class DefaultLogicalViewEvaluatorTest {
             Flux<LogicalSourceRecord<Object>> recordFlux, Function<Object, ExpressionEvaluation> perRecordEvalFactory) {
         when(logicalView.getViewOn()).thenReturn(logicalSource);
         when(logicalSource.getSource()).thenReturn(source);
-        when(resolver.getLogicalSourceRecords(anySet())).thenReturn(rs -> recordFlux);
+        when(resolver.getLogicalSourceRecords(anySet(), anyMap())).thenReturn(rs -> recordFlux);
         when(resolver.getExpressionEvaluationFactory()).thenReturn(perRecordEvalFactory::apply);
     }
 
@@ -2200,7 +2202,8 @@ class DefaultLogicalViewEvaluatorTest {
                 .map(row -> LogicalSourceRecord.of(parentLogicalSource, (Object) row))
                 .toList();
 
-        when(parentResolver.getLogicalSourceRecords(anySet())).thenReturn(rs -> Flux.fromIterable(parentRecords));
+        when(parentResolver.getLogicalSourceRecords(anySet(), anyMap()))
+                .thenReturn(rs -> Flux.fromIterable(parentRecords));
         var evalsByRecord = new IdentityHashMap<Object, ExpressionEvaluation>();
         for (var row : parentRows) {
             evalsByRecord.put(row, expression -> Optional.ofNullable(row.get(expression)));
@@ -2842,7 +2845,7 @@ class DefaultLogicalViewEvaluatorTest {
         var subRecord = new Object();
         var parentRecord = LogicalSourceRecord.of(parentLogicalSource, (Object) "parent-rec");
 
-        when(parentResolver.getLogicalSourceRecords(anySet())).thenReturn(rs -> Flux.just(parentRecord));
+        when(parentResolver.getLogicalSourceRecords(anySet(), anyMap())).thenReturn(rs -> Flux.just(parentRecord));
         LogicalSourceResolver.ExpressionEvaluationFactory<Object> parentExprEvalFactory = rec2 -> expression -> {
             if ("pid".equals(expression)) return Optional.of("1");
             if ("$.items[*]".equals(expression)) return Optional.of(List.of(subRecord));
@@ -3519,7 +3522,8 @@ class DefaultLogicalViewEvaluatorTest {
         var parentRow = Map.<String, Object>of("pid", "1", "city", "NYC");
         var parentRecords = List.of(LogicalSourceRecord.of(parentLogicalSource, (Object) parentRow));
 
-        when(parentResolver.getLogicalSourceRecords(anySet())).thenReturn(rs -> Flux.fromIterable(parentRecords));
+        when(parentResolver.getLogicalSourceRecords(anySet(), anyMap()))
+                .thenReturn(rs -> Flux.fromIterable(parentRecords));
         LogicalSourceResolver.ExpressionEvaluationFactory<Object> parentExprEvalFactory =
                 rec2 -> expression -> Optional.ofNullable(((Map<?, ?>) rec2).get(expression));
         when(parentResolver.getExpressionEvaluationFactory()).thenReturn(parentExprEvalFactory);

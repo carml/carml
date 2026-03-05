@@ -16,7 +16,6 @@ import io.carml.engine.NoOpObserver;
 import io.carml.engine.RmlMapperException;
 import io.carml.logicalsourceresolver.sourceresolver.ClassPathResolver;
 import io.carml.logicalsourceresolver.sourceresolver.SourceResolverException;
-import io.carml.logicalsourceresolver.sql.sourceresolver.DatabaseConnectionOptions;
 import io.carml.model.Mapping;
 import io.carml.model.TriplesMap;
 import io.carml.rdfmapper.impl.CarmlMapperException;
@@ -83,12 +82,7 @@ class RdfRmlMapperTest {
                 .iriUpperCasePercentEncoding(true)
                 .iriUnicodeNormalization(Normalizer.Form.NFKC)
                 .addFunctions(new Object())
-                .baseIri("https://example.com/")
-                .databaseConnectionOptions(DatabaseConnectionOptions.builder()
-                        .database("db://")
-                        .username("foo")
-                        .password("bar")
-                        .build());
+                .baseIri("https://example.com/");
 
         // When
         var rmlMapper = builder.build();
