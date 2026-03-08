@@ -27,8 +27,8 @@ import io.carml.logicalsourceresolver.MatchingLogicalSourceResolverFactory;
 import io.carml.logicalsourceresolver.sourceresolver.ClassPathResolver;
 import io.carml.logicalsourceresolver.sourceresolver.FileResolver;
 import io.carml.logicalsourceresolver.sourceresolver.SourceResolver;
-import io.carml.logicalview.DefaultLogicalViewEvaluator;
 import io.carml.logicalview.LogicalViewEvaluator;
+import io.carml.logicalview.LogicalViewEvaluatorFactory;
 import io.carml.model.Field;
 import io.carml.model.IriSafeAnnotation;
 import io.carml.model.LogicalSource;
@@ -130,6 +130,8 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
         private Long limit;
 
         private Set<String> excludeLogicalSourceResolvers = new HashSet<>();
+
+        private final List<LogicalViewEvaluatorFactory> logicalViewEvaluatorFactories = new ArrayList<>();
 
         /**
          * Sets the base IRI used in resolving relative IRIs produced by RML mappings.<br>
@@ -328,6 +330,11 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
             return this;
         }
 
+        public Builder logicalViewEvaluatorFactory(LogicalViewEvaluatorFactory factory) {
+            logicalViewEvaluatorFactories.add(factory);
+            return this;
+        }
+
         /**
          * Registers a {@link MappingExecutionObserver} that receives callbacks at key points in the
          * mapping pipeline. Multiple observers can be registered and are composed into a single
@@ -441,7 +448,12 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
                 List<ResolvedMapping> resolvedMappings,
                 MappingExecutionObserver observer) {
 
-            var evaluator = new DefaultLogicalViewEvaluator(resolverFactories);
+            var evaluatorFactories = logicalViewEvaluatorFactories.isEmpty()
+                    ? ServiceLoader.load(LogicalViewEvaluatorFactory.class).stream()
+                            .map(ServiceLoader.Provider::get)
+                            .toList()
+                    : List.copyOf(logicalViewEvaluatorFactories);
+            var evaluator = new FactoryDelegatingEvaluator(evaluatorFactories);
 
             // Build an index for O(1) lookup of ResolvedMapping by TriplesMap
             var resolvedMappingIndex = new HashMap<TriplesMap, ResolvedMapping>();
