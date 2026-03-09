@@ -11,6 +11,7 @@ import io.carml.model.FileSource;
 import io.carml.model.LogicalSource;
 import io.carml.model.LogicalView;
 import io.carml.model.LogicalViewJoin;
+import io.carml.model.NameableStream;
 import io.carml.model.ReferenceFormulation;
 import io.carml.vocab.Rdf;
 import java.sql.Connection;
@@ -176,6 +177,44 @@ class DuckDbLogicalViewEvaluatorFactoryTest {
         }
 
         @Test
+        void match_csvWithStreamSource_returnsEmpty() {
+            var refFormulation = mock(ReferenceFormulation.class);
+            lenient().when(refFormulation.getAsResource()).thenReturn(Rdf.Ql.Csv);
+
+            var streamSource = mock(NameableStream.class);
+
+            var logicalSource = mock(LogicalSource.class);
+            lenient().when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
+            lenient().when(logicalSource.getSource()).thenReturn(streamSource);
+
+            var view = createViewWithLogicalSource(logicalSource);
+            var factory = new DuckDbLogicalViewEvaluatorFactory(connection);
+
+            var result = factory.match(view);
+
+            assertThat(result.isEmpty(), is(true));
+        }
+
+        @Test
+        void match_jsonWithStreamSource_returnsEmpty() {
+            var refFormulation = mock(ReferenceFormulation.class);
+            lenient().when(refFormulation.getAsResource()).thenReturn(Rdf.Ql.JsonPath);
+
+            var streamSource = mock(NameableStream.class);
+
+            var logicalSource = mock(LogicalSource.class);
+            lenient().when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
+            lenient().when(logicalSource.getSource()).thenReturn(streamSource);
+
+            var view = createViewWithLogicalSource(logicalSource);
+            var factory = new DuckDbLogicalViewEvaluatorFactory(connection);
+
+            var result = factory.match(view);
+
+            assertThat(result.isEmpty(), is(true));
+        }
+
+        @Test
         void match_nullRefFormulation_returnsEmpty() {
             var logicalSource = mock(LogicalSource.class);
             lenient().when(logicalSource.getReferenceFormulation()).thenReturn(null);
@@ -290,10 +329,14 @@ class DuckDbLogicalViewEvaluatorFactoryTest {
             var cyclicView = mock(LogicalView.class);
             var selfJoin = mockJoin(cyclicView);
 
+            var fileSource = mock(FileSource.class);
+            lenient().when(fileSource.getUrl()).thenReturn("/test/path/file.json");
+
             var refFormulation = mock(ReferenceFormulation.class);
             lenient().when(refFormulation.getAsResource()).thenReturn(Rdf.Ql.JsonPath);
             var logicalSource = mock(LogicalSource.class);
             lenient().when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
+            lenient().when(logicalSource.getSource()).thenReturn(fileSource);
 
             lenient().when(cyclicView.getViewOn()).thenReturn(logicalSource);
             lenient().when(cyclicView.getLeftJoins()).thenReturn(Set.of(selfJoin));

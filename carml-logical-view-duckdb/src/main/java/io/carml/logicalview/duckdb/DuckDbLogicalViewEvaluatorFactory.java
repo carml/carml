@@ -5,6 +5,8 @@ import io.carml.logicalsourceresolver.MatchedLogicalSourceResolverFactory.MatchS
 import io.carml.logicalview.LogicalViewEvaluatorFactory;
 import io.carml.logicalview.MatchedLogicalViewEvaluator;
 import io.carml.model.AbstractLogicalSource;
+import io.carml.model.FilePath;
+import io.carml.model.FileSource;
 import io.carml.model.LogicalSource;
 import io.carml.model.LogicalView;
 import io.carml.model.LogicalViewJoin;
@@ -34,7 +36,7 @@ import org.eclipse.rdf4j.model.Resource;
  * <ul>
  *   <li>XPath/XML -- DuckDB has no native XML support</li>
  *   <li>SPARQL endpoints -- not a file or database source</li>
- *   <li>WoT streaming sources -- data not available as a seekable source</li>
+ *   <li>Stream sources (carml:Stream) -- data not available as a seekable file</li>
  *   <li>Unknown reference formulations</li>
  * </ul>
  *
@@ -65,6 +67,9 @@ public class DuckDbLogicalViewEvaluatorFactory implements LogicalViewEvaluatorFa
             Rdf.Rml.Rdb,
             Rdf.Rml.SQL2008Table,
             Rdf.Rml.SQL2008Query);
+
+    private static final Set<Resource> FILE_BASED_REF_FORMULATIONS =
+            Set.of(Rdf.Ql.JsonPath, Rdf.Rml.JsonPath, Rdf.Ql.Csv, Rdf.Rml.Csv);
 
     private static final MatchScore STRONG_MATCH =
             MatchScore.builder().strongMatch().build();
@@ -156,7 +161,9 @@ public class DuckDbLogicalViewEvaluatorFactory implements LogicalViewEvaluatorFa
     }
 
     /**
-     * Checks whether a {@link LogicalSource} has a DuckDB-compatible reference formulation.
+     * Checks whether a {@link LogicalSource} has a DuckDB-compatible reference formulation and
+     * source type. File-based reference formulations (CSV, JSON) require a {@link FilePath} or
+     * {@link FileSource}; stream sources are not supported.
      */
     private boolean isLogicalSourceCompatible(LogicalSource logicalSource) {
         var refFormulation = logicalSource.getReferenceFormulation();
@@ -166,7 +173,20 @@ public class DuckDbLogicalViewEvaluatorFactory implements LogicalViewEvaluatorFa
         }
 
         var refIri = refFormulation.getAsResource();
-        return COMPATIBLE_REF_FORMULATIONS.contains(refIri);
+        if (!COMPATIBLE_REF_FORMULATIONS.contains(refIri)) {
+            return false;
+        }
+
+        if (FILE_BASED_REF_FORMULATIONS.contains(refIri) && !isFileBasedSource(logicalSource.getSource())) {
+            LOG.debug("LogicalSource has file-based reference formulation but source is not file-based");
+            return false;
+        }
+
+        return true;
+    }
+
+    private static boolean isFileBasedSource(io.carml.model.Source source) {
+        return source instanceof FilePath || source instanceof FileSource;
     }
 
     /**
