@@ -2,6 +2,7 @@ package io.carml.logicalview.duckdb;
 
 import com.google.auto.service.AutoService;
 import io.carml.logicalsourceresolver.MatchedLogicalSourceResolverFactory.MatchScore;
+import io.carml.logicalview.FileBasePathConfigurable;
 import io.carml.logicalview.LogicalViewEvaluatorFactory;
 import io.carml.logicalview.MatchedLogicalViewEvaluator;
 import io.carml.model.AbstractLogicalSource;
@@ -11,6 +12,7 @@ import io.carml.model.LogicalSource;
 import io.carml.model.LogicalView;
 import io.carml.model.LogicalViewJoin;
 import io.carml.vocab.Rdf;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -56,7 +58,8 @@ import org.eclipse.rdf4j.model.Resource;
  */
 @Slf4j
 @AutoService(LogicalViewEvaluatorFactory.class)
-public class DuckDbLogicalViewEvaluatorFactory implements LogicalViewEvaluatorFactory, AutoCloseable {
+public class DuckDbLogicalViewEvaluatorFactory
+        implements LogicalViewEvaluatorFactory, FileBasePathConfigurable, AutoCloseable {
 
     private static final Set<Resource> COMPATIBLE_REF_FORMULATIONS = Set.of(
             Rdf.Ql.JsonPath,
@@ -91,6 +94,35 @@ public class DuckDbLogicalViewEvaluatorFactory implements LogicalViewEvaluatorFa
      */
     public DuckDbLogicalViewEvaluatorFactory(Connection connection) {
         this.connection = connection;
+    }
+
+    /**
+     * Creates a factory with the given DuckDB JDBC connection and file base path. Equivalent to
+     * creating the factory with the connection and then calling {@link #setFileBasePath(Path)}.
+     *
+     * @param connection the DuckDB JDBC connection to use for query execution
+     * @param fileBasePath the base path for resolving relative file references
+     */
+    public DuckDbLogicalViewEvaluatorFactory(Connection connection, Path fileBasePath) {
+        this(connection);
+        applyFileSearchPath(this.connection, fileBasePath);
+    }
+
+    @Override
+    public void setFileBasePath(Path basePath) {
+        applyFileSearchPath(connection, basePath);
+    }
+
+    // SET does not support parameterized queries, so single quotes must be escaped manually.
+    private static void applyFileSearchPath(Connection conn, Path basePath) {
+        try (var statement = conn.createStatement()) {
+            var absolutePath = basePath.toAbsolutePath().toString();
+            var escapedPath = absolutePath.replace("'", "''");
+            LOG.debug("Setting DuckDB file_search_path to: {}", absolutePath);
+            statement.execute("SET file_search_path = '%s'".formatted(escapedPath));
+        } catch (SQLException e) {
+            throw new IllegalStateException("Failed to set DuckDB file_search_path to: %s".formatted(basePath), e);
+        }
     }
 
     @Override

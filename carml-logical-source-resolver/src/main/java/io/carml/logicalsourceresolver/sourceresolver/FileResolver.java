@@ -9,6 +9,7 @@ import io.carml.model.Mapping;
 import io.carml.model.Source;
 import io.carml.util.TypeRef;
 import java.io.InputStream;
+import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
@@ -17,8 +18,10 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
+@Slf4j
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class FileResolver implements SourceResolver<Mono<InputStream>> {
 
@@ -135,6 +138,41 @@ public class FileResolver implements SourceResolver<Mono<InputStream>> {
         public FileResolverBuilder loadingClass(Class<?> loadingClass) {
             this.loadingClass = loadingClass;
             return this;
+        }
+
+        /**
+         * Resolves the configured file base path as a filesystem {@link Path}. Returns the
+         * explicit {@code basePath} if set, otherwise attempts to resolve {@code classPathBase}
+         * to a filesystem path (only possible when the classpath resource has a {@code file:}
+         * protocol, not when running from a JAR).
+         *
+         * @return the resolved base path, or empty if no filesystem path is available
+         */
+        public Optional<Path> resolveFileBasePath() {
+            if (basePath != null) {
+                return Optional.of(basePath);
+            }
+
+            if (classPathBase != null) {
+                var effectiveClass = loadingClass != null ? loadingClass : FileResolver.class;
+                var resourceUrl = effectiveClass.getResource(classPathBase);
+                if (resourceUrl == null) {
+                    LOG.warn("Classpath resource not found: {}", classPathBase);
+                } else if ("file".equals(resourceUrl.getProtocol())) {
+                    try {
+                        return Optional.of(Path.of(resourceUrl.toURI()));
+                    } catch (URISyntaxException e) {
+                        LOG.warn("Cannot convert classpath resource URL to path: {}", resourceUrl, e);
+                    }
+                } else {
+                    LOG.debug(
+                            "Classpath resource [{}] has protocol [{}]; file base path not available",
+                            classPathBase,
+                            resourceUrl.getProtocol());
+                }
+            }
+
+            return Optional.empty();
         }
 
         public FileResolver build() {
