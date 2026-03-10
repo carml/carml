@@ -215,6 +215,48 @@ class DuckDbLogicalViewEvaluatorFactoryTest {
         }
 
         @Test
+        void match_jsonSourceWithDeepScanIterator_returnsEmpty() {
+            var fileSource = mock(FileSource.class);
+            lenient().when(fileSource.getUrl()).thenReturn("/test/data.json");
+
+            var refFormulation = mock(ReferenceFormulation.class);
+            lenient().when(refFormulation.getAsResource()).thenReturn(Rdf.Ql.JsonPath);
+
+            var logicalSource = mock(LogicalSource.class);
+            lenient().when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
+            lenient().when(logicalSource.getSource()).thenReturn(fileSource);
+            lenient().when(logicalSource.getIterator()).thenReturn("$..name");
+
+            var view = createViewWithLogicalSource(logicalSource);
+            var factory = new DuckDbLogicalViewEvaluatorFactory(connection);
+
+            var result = factory.match(view);
+
+            assertThat(result.isEmpty(), is(true));
+        }
+
+        @Test
+        void match_rmlJsonPathSourceWithDeepScanIterator_returnsEmpty() {
+            var fileSource = mock(FileSource.class);
+            lenient().when(fileSource.getUrl()).thenReturn("/test/data.json");
+
+            var refFormulation = mock(ReferenceFormulation.class);
+            lenient().when(refFormulation.getAsResource()).thenReturn(Rdf.Rml.JsonPath);
+
+            var logicalSource = mock(LogicalSource.class);
+            lenient().when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
+            lenient().when(logicalSource.getSource()).thenReturn(fileSource);
+            lenient().when(logicalSource.getIterator()).thenReturn("$..items[*]");
+
+            var view = createViewWithLogicalSource(logicalSource);
+            var factory = new DuckDbLogicalViewEvaluatorFactory(connection);
+
+            var result = factory.match(view);
+
+            assertThat(result.isEmpty(), is(true));
+        }
+
+        @Test
         void match_nullRefFormulation_returnsEmpty() {
             var logicalSource = mock(LogicalSource.class);
             lenient().when(logicalSource.getReferenceFormulation()).thenReturn(null);

@@ -31,10 +31,16 @@ import org.junit.jupiter.api.BeforeAll;
  * {@link DuckDbLogicalViewEvaluatorFactory} via the {@link io.carml.logicalview.FileBasePathConfigurable}
  * interface, so DuckDB can find data files like {@code people.json} or {@code people.csv}.
  *
- * <p>Test cases that use JSON sources with iterators are skipped because DuckDB's
- * {@code read_json_auto} does not support the {@code json_path} parameter in DuckDB 1.x. The
- * {@link DuckDbLogicalViewEvaluatorFactory} still matches these sources (they have a compatible
- * reference formulation), but query execution fails at runtime.
+ * <p>Skipped test cases:
+ * <ul>
+ *   <li>Row index ({@code #}) references — the DuckDB evaluator does not expose the {@code #} key
+ *       in its ViewIteration</li>
+ *   <li>View-on-view — not yet supported by the DuckDB evaluator</li>
+ *   <li>Multi-valued expression fields — array-valued JSONPath references (e.g. {@code $.items[*]})
+ *       in expression fields are not expanded by the DuckDB evaluator</li>
+ *   <li>Type inference — {@code json_extract_string} returns VARCHAR; the evaluator does not cast
+ *       to numeric types for typed literal generation</li>
+ * </ul>
  */
 @Slf4j
 class TestRmlLvTestCasesWithDuckDb extends RmlTestCaseSuite {
@@ -60,51 +66,29 @@ class TestRmlLvTestCasesWithDuckDb extends RmlTestCaseSuite {
 
     @Override
     protected List<String> getSkipTests() {
-        // Skip reason 1: DuckDB's read_json_auto does not support the json_path parameter
-        // (DuckDB 1.x). All JSON test cases with iterators fail at runtime because the compiled
-        // SQL contains read_json_auto(path, json_path = '$.people[*]'), which is not valid.
-        //
-        // Skip reason 2: Iterable fields with row index references (rml:iterator + '#' in
-        // templates) are not supported by the DuckDB evaluator. The evaluator does not expose
-        // the '#' key in its ViewIteration, causing ViewIterationExpressionEvaluationException.
         return List.of(
-                // JSON source with iterator $.people[*] (reason 1)
-                "RMLLVTC0000a",
-                "RMLLVTC0000c",
-                "RMLLVTC0001a",
-                "RMLLVTC0001b",
-                "RMLLVTC0001c",
-                "RMLLVTC0001d",
-                "RMLLVTC0002a",
-                "RMLLVTC0002b",
-                "RMLLVTC0002c",
+                // Row index '#' references — not exposed by the DuckDB evaluator
                 "RMLLVTC0003a",
                 "RMLLVTC0003b",
                 "RMLLVTC0003c",
                 "RMLLVTC0004a",
                 "RMLLVTC0004b",
                 "RMLLVTC0004c",
+                "RMLLVTC0006f",
+                "RMLLVTC0007a",
+                "RMLLVTC0007b",
+                "RMLLVTC0007c",
+                // View-on-view — not yet supported
+                "RMLLVTC0000c",
+                "RMLLVTC0008a",
+                // Type inference — json_extract_string returns VARCHAR, not numeric
                 "RMLLVTC0004d",
-                "RMLLVTC0005a",
-                "RMLLVTC0005b",
-                "RMLLVTC0005c",
+                // Multi-valued expression fields — array JSONPath references not expanded
                 "RMLLVTC0006a",
                 "RMLLVTC0006b",
                 "RMLLVTC0006c",
                 "RMLLVTC0006d",
-                "RMLLVTC0006e",
-                "RMLLVTC0006f",
-                "RMLLVTC0008b",
-                "RMLLVTC0008c",
-                "RMLLVTC0008d",
-                "RMLLVTC0009a",
-                "RMLLVTC0009b",
-                "RMLLVTC0009c",
-                // Iterable fields with '#' row index reference not supported (reason 2)
-                "RMLLVTC0007a",
-                "RMLLVTC0007b",
-                // JSON source with iterator in join parent view (reason 1)
-                "RMLLVTC0007c");
+                "RMLLVTC0006e");
     }
 
     @Override

@@ -257,6 +257,12 @@
 
 			<dependency>
 				<groupId>com.github.jsurfer</groupId>
+				<artifactId>jsurfer-core</artifactId>
+				<version>${jsurfer.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>com.github.jsurfer</groupId>
 				<artifactId>jsurfer-jackson</artifactId>
 				<version>${jsurfer.version}</version>
 			</dependency>

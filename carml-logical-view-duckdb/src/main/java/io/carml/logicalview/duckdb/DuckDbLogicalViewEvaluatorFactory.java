@@ -6,12 +6,9 @@ import io.carml.logicalview.FileBasePathConfigurable;
 import io.carml.logicalview.LogicalViewEvaluatorFactory;
 import io.carml.logicalview.MatchedLogicalViewEvaluator;
 import io.carml.model.AbstractLogicalSource;
-import io.carml.model.FilePath;
-import io.carml.model.FileSource;
 import io.carml.model.LogicalSource;
 import io.carml.model.LogicalView;
 import io.carml.model.LogicalViewJoin;
-import io.carml.vocab.Rdf;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -20,7 +17,6 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.rdf4j.model.Resource;
 
 /**
  * A {@link LogicalViewEvaluatorFactory} that matches {@link LogicalView} instances where all sources
@@ -29,7 +25,8 @@ import org.eclipse.rdf4j.model.Resource;
  *
  * <p>DuckDB-compatible sources include:
  * <ul>
- *   <li>JSON (JsonPath reference formulation) -- via {@code read_json_auto}</li>
+ *   <li>JSON (JsonPath reference formulation) -- via {@code read_text} + {@code json_extract} + {@code unnest}
+ *       for iterators, {@code read_json_auto} for non-iterator sources</li>
  *   <li>CSV -- via {@code read_csv_auto}</li>
  *   <li>SQL databases (RDB, SQL2008Table, SQL2008Query) -- via database scanner extensions</li>
  * </ul>
@@ -60,19 +57,6 @@ import org.eclipse.rdf4j.model.Resource;
 @AutoService(LogicalViewEvaluatorFactory.class)
 public class DuckDbLogicalViewEvaluatorFactory
         implements LogicalViewEvaluatorFactory, FileBasePathConfigurable, AutoCloseable {
-
-    private static final Set<Resource> COMPATIBLE_REF_FORMULATIONS = Set.of(
-            Rdf.Ql.JsonPath,
-            Rdf.Rml.JsonPath,
-            Rdf.Ql.Csv,
-            Rdf.Rml.Csv,
-            Rdf.Ql.Rdb,
-            Rdf.Rml.Rdb,
-            Rdf.Rml.SQL2008Table,
-            Rdf.Rml.SQL2008Query);
-
-    private static final Set<Resource> FILE_BASED_REF_FORMULATIONS =
-            Set.of(Rdf.Ql.JsonPath, Rdf.Rml.JsonPath, Rdf.Ql.Csv, Rdf.Rml.Csv);
 
     private static final MatchScore STRONG_MATCH =
             MatchScore.builder().strongMatch().build();
@@ -194,10 +178,10 @@ public class DuckDbLogicalViewEvaluatorFactory
 
     /**
      * Checks whether a {@link LogicalSource} has a DuckDB-compatible reference formulation and
-     * source type. File-based reference formulations (CSV, JSON) require a {@link FilePath} or
-     * {@link FileSource}; stream sources are not supported.
+     * source type. Delegates formulation-specific compatibility checks to
+     * {@link DuckDbSourceHandler} implementations.
      */
-    private boolean isLogicalSourceCompatible(LogicalSource logicalSource) {
+    private static boolean isLogicalSourceCompatible(LogicalSource logicalSource) {
         var refFormulation = logicalSource.getReferenceFormulation();
         if (refFormulation == null) {
             LOG.debug("LogicalSource has no reference formulation");
@@ -205,20 +189,9 @@ public class DuckDbLogicalViewEvaluatorFactory
         }
 
         var refIri = refFormulation.getAsResource();
-        if (!COMPATIBLE_REF_FORMULATIONS.contains(refIri)) {
-            return false;
-        }
-
-        if (FILE_BASED_REF_FORMULATIONS.contains(refIri) && !isFileBasedSource(logicalSource.getSource())) {
-            LOG.debug("LogicalSource has file-based reference formulation but source is not file-based");
-            return false;
-        }
-
-        return true;
-    }
-
-    private static boolean isFileBasedSource(io.carml.model.Source source) {
-        return source instanceof FilePath || source instanceof FileSource;
+        return DuckDbSourceHandler.forFormulation(refIri)
+                .map(handler -> handler.isCompatible(logicalSource))
+                .orElse(false);
     }
 
     /**

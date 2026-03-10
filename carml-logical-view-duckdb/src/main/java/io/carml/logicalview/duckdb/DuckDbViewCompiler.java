@@ -11,11 +11,8 @@ import static org.jooq.impl.DSL.table;
 
 import io.carml.logicalview.DedupStrategy;
 import io.carml.logicalview.EvaluationContext;
-import io.carml.model.DatabaseSource;
 import io.carml.model.ExpressionField;
 import io.carml.model.Field;
-import io.carml.model.FilePath;
-import io.carml.model.FileSource;
 import io.carml.model.ForeignKeyAnnotation;
 import io.carml.model.IterableField;
 import io.carml.model.Join;
@@ -24,22 +21,18 @@ import io.carml.model.LogicalView;
 import io.carml.model.LogicalViewJoin;
 import io.carml.model.NotNullAnnotation;
 import io.carml.model.PrimaryKeyAnnotation;
-import io.carml.model.Source;
 import io.carml.model.StructuralAnnotation;
 import io.carml.model.Template;
 import io.carml.model.UniqueAnnotation;
 import io.carml.model.impl.CarmlTemplate;
-import io.carml.vocab.Rdf;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.rdf4j.model.Resource;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.SQLDialect;
@@ -60,6 +53,11 @@ import org.jooq.impl.DSL;
  * structural annotation-based optimizations (DISTINCT elimination, JOIN elimination, LEFT to INNER
  * JOIN upgrade).
  *
+ * <p>For JSON sources with iterators, uses {@code json_extract} + {@code UNNEST} to expand the
+ * iterator path into rows, and {@code json_extract_string} to extract field values from the JSON
+ * rows. JSONPath filter expressions are translated to SQL WHERE clauses via
+ * {@link JsonPathAnalyzer}.
+ *
  * <p><b>IriSafe annotation note:</b> {@code IriSafeAnnotation} does not currently affect SQL
  * compilation. Templates already use raw {@code CONCAT} without percent-encoding. When IRI encoding
  * support is added to the DuckDB evaluator (e.g., via a UDF), IriSafe annotations should be used
@@ -76,8 +74,6 @@ public final class DuckDbViewCompiler {
     private static final String DEDUPED_ALIAS = "deduped";
 
     private static final String PARENT_ALIAS_PREFIX = "parent_";
-
-    private static final Set<String> PARQUET_EXTENSIONS = Set.of(".parquet", ".parq");
 
     private static final DSLContext CTX = DSL.using(SQLDialect.DUCKDB);
 
@@ -138,15 +134,18 @@ public final class DuckDbViewCompiler {
                     .formatted(viewOn.getClass().getName()));
         }
 
-        var sourceTable = compileSourceClause(logicalSource);
+        var compiledSource = compileSourceClause(logicalSource, view);
+        var strategy = compiledSource.strategy();
+        var sourceTable = compiledSource.sourceSql();
         var expressionFields = resolveExpressionFields(view.getFields(), context.getProjectedFields());
-        var unnestDescriptors = resolveUnnestDescriptors(view.getFields(), context.getProjectedFields());
+        var unnestDescriptors = resolveUnnestDescriptors(view.getFields(), context.getProjectedFields(), strategy);
 
         // Extract structural annotations for optimization decisions
         var annotations = view.getStructuralAnnotations();
         var notNullFieldNames = extractNotNullFieldNames(annotations);
 
-        var joinDescriptors = compileJoins(view, annotations, notNullFieldNames, context.getProjectedFields());
+        var joinDescriptors =
+                compileJoins(view, annotations, notNullFieldNames, context.getProjectedFields(), strategy);
 
         // Determine whether DISTINCT is needed, considering annotation-based optimization
         var dedupRequested = !NONE_DEDUP_CLASS.isInstance(context.getDedupStrategy());
@@ -155,7 +154,7 @@ public final class DuckDbViewCompiler {
         var viewSourceCte = name(CTE_ALIAS).as(CTX.select(asterisk()).from(sql(sourceTable)));
 
         String result;
-        var allFieldSelects = collectAllFieldSelects(expressionFields, unnestDescriptors, joinDescriptors);
+        var allFieldSelects = collectAllFieldSelects(expressionFields, unnestDescriptors, joinDescriptors, strategy);
 
         if (useDistinct) {
             var dedupFrom = buildFromClause(
@@ -432,11 +431,12 @@ public final class DuckDbViewCompiler {
      * Collects all SELECT field expressions from expression fields, unnest descriptors, and join
      * descriptors into a single mutable list.
      */
-    private static ArrayList<SelectField<?>> collectAllFieldSelects(
+    private static List<SelectField<?>> collectAllFieldSelects(
             List<ExpressionField> expressionFields,
             List<UnnestDescriptor> unnestDescriptors,
-            List<JoinDescriptor> joinDescriptors) {
-        var allSelects = new ArrayList<>(compileFieldSelects(expressionFields));
+            List<JoinDescriptor> joinDescriptors,
+            DuckDbSourceStrategy strategy) {
+        var allSelects = new ArrayList<>(compileFieldSelects(expressionFields, strategy));
         for (var unnest : unnestDescriptors) {
             allSelects.addAll(unnest.nestedSelects());
         }
@@ -446,106 +446,18 @@ public final class DuckDbViewCompiler {
         return allSelects;
     }
 
-    private static String compileSourceClause(LogicalSource logicalSource) {
+    private static DuckDbSourceHandler.CompiledSource compileSourceClause(
+            LogicalSource logicalSource, LogicalView view) {
         var refFormulation = logicalSource.getReferenceFormulation();
         if (refFormulation == null) {
             throw new IllegalArgumentException("LogicalSource has no reference formulation");
         }
 
         var refIri = refFormulation.getAsResource();
-        return dispatchSourceFunction(refIri, logicalSource);
-    }
-
-    private static String dispatchSourceFunction(Resource refIri, LogicalSource logicalSource) {
-        if (Rdf.Ql.JsonPath.equals(refIri) || Rdf.Rml.JsonPath.equals(refIri)) {
-            return compileJsonSource(logicalSource);
-        }
-        if (Rdf.Ql.Csv.equals(refIri) || Rdf.Rml.Csv.equals(refIri)) {
-            return compileCsvSource(logicalSource);
-        }
-        if (Rdf.Ql.Rdb.equals(refIri) || Rdf.Rml.SQL2008Table.equals(refIri) || Rdf.Rml.SQL2008Query.equals(refIri)) {
-            return compileSqlSource(logicalSource);
-        }
-        if (Rdf.Ql.XPath.equals(refIri) || Rdf.Rml.XPath.equals(refIri)) {
-            throw new UnsupportedOperationException(
-                    "XPath/XML source compilation is not supported by the DuckDB evaluator. Use the reactive evaluator for XML sources.");
-        }
-
-        throw new IllegalArgumentException("Unknown reference formulation: %s".formatted(refIri));
-    }
-
-    private static String compileJsonSource(LogicalSource logicalSource) {
-        var filePath = resolveFilePath(logicalSource.getSource());
-
-        if (isParquetFile(filePath)) {
-            return "read_parquet(%s)".formatted(inline(filePath));
-        }
-
-        var iterator = logicalSource.getIterator();
-        if (iterator != null && !iterator.isBlank()) {
-            return "read_json_auto(%s, json_path = %s)".formatted(inline(filePath), inline(iterator));
-        }
-
-        return "read_json_auto(%s)".formatted(inline(filePath));
-    }
-
-    private static String compileCsvSource(LogicalSource logicalSource) {
-        var filePath = resolveFilePath(logicalSource.getSource());
-
-        if (isParquetFile(filePath)) {
-            return "read_parquet(%s)".formatted(inline(filePath));
-        }
-
-        return "read_csv_auto(%s)".formatted(inline(filePath));
-    }
-
-    private static String compileSqlSource(LogicalSource logicalSource) {
-        var query = logicalSource.getQuery();
-        if (query != null && !query.isBlank()) {
-            return "(%s)".formatted(query);
-        }
-
-        var tableName = logicalSource.getTableName();
-        if (tableName != null && !tableName.isBlank()) {
-            return quotedName(tableName).toString();
-        }
-
-        var source = logicalSource.getSource();
-        if (source instanceof DatabaseSource dbSource && dbSource.getQuery() != null) {
-            return "(%s)".formatted(dbSource.getQuery());
-        }
-
-        throw new IllegalArgumentException("SQL logical source has no query or table name defined");
-    }
-
-    private static String resolveFilePath(Source source) {
-        if (source instanceof FileSource fileSource) {
-            var url = fileSource.getUrl();
-            if (url == null || url.isBlank()) {
-                throw new IllegalArgumentException("FileSource has no URL defined");
-            }
-            return url;
-        }
-
-        if (source instanceof FilePath filePath) {
-            var path = filePath.getPath();
-            if (path == null || path.isBlank()) {
-                throw new IllegalArgumentException("FilePath has no path defined");
-            }
-            return path;
-        }
-
-        if (source == null) {
-            throw new IllegalArgumentException("LogicalSource has no source defined");
-        }
-
-        throw new IllegalArgumentException("Unsupported source type for file-based access: %s"
-                .formatted(source.getClass().getName()));
-    }
-
-    private static boolean isParquetFile(String filePath) {
-        var lowerPath = filePath.toLowerCase(Locale.ROOT);
-        return PARQUET_EXTENSIONS.stream().anyMatch(lowerPath::endsWith);
+        return DuckDbSourceHandler.forFormulation(refIri)
+                .orElseThrow(
+                        () -> new IllegalArgumentException("Unsupported reference formulation: %s".formatted(refIri)))
+                .compileSource(logicalSource, view.getFields(), CTE_ALIAS);
     }
 
     /**
@@ -570,67 +482,116 @@ public final class DuckDbViewCompiler {
 
     /**
      * Resolves {@link IterableField} instances from the view fields and produces
-     * {@link UnnestDescriptor}s for UNNEST cross-joins. Each iterable field generates an UNNEST
-     * table expression and nested SELECT fields qualified by the unnest alias.
+     * {@link UnnestDescriptor}s for UNNEST cross-joins. Recursively processes nested iterable
+     * fields, producing one descriptor per iterable level.
      *
-     * <p>If projected fields is non-empty, only nested fields whose names match the projection are
-     * included.
+     * <p>If projected fields is non-empty, only nested fields whose prefixed names match the
+     * projection are included.
      */
-    private static List<UnnestDescriptor> resolveUnnestDescriptors(Set<Field> viewFields, Set<String> projectedFields) {
-        return viewFields.stream()
-                .filter(IterableField.class::isInstance)
-                .map(IterableField.class::cast)
-                .map(iterableField -> compileUnnestDescriptor(iterableField, projectedFields))
-                .toList();
+    private static List<UnnestDescriptor> resolveUnnestDescriptors(
+            Set<Field> viewFields, Set<String> projectedFields, DuckDbSourceStrategy strategy) {
+        var result = new ArrayList<UnnestDescriptor>();
+        collectUnnestDescriptors(viewFields, projectedFields, strategy, "", result);
+        return result;
+    }
+
+    /**
+     * Recursively collects {@link UnnestDescriptor}s from the field hierarchy. Each
+     * {@link IterableField} generates one descriptor for its own UNNEST and nested expression
+     * fields, then recurses into any nested iterable fields.
+     *
+     * @param fields the fields to process
+     * @param projectedFields the context's projected fields
+     * @param strategy the source strategy for field access compilation
+     * @param prefix the dot-separated prefix for absolute field names (e.g., "item.")
+     * @param result the accumulator for descriptors
+     */
+    private static void collectUnnestDescriptors(
+            Set<Field> fields,
+            Set<String> projectedFields,
+            DuckDbSourceStrategy strategy,
+            String prefix,
+            List<UnnestDescriptor> result) {
+        for (var field : fields) {
+            if (field instanceof IterableField iterableField) {
+                var absoluteName = prefix + iterableField.getFieldName();
+                var descriptor =
+                        compileUnnestDescriptor(iterableField, projectedFields, strategy, prefix, absoluteName);
+                result.add(descriptor);
+
+                // Recursively process nested iterable fields
+                collectUnnestDescriptors(
+                        iterableField.getFields(), projectedFields, strategy, absoluteName + ".", result);
+            }
+        }
     }
 
     /**
      * Compiles a single {@link IterableField} into an {@link UnnestDescriptor} containing the
-     * UNNEST table expression and the nested SELECT fields.
+     * UNNEST table expression and the nested SELECT fields. Delegates to the source strategy for
+     * table and field expression compilation.
+     *
+     * @param iterableField the iterable field to compile
+     * @param projectedFields the context's projected fields
+     * @param strategy the source strategy for field access compilation
+     * @param prefix the dot-separated prefix for absolute nested field names
+     * @param absoluteName the absolute name of this iterable field (used as table alias)
      */
-    private static UnnestDescriptor compileUnnestDescriptor(IterableField iterableField, Set<String> projectedFields) {
-        var iterableFieldName = iterableField.getFieldName();
+    private static UnnestDescriptor compileUnnestDescriptor(
+            IterableField iterableField,
+            Set<String> projectedFields,
+            DuckDbSourceStrategy strategy,
+            String prefix,
+            String absoluteName) {
         var iterator = iterableField.getIterator();
 
         if (iterator == null || iterator.isBlank()) {
             throw new IllegalArgumentException(
-                    "IterableField [%s] has no iterator expression defined".formatted(iterableFieldName));
+                    "IterableField [%s] has no iterator expression defined".formatted(absoluteName));
         }
 
-        // Build: unnest("view_source"."iterator") AS "fieldName"
-        var unnestTable =
-                table("unnest({0})", field(quotedName(CTE_ALIAS, iterator))).as(quotedName(iterableFieldName));
+        var parentAlias = prefix.isEmpty() ? CTE_ALIAS : prefix.substring(0, prefix.length() - 1);
+        var unnestTable = strategy.compileUnnestTable(iterator, parentAlias, prefix.isEmpty(), absoluteName);
 
-        // Resolve nested expression fields
+        // Resolve nested expression fields (not nested iterable fields — those are handled recursively)
         var nestedFields = iterableField.getFields().stream()
                 .filter(ExpressionField.class::isInstance)
                 .map(ExpressionField.class::cast)
                 .toList();
 
+        var nestedPrefix = absoluteName + ".";
         var filteredNested = projectedFields.isEmpty()
                 ? nestedFields
                 : nestedFields.stream()
-                        .filter(f -> projectedFields.contains(f.getFieldName()))
+                        .filter(f -> projectedFields.contains(nestedPrefix + f.getFieldName()))
                         .toList();
 
-        // Build SELECT fields qualified by the unnest alias: "fieldName"."reference" AS "nestedFieldName"
+        // Build SELECT fields qualified by the unnest alias
         var nestedSelects = filteredNested.stream()
-                .<SelectField<?>>map(nested -> compileNestedFieldExpression(iterableFieldName, nested))
+                .<SelectField<?>>map(
+                        nested -> compileNestedFieldExpression(absoluteName, nested, strategy, nestedPrefix))
                 .toList();
 
         return new UnnestDescriptor(unnestTable, nestedSelects);
     }
 
     /**
-     * Compiles a nested {@link ExpressionField} within an iterable field, qualifying the reference
-     * with the unnest alias.
+     * Compiles a nested {@link ExpressionField} within an iterable field. Delegates to the source
+     * strategy to produce a field reference qualified by the unnest alias.
+     *
+     * @param unnestAlias the alias of the UNNEST table (e.g., "item")
+     * @param nestedField the nested expression field
+     * @param strategy the source strategy for field access compilation
+     * @param prefix the prefix for the absolute field name (e.g., "item.")
      */
-    private static SelectField<?> compileNestedFieldExpression(String unnestAlias, ExpressionField nestedField) {
+    private static SelectField<?> compileNestedFieldExpression(
+            String unnestAlias, ExpressionField nestedField, DuckDbSourceStrategy strategy, String prefix) {
         var nestedFieldName = nestedField.getFieldName();
+        var absoluteFieldName = prefix + nestedFieldName;
         var reference = nestedField.getReference();
 
         if (reference != null) {
-            return field(quotedName(unnestAlias, reference)).as(fieldAlias(nestedFieldName));
+            return strategy.compileNestedFieldReference(unnestAlias, reference, fieldAlias(absoluteFieldName));
         }
 
         // Nested fields within UNNEST currently only support reference-based expressions
@@ -651,13 +612,15 @@ public final class DuckDbViewCompiler {
      * @param annotations the structural annotations on the view
      * @param notNullFieldNames field names covered by NotNull annotations
      * @param projectedFields the context's projected fields
+     * @param strategy the source strategy for field access compilation
      * @return the list of compiled join descriptors (excluding eliminated joins)
      */
     private static List<JoinDescriptor> compileJoins(
             LogicalView view,
             Set<StructuralAnnotation> annotations,
             Set<String> notNullFieldNames,
-            Set<String> projectedFields) {
+            Set<String> projectedFields,
+            DuckDbSourceStrategy strategy) {
         var joinDescriptors = new ArrayList<JoinDescriptor>();
         int parentIndex = 0;
 
@@ -670,7 +633,7 @@ public final class DuckDbViewCompiler {
 
                 // Check if LEFT JOIN can be upgraded to INNER JOIN
                 var effectivelyLeftJoin = !canUpgradeToInnerJoin(viewJoin, notNullFieldNames);
-                joinDescriptors.add(compileJoinDescriptor(viewJoin, parentIndex++, effectivelyLeftJoin));
+                joinDescriptors.add(compileJoinDescriptor(viewJoin, parentIndex++, effectivelyLeftJoin, strategy));
             }
         }
 
@@ -681,7 +644,7 @@ public final class DuckDbViewCompiler {
                     continue;
                 }
 
-                joinDescriptors.add(compileJoinDescriptor(viewJoin, parentIndex++, false));
+                joinDescriptors.add(compileJoinDescriptor(viewJoin, parentIndex++, false, strategy));
             }
         }
 
@@ -695,7 +658,8 @@ public final class DuckDbViewCompiler {
      * resulting SQL is wrapped as a subquery table. The ON condition is built from the join's
      * conditions, and the projected fields from the parent are added to the SELECT.
      */
-    private static JoinDescriptor compileJoinDescriptor(LogicalViewJoin viewJoin, int parentIndex, boolean isLeftJoin) {
+    private static JoinDescriptor compileJoinDescriptor(
+            LogicalViewJoin viewJoin, int parentIndex, boolean isLeftJoin, DuckDbSourceStrategy strategy) {
         var parentView = viewJoin.getParentLogicalView();
         var parentAlias = PARENT_ALIAS_PREFIX + parentIndex;
 
@@ -707,7 +671,7 @@ public final class DuckDbViewCompiler {
 
         // Build ON condition from join conditions
         var joinConditions = viewJoin.getJoinConditions();
-        var onCondition = buildJoinCondition(joinConditions, parentAlias);
+        var onCondition = buildJoinCondition(joinConditions, parentAlias, strategy);
 
         // Build SELECT fields from the join's projected fields
         var joinFields = viewJoin.getFields().stream()
@@ -719,14 +683,16 @@ public final class DuckDbViewCompiler {
 
     /**
      * Builds a compound ON condition from a set of {@link Join} conditions. Each join condition maps
-     * a child reference to a parent reference.
+     * a child reference to a parent reference. The child side is resolved via the source strategy.
      */
-    private static Condition buildJoinCondition(Set<Join> joinConditions, String parentAlias) {
+    private static Condition buildJoinCondition(
+            Set<Join> joinConditions, String parentAlias, DuckDbSourceStrategy strategy) {
         return joinConditions.stream()
                 .map(join -> {
                     var childRef = join.getChildMap().getReference();
                     var parentRef = join.getParentMap().getReference();
-                    return field(quotedName(CTE_ALIAS, childRef)).eq(field(quotedName(parentAlias, parentRef)));
+                    var childField = strategy.resolveJoinChildReference(childRef);
+                    return childField.eq(field(quotedName(parentAlias, parentRef)));
                 })
                 .reduce(Condition::and)
                 .orElseThrow(() -> new IllegalArgumentException("LogicalViewJoin has no join conditions"));
@@ -748,23 +714,24 @@ public final class DuckDbViewCompiler {
                 "Join projected field [%s] must have a reference expression".formatted(fieldName));
     }
 
-    private static List<SelectField<?>> compileFieldSelects(List<ExpressionField> fields) {
+    private static List<SelectField<?>> compileFieldSelects(
+            List<ExpressionField> fields, DuckDbSourceStrategy strategy) {
         return fields.stream()
-                .<SelectField<?>>map(DuckDbViewCompiler::compileFieldExpression)
+                .<SelectField<?>>map(f -> compileFieldExpression(f, strategy))
                 .toList();
     }
 
-    private static SelectField<?> compileFieldExpression(ExpressionField exprField) {
+    private static SelectField<?> compileFieldExpression(ExpressionField exprField, DuckDbSourceStrategy strategy) {
         var fieldName = exprField.getFieldName();
 
         var reference = exprField.getReference();
         if (reference != null) {
-            return field(quotedName(reference)).as(fieldAlias(fieldName));
+            return strategy.compileFieldReference(reference, fieldAlias(fieldName));
         }
 
         var template = exprField.getTemplate();
         if (template != null) {
-            return compileTemplateExpression(template, fieldName);
+            return compileTemplateExpression(template, fieldName, strategy);
         }
 
         var constant = exprField.getConstant();
@@ -782,12 +749,13 @@ public final class DuckDbViewCompiler {
                 "ExpressionField [%s] has no reference, template, or constant defined".formatted(fieldName));
     }
 
-    private static SelectField<?> compileTemplateExpression(Template template, String fieldName) {
+    private static SelectField<?> compileTemplateExpression(
+            Template template, String fieldName, DuckDbSourceStrategy strategy) {
         var segments = template.getSegments();
         var parts = segments.stream()
                 .map(segment -> {
                     if (segment instanceof CarmlTemplate.ExpressionSegment) {
-                        return field(quotedName(segment.getValue()));
+                        return strategy.compileTemplateReference(segment.getValue());
                     }
                     return inline(segment.getValue());
                 })
