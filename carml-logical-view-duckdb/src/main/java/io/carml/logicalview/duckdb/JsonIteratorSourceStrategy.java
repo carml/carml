@@ -79,12 +79,25 @@ final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
                 isRootLevel ? field(quotedName(cteAlias, iterColumn)) : field(quotedName(parentAlias, UNNEST_FIELD));
 
         if (iterator.endsWith("[*]")) {
-            // Array iteration: json_extract returns JSON[], unnest directly
-            return table("unnest(json_extract({0}, {1}))", parentRef, inline(iterator))
+            // Array iteration: json_extract returns JSON[], unnest directly.
+            // Uses LATERAL subquery with parallel unnest to produce per-parent 0-based ordinals.
+            // DuckDB 1.x does not support multi-argument unnest in FROM clause, but parallel
+            // unnest works in SELECT clause within a LATERAL subquery.
+            return table(
+                            "LATERAL (SELECT unnest(json_extract({0}, {1})) AS \""
+                                    + UNNEST_FIELD + "\", unnest(range(len(json_extract({0}, {1})))) AS \""
+                                    + ORDINAL_FIELD + "\")",
+                            parentRef,
+                            inline(iterator))
                     .as(quotedName(absoluteName));
         }
-        // Single value: json_extract returns JSON, wrap in list_value for unnest
-        return table("unnest(list_value(json_extract({0}, {1})))", parentRef, inline(iterator))
+        // Single value: json_extract returns JSON, wrap in list_value for unnest.
+        // Ordinal is always 0 for single-value unnest.
+        return table(
+                        "LATERAL (SELECT unnest(list_value(json_extract({0}, {1}))) AS \"" + UNNEST_FIELD
+                                + "\", unnest(list_value(0)) AS \"" + ORDINAL_FIELD + "\")",
+                        parentRef,
+                        inline(iterator))
                 .as(quotedName(absoluteName));
     }
 

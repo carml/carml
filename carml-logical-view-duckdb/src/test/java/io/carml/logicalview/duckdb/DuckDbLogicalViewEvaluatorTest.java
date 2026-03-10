@@ -13,6 +13,7 @@ import io.carml.logicalview.EvaluationContext;
 import io.carml.model.ExpressionField;
 import io.carml.model.Field;
 import io.carml.model.FileSource;
+import io.carml.model.IterableField;
 import io.carml.model.LogicalSource;
 import io.carml.model.LogicalView;
 import io.carml.model.ReferenceFormulation;
@@ -78,8 +79,9 @@ class DuckDbLogicalViewEvaluatorTest {
                         var first = iterations.get(0);
                         assertThat(first.getValue("name"), is(Optional.of("Alice")));
                         assertThat(first.getValue("age"), is(Optional.of(30L)));
-                        assertThat(first.getKeys(), containsInAnyOrder("name", "age"));
+                        assertThat(first.getKeys(), containsInAnyOrder("#", "name", "age"));
                         assertThat(first.getKeys(), not(containsInAnyOrder(DuckDbViewCompiler.INDEX_COLUMN)));
+                        assertThat(first.getValue("#"), is(Optional.of(0)));
 
                         var second = iterations.get(1);
                         assertThat(second.getValue("name"), is(Optional.of("Bob")));
@@ -219,7 +221,7 @@ class DuckDbLogicalViewEvaluatorTest {
                         assertThat(iterations, hasSize(2));
 
                         var first = iterations.get(0);
-                        assertThat(first.getKeys(), containsInAnyOrder("name", "city"));
+                        assertThat(first.getKeys(), containsInAnyOrder("#", "name", "city"));
                         assertThat(first.getValue("name"), is(Optional.of("Alice")));
                         assertThat(first.getValue("city"), is(Optional.of("Amsterdam")));
                         // "age" should not be present
@@ -284,8 +286,8 @@ class DuckDbLogicalViewEvaluatorTest {
                             evaluator.evaluate(view, source -> null, context).collectList())
                     .assertNext(iterations -> {
                         assertThat(iterations, hasSize(2));
-                        assertThat(iterations.get(0).getIndex(), is(1));
-                        assertThat(iterations.get(1).getIndex(), is(2));
+                        assertThat(iterations.get(0).getIndex(), is(0));
+                        assertThat(iterations.get(1).getIndex(), is(1));
                     })
                     .verifyComplete();
         }
@@ -297,7 +299,7 @@ class DuckDbLogicalViewEvaluatorTest {
     class IndexColumnHandling {
 
         @Test
-        void evaluate_emitsIndexColumn_notInKeysButAccessibleViaGetIndex() throws IOException {
+        void evaluate_emitsZeroBasedIndex_notInKeysButAccessibleViaGetIndex() throws IOException {
             var jsonFile = tempDir.resolve("index.json");
             Files.writeString(jsonFile, """
                     [
@@ -323,11 +325,16 @@ class DuckDbLogicalViewEvaluatorTest {
                                     is(false));
                         }
 
-                        // getIndex() should return sequential values starting from 1
-                        // (ROW_NUMBER() is 1-based)
-                        assertThat(iterations.get(0).getIndex(), is(1));
-                        assertThat(iterations.get(1).getIndex(), is(2));
-                        assertThat(iterations.get(2).getIndex(), is(3));
+                        // getIndex() should return 0-based sequential values
+                        // (ROW_NUMBER() is 1-based, converted to 0-based by evaluator)
+                        assertThat(iterations.get(0).getIndex(), is(0));
+                        assertThat(iterations.get(1).getIndex(), is(1));
+                        assertThat(iterations.get(2).getIndex(), is(2));
+
+                        // "#" key should be present in values with 0-based index
+                        assertThat(iterations.get(0).getValue("#"), is(Optional.of(0)));
+                        assertThat(iterations.get(1).getValue("#"), is(Optional.of(1)));
+                        assertThat(iterations.get(2).getValue("#"), is(Optional.of(2)));
                     })
                     .verifyComplete();
         }
@@ -459,6 +466,83 @@ class DuckDbLogicalViewEvaluatorTest {
         }
     }
 
+    // --- Iterable field tests ---
+
+    @Nested
+    class IterableFieldEvaluation {
+
+        @Test
+        void evaluate_iterableField_producesPerParentOrdinals() throws IOException {
+            var jsonFile = tempDir.resolve("iterable.json");
+            Files.writeString(jsonFile, """
+                    {
+                        "people": [
+                            {"name": "Alice", "hobbies": [{"value": "reading"}, {"value": "coding"}]},
+                            {"name": "Bob", "hobbies": [{"value": "gaming"}, {"value": "cooking"}, {"value": "hiking"}]}
+                        ]
+                    }""");
+
+            var nestedField = expressionField("hobby", "$.value");
+            var iterableField = iterableField("item", "$.hobbies[*]", Set.of(nestedField));
+            var topField = expressionField("name", "$.name");
+
+            var view = createJsonViewWithIterableFields(
+                    jsonFile.toString(), "$.people[*]", Set.of(topField, iterableField));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(
+                            evaluator.evaluate(view, source -> null, context).collectList())
+                    .assertNext(iterations -> {
+                        // 2 + 3 = 5 rows total (cross join of parent rows with nested arrays)
+                        assertThat(iterations, hasSize(5));
+
+                        // Group by parent name and verify per-parent ordinals
+                        var aliceRows = iterations.stream()
+                                .filter(it -> Optional.of("Alice").equals(it.getValue("name")))
+                                .toList();
+                        var bobRows = iterations.stream()
+                                .filter(it -> Optional.of("Bob").equals(it.getValue("name")))
+                                .toList();
+
+                        assertThat(aliceRows, hasSize(2));
+                        assertThat(bobRows, hasSize(3));
+
+                        // Alice's ordinals should be 0 and 1 (reset per parent)
+                        // DuckDB range() returns BIGINT, so ordinals are Long values
+                        var aliceOrdinals = aliceRows.stream()
+                                .map(it -> it.getValue("item.#"))
+                                .toList();
+                        assertThat(aliceOrdinals, containsInAnyOrder(Optional.of(0L), Optional.of(1L)));
+
+                        // Bob's ordinals should be 0, 1, and 2 (reset per parent)
+                        var bobOrdinals = bobRows.stream()
+                                .map(it -> it.getValue("item.#"))
+                                .toList();
+                        assertThat(bobOrdinals, containsInAnyOrder(Optional.of(0L), Optional.of(1L), Optional.of(2L)));
+
+                        // Verify hobby values are present
+                        var aliceHobbies = aliceRows.stream()
+                                .map(it -> it.getValue("item.hobby"))
+                                .toList();
+                        assertThat(aliceHobbies, containsInAnyOrder(Optional.of("reading"), Optional.of("coding")));
+
+                        var bobHobbies = bobRows.stream()
+                                .map(it -> it.getValue("item.hobby"))
+                                .toList();
+                        assertThat(
+                                bobHobbies,
+                                containsInAnyOrder(
+                                        Optional.of("gaming"), Optional.of("cooking"), Optional.of("hiking")));
+
+                        // Verify keys include item.# and item.hobby
+                        assertThat(
+                                iterations.get(0).getKeys(), containsInAnyOrder("#", "name", "item.hobby", "item.#"));
+                    })
+                    .verifyComplete();
+        }
+    }
+
     // --- Helper methods ---
 
     private static ExpressionField expressionField(String fieldName, String reference) {
@@ -468,8 +552,39 @@ class DuckDbLogicalViewEvaluatorTest {
         return field;
     }
 
+    @SuppressWarnings("unchecked")
+    private static IterableField iterableField(String fieldName, String iterator, Set<ExpressionField> nestedFields) {
+        var field = mock(IterableField.class);
+        lenient().when(field.getFieldName()).thenReturn(fieldName);
+        lenient().when(field.getIterator()).thenReturn(iterator);
+        lenient().when(field.getFields()).thenReturn((Set<Field>) (Set<?>) nestedFields);
+        return field;
+    }
+
     private static LogicalView createJsonView(String filePath, String iterator, Set<ExpressionField> fields) {
         return createViewWithRefFormulation(Rdf.Ql.JsonPath, filePath, iterator, fields);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static LogicalView createJsonViewWithIterableFields(String filePath, String iterator, Set<Field> fields) {
+        var fileSource = mock(FileSource.class);
+        lenient().when(fileSource.getUrl()).thenReturn(filePath);
+
+        var refFormulation = mock(ReferenceFormulation.class);
+        lenient().when(refFormulation.getAsResource()).thenReturn(Rdf.Ql.JsonPath);
+
+        var logicalSource = mock(LogicalSource.class);
+        lenient().when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
+        lenient().when(logicalSource.getSource()).thenReturn(fileSource);
+        lenient().when(logicalSource.getIterator()).thenReturn(iterator);
+
+        var view = mock(LogicalView.class);
+        lenient().when(view.getViewOn()).thenReturn(logicalSource);
+        lenient().when(view.getFields()).thenReturn(fields);
+        lenient().when(view.getResourceName()).thenReturn("testView");
+        lenient().when(view.getStructuralAnnotations()).thenReturn(Set.of());
+
+        return view;
     }
 
     private static LogicalView createCsvView(String filePath, Set<ExpressionField> fields) {

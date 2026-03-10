@@ -956,9 +956,12 @@ class DuckDbViewCompilerTest {
 
             var sql = DuckDbViewCompiler.compile(view, context);
 
+            assertThat(sql, containsString("LATERAL"));
             assertThat(sql, containsString("unnest(\"view_source\".\"items\")"));
             assertThat(sql, containsString("\"item\""));
             assertThat(sql, containsString("\"item\".\"type\" \"item.item_type\""));
+            // Ordinal column for iterable field index
+            assertThat(sql, containsString("\"item\".\"__ord\" \"item.#\""));
         }
 
         @Test
@@ -972,9 +975,11 @@ class DuckDbViewCompilerTest {
 
             var sql = DuckDbViewCompiler.compile(view, context);
 
+            assertThat(sql, containsString("LATERAL"));
             assertThat(sql, containsString("unnest(\"view_source\".\"items\")"));
             assertThat(sql, containsString("\"item\".\"type\" \"item.item_type\""));
             assertThat(sql, containsString("\"item\".\"name\" \"item.item_name\""));
+            assertThat(sql, containsString("\"item\".\"__ord\" \"item.#\""));
         }
 
         @Test
@@ -995,12 +1000,15 @@ class DuckDbViewCompilerTest {
 
             // Top-level expression field
             assertThat(sql, containsString("\"name\" \"person_name\""));
-            // UNNEST for iterable field
+            // UNNEST for iterable field via LATERAL subquery
+            assertThat(sql, containsString("LATERAL"));
             assertThat(sql, containsString("unnest(\"view_source\".\"items\")"));
             // Nested field qualified by unnest alias
             assertThat(sql, containsString("\"item\".\"type\" \"item.item_type\""));
-            // FROM clause has both view_source and unnest
-            assertThat(sql, containsString("from \"view_source\", unnest("));
+            // Ordinal column
+            assertThat(sql, containsString("\"item\".\"__ord\" \"item.#\""));
+            // FROM clause has both view_source and LATERAL
+            assertThat(sql, containsString("from \"view_source\", LATERAL"));
         }
 
         @Test
@@ -1015,6 +1023,7 @@ class DuckDbViewCompilerTest {
             var sql = DuckDbViewCompiler.compile(view, context);
 
             assertThat(sql, containsString("\"item\".\"type\" \"item.item_type\""));
+            assertThat(sql, containsString("\"item\".\"__ord\" \"item.#\""));
             assertThat(sql, not(containsString("\"item\".\"name\" \"item.item_name\"")));
         }
 
@@ -1030,8 +1039,10 @@ class DuckDbViewCompilerTest {
 
             assertThat(sql, containsString("\"deduped\" as ("));
             assertThat(sql, containsString("select distinct"));
+            assertThat(sql, containsString("LATERAL"));
             assertThat(sql, containsString("unnest(\"view_source\".\"items\")"));
             assertThat(sql, containsString("\"item\".\"type\" \"item.item_type\""));
+            assertThat(sql, containsString("\"item\".\"__ord\" \"item.#\""));
         }
 
         @Test
@@ -1053,13 +1064,16 @@ class DuckDbViewCompilerTest {
             assertThat(sql, containsString("json_extract(content, '$.people[*]')"));
             // Top-level field uses json_extract_string from __iter
             assertThat(sql, containsString("json_extract_string(\"view_source\".\"__iter\", '$.name') \"name\""));
-            // Iterable field uses json_extract for UNNEST from __iter
+            // Iterable field uses LATERAL subquery with json_extract and ordinals
+            assertThat(sql, containsString("LATERAL"));
             assertThat(sql, containsString("unnest(json_extract(\"view_source\".\"__iter\", '$.contacts[*]'))"));
             // Nested field uses json_extract_string from unnest field
             assertThat(
                     sql,
                     containsString(
                             "json_extract_string(\"contacts\".\"unnest\", '$.phone') \"contacts.contact_phone\""));
+            // Ordinal column for iterable field index
+            assertThat(sql, containsString("\"contacts\".\"__ord\" \"contacts.#\""));
         }
     }
 
@@ -1254,9 +1268,11 @@ class DuckDbViewCompilerTest {
 
             var sql = DuckDbViewCompiler.compile(view, context);
 
+            assertThat(sql, containsString("LATERAL"));
             assertThat(sql, containsString("unnest(\"view_source\".\"items\")"));
             assertThat(sql, containsString("left outer join"));
             assertThat(sql, containsString("\"item\".\"type\" \"item.item_type\""));
+            assertThat(sql, containsString("\"item\".\"__ord\" \"item.#\""));
             assertThat(sql, containsString("\"parent_0\".\"dept_name\" \"department_name\""));
         }
     }

@@ -33,7 +33,14 @@ record ColumnSourceStrategy(String cteAlias) implements DuckDbSourceStrategy {
 
     @Override
     public Table<?> compileUnnestTable(String iterator, String parentAlias, boolean isRootLevel, String absoluteName) {
-        return table("unnest({0})", field(quotedName(parentAlias, iterator))).as(quotedName(absoluteName));
+        // Uses LATERAL subquery with parallel unnest to produce per-parent 0-based ordinals.
+        // DuckDB 1.x does not support multi-argument unnest in FROM clause, but parallel
+        // unnest works in SELECT clause within a LATERAL subquery.
+        return table(
+                        "LATERAL (SELECT unnest({0}) AS \"unnest\", unnest(range(len({0}))) AS \"" + ORDINAL_FIELD
+                                + "\")",
+                        field(quotedName(parentAlias, iterator)))
+                .as(quotedName(absoluteName));
     }
 
     @Override

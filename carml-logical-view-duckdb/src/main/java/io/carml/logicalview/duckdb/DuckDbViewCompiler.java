@@ -567,10 +567,15 @@ public final class DuckDbViewCompiler {
                         .toList();
 
         // Build SELECT fields qualified by the unnest alias
-        var nestedSelects = filteredNested.stream()
+        var nestedSelects = new ArrayList<>(filteredNested.stream()
                 .<SelectField<?>>map(
                         nested -> compileNestedFieldExpression(absoluteName, nested, strategy, nestedPrefix))
-                .toList();
+                .toList());
+
+        // Add iterable field ordinal column (0-based index within each parent's unnested array)
+        var indexColumnName = absoluteName + ".#";
+        nestedSelects.add(field(quotedName(absoluteName, DuckDbSourceStrategy.ORDINAL_FIELD))
+                .as(quotedName(indexColumnName)));
 
         return new UnnestDescriptor(unnestTable, nestedSelects);
     }

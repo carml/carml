@@ -51,17 +51,23 @@ class DuckDbSourceStrategyTest {
         }
 
         @Test
-        void compileUnnestTable_rootLevel_producesUnnestFromCteAlias() {
+        void compileUnnestTable_rootLevel_producesLateralUnnestWithOrdinal() {
             var result = strategy.compileUnnestTable("items", CTE_ALIAS, true, "item");
             var sql = CTX.selectFrom(result).getSQL();
+            assertThat(sql, containsString("LATERAL"));
             assertThat(sql, containsString("unnest(\"view_source\".\"items\")"));
+            assertThat(sql, containsString("range(len(\"view_source\".\"items\"))"));
+            assertThat(sql, containsString("\"__ord\""));
         }
 
         @Test
-        void compileUnnestTable_nestedLevel_producesUnnestFromParentAlias() {
+        void compileUnnestTable_nestedLevel_producesLateralUnnestWithOrdinal() {
             var result = strategy.compileUnnestTable("details", "item", false, "detail");
             var sql = CTX.selectFrom(result).getSQL();
+            assertThat(sql, containsString("LATERAL"));
             assertThat(sql, containsString("unnest(\"item\".\"details\")"));
+            assertThat(sql, containsString("range(len(\"item\".\"details\"))"));
+            assertThat(sql, containsString("\"__ord\""));
         }
 
         @Test
@@ -113,36 +119,48 @@ class DuckDbSourceStrategyTest {
         }
 
         @Test
-        void compileUnnestTable_rootLevelWithArrayIterator_producesJsonExtractUnnest() {
+        void compileUnnestTable_rootLevelWithArrayIterator_producesLateralJsonExtractWithOrdinal() {
             var strategy = createStrategy(Set.of());
             var result = strategy.compileUnnestTable("$.items[*]", CTE_ALIAS, true, "item");
             var sql = CTX.selectFrom(result).getSQL();
+            assertThat(sql, containsString("LATERAL"));
             assertThat(sql, containsString("unnest(json_extract(\"view_source\".\"__iter\", '$.items[*]'))"));
+            assertThat(sql, containsString("range(len(json_extract(\"view_source\".\"__iter\", '$.items[*]')))"));
+            assertThat(sql, containsString("\"__ord\""));
         }
 
         @Test
-        void compileUnnestTable_rootLevelWithoutArrayIterator_producesListValueWrapped() {
+        void compileUnnestTable_rootLevelWithoutArrayIterator_producesLateralListValueWithOrdinal() {
             var strategy = createStrategy(Set.of());
             var result = strategy.compileUnnestTable("$.address", CTE_ALIAS, true, "addr");
             var sql = CTX.selectFrom(result).getSQL();
+            assertThat(sql, containsString("LATERAL"));
             assertThat(
                     sql, containsString("unnest(list_value(json_extract(\"view_source\".\"__iter\", '$.address')))"));
+            assertThat(sql, containsString("list_value(0)"));
+            assertThat(sql, containsString("\"__ord\""));
         }
 
         @Test
-        void compileUnnestTable_nestedLevelWithArrayIterator_producesJsonExtractFromUnnestField() {
+        void compileUnnestTable_nestedLevelWithArrayIterator_producesLateralJsonExtractFromUnnestWithOrdinal() {
             var strategy = createStrategy(Set.of());
             var result = strategy.compileUnnestTable("$.details[*]", "item", false, "detail");
             var sql = CTX.selectFrom(result).getSQL();
+            assertThat(sql, containsString("LATERAL"));
             assertThat(sql, containsString("unnest(json_extract(\"item\".\"unnest\", '$.details[*]'))"));
+            assertThat(sql, containsString("range(len(json_extract(\"item\".\"unnest\", '$.details[*]')))"));
+            assertThat(sql, containsString("\"__ord\""));
         }
 
         @Test
-        void compileUnnestTable_nestedLevelWithoutArrayIterator_producesListValueWrapped() {
+        void compileUnnestTable_nestedLevelWithoutArrayIterator_producesLateralListValueFromUnnestWithOrdinal() {
             var strategy = createStrategy(Set.of());
             var result = strategy.compileUnnestTable("$.address", "item", false, "addr");
             var sql = CTX.selectFrom(result).getSQL();
+            assertThat(sql, containsString("LATERAL"));
             assertThat(sql, containsString("unnest(list_value(json_extract(\"item\".\"unnest\", '$.address')))"));
+            assertThat(sql, containsString("list_value(0)"));
+            assertThat(sql, containsString("\"__ord\""));
         }
 
         @Test

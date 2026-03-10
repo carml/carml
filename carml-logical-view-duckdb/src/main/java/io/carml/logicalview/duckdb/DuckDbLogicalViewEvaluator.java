@@ -41,6 +41,8 @@ import reactor.core.scheduler.Schedulers;
 @AllArgsConstructor
 public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
 
+    private static final String INDEX_KEY = "#";
+
     private final Connection connection;
 
     @Override
@@ -96,13 +98,16 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
                 break;
             }
 
-            var index = columns.idxColumn > 0 ? resultSet.getInt(columns.idxColumn) : 0;
-            var values = new LinkedHashMap<String, Object>(columns.names.size());
+            // ROW_NUMBER() OVER() is 1-based; convert to 0-based for RML-LV "#" semantics
+            var rawIndex = columns.idxColumn > 0 ? resultSet.getInt(columns.idxColumn) : 0;
+            var zeroBasedIndex = rawIndex > 0 ? rawIndex - 1 : 0;
+            var values = new LinkedHashMap<String, Object>(columns.names.size() + 1);
+            values.put(INDEX_KEY, zeroBasedIndex);
             for (var colName : columns.names) {
                 values.put(colName, resultSet.getObject(colName));
             }
 
-            sink.next(new DuckDbViewIteration(index, values));
+            sink.next(new DuckDbViewIteration(zeroBasedIndex, values));
         }
     }
 

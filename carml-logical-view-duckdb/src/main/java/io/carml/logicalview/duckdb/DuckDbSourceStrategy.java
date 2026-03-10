@@ -18,6 +18,13 @@ import org.jooq.Table;
 sealed interface DuckDbSourceStrategy permits ColumnSourceStrategy, JsonIteratorSourceStrategy {
 
     /**
+     * Column name for the 0-based ordinal produced by UNNEST tables. Each LATERAL subquery emits
+     * this column alongside the unnested value so that iterable field indices ({@code field.#})
+     * reset per parent row.
+     */
+    String ORDINAL_FIELD = "__ord";
+
+    /**
      * Compiles a top-level field reference into a SELECT expression.
      *
      * @param reference the source reference expression
