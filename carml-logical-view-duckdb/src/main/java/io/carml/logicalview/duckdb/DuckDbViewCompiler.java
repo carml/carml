@@ -562,24 +562,47 @@ public final class DuckDbViewCompiler {
      * Compiles a multi-valued {@link ExpressionField} into an {@link UnnestDescriptor}. The field's
      * reference is used as an iterator expression for UNNEST, and the unnested value is extracted
      * using the strategy's nested field reference compilation with root path {@code "$"}.
+     *
+     * <p>When the reference contains JSONPath filter expressions (e.g.,
+     * {@code $.items[?(@.active==true)]}), the UNNEST table is compiled using the normalized base
+     * path ({@code $.items[*]}) and wrapped with a WHERE clause that applies the filter conditions
+     * to the unnested values. Ordinals are recomputed after filtering to produce sequential 0-based
+     * indices.
      */
     private static UnnestDescriptor compileMultiValuedUnnestDescriptor(
             ExpressionField field, DuckDbSourceStrategy strategy) {
         var fieldName = field.getFieldName();
         var reference = field.getReference();
 
-        // Filter expressions in multi-valued ExpressionField references are not yet supported.
-        // The IterableField path handles filters by passing the raw JSONPath to DuckDB's json_extract,
-        // which applies them natively. For ExpressionFields, the UNNEST path does not have this mechanism.
         var parsed = JsonPathAnalyzer.analyze(reference);
-        if (!parsed.filters().isEmpty()) {
-            throw new UnsupportedOperationException(
-                    "Filter expressions in '%s' are not yet supported for multi-valued expression fields. "
-                                    .formatted(reference)
-                            + "Use an IterableField with an iterator containing the filter instead.");
-        }
 
-        var unnestTable = strategy.compileUnnestTable(reference, CTE_ALIAS, true, fieldName);
+        Table<?> unnestTable;
+        if (parsed.filters().isEmpty()) {
+            unnestTable = strategy.compileUnnestTable(reference, CTE_ALIAS, true, fieldName);
+        } else {
+            // Build a filtered LATERAL: unnest all elements using the basePath, then apply a WHERE
+            // clause for the filter conditions and recompute ordinals as sequential 0-based indices.
+            //
+            // The inner unnest expands all array elements. The outer LATERAL wraps it with a WHERE
+            // clause to apply the filter, and row_number() to produce sequential ordinals.
+            var innerUnnest = strategy.compileUnnestTable(parsed.basePath(), CTE_ALIAS, true, fieldName + "_inner");
+
+            var filterCondition = parsed.filters().stream()
+                    .map(f -> JsonPathSourceHandler.compileFilterCondition(f, JsonIteratorSourceStrategy.UNNEST_FIELD))
+                    .reduce(Condition::and)
+                    .orElseThrow();
+
+            // Render the inner unnest as a subquery in a SELECT to capture its full SQL,
+            // then wrap with WHERE and ordinal recomputation. row_number() over() has no ORDER BY
+            // because DuckDB's UNNEST preserves array element order, and the LATERAL boundary
+            // resets numbering per parent row.
+            var innerQuery = CTX.renderInlined(CTX.selectFrom(innerUnnest));
+
+            unnestTable = table("LATERAL (SELECT \"unnest\", (row_number() over() - 1) AS \"%s\" FROM (%s) WHERE %s)"
+                            .formatted(
+                                    DuckDbSourceStrategy.ORDINAL_FIELD, innerQuery, CTX.renderInlined(filterCondition)))
+                    .as(quotedName(fieldName));
+        }
 
         var nestedSelects = new ArrayList<SelectField<?>>();
 

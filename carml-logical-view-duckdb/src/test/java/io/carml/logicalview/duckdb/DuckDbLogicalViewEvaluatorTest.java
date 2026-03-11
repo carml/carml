@@ -2,6 +2,8 @@ package io.carml.logicalview.duckdb;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -638,6 +640,72 @@ class DuckDbLogicalViewEvaluatorTest {
 
                         // Single-valued field name should have ordinal 0
                         assertThat(aliceRows.get(0).getValue("name.#"), is(Optional.of(0L)));
+                    })
+                    .verifyComplete();
+        }
+
+        @Test
+        void evaluate_multiValuedExpressionFieldWithFilter_producesFilteredRows() throws IOException {
+            var jsonFile = tempDir.resolve("multi_valued_filtered.json");
+            Files.writeString(jsonFile, """
+                    {
+                        "people": [
+                            {"name": "Alice", "items": [
+                                {"label": "book", "active": true},
+                                {"label": "pen", "active": false},
+                                {"label": "lamp", "active": true}
+                            ]},
+                            {"name": "Bob", "items": [
+                                {"label": "cup", "active": false},
+                                {"label": "mug", "active": true}
+                            ]}
+                        ]
+                    }""");
+
+            var nameField = expressionField("name", "$.name");
+            var itemField = expressionField("item", "$.items[?(@.active==true)]");
+
+            @SuppressWarnings("unchecked")
+            var fields = (Set<Field>) (Set<?>) Set.of(nameField, itemField);
+
+            var view = createJsonViewWithIterableFields(jsonFile.toString(), "$.people[*]", fields);
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(
+                            evaluator.evaluate(view, source -> null, context).collectList())
+                    .assertNext(iterations -> {
+                        // Alice has 2 active items (book, lamp), Bob has 1 (mug) => 3 rows total
+                        assertThat(iterations, hasSize(3));
+
+                        var aliceRows = iterations.stream()
+                                .filter(it -> Optional.of("Alice").equals(it.getValue("name")))
+                                .toList();
+                        var bobRows = iterations.stream()
+                                .filter(it -> Optional.of("Bob").equals(it.getValue("name")))
+                                .toList();
+
+                        assertThat(aliceRows, hasSize(2));
+                        assertThat(bobRows, hasSize(1));
+
+                        // Verify filtered item values (only active items, no inactive ones)
+                        var aliceItemStrings = aliceRows.stream()
+                                .map(it -> it.getValue("item").orElse("").toString())
+                                .toList();
+                        assertThat(aliceItemStrings, hasSize(2));
+                        assertThat(aliceItemStrings, everyItem(containsString("\"active\":true")));
+                        assertThat(aliceItemStrings, everyItem(not(containsString("\"active\":false"))));
+
+                        // Verify sequential ordinals after filtering (0-based, no gaps)
+                        var aliceOrdinals = aliceRows.stream()
+                                .map(it -> it.getValue("item.#"))
+                                .toList();
+                        assertThat(aliceOrdinals, containsInAnyOrder(Optional.of(0L), Optional.of(1L)));
+
+                        var bobOrdinals = bobRows.stream()
+                                .map(it -> it.getValue("item.#"))
+                                .toList();
+                        assertThat(bobOrdinals, containsInAnyOrder(Optional.of(0L)));
                     })
                     .verifyComplete();
         }

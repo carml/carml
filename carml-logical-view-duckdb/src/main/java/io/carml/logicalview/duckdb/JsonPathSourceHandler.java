@@ -79,7 +79,7 @@ final class JsonPathSourceHandler implements DuckDbSourceHandler {
 
             if (!parsed.filters().isEmpty()) {
                 var filterCondition = parsed.filters().stream()
-                        .map(JsonPathSourceHandler::compileFilterCondition)
+                        .map(f -> compileFilterCondition(f, JSON_ITER_COLUMN))
                         .reduce(Condition::and)
                         .orElseThrow();
                 sourceSql = "(select \"%s\" from %s where %s)"
@@ -95,11 +95,14 @@ final class JsonPathSourceHandler implements DuckDbSourceHandler {
 
     /**
      * Translates a {@link JsonPathAnalyzer.FilterCondition} into a jOOQ {@link Condition} for use
-     * in a SQL WHERE clause. The condition references the {@code __iter} column containing the JSON
+     * in a SQL WHERE clause. The condition references the specified column containing the JSON
      * values.
+     *
+     * @param filter the filter condition to translate
+     * @param columnName the column to apply the filter to (e.g., {@code __iter} or {@code unnest})
      */
-    static Condition compileFilterCondition(JsonPathAnalyzer.FilterCondition filter) {
-        var iterCol = field(quotedName(JSON_ITER_COLUMN));
+    static Condition compileFilterCondition(JsonPathAnalyzer.FilterCondition filter, String columnName) {
+        var iterCol = field(quotedName(columnName));
         if (filter instanceof JsonPathAnalyzer.EqualStr f) {
             return DSL.condition(
                     "json_extract_string({0}, {1}) = {2}", iterCol, inline(f.fieldJsonPath()), inline(f.value()));

@@ -28,7 +28,7 @@ final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
 
     private static final String JSON_EXTRACT_STRING = "json_extract_string({0}, {1})";
 
-    private static final String UNNEST_FIELD = "unnest";
+    static final String UNNEST_FIELD = "unnest";
 
     private final String cteAlias;
 

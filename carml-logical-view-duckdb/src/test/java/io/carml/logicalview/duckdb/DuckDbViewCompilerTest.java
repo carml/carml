@@ -1051,12 +1051,23 @@ class DuckDbViewCompilerTest {
         }
 
         @Test
-        void compile_multiValuedExpressionFieldWithFilter_throwsUnsupported() {
+        void compile_multiValuedExpressionFieldWithFilter_producesFilteredUnnest() {
             var view = createJsonView(
                     "data.json", "$.people[*]", Set.of(expressionField("item", "$.items[?(@.active==true)]")));
             var context = EvaluationContext.defaults();
 
-            assertThrows(UnsupportedOperationException.class, () -> DuckDbViewCompiler.compile(view, context));
+            var sql = DuckDbViewCompiler.compile(view, context);
+
+            // The UNNEST should use the normalized basePath ($.items[*]), not the raw filter path
+            assertThat(sql, containsString("unnest(json_extract(\"view_source\".\"__iter\", '$.items[*]'))"));
+            // A WHERE clause should apply the filter condition on the "unnest" column
+            assertThat(sql, containsString("WHERE"));
+            assertThat(sql, containsString("cast(json_extract_string(\"unnest\", '$.active') as boolean) = true"));
+            // Ordinals should be recomputed after filtering
+            assertThat(sql, containsString("row_number() over()"));
+            // Value extraction and ordinal projection should still work
+            assertThat(sql, containsString("json_extract_string(\"item\".\"unnest\", '$') \"item\""));
+            assertThat(sql, containsString("\"item\".\"__ord\" \"item.#\""));
         }
     }
 
