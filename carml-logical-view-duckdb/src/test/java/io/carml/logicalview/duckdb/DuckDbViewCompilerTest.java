@@ -326,6 +326,20 @@ class DuckDbViewCompilerTest {
 
             assertThat(sql, containsString("(SELECT * FROM orders)"));
         }
+
+        @Test
+        void compile_sqlSource_producesTypeofTypeCompanion() {
+            var view = createSqlViewWithQuery(
+                    "SELECT id, name FROM users", Set.of(expressionField("id", "id"), expressionField("name", "name")));
+            var context = EvaluationContext.defaults();
+
+            var sql = DuckDbViewCompiler.compile(view, context);
+
+            // SQL sources should use typeof() for type companions, not CAST(NULL AS VARCHAR)
+            assertThat(sql, containsString("typeof(\"view_source\".\"id\") \"id.__type\""));
+            assertThat(sql, containsString("typeof(\"view_source\".\"name\") \"name.__type\""));
+            assertThat(sql, not(containsString("cast(null as varchar)")));
+        }
     }
 
     // --- Column projection tests ---

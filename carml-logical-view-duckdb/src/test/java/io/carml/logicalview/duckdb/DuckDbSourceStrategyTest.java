@@ -29,7 +29,8 @@ class DuckDbSourceStrategyTest {
     @Nested
     class ColumnStrategyTests {
 
-        private final ColumnSourceStrategy strategy = new ColumnSourceStrategy(CTE_ALIAS, false);
+        private final ColumnSourceStrategy strategy =
+                new ColumnSourceStrategy(CTE_ALIAS, ColumnSourceStrategy.TypeCompanionMode.NONE);
 
         @Test
         void isMultiValuedReference_alwaysReturnsFalse() {
@@ -94,8 +95,9 @@ class DuckDbSourceStrategyTest {
         }
 
         @Test
-        void compileFieldTypeReference_withTypeCompanions_producesColumnProjection() {
-            var viewOnViewStrategy = new ColumnSourceStrategy(CTE_ALIAS, true);
+        void compileFieldTypeReference_withInnerViewMode_producesColumnProjection() {
+            var viewOnViewStrategy =
+                    new ColumnSourceStrategy(CTE_ALIAS, ColumnSourceStrategy.TypeCompanionMode.INNER_VIEW);
             var result = viewOnViewStrategy.compileFieldTypeReference("name", DSL.quotedName("name.__type"));
             var sql = CTX.select(result).getSQL();
             assertThat(sql, containsString("\"view_source\".\"name.__type\" \"name.__type\""));
@@ -109,12 +111,30 @@ class DuckDbSourceStrategyTest {
         }
 
         @Test
-        void compileNestedFieldTypeReference_withTypeCompanions_producesColumnProjection() {
-            var viewOnViewStrategy = new ColumnSourceStrategy(CTE_ALIAS, true);
+        void compileNestedFieldTypeReference_withInnerViewMode_producesColumnProjection() {
+            var viewOnViewStrategy =
+                    new ColumnSourceStrategy(CTE_ALIAS, ColumnSourceStrategy.TypeCompanionMode.INNER_VIEW);
             var result = viewOnViewStrategy.compileNestedFieldTypeReference(
                     "item", "type", DSL.quotedName("item.type.__type"));
             var sql = CTX.select(result).getSQL();
             assertThat(sql, containsString("\"item\".\"type.__type\" \"item.type.__type\""));
+        }
+
+        @Test
+        void compileFieldTypeReference_sqlTypeof_producesTypeofExpression() {
+            var sqlStrategy = new ColumnSourceStrategy(CTE_ALIAS, ColumnSourceStrategy.TypeCompanionMode.SQL_TYPEOF);
+            var result = sqlStrategy.compileFieldTypeReference("age", DSL.quotedName("age.__type"));
+            var sql = CTX.select(result).getSQL();
+            assertThat(sql, containsString("typeof(\"view_source\".\"age\") \"age.__type\""));
+        }
+
+        @Test
+        void compileNestedFieldTypeReference_sqlTypeof_producesTypeofExpression() {
+            var sqlStrategy = new ColumnSourceStrategy(CTE_ALIAS, ColumnSourceStrategy.TypeCompanionMode.SQL_TYPEOF);
+            var result =
+                    sqlStrategy.compileNestedFieldTypeReference("item", "price", DSL.quotedName("item.price.__type"));
+            var sql = CTX.select(result).getSQL();
+            assertThat(sql, containsString("typeof(\"item\".\"price\") \"item.price.__type\""));
         }
     }
 

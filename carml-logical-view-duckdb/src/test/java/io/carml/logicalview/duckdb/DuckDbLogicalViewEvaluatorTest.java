@@ -721,6 +721,203 @@ class DuckDbLogicalViewEvaluatorTest {
         }
     }
 
+    // --- SQL source type inference tests ---
+
+    @Nested
+    class SqlSourceTypeInference {
+
+        @Test
+        void evaluate_sqlSourceWithIntegerColumn_producesIntegerNaturalDatatype() throws SQLException {
+            try (var stmt = connection.createStatement()) {
+                stmt.execute("CREATE OR REPLACE TABLE test_int AS SELECT 42 AS value");
+            }
+
+            var view = createSqlView("SELECT value FROM test_int", Set.of(expressionField("value", "value")));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(evaluator.evaluate(view, source -> null, context))
+                    .assertNext(iteration -> {
+                        assertThat(iteration.getValue("value"), is(Optional.of(42)));
+                        assertThat(iteration.getNaturalDatatype("value"), is(Optional.of(XSD.INTEGER)));
+                    })
+                    .verifyComplete();
+        }
+
+        @Test
+        void evaluate_sqlSourceWithBooleanColumn_producesBooleanNaturalDatatype() throws SQLException {
+            try (var stmt = connection.createStatement()) {
+                stmt.execute("CREATE OR REPLACE TABLE test_bool AS SELECT true AS flag");
+            }
+
+            var view = createSqlView("SELECT flag FROM test_bool", Set.of(expressionField("flag", "flag")));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(evaluator.evaluate(view, source -> null, context))
+                    .assertNext(
+                            iteration -> assertThat(iteration.getNaturalDatatype("flag"), is(Optional.of(XSD.BOOLEAN))))
+                    .verifyComplete();
+        }
+
+        @Test
+        void evaluate_sqlSourceWithDateColumn_producesDateNaturalDatatype() throws SQLException {
+            try (var stmt = connection.createStatement()) {
+                stmt.execute("CREATE OR REPLACE TABLE test_date AS SELECT DATE '2023-06-15' AS d");
+            }
+
+            var view = createSqlView("SELECT d FROM test_date", Set.of(expressionField("d", "d")));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(evaluator.evaluate(view, source -> null, context))
+                    .assertNext(iteration -> assertThat(iteration.getNaturalDatatype("d"), is(Optional.of(XSD.DATE))))
+                    .verifyComplete();
+        }
+
+        @Test
+        void evaluate_sqlSourceWithTimestampColumn_producesDateTimeNaturalDatatype() throws SQLException {
+            try (var stmt = connection.createStatement()) {
+                stmt.execute("CREATE OR REPLACE TABLE test_ts AS SELECT TIMESTAMP '2009-10-10 12:12:22' AS ts");
+            }
+
+            var view = createSqlView("SELECT ts FROM test_ts", Set.of(expressionField("ts", "ts")));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(evaluator.evaluate(view, source -> null, context))
+                    .assertNext(
+                            iteration -> assertThat(iteration.getNaturalDatatype("ts"), is(Optional.of(XSD.DATETIME))))
+                    .verifyComplete();
+        }
+
+        @Test
+        void evaluate_sqlSourceWithDecimalColumn_producesDecimalNaturalDatatype() throws SQLException {
+            try (var stmt = connection.createStatement()) {
+                stmt.execute("CREATE OR REPLACE TABLE test_dec AS SELECT CAST(3.14 AS DECIMAL(10,2)) AS amount");
+            }
+
+            var view = createSqlView("SELECT amount FROM test_dec", Set.of(expressionField("amount", "amount")));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(evaluator.evaluate(view, source -> null, context))
+                    .assertNext(iteration ->
+                            assertThat(iteration.getNaturalDatatype("amount"), is(Optional.of(XSD.DECIMAL))))
+                    .verifyComplete();
+        }
+
+        @Test
+        void evaluate_sqlSourceWithDoubleColumn_producesDoubleNaturalDatatype() throws SQLException {
+            try (var stmt = connection.createStatement()) {
+                stmt.execute("CREATE OR REPLACE TABLE test_dbl AS SELECT CAST(2.718 AS DOUBLE) AS ratio");
+            }
+
+            var view = createSqlView("SELECT ratio FROM test_dbl", Set.of(expressionField("ratio", "ratio")));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(evaluator.evaluate(view, source -> null, context))
+                    .assertNext(
+                            iteration -> assertThat(iteration.getNaturalDatatype("ratio"), is(Optional.of(XSD.DOUBLE))))
+                    .verifyComplete();
+        }
+
+        @Test
+        void evaluate_sqlSourceWithVarcharColumn_producesNoNaturalDatatype() throws SQLException {
+            try (var stmt = connection.createStatement()) {
+                stmt.execute("CREATE OR REPLACE TABLE test_vc AS SELECT 'hello' AS name");
+            }
+
+            var view = createSqlView("SELECT name FROM test_vc", Set.of(expressionField("name", "name")));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(evaluator.evaluate(view, source -> null, context))
+                    .assertNext(iteration -> assertThat(iteration.getNaturalDatatype("name"), is(Optional.empty())))
+                    .verifyComplete();
+        }
+
+        @Test
+        void evaluate_sqlSourceWithTimeColumn_producesTimeNaturalDatatype() throws SQLException {
+            try (var stmt = connection.createStatement()) {
+                stmt.execute("CREATE OR REPLACE TABLE test_time AS SELECT TIME '14:30:00' AS t");
+            }
+
+            var view = createSqlView("SELECT t FROM test_time", Set.of(expressionField("t", "t")));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(evaluator.evaluate(view, source -> null, context))
+                    .assertNext(iteration -> assertThat(iteration.getNaturalDatatype("t"), is(Optional.of(XSD.TIME))))
+                    .verifyComplete();
+        }
+
+        @Test
+        void evaluate_sqlSourceWithFloatColumn_producesDoubleNaturalDatatype() throws SQLException {
+            try (var stmt = connection.createStatement()) {
+                stmt.execute("CREATE OR REPLACE TABLE test_flt AS SELECT CAST(3.14 AS FLOAT) AS val");
+            }
+
+            var view = createSqlView("SELECT val FROM test_flt", Set.of(expressionField("val", "val")));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(evaluator.evaluate(view, source -> null, context))
+                    .assertNext(
+                            iteration -> assertThat(iteration.getNaturalDatatype("val"), is(Optional.of(XSD.DOUBLE))))
+                    .verifyComplete();
+        }
+
+        @Test
+        void evaluate_sqlSourceWithTimestampTzColumn_producesDateTimeNaturalDatatype() throws SQLException {
+            try (var stmt = connection.createStatement()) {
+                stmt.execute("CREATE OR REPLACE TABLE test_tstz AS SELECT TIMESTAMPTZ '2023-01-01 12:00:00+00' AS ts");
+            }
+
+            var view = createSqlView("SELECT ts FROM test_tstz", Set.of(expressionField("ts", "ts")));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(evaluator.evaluate(view, source -> null, context))
+                    .assertNext(
+                            iteration -> assertThat(iteration.getNaturalDatatype("ts"), is(Optional.of(XSD.DATETIME))))
+                    .verifyComplete();
+        }
+
+        @Test
+        void evaluate_sqlSourceWithMixedColumns_producesCorrectDatatypes() throws SQLException {
+            try (var stmt = connection.createStatement()) {
+                stmt.execute("CREATE OR REPLACE TABLE test_mixed ("
+                        + "id INTEGER, name VARCHAR, active BOOLEAN, score DOUBLE, created DATE)");
+                stmt.execute("INSERT INTO test_mixed VALUES (1, 'Alice', true, 95.5, DATE '2024-01-15')");
+            }
+
+            var view = createSqlView(
+                    "SELECT id, name, active, score, created FROM test_mixed",
+                    Set.of(
+                            expressionField("id", "id"),
+                            expressionField("name", "name"),
+                            expressionField("active", "active"),
+                            expressionField("score", "score"),
+                            expressionField("created", "created")));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(evaluator.evaluate(view, source -> null, context))
+                    .assertNext(iteration -> {
+                        assertThat(iteration.getNaturalDatatype("id"), is(Optional.of(XSD.INTEGER)));
+                        assertThat(iteration.getNaturalDatatype("name"), is(Optional.empty()));
+                        assertThat(iteration.getNaturalDatatype("active"), is(Optional.of(XSD.BOOLEAN)));
+                        assertThat(iteration.getNaturalDatatype("score"), is(Optional.of(XSD.DOUBLE)));
+                        assertThat(iteration.getNaturalDatatype("created"), is(Optional.of(XSD.DATE)));
+                        // Index always has xsd:integer
+                        assertThat(iteration.getNaturalDatatype("#"), is(Optional.of(XSD.INTEGER)));
+                    })
+                    .verifyComplete();
+        }
+    }
+
     // --- Helper methods ---
 
     private static ExpressionField expressionField(String fieldName, String reference) {
@@ -767,6 +964,24 @@ class DuckDbLogicalViewEvaluatorTest {
 
     private static LogicalView createCsvView(String filePath, Set<ExpressionField> fields) {
         return createViewWithRefFormulation(Rdf.Ql.Csv, filePath, null, fields);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static LogicalView createSqlView(String query, Set<ExpressionField> fields) {
+        var refFormulation = mock(ReferenceFormulation.class);
+        lenient().when(refFormulation.getAsResource()).thenReturn(Rdf.Ql.Rdb);
+
+        var logicalSource = mock(LogicalSource.class);
+        lenient().when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
+        lenient().when(logicalSource.getQuery()).thenReturn(query);
+
+        var view = mock(LogicalView.class);
+        lenient().when(view.getViewOn()).thenReturn(logicalSource);
+        lenient().when(view.getFields()).thenReturn((Set<Field>) (Set<?>) fields);
+        lenient().when(view.getResourceName()).thenReturn("testView");
+        lenient().when(view.getStructuralAnnotations()).thenReturn(Set.of());
+
+        return view;
     }
 
     @SuppressWarnings("unchecked")

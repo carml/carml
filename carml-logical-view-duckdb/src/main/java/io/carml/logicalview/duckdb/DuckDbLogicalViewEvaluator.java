@@ -49,15 +49,39 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
     private static final String ORDINAL_SUFFIX = ".#";
 
     /**
-     * Maps DuckDB {@code json_type()} return values to XSD datatype IRIs. Only numeric and boolean
-     * JSON types have natural RDF datatypes; string, null, array, and object types do not.
+     * Maps DuckDB type strings to XSD datatype IRIs. This covers both {@code json_type()} return
+     * values (e.g. {@code "BIGINT"}, {@code "DOUBLE"}) and {@code typeof()} return values for SQL
+     * column types (e.g. {@code "INTEGER"}, {@code "FLOAT"}, {@code "DATE"}).
+     *
+     * <p>Types not in this map (e.g. {@code "VARCHAR"}, {@code "NULL"}, {@code "JSON"}) have no
+     * natural RDF datatype. Parameterized types like {@code "DECIMAL(18,3)"} and
+     * {@code "TIMESTAMP WITH TIME ZONE"} are handled via prefix matching in
+     * {@link #resolveXsdType(String)}.
      */
-    private static final Map<String, IRI> JSON_TYPE_TO_XSD = Map.of(
-            "BIGINT", XSD.INTEGER,
-            "UBIGINT", XSD.INTEGER,
-            "HUGEINT", XSD.INTEGER,
-            "DOUBLE", XSD.DOUBLE,
-            "BOOLEAN", XSD.BOOLEAN);
+    private static final Map<String, IRI> DUCKDB_TYPE_TO_XSD = Map.ofEntries(
+            // JSON integer types (from json_type())
+            Map.entry("BIGINT", XSD.INTEGER),
+            Map.entry("UBIGINT", XSD.INTEGER),
+            Map.entry("HUGEINT", XSD.INTEGER),
+            Map.entry("UHUGEINT", XSD.INTEGER),
+            // SQL integer types (from typeof())
+            Map.entry("INTEGER", XSD.INTEGER),
+            Map.entry("SMALLINT", XSD.INTEGER),
+            Map.entry("TINYINT", XSD.INTEGER),
+            Map.entry("UINTEGER", XSD.INTEGER),
+            Map.entry("USMALLINT", XSD.INTEGER),
+            Map.entry("UTINYINT", XSD.INTEGER),
+            // Float/Double types
+            Map.entry("DOUBLE", XSD.DOUBLE),
+            Map.entry("FLOAT", XSD.DOUBLE),
+            // Boolean
+            Map.entry("BOOLEAN", XSD.BOOLEAN),
+            // Date/Time types
+            Map.entry("DATE", XSD.DATE),
+            Map.entry("TIME", XSD.TIME),
+            Map.entry("TIMESTAMP", XSD.DATETIME),
+            // Binary
+            Map.entry("BLOB", XSD.HEXBINARY));
 
     private final Connection connection;
 
@@ -153,9 +177,9 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
 
         // Map type companion columns to XSD datatypes
         for (var typeCol : columns.typeNames) {
-            var jsonType = resultSet.getString(typeCol);
-            if (jsonType != null) {
-                var xsdType = JSON_TYPE_TO_XSD.get(jsonType);
+            var duckDbType = resultSet.getString(typeCol);
+            if (duckDbType != null) {
+                var xsdType = resolveXsdType(duckDbType);
                 if (xsdType != null) {
                     // Strip the TYPE_SUFFIX to get the field name this type applies to
                     var fieldName = typeCol.substring(0, typeCol.length() - DuckDbSourceStrategy.TYPE_SUFFIX.length());
@@ -165,6 +189,32 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
         }
 
         return naturalDatatypes;
+    }
+
+    /**
+     * Resolves a DuckDB type string to an XSD datatype IRI. First attempts an exact match in the
+     * type map. If no exact match is found, falls back to prefix matching for parameterized types
+     * such as {@code "DECIMAL(18,3)"} and {@code "TIMESTAMP WITH TIME ZONE"}.
+     *
+     * @param duckDbType the type string from DuckDB's {@code json_type()} or {@code typeof()}
+     * @return the corresponding XSD IRI, or {@code null} if no mapping exists
+     */
+    private static IRI resolveXsdType(String duckDbType) {
+        var xsdType = DUCKDB_TYPE_TO_XSD.get(duckDbType);
+        if (xsdType != null) {
+            return xsdType;
+        }
+        if (duckDbType.startsWith("DECIMAL")) {
+            return XSD.DECIMAL;
+        }
+        if (duckDbType.startsWith("TIMESTAMP")) {
+            return XSD.DATETIME;
+        }
+        // TIME WITH TIME ZONE — must come after TIMESTAMP check to avoid false match
+        if (duckDbType.startsWith("TIME")) {
+            return XSD.TIME;
+        }
+        return null;
     }
 
     private record ColumnDescriptor(List<String> valueNames, List<String> typeNames, int idxColumn) {}

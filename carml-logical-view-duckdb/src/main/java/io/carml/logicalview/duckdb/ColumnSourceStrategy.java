@@ -9,6 +9,7 @@ import org.jooq.Field;
 import org.jooq.Name;
 import org.jooq.SelectField;
 import org.jooq.Table;
+import org.jooq.impl.DSL;
 
 /**
  * Source strategy for column-based sources where field references map directly to table columns.
@@ -16,12 +17,29 @@ import org.jooq.Table;
  * <p>All field references are compiled as direct column references qualified by the CTE alias.
  *
  * @param cteAlias the alias of the CTE containing the source data
- * @param hasTypeCompanions {@code true} if the upstream source produces {@code .__type} companion
- *     columns (e.g. from a compiled inner view). When {@code false} (e.g. CSV, SQL, or
- *     {@code read_json_auto} sources), type companions are compiled as {@code CAST(NULL AS
- *     VARCHAR)}.
+ * @param typeCompanionMode controls how type companion columns are compiled:
+ *     <ul>
+ *       <li>{@link TypeCompanionMode#NONE} — CSV and {@code read_json_auto}: no type info, compiles
+ *           as {@code CAST(NULL AS VARCHAR)}
+ *       <li>{@link TypeCompanionMode#SQL_TYPEOF} — SQL sources: compiles as {@code typeof("cte"."column")}
+ *           to capture the static column type
+ *       <li>{@link TypeCompanionMode#INNER_VIEW} — view-on-view: projects the inner view's
+ *           {@code .__type} companion column
+ *     </ul>
  */
-record ColumnSourceStrategy(String cteAlias, boolean hasTypeCompanions) implements DuckDbSourceStrategy {
+record ColumnSourceStrategy(String cteAlias, TypeCompanionMode typeCompanionMode) implements DuckDbSourceStrategy {
+
+    /**
+     * Controls how type companion columns are compiled for column-based sources.
+     */
+    enum TypeCompanionMode {
+        /** No type information available (CSV, {@code read_json_auto}). */
+        NONE,
+        /** SQL sources: use DuckDB {@code typeof()} to capture static column types. */
+        SQL_TYPEOF,
+        /** View-on-view: project the inner view's existing {@code .__type} companion column. */
+        INNER_VIEW
+    }
 
     @Override
     public boolean isMultiValuedReference(String reference) {
@@ -57,20 +75,25 @@ record ColumnSourceStrategy(String cteAlias, boolean hasTypeCompanions) implemen
 
     @Override
     public SelectField<?> compileFieldTypeReference(String reference, Name typeAlias) {
-        if (hasTypeCompanions) {
-            // View-on-view: project the type companion from the inner compiled view
-            return field(quotedName(cteAlias, reference + TYPE_SUFFIX)).as(typeAlias);
-        }
-        // CSV/SQL/read_json_auto: no JSON type info available
-        return castNull(String.class).as(typeAlias);
+        return switch (typeCompanionMode) {
+            case INNER_VIEW ->
+                field(quotedName(cteAlias, reference + TYPE_SUFFIX)).as(typeAlias);
+            case SQL_TYPEOF ->
+                DSL.field("typeof({0})", field(quotedName(cteAlias, reference))).as(typeAlias);
+            case NONE -> castNull(String.class).as(typeAlias);
+        };
     }
 
     @Override
     public SelectField<?> compileNestedFieldTypeReference(String unnestAlias, String reference, Name typeAlias) {
-        if (hasTypeCompanions) {
-            return field(quotedName(unnestAlias, reference + TYPE_SUFFIX)).as(typeAlias);
-        }
-        return castNull(String.class).as(typeAlias);
+        return switch (typeCompanionMode) {
+            case INNER_VIEW ->
+                field(quotedName(unnestAlias, reference + TYPE_SUFFIX)).as(typeAlias);
+            case SQL_TYPEOF ->
+                DSL.field("typeof({0})", field(quotedName(unnestAlias, reference)))
+                        .as(typeAlias);
+            case NONE -> castNull(String.class).as(typeAlias);
+        };
     }
 
     @Override

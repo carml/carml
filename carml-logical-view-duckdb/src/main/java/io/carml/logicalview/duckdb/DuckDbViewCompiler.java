@@ -160,7 +160,7 @@ public final class DuckDbViewCompiler {
             // ColumnSourceStrategy is used because the inner view exposes named columns.
             var innerSql = compile(innerView, EvaluationContext.defaults());
             sourceTable = "(%s)".formatted(innerSql);
-            strategy = new ColumnSourceStrategy(CTE_ALIAS, true);
+            strategy = new ColumnSourceStrategy(CTE_ALIAS, ColumnSourceStrategy.TypeCompanionMode.INNER_VIEW);
         } else if (viewOn instanceof LogicalSource logicalSource) {
             var compiledSource = compileSourceClause(logicalSource, view);
             strategy = compiledSource.strategy();

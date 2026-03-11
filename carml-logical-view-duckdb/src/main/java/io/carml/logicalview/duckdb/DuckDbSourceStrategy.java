@@ -80,9 +80,9 @@ sealed interface DuckDbSourceStrategy permits ColumnSourceStrategy, JsonIterator
     Table<?> compileUnnestTable(String iterator, String parentAlias, boolean isRootLevel, String absoluteName);
 
     /**
-     * Compiles a type companion for a top-level field reference. Returns a {@code json_type()}
-     * expression for JSON sources, or a {@code CAST(NULL AS VARCHAR)} expression for column-based
-     * sources that have no JSON type information.
+     * Compiles a type companion for a top-level field reference. The result depends on the strategy:
+     * {@code json_type()} for JSON sources, {@code typeof()} for SQL sources, {@code CAST(NULL AS
+     * VARCHAR)} for CSV sources, or a column projection for view-on-view sources.
      *
      * @param reference the source reference expression
      * @param typeAlias the alias for the type companion column
@@ -91,7 +91,8 @@ sealed interface DuckDbSourceStrategy permits ColumnSourceStrategy, JsonIterator
     SelectField<?> compileFieldTypeReference(String reference, Name typeAlias);
 
     /**
-     * Compiles a type companion for a nested field reference within an UNNEST table.
+     * Compiles a type companion for a nested field reference within an UNNEST table. Follows the
+     * same strategy-dependent behavior as {@link #compileFieldTypeReference}.
      *
      * @param unnestAlias the alias of the UNNEST table
      * @param reference the nested field reference
