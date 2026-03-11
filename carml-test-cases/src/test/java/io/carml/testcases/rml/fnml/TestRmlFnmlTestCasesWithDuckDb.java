@@ -4,8 +4,9 @@ import static org.eclipse.rdf4j.model.util.Values.iri;
 
 import io.carml.engine.rdf.RdfRmlMapper;
 import io.carml.logicalsourceresolver.sourceresolver.ClassPathResolver;
-import io.carml.logicalview.DefaultLogicalViewEvaluatorFactory;
+import io.carml.logicalview.duckdb.DuckDbLogicalViewEvaluatorFactory;
 import io.carml.testcases.model.TestCase;
+import io.carml.testcases.rml.DuckDbTestCaseSuite;
 import io.carml.testcases.rml.RmlTestCaseSuite;
 import io.carml.util.RmlMappingLoader;
 import java.io.InputStream;
@@ -17,7 +18,7 @@ import org.eclipse.rdf4j.model.impl.ValidatingValueFactory;
 import org.eclipse.rdf4j.model.util.ModelCollector;
 import org.eclipse.rdf4j.rio.RDFFormat;
 
-class TestRmlFnmlTestCases extends RmlTestCaseSuite {
+class TestRmlFnmlTestCasesWithDuckDb extends DuckDbTestCaseSuite {
 
     @Override
     protected String getBasePath() {
@@ -32,35 +33,31 @@ class TestRmlFnmlTestCases extends RmlTestCaseSuite {
     @Override
     protected List<String> getSkipTests() {
         return List.of(
-                // Test case bug: idlab-fn:random: no implementation available; non-deterministic output
+                // Test case bug: idlab-fn:random
                 "RMLFNMLTC0001",
-                // Test case bug: TC0011 and TC0031 expect IRI scheme normalization to lowercase (http://VENUS,
-                // http://WWW.EXAMPLE.COM) while TC0003 and TC0061 expect the uppercase scheme
-                // produced by toUpperCaseURL to be preserved (HTTP://EXAMPLE.COM/VENUS). The test
-                // suite expectations are contradictory; consistent behavior cannot satisfy both.
+                // Test case bugs: contradictory IRI scheme normalization expectations
                 "RMLFNMLTC0011",
                 "RMLFNMLTC0031",
-                // Test case bug: Bug in external functions_idlab.ttl: the parameter resource IRI is
-                // idlab-fn:_str but the test case mappings reference idlab-fn:str (the
-                // fno:predicate value). Per the RML-FNML spec, rml:parameter should reference
-                // the fno:Parameter resource IRI, not the fno:predicate value.
+                // Test case bug: parameter resource IRI mismatch
                 "RMLFNMLTC0003",
                 "RMLFNMLTC0061",
-                // Test ase bug: Missing GREL function descriptions: the official functions.ttl only defines
-                // grel:toUpperCase and grel:string_replace. The grel-functions-java JAR provides
-                // Java implementation bindings but no fno:Function descriptions with parameter
-                // definitions for grel:length, grel:string_substring, and grel:escape.
+                // Test case bug: missing GREL function descriptions
                 "RMLFNMLTC0004",
                 "RMLFNMLTC0007",
                 "RMLFNMLTC0021",
-                "RMLFNMLTC0081");
+                "RMLFNMLTC0081",
+                // DuckDB error handling: CSV column name matching is case-insensitive, so referencing
+                // lowercase "name" succeeds against uppercase "Name" column instead of producing an error
+                "RMLFNMLTC0101");
     }
 
     @Override
     protected Model executeMapping(TestCase testCase, String testCaseIdentifier) {
+        var evaluatorFactory = new DuckDbLogicalViewEvaluatorFactory(getConnection());
+
         var mapperBuilder = RdfRmlMapper.builder()
                 .valueFactorySupplier(ValidatingValueFactory::new)
-                .logicalViewEvaluatorFactory(new DefaultLogicalViewEvaluatorFactory())
+                .logicalViewEvaluatorFactory(evaluatorFactory)
                 .addFunctionDescriptions(requireResource("/grel_java_mapping.ttl"), RDFFormat.TURTLE)
                 .addFunctionDescriptions(requireResource("/rml/fnml/test-cases/functions.ttl"), RDFFormat.TURTLE)
                 .addFunctionDescriptions(requireResource("/fno/functions_idlab.ttl"), RDFFormat.TURTLE)
@@ -82,7 +79,7 @@ class TestRmlFnmlTestCases extends RmlTestCaseSuite {
     }
 
     private static InputStream requireResource(String path) {
-        var stream = TestRmlFnmlTestCases.class.getResourceAsStream(path);
+        var stream = TestRmlFnmlTestCasesWithDuckDb.class.getResourceAsStream(path);
         if (stream == null) {
             throw new IllegalStateException("Required classpath resource not found: %s".formatted(path));
         }

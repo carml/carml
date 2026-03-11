@@ -2,6 +2,7 @@ package io.carml.testcases.rml.ioregistry;
 
 import io.carml.engine.rdf.RdfRmlMapper;
 import io.carml.logicalsourceresolver.sourceresolver.ClassPathResolver;
+import io.carml.logicalview.DefaultLogicalViewEvaluatorFactory;
 import io.carml.testcases.model.TestCase;
 import io.carml.testcases.rml.RmlTestCaseSuite;
 import io.carml.util.RmlMappingLoader;
@@ -76,6 +77,7 @@ class TestRmlIoRegistryTestCases extends RmlTestCaseSuite {
 
         var mapper = RdfRmlMapper.builder()
                 .valueFactorySupplier(ValidatingValueFactory::new)
+                .logicalViewEvaluatorFactory(new DefaultLogicalViewEvaluatorFactory())
                 .triplesMaps(mapping)
                 .classPathResolver(ClassPathResolver.of(
                         "%s/%s".formatted(getBasePath(), testCase.getIdentifier()), RmlTestCaseSuite.class))

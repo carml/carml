@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.carml.engine.rdf.RdfRmlMapper;
 import io.carml.logicalsourceresolver.sourceresolver.ClassPathResolver;
+import io.carml.logicalview.DefaultLogicalViewEvaluatorFactory;
 import io.carml.model.TriplesMap;
 import io.carml.rdfmapper.util.RdfObjectLoader;
 import io.carml.testcases.model.TestCase;
@@ -108,7 +109,9 @@ public abstract class RmlTestCaseSuite {
     }
 
     protected Model executeMapping(TestCase testCase, String testCaseIdentifier) {
-        var mapperBuilder = RdfRmlMapper.builder().valueFactorySupplier(ValidatingValueFactory::new);
+        var mapperBuilder = RdfRmlMapper.builder()
+                .valueFactorySupplier(ValidatingValueFactory::new)
+                .logicalViewEvaluatorFactory(new DefaultLogicalViewEvaluatorFactory());
         Optional.ofNullable(testCase.getDefaultBaseIri()).or(this::getBaseIri).ifPresent(mapperBuilder::baseIri);
 
         var mappingStream =
