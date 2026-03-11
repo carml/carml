@@ -26,6 +26,7 @@ import io.carml.model.Template;
 import io.carml.model.UniqueAnnotation;
 import io.carml.model.impl.CarmlTemplate;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -78,6 +79,13 @@ public final class DuckDbViewCompiler {
     private static final DSLContext CTX = DSL.using(SQLDialect.DUCKDB);
 
     /**
+     * Tracks views currently being compiled on the current thread. Used to detect cycles in
+     * view-on-view composition (e.g., view1 -> view2 -> view1). Each recursive {@link #compile}
+     * call adds the view to this set; it is removed when compilation completes.
+     */
+    private static final ThreadLocal<Set<LogicalView>> COMPILING_VIEWS = ThreadLocal.withInitial(HashSet::new);
+
+    /**
      * Cached class reference for the none dedup strategy, used to detect whether deduplication
      * should be applied. The concrete class is package-private in {@code io.carml.logicalview},
      * so we resolve it once via the public factory method.
@@ -121,22 +129,47 @@ public final class DuckDbViewCompiler {
      *     structure cannot be compiled
      */
     public static String compile(LogicalView view, EvaluationContext context) {
-        var viewOn = view.getViewOn();
-
-        if (viewOn instanceof LogicalView) {
-            // TODO: Task 5.3+ — support view-on-view (nested CTE composition)
-            throw new UnsupportedOperationException(
-                    "View-on-view compilation is not yet supported. The viewOn target must be a LogicalSource.");
+        var compilingViews = COMPILING_VIEWS.get();
+        var isOutermostCall = compilingViews.isEmpty();
+        if (!compilingViews.add(view)) {
+            throw new IllegalArgumentException(
+                    "Cycle detected in view-on-view composition: view [%s] is already being compiled"
+                            .formatted(view.getResourceName()));
         }
 
-        if (!(viewOn instanceof LogicalSource logicalSource)) {
+        try {
+            return doCompile(view, context);
+        } finally {
+            compilingViews.remove(view);
+            if (isOutermostCall) {
+                COMPILING_VIEWS.remove();
+            }
+        }
+    }
+
+    private static String doCompile(LogicalView view, EvaluationContext context) {
+        var viewOn = view.getViewOn();
+
+        DuckDbSourceStrategy strategy;
+        String sourceTable;
+
+        if (viewOn instanceof LogicalView innerView) {
+            // Recursively compile the inner view and wrap its SQL as a subquery.
+            // The inner view produces a complete CTE query (WITH ... SELECT ...),
+            // so it must be parenthesized to be used as a derived table in FROM.
+            // ColumnSourceStrategy is used because the inner view exposes named columns.
+            var innerSql = compile(innerView, EvaluationContext.defaults());
+            sourceTable = "(%s)".formatted(innerSql);
+            strategy = new ColumnSourceStrategy(CTE_ALIAS);
+        } else if (viewOn instanceof LogicalSource logicalSource) {
+            var compiledSource = compileSourceClause(logicalSource, view);
+            strategy = compiledSource.strategy();
+            sourceTable = compiledSource.sourceSql();
+        } else {
             throw new IllegalArgumentException("Unsupported viewOn target type: %s"
                     .formatted(viewOn.getClass().getName()));
         }
 
-        var compiledSource = compileSourceClause(logicalSource, view);
-        var strategy = compiledSource.strategy();
-        var sourceTable = compiledSource.sourceSql();
         var expressionFields = resolveExpressionFields(view.getFields(), context.getProjectedFields(), strategy);
         var iterableUnnestDescriptors =
                 resolveUnnestDescriptors(view.getFields(), context.getProjectedFields(), strategy);

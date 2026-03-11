@@ -35,7 +35,6 @@ import org.junit.jupiter.api.BeforeAll;
  * <ul>
  *   <li>Mixed-formulation iterable fields — iterable fields with a different reference formulation
  *       than the parent source (e.g. CSV parent with JSONPath iterable)</li>
- *   <li>View-on-view — not yet supported by the DuckDB evaluator</li>
  *   <li>Type inference — {@code json_extract_string} returns VARCHAR; the evaluator does not cast
  *       to numeric types for typed literal generation</li>
  * </ul>
@@ -74,10 +73,7 @@ class TestRmlLvTestCasesWithDuckDb extends RmlTestCaseSuite {
                 // formulation
                 "RMLLVTC0007a",
                 "RMLLVTC0007b",
-                "RMLLVTC0007c",
-                // View-on-view — not yet supported
-                "RMLLVTC0000c",
-                "RMLLVTC0008a");
+                "RMLLVTC0007c");
     }
 
     @Override

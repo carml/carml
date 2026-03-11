@@ -499,17 +499,6 @@ class DuckDbViewCompilerTest {
     class ErrorHandling {
 
         @Test
-        void compile_viewOnView_throwsUnsupportedOperationException() {
-            var nestedView = mock(LogicalView.class);
-            var view = mock(LogicalView.class);
-            when(view.getViewOn()).thenReturn(nestedView);
-
-            var context = EvaluationContext.defaults();
-
-            assertThrows(UnsupportedOperationException.class, () -> DuckDbViewCompiler.compile(view, context));
-        }
-
-        @Test
         void compile_noReferenceFormulation_throwsIllegalArgumentException() {
             var logicalSource = mock(LogicalSource.class);
             when(logicalSource.getReferenceFormulation()).thenReturn(null);
@@ -1590,6 +1579,17 @@ class DuckDbViewCompilerTest {
         return (Set<Field>) (Set<?>) fields;
     }
 
+    @SuppressWarnings("unchecked")
+    private static LogicalView createViewOnView(LogicalView innerView, Set<ExpressionField> fields) {
+        var outerView = mock(LogicalView.class);
+        lenient().when(outerView.getViewOn()).thenReturn(innerView);
+        var fieldSet = (Set<Field>) (Set<?>) fields;
+        lenient().when(outerView.getFields()).thenReturn(fieldSet);
+        lenient().when(outerView.getResourceName()).thenReturn("outerView");
+        lenient().when(outerView.getStructuralAnnotations()).thenReturn(Set.of());
+        return outerView;
+    }
+
     // --- Annotation mock helpers ---
 
     private static PrimaryKeyAnnotation primaryKeyAnnotation(ExpressionField... fields) {
@@ -1638,6 +1638,89 @@ class DuckDbViewCompilerTest {
         lenient().when(view.getInnerJoins()).thenReturn(innerJoins);
         lenient().when(view.getStructuralAnnotations()).thenReturn(annotations);
         return view;
+    }
+
+    // --- View-on-view composition tests ---
+
+    @Nested
+    class ViewOnViewCompilation {
+
+        @Test
+        void compile_viewOnView_compilesInnerViewAsSubquery() {
+            // Inner view: JSON source with field "name" referencing "$.name"
+            var innerView = createJsonView("people.json", "$.people[*]", Set.of(expressionField("name", "$.name")));
+
+            // Outer view: references inner view's "name" column and renames it to "newName"
+            var outerView = createViewOnView(innerView, Set.of(expressionField("newName", "name")));
+            var context = EvaluationContext.defaults();
+
+            var sql = DuckDbViewCompiler.compile(outerView, context);
+
+            // The inner view's CTE query must be parenthesized as a derived table
+            assertThat(sql, containsString("(with "));
+            // The inner view's SQL should appear as a subquery within the outer query
+            assertThat(sql, containsString("read_text('people.json')"));
+            assertThat(sql, containsString("json_extract(content, '$.people[*]')"));
+            // The outer view should reference "name" as a column (via ColumnSourceStrategy)
+            assertThat(sql, containsString("\"view_source\".\"name\" \"newName\""));
+        }
+
+        @Test
+        void compile_viewOnView_usesColumnStrategyForOuterFields() {
+            // Inner view: JSON source with field "age" from JSON
+            var innerView = createJsonView("data.json", null, Set.of(expressionField("age", "age")));
+
+            // Outer view: references inner view's "age" column
+            var outerView = createViewOnView(innerView, Set.of(expressionField("person_age", "age")));
+            var context = EvaluationContext.defaults();
+
+            var sql = DuckDbViewCompiler.compile(outerView, context);
+
+            // ColumnSourceStrategy produces direct column references, not json_extract_string
+            assertThat(sql, containsString("\"view_source\".\"age\" \"person_age\""));
+            assertThat(sql, not(containsString("json_extract_string")));
+        }
+
+        @Test
+        void compile_viewOnViewCycle_throwsIllegalArgument() {
+            // Create expression fields before mocks to avoid UnfinishedStubbingException
+            var f1 = expressionField("f1", "f2");
+            var f2 = expressionField("f2", "f1");
+            var fields1 = castFieldSet(Set.of(f1));
+            var fields2 = castFieldSet(Set.of(f2));
+
+            // Create two views that reference each other
+            var view1 = mock(LogicalView.class);
+            var view2 = mock(LogicalView.class);
+
+            lenient().when(view1.getViewOn()).thenReturn(view2);
+            lenient().when(view1.getResourceName()).thenReturn("view1");
+            lenient().when(view1.getFields()).thenReturn(fields1);
+            lenient().when(view1.getStructuralAnnotations()).thenReturn(Set.of());
+
+            lenient().when(view2.getViewOn()).thenReturn(view1);
+            lenient().when(view2.getResourceName()).thenReturn("view2");
+            lenient().when(view2.getFields()).thenReturn(fields2);
+            lenient().when(view2.getStructuralAnnotations()).thenReturn(Set.of());
+
+            var context = EvaluationContext.defaults();
+
+            var ex = assertThrows(IllegalArgumentException.class, () -> DuckDbViewCompiler.compile(view1, context));
+            assertThat(ex.getMessage(), containsString("Cycle detected"));
+        }
+
+        @Test
+        void compile_threeLevelViewOnViewOnView_compilesCorrectly() {
+            var innermost = createJsonView("data.json", null, Set.of(expressionField("id", "id")));
+            var middle = createViewOnView(innermost, Set.of(expressionField("mid_id", "id")));
+            var outer = createViewOnView(middle, Set.of(expressionField("out_id", "mid_id")));
+
+            var sql = DuckDbViewCompiler.compile(outer, EvaluationContext.defaults());
+
+            // Two levels of subquery nesting
+            assertThat(sql, containsString("read_json_auto('data.json')"));
+            assertThat(sql, containsString("\"view_source\".\"mid_id\" \"out_id\""));
+        }
     }
 
     // --- Structural annotation optimization tests ---
