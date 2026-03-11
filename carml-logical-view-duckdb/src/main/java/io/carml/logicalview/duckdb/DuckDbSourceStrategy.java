@@ -25,6 +25,13 @@ sealed interface DuckDbSourceStrategy permits ColumnSourceStrategy, JsonIterator
     String ORDINAL_FIELD = "__ord";
 
     /**
+     * Suffix for type companion columns. Each reference-based expression field has a companion
+     * column with this suffix that carries the JSON type of the value (e.g., "BIGINT", "DOUBLE",
+     * "BOOLEAN", "VARCHAR"). Used by the evaluator to infer natural RDF datatypes.
+     */
+    String TYPE_SUFFIX = ".__type";
+
+    /**
      * Determines whether the given reference expression evaluates to multiple values. Multi-valued
      * references (e.g., JSONPath array wildcards like {@code $.items[*]}) produce multiple results
      * per source row and require UNNEST expansion rather than simple field extraction.
@@ -71,6 +78,27 @@ sealed interface DuckDbSourceStrategy permits ColumnSourceStrategy, JsonIterator
      * @return the jOOQ table expression
      */
     Table<?> compileUnnestTable(String iterator, String parentAlias, boolean isRootLevel, String absoluteName);
+
+    /**
+     * Compiles a type companion for a top-level field reference. Returns a {@code json_type()}
+     * expression for JSON sources, or a {@code CAST(NULL AS VARCHAR)} expression for column-based
+     * sources that have no JSON type information.
+     *
+     * @param reference the source reference expression
+     * @param typeAlias the alias for the type companion column
+     * @return the jOOQ select field expression
+     */
+    SelectField<?> compileFieldTypeReference(String reference, Name typeAlias);
+
+    /**
+     * Compiles a type companion for a nested field reference within an UNNEST table.
+     *
+     * @param unnestAlias the alias of the UNNEST table
+     * @param reference the nested field reference
+     * @param typeAlias the alias for the type companion column
+     * @return the jOOQ select field expression
+     */
+    SelectField<?> compileNestedFieldTypeReference(String unnestAlias, String reference, Name typeAlias);
 
     /**
      * Resolves a child-side join reference into a field expression.

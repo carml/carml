@@ -1,5 +1,6 @@
 package io.carml.logicalview.duckdb;
 
+import static org.jooq.impl.DSL.castNull;
 import static org.jooq.impl.DSL.field;
 import static org.jooq.impl.DSL.quotedName;
 import static org.jooq.impl.DSL.table;
@@ -13,8 +14,14 @@ import org.jooq.Table;
  * Source strategy for column-based sources where field references map directly to table columns.
  *
  * <p>All field references are compiled as direct column references qualified by the CTE alias.
+ *
+ * @param cteAlias the alias of the CTE containing the source data
+ * @param hasTypeCompanions {@code true} if the upstream source produces {@code .__type} companion
+ *     columns (e.g. from a compiled inner view). When {@code false} (e.g. CSV, SQL, or
+ *     {@code read_json_auto} sources), type companions are compiled as {@code CAST(NULL AS
+ *     VARCHAR)}.
  */
-record ColumnSourceStrategy(String cteAlias) implements DuckDbSourceStrategy {
+record ColumnSourceStrategy(String cteAlias, boolean hasTypeCompanions) implements DuckDbSourceStrategy {
 
     @Override
     public boolean isMultiValuedReference(String reference) {
@@ -46,6 +53,24 @@ record ColumnSourceStrategy(String cteAlias) implements DuckDbSourceStrategy {
                                 + "\")",
                         field(quotedName(parentAlias, iterator)))
                 .as(quotedName(absoluteName));
+    }
+
+    @Override
+    public SelectField<?> compileFieldTypeReference(String reference, Name typeAlias) {
+        if (hasTypeCompanions) {
+            // View-on-view: project the type companion from the inner compiled view
+            return field(quotedName(cteAlias, reference + TYPE_SUFFIX)).as(typeAlias);
+        }
+        // CSV/SQL/read_json_auto: no JSON type info available
+        return castNull(String.class).as(typeAlias);
+    }
+
+    @Override
+    public SelectField<?> compileNestedFieldTypeReference(String unnestAlias, String reference, Name typeAlias) {
+        if (hasTypeCompanions) {
+            return field(quotedName(unnestAlias, reference + TYPE_SUFFIX)).as(typeAlias);
+        }
+        return castNull(String.class).as(typeAlias);
     }
 
     @Override

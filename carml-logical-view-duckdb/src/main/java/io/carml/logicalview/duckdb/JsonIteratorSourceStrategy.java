@@ -129,6 +129,18 @@ final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
     }
 
     @Override
+    public SelectField<?> compileFieldTypeReference(String reference, Name typeAlias) {
+        return DSL.field("json_type({0}, {1})", field(quotedName(cteAlias, iterColumn)), inline(reference))
+                .as(typeAlias);
+    }
+
+    @Override
+    public SelectField<?> compileNestedFieldTypeReference(String unnestAlias, String reference, Name typeAlias) {
+        return DSL.field("json_type({0}, {1})", field(quotedName(unnestAlias, UNNEST_FIELD)), inline(reference))
+                .as(typeAlias);
+    }
+
+    @Override
     public Field<Object> resolveJoinChildReference(String childRef) {
         var sourceRef = fieldNameToRefMap.get(childRef);
         if (sourceRef != null) {

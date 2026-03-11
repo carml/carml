@@ -29,7 +29,7 @@ class DuckDbSourceStrategyTest {
     @Nested
     class ColumnStrategyTests {
 
-        private final ColumnSourceStrategy strategy = new ColumnSourceStrategy(CTE_ALIAS);
+        private final ColumnSourceStrategy strategy = new ColumnSourceStrategy(CTE_ALIAS, false);
 
         @Test
         void isMultiValuedReference_alwaysReturnsFalse() {
@@ -84,6 +84,37 @@ class DuckDbSourceStrategyTest {
             var result = strategy.resolveJoinChildReference("dept_id");
             var sql = CTX.select(result).getSQL();
             assertThat(sql, containsString("\"view_source\".\"dept_id\""));
+        }
+
+        @Test
+        void compileFieldTypeReference_withoutTypeCompanions_producesCastNull() {
+            var result = strategy.compileFieldTypeReference("name", DSL.quotedName("name.__type"));
+            var sql = CTX.select(result).getSQL();
+            assertThat(sql, containsString("cast(null as varchar) \"name.__type\""));
+        }
+
+        @Test
+        void compileFieldTypeReference_withTypeCompanions_producesColumnProjection() {
+            var viewOnViewStrategy = new ColumnSourceStrategy(CTE_ALIAS, true);
+            var result = viewOnViewStrategy.compileFieldTypeReference("name", DSL.quotedName("name.__type"));
+            var sql = CTX.select(result).getSQL();
+            assertThat(sql, containsString("\"view_source\".\"name.__type\" \"name.__type\""));
+        }
+
+        @Test
+        void compileNestedFieldTypeReference_withoutTypeCompanions_producesCastNull() {
+            var result = strategy.compileNestedFieldTypeReference("item", "type", DSL.quotedName("item.type.__type"));
+            var sql = CTX.select(result).getSQL();
+            assertThat(sql, containsString("cast(null as varchar) \"item.type.__type\""));
+        }
+
+        @Test
+        void compileNestedFieldTypeReference_withTypeCompanions_producesColumnProjection() {
+            var viewOnViewStrategy = new ColumnSourceStrategy(CTE_ALIAS, true);
+            var result = viewOnViewStrategy.compileNestedFieldTypeReference(
+                    "item", "type", DSL.quotedName("item.type.__type"));
+            var sql = CTX.select(result).getSQL();
+            assertThat(sql, containsString("\"item\".\"type.__type\" \"item.type.__type\""));
         }
     }
 
@@ -253,6 +284,23 @@ class DuckDbSourceStrategyTest {
             // Raw JSONPath with filter is passed through so DuckDB applies the filter natively
             assertThat(sql, containsString("json_extract(\"view_source\".\"__iter\", '$.items[?(@.active==true)]')"));
             assertThat(sql, containsString("\"__ord\""));
+        }
+
+        @Test
+        void compileFieldTypeReference_producesJsonType() {
+            var strategy = createStrategy(Set.of());
+            var result = strategy.compileFieldTypeReference("name", DSL.quotedName("name.__type"));
+            var sql = CTX.select(result).getSQL();
+            assertThat(sql, containsString("json_type(\"view_source\".\"__iter\", 'name') \"name.__type\""));
+        }
+
+        @Test
+        void compileNestedFieldTypeReference_producesJsonTypeFromUnnest() {
+            var strategy = createStrategy(Set.of());
+            var result =
+                    strategy.compileNestedFieldTypeReference("item", "type", DSL.quotedName("item.item_type.__type"));
+            var sql = CTX.select(result).getSQL();
+            assertThat(sql, containsString("json_type(\"item\".\"unnest\", 'type') \"item.item_type.__type\""));
         }
 
         @Test

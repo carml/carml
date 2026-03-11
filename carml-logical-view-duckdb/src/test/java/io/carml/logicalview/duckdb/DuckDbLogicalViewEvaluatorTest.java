@@ -26,6 +26,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Optional;
 import java.util.Set;
+import org.eclipse.rdf4j.model.vocabulary.XSD;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
@@ -346,7 +347,7 @@ class DuckDbLogicalViewEvaluatorTest {
     class ViewIterationContract {
 
         @Test
-        void evaluate_viewIteration_returnsEmptyForReferenceFormulationAndNaturalDatatype() throws IOException {
+        void evaluate_viewIteration_returnsEmptyForReferenceFormulationAndSourceEvaluation() throws IOException {
             var jsonFile = tempDir.resolve("contract.json");
             Files.writeString(jsonFile, """
                     [{"name": "Alice"}]""");
@@ -358,7 +359,10 @@ class DuckDbLogicalViewEvaluatorTest {
             StepVerifier.create(evaluator.evaluate(view, source -> null, context))
                     .assertNext(iteration -> {
                         assertThat(iteration.getFieldReferenceFormulation("name"), is(Optional.empty()));
+                        // read_json_auto source: string fields have no natural datatype
                         assertThat(iteration.getNaturalDatatype("name"), is(Optional.empty()));
+                        // Index key always has xsd:integer
+                        assertThat(iteration.getNaturalDatatype("#"), is(Optional.of(XSD.INTEGER)));
                         assertThat(iteration.getSourceEvaluation(), is(Optional.empty()));
                     })
                     .verifyComplete();
@@ -376,6 +380,108 @@ class DuckDbLogicalViewEvaluatorTest {
 
             StepVerifier.create(evaluator.evaluate(view, source -> null, context))
                     .assertNext(iteration -> assertThat(iteration.getValue("nonexistent"), is(Optional.empty())))
+                    .verifyComplete();
+        }
+    }
+
+    // --- Type inference tests ---
+
+    @Nested
+    class TypeInferenceEvaluation {
+
+        @Test
+        void evaluate_jsonIteratorWithIntegerField_producesIntegerNaturalDatatype() throws IOException {
+            var jsonFile = tempDir.resolve("typed.json");
+            Files.writeString(jsonFile, """
+                    {
+                        "people": [
+                            {"name": "alice", "birth_year": 1995},
+                            {"name": "bob", "birth_year": 1999}
+                        ]
+                    }""");
+
+            var nameField = expressionField("name", "$.name");
+            var birthYearField = expressionField("birthyear", "$.birth_year");
+
+            @SuppressWarnings("unchecked")
+            var fields = (Set<Field>) (Set<?>) Set.of(nameField, birthYearField);
+
+            var view = createJsonViewWithIterableFields(jsonFile.toString(), "$.people[*]", fields);
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(
+                            evaluator.evaluate(view, source -> null, context).collectList())
+                    .assertNext(iterations -> {
+                        assertThat(iterations, hasSize(2));
+
+                        var first = iterations.get(0);
+                        // String fields should have no natural datatype (VARCHAR maps to nothing)
+                        assertThat(first.getNaturalDatatype("name"), is(Optional.empty()));
+                        // Integer fields should have xsd:integer
+                        assertThat(first.getNaturalDatatype("birthyear"), is(Optional.of(XSD.INTEGER)));
+                        // Index key should always have xsd:integer
+                        assertThat(first.getNaturalDatatype("#"), is(Optional.of(XSD.INTEGER)));
+                        // Ordinal companions should have xsd:integer
+                        assertThat(first.getNaturalDatatype("name.#"), is(Optional.of(XSD.INTEGER)));
+                        assertThat(first.getNaturalDatatype("birthyear.#"), is(Optional.of(XSD.INTEGER)));
+                    })
+                    .verifyComplete();
+        }
+
+        @Test
+        void evaluate_jsonIteratorWithMixedTypes_producesCorrectDatatypes() throws IOException {
+            var jsonFile = tempDir.resolve("mixed_types.json");
+            Files.writeString(jsonFile, """
+                    {
+                        "data": [
+                            {"label": "test", "count": 42, "ratio": 3.14, "active": true}
+                        ]
+                    }""");
+
+            var labelField = expressionField("label", "$.label");
+            var countField = expressionField("count", "$.count");
+            var ratioField = expressionField("ratio", "$.ratio");
+            var activeField = expressionField("active", "$.active");
+
+            @SuppressWarnings("unchecked")
+            var fields = (Set<Field>) (Set<?>) Set.of(labelField, countField, ratioField, activeField);
+
+            var view = createJsonViewWithIterableFields(jsonFile.toString(), "$.data[*]", fields);
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(evaluator.evaluate(view, source -> null, context))
+                    .assertNext(iteration -> {
+                        assertThat(iteration.getNaturalDatatype("label"), is(Optional.empty()));
+                        assertThat(iteration.getNaturalDatatype("count"), is(Optional.of(XSD.INTEGER)));
+                        assertThat(iteration.getNaturalDatatype("ratio"), is(Optional.of(XSD.DOUBLE)));
+                        assertThat(iteration.getNaturalDatatype("active"), is(Optional.of(XSD.BOOLEAN)));
+                    })
+                    .verifyComplete();
+        }
+
+        @Test
+        void evaluate_csvSource_producesNoNaturalDatatypeForFields() throws IOException {
+            var csvFile = tempDir.resolve("typed.csv");
+            Files.writeString(csvFile, """
+                    name,score
+                    Alice,95""");
+
+            var view = createCsvView(
+                    csvFile.toString(), Set.of(expressionField("name", "name"), expressionField("score", "score")));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(evaluator.evaluate(view, source -> null, context))
+                    .assertNext(iteration -> {
+                        // CSV fields have no JSON type info — natural datatype is empty
+                        assertThat(iteration.getNaturalDatatype("name"), is(Optional.empty()));
+                        assertThat(iteration.getNaturalDatatype("score"), is(Optional.empty()));
+                        // Index and ordinal keys always have xsd:integer
+                        assertThat(iteration.getNaturalDatatype("#"), is(Optional.of(XSD.INTEGER)));
+                        assertThat(iteration.getNaturalDatatype("name.#"), is(Optional.of(XSD.INTEGER)));
+                    })
                     .verifyComplete();
         }
     }

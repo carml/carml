@@ -12,9 +12,12 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.rdf4j.model.IRI;
+import org.eclipse.rdf4j.model.vocabulary.XSD;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.scheduler.Schedulers;
@@ -42,6 +45,19 @@ import reactor.core.scheduler.Schedulers;
 public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
 
     private static final String INDEX_KEY = "#";
+
+    private static final String ORDINAL_SUFFIX = ".#";
+
+    /**
+     * Maps DuckDB {@code json_type()} return values to XSD datatype IRIs. Only numeric and boolean
+     * JSON types have natural RDF datatypes; string, null, array, and object types do not.
+     */
+    private static final Map<String, IRI> JSON_TYPE_TO_XSD = Map.of(
+            "BIGINT", XSD.INTEGER,
+            "UBIGINT", XSD.INTEGER,
+            "HUGEINT", XSD.INTEGER,
+            "DOUBLE", XSD.DOUBLE,
+            "BOOLEAN", XSD.BOOLEAN);
 
     private final Connection connection;
 
@@ -76,19 +92,22 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
     private ColumnDescriptor resolveColumns(ResultSet resultSet) throws SQLException {
         var metadata = resultSet.getMetaData();
         var columnCount = metadata.getColumnCount();
-        var columnNames = new ArrayList<String>(columnCount);
+        var valueColumns = new ArrayList<String>(columnCount);
+        var typeColumns = new ArrayList<String>();
         var idxColumn = -1;
 
         for (var i = 1; i <= columnCount; i++) {
             var colName = metadata.getColumnLabel(i);
             if (DuckDbViewCompiler.INDEX_COLUMN.equals(colName)) {
                 idxColumn = i;
+            } else if (colName.endsWith(DuckDbSourceStrategy.TYPE_SUFFIX)) {
+                typeColumns.add(colName);
             } else {
-                columnNames.add(colName);
+                valueColumns.add(colName);
             }
         }
 
-        return new ColumnDescriptor(columnNames, idxColumn);
+        return new ColumnDescriptor(valueColumns, typeColumns, idxColumn);
     }
 
     private void emitRows(FluxSink<ViewIteration> sink, ResultSet resultSet, ColumnDescriptor columns)
@@ -101,15 +120,52 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
             // ROW_NUMBER() OVER() is 1-based; convert to 0-based for RML-LV "#" semantics
             var rawIndex = columns.idxColumn > 0 ? resultSet.getInt(columns.idxColumn) : 0;
             var zeroBasedIndex = rawIndex > 0 ? rawIndex - 1 : 0;
-            var values = new LinkedHashMap<String, Object>(columns.names.size() + 1);
+            var values = new LinkedHashMap<String, Object>(columns.valueNames.size() + 1);
             values.put(INDEX_KEY, zeroBasedIndex);
-            for (var colName : columns.names) {
+            for (var colName : columns.valueNames) {
                 values.put(colName, resultSet.getObject(colName));
             }
 
-            sink.next(new DuckDbViewIteration(zeroBasedIndex, values));
+            var naturalDatatypes = resolveNaturalDatatypes(resultSet, columns, values);
+
+            sink.next(new DuckDbViewIteration(zeroBasedIndex, values, naturalDatatypes));
         }
     }
 
-    private record ColumnDescriptor(List<String> names, int idxColumn) {}
+    /**
+     * Resolves natural RDF datatypes from the type companion columns and ordinal columns in the
+     * result set. Maps DuckDB {@code json_type()} string values to XSD IRIs and assigns
+     * {@code xsd:integer} to all index and ordinal columns.
+     */
+    private static Map<String, IRI> resolveNaturalDatatypes(
+            ResultSet resultSet, ColumnDescriptor columns, Map<String, Object> values) throws SQLException {
+        var naturalDatatypes = new LinkedHashMap<String, IRI>();
+
+        // The "#" index key always has xsd:integer
+        naturalDatatypes.put(INDEX_KEY, XSD.INTEGER);
+
+        // All ordinal columns (.#) have xsd:integer
+        for (var colName : values.keySet()) {
+            if (colName.endsWith(ORDINAL_SUFFIX)) {
+                naturalDatatypes.put(colName, XSD.INTEGER);
+            }
+        }
+
+        // Map type companion columns to XSD datatypes
+        for (var typeCol : columns.typeNames) {
+            var jsonType = resultSet.getString(typeCol);
+            if (jsonType != null) {
+                var xsdType = JSON_TYPE_TO_XSD.get(jsonType);
+                if (xsdType != null) {
+                    // Strip the TYPE_SUFFIX to get the field name this type applies to
+                    var fieldName = typeCol.substring(0, typeCol.length() - DuckDbSourceStrategy.TYPE_SUFFIX.length());
+                    naturalDatatypes.put(fieldName, xsdType);
+                }
+            }
+        }
+
+        return naturalDatatypes;
+    }
+
+    private record ColumnDescriptor(List<String> valueNames, List<String> typeNames, int idxColumn) {}
 }

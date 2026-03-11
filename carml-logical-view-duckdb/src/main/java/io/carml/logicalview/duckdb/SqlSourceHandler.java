@@ -59,6 +59,6 @@ final class SqlSourceHandler implements DuckDbSourceHandler {
     }
 
     private static CompiledSource columnSource(String sourceSql, String cteAlias) {
-        return new CompiledSource(sourceSql, new ColumnSourceStrategy(cteAlias));
+        return new CompiledSource(sourceSql, new ColumnSourceStrategy(cteAlias, false));
     }
 }

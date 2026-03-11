@@ -83,6 +83,29 @@ class DuckDbViewCompilerTest {
         }
 
         @Test
+        void compile_jsonSourceWithIterator_producesTypeCompanionColumn() {
+            var view = createJsonView("data.json", "$.items[*]", Set.of(expressionField("id", "id")));
+            var context = EvaluationContext.defaults();
+
+            var sql = DuckDbViewCompiler.compile(view, context);
+
+            // Type companion column should use json_type from the iterator column
+            assertThat(sql, containsString("json_type(\"view_source\".\"__iter\", 'id') \"id.__type\""));
+        }
+
+        @Test
+        void compile_jsonSourceWithoutIterator_producesCastNullTypeCompanion() {
+            var view = createJsonView("data.json", null, Set.of(expressionField("name", "name")));
+            var context = EvaluationContext.defaults();
+
+            var sql = DuckDbViewCompiler.compile(view, context);
+
+            // Without iterator, read_json_auto is used (column strategy) => CAST(NULL AS VARCHAR)
+            assertThat(sql, containsString("cast(null as varchar) \"name.__type\""));
+            assertThat(sql, not(containsString("json_type")));
+        }
+
+        @Test
         void compile_jsonSourceWithBlankIterator_omitsJsonPath() {
             var view = createJsonView("data.json", "   ", Set.of(expressionField("id", "id")));
             var context = EvaluationContext.defaults();
@@ -904,6 +927,7 @@ class DuckDbViewCompilerTest {
                     + "select *, row_number() over () \"__idx\" from read_json_auto('people.json')"
                     + ") select \"view_source\".\"name\" \"name\", "
                     + "cast(0 as bigint) \"name.#\", "
+                    + "cast(null as varchar) \"name.__type\", "
                     + "\"view_source\".\"__idx\" "
                     + "from \"view_source\"";
 
@@ -921,7 +945,8 @@ class DuckDbViewCompilerTest {
                     + "select *, row_number() over () \"__idx\" from read_json_auto('people.json')"
                     + "), \"deduped\" as ("
                     + "select distinct \"view_source\".\"name\" \"name\", "
-                    + "cast(0 as bigint) \"name.#\" "
+                    + "cast(0 as bigint) \"name.#\", "
+                    + "cast(null as varchar) \"name.__type\" "
                     + "from \"view_source\""
                     + ") select *, "
                     + "row_number() over () \"__idx\" "
@@ -1007,6 +1032,8 @@ class DuckDbViewCompilerTest {
             assertThat(sql, containsString("\"parent_0\".\"value\" \"parent_value\""));
             // Join projected field ordinal
             assertThat(sql, containsString("\"parent_0\".\"value.#\" \"parent_value.#\""));
+            // Join projected field type companion
+            assertThat(sql, containsString("\"parent_0\".\"value.__type\" \"parent_value.__type\""));
         }
 
         @Test
@@ -1139,6 +1166,28 @@ class DuckDbViewCompilerTest {
             assertThat(sql, containsString("unnest(\"view_source\".\"items\")"));
             assertThat(sql, containsString("\"item\".\"type\" \"item.item_type\""));
             assertThat(sql, containsString("\"item\".\"__ord\" \"item.#\""));
+        }
+
+        @Test
+        void compile_jsonIteratorWithIterableField_producesNestedTypeCompanion() {
+            var nestedField = expressionField("contact_phone", "$.phone");
+            var iterable = iterableField("contacts", "$.contacts[*]", Set.of(nestedField));
+
+            var fields = new LinkedHashSet<Field>();
+            fields.add(expressionField("name", "$.name"));
+            fields.add(iterable);
+
+            var view = createJsonViewWithFields("data.json", "$.people[*]", fields);
+            var context = EvaluationContext.defaults();
+
+            var sql = DuckDbViewCompiler.compile(view, context);
+
+            // Top-level field type companion uses json_type from __iter
+            assertThat(sql, containsString("json_type(\"view_source\".\"__iter\", '$.name') \"name.__type\""));
+            // Nested iterable field type companion uses json_type from unnest
+            assertThat(
+                    sql,
+                    containsString("json_type(\"contacts\".\"unnest\", '$.phone') \"contacts.contact_phone.__type\""));
         }
 
         @Test
@@ -1707,6 +1756,18 @@ class DuckDbViewCompilerTest {
 
             var ex = assertThrows(IllegalArgumentException.class, () -> DuckDbViewCompiler.compile(view1, context));
             assertThat(ex.getMessage(), containsString("Cycle detected"));
+        }
+
+        @Test
+        void compile_viewOnView_projectsTypeCompanionFromInnerView() {
+            var innerView = createJsonView("people.json", "$.people[*]", Set.of(expressionField("name", "$.name")));
+            var outerView = createViewOnView(innerView, Set.of(expressionField("person_name", "name")));
+            var context = EvaluationContext.defaults();
+
+            var sql = DuckDbViewCompiler.compile(outerView, context);
+
+            // Outer ColumnSourceStrategy with hasTypeCompanions=true projects the inner type column
+            assertThat(sql, containsString("\"view_source\".\"name.__type\" \"person_name.__type\""));
         }
 
         @Test

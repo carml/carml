@@ -160,7 +160,7 @@ public final class DuckDbViewCompiler {
             // ColumnSourceStrategy is used because the inner view exposes named columns.
             var innerSql = compile(innerView, EvaluationContext.defaults());
             sourceTable = "(%s)".formatted(innerSql);
-            strategy = new ColumnSourceStrategy(CTE_ALIAS);
+            strategy = new ColumnSourceStrategy(CTE_ALIAS, true);
         } else if (viewOn instanceof LogicalSource logicalSource) {
             var compiledSource = compileSourceClause(logicalSource, view);
             strategy = compiledSource.strategy();
@@ -586,6 +586,10 @@ public final class DuckDbViewCompiler {
         // Extract value from unnested element: json_extract_string(fieldName."unnest", '$')
         nestedSelects.add(strategy.compileNestedFieldReference(fieldName, "$", fieldAlias(fieldName)));
 
+        // Add type companion for the unnested value
+        var typeAlias = quotedName(fieldName + DuckDbSourceStrategy.TYPE_SUFFIX);
+        nestedSelects.add(strategy.compileNestedFieldTypeReference(fieldName, "$", typeAlias));
+
         // Add ordinal column: fieldName."__ord" AS "fieldName.#"
         var indexColumnName = fieldName + ".#";
         nestedSelects.add(
@@ -680,11 +684,18 @@ public final class DuckDbViewCompiler {
                         .filter(f -> projectedFields.contains(nestedPrefix + f.getFieldName()))
                         .toList();
 
-        // Build SELECT fields qualified by the unnest alias
-        var nestedSelects = new ArrayList<>(filteredNested.stream()
-                .<SelectField<?>>map(
-                        nested -> compileNestedFieldExpression(absoluteName, nested, strategy, nestedPrefix))
-                .toList());
+        // Build SELECT fields qualified by the unnest alias, with type companions
+        var nestedSelects = new ArrayList<SelectField<?>>();
+        for (var nested : filteredNested) {
+            nestedSelects.add(compileNestedFieldExpression(absoluteName, nested, strategy, nestedPrefix));
+            // Add type companion for reference-based nested fields
+            if (nested.getReference() != null) {
+                var absoluteFieldName = nestedPrefix + nested.getFieldName();
+                var typeAlias = quotedName(absoluteFieldName + DuckDbSourceStrategy.TYPE_SUFFIX);
+                nestedSelects.add(
+                        strategy.compileNestedFieldTypeReference(absoluteName, nested.getReference(), typeAlias));
+            }
+        }
 
         // Add iterable field ordinal column (0-based index within each parent's unnested array)
         var indexColumnName = absoluteName + ".#";
@@ -792,7 +803,7 @@ public final class DuckDbViewCompiler {
         var joinConditions = viewJoin.getJoinConditions();
         var onCondition = buildJoinCondition(joinConditions, parentAlias, strategy);
 
-        // Build SELECT fields from the join's projected fields (including ordinal companions)
+        // Build SELECT fields from the join's projected fields (including ordinal and type companions)
         var joinFields = new ArrayList<SelectField<?>>();
         for (var f : viewJoin.getFields()) {
             joinFields.add(compileJoinFieldExpression(parentAlias, f));
@@ -800,6 +811,9 @@ public final class DuckDbViewCompiler {
             if (f.getReference() != null) {
                 joinFields.add(field(quotedName(parentAlias, f.getReference() + ".#"))
                         .as(quotedName(f.getFieldName() + ".#")));
+                // Project type from parent view: "parent_N"."reference.__type" AS "fieldName.__type"
+                joinFields.add(field(quotedName(parentAlias, f.getReference() + DuckDbSourceStrategy.TYPE_SUFFIX))
+                        .as(quotedName(f.getFieldName() + DuckDbSourceStrategy.TYPE_SUFFIX)));
             }
         }
 
@@ -848,6 +862,9 @@ public final class DuckDbViewCompiler {
             // Single-valued fields always have ordinal 0, cast to BIGINT to match range() type.
             if (f.getReference() != null) {
                 selects.add(inline(0).cast(Long.class).as(quotedName(f.getFieldName() + ".#")));
+                // Add type companion for reference-based expression fields.
+                var typeAlias = quotedName(f.getFieldName() + DuckDbSourceStrategy.TYPE_SUFFIX);
+                selects.add(strategy.compileFieldTypeReference(f.getReference(), typeAlias));
             }
         }
         return selects;

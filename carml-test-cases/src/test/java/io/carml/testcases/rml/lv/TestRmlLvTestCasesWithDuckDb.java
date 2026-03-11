@@ -35,8 +35,6 @@ import org.junit.jupiter.api.BeforeAll;
  * <ul>
  *   <li>Mixed-formulation iterable fields — iterable fields with a different reference formulation
  *       than the parent source (e.g. CSV parent with JSONPath iterable)</li>
- *   <li>Type inference — {@code json_extract_string} returns VARCHAR; the evaluator does not cast
- *       to numeric types for typed literal generation</li>
  * </ul>
  */
 @Slf4j
@@ -64,16 +62,9 @@ class TestRmlLvTestCasesWithDuckDb extends RmlTestCaseSuite {
     @Override
     protected List<String> getSkipTests() {
         return List.of(
-                // Type inference — json_extract_string returns VARCHAR, not numeric (also blocks multi-valued ordinal
-                // type)
-                "RMLLVTC0004c",
-                "RMLLVTC0004d",
-                "RMLLVTC0006e",
                 // Mixed-formulation iterable fields — ExpressionField with nested IterableField using different
                 // formulation
-                "RMLLVTC0007a",
-                "RMLLVTC0007b",
-                "RMLLVTC0007c");
+                "RMLLVTC0007a", "RMLLVTC0007b", "RMLLVTC0007c");
     }
 
     @Override
