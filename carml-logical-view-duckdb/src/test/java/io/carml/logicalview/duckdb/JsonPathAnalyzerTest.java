@@ -29,12 +29,24 @@ class JsonPathAnalyzerTest {
             assertThat(result.hasDeepScan(), is(false));
         }
 
+        @Test
+        void analyze_slicing_normalizesToWildcard() {
+            var result = JsonPathAnalyzer.analyze("$.items[0:3]");
+
+            assertThat(result.basePath(), is("$.items[*]"));
+            assertThat(result.filters(), is(empty()));
+            assertThat(result.hasDeepScan(), is(false));
+        }
+
         static Stream<Arguments> basePathCases() {
             return Stream.of(
                     Arguments.of("$.store.books[*]", "$.store.books[*]"),
                     Arguments.of("$", "$"),
                     Arguments.of("$.items[0]", "$.items[0]"),
-                    Arguments.of("$.store.*", "$.store.*"));
+                    Arguments.of("$.store.*", "$.store.*"),
+                    Arguments.of("$.items[0,2]", "$.items[*]"),
+                    Arguments.of("$['name','age']", "$[*]"),
+                    Arguments.of("$*", "$[*]"));
         }
 
         @ParameterizedTest

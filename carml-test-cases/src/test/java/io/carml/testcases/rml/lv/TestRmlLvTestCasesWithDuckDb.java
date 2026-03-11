@@ -33,9 +33,6 @@ import org.junit.jupiter.api.BeforeAll;
  *
  * <p>Skipped test cases:
  * <ul>
- *   <li>Multi-valued expression fields — array-valued JSONPath references (e.g. {@code $.items[*]})
- *       in expression fields are not expanded by the DuckDB evaluator (includes cases combining row
- *       index with multi-valued fields)</li>
  *   <li>Mixed-formulation iterable fields — iterable fields with a different reference formulation
  *       than the parent source (e.g. CSV parent with JSONPath iterable)</li>
  *   <li>View-on-view — not yet supported by the DuckDB evaluator</li>
@@ -68,15 +65,11 @@ class TestRmlLvTestCasesWithDuckDb extends RmlTestCaseSuite {
     @Override
     protected List<String> getSkipTests() {
         return List.of(
-                // Multi-valued expression fields — array JSONPath references not expanded (includes row index)
-                "RMLLVTC0003c",
+                // Type inference — json_extract_string returns VARCHAR, not numeric (also blocks multi-valued ordinal
+                // type)
                 "RMLLVTC0004c",
-                "RMLLVTC0006a",
-                "RMLLVTC0006b",
-                "RMLLVTC0006c",
-                "RMLLVTC0006d",
+                "RMLLVTC0004d",
                 "RMLLVTC0006e",
-                "RMLLVTC0006f",
                 // Mixed-formulation iterable fields — ExpressionField with nested IterableField using different
                 // formulation
                 "RMLLVTC0007a",
@@ -84,9 +77,7 @@ class TestRmlLvTestCasesWithDuckDb extends RmlTestCaseSuite {
                 "RMLLVTC0007c",
                 // View-on-view — not yet supported
                 "RMLLVTC0000c",
-                "RMLLVTC0008a",
-                // Type inference — json_extract_string returns VARCHAR, not numeric
-                "RMLLVTC0004d");
+                "RMLLVTC0008a");
     }
 
     @Override

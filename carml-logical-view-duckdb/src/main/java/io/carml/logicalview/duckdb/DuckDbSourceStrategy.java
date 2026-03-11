@@ -25,6 +25,16 @@ sealed interface DuckDbSourceStrategy permits ColumnSourceStrategy, JsonIterator
     String ORDINAL_FIELD = "__ord";
 
     /**
+     * Determines whether the given reference expression evaluates to multiple values. Multi-valued
+     * references (e.g., JSONPath array wildcards like {@code $.items[*]}) produce multiple results
+     * per source row and require UNNEST expansion rather than simple field extraction.
+     *
+     * @param reference the reference expression to check
+     * @return {@code true} if the reference is multi-valued
+     */
+    boolean isMultiValuedReference(String reference);
+
+    /**
      * Compiles a top-level field reference into a SELECT expression.
      *
      * @param reference the source reference expression

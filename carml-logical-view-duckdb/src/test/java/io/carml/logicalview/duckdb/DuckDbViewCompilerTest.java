@@ -288,7 +288,7 @@ class DuckDbViewCompilerTest {
 
             var sql = DuckDbViewCompiler.compile(view, context);
 
-            assertThat(sql, containsString("select * from \"users\""));
+            assertThat(sql, containsString("from \"users\""));
         }
 
         @Test
@@ -859,7 +859,7 @@ class DuckDbViewCompilerTest {
 
             var sql = DuckDbViewCompiler.compile(view, context);
 
-            assertThat(sql, containsString("select * from \"users\""));
+            assertThat(sql, containsString("from \"users\""));
         }
 
         @Test
@@ -912,9 +912,10 @@ class DuckDbViewCompilerTest {
             var sql = DuckDbViewCompiler.compile(view, context);
 
             var expected = "with \"view_source\" as ("
-                    + "select * from read_json_auto('people.json')"
+                    + "select *, row_number() over () \"__idx\" from read_json_auto('people.json')"
                     + ") select \"view_source\".\"name\" \"name\", "
-                    + "row_number() over () \"__idx\" "
+                    + "cast(0 as bigint) \"name.#\", "
+                    + "\"view_source\".\"__idx\" "
                     + "from \"view_source\"";
 
             assertThat(sql, is(expected));
@@ -928,9 +929,10 @@ class DuckDbViewCompilerTest {
             var sql = DuckDbViewCompiler.compile(view, context);
 
             var expected = "with \"view_source\" as ("
-                    + "select * from read_json_auto('people.json')"
+                    + "select *, row_number() over () \"__idx\" from read_json_auto('people.json')"
                     + "), \"deduped\" as ("
-                    + "select distinct \"view_source\".\"name\" \"name\" "
+                    + "select distinct \"view_source\".\"name\" \"name\", "
+                    + "cast(0 as bigint) \"name.#\" "
                     + "from \"view_source\""
                     + ") select *, "
                     + "row_number() over () \"__idx\" "
@@ -941,10 +943,115 @@ class DuckDbViewCompilerTest {
         }
     }
 
+    // --- Multi-valued ExpressionField compilation tests ---
+
+    @Nested
+    class MultiValuedExpressionFieldCompilation {
+
+        @Test
+        void compile_multiValuedExpressionField_producesUnnestExpansion() {
+            var view = createJsonView("data.json", "$.people[*]", Set.of(expressionField("item", "$.items[*]")));
+            var context = EvaluationContext.defaults();
+
+            var sql = DuckDbViewCompiler.compile(view, context);
+
+            // Multi-valued field should use LATERAL UNNEST
+            assertThat(sql, containsString("LATERAL"));
+            assertThat(sql, containsString("unnest(json_extract(\"view_source\".\"__iter\", '$.items[*]'))"));
+            // Value extraction from unnested element
+            assertThat(sql, containsString("json_extract_string(\"item\".\"unnest\", '$') \"item\""));
+            // Ordinal column
+            assertThat(sql, containsString("\"item\".\"__ord\" \"item.#\""));
+        }
+
+        @Test
+        void compile_singleValuedExpressionField_producesOrdinalCompanion() {
+            var view = createJsonView("data.json", "$.people[*]", Set.of(expressionField("name", "$.name")));
+            var context = EvaluationContext.defaults();
+
+            var sql = DuckDbViewCompiler.compile(view, context);
+
+            // Single-valued field should have ordinal companion of 0 (BIGINT)
+            assertThat(sql, containsString("json_extract_string(\"view_source\".\"__iter\", '$.name') \"name\""));
+            assertThat(sql, containsString("cast(0 as bigint) \"name.#\""));
+        }
+
+        @Test
+        void compile_mixedSingleAndMultiValuedFields_producesCorrectSql() {
+            var nameField = expressionField("name", "$.name");
+            var itemField = expressionField("item", "$.items[*]");
+
+            var fields = new LinkedHashSet<Field>();
+            fields.add(nameField);
+            fields.add(itemField);
+
+            var view = createJsonViewWithFields("data.json", "$.people[*]", fields);
+            var context = EvaluationContext.defaults();
+
+            var sql = DuckDbViewCompiler.compile(view, context);
+
+            // Single-valued field with ordinal companion (BIGINT)
+            assertThat(sql, containsString("json_extract_string(\"view_source\".\"__iter\", '$.name') \"name\""));
+            assertThat(sql, containsString("cast(0 as bigint) \"name.#\""));
+            // Multi-valued field with UNNEST
+            assertThat(sql, containsString("LATERAL"));
+            assertThat(sql, containsString("json_extract_string(\"item\".\"unnest\", '$') \"item\""));
+            assertThat(sql, containsString("\"item\".\"__ord\" \"item.#\""));
+        }
+
+        @Test
+        void compile_joinFieldProjectsOrdinal() {
+            var parentView = createJsonView(
+                    "items.json", null, Set.of(expressionField("item_id", "id"), expressionField("value", "value")));
+
+            var joinField = expressionField("parent_value", "value");
+            var joinCond = joinCondition("item_id", "item_id");
+            var viewJoin = logicalViewJoin(parentView, Set.of(joinCond), Set.of(joinField));
+
+            var view = createJsonViewWithJoins(
+                    "main.json", null, Set.of(expressionField("name", "name")), Set.of(viewJoin), Set.of());
+            var context = EvaluationContext.defaults();
+
+            var sql = DuckDbViewCompiler.compile(view, context);
+
+            // Join projected field
+            assertThat(sql, containsString("\"parent_0\".\"value\" \"parent_value\""));
+            // Join projected field ordinal
+            assertThat(sql, containsString("\"parent_0\".\"value.#\" \"parent_value.#\""));
+        }
+
+        @Test
+        void compile_multiValuedExpressionFieldWithFilter_throwsUnsupported() {
+            var view = createJsonView(
+                    "data.json", "$.people[*]", Set.of(expressionField("item", "$.items[?(@.active==true)]")));
+            var context = EvaluationContext.defaults();
+
+            assertThrows(UnsupportedOperationException.class, () -> DuckDbViewCompiler.compile(view, context));
+        }
+    }
+
     // --- IterableField / UNNEST compilation tests ---
 
     @Nested
     class IterableFieldCompilation {
+
+        @Test
+        void compile_iterableFieldWithFilteredIterator_passesFilterToDuckDb() {
+            var nestedField = expressionField("item_name", "$.name");
+            var iterableField = iterableField("item", "$.items[?(@.active==true)]", Set.of(nestedField));
+
+            var view = createJsonViewWithFields("data.json", "$.people[*]", Set.of(iterableField));
+            var context = EvaluationContext.defaults();
+
+            var sql = DuckDbViewCompiler.compile(view, context);
+
+            // The raw JSONPath with filter should be passed through to DuckDB
+            assertThat(sql, containsString("LATERAL"));
+            assertThat(sql, containsString("json_extract(\"view_source\".\"__iter\", '$.items[?(@.active==true)]')"));
+            // Nested field extraction and ordinal
+            assertThat(sql, containsString("json_extract_string(\"item\".\"unnest\", '$.name') \"item.item_name\""));
+            assertThat(sql, containsString("\"item\".\"__ord\" \"item.#\""));
+        }
 
         @Test
         void compile_iterableFieldWithNestedExpressionFields_producesUnnest() {

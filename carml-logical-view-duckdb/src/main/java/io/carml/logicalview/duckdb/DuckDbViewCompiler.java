@@ -137,8 +137,13 @@ public final class DuckDbViewCompiler {
         var compiledSource = compileSourceClause(logicalSource, view);
         var strategy = compiledSource.strategy();
         var sourceTable = compiledSource.sourceSql();
-        var expressionFields = resolveExpressionFields(view.getFields(), context.getProjectedFields());
-        var unnestDescriptors = resolveUnnestDescriptors(view.getFields(), context.getProjectedFields(), strategy);
+        var expressionFields = resolveExpressionFields(view.getFields(), context.getProjectedFields(), strategy);
+        var iterableUnnestDescriptors =
+                resolveUnnestDescriptors(view.getFields(), context.getProjectedFields(), strategy);
+        var multiValuedUnnestDescriptors =
+                resolveMultiValuedUnnestDescriptors(view.getFields(), context.getProjectedFields(), strategy);
+        var unnestDescriptors = new ArrayList<>(iterableUnnestDescriptors);
+        unnestDescriptors.addAll(multiValuedUnnestDescriptors);
 
         // Extract structural annotations for optimization decisions
         var annotations = view.getStructuralAnnotations();
@@ -151,7 +156,11 @@ public final class DuckDbViewCompiler {
         var dedupRequested = !NONE_DEDUP_CLASS.isInstance(context.getDedupStrategy());
         var useDistinct = dedupRequested && !canSkipDistinct(annotations, notNullFieldNames, view, context);
 
-        var viewSourceCte = name(CTE_ALIAS).as(CTX.select(asterisk()).from(sql(sourceTable)));
+        // ROW_NUMBER() is computed inside the CTE so that each source row gets a stable index
+        // that is preserved through UNNEST expansion and JOIN multiplication.
+        var viewSourceCte = name(CTE_ALIAS)
+                .as(CTX.select(asterisk(), rowNumber().over().as(name(INDEX_COLUMN)))
+                        .from(sql(sourceTable)));
 
         String result;
         var allFieldSelects = collectAllFieldSelects(expressionFields, unnestDescriptors, joinDescriptors, strategy);
@@ -173,7 +182,8 @@ public final class DuckDbViewCompiler {
                     .map(limit -> outerQuery.limit(limit).getSQL())
                     .orElseGet(outerQuery::getSQL);
         } else {
-            allFieldSelects.add(rowNumber().over().as(name(INDEX_COLUMN)));
+            // Reference the pre-computed index from the CTE
+            allFieldSelects.add(field(quotedName(CTE_ALIAS, INDEX_COLUMN)));
 
             var fromStep = buildFromClause(
                     CTX.with(viewSourceCte).select(allFieldSelects), unnestDescriptors, joinDescriptors);
@@ -461,14 +471,16 @@ public final class DuckDbViewCompiler {
     }
 
     /**
-     * Resolves the top-level {@link ExpressionField} instances to include in the SELECT clause. If
-     * projected fields is non-empty, only fields whose names match the projection are included.
-     * Otherwise, all expression fields are included.
+     * Resolves the top-level {@link ExpressionField} instances to include in the SELECT clause,
+     * excluding multi-valued fields which are handled as UNNESTs. If projected fields is non-empty,
+     * only fields whose names match the projection are included.
      */
-    private static List<ExpressionField> resolveExpressionFields(Set<Field> viewFields, Set<String> projectedFields) {
+    private static List<ExpressionField> resolveExpressionFields(
+            Set<Field> viewFields, Set<String> projectedFields, DuckDbSourceStrategy strategy) {
         var expressionFields = viewFields.stream()
                 .filter(ExpressionField.class::isInstance)
                 .map(ExpressionField.class::cast)
+                .filter(f -> !isMultiValuedExpressionField(f, strategy))
                 .toList();
 
         if (projectedFields.isEmpty()) {
@@ -478,6 +490,75 @@ public final class DuckDbViewCompiler {
         return expressionFields.stream()
                 .filter(f -> projectedFields.contains(f.getFieldName()))
                 .toList();
+    }
+
+    /**
+     * Checks whether an expression field has a multi-valued reference that requires UNNEST
+     * expansion.
+     */
+    private static boolean isMultiValuedExpressionField(ExpressionField field, DuckDbSourceStrategy strategy) {
+        var reference = field.getReference();
+        return reference != null && strategy.isMultiValuedReference(reference);
+    }
+
+    /**
+     * Resolves multi-valued {@link ExpressionField} instances and produces {@link UnnestDescriptor}s
+     * for UNNEST cross-joins. Multi-valued fields are those whose reference evaluates to multiple
+     * values (e.g., {@code $.items[*]} in JSONPath), requiring row expansion via UNNEST.
+     */
+    private static List<UnnestDescriptor> resolveMultiValuedUnnestDescriptors(
+            Set<Field> viewFields, Set<String> projectedFields, DuckDbSourceStrategy strategy) {
+        var multiValuedFields = viewFields.stream()
+                .filter(ExpressionField.class::isInstance)
+                .map(ExpressionField.class::cast)
+                .filter(f -> isMultiValuedExpressionField(f, strategy))
+                .toList();
+
+        if (!projectedFields.isEmpty()) {
+            multiValuedFields = multiValuedFields.stream()
+                    .filter(f -> projectedFields.contains(f.getFieldName()))
+                    .toList();
+        }
+
+        return multiValuedFields.stream()
+                .map(f -> compileMultiValuedUnnestDescriptor(f, strategy))
+                .toList();
+    }
+
+    /**
+     * Compiles a multi-valued {@link ExpressionField} into an {@link UnnestDescriptor}. The field's
+     * reference is used as an iterator expression for UNNEST, and the unnested value is extracted
+     * using the strategy's nested field reference compilation with root path {@code "$"}.
+     */
+    private static UnnestDescriptor compileMultiValuedUnnestDescriptor(
+            ExpressionField field, DuckDbSourceStrategy strategy) {
+        var fieldName = field.getFieldName();
+        var reference = field.getReference();
+
+        // Filter expressions in multi-valued ExpressionField references are not yet supported.
+        // The IterableField path handles filters by passing the raw JSONPath to DuckDB's json_extract,
+        // which applies them natively. For ExpressionFields, the UNNEST path does not have this mechanism.
+        var parsed = JsonPathAnalyzer.analyze(reference);
+        if (!parsed.filters().isEmpty()) {
+            throw new UnsupportedOperationException(
+                    "Filter expressions in '%s' are not yet supported for multi-valued expression fields. "
+                                    .formatted(reference)
+                            + "Use an IterableField with an iterator containing the filter instead.");
+        }
+
+        var unnestTable = strategy.compileUnnestTable(reference, CTE_ALIAS, true, fieldName);
+
+        var nestedSelects = new ArrayList<SelectField<?>>();
+
+        // Extract value from unnested element: json_extract_string(fieldName."unnest", '$')
+        nestedSelects.add(strategy.compileNestedFieldReference(fieldName, "$", fieldAlias(fieldName)));
+
+        // Add ordinal column: fieldName."__ord" AS "fieldName.#"
+        var indexColumnName = fieldName + ".#";
+        nestedSelects.add(
+                field(quotedName(fieldName, DuckDbSourceStrategy.ORDINAL_FIELD)).as(quotedName(indexColumnName)));
+
+        return new UnnestDescriptor(unnestTable, nestedSelects);
     }
 
     /**
@@ -678,10 +759,16 @@ public final class DuckDbViewCompiler {
         var joinConditions = viewJoin.getJoinConditions();
         var onCondition = buildJoinCondition(joinConditions, parentAlias, strategy);
 
-        // Build SELECT fields from the join's projected fields
-        var joinFields = viewJoin.getFields().stream()
-                .<SelectField<?>>map(f -> compileJoinFieldExpression(parentAlias, f))
-                .toList();
+        // Build SELECT fields from the join's projected fields (including ordinal companions)
+        var joinFields = new ArrayList<SelectField<?>>();
+        for (var f : viewJoin.getFields()) {
+            joinFields.add(compileJoinFieldExpression(parentAlias, f));
+            // Project ordinal from parent view: "parent_N"."reference.#" AS "fieldName.#"
+            if (f.getReference() != null) {
+                joinFields.add(field(quotedName(parentAlias, f.getReference() + ".#"))
+                        .as(quotedName(f.getFieldName() + ".#")));
+            }
+        }
 
         return new JoinDescriptor(parentTable, onCondition, joinFields, isLeftJoin);
     }
@@ -721,9 +808,16 @@ public final class DuckDbViewCompiler {
 
     private static List<SelectField<?>> compileFieldSelects(
             List<ExpressionField> fields, DuckDbSourceStrategy strategy) {
-        return fields.stream()
-                .<SelectField<?>>map(f -> compileFieldExpression(f, strategy))
-                .toList();
+        var selects = new ArrayList<SelectField<?>>();
+        for (var f : fields) {
+            selects.add(compileFieldExpression(f, strategy));
+            // Add ordinal companion for reference-based expression fields.
+            // Single-valued fields always have ordinal 0, cast to BIGINT to match range() type.
+            if (f.getReference() != null) {
+                selects.add(inline(0).cast(Long.class).as(quotedName(f.getFieldName() + ".#")));
+            }
+        }
+        return selects;
     }
 
     private static SelectField<?> compileFieldExpression(ExpressionField exprField, DuckDbSourceStrategy strategy) {

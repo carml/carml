@@ -52,6 +52,15 @@ final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
     }
 
     @Override
+    public boolean isMultiValuedReference(String reference) {
+        if (reference == null) {
+            return false;
+        }
+        var parsed = JsonPathAnalyzer.analyze(reference);
+        return parsed.basePath().contains("[*]") || parsed.basePath().contains(".*") || parsed.hasDeepScan();
+    }
+
+    @Override
     public SelectField<?> compileFieldReference(String reference, Name fieldAlias) {
         return DSL.field(JSON_EXTRACT_STRING, field(quotedName(cteAlias, iterColumn)), inline(reference))
                 .as(fieldAlias);
@@ -72,13 +81,31 @@ final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
 
     @Override
     public Table<?> compileUnnestTable(String iterator, String parentAlias, boolean isRootLevel, String absoluteName) {
+        // Analyze the JSONPath to detect unsupported features.
+        // The basePath normalizes selectors (filters→[*], slices→[*]) for structural analysis.
+        var parsed = JsonPathAnalyzer.analyze(iterator);
+        var basePath = parsed.basePath();
+
+        if (parsed.hasDeepScan()) {
+            throw new UnsupportedOperationException(
+                    "Recursive descent (..) in '%s' is not supported in DuckDB UNNEST".formatted(iterator));
+        }
+        if (basePath.contains(".*")) {
+            throw new UnsupportedOperationException(
+                    "Child wildcard (.*) in '%s' is not supported in DuckDB UNNEST".formatted(iterator));
+        }
+
+        // Use the raw iterator for the SQL expression so DuckDB applies filter expressions natively.
+        // Only fall back to the normalized basePath when there are no filters.
+        var sqlPath = parsed.filters().isEmpty() ? basePath : iterator;
+
         // Determine the parent column to extract from.
         // Root level: extract from the iterator column (plain JSON from SELECT-list unnest)
         // Nested level: extract from "parent"."unnest" (STRUCT-wrapped JSON from FROM-clause unnest)
         var parentRef =
                 isRootLevel ? field(quotedName(cteAlias, iterColumn)) : field(quotedName(parentAlias, UNNEST_FIELD));
 
-        if (iterator.endsWith("[*]")) {
+        if (basePath.endsWith("[*]")) {
             // Array iteration: json_extract returns JSON[], unnest directly.
             // Uses LATERAL subquery with parallel unnest to produce per-parent 0-based ordinals.
             // DuckDB 1.x does not support multi-argument unnest in FROM clause, but parallel
@@ -88,7 +115,7 @@ final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
                                     + UNNEST_FIELD + "\", unnest(range(len(json_extract({0}, {1})))) AS \""
                                     + ORDINAL_FIELD + "\")",
                             parentRef,
-                            inline(iterator))
+                            inline(sqlPath))
                     .as(quotedName(absoluteName));
         }
         // Single value: json_extract returns JSON, wrap in list_value for unnest.
@@ -97,7 +124,7 @@ final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
                         "LATERAL (SELECT unnest(list_value(json_extract({0}, {1}))) AS \"" + UNNEST_FIELD
                                 + "\", unnest(list_value(0)) AS \"" + ORDINAL_FIELD + "\")",
                         parentRef,
-                        inline(iterator))
+                        inline(sqlPath))
                 .as(quotedName(absoluteName));
     }
 

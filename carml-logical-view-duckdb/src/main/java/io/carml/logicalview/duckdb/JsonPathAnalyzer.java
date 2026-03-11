@@ -13,8 +13,7 @@ import org.jsfr.json.compiler.JsonPathParser;
 
 /**
  * Parses JSONPath expressions into structured components for SQL translation using JSurfer's
- * ANTLR-based parser. This avoids string-based parsing and correctly handles all JSONPath syntax
- * supported by the grammar.
+ * ANTLR-based parser.
  *
  * <p>The analyzer extracts:
  * <ul>
@@ -112,6 +111,30 @@ final class JsonPathAnalyzer {
         }
 
         @Override
+        public Void visitAny(JsonPathParser.AnyContext ctx) {
+            basePath.append("[*]");
+            return null;
+        }
+
+        @Override
+        public Void visitIndexes(JsonPathParser.IndexesContext ctx) {
+            basePath.append("[*]");
+            return null;
+        }
+
+        @Override
+        public Void visitSlicing(JsonPathParser.SlicingContext ctx) {
+            basePath.append("[*]");
+            return null;
+        }
+
+        @Override
+        public Void visitChildrenNode(JsonPathParser.ChildrenNodeContext ctx) {
+            basePath.append("[*]");
+            return null;
+        }
+
+        @Override
         public Void visitAnyChild(JsonPathParser.AnyChildContext ctx) {
             basePath.append(".*");
             return null;
@@ -165,7 +188,7 @@ final class JsonPathAnalyzer {
             }
 
             throw new UnsupportedOperationException(
-                    "Compound JSONPath filter expressions (&&, ||, !) are not supported in DuckDB SQL translation");
+                    "Compound JSONPath filter expressions (&&, ||, !) are not yet implemented in JsonPathAnalyzer");
         }
 
         /**

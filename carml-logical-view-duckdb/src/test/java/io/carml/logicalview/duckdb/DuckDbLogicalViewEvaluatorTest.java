@@ -79,7 +79,7 @@ class DuckDbLogicalViewEvaluatorTest {
                         var first = iterations.get(0);
                         assertThat(first.getValue("name"), is(Optional.of("Alice")));
                         assertThat(first.getValue("age"), is(Optional.of(30L)));
-                        assertThat(first.getKeys(), containsInAnyOrder("#", "name", "age"));
+                        assertThat(first.getKeys(), containsInAnyOrder("#", "name", "name.#", "age", "age.#"));
                         assertThat(first.getKeys(), not(containsInAnyOrder(DuckDbViewCompiler.INDEX_COLUMN)));
                         assertThat(first.getValue("#"), is(Optional.of(0)));
 
@@ -221,7 +221,7 @@ class DuckDbLogicalViewEvaluatorTest {
                         assertThat(iterations, hasSize(2));
 
                         var first = iterations.get(0);
-                        assertThat(first.getKeys(), containsInAnyOrder("#", "name", "city"));
+                        assertThat(first.getKeys(), containsInAnyOrder("#", "name", "name.#", "city", "city.#"));
                         assertThat(first.getValue("name"), is(Optional.of("Alice")));
                         assertThat(first.getValue("city"), is(Optional.of("Amsterdam")));
                         // "age" should not be present
@@ -466,6 +466,77 @@ class DuckDbLogicalViewEvaluatorTest {
         }
     }
 
+    // --- Multi-valued expression field tests ---
+
+    @Nested
+    class MultiValuedExpressionFieldEvaluation {
+
+        @Test
+        void evaluate_multiValuedExpressionField_producesRowPerElement() throws IOException {
+            var jsonFile = tempDir.resolve("multi_valued.json");
+            // Both people have 2 items to conclusively verify per-parent ordinal reset
+            Files.writeString(jsonFile, """
+                    {
+                        "people": [
+                            {"name": "Alice", "items": ["book", "pen"]},
+                            {"name": "Bob", "items": ["cup", "mug"]}
+                        ]
+                    }""");
+
+            var nameField = expressionField("name", "$.name");
+            var itemField = expressionField("item", "$.items[*]");
+
+            @SuppressWarnings("unchecked")
+            var fields = (Set<Field>) (Set<?>) Set.of(nameField, itemField);
+
+            var view = createJsonViewWithIterableFields(jsonFile.toString(), "$.people[*]", fields);
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(
+                            evaluator.evaluate(view, source -> null, context).collectList())
+                    .assertNext(iterations -> {
+                        // 2 + 2 = 4 rows total (Alice has 2 items, Bob has 2)
+                        assertThat(iterations, hasSize(4));
+
+                        var aliceRows = iterations.stream()
+                                .filter(it -> Optional.of("Alice").equals(it.getValue("name")))
+                                .toList();
+                        var bobRows = iterations.stream()
+                                .filter(it -> Optional.of("Bob").equals(it.getValue("name")))
+                                .toList();
+
+                        assertThat(aliceRows, hasSize(2));
+                        assertThat(bobRows, hasSize(2));
+
+                        // Verify item values
+                        var aliceItems = aliceRows.stream()
+                                .map(it -> it.getValue("item"))
+                                .toList();
+                        assertThat(aliceItems, containsInAnyOrder(Optional.of("book"), Optional.of("pen")));
+
+                        var bobItems =
+                                bobRows.stream().map(it -> it.getValue("item")).toList();
+                        assertThat(bobItems, containsInAnyOrder(Optional.of("cup"), Optional.of("mug")));
+
+                        // Verify per-parent ordinal reset: both Alice and Bob should have ordinals {0, 1}
+                        var aliceOrdinals = aliceRows.stream()
+                                .map(it -> it.getValue("item.#"))
+                                .toList();
+                        assertThat(aliceOrdinals, containsInAnyOrder(Optional.of(0L), Optional.of(1L)));
+
+                        var bobOrdinals = bobRows.stream()
+                                .map(it -> it.getValue("item.#"))
+                                .toList();
+                        assertThat(bobOrdinals, containsInAnyOrder(Optional.of(0L), Optional.of(1L)));
+
+                        // Single-valued field name should have ordinal 0
+                        assertThat(aliceRows.get(0).getValue("name.#"), is(Optional.of(0L)));
+                    })
+                    .verifyComplete();
+        }
+    }
+
     // --- Iterable field tests ---
 
     @Nested
@@ -535,9 +606,10 @@ class DuckDbLogicalViewEvaluatorTest {
                                 containsInAnyOrder(
                                         Optional.of("gaming"), Optional.of("cooking"), Optional.of("hiking")));
 
-                        // Verify keys include item.# and item.hobby
+                        // Verify keys include item.# and item.hobby (plus ordinal companions)
                         assertThat(
-                                iterations.get(0).getKeys(), containsInAnyOrder("#", "name", "item.hobby", "item.#"));
+                                iterations.get(0).getKeys(),
+                                containsInAnyOrder("#", "name", "name.#", "item.hobby", "item.#"));
                     })
                     .verifyComplete();
         }

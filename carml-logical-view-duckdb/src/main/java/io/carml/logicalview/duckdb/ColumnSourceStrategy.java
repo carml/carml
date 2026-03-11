@@ -17,6 +17,11 @@ import org.jooq.Table;
 record ColumnSourceStrategy(String cteAlias) implements DuckDbSourceStrategy {
 
     @Override
+    public boolean isMultiValuedReference(String reference) {
+        return false;
+    }
+
+    @Override
     public SelectField<?> compileFieldReference(String reference, Name fieldAlias) {
         return field(quotedName(cteAlias, reference)).as(fieldAlias);
     }

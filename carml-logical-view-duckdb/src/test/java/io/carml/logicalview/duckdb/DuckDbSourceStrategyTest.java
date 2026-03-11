@@ -2,6 +2,8 @@ package io.carml.logicalview.duckdb;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 
@@ -28,6 +30,13 @@ class DuckDbSourceStrategyTest {
     class ColumnStrategyTests {
 
         private final ColumnSourceStrategy strategy = new ColumnSourceStrategy(CTE_ALIAS);
+
+        @Test
+        void isMultiValuedReference_alwaysReturnsFalse() {
+            assertThat(strategy.isMultiValuedReference("items"), is(false));
+            assertThat(strategy.isMultiValuedReference("$.items[*]"), is(false));
+            assertThat(strategy.isMultiValuedReference(null), is(false));
+        }
 
         @Test
         void compileFieldReference_producesQualifiedColumnRef() {
@@ -92,6 +101,62 @@ class DuckDbSourceStrategyTest {
             lenient().when(field.getFieldName()).thenReturn(fieldName);
             lenient().when(field.getReference()).thenReturn(reference);
             return field;
+        }
+
+        @Test
+        void isMultiValuedReference_withArrayWildcard_returnsTrue() {
+            var strategy = createStrategy(Set.of());
+            assertThat(strategy.isMultiValuedReference("$.items[*]"), is(true));
+            assertThat(strategy.isMultiValuedReference("$.people[*].name"), is(true));
+        }
+
+        @Test
+        void isMultiValuedReference_withFilterExpression_returnsTrue() {
+            var strategy = createStrategy(Set.of());
+            assertThat(strategy.isMultiValuedReference("$.people[?(@.age>18)]"), is(true));
+        }
+
+        @Test
+        void isMultiValuedReference_withDeepScan_returnsTrue() {
+            var strategy = createStrategy(Set.of());
+            assertThat(strategy.isMultiValuedReference("$..name"), is(true));
+        }
+
+        @Test
+        void isMultiValuedReference_withChildWildcard_returnsTrue() {
+            var strategy = createStrategy(Set.of());
+            assertThat(strategy.isMultiValuedReference("$.*"), is(true));
+        }
+
+        @Test
+        void isMultiValuedReference_withSlice_returnsTrue() {
+            var strategy = createStrategy(Set.of());
+            assertThat(strategy.isMultiValuedReference("$.items[0:3]"), is(true));
+        }
+
+        @Test
+        void isMultiValuedReference_withIndexUnion_returnsTrue() {
+            var strategy = createStrategy(Set.of());
+            assertThat(strategy.isMultiValuedReference("$.items[0,2]"), is(true));
+        }
+
+        @Test
+        void isMultiValuedReference_withNameUnion_returnsTrue() {
+            var strategy = createStrategy(Set.of());
+            assertThat(strategy.isMultiValuedReference("$['name','age']"), is(true));
+        }
+
+        @Test
+        void isMultiValuedReference_withoutArrayWildcard_returnsFalse() {
+            var strategy = createStrategy(Set.of());
+            assertThat(strategy.isMultiValuedReference("$.name"), is(false));
+            assertThat(strategy.isMultiValuedReference("name"), is(false));
+        }
+
+        @Test
+        void isMultiValuedReference_withNull_returnsFalse() {
+            var strategy = createStrategy(Set.of());
+            assertThat(strategy.isMultiValuedReference(null), is(false));
         }
 
         @Test
@@ -160,6 +225,33 @@ class DuckDbSourceStrategyTest {
             assertThat(sql, containsString("LATERAL"));
             assertThat(sql, containsString("unnest(list_value(json_extract(\"item\".\"unnest\", '$.address')))"));
             assertThat(sql, containsString("list_value(0)"));
+            assertThat(sql, containsString("\"__ord\""));
+        }
+
+        @Test
+        void compileUnnestTable_withDeepScan_throwsUnsupported() {
+            var strategy = createStrategy(Set.of());
+            assertThrows(
+                    UnsupportedOperationException.class,
+                    () -> strategy.compileUnnestTable("$..name", CTE_ALIAS, true, "names"));
+        }
+
+        @Test
+        void compileUnnestTable_withChildWildcard_throwsUnsupported() {
+            var strategy = createStrategy(Set.of());
+            assertThrows(
+                    UnsupportedOperationException.class,
+                    () -> strategy.compileUnnestTable("$.*", CTE_ALIAS, true, "children"));
+        }
+
+        @Test
+        void compileUnnestTable_withFilterExpression_passesRawJsonPathToDuckDb() {
+            var strategy = createStrategy(Set.of());
+            var result = strategy.compileUnnestTable("$.items[?(@.active==true)]", CTE_ALIAS, true, "items");
+            var sql = CTX.selectFrom(result).getSQL();
+            assertThat(sql, containsString("LATERAL"));
+            // Raw JSONPath with filter is passed through so DuckDB applies the filter natively
+            assertThat(sql, containsString("json_extract(\"view_source\".\"__iter\", '$.items[?(@.active==true)]')"));
             assertThat(sql, containsString("\"__ord\""));
         }
 
