@@ -36,9 +36,34 @@ final class JsonPathAnalyzer {
      * @param filters the extracted filter conditions (empty if no filters)
      * @param hasDeepScan whether the path uses recursive descent ({@code ..})
      * @param slices the slice selectors encountered in the path (empty if no slices)
+     * @param unions the union selectors encountered in the path (empty if no unions)
      */
     record ParsedJsonPath(
-            String basePath, List<FilterCondition> filters, boolean hasDeepScan, List<SliceSelector> slices) {}
+            String basePath,
+            List<FilterCondition> filters,
+            boolean hasDeepScan,
+            List<SliceSelector> slices,
+            List<UnionSelector> unions) {}
+
+    /**
+     * A union selector extracted from a JSONPath index union ({@code [0,2,5]}) or name union
+     * ({@code ['name','age']}) expression.
+     */
+    sealed interface UnionSelector {}
+
+    /**
+     * An index union selector that selects specific array elements by their 0-based indices.
+     *
+     * @param indices the list of 0-based array indices to select
+     */
+    record IndexUnion(List<Integer> indices) implements UnionSelector {}
+
+    /**
+     * A name union selector that selects specific object keys by name.
+     *
+     * @param names the list of object key names to select
+     */
+    record NameUnion(List<String> names) implements UnionSelector {}
 
     /**
      * A slice selector extracted from a JSONPath array slice expression ({@code [start:end]}).
@@ -95,7 +120,8 @@ final class JsonPathAnalyzer {
                 visitor.basePath.toString(),
                 List.copyOf(visitor.filters),
                 visitor.hasDeepScan,
-                List.copyOf(visitor.slices));
+                List.copyOf(visitor.slices),
+                List.copyOf(visitor.unions));
     }
 
     /**
@@ -108,6 +134,7 @@ final class JsonPathAnalyzer {
         private final StringBuilder basePath = new StringBuilder("$");
         private final List<FilterCondition> filters = new ArrayList<>();
         private final List<SliceSelector> slices = new ArrayList<>();
+        private final List<UnionSelector> unions = new ArrayList<>();
         private boolean hasDeepScan = false;
 
         @Override
@@ -137,6 +164,10 @@ final class JsonPathAnalyzer {
         @Override
         public Void visitIndexes(JsonPathParser.IndexesContext ctx) {
             basePath.append("[*]");
+            var indices = ctx.NUM().stream()
+                    .map(num -> Integer.parseInt(num.getText()))
+                    .toList();
+            unions.add(new IndexUnion(indices));
             return null;
         }
 
@@ -164,6 +195,13 @@ final class JsonPathAnalyzer {
         @Override
         public Void visitChildrenNode(JsonPathParser.ChildrenNodeContext ctx) {
             basePath.append("[*]");
+            var names = ctx.QUOTED_STRING().stream()
+                    .map(qs -> {
+                        var raw = qs.getText();
+                        return raw.substring(1, raw.length() - 1);
+                    })
+                    .toList();
+            unions.add(new NameUnion(names));
             return null;
         }
 

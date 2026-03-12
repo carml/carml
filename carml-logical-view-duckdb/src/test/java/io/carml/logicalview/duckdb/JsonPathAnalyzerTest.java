@@ -9,6 +9,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -250,6 +251,71 @@ class JsonPathAnalyzerTest {
             assertThat(result.slices(), hasSize(1));
             assertThat(result.slices().get(0).start(), is(2));
             assertThat(result.slices().get(0).end(), is(5));
+        }
+    }
+
+    @Nested
+    class Unions {
+
+        @Test
+        void analyze_indexUnion_extractsIndices() {
+            var result = JsonPathAnalyzer.analyze("$.items[0,2,5]");
+
+            assertThat(result.unions(), hasSize(1));
+            assertThat(result.unions().get(0), instanceOf(JsonPathAnalyzer.IndexUnion.class));
+
+            var union = (JsonPathAnalyzer.IndexUnion) result.unions().get(0);
+            assertThat(union.indices(), is(List.of(0, 2, 5)));
+        }
+
+        @Test
+        void analyze_nameUnion_extractsNames() {
+            var result = JsonPathAnalyzer.analyze("$.obj['name','age']");
+
+            assertThat(result.unions(), hasSize(1));
+            assertThat(result.unions().get(0), instanceOf(JsonPathAnalyzer.NameUnion.class));
+
+            var union = (JsonPathAnalyzer.NameUnion) result.unions().get(0);
+            assertThat(union.names(), is(List.of("name", "age")));
+        }
+
+        @Test
+        void analyze_singleIndex_noUnion() {
+            var result = JsonPathAnalyzer.analyze("$.items[0]");
+
+            assertThat(result.unions(), is(empty()));
+        }
+
+        @Test
+        void analyze_nameUnionWithDoubleQuotes_extractsNames() {
+            var result = JsonPathAnalyzer.analyze("$.obj[\"name\",\"age\"]");
+
+            assertThat(result.unions(), hasSize(1));
+            assertThat(result.unions().get(0), instanceOf(JsonPathAnalyzer.NameUnion.class));
+
+            var union = (JsonPathAnalyzer.NameUnion) result.unions().get(0);
+            assertThat(union.names(), is(List.of("name", "age")));
+        }
+
+        @Test
+        void analyze_indexUnion_basePath() {
+            var result = JsonPathAnalyzer.analyze("$.items[0,2,5]");
+
+            assertThat(result.basePath(), is("$.items[*]"));
+        }
+
+        @Test
+        void analyze_nameUnion_basePath() {
+            var result = JsonPathAnalyzer.analyze("$.obj['name','age']");
+
+            assertThat(result.basePath(), is("$.obj[*]"));
+        }
+
+        @Test
+        void analyze_wildcardWithNoUnion_returnsEmptyUnionsList() {
+            var result = JsonPathAnalyzer.analyze("$.items[*]");
+
+            assertThat(result.unions(), is(empty()));
         }
     }
 

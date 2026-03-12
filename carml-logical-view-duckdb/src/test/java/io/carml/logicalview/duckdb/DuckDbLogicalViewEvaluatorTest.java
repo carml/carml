@@ -897,6 +897,90 @@ class DuckDbLogicalViewEvaluatorTest {
         }
     }
 
+    // --- Union selector tests ---
+
+    @Nested
+    class UnionSelectorEvaluation {
+
+        @Test
+        void evaluate_iterableFieldWithIndexUnion_selectsSpecificIndices() throws IOException {
+            var jsonFile = tempDir.resolve("index_union.json");
+            Files.writeString(jsonFile, """
+                    {
+                        "people": [
+                            {"name": "Alice", "scores": [10, 20, 30, 40, 50]}
+                        ]
+                    }""");
+
+            var nestedField = expressionField("score", "$");
+            var iterableField = iterableField("item", "$.scores[0,2,4]", Set.of(nestedField));
+            var topField = expressionField("name", "$.name");
+
+            var view = createJsonViewWithIterableFields(
+                    jsonFile.toString(), "$.people[*]", Set.of(topField, iterableField));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(
+                            evaluator.evaluate(view, source -> null, context).collectList())
+                    .assertNext(iterations -> {
+                        // [0,2,4] selects indices 0, 2, 4 -> scores 10, 30, 50
+                        assertThat(iterations, hasSize(3));
+
+                        var scores = iterations.stream()
+                                .map(it -> it.getValue("item.score"))
+                                .toList();
+                        assertThat(scores, containsInAnyOrder(Optional.of("10"), Optional.of("30"), Optional.of("50")));
+
+                        // Ordinals should be 0-based within the selected result
+                        var ordinals = iterations.stream()
+                                .map(it -> it.getValue("item.#"))
+                                .toList();
+                        assertThat(ordinals, containsInAnyOrder(Optional.of(0L), Optional.of(1L), Optional.of(2L)));
+                    })
+                    .verifyComplete();
+        }
+
+        @Test
+        void evaluate_iterableFieldWithNameUnion_selectsSpecificKeys() throws IOException {
+            var jsonFile = tempDir.resolve("name_union.json");
+            Files.writeString(jsonFile, """
+                    {
+                        "people": [
+                            {"name": "Alice", "details": {"age": 30, "city": "Amsterdam", "role": "dev"}}
+                        ]
+                    }""");
+
+            var nestedField = expressionField("val", "$");
+            var iterableField = iterableField("item", "$.details['age','city']", Set.of(nestedField));
+            var topField = expressionField("name", "$.name");
+
+            var view = createJsonViewWithIterableFields(
+                    jsonFile.toString(), "$.people[*]", Set.of(topField, iterableField));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(
+                            evaluator.evaluate(view, source -> null, context).collectList())
+                    .assertNext(iterations -> {
+                        // ['age','city'] selects 2 keys -> values 30, "Amsterdam"
+                        assertThat(iterations, hasSize(2));
+
+                        var vals = iterations.stream()
+                                .map(it -> it.getValue("item.val"))
+                                .toList();
+                        assertThat(vals, containsInAnyOrder(Optional.of("30"), Optional.of("Amsterdam")));
+
+                        // Ordinals should be 0-based
+                        var ordinals = iterations.stream()
+                                .map(it -> it.getValue("item.#"))
+                                .toList();
+                        assertThat(ordinals, containsInAnyOrder(Optional.of(0L), Optional.of(1L)));
+                    })
+                    .verifyComplete();
+        }
+    }
+
     // --- SQL source type inference tests ---
 
     @Nested

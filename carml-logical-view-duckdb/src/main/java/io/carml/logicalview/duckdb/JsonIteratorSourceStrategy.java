@@ -126,6 +126,12 @@ final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
             return sliceTable;
         }
 
+        // Check for union selectors
+        var unionTable = compileUnionUnnest(parsed, sqlPath, parentRef, absoluteName);
+        if (unionTable != null) {
+            return unionTable;
+        }
+
         // Standard array unnest with parallel ordinal generation
         return table("""
                         LATERAL (SELECT unnest(json_extract({0}, {1})) AS "%s", \
@@ -167,6 +173,53 @@ final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
             return startCondition + " AND " + endCondition;
         }
         return startCondition != null ? startCondition : endCondition;
+    }
+
+    private static Table<?> compileUnionUnnest(
+            JsonPathAnalyzer.ParsedJsonPath parsed, String sqlPath, Field<?> parentRef, String absoluteName) {
+        if (parsed.unions().isEmpty()) {
+            return null;
+        }
+
+        var union = parsed.unions().get(parsed.unions().size() - 1);
+
+        if (union instanceof JsonPathAnalyzer.IndexUnion indexUnion) {
+            return compileIndexUnionUnnest(indexUnion, sqlPath, parentRef, absoluteName);
+        }
+        if (union instanceof JsonPathAnalyzer.NameUnion nameUnion) {
+            return compileNameUnionUnnest(nameUnion, parsed.basePath(), parentRef, absoluteName);
+        }
+        throw new UnsupportedOperationException("Unsupported union selector type: %s".formatted(union.getClass()));
+    }
+
+    private static Table<?> compileIndexUnionUnnest(
+            JsonPathAnalyzer.IndexUnion indexUnion, String sqlPath, Field<?> parentRef, String absoluteName) {
+        var inList = indexUnion.indices().stream().map(String::valueOf).collect(Collectors.joining(", "));
+
+        return table("""
+                        LATERAL (SELECT "%1$s", (row_number() over() - 1) AS "%2$s" \
+                        FROM (SELECT unnest(json_extract({0}, {1})) AS "%1$s", \
+                        unnest(range(len(json_extract({0}, {1})))) AS "%2$s") \
+                        WHERE "%2$s" IN (%3$s))\
+                        """.formatted(UNNEST_FIELD, ORDINAL_FIELD, inList), parentRef, inline(sqlPath))
+                .as(quotedName(absoluteName));
+    }
+
+    private static Table<?> compileNameUnionUnnest(
+            JsonPathAnalyzer.NameUnion nameUnion, String basePath, Field<?> parentRef, String absoluteName) {
+        // The basePath ends with [*] (e.g., "$.details[*]"). Strip the [*] to get the parent
+        // object path (e.g., "$.details"), then append each key name to form individual key paths.
+        var parentPath = basePath.substring(0, basePath.length() - "[*]".length());
+
+        var extractExprs = nameUnion.names().stream()
+                .map(name -> "json_extract({0}, '%s.%s')".formatted(parentPath, name.replace("'", "''")))
+                .collect(Collectors.joining(", "));
+
+        return table("""
+                        LATERAL (SELECT unnest(list_value(%1$s)) AS "%2$s", \
+                        unnest(range(%3$d)) AS "%4$s")\
+                        """.formatted(extractExprs, UNNEST_FIELD, nameUnion.names().size(), ORDINAL_FIELD), parentRef)
+                .as(quotedName(absoluteName));
     }
 
     @Override

@@ -340,6 +340,29 @@ class DuckDbSourceStrategyTest {
         }
 
         @Test
+        void compileUnnestTable_withIndexUnion_producesOrdinalFilteredUnnest() {
+            var strategy = createStrategy(Set.of());
+            var result = strategy.compileUnnestTable("$.items[0,2,5]", CTE_ALIAS, true, "item");
+            var sql = CTX.selectFrom(result).getSQL();
+            assertThat(sql, containsString("LATERAL"));
+            assertThat(sql, containsString("unnest(json_extract(\"view_source\".\"__iter\", '$.items[*]'))"));
+            assertThat(sql, containsString("IN (0, 2, 5)"));
+            assertThat(sql, containsString("row_number() over() - 1"));
+        }
+
+        @Test
+        void compileUnnestTable_withNameUnion_producesKeyExtractionUnnest() {
+            var strategy = createStrategy(Set.of());
+            var result = strategy.compileUnnestTable("$.obj['name','age']", CTE_ALIAS, true, "field");
+            var sql = CTX.selectFrom(result).getSQL();
+            assertThat(sql, containsString("LATERAL"));
+            assertThat(sql, containsString("json_extract(\"view_source\".\"__iter\", '$.obj.name')"));
+            assertThat(sql, containsString("json_extract(\"view_source\".\"__iter\", '$.obj.age')"));
+            assertThat(sql, containsString("list_value("));
+            assertThat(sql, containsString("range(2)"));
+        }
+
+        @Test
         void compileUnnestTable_withFilterExpression_passesRawJsonPathToDuckDb() {
             var strategy = createStrategy(Set.of());
             var result = strategy.compileUnnestTable("$.items[?(@.active==true)]", CTE_ALIAS, true, "items");
