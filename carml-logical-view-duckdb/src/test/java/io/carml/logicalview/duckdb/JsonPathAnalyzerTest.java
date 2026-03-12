@@ -410,4 +410,115 @@ class JsonPathAnalyzerTest {
             assertThat(eqFilter.value(), is("x"));
         }
     }
+
+    @Nested
+    class RewrittenOperators {
+
+        @Test
+        void analyze_notEqualString_producesNotEqualStr() {
+            var result = JsonPathAnalyzer.analyze("$.items[?(@.type != 'book')]");
+
+            assertThat(result.basePath(), is("$.items[*]"));
+            assertThat(result.filters(), hasSize(1));
+            assertThat(result.filters().get(0), instanceOf(JsonPathAnalyzer.NotFilter.class));
+
+            var notFilter = (JsonPathAnalyzer.NotFilter) result.filters().get(0);
+            assertThat(notFilter.condition(), instanceOf(JsonPathAnalyzer.EqualStr.class));
+
+            var inner = (JsonPathAnalyzer.EqualStr) notFilter.condition();
+            assertThat(inner.fieldJsonPath(), is("$.type"));
+            assertThat(inner.value(), is("book"));
+        }
+
+        @Test
+        void analyze_notEqualNum_producesNotEqualNum() {
+            var result = JsonPathAnalyzer.analyze("$.items[?(@.price != 10)]");
+
+            assertThat(result.basePath(), is("$.items[*]"));
+            assertThat(result.filters(), hasSize(1));
+            assertThat(result.filters().get(0), instanceOf(JsonPathAnalyzer.NotFilter.class));
+
+            var notFilter = (JsonPathAnalyzer.NotFilter) result.filters().get(0);
+            assertThat(notFilter.condition(), instanceOf(JsonPathAnalyzer.EqualNum.class));
+
+            var inner = (JsonPathAnalyzer.EqualNum) notFilter.condition();
+            assertThat(inner.fieldJsonPath(), is("$.price"));
+            assertThat(inner.value(), is(new BigDecimal("10")));
+        }
+
+        @Test
+        void analyze_notEqualBool_producesNotEqualBool() {
+            var result = JsonPathAnalyzer.analyze("$.items[?(@.active != true)]");
+
+            assertThat(result.basePath(), is("$.items[*]"));
+            assertThat(result.filters(), hasSize(1));
+            assertThat(result.filters().get(0), instanceOf(JsonPathAnalyzer.NotFilter.class));
+
+            var notFilter = (JsonPathAnalyzer.NotFilter) result.filters().get(0);
+            assertThat(notFilter.condition(), instanceOf(JsonPathAnalyzer.EqualBool.class));
+
+            var inner = (JsonPathAnalyzer.EqualBool) notFilter.condition();
+            assertThat(inner.fieldJsonPath(), is("$.active"));
+            assertThat(inner.value(), is(true));
+        }
+
+        @Test
+        void analyze_greaterThanOrEqual_producesNotLessThan() {
+            var result = JsonPathAnalyzer.analyze("$.items[?(@.price >= 10)]");
+
+            assertThat(result.basePath(), is("$.items[*]"));
+            assertThat(result.filters(), hasSize(1));
+            assertThat(result.filters().get(0), instanceOf(JsonPathAnalyzer.NotFilter.class));
+
+            var notFilter = (JsonPathAnalyzer.NotFilter) result.filters().get(0);
+            assertThat(notFilter.condition(), instanceOf(JsonPathAnalyzer.LessThanNum.class));
+
+            var inner = (JsonPathAnalyzer.LessThanNum) notFilter.condition();
+            assertThat(inner.fieldJsonPath(), is("$.price"));
+            assertThat(inner.value(), is(new BigDecimal("10")));
+        }
+
+        @Test
+        void analyze_lessThanOrEqual_producesNotGreaterThan() {
+            var result = JsonPathAnalyzer.analyze("$.items[?(@.price <= 50)]");
+
+            assertThat(result.basePath(), is("$.items[*]"));
+            assertThat(result.filters(), hasSize(1));
+            assertThat(result.filters().get(0), instanceOf(JsonPathAnalyzer.NotFilter.class));
+
+            var notFilter = (JsonPathAnalyzer.NotFilter) result.filters().get(0);
+            assertThat(notFilter.condition(), instanceOf(JsonPathAnalyzer.GreaterThanNum.class));
+
+            var inner = (JsonPathAnalyzer.GreaterThanNum) notFilter.condition();
+            assertThat(inner.fieldJsonPath(), is("$.price"));
+            assertThat(inner.value(), is(new BigDecimal("50")));
+        }
+
+        @Test
+        void analyze_compoundWithRewrittenOp_parsesCorrectly() {
+            var result = JsonPathAnalyzer.analyze("$.items[?(@.price >= 10 && @.type != 'sale')]");
+
+            assertThat(result.basePath(), is("$.items[*]"));
+            assertThat(result.filters(), hasSize(1));
+            assertThat(result.filters().get(0), instanceOf(JsonPathAnalyzer.AndFilter.class));
+
+            var andFilter = (JsonPathAnalyzer.AndFilter) result.filters().get(0);
+            assertThat(andFilter.left(), instanceOf(JsonPathAnalyzer.NotFilter.class));
+            assertThat(andFilter.right(), instanceOf(JsonPathAnalyzer.NotFilter.class));
+
+            var leftNot = (JsonPathAnalyzer.NotFilter) andFilter.left();
+            assertThat(leftNot.condition(), instanceOf(JsonPathAnalyzer.LessThanNum.class));
+
+            var ltInner = (JsonPathAnalyzer.LessThanNum) leftNot.condition();
+            assertThat(ltInner.fieldJsonPath(), is("$.price"));
+            assertThat(ltInner.value(), is(new BigDecimal("10")));
+
+            var rightNot = (JsonPathAnalyzer.NotFilter) andFilter.right();
+            assertThat(rightNot.condition(), instanceOf(JsonPathAnalyzer.EqualStr.class));
+
+            var eqInner = (JsonPathAnalyzer.EqualStr) rightNot.condition();
+            assertThat(eqInner.fieldJsonPath(), is("$.type"));
+            assertThat(eqInner.value(), is("sale"));
+        }
+    }
 }

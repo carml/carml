@@ -3,6 +3,8 @@ package io.carml.logicalview.duckdb;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.antlr.v4.runtime.CharStreams;
@@ -24,9 +26,19 @@ import org.jsfr.json.compiler.JsonPathParser;
  *
  * <p>Both simple (single-condition) and compound filter expressions ({@code &&}, {@code ||},
  * {@code !}) are supported.
+ *
+ * <p>The JSurfer ANTLR grammar does not support the {@code !=}, {@code <=}, and {@code >=}
+ * comparison operators. Before parsing, a pre-processing step rewrites these operators as negated
+ * equivalents: {@code !=} becomes {@code !(... == ...)}, {@code >=} becomes {@code !(... < ...)},
+ * and {@code <=} becomes {@code !(... > ...)}.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 final class JsonPathAnalyzer {
+
+    /** Matches {@code !=}, {@code >=}, or {@code <=} with surrounding context in a filter expression. */
+    private static final Pattern UNSUPPORTED_OP = Pattern.compile("(!=|>=|<=)");
+
+    private static final Map<String, String> OP_REPLACEMENTS = Map.of("!=", "==", ">=", "<", "<=", ">");
 
     /**
      * Result of analyzing a JSONPath expression.
@@ -114,7 +126,8 @@ final class JsonPathAnalyzer {
      * @throws IllegalArgumentException if the expression contains an unrecognized filter type
      */
     static ParsedJsonPath analyze(String jsonPath) {
-        var lexer = new JsonPathLexer(CharStreams.fromString(jsonPath));
+        var preprocessed = preprocessUnsupportedOperators(jsonPath);
+        var lexer = new JsonPathLexer(CharStreams.fromString(preprocessed));
         var tokens = new CommonTokenStream(lexer);
         var parser = new JsonPathParser(tokens);
         var tree = parser.path();
@@ -128,6 +141,77 @@ final class JsonPathAnalyzer {
                 visitor.hasDeepScan,
                 List.copyOf(visitor.slices),
                 List.copyOf(visitor.unions));
+    }
+
+    /**
+     * Rewrites filter comparisons using operators not supported by the JSurfer ANTLR grammar
+     * ({@code !=}, {@code >=}, {@code <=}) into negated equivalents that the grammar can parse.
+     *
+     * <p>Each unsupported operator is replaced with a negated supported operator, and the
+     * enclosing comparison is wrapped in {@code !(...)}: {@code !=} becomes {@code !(... == ...)},
+     * {@code >=} becomes {@code !(... < ...)}, {@code <=} becomes {@code !(... > ...)}.
+     *
+     * <p>The approach finds each unsupported operator, then scans backwards for the {@code @} that
+     * starts the relative path and forwards for the value end (delimited by {@code )}, {@code &},
+     * or {@code |}).
+     */
+    private static String preprocessUnsupportedOperators(String jsonPath) {
+        var matcher = UNSUPPORTED_OP.matcher(jsonPath);
+        if (!matcher.find()) {
+            return jsonPath;
+        }
+
+        var sb = new StringBuilder();
+        var lastEnd = 0;
+        matcher.reset();
+        while (matcher.find()) {
+            var op = matcher.group(1);
+            var opStart = matcher.start();
+            var opEnd = matcher.end();
+
+            // Scan backwards from the operator to find the '@' that starts the path
+            var pathStart = opStart - 1;
+            while (pathStart > 0
+                    && jsonPath.charAt(pathStart - 1) != '('
+                    && jsonPath.charAt(pathStart - 1) != '&'
+                    && jsonPath.charAt(pathStart - 1) != '|') {
+                pathStart--;
+            }
+            // Trim leading whitespace
+            while (pathStart < opStart && Character.isWhitespace(jsonPath.charAt(pathStart))) {
+                pathStart++;
+            }
+
+            // Scan forwards from after the operator to find the value end
+            var valueEnd = opEnd;
+            while (valueEnd < jsonPath.length()
+                    && jsonPath.charAt(valueEnd) != ')'
+                    && jsonPath.charAt(valueEnd) != '&'
+                    && jsonPath.charAt(valueEnd) != '|') {
+                valueEnd++;
+            }
+            // Trim trailing whitespace
+            var trimmedValueEnd = valueEnd;
+            while (trimmedValueEnd > opEnd && Character.isWhitespace(jsonPath.charAt(trimmedValueEnd - 1))) {
+                trimmedValueEnd--;
+            }
+
+            var path = jsonPath.substring(pathStart, opStart).stripTrailing();
+            var value = jsonPath.substring(opEnd, trimmedValueEnd).stripLeading();
+            var replacementOp = OP_REPLACEMENTS.get(op);
+
+            sb.append(jsonPath, lastEnd, pathStart);
+            sb.append("!(")
+                    .append(path)
+                    .append(' ')
+                    .append(replacementOp)
+                    .append(' ')
+                    .append(value)
+                    .append(')');
+            lastEnd = valueEnd;
+        }
+        sb.append(jsonPath, lastEnd, jsonPath.length());
+        return sb.toString();
     }
 
     /**
