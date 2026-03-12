@@ -122,6 +122,12 @@ final class JsonPathSourceHandler implements DuckDbSourceHandler {
             return DSL.condition(
                     "regexp_matches(json_extract_string({0}, {1}), {2})",
                     iterCol, inline(f.fieldJsonPath()), inline(f.pattern()));
+        } else if (filter instanceof JsonPathAnalyzer.AndFilter f) {
+            return compileFilterCondition(f.left(), columnName).and(compileFilterCondition(f.right(), columnName));
+        } else if (filter instanceof JsonPathAnalyzer.OrFilter f) {
+            return compileFilterCondition(f.left(), columnName).or(compileFilterCondition(f.right(), columnName));
+        } else if (filter instanceof JsonPathAnalyzer.NotFilter f) {
+            return compileFilterCondition(f.condition(), columnName).not();
         }
         throw new UnsupportedOperationException(
                 "Unknown filter condition type: %s".formatted(filter.getClass().getName()));

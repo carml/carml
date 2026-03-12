@@ -6,7 +6,6 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -323,17 +322,92 @@ class JsonPathAnalyzerTest {
     class CompoundFilters {
 
         @Test
-        void analyze_andFilter_throwsUnsupportedOperationException() {
-            assertThrows(
-                    UnsupportedOperationException.class,
-                    () -> JsonPathAnalyzer.analyze("$.items[?(@.a > 1 && @.b < 2)]"));
+        void analyze_andFilter_extractsAndCondition() {
+            var result = JsonPathAnalyzer.analyze("$.items[?(@.a > 1 && @.b < 2)]");
+
+            assertThat(result.basePath(), is("$.items[*]"));
+            assertThat(result.filters(), hasSize(1));
+            assertThat(result.filters().get(0), instanceOf(JsonPathAnalyzer.AndFilter.class));
+
+            var andFilter = (JsonPathAnalyzer.AndFilter) result.filters().get(0);
+            assertThat(andFilter.left(), instanceOf(JsonPathAnalyzer.GreaterThanNum.class));
+            assertThat(andFilter.right(), instanceOf(JsonPathAnalyzer.LessThanNum.class));
+
+            var left = (JsonPathAnalyzer.GreaterThanNum) andFilter.left();
+            assertThat(left.fieldJsonPath(), is("$.a"));
+            assertThat(left.value(), is(new BigDecimal("1")));
+
+            var right = (JsonPathAnalyzer.LessThanNum) andFilter.right();
+            assertThat(right.fieldJsonPath(), is("$.b"));
+            assertThat(right.value(), is(new BigDecimal("2")));
         }
 
         @Test
-        void analyze_orFilter_throwsUnsupportedOperationException() {
-            assertThrows(
-                    UnsupportedOperationException.class,
-                    () -> JsonPathAnalyzer.analyze("$.items[?(@.a > 1 || @.b < 2)]"));
+        void analyze_orFilter_extractsOrCondition() {
+            var result = JsonPathAnalyzer.analyze("$.items[?(@.a > 1 || @.b < 2)]");
+
+            assertThat(result.basePath(), is("$.items[*]"));
+            assertThat(result.filters(), hasSize(1));
+            assertThat(result.filters().get(0), instanceOf(JsonPathAnalyzer.OrFilter.class));
+
+            var orFilter = (JsonPathAnalyzer.OrFilter) result.filters().get(0);
+            assertThat(orFilter.left(), instanceOf(JsonPathAnalyzer.GreaterThanNum.class));
+            assertThat(orFilter.right(), instanceOf(JsonPathAnalyzer.LessThanNum.class));
+
+            var left = (JsonPathAnalyzer.GreaterThanNum) orFilter.left();
+            assertThat(left.fieldJsonPath(), is("$.a"));
+            assertThat(left.value(), is(new BigDecimal("1")));
+
+            var right = (JsonPathAnalyzer.LessThanNum) orFilter.right();
+            assertThat(right.fieldJsonPath(), is("$.b"));
+            assertThat(right.value(), is(new BigDecimal("2")));
+        }
+
+        @Test
+        void analyze_notFilter_extractsNotCondition() {
+            var result = JsonPathAnalyzer.analyze("$.items[?(!(@.active == true))]");
+
+            assertThat(result.basePath(), is("$.items[*]"));
+            assertThat(result.filters(), hasSize(1));
+            assertThat(result.filters().get(0), instanceOf(JsonPathAnalyzer.NotFilter.class));
+
+            var notFilter = (JsonPathAnalyzer.NotFilter) result.filters().get(0);
+            assertThat(notFilter.condition(), instanceOf(JsonPathAnalyzer.EqualBool.class));
+
+            var inner = (JsonPathAnalyzer.EqualBool) notFilter.condition();
+            assertThat(inner.fieldJsonPath(), is("$.active"));
+            assertThat(inner.value(), is(true));
+        }
+
+        @Test
+        void analyze_nestedCompound_extractsCorrectTree() {
+            // The JSurfer grammar gives && higher precedence than ||, so this expression
+            // is parsed as: (@.a > 1 && @.b < 2) || (@.c == 'x')
+            var result = JsonPathAnalyzer.analyze("$.items[?(@.a > 1 && @.b < 2 || @.c == 'x')]");
+
+            assertThat(result.basePath(), is("$.items[*]"));
+            assertThat(result.filters(), hasSize(1));
+            assertThat(result.filters().get(0), instanceOf(JsonPathAnalyzer.OrFilter.class));
+
+            var orFilter = (JsonPathAnalyzer.OrFilter) result.filters().get(0);
+            assertThat(orFilter.left(), instanceOf(JsonPathAnalyzer.AndFilter.class));
+            assertThat(orFilter.right(), instanceOf(JsonPathAnalyzer.EqualStr.class));
+
+            var andFilter = (JsonPathAnalyzer.AndFilter) orFilter.left();
+            assertThat(andFilter.left(), instanceOf(JsonPathAnalyzer.GreaterThanNum.class));
+            assertThat(andFilter.right(), instanceOf(JsonPathAnalyzer.LessThanNum.class));
+
+            var gtFilter = (JsonPathAnalyzer.GreaterThanNum) andFilter.left();
+            assertThat(gtFilter.fieldJsonPath(), is("$.a"));
+            assertThat(gtFilter.value(), is(new BigDecimal("1")));
+
+            var ltFilter = (JsonPathAnalyzer.LessThanNum) andFilter.right();
+            assertThat(ltFilter.fieldJsonPath(), is("$.b"));
+            assertThat(ltFilter.value(), is(new BigDecimal("2")));
+
+            var eqFilter = (JsonPathAnalyzer.EqualStr) orFilter.right();
+            assertThat(eqFilter.fieldJsonPath(), is("$.c"));
+            assertThat(eqFilter.value(), is("x"));
         }
     }
 }

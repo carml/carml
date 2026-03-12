@@ -15,9 +15,12 @@ import io.carml.model.FileSource;
 import io.carml.model.LogicalSource;
 import io.carml.model.Source;
 import io.carml.vocab.Rdf;
+import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.Set;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
+import org.jooq.SQLDialect;
+import org.jooq.impl.DSL;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -356,6 +359,46 @@ class DuckDbSourceHandlerTest {
             var fields = Set.<Field>of(expressionField("name", "name"));
 
             assertThrows(IllegalArgumentException.class, () -> handler.compileSource(logicalSource, fields, CTE_ALIAS));
+        }
+    }
+
+    @Nested
+    class CompileFilterCondition {
+
+        private static final String COLUMN = "__iter";
+
+        @Test
+        void compileFilterCondition_andFilter_producesAndCondition() {
+            var filter = new JsonPathAnalyzer.AndFilter(
+                    new JsonPathAnalyzer.GreaterThanNum("$.a", BigDecimal.ONE),
+                    new JsonPathAnalyzer.LessThanNum("$.b", BigDecimal.TEN));
+
+            var condition = JsonPathSourceHandler.compileFilterCondition(filter, COLUMN);
+            var sql = DSL.using(SQLDialect.DUCKDB).renderInlined(condition);
+
+            assertThat(sql, containsString("and"));
+        }
+
+        @Test
+        void compileFilterCondition_orFilter_producesOrCondition() {
+            var filter = new JsonPathAnalyzer.OrFilter(
+                    new JsonPathAnalyzer.GreaterThanNum("$.a", BigDecimal.ONE),
+                    new JsonPathAnalyzer.LessThanNum("$.b", BigDecimal.TEN));
+
+            var condition = JsonPathSourceHandler.compileFilterCondition(filter, COLUMN);
+            var sql = DSL.using(SQLDialect.DUCKDB).renderInlined(condition);
+
+            assertThat(sql, containsString("or"));
+        }
+
+        @Test
+        void compileFilterCondition_notFilter_producesNotCondition() {
+            var filter = new JsonPathAnalyzer.NotFilter(new JsonPathAnalyzer.EqualBool("$.active", true));
+
+            var condition = JsonPathSourceHandler.compileFilterCondition(filter, COLUMN);
+            var sql = DSL.using(SQLDialect.DUCKDB).renderInlined(condition);
+
+            assertThat(sql, containsString("not"));
         }
     }
 

@@ -22,9 +22,8 @@ import org.jsfr.json.compiler.JsonPathParser;
  *   <li>A <b>deep scan</b> flag indicating whether the path uses recursive descent ({@code ..})</li>
  * </ul>
  *
- * <p>Compound filter expressions ({@code &&}, {@code ||}, {@code !}) are not supported and throw
- * {@link UnsupportedOperationException} at parse time. Simple (single-condition) filters are fully
- * supported.
+ * <p>Both simple (single-condition) and compound filter expressions ({@code &&}, {@code ||},
+ * {@code !}) are supported.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 final class JsonPathAnalyzer {
@@ -77,14 +76,12 @@ final class JsonPathAnalyzer {
     record SliceSelector(Integer start, Integer end) {}
 
     /**
-     * A typed filter condition extracted from a JSONPath filter expression. Each condition
-     * references a field via its JSONPath (e.g., {@code $.age}) and a comparison value.
+     * A typed filter condition extracted from a JSONPath filter expression. Leaf conditions
+     * reference a field via its JSONPath (e.g., {@code $.age}) and a comparison value. Compound
+     * conditions combine leaf conditions using logical operators ({@code &&}, {@code ||},
+     * {@code !}).
      */
-    sealed interface FilterCondition {
-
-        /** The JSONPath for the filtered field, e.g., {@code $.age}. */
-        String fieldJsonPath();
-    }
+    sealed interface FilterCondition {}
 
     record EqualStr(String fieldJsonPath, String value) implements FilterCondition {}
 
@@ -100,12 +97,21 @@ final class JsonPathAnalyzer {
 
     record MatchRegex(String fieldJsonPath, String pattern) implements FilterCondition {}
 
+    /** Logical AND of two filter conditions ({@code &&}). */
+    record AndFilter(FilterCondition left, FilterCondition right) implements FilterCondition {}
+
+    /** Logical OR of two filter conditions ({@code ||}). */
+    record OrFilter(FilterCondition left, FilterCondition right) implements FilterCondition {}
+
+    /** Logical negation of a filter condition ({@code !}). */
+    record NotFilter(FilterCondition condition) implements FilterCondition {}
+
     /**
      * Analyzes a JSONPath expression and returns its structured components.
      *
      * @param jsonPath the JSONPath expression to analyze (e.g., {@code $.people[*]})
      * @return the parsed components
-     * @throws UnsupportedOperationException if compound filter expressions are used
+     * @throws IllegalArgumentException if the expression contains an unrecognized filter type
      */
     static ParsedJsonPath analyze(String jsonPath) {
         var lexer = new JsonPathLexer(CharStreams.fromString(jsonPath));
@@ -257,9 +263,19 @@ final class JsonPathAnalyzer {
             if (ctx.filterMatchRegex() != null) {
                 return extractMatchRegex(ctx.filterMatchRegex());
             }
+            if (ctx.AndOperator() != null) {
+                return new AndFilter(
+                        extractFilterCondition(ctx.filterExpr(0)), extractFilterCondition(ctx.filterExpr(1)));
+            }
+            if (ctx.OrOperator() != null) {
+                return new OrFilter(
+                        extractFilterCondition(ctx.filterExpr(0)), extractFilterCondition(ctx.filterExpr(1)));
+            }
+            if (ctx.NegationOperator() != null) {
+                return new NotFilter(extractFilterCondition(ctx.filterExpr(0)));
+            }
 
-            throw new UnsupportedOperationException(
-                    "Compound JSONPath filter expressions (&&, ||, !) are not yet implemented in JsonPathAnalyzer");
+            throw new IllegalArgumentException("Unrecognized JSONPath filter expression type in JsonPathAnalyzer");
         }
 
         /**
