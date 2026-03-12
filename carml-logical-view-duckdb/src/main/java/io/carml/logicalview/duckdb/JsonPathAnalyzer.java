@@ -35,8 +35,21 @@ final class JsonPathAnalyzer {
      * @param basePath the path with filter expressions replaced by {@code [*]}
      * @param filters the extracted filter conditions (empty if no filters)
      * @param hasDeepScan whether the path uses recursive descent ({@code ..})
+     * @param slices the slice selectors encountered in the path (empty if no slices)
      */
-    record ParsedJsonPath(String basePath, List<FilterCondition> filters, boolean hasDeepScan) {}
+    record ParsedJsonPath(
+            String basePath, List<FilterCondition> filters, boolean hasDeepScan, List<SliceSelector> slices) {}
+
+    /**
+     * A slice selector extracted from a JSONPath array slice expression ({@code [start:end]}).
+     *
+     * <p>Both bounds follow JSONPath semantics: 0-based, start-inclusive, end-exclusive. Either bound
+     * may be {@code null} to indicate "from beginning" or "to end".
+     *
+     * @param start the 0-based inclusive start index, or {@code null} for "from beginning"
+     * @param end the 0-based exclusive end index, or {@code null} for "to end"
+     */
+    record SliceSelector(Integer start, Integer end) {}
 
     /**
      * A typed filter condition extracted from a JSONPath filter expression. Each condition
@@ -78,7 +91,11 @@ final class JsonPathAnalyzer {
         var visitor = new PathAnalysisVisitor();
         visitor.visit(tree);
 
-        return new ParsedJsonPath(visitor.basePath.toString(), List.copyOf(visitor.filters), visitor.hasDeepScan);
+        return new ParsedJsonPath(
+                visitor.basePath.toString(),
+                List.copyOf(visitor.filters),
+                visitor.hasDeepScan,
+                List.copyOf(visitor.slices));
     }
 
     /**
@@ -90,6 +107,7 @@ final class JsonPathAnalyzer {
 
         private final StringBuilder basePath = new StringBuilder("$");
         private final List<FilterCondition> filters = new ArrayList<>();
+        private final List<SliceSelector> slices = new ArrayList<>();
         private boolean hasDeepScan = false;
 
         @Override
@@ -125,6 +143,21 @@ final class JsonPathAnalyzer {
         @Override
         public Void visitSlicing(JsonPathParser.SlicingContext ctx) {
             basePath.append("[*]");
+
+            // The grammar is: '[' NUM? COLON NUM? ']'
+            // Determine which NUM tokens are start vs. end by comparing their token index
+            // to the COLON token index.
+            var colonIndex = ctx.COLON().getSymbol().getTokenIndex();
+            Integer start = null;
+            Integer end = null;
+            for (var num : ctx.NUM()) {
+                if (num.getSymbol().getTokenIndex() < colonIndex) {
+                    start = Integer.parseInt(num.getText());
+                } else {
+                    end = Integer.parseInt(num.getText());
+                }
+            }
+            slices.add(new SliceSelector(start, end));
             return null;
         }
 

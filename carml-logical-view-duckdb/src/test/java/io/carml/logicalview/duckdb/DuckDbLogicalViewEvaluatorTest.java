@@ -789,6 +789,114 @@ class DuckDbLogicalViewEvaluatorTest {
         }
     }
 
+    // --- Slice selector tests ---
+
+    @Nested
+    class SliceSelectorEvaluation {
+
+        @Test
+        void evaluate_iterableFieldWithSlice_selectsSlicedElements() throws IOException {
+            var jsonFile = tempDir.resolve("slice.json");
+            Files.writeString(jsonFile, """
+                    {
+                        "people": [
+                            {"name": "Alice", "scores": [10, 20, 30, 40, 50]}
+                        ]
+                    }""");
+
+            var nestedField = expressionField("score", "$");
+            var iterableField = iterableField("item", "$.scores[1:4]", Set.of(nestedField));
+            var topField = expressionField("name", "$.name");
+
+            var view = createJsonViewWithIterableFields(
+                    jsonFile.toString(), "$.people[*]", Set.of(topField, iterableField));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(
+                            evaluator.evaluate(view, source -> null, context).collectList())
+                    .assertNext(iterations -> {
+                        // [1:4] selects indices 1,2,3 -> scores 20,30,40
+                        assertThat(iterations, hasSize(3));
+
+                        var scores = iterations.stream()
+                                .map(it -> it.getValue("item.score"))
+                                .toList();
+                        assertThat(scores, containsInAnyOrder(Optional.of("20"), Optional.of("30"), Optional.of("40")));
+
+                        // Ordinals should be 0-based within the sliced result
+                        var ordinals = iterations.stream()
+                                .map(it -> it.getValue("item.#"))
+                                .toList();
+                        assertThat(ordinals, containsInAnyOrder(Optional.of(0L), Optional.of(1L), Optional.of(2L)));
+                    })
+                    .verifyComplete();
+        }
+
+        @Test
+        void evaluate_iterableFieldWithSliceStartOnly_selectsFromStartToEnd() throws IOException {
+            var jsonFile = tempDir.resolve("slice_start.json");
+            Files.writeString(jsonFile, """
+                    {
+                        "people": [
+                            {"name": "Bob", "tags": ["x", "y", "z"]}
+                        ]
+                    }""");
+
+            var nestedField = expressionField("val", "$");
+            var iterableField = iterableField("item", "$.tags[2:]", Set.of(nestedField));
+            var topField = expressionField("name", "$.name");
+
+            var view = createJsonViewWithIterableFields(
+                    jsonFile.toString(), "$.people[*]", Set.of(topField, iterableField));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(
+                            evaluator.evaluate(view, source -> null, context).collectList())
+                    .assertNext(iterations -> {
+                        // [2:] selects from index 2 to end -> "z"
+                        assertThat(iterations, hasSize(1));
+                        assertThat(iterations.get(0).getValue("item.val"), is(Optional.of("z")));
+                        assertThat(iterations.get(0).getValue("item.#"), is(Optional.of(0L)));
+                    })
+                    .verifyComplete();
+        }
+
+        @Test
+        void evaluate_iterableFieldWithSliceEndOnly_selectsFromBeginningToEnd() throws IOException {
+            var jsonFile = tempDir.resolve("slice_end.json");
+            Files.writeString(jsonFile, """
+                    {
+                        "people": [
+                            {"name": "Carol", "items": ["a", "b", "c", "d"]}
+                        ]
+                    }""");
+
+            var nestedField = expressionField("val", "$");
+            var iterableField = iterableField("item", "$.items[:2]", Set.of(nestedField));
+            var topField = expressionField("name", "$.name");
+
+            var view = createJsonViewWithIterableFields(
+                    jsonFile.toString(), "$.people[*]", Set.of(topField, iterableField));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(
+                            evaluator.evaluate(view, source -> null, context).collectList())
+                    .assertNext(iterations -> {
+                        // [:2] selects indices 0,1 -> "a","b"
+                        assertThat(iterations, hasSize(2));
+
+                        var vals = iterations.stream()
+                                .map(it -> it.getValue("item.val"))
+                                .toList();
+                        assertThat(vals, containsInAnyOrder(Optional.of("a"), Optional.of("b")));
+                    })
+                    .verifyComplete();
+        }
+    }
+
     // --- SQL source type inference tests ---
 
     @Nested

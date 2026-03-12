@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.math.BigDecimal;
@@ -36,6 +37,7 @@ class JsonPathAnalyzerTest {
             assertThat(result.basePath(), is("$.items[*]"));
             assertThat(result.filters(), is(empty()));
             assertThat(result.hasDeepScan(), is(false));
+            assertThat(result.slices(), hasSize(1));
         }
 
         static Stream<Arguments> basePathCases() {
@@ -188,6 +190,66 @@ class JsonPathAnalyzerTest {
 
             var filter = (JsonPathAnalyzer.EqualStr) result.filters().get(0);
             assertThat(filter.fieldJsonPath(), is("$.meta.type"));
+        }
+    }
+
+    @Nested
+    class Slices {
+
+        @Test
+        void analyze_sliceWithStartAndEnd_extractsBothBounds() {
+            var result = JsonPathAnalyzer.analyze("$.items[0:3]");
+
+            assertThat(result.basePath(), is("$.items[*]"));
+            assertThat(result.slices(), hasSize(1));
+            assertThat(result.slices().get(0).start(), is(0));
+            assertThat(result.slices().get(0).end(), is(3));
+        }
+
+        @Test
+        void analyze_sliceWithStartOnly_extractsStartWithNullEnd() {
+            var result = JsonPathAnalyzer.analyze("$.items[1:]");
+
+            assertThat(result.basePath(), is("$.items[*]"));
+            assertThat(result.slices(), hasSize(1));
+            assertThat(result.slices().get(0).start(), is(1));
+            assertThat(result.slices().get(0).end(), is(nullValue()));
+        }
+
+        @Test
+        void analyze_sliceWithEndOnly_extractsEndWithNullStart() {
+            var result = JsonPathAnalyzer.analyze("$.items[:2]");
+
+            assertThat(result.basePath(), is("$.items[*]"));
+            assertThat(result.slices(), hasSize(1));
+            assertThat(result.slices().get(0).start(), is(nullValue()));
+            assertThat(result.slices().get(0).end(), is(2));
+        }
+
+        @Test
+        void analyze_sliceWithNoBounds_extractsBothNull() {
+            var result = JsonPathAnalyzer.analyze("$.items[:]");
+
+            assertThat(result.basePath(), is("$.items[*]"));
+            assertThat(result.slices(), hasSize(1));
+            assertThat(result.slices().get(0).start(), is(nullValue()));
+            assertThat(result.slices().get(0).end(), is(nullValue()));
+        }
+
+        @Test
+        void analyze_wildcardWithNoSlice_returnsEmptySlicesList() {
+            var result = JsonPathAnalyzer.analyze("$.items[*]");
+
+            assertThat(result.slices(), is(empty()));
+        }
+
+        @Test
+        void analyze_nonZeroStartSlice_extractsCorrectStart() {
+            var result = JsonPathAnalyzer.analyze("$.items[2:5]");
+
+            assertThat(result.slices(), hasSize(1));
+            assertThat(result.slices().get(0).start(), is(2));
+            assertThat(result.slices().get(0).end(), is(5));
         }
     }
 

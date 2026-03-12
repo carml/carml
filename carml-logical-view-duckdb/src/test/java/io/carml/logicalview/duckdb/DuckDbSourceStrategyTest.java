@@ -3,6 +3,7 @@ package io.carml.logicalview.duckdb;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
@@ -293,6 +294,49 @@ class DuckDbSourceStrategyTest {
             assertThrows(
                     UnsupportedOperationException.class,
                     () -> strategy.compileUnnestTable("$.*", CTE_ALIAS, true, "children"));
+        }
+
+        @Test
+        void compileUnnestTable_withSlice_producesOrdinalFilteredUnnest() {
+            var strategy = createStrategy(Set.of());
+            var result = strategy.compileUnnestTable("$.items[0:3]", CTE_ALIAS, true, "item");
+            var sql = CTX.selectFrom(result).getSQL();
+            assertThat(sql, containsString("LATERAL"));
+            assertThat(sql, containsString("unnest(json_extract(\"view_source\".\"__iter\", '$.items[*]'))"));
+            assertThat(sql, containsString("\"__ord\" >= 0 AND \"__ord\" < 3"));
+            assertThat(sql, containsString("row_number() over() - 1"));
+        }
+
+        @Test
+        void compileUnnestTable_withSliceStartOnly_producesOrdinalFilteredFromStart() {
+            var strategy = createStrategy(Set.of());
+            var result = strategy.compileUnnestTable("$.items[1:]", CTE_ALIAS, true, "item");
+            var sql = CTX.selectFrom(result).getSQL();
+            assertThat(sql, containsString("LATERAL"));
+            assertThat(sql, containsString("\"__ord\" >= 1"));
+            assertThat(sql, not(containsString("\"__ord\" <")));
+            assertThat(sql, containsString("row_number() over() - 1"));
+        }
+
+        @Test
+        void compileUnnestTable_withSliceEndOnly_producesOrdinalFilteredToEnd() {
+            var strategy = createStrategy(Set.of());
+            var result = strategy.compileUnnestTable("$.items[:2]", CTE_ALIAS, true, "item");
+            var sql = CTX.selectFrom(result).getSQL();
+            assertThat(sql, containsString("LATERAL"));
+            assertThat(sql, containsString("\"__ord\" < 2"));
+            assertThat(sql, not(containsString("\"__ord\" >=")));
+            assertThat(sql, containsString("row_number() over() - 1"));
+        }
+
+        @Test
+        void compileUnnestTable_withSliceBothNull_producesNormalUnnest() {
+            var strategy = createStrategy(Set.of());
+            var withSlice = strategy.compileUnnestTable("$.items[:]", CTE_ALIAS, true, "item");
+            var withWildcard = strategy.compileUnnestTable("$.items[*]", CTE_ALIAS, true, "item");
+            var sliceSql = CTX.selectFrom(withSlice).getSQL();
+            var wildcardSql = CTX.selectFrom(withWildcard).getSQL();
+            assertThat(sliceSql, is(wildcardSql));
         }
 
         @Test
