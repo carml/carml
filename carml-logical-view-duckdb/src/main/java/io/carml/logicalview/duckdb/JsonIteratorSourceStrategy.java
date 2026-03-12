@@ -95,7 +95,7 @@ final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
         var parentRef =
                 isRootLevel ? field(quotedName(cteAlias, iterColumn)) : field(quotedName(parentAlias, UNNEST_FIELD));
 
-        if (basePath.endsWith("[*]")) {
+        if (basePath.endsWith("[*]") || basePath.endsWith(".*")) {
             return compileArrayUnnest(parsed, sqlPath, parentRef, absoluteName);
         }
 
@@ -111,10 +111,6 @@ final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
         if (parsed.hasDeepScan()) {
             throw new UnsupportedOperationException(
                     "Recursive descent (..) in '%s' is not supported in DuckDB UNNEST".formatted(iterator));
-        }
-        if (parsed.basePath().contains(".*")) {
-            throw new UnsupportedOperationException(
-                    "Child wildcard (.*) in '%s' is not supported in DuckDB UNNEST".formatted(iterator));
         }
     }
 

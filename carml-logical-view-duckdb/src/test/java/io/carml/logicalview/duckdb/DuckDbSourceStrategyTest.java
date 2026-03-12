@@ -16,6 +16,8 @@ import org.jooq.impl.DSL;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -236,17 +238,6 @@ class DuckDbSourceStrategyTest {
         }
 
         @Test
-        void compileUnnestTable_rootLevelWithArrayIterator_producesLateralJsonExtractWithOrdinal() {
-            var strategy = createStrategy(Set.of());
-            var result = strategy.compileUnnestTable("$.items[*]", CTE_ALIAS, true, "item");
-            var sql = CTX.selectFrom(result).getSQL();
-            assertThat(sql, containsString("LATERAL"));
-            assertThat(sql, containsString("unnest(json_extract(\"view_source\".\"__iter\", '$.items[*]'))"));
-            assertThat(sql, containsString("range(len(json_extract(\"view_source\".\"__iter\", '$.items[*]')))"));
-            assertThat(sql, containsString("\"__ord\""));
-        }
-
-        @Test
         void compileUnnestTable_rootLevelWithoutArrayIterator_producesLateralListValueWithOrdinal() {
             var strategy = createStrategy(Set.of());
             var result = strategy.compileUnnestTable("$.address", CTE_ALIAS, true, "addr");
@@ -288,12 +279,16 @@ class DuckDbSourceStrategyTest {
                     () -> strategy.compileUnnestTable("$..name", CTE_ALIAS, true, "names"));
         }
 
-        @Test
-        void compileUnnestTable_withChildWildcard_throwsUnsupported() {
+        @ParameterizedTest
+        @CsvSource({"$.*,'$.*',children", "$.obj.*,'$.obj.*',values", "$.items[*],'$.items[*]',item"})
+        void compileUnnestTable_withWildcardIterator_producesLateralUnnest(
+                String iterator, String expectedPath, String fieldName) {
             var strategy = createStrategy(Set.of());
-            assertThrows(
-                    UnsupportedOperationException.class,
-                    () -> strategy.compileUnnestTable("$.*", CTE_ALIAS, true, "children"));
+            var result = strategy.compileUnnestTable(iterator, CTE_ALIAS, true, fieldName);
+            var sql = CTX.selectFrom(result).getSQL();
+            assertThat(sql, containsString("LATERAL"));
+            assertThat(sql, containsString("json_extract(\"view_source\".\"__iter\", '%s')".formatted(expectedPath)));
+            assertThat(sql, containsString("\"__ord\""));
         }
 
         @Test
