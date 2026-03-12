@@ -967,6 +967,82 @@ class DuckDbLogicalViewEvaluatorTest {
                     })
                     .verifyComplete();
         }
+
+        @Test
+        void evaluate_iterableFieldWithNegativeStartSlice_selectsFromEnd() throws IOException {
+            var jsonFile = tempDir.resolve("neg_start_slice.json");
+            Files.writeString(jsonFile, """
+                    {
+                        "people": [
+                            {"name": "Alice", "items": ["a", "b", "c", "d"]}
+                        ]
+                    }""");
+
+            var nestedField = expressionField("val", "$");
+            var iterableField = iterableField("item", "$.items[-2:]", Set.of(nestedField));
+            var topField = expressionField("name", "$.name");
+
+            var view = createJsonViewWithIterableFields(
+                    jsonFile.toString(), "$.people[*]", Set.of(topField, iterableField));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(
+                            evaluator.evaluate(view, source -> null, context).collectList())
+                    .assertNext(iterations -> {
+                        // [-2:] selects last 2 elements -> "c","d"
+                        assertThat(iterations, hasSize(2));
+
+                        var vals = iterations.stream()
+                                .map(it -> it.getValue("item.val"))
+                                .toList();
+                        assertThat(vals, containsInAnyOrder(Optional.of("c"), Optional.of("d")));
+
+                        var ordinals = iterations.stream()
+                                .map(it -> it.getValue("item.#"))
+                                .toList();
+                        assertThat(ordinals, containsInAnyOrder(Optional.of(0L), Optional.of(1L)));
+                    })
+                    .verifyComplete();
+        }
+
+        @Test
+        void evaluate_iterableFieldWithNegativeEndSlice_selectsUpToEnd() throws IOException {
+            var jsonFile = tempDir.resolve("neg_end_slice.json");
+            Files.writeString(jsonFile, """
+                    {
+                        "people": [
+                            {"name": "Bob", "items": ["a", "b", "c", "d"]}
+                        ]
+                    }""");
+
+            var nestedField = expressionField("val", "$");
+            var iterableField = iterableField("item", "$.items[:-1]", Set.of(nestedField));
+            var topField = expressionField("name", "$.name");
+
+            var view = createJsonViewWithIterableFields(
+                    jsonFile.toString(), "$.people[*]", Set.of(topField, iterableField));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(
+                            evaluator.evaluate(view, source -> null, context).collectList())
+                    .assertNext(iterations -> {
+                        // [:-1] selects all but last -> "a","b","c"
+                        assertThat(iterations, hasSize(3));
+
+                        var vals = iterations.stream()
+                                .map(it -> it.getValue("item.val"))
+                                .toList();
+                        assertThat(vals, containsInAnyOrder(Optional.of("a"), Optional.of("b"), Optional.of("c")));
+
+                        var ordinals = iterations.stream()
+                                .map(it -> it.getValue("item.#"))
+                                .toList();
+                        assertThat(ordinals, containsInAnyOrder(Optional.of(0L), Optional.of(1L), Optional.of(2L)));
+                    })
+                    .verifyComplete();
+        }
     }
 
     // --- Union selector tests ---

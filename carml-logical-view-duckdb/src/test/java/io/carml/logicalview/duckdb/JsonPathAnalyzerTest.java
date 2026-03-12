@@ -292,6 +292,39 @@ class JsonPathAnalyzerTest {
             assertThat(result.slices(), hasSize(1));
             assertThat(result.slices().get(0).step(), is(nullValue()));
         }
+
+        @Test
+        void analyze_negativeStartSlice_extractsNegativeStart() {
+            var result = JsonPathAnalyzer.analyze("$.items[-2:]");
+
+            assertThat(result.basePath(), is("$.items[*]"));
+            assertThat(result.slices(), hasSize(1));
+            assertThat(result.slices().get(0).start(), is(-2));
+            assertThat(result.slices().get(0).end(), is(nullValue()));
+            assertThat(result.slices().get(0).step(), is(nullValue()));
+        }
+
+        @Test
+        void analyze_negativeEndSlice_extractsNegativeEnd() {
+            var result = JsonPathAnalyzer.analyze("$.items[:-1]");
+
+            assertThat(result.basePath(), is("$.items[*]"));
+            assertThat(result.slices(), hasSize(1));
+            assertThat(result.slices().get(0).start(), is(nullValue()));
+            assertThat(result.slices().get(0).end(), is(-1));
+            assertThat(result.slices().get(0).step(), is(nullValue()));
+        }
+
+        @Test
+        void analyze_bothNegativeSlice_extractsBothNegative() {
+            var result = JsonPathAnalyzer.analyze("$.items[-3:-1]");
+
+            assertThat(result.basePath(), is("$.items[*]"));
+            assertThat(result.slices(), hasSize(1));
+            assertThat(result.slices().get(0).start(), is(-3));
+            assertThat(result.slices().get(0).end(), is(-1));
+            assertThat(result.slices().get(0).step(), is(nullValue()));
+        }
     }
 
     @Nested

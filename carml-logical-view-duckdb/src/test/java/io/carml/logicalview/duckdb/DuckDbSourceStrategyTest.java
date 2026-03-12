@@ -368,6 +368,42 @@ class DuckDbSourceStrategyTest {
         }
 
         @Test
+        void compileUnnestTable_withNegativeStartSlice_producesLenExpression() {
+            var strategy = createStrategy(Set.of());
+            var result = strategy.compileUnnestTable("$.items[-2:]", CTE_ALIAS, true, "item");
+            var sql = CTX.selectFrom(result).getSQL();
+            assertThat(sql, containsString("LATERAL"));
+            assertThat(sql, containsString("len(json_extract("));
+            assertThat(sql, containsString("\"__ord\" >= len(json_extract("));
+            assertThat(sql, containsString("+ -2"));
+            assertThat(sql, containsString("row_number() over() - 1"));
+            assertThat(sql, not(containsString("\"__ord\" <")));
+        }
+
+        @Test
+        void compileUnnestTable_withNegativeEndSlice_producesLenExpression() {
+            var strategy = createStrategy(Set.of());
+            var result = strategy.compileUnnestTable("$.items[:-1]", CTE_ALIAS, true, "item");
+            var sql = CTX.selectFrom(result).getSQL();
+            assertThat(sql, containsString("LATERAL"));
+            assertThat(sql, containsString("\"__ord\" < len(json_extract("));
+            assertThat(sql, containsString("+ -1"));
+            assertThat(sql, containsString("row_number() over() - 1"));
+            assertThat(sql, not(containsString("\"__ord\" >=")));
+        }
+
+        @Test
+        void compileUnnestTable_withBothNegativeSliceBounds_producesLenExpressions() {
+            var strategy = createStrategy(Set.of());
+            var result = strategy.compileUnnestTable("$.items[-3:-1]", CTE_ALIAS, true, "item");
+            var sql = CTX.selectFrom(result).getSQL();
+            assertThat(sql, containsString("\"__ord\" >= len(json_extract("));
+            assertThat(sql, containsString("+ -3"));
+            assertThat(sql, containsString("\"__ord\" < len(json_extract("));
+            assertThat(sql, containsString("+ -1"));
+        }
+
+        @Test
         void compileUnnestTable_withIndexUnion_producesOrdinalFilteredUnnest() {
             var strategy = createStrategy(Set.of());
             var result = strategy.compileUnnestTable("$.items[0,2,5]", CTE_ALIAS, true, "item");

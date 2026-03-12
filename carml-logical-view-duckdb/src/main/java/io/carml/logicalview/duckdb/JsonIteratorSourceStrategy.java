@@ -159,19 +159,25 @@ final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
 
     private static String buildSliceWhereClause(JsonPathAnalyzer.SliceSelector slice) {
         var conditions = new ArrayList<String>();
+        var ord = "\"" + ORDINAL_FIELD + "\"";
 
         if (slice.start() != null) {
-            conditions.add("\"" + ORDINAL_FIELD + "\" >= " + slice.start());
+            conditions.add("%s >= %s".formatted(ord, boundExpr(slice.start())));
         }
         if (slice.end() != null) {
-            conditions.add("\"" + ORDINAL_FIELD + "\" < " + slice.end());
+            conditions.add("%s < %s".formatted(ord, boundExpr(slice.end())));
         }
         if (slice.step() != null) {
-            var effectiveStart = slice.start() != null ? slice.start() : 0;
-            conditions.add("(\"" + ORDINAL_FIELD + "\" - " + effectiveStart + ") % " + slice.step() + " = 0");
+            var startExpr = slice.start() != null ? boundExpr(slice.start()) : "0";
+            conditions.add("(%s - %s) %% %d = 0".formatted(ord, startExpr, slice.step()));
         }
 
         return String.join(" AND ", conditions);
+    }
+
+    /** Returns a SQL expression for a slice bound, using array length for negative values. */
+    private static String boundExpr(int bound) {
+        return bound >= 0 ? String.valueOf(bound) : "len(json_extract({0}, {1})) + %d".formatted(bound);
     }
 
     private static Table<?> compileUnionUnnest(
