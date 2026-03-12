@@ -52,12 +52,6 @@ final class JsonPathSourceHandler implements DuckDbSourceHandler {
             return false;
         }
 
-        var iterator = logicalSource.getIterator();
-        if (iterator != null && iterator.contains("..")) {
-            LOG.debug("Iterator uses recursive descent, unsupported by DuckDB: {}", iterator);
-            return false;
-        }
-
         return true;
     }
 

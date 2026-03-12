@@ -84,8 +84,6 @@ final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
         var parsed = JsonPathAnalyzer.analyze(iterator);
         var basePath = parsed.basePath();
 
-        validateUnsupportedFeatures(iterator, parsed);
-
         // Use the raw iterator for the SQL expression so DuckDB applies filter expressions natively.
         // Only fall back to the normalized basePath when there are no filters.
         var sqlPath = parsed.filters().isEmpty() ? basePath : iterator;
@@ -95,7 +93,7 @@ final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
         var parentRef =
                 isRootLevel ? field(quotedName(cteAlias, iterColumn)) : field(quotedName(parentAlias, UNNEST_FIELD));
 
-        if (basePath.endsWith("[*]") || basePath.endsWith(".*")) {
+        if (isArrayResult(parsed)) {
             return compileArrayUnnest(parsed, sqlPath, parentRef, absoluteName);
         }
 
@@ -107,11 +105,8 @@ final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
                 .as(quotedName(absoluteName));
     }
 
-    private static void validateUnsupportedFeatures(String iterator, JsonPathAnalyzer.ParsedJsonPath parsed) {
-        if (parsed.hasDeepScan()) {
-            throw new UnsupportedOperationException(
-                    "Recursive descent (..) in '%s' is not supported in DuckDB UNNEST".formatted(iterator));
-        }
+    private static boolean isArrayResult(JsonPathAnalyzer.ParsedJsonPath parsed) {
+        return parsed.basePath().endsWith("[*]") || parsed.basePath().endsWith(".*") || parsed.hasDeepScan();
     }
 
     private Table<?> compileArrayUnnest(

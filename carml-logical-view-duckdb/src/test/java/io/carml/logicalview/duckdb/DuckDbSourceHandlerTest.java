@@ -20,6 +20,9 @@ import java.util.Set;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class DuckDbSourceHandlerTest {
 
@@ -129,26 +132,12 @@ class DuckDbSourceHandlerTest {
             assertThat(handler.isCompatible(logicalSource), is(false));
         }
 
-        @Test
-        void recursiveDescent_returnsFalse() {
+        @ParameterizedTest
+        @NullSource
+        @ValueSource(strings = {"   ", "$.store..price"})
+        void variousIterators_returnTrue(String iterator) {
             var logicalSource = mockLogicalSourceWithFileSource("data.json");
-            when(logicalSource.getIterator()).thenReturn("$.store..price");
-
-            assertThat(handler.isCompatible(logicalSource), is(false));
-        }
-
-        @Test
-        void nullIterator_returnsTrue() {
-            var logicalSource = mockLogicalSourceWithFileSource("data.json");
-            when(logicalSource.getIterator()).thenReturn(null);
-
-            assertThat(handler.isCompatible(logicalSource), is(true));
-        }
-
-        @Test
-        void blankIterator_returnsTrue() {
-            var logicalSource = mockLogicalSourceWithFileSource("data.json");
-            when(logicalSource.getIterator()).thenReturn("   ");
+            when(logicalSource.getIterator()).thenReturn(iterator);
 
             assertThat(handler.isCompatible(logicalSource), is(true));
         }

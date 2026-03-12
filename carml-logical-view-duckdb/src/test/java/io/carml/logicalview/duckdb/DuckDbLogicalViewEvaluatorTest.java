@@ -1026,6 +1026,50 @@ class DuckDbLogicalViewEvaluatorTest {
         }
     }
 
+    // --- Recursive descent tests ---
+
+    @Nested
+    class RecursiveDescentEvaluation {
+
+        @Test
+        void evaluate_iterableFieldWithDeepScan_selectsAllMatchingNodes() throws IOException {
+            var jsonFile = tempDir.resolve("recursive.json");
+            Files.writeString(jsonFile, """
+                    {
+                        "people": [
+                            {"name": "Alice", "address": {"city": "NYC", "office": {"city": "Boston"}}}
+                        ]
+                    }""");
+
+            var nestedField = expressionField("val", "$");
+            var iterableField = iterableField("item", "$..city", Set.of(nestedField));
+            var topField = expressionField("name", "$.name");
+
+            var view = createJsonViewWithIterableFields(
+                    jsonFile.toString(), "$.people[*]", Set.of(topField, iterableField));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(
+                            evaluator.evaluate(view, source -> null, context).collectList())
+                    .assertNext(iterations -> {
+                        // $..city selects "NYC" (at $.address.city) and "Boston" (at $.address.office.city)
+                        assertThat(iterations, hasSize(2));
+
+                        var vals = iterations.stream()
+                                .map(it -> it.getValue("item.val"))
+                                .toList();
+                        assertThat(vals, containsInAnyOrder(Optional.of("NYC"), Optional.of("Boston")));
+
+                        var ordinals = iterations.stream()
+                                .map(it -> it.getValue("item.#"))
+                                .toList();
+                        assertThat(ordinals, containsInAnyOrder(Optional.of(0L), Optional.of(1L)));
+                    })
+                    .verifyComplete();
+        }
+    }
+
     // --- SQL source type inference tests ---
 
     @Nested

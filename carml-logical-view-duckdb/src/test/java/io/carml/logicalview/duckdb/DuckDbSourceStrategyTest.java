@@ -4,7 +4,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 
@@ -272,11 +271,13 @@ class DuckDbSourceStrategyTest {
         }
 
         @Test
-        void compileUnnestTable_withDeepScan_throwsUnsupported() {
+        void compileUnnestTable_withDeepScan_producesUnnest() {
             var strategy = createStrategy(Set.of());
-            assertThrows(
-                    UnsupportedOperationException.class,
-                    () -> strategy.compileUnnestTable("$..name", CTE_ALIAS, true, "names"));
+            var result = strategy.compileUnnestTable("$..name", CTE_ALIAS, true, "names");
+            var sql = CTX.selectFrom(result).getSQL();
+            assertThat(sql, containsString("LATERAL"));
+            assertThat(sql, containsString("json_extract(\"view_source\".\"__iter\", '$..name')"));
+            assertThat(sql, containsString("\"__ord\""));
         }
 
         @ParameterizedTest
