@@ -895,6 +895,78 @@ class DuckDbLogicalViewEvaluatorTest {
                     })
                     .verifyComplete();
         }
+
+        @Test
+        void evaluate_iterableFieldWithSliceStep_selectsEveryNthElement() throws IOException {
+            var jsonFile = tempDir.resolve("slice_step.json");
+            Files.writeString(jsonFile, """
+                    {
+                        "people": [
+                            {"name": "Dan", "values": ["a", "b", "c", "d", "e", "f"]}
+                        ]
+                    }""");
+
+            var nestedField = expressionField("val", "$");
+            var iterableField = iterableField("item", "$.values[::2]", Set.of(nestedField));
+            var topField = expressionField("name", "$.name");
+
+            var view = createJsonViewWithIterableFields(
+                    jsonFile.toString(), "$.people[*]", Set.of(topField, iterableField));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(
+                            evaluator.evaluate(view, source -> null, context).collectList())
+                    .assertNext(iterations -> {
+                        // [::2] selects indices 0,2,4 -> "a","c","e"
+                        assertThat(iterations, hasSize(3));
+
+                        var vals = iterations.stream()
+                                .map(it -> it.getValue("item.val"))
+                                .toList();
+                        assertThat(vals, containsInAnyOrder(Optional.of("a"), Optional.of("c"), Optional.of("e")));
+
+                        // Ordinals should be 0-based within the step result
+                        var ordinals = iterations.stream()
+                                .map(it -> it.getValue("item.#"))
+                                .toList();
+                        assertThat(ordinals, containsInAnyOrder(Optional.of(0L), Optional.of(1L), Optional.of(2L)));
+                    })
+                    .verifyComplete();
+        }
+
+        @Test
+        void evaluate_iterableFieldWithSliceBoundsAndStep_selectsCorrectElements() throws IOException {
+            var jsonFile = tempDir.resolve("slice_bounds_step.json");
+            Files.writeString(jsonFile, """
+                    {
+                        "people": [
+                            {"name": "Eve", "values": [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]}
+                        ]
+                    }""");
+
+            var nestedField = expressionField("val", "$");
+            var iterableField = iterableField("item", "$.values[1:8:3]", Set.of(nestedField));
+            var topField = expressionField("name", "$.name");
+
+            var view = createJsonViewWithIterableFields(
+                    jsonFile.toString(), "$.people[*]", Set.of(topField, iterableField));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(
+                            evaluator.evaluate(view, source -> null, context).collectList())
+                    .assertNext(iterations -> {
+                        // [1:8:3] selects indices 1,4,7 -> 20,50,80
+                        assertThat(iterations, hasSize(3));
+
+                        var vals = iterations.stream()
+                                .map(it -> it.getValue("item.val"))
+                                .toList();
+                        assertThat(vals, containsInAnyOrder(Optional.of("20"), Optional.of("50"), Optional.of("80")));
+                    })
+                    .verifyComplete();
+        }
     }
 
     // --- Union selector tests ---
@@ -1289,7 +1361,6 @@ class DuckDbLogicalViewEvaluatorTest {
         return createViewWithRefFormulation(Rdf.Ql.JsonPath, filePath, iterator, fields);
     }
 
-    @SuppressWarnings("unchecked")
     private static LogicalView createJsonViewWithIterableFields(String filePath, String iterator, Set<Field> fields) {
         var fileSource = mock(FileSource.class);
         lenient().when(fileSource.getUrl()).thenReturn(filePath);

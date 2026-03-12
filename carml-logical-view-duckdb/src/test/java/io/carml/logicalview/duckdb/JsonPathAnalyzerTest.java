@@ -251,6 +251,47 @@ class JsonPathAnalyzerTest {
             assertThat(result.slices().get(0).start(), is(2));
             assertThat(result.slices().get(0).end(), is(5));
         }
+
+        @Test
+        void analyze_sliceWithStep_extractsAllThreeParts() {
+            var result = JsonPathAnalyzer.analyze("$.items[0:5:2]");
+
+            assertThat(result.basePath(), is("$.items[*]"));
+            assertThat(result.slices(), hasSize(1));
+            assertThat(result.slices().get(0).start(), is(0));
+            assertThat(result.slices().get(0).end(), is(5));
+            assertThat(result.slices().get(0).step(), is(2));
+        }
+
+        @Test
+        void analyze_sliceWithStepOnly_extractsStepWithNullBounds() {
+            var result = JsonPathAnalyzer.analyze("$.items[::2]");
+
+            assertThat(result.basePath(), is("$.items[*]"));
+            assertThat(result.slices(), hasSize(1));
+            assertThat(result.slices().get(0).start(), is(nullValue()));
+            assertThat(result.slices().get(0).end(), is(nullValue()));
+            assertThat(result.slices().get(0).step(), is(2));
+        }
+
+        @Test
+        void analyze_sliceWithStartAndStep_extractsCorrectly() {
+            var result = JsonPathAnalyzer.analyze("$.items[1::3]");
+
+            assertThat(result.basePath(), is("$.items[*]"));
+            assertThat(result.slices(), hasSize(1));
+            assertThat(result.slices().get(0).start(), is(1));
+            assertThat(result.slices().get(0).end(), is(nullValue()));
+            assertThat(result.slices().get(0).step(), is(3));
+        }
+
+        @Test
+        void analyze_sliceWithoutStep_hasNullStep() {
+            var result = JsonPathAnalyzer.analyze("$.items[0:3]");
+
+            assertThat(result.slices(), hasSize(1));
+            assertThat(result.slices().get(0).step(), is(nullValue()));
+        }
     }
 
     @Nested

@@ -6,6 +6,7 @@ import static org.jooq.impl.DSL.quotedName;
 import static org.jooq.impl.DSL.table;
 
 import io.carml.model.ExpressionField;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -139,9 +140,9 @@ final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
 
         // Slice selector: unnest full array, filter by ordinal range, recompute ordinals.
         // JSONPath slices are 0-based start-inclusive, end-exclusive.
-        // [:]  (both null) is equivalent to [*], so return null to fall through.
+        // [:] (both null, no step) is equivalent to [*], so return null to fall through.
         var slice = parsed.slices().get(parsed.slices().size() - 1);
-        if (slice.start() == null && slice.end() == null) {
+        if (slice.start() == null && slice.end() == null && slice.step() == null) {
             return null;
         }
 
@@ -157,13 +158,20 @@ final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
     }
 
     private static String buildSliceWhereClause(JsonPathAnalyzer.SliceSelector slice) {
-        var startCondition = slice.start() != null ? "\"" + ORDINAL_FIELD + "\" >= " + slice.start() : null;
-        var endCondition = slice.end() != null ? "\"" + ORDINAL_FIELD + "\" < " + slice.end() : null;
+        var conditions = new ArrayList<String>();
 
-        if (startCondition != null && endCondition != null) {
-            return startCondition + " AND " + endCondition;
+        if (slice.start() != null) {
+            conditions.add("\"" + ORDINAL_FIELD + "\" >= " + slice.start());
         }
-        return startCondition != null ? startCondition : endCondition;
+        if (slice.end() != null) {
+            conditions.add("\"" + ORDINAL_FIELD + "\" < " + slice.end());
+        }
+        if (slice.step() != null) {
+            var effectiveStart = slice.start() != null ? slice.start() : 0;
+            conditions.add("(\"" + ORDINAL_FIELD + "\" - " + effectiveStart + ") % " + slice.step() + " = 0");
+        }
+
+        return String.join(" AND ", conditions);
     }
 
     private static Table<?> compileUnionUnnest(

@@ -2,8 +2,10 @@ package io.carml.logicalview.duckdb;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.regex.Pattern;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -39,6 +41,13 @@ final class JsonPathAnalyzer {
     private static final Pattern UNSUPPORTED_OP = Pattern.compile("(!=|>=|<=)");
 
     private static final Map<String, String> OP_REPLACEMENTS = Map.of("!=", "==", ">=", "<", "<=", ">");
+
+    /**
+     * Matches three-part array slice expressions ({@code [start:end:step]}) where the step parameter
+     * is not supported by the JSurfer ANTLR grammar. Start and end may be empty; step must be
+     * present as a non-negative integer.
+     */
+    private static final Pattern THREE_PART_SLICE = Pattern.compile("\\[(-?\\d*):(-?\\d*):(-?\\d+)]");
 
     /**
      * Result of analyzing a JSONPath expression.
@@ -77,15 +86,17 @@ final class JsonPathAnalyzer {
     record NameUnion(List<String> names) implements UnionSelector {}
 
     /**
-     * A slice selector extracted from a JSONPath array slice expression ({@code [start:end]}).
+     * A slice selector extracted from a JSONPath array slice expression ({@code [start:end:step]}).
      *
      * <p>Both bounds follow JSONPath semantics: 0-based, start-inclusive, end-exclusive. Either bound
-     * may be {@code null} to indicate "from beginning" or "to end".
+     * may be {@code null} to indicate "from beginning" or "to end". The step selects every
+     * <i>n</i>th element within the range.
      *
      * @param start the 0-based inclusive start index, or {@code null} for "from beginning"
      * @param end the 0-based exclusive end index, or {@code null} for "to end"
+     * @param step the step interval, or {@code null} if not specified
      */
-    record SliceSelector(Integer start, Integer end) {}
+    record SliceSelector(Integer start, Integer end, Integer step) {}
 
     /**
      * A typed filter condition extracted from a JSONPath filter expression. Leaf conditions
@@ -126,7 +137,9 @@ final class JsonPathAnalyzer {
      * @throws IllegalArgumentException if the expression contains an unrecognized filter type
      */
     static ParsedJsonPath analyze(String jsonPath) {
-        var preprocessed = preprocessUnsupportedOperators(jsonPath);
+        // Pre-process three-part slices ([s:e:step]) to two-part ([s:e]), capturing the steps.
+        var sliceStepResult = preprocessSliceSteps(jsonPath);
+        var preprocessed = preprocessUnsupportedOperators(sliceStepResult.rewrittenPath);
         var lexer = new JsonPathLexer(CharStreams.fromString(preprocessed));
         var tokens = new CommonTokenStream(lexer);
         var parser = new JsonPathParser(tokens);
@@ -135,11 +148,14 @@ final class JsonPathAnalyzer {
         var visitor = new PathAnalysisVisitor();
         visitor.visit(tree);
 
+        // Merge extracted steps into the visitor's SliceSelectors.
+        var slices = mergeSliceSteps(visitor.slices, sliceStepResult.steps);
+
         return new ParsedJsonPath(
                 visitor.basePath.toString(),
                 List.copyOf(visitor.filters),
                 visitor.hasDeepScan,
-                List.copyOf(visitor.slices),
+                List.copyOf(slices),
                 List.copyOf(visitor.unions));
     }
 
@@ -215,6 +231,64 @@ final class JsonPathAnalyzer {
     }
 
     /**
+     * Result of pre-processing three-part slice expressions.
+     *
+     * @param rewrittenPath the JSONPath with three-part slices rewritten to two-part
+     * @param steps the extracted step values, in order of appearance
+     */
+    private record SliceStepResult(String rewrittenPath, Queue<Integer> steps) {}
+
+    /**
+     * Rewrites three-part slice expressions ({@code [start:end:step]}) to two-part slices
+     * ({@code [start:end]}) that the JSurfer ANTLR grammar can parse. The extracted step values
+     * are returned in encounter order so they can be merged into the visitor's {@link SliceSelector}s
+     * after parsing.
+     */
+    private static SliceStepResult preprocessSliceSteps(String jsonPath) {
+        var matcher = THREE_PART_SLICE.matcher(jsonPath);
+        if (!matcher.find()) {
+            return new SliceStepResult(jsonPath, new LinkedList<>());
+        }
+
+        var sb = new StringBuilder();
+        var steps = new LinkedList<Integer>();
+        var lastEnd = 0;
+        matcher.reset();
+        while (matcher.find()) {
+            var start = matcher.group(1);
+            var end = matcher.group(2);
+            var step = Integer.parseInt(matcher.group(3));
+
+            sb.append(jsonPath, lastEnd, matcher.start());
+            sb.append('[').append(start).append(':').append(end).append(']');
+            steps.add(step);
+            lastEnd = matcher.end();
+        }
+        sb.append(jsonPath, lastEnd, jsonPath.length());
+        return new SliceStepResult(sb.toString(), steps);
+    }
+
+    /**
+     * Merges extracted step values into the visitor's {@link SliceSelector} records. Each slice
+     * produced by the visitor that corresponds to a three-part slice in the original input receives
+     * the next step value from the queue.
+     */
+    private static List<SliceSelector> mergeSliceSteps(List<SliceSelector> visitorSlices, Queue<Integer> steps) {
+        if (steps.isEmpty()) {
+            return visitorSlices;
+        }
+        var merged = new ArrayList<SliceSelector>(visitorSlices.size());
+        for (var slice : visitorSlices) {
+            if (!steps.isEmpty()) {
+                merged.add(new SliceSelector(slice.start(), slice.end(), steps.poll()));
+            } else {
+                merged.add(slice);
+            }
+        }
+        return merged;
+    }
+
+    /**
      * ANTLR visitor that walks the JSONPath parse tree to extract the base path, filter conditions,
      * and deep scan flag. The default {@link JsonPathBaseVisitor#visitChildren} implementation
      * delegates to child-specific visit methods, so overriding the leaf visit methods is sufficient.
@@ -278,7 +352,7 @@ final class JsonPathAnalyzer {
                     end = Integer.parseInt(num.getText());
                 }
             }
-            slices.add(new SliceSelector(start, end));
+            slices.add(new SliceSelector(start, end, null));
             return null;
         }
 

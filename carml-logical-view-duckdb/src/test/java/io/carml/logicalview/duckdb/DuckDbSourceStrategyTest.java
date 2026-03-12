@@ -336,6 +336,38 @@ class DuckDbSourceStrategyTest {
         }
 
         @Test
+        void compileUnnestTable_withSliceStep_producesModuloFilter() {
+            var strategy = createStrategy(Set.of());
+            var result = strategy.compileUnnestTable("$.items[0:5:2]", CTE_ALIAS, true, "item");
+            var sql = CTX.selectFrom(result).getSQL();
+            assertThat(sql, containsString("\"__ord\" >= 0 AND \"__ord\" < 5"));
+            assertThat(sql, containsString("(\"__ord\" - 0) % 2 = 0"));
+            assertThat(sql, containsString("row_number() over() - 1"));
+        }
+
+        @Test
+        void compileUnnestTable_withStepOnly_producesModuloFilter() {
+            var strategy = createStrategy(Set.of());
+            var result = strategy.compileUnnestTable("$.items[::2]", CTE_ALIAS, true, "item");
+            var sql = CTX.selectFrom(result).getSQL();
+            assertThat(sql, containsString("(\"__ord\" - 0) % 2 = 0"));
+            assertThat(sql, containsString("row_number() over() - 1"));
+            // No start/end bounds
+            assertThat(sql, not(containsString("\"__ord\" >=")));
+            assertThat(sql, not(containsString("\"__ord\" <")));
+        }
+
+        @Test
+        void compileUnnestTable_withStartAndStep_producesStartAndModuloFilter() {
+            var strategy = createStrategy(Set.of());
+            var result = strategy.compileUnnestTable("$.items[1::3]", CTE_ALIAS, true, "item");
+            var sql = CTX.selectFrom(result).getSQL();
+            assertThat(sql, containsString("\"__ord\" >= 1"));
+            assertThat(sql, containsString("(\"__ord\" - 1) % 3 = 0"));
+            assertThat(sql, not(containsString("\"__ord\" <")));
+        }
+
+        @Test
         void compileUnnestTable_withIndexUnion_producesOrdinalFilteredUnnest() {
             var strategy = createStrategy(Set.of());
             var result = strategy.compileUnnestTable("$.items[0,2,5]", CTE_ALIAS, true, "item");
