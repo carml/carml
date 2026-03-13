@@ -400,6 +400,43 @@ class DuckDbSourceHandlerTest {
 
             assertThat(sql, containsString("not"));
         }
+
+        @Test
+        void compileFilterCondition_lengthCompare_producesLengthSql() {
+            var filter = new JsonPathAnalyzer.LengthCompare("$.tags", JsonPathAnalyzer.CompOp.GT, new BigDecimal("2"));
+
+            var condition = JsonPathSourceHandler.compileFilterCondition(filter, COLUMN);
+            var sql = DSL.using(SQLDialect.DUCKDB).renderInlined(condition);
+
+            assertThat(sql, containsString("json_array_length"));
+            assertThat(sql, containsString("json_extract_string"));
+            assertThat(sql, containsString("CASE"));
+            assertThat(sql, containsString("> 2"));
+        }
+
+        @Test
+        void compileFilterCondition_fullMatch_producesRegexpFullMatch() {
+            var filter = new JsonPathAnalyzer.FullMatch("$.name", "foo.*");
+
+            var condition = JsonPathSourceHandler.compileFilterCondition(filter, COLUMN);
+            var sql = DSL.using(SQLDialect.DUCKDB).renderInlined(condition);
+
+            assertThat(sql, containsString("regexp_full_match"));
+            assertThat(sql, containsString("json_extract_string"));
+            assertThat(sql, containsString("foo.*"));
+        }
+
+        @Test
+        void compileFilterCondition_partialMatch_producesRegexpMatches() {
+            var filter = new JsonPathAnalyzer.PartialMatch("$.name", "bar");
+
+            var condition = JsonPathSourceHandler.compileFilterCondition(filter, COLUMN);
+            var sql = DSL.using(SQLDialect.DUCKDB).renderInlined(condition);
+
+            assertThat(sql, containsString("regexp_matches"));
+            assertThat(sql, containsString("json_extract_string"));
+            assertThat(sql, containsString("bar"));
+        }
     }
 
     // --- Test helpers ---

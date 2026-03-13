@@ -33,6 +33,12 @@ import org.jsfr.json.compiler.JsonPathParser;
  * comparison operators. Before parsing, a pre-processing step rewrites these operators as negated
  * equivalents: {@code !=} becomes {@code !(... == ...)}, {@code >=} becomes {@code !(... < ...)},
  * and {@code <=} becomes {@code !(... > ...)}.
+ *
+ * <p>RFC 9535 filter function extensions ({@code length()}, {@code count()}, {@code match()},
+ * {@code search()}, {@code value()}) are also not supported by the JSurfer grammar. A separate
+ * pre-processing step runs <b>before</b> the operator rewriter: it replaces function calls with
+ * placeholder expressions ({@code @.__fn0 == true}) that the grammar can parse, stores the real
+ * function conditions, and swaps them back into the parsed tree after ANTLR processing.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 final class JsonPathAnalyzer {
@@ -120,6 +126,45 @@ final class JsonPathAnalyzer {
 
     record MatchRegex(String fieldJsonPath, String pattern) implements FilterCondition {}
 
+    /** Comparison operator for function result comparisons (RFC 9535 §2.4). */
+    enum CompOp {
+        EQ,
+        NEQ,
+        GT,
+        LT,
+        GTE,
+        LTE
+    }
+
+    /**
+     * Compares the length of a JSON value (array length, string length, or object member count)
+     * against a numeric value. Corresponds to the RFC 9535 {@code length()} and {@code count()}
+     * function extensions.
+     *
+     * @param fieldJsonPath the JSONPath to the field whose length to measure
+     * @param op the comparison operator
+     * @param value the numeric value to compare against
+     */
+    record LengthCompare(String fieldJsonPath, CompOp op, BigDecimal value) implements FilterCondition {}
+
+    /**
+     * Tests if the entire string value matches a regular expression. Corresponds to the RFC 9535
+     * {@code match()} function extension.
+     *
+     * @param fieldJsonPath the JSONPath to the field to test
+     * @param pattern the regular expression pattern (full match required)
+     */
+    record FullMatch(String fieldJsonPath, String pattern) implements FilterCondition {}
+
+    /**
+     * Tests if the string value contains a substring matching a regular expression. Corresponds to
+     * the RFC 9535 {@code search()} function extension.
+     *
+     * @param fieldJsonPath the JSONPath to the field to test
+     * @param pattern the regular expression pattern (partial match)
+     */
+    record PartialMatch(String fieldJsonPath, String pattern) implements FilterCondition {}
+
     /** Logical AND of two filter conditions ({@code &&}). */
     record AndFilter(FilterCondition left, FilterCondition right) implements FilterCondition {}
 
@@ -137,9 +182,13 @@ final class JsonPathAnalyzer {
      * @throws IllegalArgumentException if the expression contains an unrecognized filter type
      */
     static ParsedJsonPath analyze(String jsonPath) {
-        // Pre-process three-part slices ([s:e:step]) to two-part ([s:e]), capturing the steps.
-        var sliceStepResult = preprocessSliceSteps(jsonPath);
+        // 1. Pre-process function calls (before operator rewriting, so functions handle all ops).
+        var functionResult = preprocessFunctions(jsonPath);
+        // 2. Pre-process three-part slices ([s:e:step]) to two-part ([s:e]), capturing the steps.
+        var sliceStepResult = preprocessSliceSteps(functionResult.rewrittenPath);
+        // 3. Rewrite unsupported operators (!=, >=, <=) to negated equivalents.
         var preprocessed = preprocessUnsupportedOperators(sliceStepResult.rewrittenPath);
+
         var lexer = new JsonPathLexer(CharStreams.fromString(preprocessed));
         var tokens = new CommonTokenStream(lexer);
         var parser = new JsonPathParser(tokens);
@@ -148,12 +197,14 @@ final class JsonPathAnalyzer {
         var visitor = new PathAnalysisVisitor();
         visitor.visit(tree);
 
-        // Merge extracted steps into the visitor's SliceSelectors.
+        // 4. Replace function placeholders with real function conditions.
+        var filters = replaceFunctionPlaceholders(visitor.filters, functionResult.conditions);
+        // 5. Merge extracted steps into the visitor's SliceSelectors.
         var slices = mergeSliceSteps(visitor.slices, sliceStepResult.steps);
 
         return new ParsedJsonPath(
                 visitor.basePath.toString(),
-                List.copyOf(visitor.filters),
+                List.copyOf(filters),
                 visitor.hasDeepScan,
                 List.copyOf(slices),
                 List.copyOf(visitor.unions));
@@ -228,6 +279,496 @@ final class JsonPathAnalyzer {
         }
         sb.append(jsonPath, lastEnd, jsonPath.length());
         return sb.toString();
+    }
+
+    /** Placeholder field name used in the rewritten JSONPath to stand in for a function call. */
+    private static final String FN_PLACEHOLDER_PREFIX = "__fn";
+
+    private static final String FN_MATCH = "match";
+    private static final String FN_SEARCH = "search";
+    private static final String FN_VALUE = "value";
+    private static final String FN_LENGTH = "length";
+    private static final String FN_COUNT = "count";
+
+    private static final List<String> FUNCTION_NAMES = List.of(FN_LENGTH, FN_COUNT, FN_MATCH, FN_SEARCH, FN_VALUE);
+
+    /**
+     * Result of pre-processing filter function extensions.
+     *
+     * @param rewrittenPath the JSONPath with function calls replaced by placeholders
+     * @param conditions the extracted function conditions, keyed by placeholder index
+     */
+    private record FunctionPreprocessResult(String rewrittenPath, List<FilterCondition> conditions) {}
+
+    /**
+     * Scans the JSONPath for RFC 9535 filter function extensions ({@code length()}, {@code count()},
+     * {@code match()}, {@code search()}, {@code value()}) and replaces them with placeholder
+     * expressions that JSurfer can parse.
+     *
+     * <p>Each function call is replaced by {@code @.__fnN == true} (where N is a 0-based counter),
+     * and the corresponding {@link FilterCondition} is stored for later substitution. The
+     * {@code value()} function is special-cased: it is rewritten to the bare path argument with no
+     * placeholder needed.
+     *
+     * <p>This method runs <b>before</b> the operator pre-processor so that comparison operators
+     * inside function comparisons (e.g., {@code length(@.tags) >= 5}) are handled here rather than
+     * by the operator rewriter.
+     */
+    private static FunctionPreprocessResult preprocessFunctions(String jsonPath) {
+        var conditions = new ArrayList<FilterCondition>();
+        var sb = new StringBuilder();
+        var i = 0;
+        var len = jsonPath.length();
+        var rewritten = false;
+
+        while (i < len) {
+            var fnMatch = matchFunctionCall(jsonPath, i);
+            if (fnMatch != null) {
+                rewritten = true;
+                var condition = buildFunctionCondition(fnMatch);
+                if (condition != null) {
+                    // Function that produces a placeholder
+                    var placeholderIndex = conditions.size();
+                    conditions.add(condition);
+                    sb.append("@.%s%d == true".formatted(FN_PLACEHOLDER_PREFIX, placeholderIndex));
+                } else {
+                    // value() function: rewrite to bare path, preserving any comparison after it
+                    sb.append(fnMatch.args.get(0));
+                    if (fnMatch.compOp != null) {
+                        sb.append(' ').append(fnMatch.compOp).append(' ').append(fnMatch.compValue);
+                    }
+                }
+                i = fnMatch.fullExpressionEnd;
+            } else {
+                sb.append(jsonPath.charAt(i));
+                i++;
+            }
+        }
+
+        if (!rewritten) {
+            return new FunctionPreprocessResult(jsonPath, List.of());
+        }
+        return new FunctionPreprocessResult(sb.toString(), conditions);
+    }
+
+    /**
+     * Parsed function call with its position and arguments.
+     *
+     * @param functionName the function name (e.g., "length", "match")
+     * @param args the function arguments as raw strings
+     * @param callEnd the character index just past the closing parenthesis of the function call
+     * @param compOp the comparison operator following the function call, or {@code null} for boolean
+     *     functions
+     * @param compValue the comparison value following the operator, or {@code null} for boolean
+     *     functions
+     * @param fullExpressionEnd the character index just past the full expression including operator
+     *     and value
+     */
+    private record FunctionCallMatch(
+            String functionName,
+            List<String> args,
+            int callEnd,
+            String compOp,
+            String compValue,
+            int fullExpressionEnd) {}
+
+    /**
+     * Attempts to match a function call at the given position. Returns {@code null} if no function
+     * call is found. Uses character scanning with parenthesis depth tracking and string literal
+     * awareness.
+     */
+    private static FunctionCallMatch matchFunctionCall(String jsonPath, int pos) {
+        // Check for known function names
+        var funcName = matchFunctionName(jsonPath, pos);
+        if (funcName == null) {
+            return null;
+        }
+
+        var nameEnd = pos + funcName.length();
+        if (nameEnd >= jsonPath.length() || jsonPath.charAt(nameEnd) != '(') {
+            return null;
+        }
+
+        // Parse arguments by scanning for the matching closing parenthesis
+        var argsStart = nameEnd + 1;
+        var args = parseFunctionArgs(jsonPath, argsStart);
+        if (args == null) {
+            return null;
+        }
+
+        var callEnd = args.endIndex;
+
+        // For boolean functions (match, search), there's no comparison operator
+        if (FN_MATCH.equals(funcName) || FN_SEARCH.equals(funcName)) {
+            return new FunctionCallMatch(funcName, args.arguments, callEnd, null, null, callEnd);
+        }
+
+        // For value/length/count, scan for comparison operator and value
+        return scanComparisonAfterCall(jsonPath, funcName, args.arguments, callEnd);
+    }
+
+    /**
+     * Checks if one of the known function names starts at the given position. Only matches
+     * when the character before the function name is a boundary character (filter expression
+     * start, logical operator, or negation).
+     */
+    private static String matchFunctionName(String jsonPath, int pos) {
+        // Functions only appear inside filter expressions. The character before the function
+        // name must be '(', '!', '&', '|', or whitespace preceded by one of those.
+        if (pos > 0) {
+            var preceding = findPrecedingNonWhitespace(jsonPath, pos);
+            if (preceding != '(' && preceding != '!' && preceding != '&' && preceding != '|') {
+                return null;
+            }
+        }
+
+        for (var name : FUNCTION_NAMES) {
+            if (jsonPath.startsWith(name, pos)) {
+                var end = pos + name.length();
+                if (end < jsonPath.length() && jsonPath.charAt(end) == '(') {
+                    return name;
+                }
+            }
+        }
+        return null;
+    }
+
+    /** Finds the nearest non-whitespace character before the given position. */
+    private static char findPrecedingNonWhitespace(String jsonPath, int pos) {
+        var p = pos - 1;
+        while (p >= 0 && Character.isWhitespace(jsonPath.charAt(p))) {
+            p--;
+        }
+        return p >= 0 ? jsonPath.charAt(p) : '\0';
+    }
+
+    /**
+     * Parsed function arguments.
+     *
+     * @param arguments the list of argument strings (trimmed)
+     * @param endIndex the character index just past the closing parenthesis
+     */
+    private record ParsedArgs(List<String> arguments, int endIndex) {}
+
+    /**
+     * Parses comma-separated function arguments starting at the given position (just past the
+     * opening parenthesis). Handles nested parentheses and quoted string literals.
+     */
+    private static ParsedArgs parseFunctionArgs(String jsonPath, int start) {
+        var state = new ArgParseState(jsonPath);
+        state.pos = start;
+
+        while (state.pos < jsonPath.length() && state.depth > 0) {
+            state.processChar();
+        }
+
+        if (state.depth != 0) {
+            return null; // Unbalanced parentheses
+        }
+
+        return new ParsedArgs(state.args, state.pos);
+    }
+
+    /** Mutable state for argument parsing, extracted to reduce cognitive complexity. */
+    private static class ArgParseState {
+        final String jsonPath;
+        final List<String> args = new ArrayList<>();
+        final StringBuilder current = new StringBuilder();
+        int depth = 1;
+        int pos;
+
+        ArgParseState(String jsonPath) {
+            this.jsonPath = jsonPath;
+        }
+
+        void processChar() {
+            var ch = jsonPath.charAt(pos);
+            if (ch == '\'' || ch == '"') {
+                var closeQuote = scanPastStringLiteral(jsonPath, pos);
+                current.append(jsonPath, pos, closeQuote);
+                pos = closeQuote;
+            } else if (ch == '(') {
+                depth++;
+                current.append(ch);
+                pos++;
+            } else if (ch == ')') {
+                handleCloseParen();
+            } else if (ch == ',' && depth == 1) {
+                args.add(current.toString().strip());
+                current.setLength(0);
+                pos++;
+            } else {
+                current.append(ch);
+                pos++;
+            }
+        }
+
+        private void handleCloseParen() {
+            depth--;
+            if (depth > 0) {
+                current.append(')');
+            } else {
+                args.add(current.toString().strip());
+            }
+            pos++;
+        }
+    }
+
+    /**
+     * Scans past a string literal (single or double quoted) starting at position {@code start}.
+     * Returns the index just past the closing quote.
+     */
+    private static int scanPastStringLiteral(String jsonPath, int start) {
+        var quote = jsonPath.charAt(start);
+        var i = start + 1;
+        while (i < jsonPath.length()) {
+            if (jsonPath.charAt(i) == '\\') {
+                i += 2; // Skip escaped character
+            } else if (jsonPath.charAt(i) == quote) {
+                return i + 1;
+            } else {
+                i++;
+            }
+        }
+        return i;
+    }
+
+    /**
+     * Scans for a comparison operator and value after a function call. For {@code value()}, the
+     * comparison is kept as part of the full expression so the rewrite can inline the bare path
+     * with the operator. For {@code length()} and {@code count()}, the comparison is extracted
+     * into a {@link FunctionCallMatch}.
+     */
+    private static FunctionCallMatch scanComparisonAfterCall(
+            String jsonPath, String funcName, List<String> args, int callEnd) {
+        var i = callEnd;
+        var len = jsonPath.length();
+
+        // Skip whitespace
+        while (i < len && Character.isWhitespace(jsonPath.charAt(i))) {
+            i++;
+        }
+
+        // Scan for a comparison operator
+        var opResult = scanComparisonOp(jsonPath, i);
+        if (opResult == null) {
+            // No comparison operator — for value() this means the expression is just `value(@.path)`,
+            // which might be used in an existence check context. Treat fullExpressionEnd as callEnd.
+            return FN_VALUE.equals(funcName)
+                    ? new FunctionCallMatch(funcName, args, callEnd, null, null, callEnd)
+                    : null;
+        }
+
+        // Skip whitespace after operator
+        var valueStart = opResult.opEnd;
+        while (valueStart < len && Character.isWhitespace(jsonPath.charAt(valueStart))) {
+            valueStart++;
+        }
+
+        // Scan for the comparison value (delimited by ')', '&', '|', or end of string)
+        var valueEnd = scanValueEnd(jsonPath, valueStart);
+
+        var compValue = jsonPath.substring(valueStart, valueEnd).strip();
+        return new FunctionCallMatch(funcName, args, callEnd, opResult.op, compValue, valueEnd);
+    }
+
+    /**
+     * Result of scanning a comparison operator.
+     *
+     * @param op the operator string
+     * @param opEnd the index just past the operator
+     */
+    private record OpScanResult(String op, int opEnd) {}
+
+    /** Scans for a comparison operator at the given position. */
+    private static OpScanResult scanComparisonOp(String jsonPath, int pos) {
+        if (pos >= jsonPath.length()) {
+            return null;
+        }
+        // Two-character operators first
+        if (pos + 1 < jsonPath.length()) {
+            var twoChar = jsonPath.substring(pos, pos + 2);
+            if ("==".equals(twoChar) || "!=".equals(twoChar) || ">=".equals(twoChar) || "<=".equals(twoChar)) {
+                return new OpScanResult(twoChar, pos + 2);
+            }
+        }
+        // Single-character operators
+        var ch = jsonPath.charAt(pos);
+        if (ch == '>' || ch == '<') {
+            return new OpScanResult(String.valueOf(ch), pos + 1);
+        }
+        return null;
+    }
+
+    /** Scans forward to find the end of a comparison value, delimited by ')', '&', or '|'. */
+    private static int scanValueEnd(String jsonPath, int start) {
+        var i = start;
+        var len = jsonPath.length();
+        while (i < len) {
+            var ch = jsonPath.charAt(i);
+            if (ch == ')' || ch == '&' || ch == '|') {
+                break;
+            }
+            if (ch == '\'' || ch == '"') {
+                i = scanPastStringLiteral(jsonPath, i);
+            } else {
+                i++;
+            }
+        }
+        // Trim trailing whitespace
+        var end = i;
+        while (end > start && Character.isWhitespace(jsonPath.charAt(end - 1))) {
+            end--;
+        }
+        return end;
+    }
+
+    /**
+     * Builds the appropriate {@link FilterCondition} for a parsed function call, or returns
+     * {@code null} for {@code value()} (which is handled by inline rewriting instead).
+     */
+    private static FilterCondition buildFunctionCondition(FunctionCallMatch match) {
+        var funcName = match.functionName;
+        if (FN_VALUE.equals(funcName)) {
+            return null; // Handled by inline rewriting
+        }
+        if (FN_MATCH.equals(funcName) || FN_SEARCH.equals(funcName)) {
+            return buildRegexCondition(match);
+        }
+        if (FN_LENGTH.equals(funcName) || FN_COUNT.equals(funcName)) {
+            return buildLengthCondition(match);
+        }
+        return null;
+    }
+
+    /** Builds a {@link FullMatch} or {@link PartialMatch} from a match/search function call. */
+    private static FilterCondition buildRegexCondition(FunctionCallMatch match) {
+        if (match.args.size() < 2) {
+            throw new IllegalArgumentException(
+                    "Function %s() requires 2 arguments, got %d".formatted(match.functionName, match.args.size()));
+        }
+        var pathArg = normalizeFilterPath(match.args.get(0));
+        var patternArg = unquote(match.args.get(1));
+
+        if (FN_MATCH.equals(match.functionName)) {
+            return new FullMatch(pathArg, patternArg);
+        }
+        return new PartialMatch(pathArg, patternArg);
+    }
+
+    /** Builds a {@link LengthCompare} from a length/count function call. */
+    private static FilterCondition buildLengthCondition(FunctionCallMatch match) {
+        if (match.args.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Function %s() requires at least 1 argument".formatted(match.functionName));
+        }
+        var pathArg = normalizeFilterPath(match.args.get(0));
+
+        // For count(), strip trailing [*] from the path
+        if (FN_COUNT.equals(match.functionName) && pathArg.endsWith("[*]")) {
+            pathArg = pathArg.substring(0, pathArg.length() - 3);
+        }
+
+        var compOp = parseCompOp(match.compOp);
+        var compValue = new BigDecimal(match.compValue);
+
+        return new LengthCompare(pathArg, compOp, compValue);
+    }
+
+    /**
+     * Normalizes a filter-relative path argument (e.g., {@code @.name}) to a root-relative path
+     * (e.g., {@code $.name}).
+     */
+    private static String normalizeFilterPath(String pathArg) {
+        var stripped = pathArg.strip();
+        if (stripped.startsWith("@")) {
+            return "$" + stripped.substring(1);
+        }
+        return stripped;
+    }
+
+    /** Removes surrounding single or double quotes from a string argument. */
+    private static String unquote(String arg) {
+        var stripped = arg.strip();
+        if (stripped.length() >= 2) {
+            var first = stripped.charAt(0);
+            var last = stripped.charAt(stripped.length() - 1);
+            if ((first == '\'' && last == '\'') || (first == '"' && last == '"')) {
+                return stripped.substring(1, stripped.length() - 1);
+            }
+        }
+        return stripped;
+    }
+
+    /** Parses a comparison operator string into a {@link CompOp} enum value. */
+    private static CompOp parseCompOp(String op) {
+        if ("==".equals(op)) {
+            return CompOp.EQ;
+        } else if ("!=".equals(op)) {
+            return CompOp.NEQ;
+        } else if (">".equals(op)) {
+            return CompOp.GT;
+        } else if ("<".equals(op)) {
+            return CompOp.LT;
+        } else if (">=".equals(op)) {
+            return CompOp.GTE;
+        } else if ("<=".equals(op)) {
+            return CompOp.LTE;
+        }
+        throw new IllegalArgumentException("Unknown comparison operator: %s".formatted(op));
+    }
+
+    /**
+     * Walks the filter condition tree and replaces placeholder {@link EqualBool} conditions
+     * (matching {@code $.__fnN == true}) with the corresponding real function conditions from the
+     * pre-processing step.
+     */
+    private static List<FilterCondition> replaceFunctionPlaceholders(
+            List<FilterCondition> filters, List<FilterCondition> functionConditions) {
+        if (functionConditions.isEmpty()) {
+            return filters;
+        }
+        return filters.stream()
+                .map(f -> replacePlaceholder(f, functionConditions))
+                .toList();
+    }
+
+    /** Recursively replaces function placeholders in a single filter condition. */
+    private static FilterCondition replacePlaceholder(
+            FilterCondition condition, List<FilterCondition> functionConditions) {
+        if (condition instanceof EqualBool eb) {
+            var idx = extractPlaceholderIndex(eb.fieldJsonPath());
+            if (idx >= 0 && eb.value() && idx < functionConditions.size()) {
+                return functionConditions.get(idx);
+            }
+        } else if (condition instanceof AndFilter af) {
+            return new AndFilter(
+                    replacePlaceholder(af.left(), functionConditions),
+                    replacePlaceholder(af.right(), functionConditions));
+        } else if (condition instanceof OrFilter of) {
+            return new OrFilter(
+                    replacePlaceholder(of.left(), functionConditions),
+                    replacePlaceholder(of.right(), functionConditions));
+        } else if (condition instanceof NotFilter nf) {
+            return new NotFilter(replacePlaceholder(nf.condition(), functionConditions));
+        }
+        return condition;
+    }
+
+    /**
+     * Extracts the placeholder index from a field path like {@code $.__fn0}. Returns -1 if the
+     * path does not match the placeholder pattern.
+     */
+    private static int extractPlaceholderIndex(String fieldJsonPath) {
+        var prefix = "$." + FN_PLACEHOLDER_PREFIX;
+        if (fieldJsonPath.startsWith(prefix)) {
+            try {
+                return Integer.parseInt(fieldJsonPath.substring(prefix.length()));
+            } catch (NumberFormatException ignored) {
+                return -1;
+            }
+        }
+        return -1;
     }
 
     /**

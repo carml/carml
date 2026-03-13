@@ -122,6 +122,16 @@ final class JsonPathSourceHandler implements DuckDbSourceHandler {
             return DSL.condition(
                     "regexp_matches(json_extract_string({0}, {1}), {2})",
                     iterCol, inline(f.fieldJsonPath()), inline(f.pattern()));
+        } else if (filter instanceof JsonPathAnalyzer.LengthCompare f) {
+            return compileLengthCompare(f, iterCol);
+        } else if (filter instanceof JsonPathAnalyzer.FullMatch f) {
+            return DSL.condition(
+                    "regexp_full_match(json_extract_string({0}, {1}), {2})",
+                    iterCol, inline(f.fieldJsonPath()), inline(f.pattern()));
+        } else if (filter instanceof JsonPathAnalyzer.PartialMatch f) {
+            return DSL.condition(
+                    "regexp_matches(json_extract_string({0}, {1}), {2})",
+                    iterCol, inline(f.fieldJsonPath()), inline(f.pattern()));
         } else if (filter instanceof JsonPathAnalyzer.AndFilter f) {
             return compileFilterCondition(f.left(), columnName).and(compileFilterCondition(f.right(), columnName));
         } else if (filter instanceof JsonPathAnalyzer.OrFilter f) {
@@ -131,6 +141,34 @@ final class JsonPathSourceHandler implements DuckDbSourceHandler {
         }
         throw new UnsupportedOperationException(
                 "Unknown filter condition type: %s".formatted(filter.getClass().getName()));
+    }
+
+    /**
+     * Compiles a {@link JsonPathAnalyzer.LengthCompare} condition into a SQL expression that
+     * measures the length of a JSON value and compares it. The length is type-aware: arrays use
+     * {@code json_array_length}, while strings and objects use {@code length()}.
+     */
+    private static Condition compileLengthCompare(JsonPathAnalyzer.LengthCompare f, org.jooq.Field<Object> iterCol) {
+        var pathInline = inline(f.fieldJsonPath());
+        var lengthExpr = DSL.field(
+                "CASE json_type({0}, {1}) WHEN {2} THEN json_array_length(json_extract({0}, {1})) ELSE length(json_extract_string({0}, {1})) END",
+                iterCol, pathInline, inline("ARRAY"));
+        var val = inline(f.value().doubleValue());
+
+        if (f.op() == JsonPathAnalyzer.CompOp.EQ) {
+            return DSL.condition("{0} = {1}", lengthExpr, val);
+        } else if (f.op() == JsonPathAnalyzer.CompOp.NEQ) {
+            return DSL.condition("{0} != {1}", lengthExpr, val);
+        } else if (f.op() == JsonPathAnalyzer.CompOp.GT) {
+            return DSL.condition("{0} > {1}", lengthExpr, val);
+        } else if (f.op() == JsonPathAnalyzer.CompOp.LT) {
+            return DSL.condition("{0} < {1}", lengthExpr, val);
+        } else if (f.op() == JsonPathAnalyzer.CompOp.GTE) {
+            return DSL.condition("{0} >= {1}", lengthExpr, val);
+        } else if (f.op() == JsonPathAnalyzer.CompOp.LTE) {
+            return DSL.condition("{0} <= {1}", lengthExpr, val);
+        }
+        throw new UnsupportedOperationException("Unknown CompOp: %s".formatted(f.op()));
     }
 
     private static CompiledSource columnSource(String sourceSql, String cteAlias) {

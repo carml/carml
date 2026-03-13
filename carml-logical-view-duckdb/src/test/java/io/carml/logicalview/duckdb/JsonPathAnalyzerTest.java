@@ -486,6 +486,127 @@ class JsonPathAnalyzerTest {
     }
 
     @Nested
+    class FunctionExtensions {
+
+        @Test
+        void length_withComparison_parsesLengthCompare() {
+            var result = JsonPathAnalyzer.analyze("$.items[?(length(@.tags) > 2)]");
+
+            assertThat(result.basePath(), is("$.items[*]"));
+            assertThat(result.filters(), hasSize(1));
+            assertThat(result.filters().get(0), instanceOf(JsonPathAnalyzer.LengthCompare.class));
+
+            var filter = (JsonPathAnalyzer.LengthCompare) result.filters().get(0);
+            assertThat(filter.fieldJsonPath(), is("$.tags"));
+            assertThat(filter.op(), is(JsonPathAnalyzer.CompOp.GT));
+            assertThat(filter.value(), is(new BigDecimal("2")));
+        }
+
+        @Test
+        void count_withComparison_parsesLengthCompare() {
+            var result = JsonPathAnalyzer.analyze("$.items[?(count(@.tags[*]) == 3)]");
+
+            assertThat(result.basePath(), is("$.items[*]"));
+            assertThat(result.filters(), hasSize(1));
+            assertThat(result.filters().get(0), instanceOf(JsonPathAnalyzer.LengthCompare.class));
+
+            var filter = (JsonPathAnalyzer.LengthCompare) result.filters().get(0);
+            assertThat(filter.fieldJsonPath(), is("$.tags"));
+            assertThat(filter.op(), is(JsonPathAnalyzer.CompOp.EQ));
+            assertThat(filter.value(), is(new BigDecimal("3")));
+        }
+
+        @Test
+        void match_withPattern_parsesFullMatch() {
+            var result = JsonPathAnalyzer.analyze("$.items[?(match(@.name, 'foo.*'))]");
+
+            assertThat(result.basePath(), is("$.items[*]"));
+            assertThat(result.filters(), hasSize(1));
+            assertThat(result.filters().get(0), instanceOf(JsonPathAnalyzer.FullMatch.class));
+
+            var filter = (JsonPathAnalyzer.FullMatch) result.filters().get(0);
+            assertThat(filter.fieldJsonPath(), is("$.name"));
+            assertThat(filter.pattern(), is("foo.*"));
+        }
+
+        @Test
+        void search_withPattern_parsesPartialMatch() {
+            var result = JsonPathAnalyzer.analyze("$.items[?(search(@.name, 'bar'))]");
+
+            assertThat(result.basePath(), is("$.items[*]"));
+            assertThat(result.filters(), hasSize(1));
+            assertThat(result.filters().get(0), instanceOf(JsonPathAnalyzer.PartialMatch.class));
+
+            var filter = (JsonPathAnalyzer.PartialMatch) result.filters().get(0);
+            assertThat(filter.fieldJsonPath(), is("$.name"));
+            assertThat(filter.pattern(), is("bar"));
+        }
+
+        @Test
+        void value_rewrittenToBarePath() {
+            var result = JsonPathAnalyzer.analyze("$.items[?(value(@.price) > 10)]");
+
+            assertThat(result.basePath(), is("$.items[*]"));
+            assertThat(result.filters(), hasSize(1));
+            // value() is rewritten to bare path, so this becomes a GreaterThanNum
+            assertThat(result.filters().get(0), instanceOf(JsonPathAnalyzer.GreaterThanNum.class));
+
+            var filter = (JsonPathAnalyzer.GreaterThanNum) result.filters().get(0);
+            assertThat(filter.fieldJsonPath(), is("$.price"));
+            assertThat(filter.value(), is(new BigDecimal("10")));
+        }
+
+        @Test
+        void length_withUnsupportedOp_parsesCorrectly() {
+            var result = JsonPathAnalyzer.analyze("$.items[?(length(@.tags) >= 5)]");
+
+            assertThat(result.basePath(), is("$.items[*]"));
+            assertThat(result.filters(), hasSize(1));
+            assertThat(result.filters().get(0), instanceOf(JsonPathAnalyzer.LengthCompare.class));
+
+            var filter = (JsonPathAnalyzer.LengthCompare) result.filters().get(0);
+            assertThat(filter.fieldJsonPath(), is("$.tags"));
+            assertThat(filter.op(), is(JsonPathAnalyzer.CompOp.GTE));
+            assertThat(filter.value(), is(new BigDecimal("5")));
+        }
+
+        @Test
+        void function_inCompoundFilter() {
+            var result = JsonPathAnalyzer.analyze("$.items[?(length(@.tags) > 0 && match(@.name, 'foo'))]");
+
+            assertThat(result.basePath(), is("$.items[*]"));
+            assertThat(result.filters(), hasSize(1));
+            assertThat(result.filters().get(0), instanceOf(JsonPathAnalyzer.AndFilter.class));
+
+            var andFilter = (JsonPathAnalyzer.AndFilter) result.filters().get(0);
+            assertThat(andFilter.left(), instanceOf(JsonPathAnalyzer.LengthCompare.class));
+            assertThat(andFilter.right(), instanceOf(JsonPathAnalyzer.FullMatch.class));
+
+            var left = (JsonPathAnalyzer.LengthCompare) andFilter.left();
+            assertThat(left.fieldJsonPath(), is("$.tags"));
+            assertThat(left.op(), is(JsonPathAnalyzer.CompOp.GT));
+            assertThat(left.value(), is(new BigDecimal("0")));
+
+            var right = (JsonPathAnalyzer.FullMatch) andFilter.right();
+            assertThat(right.fieldJsonPath(), is("$.name"));
+            assertThat(right.pattern(), is("foo"));
+        }
+
+        @Test
+        void match_withDoubleQuotedPattern_parsesFullMatch() {
+            var result = JsonPathAnalyzer.analyze("$.items[?(match(@.name, \"test.*\"))]");
+
+            assertThat(result.basePath(), is("$.items[*]"));
+            assertThat(result.filters(), hasSize(1));
+            assertThat(result.filters().get(0), instanceOf(JsonPathAnalyzer.FullMatch.class));
+
+            var filter = (JsonPathAnalyzer.FullMatch) result.filters().get(0);
+            assertThat(filter.fieldJsonPath(), is("$.name"));
+            assertThat(filter.pattern(), is("test.*"));
+        }
+    }
+
+    @Nested
     class RewrittenOperators {
 
         @Test

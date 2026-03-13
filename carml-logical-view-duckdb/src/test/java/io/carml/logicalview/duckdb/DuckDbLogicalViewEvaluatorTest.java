@@ -157,6 +157,80 @@ class DuckDbLogicalViewEvaluatorTest {
         }
     }
 
+    // --- JSON filter function extension tests ---
+
+    @Nested
+    class JsonFilterFunctionEvaluation {
+
+        @Test
+        void evaluate_jsonSourceWithLengthFilter_filtersCorrectly() throws IOException {
+            var jsonFile = tempDir.resolve("length_filter.json");
+            Files.writeString(jsonFile, """
+                    {
+                        "items": [
+                            {"name": "Alice", "tags": ["a", "b", "c"]},
+                            {"name": "Bob", "tags": ["x"]},
+                            {"name": "Charlie", "tags": ["p", "q"]}
+                        ]
+                    }""");
+
+            var view = createJsonView(
+                    jsonFile.toString(), "$.items[?(length(@.tags) > 1)]", Set.of(expressionField("name", "$.name")));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(
+                            evaluator.evaluate(view, source -> null, context).collectList())
+                    .assertNext(iterations -> {
+                        // Only Alice (3 tags) and Charlie (2 tags) should pass length > 1
+                        assertThat(iterations, hasSize(2));
+
+                        var names = iterations.stream()
+                                .map(it -> it.getValue("name"))
+                                .toList();
+                        assertThat(names, containsInAnyOrder(Optional.of("Alice"), Optional.of("Charlie")));
+                    })
+                    .verifyComplete();
+        }
+
+        @Test
+        void evaluate_jsonSourceWithMatchFilter_filtersCorrectly() throws IOException {
+            var jsonFile = tempDir.resolve("match_filter.json");
+            Files.writeString(jsonFile, """
+                    {
+                        "items": [
+                            {"name": "test-abc"},
+                            {"name": "test-xyz"},
+                            {"name": "prod-abc"},
+                            {"name": "test-def"}
+                        ]
+                    }""");
+
+            var view = createJsonView(
+                    jsonFile.toString(),
+                    "$.items[?(match(@.name, 'test-.*'))]",
+                    Set.of(expressionField("name", "$.name")));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(
+                            evaluator.evaluate(view, source -> null, context).collectList())
+                    .assertNext(iterations -> {
+                        // Only items whose name fully matches 'test-.*': test-abc, test-xyz, test-def
+                        assertThat(iterations, hasSize(3));
+
+                        var names = iterations.stream()
+                                .map(it -> it.getValue("name"))
+                                .toList();
+                        assertThat(
+                                names,
+                                containsInAnyOrder(
+                                        Optional.of("test-abc"), Optional.of("test-xyz"), Optional.of("test-def")));
+                    })
+                    .verifyComplete();
+        }
+    }
+
     // --- CSV source tests ---
 
     @Nested
