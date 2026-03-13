@@ -157,6 +157,46 @@ class DuckDbLogicalViewEvaluatorTest {
         }
     }
 
+    // --- JSON bracket notation tests ---
+
+    @Nested
+    class JsonBracketNotationEvaluation {
+
+        @Test
+        void evaluate_jsonSourceWithBracketNotationKeys_extractsCorrectValues() throws IOException {
+            var jsonFile = tempDir.resolve("bracket_keys.json");
+            Files.writeString(jsonFile, """
+                    {
+                        "countries": [
+                            {"Country Code": 1, "Name": "Bolivia"},
+                            {"Country Code": 2, "Name": "Ireland"}
+                        ]
+                    }""");
+
+            var view = createJsonView(
+                    jsonFile.toString(),
+                    "$.countries[*]",
+                    Set.of(expressionField("code", "$['Country Code']"), expressionField("name", "$.Name")));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(
+                            evaluator.evaluate(view, source -> null, context).collectList())
+                    .assertNext(iterations -> {
+                        assertThat(iterations, hasSize(2));
+
+                        var first = iterations.get(0);
+                        assertThat(first.getValue("code"), is(Optional.of("1")));
+                        assertThat(first.getValue("name"), is(Optional.of("Bolivia")));
+
+                        var second = iterations.get(1);
+                        assertThat(second.getValue("code"), is(Optional.of("2")));
+                        assertThat(second.getValue("name"), is(Optional.of("Ireland")));
+                    })
+                    .verifyComplete();
+        }
+    }
+
     // --- JSON filter function extension tests ---
 
     @Nested

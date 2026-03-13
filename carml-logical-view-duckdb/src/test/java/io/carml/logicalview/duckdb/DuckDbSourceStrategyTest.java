@@ -469,5 +469,97 @@ class DuckDbSourceStrategyTest {
             var sql = CTX.select(result).getSQL();
             assertThat(sql, containsString("\"view_source\".\"dept_id\""));
         }
+
+        @Test
+        void resolveJoinChildReference_withBracketNotation_normalizes() {
+            var strategy = createStrategy(Set.of(expressionField("code", "$['Country Code']")));
+            var result = strategy.resolveJoinChildReference("code");
+            var sql = CTX.select(result).getSQL();
+            assertThat(sql, containsString("$.\"Country Code\""));
+            assertThat(sql, not(containsString("$['Country Code']")));
+        }
+
+        @Test
+        void compileFieldReference_withBracketNotation_normalizes() {
+            var strategy = createStrategy(Set.of());
+            var result = strategy.compileFieldReference("$['Country Code']", DSL.name("code"));
+            var sql = CTX.select(result).getSQL();
+            assertThat(sql, containsString("$.\"Country Code\""));
+            assertThat(sql, not(containsString("$['Country Code']")));
+        }
+
+        @Test
+        void compileTemplateReference_withBracketNotation_normalizes() {
+            var strategy = createStrategy(Set.of());
+            var result = strategy.compileTemplateReference("$['Country Code']");
+            var sql = CTX.select(result).getSQL();
+            assertThat(sql, containsString("$.\"Country Code\""));
+            assertThat(sql, not(containsString("$['Country Code']")));
+        }
+
+        @Test
+        void compileNestedFieldReference_withBracketNotation_normalizes() {
+            var strategy = createStrategy(Set.of());
+            var result = strategy.compileNestedFieldReference("item", "$['Country Code']", DSL.quotedName("item.code"));
+            var sql = CTX.select(result).getSQL();
+            assertThat(sql, containsString("$.\"Country Code\""));
+            assertThat(sql, not(containsString("$['Country Code']")));
+        }
+
+        @Test
+        void compileFieldTypeReference_withBracketNotation_normalizes() {
+            var strategy = createStrategy(Set.of());
+            var result = strategy.compileFieldTypeReference("$['Country Code']", DSL.quotedName("code.__type"));
+            var sql = CTX.select(result).getSQL();
+            assertThat(sql, containsString("$.\"Country Code\""));
+            assertThat(sql, not(containsString("$['Country Code']")));
+        }
+
+        @Test
+        void compileNestedFieldTypeReference_withBracketNotation_normalizes() {
+            var strategy = createStrategy(Set.of());
+            var result = strategy.compileNestedFieldTypeReference(
+                    "item", "$['Country Code']", DSL.quotedName("item.code.__type"));
+            var sql = CTX.select(result).getSQL();
+            assertThat(sql, containsString("$.\"Country Code\""));
+            assertThat(sql, not(containsString("$['Country Code']")));
+        }
+    }
+
+    @Nested
+    class NormalizeBracketNotationTests {
+
+        @Test
+        void normalizeBracketNotation_simpleBracket_convertsToQuotedDot() {
+            assertThat(
+                    JsonIteratorSourceStrategy.normalizeBracketNotation("$['Country Code']"), is("$.\"Country Code\""));
+        }
+
+        @Test
+        void normalizeBracketNotation_chainedBrackets_convertsAll() {
+            assertThat(
+                    JsonIteratorSourceStrategy.normalizeBracketNotation("$['key1']['key2']"),
+                    is("$.\"key1\".\"key2\""));
+        }
+
+        @Test
+        void normalizeBracketNotation_mixedDotAndBracket_convertsBracketOnly() {
+            assertThat(JsonIteratorSourceStrategy.normalizeBracketNotation("$.foo['bar']"), is("$.foo.\"bar\""));
+        }
+
+        @Test
+        void normalizeBracketNotation_escapedBraces_unescapesRmlSequences() {
+            assertThat(JsonIteratorSourceStrategy.normalizeBracketNotation("$['\\{Name\\}']"), is("$.\"{Name}\""));
+        }
+
+        @Test
+        void normalizeBracketNotation_noBrackets_passesThrough() {
+            assertThat(JsonIteratorSourceStrategy.normalizeBracketNotation("$.simple"), is("$.simple"));
+        }
+
+        @Test
+        void normalizeBracketNotation_mixedBracketAndDotWithSpaces_convertsCorrectly() {
+            assertThat(JsonIteratorSourceStrategy.normalizeBracketNotation("$['ISO 3166']"), is("$.\"ISO 3166\""));
+        }
     }
 }

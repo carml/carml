@@ -9,6 +9,8 @@ import io.carml.model.ExpressionField;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.jooq.Field;
 import org.jooq.Name;
@@ -28,6 +30,13 @@ import org.jooq.impl.DSL;
 final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
 
     private static final String JSON_EXTRACT_STRING = "json_extract_string({0}, {1})";
+
+    /**
+     * Matches a single bracket-notation accessor in a JSONPath expression, e.g. {@code ['key name']}.
+     * The key may use single quotes and may contain RML template escape sequences ({@code \\{} and
+     * {@code \\}}).
+     */
+    private static final Pattern BRACKET_ACCESSOR = Pattern.compile("\\['((?>[^'\\\\]|\\\\.)*+)']");
 
     static final String UNNEST_FIELD = "unnest";
 
@@ -52,6 +61,35 @@ final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
         return new JsonIteratorSourceStrategy(cteAlias, iterColumn, fieldNameToRefMap);
     }
 
+    /**
+     * Converts JSONPath bracket notation accessors to DuckDB-compatible quoted dot notation.
+     *
+     * <p>DuckDB's {@code json_extract_string} does not support bracket notation with single-quoted
+     * keys ({@code $['key']}). This method rewrites such accessors to quoted dot notation
+     * ({@code $."key"}), which DuckDB does support. RML template escape sequences ({@code \\{} and
+     * {@code \\}}) are unescaped to their literal characters during conversion.
+     *
+     * @param reference the JSONPath reference, possibly containing bracket notation
+     * @return the reference with bracket accessors rewritten to quoted dot notation
+     */
+    static String normalizeBracketNotation(String reference) {
+        Matcher matcher = BRACKET_ACCESSOR.matcher(reference);
+        if (!matcher.find()) {
+            return reference;
+        }
+
+        var sb = new StringBuilder();
+        matcher.reset();
+        while (matcher.find()) {
+            var key = matcher.group(1);
+            // Unescape RML template escape sequences: \\{ → { and \\} → }
+            var unescaped = key.replace("\\{", "{").replace("\\}", "}");
+            matcher.appendReplacement(sb, Matcher.quoteReplacement(".\"" + unescaped + "\""));
+        }
+        matcher.appendTail(sb);
+        return sb.toString();
+    }
+
     @Override
     public boolean isMultiValuedReference(String reference) {
         if (reference == null) {
@@ -63,20 +101,23 @@ final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
 
     @Override
     public SelectField<?> compileFieldReference(String reference, Name fieldAlias) {
-        return DSL.field(JSON_EXTRACT_STRING, field(quotedName(cteAlias, iterColumn)), inline(reference))
+        var normalized = normalizeBracketNotation(reference);
+        return DSL.field(JSON_EXTRACT_STRING, field(quotedName(cteAlias, iterColumn)), inline(normalized))
                 .as(fieldAlias);
     }
 
     @Override
     public Field<?> compileTemplateReference(String segmentValue) {
-        return DSL.field(JSON_EXTRACT_STRING, field(quotedName(cteAlias, iterColumn)), inline(segmentValue));
+        var normalized = normalizeBracketNotation(segmentValue);
+        return DSL.field(JSON_EXTRACT_STRING, field(quotedName(cteAlias, iterColumn)), inline(normalized));
     }
 
     @Override
     public SelectField<?> compileNestedFieldReference(String unnestAlias, String reference, Name fieldAlias) {
         // DuckDB's FROM-clause unnest wraps results in STRUCT(unnest JSON),
         // so access the inner JSON value via the "unnest" field.
-        return DSL.field(JSON_EXTRACT_STRING, field(quotedName(unnestAlias, UNNEST_FIELD)), inline(reference))
+        var normalized = normalizeBracketNotation(reference);
+        return DSL.field(JSON_EXTRACT_STRING, field(quotedName(unnestAlias, UNNEST_FIELD)), inline(normalized))
                 .as(fieldAlias);
     }
 
@@ -229,13 +270,15 @@ final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
 
     @Override
     public SelectField<?> compileFieldTypeReference(String reference, Name typeAlias) {
-        return DSL.field("json_type({0}, {1})", field(quotedName(cteAlias, iterColumn)), inline(reference))
+        var normalized = normalizeBracketNotation(reference);
+        return DSL.field("json_type({0}, {1})", field(quotedName(cteAlias, iterColumn)), inline(normalized))
                 .as(typeAlias);
     }
 
     @Override
     public SelectField<?> compileNestedFieldTypeReference(String unnestAlias, String reference, Name typeAlias) {
-        return DSL.field("json_type({0}, {1})", field(quotedName(unnestAlias, UNNEST_FIELD)), inline(reference))
+        var normalized = normalizeBracketNotation(reference);
+        return DSL.field("json_type({0}, {1})", field(quotedName(unnestAlias, UNNEST_FIELD)), inline(normalized))
                 .as(typeAlias);
     }
 
@@ -243,7 +286,8 @@ final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
     public Field<Object> resolveJoinChildReference(String childRef) {
         var sourceRef = fieldNameToRefMap.get(childRef);
         if (sourceRef != null) {
-            return DSL.field(JSON_EXTRACT_STRING, field(quotedName(cteAlias, iterColumn)), inline(sourceRef));
+            var normalized = normalizeBracketNotation(sourceRef);
+            return DSL.field(JSON_EXTRACT_STRING, field(quotedName(cteAlias, iterColumn)), inline(normalized));
         }
         return field(quotedName(cteAlias, childRef));
     }

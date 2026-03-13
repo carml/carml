@@ -22,13 +22,6 @@ class TestRmlCoreTestCasesWithDuckDb extends DuckDbTestCaseSuite {
                 "RMLTC0002e",
                 // DuckDB error handling: invalid iterator syntax produces empty result instead of error
                 "RMLTC0002g",
-                // JSONPath bracket notation with spaces/special chars not supported by DuckDB json_extract
-                // Task: Support bracket notation JSONPath in DuckDB evaluator
-                "RMLTC0010a",
-                "RMLTC0010b",
-                "RMLTC0010c",
-                // JSONPath bracket notation with escaped braces
-                "RMLTC0023f",
                 // DuckDB error handling: invalid subject map produces empty result instead of error
                 "RMLTC0025b");
     }
