@@ -32,11 +32,6 @@ class TestRmlIoTestCasesWithDuckDb extends DuckDbTestCaseSuite {
                 "RMLSTC0008b",
                 // Test case bug: quoted CSV headers
                 "RMLSTC0009a",
-                // Multi-valued JSONPath references: DuckDB returns JSON array as string instead of
-                // expanding to individual values. Task: Support multi-valued references in TriplesMap path
-                "RMLSTC0011b",
-                "RMLSTC0011c",
-                "RMLSTC0011e",
                 // XML/XPath sources: DuckDB has no native XML support
                 "RMLSTC0012a",
                 "RMLSTC0012b",

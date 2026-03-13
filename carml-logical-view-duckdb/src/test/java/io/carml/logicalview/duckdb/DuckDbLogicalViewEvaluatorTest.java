@@ -823,6 +823,70 @@ class DuckDbLogicalViewEvaluatorTest {
                     })
                     .verifyComplete();
         }
+
+        @Test
+        void evaluate_multiValuedExpressionFieldWithMidPathWildcard_expandsToIndividualValues() throws IOException {
+            var jsonFile = tempDir.resolve("mid_path_wildcard.json");
+            Files.writeString(jsonFile, """
+                    {
+                        "records": [
+                            {"id": 1, "departments": [{"name": "Engineering"}, {"name": "Marketing"}]},
+                            {"id": 2, "departments": [{"name": "Sales"}]}
+                        ]
+                    }""");
+
+            var idField = expressionField("id", "$.id");
+            var deptNameField = expressionField("dept_name", "$.departments[*].name");
+
+            @SuppressWarnings("unchecked")
+            var fields = (Set<Field>) (Set<?>) Set.of(idField, deptNameField);
+
+            var view = createJsonViewWithIterableFields(jsonFile.toString(), "$.records[*]", fields);
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(
+                            evaluator.evaluate(view, source -> null, context).collectList())
+                    .assertNext(iterations -> {
+                        // Row 1 has 2 departments, row 2 has 1 => 3 rows total
+                        assertThat(iterations, hasSize(3));
+
+                        var row1Rows = iterations.stream()
+                                .filter(it -> Optional.of("1").equals(it.getValue("id")))
+                                .toList();
+                        var row2Rows = iterations.stream()
+                                .filter(it -> Optional.of("2").equals(it.getValue("id")))
+                                .toList();
+
+                        assertThat(row1Rows, hasSize(2));
+                        assertThat(row2Rows, hasSize(1));
+
+                        // Verify individual department name values are expanded, not returned as a JSON array
+                        var row1DeptNames = row1Rows.stream()
+                                .map(it -> it.getValue("dept_name"))
+                                .toList();
+                        assertThat(
+                                row1DeptNames,
+                                containsInAnyOrder(Optional.of("Engineering"), Optional.of("Marketing")));
+
+                        var row2DeptNames = row2Rows.stream()
+                                .map(it -> it.getValue("dept_name"))
+                                .toList();
+                        assertThat(row2DeptNames, containsInAnyOrder(Optional.of("Sales")));
+
+                        // Verify per-parent ordinal reset
+                        var row1Ordinals = row1Rows.stream()
+                                .map(it -> it.getValue("dept_name.#"))
+                                .toList();
+                        assertThat(row1Ordinals, containsInAnyOrder(Optional.of(0L), Optional.of(1L)));
+
+                        var row2Ordinals = row2Rows.stream()
+                                .map(it -> it.getValue("dept_name.#"))
+                                .toList();
+                        assertThat(row2Ordinals, containsInAnyOrder(Optional.of(0L)));
+                    })
+                    .verifyComplete();
+        }
     }
 
     // --- Iterable field tests ---

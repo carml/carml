@@ -157,10 +157,21 @@ class DuckDbSourceStrategyTest {
         }
 
         @Test
-        void isMultiValuedReference_withArrayWildcard_returnsTrue() {
+        void isMultiValuedReference_withTerminalArrayWildcard_returnsTrue() {
             var strategy = createStrategy(Set.of());
             assertThat(strategy.isMultiValuedReference("$.items[*]"), is(true));
+        }
+
+        @Test
+        void isMultiValuedReference_withMidPathArrayWildcard_returnsTrue() {
+            var strategy = createStrategy(Set.of());
             assertThat(strategy.isMultiValuedReference("$.people[*].name"), is(true));
+        }
+
+        @Test
+        void isMultiValuedReference_withDoubleMidPathWildcard_returnsTrue() {
+            var strategy = createStrategy(Set.of());
+            assertThat(strategy.isMultiValuedReference("$.departments[*].employees[*].name"), is(true));
         }
 
         @Test
@@ -268,6 +279,33 @@ class DuckDbSourceStrategyTest {
             assertThat(sql, containsString("unnest(list_value(json_extract(\"item\".\"unnest\", '$.address')))"));
             assertThat(sql, containsString("list_value(0)"));
             assertThat(sql, containsString("\"__ord\""));
+        }
+
+        @Test
+        void compileUnnestTable_withMidPathWildcard_producesLateralUnnest() {
+            var strategy = createStrategy(Set.of());
+            var result = strategy.compileUnnestTable("$.departments[*].name", CTE_ALIAS, true, "dept_name");
+            var sql = CTX.selectFrom(result).getSQL();
+            assertThat(sql, containsString("LATERAL"));
+            assertThat(
+                    sql, containsString("unnest(json_extract(\"view_source\".\"__iter\", '$.departments[*].name'))"));
+            assertThat(
+                    sql,
+                    containsString("range(len(json_extract(\"view_source\".\"__iter\", '$.departments[*].name')))"));
+            assertThat(sql, containsString("\"__ord\""));
+            // Must NOT fall through to the single-value list_value branch
+            assertThat(sql, not(containsString("list_value")));
+        }
+
+        @Test
+        void compileUnnestTable_withMidPathChildWildcard_producesLateralUnnest() {
+            var strategy = createStrategy(Set.of());
+            var result = strategy.compileUnnestTable("$.obj.*.label", CTE_ALIAS, true, "label");
+            var sql = CTX.selectFrom(result).getSQL();
+            assertThat(sql, containsString("LATERAL"));
+            assertThat(sql, containsString("json_extract(\"view_source\".\"__iter\", '$.obj.*.label')"));
+            assertThat(sql, containsString("\"__ord\""));
+            assertThat(sql, not(containsString("list_value")));
         }
 
         @Test

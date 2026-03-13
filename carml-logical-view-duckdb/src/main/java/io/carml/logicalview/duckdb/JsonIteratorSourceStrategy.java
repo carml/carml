@@ -148,7 +148,7 @@ final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
     }
 
     private static boolean isArrayResult(JsonPathAnalyzer.ParsedJsonPath parsed) {
-        return parsed.basePath().endsWith("[*]") || parsed.basePath().endsWith(".*") || parsed.hasDeepScan();
+        return parsed.basePath().contains("[*]") || parsed.basePath().contains(".*") || parsed.hasDeepScan();
     }
 
     private Table<?> compileArrayUnnest(
