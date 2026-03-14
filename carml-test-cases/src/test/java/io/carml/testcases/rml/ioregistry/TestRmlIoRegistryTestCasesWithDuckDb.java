@@ -30,8 +30,10 @@ class TestRmlIoRegistryTestCasesWithDuckDb extends DuckDbTestCaseSuite {
                 "RMLIOREGTC0009a",
                 "RMLIOREGTC0010a",
                 "RMLIOREGTC0011a",
-                // CSVW dialect support not yet implemented in DuckDB evaluator.
-                // Task: Support CSVW dialect options (delimiter, null, quoteChar, etc.) in DuckDB
-                "RMLIOREGTC0012");
+                // CSVW dialect: UTF-16 encoding not supported by DuckDB's read_csv
+                "RMLIOREGTC0012f",
+                // CSVW quoteChar: case-sensitive column name mismatch (CSV has lowercase
+                // headers, mapping references uppercase). DuckDB column names are case-sensitive.
+                "RMLIOREGTC0012i");
     }
 }

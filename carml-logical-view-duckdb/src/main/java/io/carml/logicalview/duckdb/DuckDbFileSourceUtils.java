@@ -3,6 +3,7 @@ package io.carml.logicalview.duckdb;
 import io.carml.model.FilePath;
 import io.carml.model.FileSource;
 import io.carml.model.Source;
+import io.carml.model.source.csvw.CsvwTable;
 import java.util.Locale;
 import java.util.Set;
 import lombok.AccessLevel;
@@ -20,8 +21,8 @@ final class DuckDbFileSourceUtils {
     private static final Set<String> PARQUET_EXTENSIONS = Set.of(".parquet", ".parq");
 
     /**
-     * Resolves the file path from a {@link Source}, supporting both {@link FileSource} (URL-based)
-     * and {@link FilePath} (path-based) source types.
+     * Resolves the file path from a {@link Source}, supporting {@link FileSource} (URL-based),
+     * {@link FilePath} (path-based), and {@link CsvwTable} (CSVW URL-based) source types.
      *
      * @param source the source to resolve
      * @return the resolved file path string
@@ -44,6 +45,14 @@ final class DuckDbFileSourceUtils {
             return path;
         }
 
+        if (source instanceof CsvwTable csvwTable) {
+            var url = csvwTable.getUrl();
+            if (url == null || url.isBlank()) {
+                throw new IllegalArgumentException("CsvwTable has no URL defined");
+            }
+            return url;
+        }
+
         if (source == null) {
             throw new IllegalArgumentException("LogicalSource has no source defined");
         }
@@ -64,13 +73,13 @@ final class DuckDbFileSourceUtils {
     }
 
     /**
-     * Checks whether the given source is a file-based source ({@link FilePath} or
-     * {@link FileSource}).
+     * Checks whether the given source is a file-based source ({@link FilePath}, {@link FileSource},
+     * or {@link CsvwTable}).
      *
      * @param source the source to check
      * @return {@code true} if the source is file-based
      */
     static boolean isFileBasedSource(Source source) {
-        return source instanceof FilePath || source instanceof FileSource;
+        return source instanceof FilePath || source instanceof FileSource || source instanceof CsvwTable;
     }
 }

@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import io.carml.model.FilePath;
 import io.carml.model.FileSource;
 import io.carml.model.Source;
+import io.carml.model.source.csvw.CsvwTable;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -76,6 +77,30 @@ class DuckDbFileSourceUtilsTest {
 
             assertThrows(IllegalArgumentException.class, () -> DuckDbFileSourceUtils.resolveFilePath(source));
         }
+
+        @Test
+        void csvwTable_returnsUrl() {
+            var csvwTable = mock(CsvwTable.class);
+            when(csvwTable.getUrl()).thenReturn("data.csv");
+
+            assertThat(DuckDbFileSourceUtils.resolveFilePath(csvwTable), is("data.csv"));
+        }
+
+        @Test
+        void csvwTableWithNullUrl_throws() {
+            var csvwTable = mock(CsvwTable.class);
+            when(csvwTable.getUrl()).thenReturn(null);
+
+            assertThrows(IllegalArgumentException.class, () -> DuckDbFileSourceUtils.resolveFilePath(csvwTable));
+        }
+
+        @Test
+        void csvwTableWithBlankUrl_throws() {
+            var csvwTable = mock(CsvwTable.class);
+            when(csvwTable.getUrl()).thenReturn("  ");
+
+            assertThrows(IllegalArgumentException.class, () -> DuckDbFileSourceUtils.resolveFilePath(csvwTable));
+        }
     }
 
     @Nested
@@ -122,6 +147,13 @@ class DuckDbFileSourceUtilsTest {
             var fileSource = mock(FileSource.class);
 
             assertThat(DuckDbFileSourceUtils.isFileBasedSource(fileSource), is(true));
+        }
+
+        @Test
+        void csvwTable_returnsTrue() {
+            var csvwTable = mock(CsvwTable.class);
+
+            assertThat(DuckDbFileSourceUtils.isFileBasedSource(csvwTable), is(true));
         }
 
         @Test

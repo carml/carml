@@ -14,6 +14,8 @@ import io.carml.model.Field;
 import io.carml.model.FileSource;
 import io.carml.model.LogicalSource;
 import io.carml.model.Source;
+import io.carml.model.source.csvw.CsvwDialect;
+import io.carml.model.source.csvw.CsvwTable;
 import io.carml.vocab.Rdf;
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -159,6 +161,16 @@ class DuckDbSourceHandlerTest {
         }
 
         @Test
+        void csvwTableSource_returnsTrue() {
+            var csvwTable = mock(CsvwTable.class);
+            when(csvwTable.getUrl()).thenReturn("data.csv");
+            var logicalSource = mock(LogicalSource.class);
+            when(logicalSource.getSource()).thenReturn(csvwTable);
+
+            assertThat(handler.isCompatible(logicalSource), is(true));
+        }
+
+        @Test
         void streamSource_returnsFalse() {
             var source = mock(Source.class);
             var logicalSource = mock(LogicalSource.class);
@@ -261,6 +273,151 @@ class DuckDbSourceHandlerTest {
 
             assertThat(result.sourceSql(), containsString("read_parquet"));
             assertThat(result.strategy(), instanceOf(ColumnSourceStrategy.class));
+        }
+
+        @Test
+        void csvwTableWithDelimiter_producesReadCsvWithDelim() {
+            var logicalSource = mockLogicalSourceWithCsvwTable("data.csv", mockDialect(";", null, null), Set.of());
+            var fields = Set.<Field>of(expressionField("name", "name"));
+
+            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS);
+
+            assertThat(result.sourceSql(), containsString("read_csv("));
+            assertThat(result.sourceSql(), containsString("delim = "));
+            assertThat(result.sourceSql(), containsString(";"));
+            assertThat(result.strategy(), instanceOf(ColumnSourceStrategy.class));
+        }
+
+        @Test
+        void csvwTableWithQuoteChar_producesReadCsvWithQuote() {
+            var logicalSource = mockLogicalSourceWithCsvwTable("data.csv", mockDialect(null, "'", null), Set.of());
+            var fields = Set.<Field>of(expressionField("name", "name"));
+
+            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS);
+
+            assertThat(result.sourceSql(), containsString("read_csv("));
+            assertThat(result.sourceSql(), containsString("quote = "));
+            assertThat(result.sourceSql(), containsString("'"));
+        }
+
+        @Test
+        void csvwTableWithEncoding_producesReadCsvWithEncoding() {
+            var logicalSource = mockLogicalSourceWithCsvwTable("data.csv", mockDialect(null, null, "UTF-8"), Set.of());
+            var fields = Set.<Field>of(expressionField("name", "name"));
+
+            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS);
+
+            assertThat(result.sourceSql(), containsString("read_csv("));
+            assertThat(result.sourceSql(), containsString("encoding = "));
+            assertThat(result.sourceSql(), containsString("UTF-8"));
+        }
+
+        @Test
+        void csvwTableWithNullValues_producesReadCsvWithNullstr() {
+            var logicalSource =
+                    mockLogicalSourceWithCsvwTable("data.csv", mockDialect(";", null, null), Set.of("NULL"));
+            var fields = Set.<Field>of(expressionField("name", "name"));
+
+            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS);
+
+            assertThat(result.sourceSql(), containsString("read_csv("));
+            assertThat(result.sourceSql(), containsString("nullstr = "));
+            assertThat(result.sourceSql(), containsString("NULL"));
+        }
+
+        @Test
+        void csvwTableWithoutDialect_producesReadCsvAuto() {
+            var csvwTable = mock(CsvwTable.class);
+            when(csvwTable.getUrl()).thenReturn("data.csv");
+            when(csvwTable.getDialect()).thenReturn(null);
+            var logicalSource = mock(LogicalSource.class);
+            when(logicalSource.getSource()).thenReturn(csvwTable);
+            var fields = Set.<Field>of(expressionField("name", "name"));
+
+            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS);
+
+            assertThat(result.sourceSql(), containsString("read_csv_auto"));
+        }
+
+        @Test
+        void csvwTableWithTrim_producesWrappedTrimQuery() {
+            var dialect = mockDialect(null, null, null);
+            when(dialect.trim()).thenReturn(true);
+            var logicalSource = mockLogicalSourceWithCsvwTable("data.csv", dialect, Set.of());
+            var fields = Set.<Field>of(expressionField("name", "name"));
+
+            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS);
+
+            assertThat(result.sourceSql(), containsString("trim(columns(*)"));
+            assertThat(result.sourceSql(), containsString("read_csv("));
+        }
+
+        @Test
+        void csvwTableWithCommentPrefix_producesReadCsvWithComment() {
+            var dialect = mockDialect(null, null, null);
+            when(dialect.getCommentPrefix()).thenReturn("#");
+            var logicalSource = mockLogicalSourceWithCsvwTable("data.csv", dialect, Set.of());
+            var fields = Set.<Field>of(expressionField("name", "name"));
+
+            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS);
+
+            assertThat(result.sourceSql(), containsString("comment = "));
+            assertThat(result.sourceSql(), containsString("#"));
+        }
+
+        @Test
+        void csvwTableWithAllVarchar_alwaysIncluded() {
+            var logicalSource = mockLogicalSourceWithCsvwTable("data.csv", mockDialect(";", null, null), Set.of());
+            var fields = Set.<Field>of(expressionField("name", "name"));
+
+            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS);
+
+            assertThat(result.sourceSql(), containsString("all_varchar = true"));
+        }
+
+        @Test
+        void csvwTableWithSkipRows_producesReadCsvWithSkip() {
+            var dialect = mockDialect(null, null, null);
+            when(dialect.getSkipRows()).thenReturn(2);
+            var logicalSource = mockLogicalSourceWithCsvwTable("data.csv", dialect, Set.of());
+            var fields = Set.<Field>of(expressionField("name", "name"));
+
+            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS);
+
+            assertThat(result.sourceSql(), containsString("skip = 2"));
+        }
+
+        @Test
+        void csvwTableWithDoubleQuoteFalse_producesBackslashEscape() {
+            var dialect = mockDialect(null, null, null);
+            when(dialect.getDoubleQuote()).thenReturn("false");
+            var logicalSource = mockLogicalSourceWithCsvwTable("data.csv", dialect, Set.of());
+            var fields = Set.<Field>of(expressionField("name", "name"));
+
+            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS);
+
+            assertThat(result.sourceSql(), containsString("escape = "));
+        }
+
+        @Test
+        void csvwTableWithMultipleNullValues_producesNullstrList() {
+            var logicalSource =
+                    mockLogicalSourceWithCsvwTable("data.csv", mockDialect(";", null, null), Set.of("NULL", "N/A"));
+            var fields = Set.<Field>of(expressionField("name", "name"));
+
+            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS);
+
+            assertThat(result.sourceSql(), containsString("nullstr = ["));
+        }
+
+        @Test
+        void csvwTableWithNoNullValues_producesSentinelNullstr() {
+            var logicalSource = mockLogicalSourceWithCsvwTable("data.csv", mockDialect(";", null, null), Set.of());
+            var fields = Set.<Field>of(expressionField("name", "name"));
+
+            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS);
+
+            assertThat(result.sourceSql(), containsString(CsvSourceHandler.NO_NULL_SENTINEL));
         }
     }
 
@@ -447,6 +604,31 @@ class DuckDbSourceHandlerTest {
         var logicalSource = mock(LogicalSource.class);
         when(logicalSource.getSource()).thenReturn(fileSource);
         return logicalSource;
+    }
+
+    private static LogicalSource mockLogicalSourceWithCsvwTable(
+            String url, CsvwDialect dialect, Set<Object> nullValues) {
+        var csvwTable = mock(CsvwTable.class);
+        when(csvwTable.getUrl()).thenReturn(url);
+        when(csvwTable.getDialect()).thenReturn(dialect);
+        when(csvwTable.getCsvwNulls()).thenReturn(nullValues);
+        var logicalSource = mock(LogicalSource.class);
+        when(logicalSource.getSource()).thenReturn(csvwTable);
+        return logicalSource;
+    }
+
+    private static CsvwDialect mockDialect(String delimiter, String quoteChar, String encoding) {
+        var dialect = mock(CsvwDialect.class);
+        when(dialect.getDelimiter()).thenReturn(delimiter);
+        when(dialect.getQuoteChar()).thenReturn(quoteChar);
+        when(dialect.getEncoding()).thenReturn(encoding);
+        when(dialect.hasHeader()).thenReturn(true);
+        when(dialect.getHeaderRowCount()).thenReturn(1);
+        when(dialect.getCommentPrefix()).thenReturn(null);
+        when(dialect.getDoubleQuote()).thenReturn(null);
+        when(dialect.getSkipRows()).thenReturn(0);
+        when(dialect.trim()).thenReturn(false);
+        return dialect;
     }
 
     private static ExpressionField expressionField(String fieldName, String reference) {

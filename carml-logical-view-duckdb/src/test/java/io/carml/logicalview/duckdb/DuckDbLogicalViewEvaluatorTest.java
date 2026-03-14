@@ -19,6 +19,8 @@ import io.carml.model.IterableField;
 import io.carml.model.LogicalSource;
 import io.carml.model.LogicalView;
 import io.carml.model.ReferenceFormulation;
+import io.carml.model.source.csvw.CsvwDialect;
+import io.carml.model.source.csvw.CsvwTable;
 import io.carml.vocab.Rdf;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -303,6 +305,193 @@ class DuckDbLogicalViewEvaluatorTest {
 
                         assertThat(iterations.get(2).getValue("name"), is(Optional.of("Charlie")));
                         assertThat(iterations.get(2).getValue("score"), is(Optional.of(72L)));
+                    })
+                    .verifyComplete();
+        }
+    }
+
+    // --- CSVW source tests ---
+
+    @Nested
+    class CsvwSourceEvaluation {
+
+        @Test
+        void evaluate_csvwSourceWithDelimiter_producesViewIterations() throws IOException {
+            var csvFile = tempDir.resolve("semicolon.csv");
+            Files.writeString(csvFile, """
+                    name;score
+                    Alice;95
+                    Bob;88""");
+
+            var view = createCsvwView(
+                    csvFile.toString(),
+                    mockCsvwDialect(";", null, null, false, null),
+                    Set.of(),
+                    Set.of(expressionField("name", "name"), expressionField("score", "score")));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(
+                            evaluator.evaluate(view, source -> null, context).collectList())
+                    .assertNext(iterations -> {
+                        assertThat(iterations, hasSize(2));
+
+                        assertThat(iterations.get(0).getValue("name"), is(Optional.of("Alice")));
+                        assertThat(iterations.get(0).getValue("score"), is(Optional.of("95")));
+
+                        assertThat(iterations.get(1).getValue("name"), is(Optional.of("Bob")));
+                        assertThat(iterations.get(1).getValue("score"), is(Optional.of("88")));
+                    })
+                    .verifyComplete();
+        }
+
+        @Test
+        void evaluate_csvwSourceWithNullValue_treatsAsNull() throws IOException {
+            var csvFile = tempDir.resolve("nulls.csv");
+            Files.writeString(csvFile, """
+                    ID;Name
+                    10;Venus
+                    11;NULL
+                    12;Serena""");
+
+            var view = createCsvwView(
+                    csvFile.toString(),
+                    mockCsvwDialect(";", null, null, false, null),
+                    Set.of("NULL"),
+                    Set.of(expressionField("ID", "ID"), expressionField("Name", "Name")));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(
+                            evaluator.evaluate(view, source -> null, context).collectList())
+                    .assertNext(iterations -> {
+                        assertThat(iterations, hasSize(3));
+
+                        assertThat(iterations.get(0).getValue("Name"), is(Optional.of("Venus")));
+                        assertThat(iterations.get(1).getValue("Name"), is(Optional.empty()));
+                        assertThat(iterations.get(2).getValue("Name"), is(Optional.of("Serena")));
+                    })
+                    .verifyComplete();
+        }
+
+        @Test
+        void evaluate_csvwSourceWithTrim_trimsWhitespace() throws IOException {
+            var csvFile = tempDir.resolve("trimmed.csv");
+            Files.writeString(csvFile, """
+                    ID,Name
+                      10  ,Venus""");
+
+            var view = createCsvwView(
+                    csvFile.toString(),
+                    mockCsvwDialect(null, null, null, true, null),
+                    Set.of(),
+                    Set.of(expressionField("ID", "ID"), expressionField("Name", "Name")));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(
+                            evaluator.evaluate(view, source -> null, context).collectList())
+                    .assertNext(iterations -> {
+                        assertThat(iterations, hasSize(1));
+                        assertThat(iterations.get(0).getValue("ID"), is(Optional.of("10")));
+                        assertThat(iterations.get(0).getValue("Name"), is(Optional.of("Venus")));
+                    })
+                    .verifyComplete();
+        }
+
+        @Test
+        void evaluate_csvwSourceWithCommentPrefix_skipsCommentLines() throws IOException {
+            var csvFile = tempDir.resolve("comments.csv");
+            Files.writeString(csvFile, """
+                    # comments
+                    ID,Name
+                    10,Venus
+                    # comment""");
+
+            var view = createCsvwView(
+                    csvFile.toString(),
+                    mockCsvwDialect(null, null, null, false, "#"),
+                    Set.of(),
+                    Set.of(expressionField("ID", "ID"), expressionField("Name", "Name")));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(
+                            evaluator.evaluate(view, source -> null, context).collectList())
+                    .assertNext(iterations -> {
+                        assertThat(iterations, hasSize(1));
+                        assertThat(iterations.get(0).getValue("ID"), is(Optional.of("10")));
+                        assertThat(iterations.get(0).getValue("Name"), is(Optional.of("Venus")));
+                    })
+                    .verifyComplete();
+        }
+
+        @Test
+        void evaluate_csvwSourceWithQuoteChar_parsesQuotedHeaders() throws IOException {
+            var csvFile = tempDir.resolve("quoted.csv");
+            Files.writeString(csvFile, """
+                    'id','name','age'
+                    0,Monica Geller,33
+                    1,Rachel Green,34""");
+
+            var view = createCsvwView(
+                    csvFile.toString(),
+                    mockCsvwDialect(null, "'", null, false, null),
+                    Set.of(),
+                    Set.of(expressionField("id", "id"), expressionField("name", "name")));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(
+                            evaluator.evaluate(view, source -> null, context).collectList())
+                    .assertNext(iterations -> {
+                        assertThat(iterations, hasSize(2));
+                        assertThat(iterations.get(0).getValue("id"), is(Optional.of("0")));
+                        assertThat(iterations.get(0).getValue("name"), is(Optional.of("Monica Geller")));
+                    })
+                    .verifyComplete();
+        }
+
+        @Test
+        void evaluate_csvwSourceWithTabDelimiter_parsesTsv() throws IOException {
+            var tsvFile = tempDir.resolve("data.tsv");
+            Files.writeString(tsvFile, "ID\tName\n10\tVenus\n");
+
+            var view = createCsvwView(
+                    tsvFile.toString(),
+                    mockCsvwDialect("\t", null, null, false, null),
+                    Set.of(),
+                    Set.of(expressionField("ID", "ID"), expressionField("Name", "Name")));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(
+                            evaluator.evaluate(view, source -> null, context).collectList())
+                    .assertNext(iterations -> {
+                        assertThat(iterations, hasSize(1));
+                        assertThat(iterations.get(0).getValue("ID"), is(Optional.of("10")));
+                        assertThat(iterations.get(0).getValue("Name"), is(Optional.of("Venus")));
+                    })
+                    .verifyComplete();
+        }
+
+        @Test
+        void evaluate_csvwSourceWithoutDialect_fallsBackToReadCsvAuto() throws IOException {
+            var csvFile = tempDir.resolve("plain_csvw.csv");
+            Files.writeString(csvFile, """
+                    name,score
+                    Alice,95""");
+
+            var view = createCsvwViewWithoutDialect(
+                    csvFile.toString(), Set.of(expressionField("name", "name"), expressionField("score", "score")));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(
+                            evaluator.evaluate(view, source -> null, context).collectList())
+                    .assertNext(iterations -> {
+                        assertThat(iterations, hasSize(1));
+                        assertThat(iterations.get(0).getValue("name"), is(Optional.of("Alice")));
                     })
                     .verifyComplete();
         }
@@ -1638,6 +1827,68 @@ class DuckDbLogicalViewEvaluatorTest {
 
     private static LogicalView createCsvView(String filePath, Set<ExpressionField> fields) {
         return createViewWithRefFormulation(Rdf.Ql.Csv, filePath, null, fields);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static LogicalView createCsvwView(
+            String filePath, CsvwDialect dialect, Set<Object> nullValues, Set<ExpressionField> fields) {
+        var csvwTable = mock(CsvwTable.class);
+        lenient().when(csvwTable.getUrl()).thenReturn(filePath);
+        lenient().when(csvwTable.getDialect()).thenReturn(dialect);
+        lenient().when(csvwTable.getCsvwNulls()).thenReturn(nullValues);
+
+        var refFormulation = mock(ReferenceFormulation.class);
+        lenient().when(refFormulation.getAsResource()).thenReturn(Rdf.Ql.Csv);
+
+        var logicalSource = mock(LogicalSource.class);
+        lenient().when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
+        lenient().when(logicalSource.getSource()).thenReturn(csvwTable);
+
+        var view = mock(LogicalView.class);
+        lenient().when(view.getViewOn()).thenReturn(logicalSource);
+        lenient().when(view.getFields()).thenReturn((Set<Field>) (Set<?>) fields);
+        lenient().when(view.getResourceName()).thenReturn("testView");
+        lenient().when(view.getStructuralAnnotations()).thenReturn(Set.of());
+
+        return view;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static LogicalView createCsvwViewWithoutDialect(String filePath, Set<ExpressionField> fields) {
+        var csvwTable = mock(CsvwTable.class);
+        lenient().when(csvwTable.getUrl()).thenReturn(filePath);
+        lenient().when(csvwTable.getDialect()).thenReturn(null);
+        lenient().when(csvwTable.getCsvwNulls()).thenReturn(Set.of());
+
+        var refFormulation = mock(ReferenceFormulation.class);
+        lenient().when(refFormulation.getAsResource()).thenReturn(Rdf.Ql.Csv);
+
+        var logicalSource = mock(LogicalSource.class);
+        lenient().when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
+        lenient().when(logicalSource.getSource()).thenReturn(csvwTable);
+
+        var view = mock(LogicalView.class);
+        lenient().when(view.getViewOn()).thenReturn(logicalSource);
+        lenient().when(view.getFields()).thenReturn((Set<Field>) (Set<?>) fields);
+        lenient().when(view.getResourceName()).thenReturn("testView");
+        lenient().when(view.getStructuralAnnotations()).thenReturn(Set.of());
+
+        return view;
+    }
+
+    private static CsvwDialect mockCsvwDialect(
+            String delimiter, String quoteChar, String encoding, boolean trim, String commentPrefix) {
+        var dialect = mock(CsvwDialect.class);
+        lenient().when(dialect.getDelimiter()).thenReturn(delimiter);
+        lenient().when(dialect.getQuoteChar()).thenReturn(quoteChar);
+        lenient().when(dialect.getEncoding()).thenReturn(encoding);
+        lenient().when(dialect.hasHeader()).thenReturn(true);
+        lenient().when(dialect.getHeaderRowCount()).thenReturn(1);
+        lenient().when(dialect.getCommentPrefix()).thenReturn(commentPrefix);
+        lenient().when(dialect.getDoubleQuote()).thenReturn(null);
+        lenient().when(dialect.getSkipRows()).thenReturn(0);
+        lenient().when(dialect.trim()).thenReturn(trim);
+        return dialect;
     }
 
     @SuppressWarnings("unchecked")
