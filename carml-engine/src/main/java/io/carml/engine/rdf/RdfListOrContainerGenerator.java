@@ -3,12 +3,17 @@ package io.carml.engine.rdf;
 import static io.carml.util.CartesianProduct.listCartesianProduct;
 
 import io.carml.engine.MappedValue;
+import io.carml.engine.TermGenerator;
+import io.carml.engine.TermGeneratorFactoryException;
 import io.carml.engine.rdf.RdfContainer.RdfContainerBuilder;
 import io.carml.engine.rdf.RdfList.RdfListBuilder;
 import io.carml.engine.rdf.util.RdfCollectionsAndContainers;
 import io.carml.logicalsourceresolver.DatatypeMapper;
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
+import io.carml.model.BaseObjectMap;
 import io.carml.model.GatherMap;
+import io.carml.model.ObjectMap;
+import io.carml.model.RefObjectMap;
 import io.carml.vocab.Rdf.Rml;
 import java.util.Collection;
 import java.util.List;
@@ -38,9 +43,12 @@ public class RdfListOrContainerGenerator
         var headGenerator = rdfTermGeneratorFactory.getSubjectGenerator(gatherMap.asSubjectMap());
         var strategy = gatherMap.getStrategy();
 
+        var gatherTermGenerators = gatherMap.getGathers().stream()
+                .map(this::createGatherTermGenerator)
+                .toList();
+
         if (strategy.equals(Rml.append)) {
-            var appendedGatheredTerms = gatherMap.getGathers().stream()
-                    .map(termMap -> rdfTermGeneratorFactory.getObjectGenerator(termMap))
+            var appendedGatheredTerms = gatherTermGenerators.stream()
                     .map(termGenerator -> termGenerator.apply(expressionEvaluation, datatypeMapper))
                     .flatMap(List::stream)
                     .toList();
@@ -55,8 +63,7 @@ public class RdfListOrContainerGenerator
                     .toList();
         }
 
-        var gatheredTerms = gatherMap.getGathers().stream()
-                .map(termMap -> rdfTermGeneratorFactory.getObjectGenerator(termMap))
+        var gatheredTerms = gatherTermGenerators.stream()
                 .map(termGenerator -> termGenerator.apply(expressionEvaluation, datatypeMapper))
                 .toList();
 
@@ -68,6 +75,35 @@ public class RdfListOrContainerGenerator
                 .flatMap(cartesianProductItem -> headGenerator.apply(expressionEvaluation, datatypeMapper).stream()
                         .map(head -> createRdfListOrContainer(head, cartesianProductItem)))
                 .toList();
+    }
+
+    @SuppressWarnings("unchecked")
+    private TermGenerator<Value> createGatherTermGenerator(BaseObjectMap gatherItem) {
+        if (gatherItem instanceof ObjectMap objectMap) {
+            return rdfTermGeneratorFactory.getObjectGenerator(objectMap);
+        }
+
+        if (gatherItem instanceof RefObjectMap refObjectMap) {
+            if (!refObjectMap.getJoinConditions().isEmpty()) {
+                throw new TermGeneratorFactoryException("Joined RefObjectMap in rml:gather is not yet supported. "
+                        + "Only joinless RefObjectMaps (without rml:joinCondition) are supported in gather maps.");
+            }
+
+            // Joinless RefObjectMap: generate parent subjects from the current row's expression
+            // evaluation. This works because the parent TriplesMap shares the same logical source.
+            var parentSubjectGenerators = refObjectMap.getParentTriplesMap().getSubjectMaps().stream()
+                    .map(rdfTermGeneratorFactory::getSubjectGenerator)
+                    .toList();
+
+            return (expressionEvaluation, datatypeMapper) -> parentSubjectGenerators.stream()
+                    .map(gen -> gen.apply(expressionEvaluation, datatypeMapper))
+                    .flatMap(List::stream)
+                    .map(mappedValue -> (MappedValue<Value>) (MappedValue<?>) mappedValue)
+                    .toList();
+        }
+
+        throw new TermGeneratorFactoryException("Unsupported gather item type: %s"
+                .formatted(gatherItem.getClass().getSimpleName()));
     }
 
     private List<MappedValue<Value>> handleEmpty() {

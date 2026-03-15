@@ -218,6 +218,19 @@ public final class DuckDbViewCompiler {
             // Reference the pre-computed index from the CTE
             allFieldSelects.add(field(quotedName(CTE_ALIAS, INDEX_COLUMN)));
 
+            // Include raw JSON iterator column for source-level expression evaluation.
+            // When retainSourceEvaluation is true (implicit views), gather map expressions that
+            // are NOT view fields need to be evaluated from the raw JSON data. The __iter column
+            // carries the raw JSON for each iteration row, enabling DuckDbJsonSourceEvaluation to
+            // evaluate these expressions using JSONPath at mapping time.
+            // This is only added in the non-DISTINCT path because the raw JSON blob would interfere
+            // with deduplication (two rows with identical field values but different JSON formatting
+            // would survive DISTINCT).
+            if (context.retainSourceEvaluation() && strategy instanceof JsonIteratorSourceStrategy) {
+                allFieldSelects.add(field(quotedName(CTE_ALIAS, JsonPathSourceHandler.JSON_ITER_COLUMN))
+                        .as(quotedName(JsonPathSourceHandler.JSON_ITER_COLUMN)));
+            }
+
             var fromStep = buildFromClause(
                     CTX.with(viewSourceCte).select(allFieldSelects), unnestDescriptors, joinDescriptors);
 

@@ -66,7 +66,10 @@ final class JsonPathSourceHandler implements DuckDbSourceHandler {
         var iterator = logicalSource.getIterator();
         if (iterator != null && !iterator.isBlank()) {
             var parsed = JsonPathAnalyzer.analyze(iterator);
-            var basePath = parsed.basePath();
+            // DuckDB's json_extract treats ".*" as object-property-only wildcard and does not
+            // match array elements. JSONPath semantics treat ".*" and "[*]" equivalently (both
+            // match all children). Normalize ".*" → "[*]" so DuckDB iterates arrays correctly.
+            var basePath = normalizeChildWildcard(parsed.basePath());
 
             var sourceSql = "(select unnest(json_extract(content, %s)) as \"%s\" from read_text(%s))"
                     .formatted(inline(basePath), JSON_ITER_COLUMN, inline(filePath));
@@ -169,6 +172,20 @@ final class JsonPathSourceHandler implements DuckDbSourceHandler {
             return DSL.condition("{0} <= {1}", lengthExpr, val);
         }
         throw new UnsupportedOperationException("Unknown CompOp: %s".formatted(f.op()));
+    }
+
+    /**
+     * Normalizes JSONPath child wildcard notation for DuckDB compatibility. DuckDB's
+     * {@code json_extract} does not treat {@code .*} as an array element wildcard; it only matches
+     * object properties. JSONPath semantics define {@code .*} and {@code [*]} as equivalent (both
+     * select all children). This method replaces {@code .*} with {@code [*]} so that DuckDB
+     * correctly iterates both array elements and object properties.
+     *
+     * @param path the JSONPath base path from the analyzer
+     * @return the path with {@code .*} replaced by {@code [*]}
+     */
+    static String normalizeChildWildcard(String path) {
+        return path.replace(".*", "[*]");
     }
 
     private static CompiledSource columnSource(String sourceSql, String cteAlias) {

@@ -2,12 +2,12 @@ package io.carml.model.impl;
 
 import static java.util.stream.Collectors.toUnmodifiableSet;
 
+import io.carml.model.BaseObjectMap;
 import io.carml.model.GatherMap;
-import io.carml.model.ObjectMap;
 import io.carml.model.Resource;
 import io.carml.model.SubjectMap;
 import io.carml.rdfmapper.annotations.RdfProperty;
-import io.carml.rdfmapper.annotations.RdfType;
+import io.carml.rdfmapper.annotations.RdfTypeDecider;
 import io.carml.vocab.Rdf;
 import io.carml.vocab.Rml;
 import java.util.List;
@@ -35,7 +35,7 @@ abstract class CarmlGatherMap extends CarmlTermMap implements GatherMap {
     private IRI gatherAs;
 
     @Default
-    private List<ObjectMap> gathers = List.of();
+    private List<BaseObjectMap> gathers = List.of();
 
     private boolean allowEmptyListAndContainer;
 
@@ -55,9 +55,9 @@ abstract class CarmlGatherMap extends CarmlTermMap implements GatherMap {
     }
 
     @RdfProperty(Rml.gather)
-    @RdfType(CarmlObjectMap.class)
+    @RdfTypeDecider(ObjectMapTypeDecider.class)
     @Override
-    public List<ObjectMap> getGathers() {
+    public List<BaseObjectMap> getGathers() {
         return gathers;
     }
 

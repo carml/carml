@@ -1,5 +1,6 @@
 package io.carml.logicalview.duckdb;
 
+import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.logicalview.ViewIteration;
 import io.carml.model.ReferenceFormulation;
 import java.util.Collections;
@@ -24,8 +25,10 @@ class DuckDbViewIteration implements ViewIteration {
 
     private final Map<String, IRI> naturalDatatypes;
 
+    private final ExpressionEvaluation sourceEvaluation;
+
     /**
-     * Creates a new DuckDB view iteration.
+     * Creates a new DuckDB view iteration without source evaluation.
      *
      * @param index the zero-based iteration index
      * @param values the column name to value map; may contain {@code null} values (e.g. from LEFT
@@ -33,10 +36,29 @@ class DuckDbViewIteration implements ViewIteration {
      * @param naturalDatatypes the field name to XSD datatype IRI map for type-inferred fields
      */
     DuckDbViewIteration(int index, Map<String, Object> values, Map<String, IRI> naturalDatatypes) {
+        this(index, values, naturalDatatypes, null);
+    }
+
+    /**
+     * Creates a new DuckDB view iteration with an optional source evaluation.
+     *
+     * @param index the zero-based iteration index
+     * @param values the column name to value map; may contain {@code null} values (e.g. from LEFT
+     *     JOINs)
+     * @param naturalDatatypes the field name to XSD datatype IRI map for type-inferred fields
+     * @param sourceEvaluation the source-level expression evaluation, or {@code null} if not
+     *     available
+     */
+    DuckDbViewIteration(
+            int index,
+            Map<String, Object> values,
+            Map<String, IRI> naturalDatatypes,
+            ExpressionEvaluation sourceEvaluation) {
         this.index = index;
         // Use Collections.unmodifiableMap to support null values (left join no-match fields)
         this.values = Collections.unmodifiableMap(new LinkedHashMap<>(values));
         this.naturalDatatypes = Map.copyOf(naturalDatatypes);
+        this.sourceEvaluation = sourceEvaluation;
     }
 
     @Override
@@ -62,5 +84,10 @@ class DuckDbViewIteration implements ViewIteration {
     @Override
     public Optional<IRI> getNaturalDatatype(String key) {
         return Optional.ofNullable(naturalDatatypes.get(key));
+    }
+
+    @Override
+    public Optional<ExpressionEvaluation> getSourceEvaluation() {
+        return Optional.ofNullable(sourceEvaluation);
     }
 }

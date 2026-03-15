@@ -2102,4 +2102,40 @@ class DuckDbViewCompilerTest {
             assertThat(sql, containsString("left outer join"));
         }
     }
+
+    @Nested
+    class RetainSourceEvaluation {
+
+        @Test
+        void compile_forImplicitViewWithJsonIterator_includesIterColumnAsOutputField() {
+            var view = createJsonView("data.json", "$.items[*]", Set.of(expressionField("id", "$.id")));
+            var context = EvaluationContext.forImplicitView(null);
+
+            var sql = DuckDbViewCompiler.compile(view, context);
+
+            // __iter projected as an output field for source-level expression evaluation
+            assertThat(sql, containsString("\"__iter\" \"__iter\""));
+        }
+
+        @Test
+        void compile_forImplicitViewWithoutIterator_doesNotIncludeIterColumn() {
+            var view = createJsonView("data.json", null, Set.of(expressionField("id", "id")));
+            var context = EvaluationContext.forImplicitView(null);
+
+            var sql = DuckDbViewCompiler.compile(view, context);
+
+            assertThat(sql, not(containsString("\"__iter\"")));
+        }
+
+        @Test
+        void compile_defaultContextWithJsonIterator_doesNotIncludeIterColumnAsOutputField() {
+            var view = createJsonView("data.json", "$.items[*]", Set.of(expressionField("id", "$.id")));
+            var context = EvaluationContext.defaults();
+
+            var sql = DuckDbViewCompiler.compile(view, context);
+
+            // __iter is used internally by JsonIteratorSourceStrategy but NOT projected as an output field
+            assertThat(sql, not(containsString("\"__iter\" \"__iter\"")));
+        }
+    }
 }

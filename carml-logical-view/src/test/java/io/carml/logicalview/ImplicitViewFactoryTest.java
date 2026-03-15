@@ -12,16 +12,19 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.carml.model.BaseObjectMap;
 import io.carml.model.ChildMap;
 import io.carml.model.ExpressionField;
 import io.carml.model.Field;
 import io.carml.model.Join;
 import io.carml.model.LogicalSource;
+import io.carml.model.ObjectMap;
 import io.carml.model.ParentMap;
 import io.carml.model.PredicateObjectMap;
 import io.carml.model.RefObjectMap;
 import io.carml.model.SubjectMap;
 import io.carml.model.TriplesMap;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
@@ -363,5 +366,31 @@ class ImplicitViewFactoryTest {
         // Then - parent SubjectMap expressions included in the view fields
         var fieldNames = view.getFields().stream().map(Field::getFieldName).collect(Collectors.toUnmodifiableSet());
         assertThat(fieldNames, is(Set.of("childExpr", "parentId")));
+    }
+
+    @Test
+    void wrap_givenObjectMapWithGathers_thenGatherExpressionsExcludedFromViewFields() {
+        // Given - a gathered ObjectMap with reference "$.values.*"
+        var gatheredObjectMap = mock(ObjectMap.class);
+        when(gatheredObjectMap.getExpressionMapExpressionSet()).thenReturn(Set.of("$.values.*"));
+
+        // The outer ObjectMap has gathers but no own expression
+        var gatherObjectMap = mock(ObjectMap.class);
+        when(gatherObjectMap.getGathers()).thenReturn(List.<BaseObjectMap>of(gatheredObjectMap));
+
+        var pom = mock(PredicateObjectMap.class);
+        when(pom.getObjectMaps()).thenReturn(Set.of((BaseObjectMap) gatherObjectMap));
+        when(triplesMap.getPredicateObjectMaps()).thenReturn(Set.of(pom));
+
+        // getReferenceExpressionSet includes gather expressions ($.values.*) and own ($.id)
+        when(triplesMap.getReferenceExpressionSet()).thenReturn(Set.of("$.id", "$.values.*"));
+
+        // When
+        var wrapResult = ImplicitViewFactory.wrap(triplesMap);
+        var view = wrapResult.view();
+
+        // Then - $.values.* is excluded (gather expression), $.id is included
+        var fieldNames = view.getFields().stream().map(Field::getFieldName).collect(Collectors.toUnmodifiableSet());
+        assertThat(fieldNames, is(Set.of("$.id")));
     }
 }

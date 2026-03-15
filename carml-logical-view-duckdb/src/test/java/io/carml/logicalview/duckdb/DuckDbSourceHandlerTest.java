@@ -637,4 +637,28 @@ class DuckDbSourceHandlerTest {
         when(field.getReference()).thenReturn(reference);
         return field;
     }
+
+    @Nested
+    class NormalizeChildWildcard {
+
+        @Test
+        void normalizeChildWildcard_childWildcard_replacedWithArrayWildcard() {
+            assertThat(JsonPathSourceHandler.normalizeChildWildcard("$.items.*"), is("$.items[*]"));
+        }
+
+        @Test
+        void normalizeChildWildcard_multipleChildWildcards_allReplaced() {
+            assertThat(JsonPathSourceHandler.normalizeChildWildcard("$.a.*.b.*"), is("$.a[*].b[*]"));
+        }
+
+        @Test
+        void normalizeChildWildcard_noWildcards_unchangedPath() {
+            assertThat(JsonPathSourceHandler.normalizeChildWildcard("$.items"), is("$.items"));
+        }
+
+        @Test
+        void normalizeChildWildcard_arrayWildcard_unchangedPath() {
+            assertThat(JsonPathSourceHandler.normalizeChildWildcard("$.items[*]"), is("$.items[*]"));
+        }
+    }
 }

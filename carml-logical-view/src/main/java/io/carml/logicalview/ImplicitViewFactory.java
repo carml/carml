@@ -4,6 +4,7 @@ import io.carml.model.Field;
 import io.carml.model.LogicalSource;
 import io.carml.model.LogicalView;
 import io.carml.model.LogicalViewJoin;
+import io.carml.model.ObjectMap;
 import io.carml.model.RefObjectMap;
 import io.carml.model.TriplesMap;
 import io.carml.model.impl.CarmlExpressionField;
@@ -151,9 +152,15 @@ public class ImplicitViewFactory {
      * TriplesMap's own reference expressions plus parent SubjectMap expressions from joinless
      * RefObjectMaps (same LogicalSource, no join conditions or self-joining), since those parent
      * expressions are resolved from the same data source row.
+     *
+     * <p>Gather expression references (from {@code rml:gather}) are excluded because they must
+     * retain multi-valued semantics. View fields would either be unnested (splitting them into
+     * separate rows) or flattened (losing the collection structure). These expressions are instead
+     * evaluated via the source-level expression evaluation fallback.
      */
     private static Set<Field> collectViewFields(TriplesMap triplesMap) {
         var allExpressions = new LinkedHashSet<>(triplesMap.getReferenceExpressionSet());
+        allExpressions.removeAll(collectGatherExpressions(triplesMap));
         collectJoinlessParentExpressions(triplesMap, allExpressions);
 
         return allExpressions.stream()
@@ -161,6 +168,24 @@ public class ImplicitViewFactory {
                         .fieldName(expression)
                         .reference(expression)
                         .build())
+                .collect(Collectors.toUnmodifiableSet());
+    }
+
+    /**
+     * Collects all reference expressions that originate from gathered ObjectMaps. These expressions
+     * must not be included as view fields because they require multi-valued evaluation (returning
+     * all values at once) for container/collection generation.
+     */
+    private static Set<String> collectGatherExpressions(TriplesMap triplesMap) {
+        return triplesMap.getPredicateObjectMaps().stream()
+                .flatMap(pom -> pom.getObjectMaps().stream())
+                .filter(ObjectMap.class::isInstance)
+                .map(ObjectMap.class::cast)
+                .flatMap(om -> om.getGathers().stream())
+                .filter(ObjectMap.class::isInstance)
+                .map(ObjectMap.class::cast)
+                .map(ObjectMap::getExpressionMapExpressionSet)
+                .flatMap(Set::stream)
                 .collect(Collectors.toUnmodifiableSet());
     }
 

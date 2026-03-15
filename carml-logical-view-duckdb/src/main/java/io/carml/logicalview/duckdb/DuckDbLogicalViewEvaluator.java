@@ -1,5 +1,6 @@
 package io.carml.logicalview.duckdb;
 
+import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.logicalsourceresolver.ResolvedSource;
 import io.carml.logicalview.EvaluationContext;
 import io.carml.logicalview.LogicalViewEvaluator;
@@ -119,11 +120,14 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
         var valueColumns = new ArrayList<String>(columnCount);
         var typeColumns = new ArrayList<String>();
         var idxColumn = -1;
+        var iterColumn = -1;
 
         for (var i = 1; i <= columnCount; i++) {
             var colName = metadata.getColumnLabel(i);
             if (DuckDbViewCompiler.INDEX_COLUMN.equals(colName)) {
                 idxColumn = i;
+            } else if (JsonPathSourceHandler.JSON_ITER_COLUMN.equals(colName)) {
+                iterColumn = i;
             } else if (colName.endsWith(DuckDbSourceStrategy.TYPE_SUFFIX)) {
                 typeColumns.add(colName);
             } else {
@@ -131,7 +135,7 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
             }
         }
 
-        return new ColumnDescriptor(valueColumns, typeColumns, idxColumn);
+        return new ColumnDescriptor(valueColumns, typeColumns, idxColumn, iterColumn);
     }
 
     private void emitRows(FluxSink<ViewIteration> sink, ResultSet resultSet, ColumnDescriptor columns)
@@ -152,7 +156,18 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
 
             var naturalDatatypes = resolveNaturalDatatypes(resultSet, columns, values);
 
-            sink.next(new DuckDbViewIteration(zeroBasedIndex, values, naturalDatatypes));
+            // Create source evaluation from raw JSON iterator column, if present.
+            // This enables gather map expressions (excluded from view fields) to be evaluated
+            // from the source data using JSONPath at mapping time.
+            ExpressionEvaluation sourceEvaluation = null;
+            if (columns.iterColumn > 0) {
+                var rawJson = resultSet.getString(columns.iterColumn);
+                if (rawJson != null) {
+                    sourceEvaluation = new DuckDbJsonSourceEvaluation(rawJson);
+                }
+            }
+
+            sink.next(new DuckDbViewIteration(zeroBasedIndex, values, naturalDatatypes, sourceEvaluation));
         }
     }
 
@@ -217,5 +232,5 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
         return null;
     }
 
-    private record ColumnDescriptor(List<String> valueNames, List<String> typeNames, int idxColumn) {}
+    private record ColumnDescriptor(List<String> valueNames, List<String> typeNames, int idxColumn, int iterColumn) {}
 }
