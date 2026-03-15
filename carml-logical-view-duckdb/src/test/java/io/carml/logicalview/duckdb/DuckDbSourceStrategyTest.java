@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 
@@ -221,6 +222,20 @@ class DuckDbSourceStrategyTest {
         void isMultiValuedReference_withNull_returnsFalse() {
             var strategy = createStrategy(Set.of());
             assertThat(strategy.isMultiValuedReference(null), is(false));
+        }
+
+        @Test
+        void isMultiValuedReference_withInvalidJsonPathSyntax_returnsFalse() {
+            var strategy = createStrategy(Set.of());
+            assertThat(strategy.isMultiValuedReference("$.students[*]]"), is(false));
+        }
+
+        @Test
+        void compileFieldReference_withInvalidRelativeReference_throwsIllegalArgument() {
+            var strategy = createStrategy(Set.of());
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> strategy.compileFieldReference("Dhkef;esfkdleshfjdls;fk", DSL.name("field")));
         }
 
         @Test

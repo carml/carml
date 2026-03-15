@@ -7,13 +7,18 @@ import static org.jooq.impl.DSL.table;
 
 import io.carml.model.ExpressionField;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.jooq.Condition;
+import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.Name;
+import org.jooq.SQLDialect;
 import org.jooq.SelectField;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
@@ -29,6 +34,14 @@ import org.jooq.impl.DSL;
  */
 final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
 
+    /**
+     * JSON types that indicate a non-scalar value. Per the RML spec, a reference that resolves to
+     * an array or object should produce no term. DuckDB's {@code json_extract_string} stringifies
+     * such values instead of returning NULL, so they must be detected via the {@code __type}
+     * companion columns and rejected.
+     */
+    private static final Set<String> NON_SCALAR_JSON_TYPES = Set.of("ARRAY", "OBJECT");
+
     private static final String JSON_EXTRACT_STRING = "json_extract_string({0}, {1})";
 
     /**
@@ -37,6 +50,8 @@ final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
      * {@code \\}}).
      */
     private static final Pattern BRACKET_ACCESSOR = Pattern.compile("\\['((?>[^'\\\\]|\\\\.)*+)']");
+
+    private static final DSLContext CTX = DSL.using(SQLDialect.DUCKDB);
 
     static final String UNNEST_FIELD = "unnest";
 
@@ -95,12 +110,19 @@ final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
         if (reference == null) {
             return false;
         }
-        var parsed = JsonPathAnalyzer.analyze(reference);
-        return parsed.basePath().contains("[*]") || parsed.basePath().contains(".*") || parsed.hasDeepScan();
+        try {
+            var parsed = JsonPathAnalyzer.analyze(reference);
+            return parsed.basePath().contains("[*]") || parsed.basePath().contains(".*") || parsed.hasDeepScan();
+        } catch (IllegalArgumentException e) {
+            // Invalid JSONPath syntax cannot be multi-valued. The error will surface
+            // later during field compilation with a descriptive message.
+            return false;
+        }
     }
 
     @Override
     public SelectField<?> compileFieldReference(String reference, Name fieldAlias) {
+        validateJsonPathSyntax(reference);
         var normalized = normalizeBracketNotation(reference);
         return DSL.field(JSON_EXTRACT_STRING, field(quotedName(cteAlias, iterColumn)), inline(normalized))
                 .as(fieldAlias);
@@ -108,6 +130,7 @@ final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
 
     @Override
     public Field<?> compileTemplateReference(String segmentValue) {
+        validateJsonPathSyntax(segmentValue);
         var normalized = normalizeBracketNotation(segmentValue);
         return DSL.field(JSON_EXTRACT_STRING, field(quotedName(cteAlias, iterColumn)), inline(normalized));
     }
@@ -116,6 +139,7 @@ final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
     public SelectField<?> compileNestedFieldReference(String unnestAlias, String reference, Name fieldAlias) {
         // DuckDB's FROM-clause unnest wraps results in STRUCT(unnest JSON),
         // so access the inner JSON value via the "unnest" field.
+        validateJsonPathSyntax(reference);
         var normalized = normalizeBracketNotation(reference);
         return DSL.field(JSON_EXTRACT_STRING, field(quotedName(unnestAlias, UNNEST_FIELD)), inline(normalized))
                 .as(fieldAlias);
@@ -290,5 +314,102 @@ final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
             return DSL.field(JSON_EXTRACT_STRING, field(quotedName(cteAlias, iterColumn)), inline(normalized));
         }
         return field(quotedName(cteAlias, childRef));
+    }
+
+    @Override
+    public Set<String> nonScalarTypeValues() {
+        return NON_SCALAR_JSON_TYPES;
+    }
+
+    @Override
+    public Optional<String> sourceEvaluationColumn() {
+        return Optional.of(iterColumn);
+    }
+
+    @Override
+    public UnnestDescriptor compileMultiValuedUnnestDescriptor(ExpressionField field, String cteAlias) {
+        var fieldName = field.getFieldName();
+        var reference = field.getReference();
+
+        var parsed = JsonPathAnalyzer.analyze(reference);
+
+        Table<?> unnestTable;
+        if (parsed.filters().isEmpty()) {
+            unnestTable = compileUnnestTable(reference, cteAlias, true, fieldName);
+        } else {
+            // Build a filtered LATERAL: unnest all elements using the basePath, then apply a WHERE
+            // clause for the filter conditions and recompute ordinals as sequential 0-based indices.
+            //
+            // The inner unnest expands all array elements. The outer LATERAL wraps it with a WHERE
+            // clause to apply the filter, and row_number() to produce sequential ordinals.
+            var innerUnnest = compileUnnestTable(parsed.basePath(), cteAlias, true, fieldName + "_inner");
+
+            var filterCondition = parsed.filters().stream()
+                    .map(f -> JsonPathSourceHandler.compileFilterCondition(f, UNNEST_FIELD))
+                    .reduce(Condition::and)
+                    .orElseThrow();
+
+            // Render the inner unnest as a subquery in a SELECT to capture its full SQL,
+            // then wrap with WHERE and ordinal recomputation. row_number() over() has no ORDER BY
+            // because DuckDB's UNNEST preserves array element order, and the LATERAL boundary
+            // resets numbering per parent row.
+            var innerQuery = CTX.renderInlined(CTX.selectFrom(innerUnnest));
+
+            unnestTable = table("LATERAL (SELECT \"unnest\", (row_number() over() - 1) AS \"%s\" FROM (%s) WHERE %s)"
+                            .formatted(ORDINAL_FIELD, innerQuery, CTX.renderInlined(filterCondition)))
+                    .as(quotedName(fieldName));
+        }
+
+        var nestedSelects = new ArrayList<SelectField<?>>();
+
+        // Extract value from unnested element: json_extract_string(fieldName."unnest", '$')
+        nestedSelects.add(compileNestedFieldReference(fieldName, "$", DuckDbViewCompiler.fieldAlias(fieldName)));
+
+        // Add type companion for the unnested value
+        var typeAlias = quotedName(fieldName + TYPE_SUFFIX);
+        nestedSelects.add(compileNestedFieldTypeReference(fieldName, "$", typeAlias));
+
+        // Add ordinal column: fieldName."__ord" AS "fieldName.#"
+        var indexColumnName = fieldName + ".#";
+        nestedSelects.add(field(quotedName(fieldName, ORDINAL_FIELD)).as(quotedName(indexColumnName)));
+
+        return new UnnestDescriptor(unnestTable, List.copyOf(nestedSelects));
+    }
+
+    /**
+     * Pattern matching valid relative JSONPath key references. Relative references (those not
+     * starting with {@code $}) must be simple property names: word characters, spaces, hyphens,
+     * dots (for nested access), and bracket notation ({@code ['key']}, {@code [0]}). Semicolons
+     * and other non-printable or structural characters indicate malformed expressions.
+     */
+    private static final Pattern VALID_RELATIVE_KEY = Pattern.compile("[\\w .\\-\\[\\]'*?@(),:!<>=&|]+");
+
+    /**
+     * Validates that a JSONPath reference expression has valid syntax. DuckDB's
+     * {@code json_extract_string} silently returns NULL for invalid JSONPath expressions, but the
+     * RML spec requires that invalid reference expressions produce an error.
+     *
+     * <p>References starting with {@code $} are validated as full JSONPath expressions via
+     * {@link JsonPathAnalyzer#analyze}. References without the {@code $} prefix are treated as
+     * relative key names and validated against a pattern that rejects clearly invalid characters
+     * (such as semicolons, which indicate malformed expressions).
+     *
+     * @param reference the JSONPath reference expression to validate
+     * @throws IllegalArgumentException if the reference has invalid JSONPath syntax
+     */
+    private static void validateJsonPathSyntax(String reference) {
+        if (reference.startsWith("$")) {
+            // Full JSONPath expression — validate via analyzer
+            JsonPathAnalyzer.analyze(reference);
+        } else {
+            // Relative key reference — validate that it contains only characters valid in
+            // JSONPath property names and accessors. This catches garbage input like
+            // "Dhkef;esfkdleshfjdls;fk" while allowing valid relative keys like "name",
+            // "Country Code", or bracket notation like "['key']".
+            if (!VALID_RELATIVE_KEY.matcher(reference).matches()) {
+                throw new IllegalArgumentException(
+                        "Invalid JSONPath reference expression '%s': contains invalid characters".formatted(reference));
+            }
+        }
     }
 }

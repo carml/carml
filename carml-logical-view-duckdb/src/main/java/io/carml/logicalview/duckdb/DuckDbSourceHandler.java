@@ -2,6 +2,8 @@ package io.carml.logicalview.duckdb;
 
 import io.carml.model.Field;
 import io.carml.model.LogicalSource;
+import io.carml.model.LogicalView;
+import java.sql.Connection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -52,6 +54,21 @@ sealed interface DuckDbSourceHandler permits JsonPathSourceHandler, CsvSourceHan
      * @return the compiled source SQL and strategy
      */
     CompiledSource compileSource(LogicalSource logicalSource, Set<Field> viewFields, String cteAlias);
+
+    /**
+     * Validates the view's source data against the view's field references. Implementations may
+     * perform formulation-specific checks such as verifying that CSV column references match the
+     * actual file headers case-sensitively.
+     *
+     * <p>The default implementation performs no validation. Override in handlers that require
+     * source-level validation before compilation.
+     *
+     * @param view the logical view to validate
+     * @param connection the DuckDB JDBC connection for querying source metadata
+     */
+    default void validate(LogicalView view, Connection connection) {
+        // No-op by default
+    }
 
     /**
      * All registered handlers, in dispatch order.

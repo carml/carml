@@ -1,5 +1,8 @@
 package io.carml.logicalview.duckdb;
 
+import io.carml.model.ExpressionField;
+import java.util.Optional;
+import java.util.Set;
 import org.jooq.Field;
 import org.jooq.Name;
 import org.jooq.SelectField;
@@ -108,4 +111,49 @@ sealed interface DuckDbSourceStrategy permits ColumnSourceStrategy, JsonIterator
      * @return the jOOQ field expression for the child side of a join condition
      */
     Field<Object> resolveJoinChildReference(String childRef);
+
+    /**
+     * Returns the set of DuckDB type strings that indicate a non-scalar value for this source type.
+     * Per the RML spec, a reference that resolves to a non-scalar value (e.g., an array or object)
+     * should produce an error rather than a stringified representation.
+     *
+     * <p>For JSON sources, this returns {@code {"ARRAY", "OBJECT"}} because DuckDB's
+     * {@code json_extract_string} stringifies such values instead of returning NULL. For column-based
+     * sources (CSV, SQL, view-on-view), all values are inherently scalar, so this returns an empty
+     * set.
+     *
+     * @return an unmodifiable set of DuckDB type strings considered non-scalar
+     */
+    Set<String> nonScalarTypeValues();
+
+    /**
+     * Returns the column name used for source-level expression evaluation, or empty if the source
+     * does not support it.
+     *
+     * <p>For JSON iterator sources, this returns the {@code __iter} column that carries the raw JSON
+     * for each iteration row, enabling expression evaluation at mapping time. For column-based
+     * sources (CSV, SQL, view-on-view), source-level evaluation is not supported and this returns
+     * empty.
+     *
+     * @return the source evaluation column name, or empty if not supported
+     */
+    Optional<String> sourceEvaluationColumn();
+
+    /**
+     * Compiles a multi-valued {@link ExpressionField} into an {@link UnnestDescriptor}. Multi-valued
+     * fields are those whose reference evaluates to multiple values (e.g., {@code $.items[*]} in
+     * JSONPath), requiring row expansion via UNNEST.
+     *
+     * <p>The field's reference is used as an iterator expression for UNNEST, and the unnested value
+     * is extracted using the strategy's nested field reference compilation. When the reference
+     * contains filter expressions (e.g., {@code $.items[?(@.active==true)]}), the UNNEST table is
+     * wrapped with a WHERE clause that applies the filter conditions, with ordinals recomputed after
+     * filtering.
+     *
+     * @param field the multi-valued expression field to compile
+     * @param cteAlias the alias of the CTE containing the source data
+     * @return the unnest descriptor containing the table expression and nested select fields
+     * @throws UnsupportedOperationException if the source type does not support multi-valued fields
+     */
+    UnnestDescriptor compileMultiValuedUnnestDescriptor(ExpressionField field, String cteAlias);
 }

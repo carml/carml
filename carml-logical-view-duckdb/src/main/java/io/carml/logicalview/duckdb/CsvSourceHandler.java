@@ -2,14 +2,22 @@ package io.carml.logicalview.duckdb;
 
 import static org.jooq.impl.DSL.inline;
 
+import io.carml.model.ExpressionField;
+import io.carml.model.ExpressionMap;
 import io.carml.model.Field;
+import io.carml.model.IterableField;
 import io.carml.model.LogicalSource;
+import io.carml.model.LogicalView;
 import io.carml.model.source.csvw.CsvwDialect;
 import io.carml.model.source.csvw.CsvwTable;
 import io.carml.vocab.Rdf;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.rdf4j.model.Resource;
 import org.jooq.SQLDialect;
@@ -47,6 +55,48 @@ final class CsvSourceHandler implements DuckDbSourceHandler {
             return false;
         }
         return true;
+    }
+
+    /**
+     * Validates that CSV column references in the view match the actual CSV file column headers
+     * case-sensitively. DuckDB's {@code read_csv_auto} resolves column references
+     * case-insensitively, but the RML spec requires case-sensitive matching. A reference to
+     * {@code "name"} must not match a column header {@code "Name"}.
+     *
+     * <p>Skips validation for non-file-based sources and Parquet files.
+     */
+    @Override
+    public void validate(LogicalView view, Connection connection) {
+        var viewOn = view.getViewOn();
+        if (!(viewOn instanceof LogicalSource logicalSource)) {
+            return;
+        }
+
+        if (!DuckDbFileSourceUtils.isFileBasedSource(logicalSource.getSource())) {
+            return;
+        }
+
+        var filePath = DuckDbFileSourceUtils.resolveFilePath(logicalSource.getSource());
+        if (DuckDbFileSourceUtils.isParquetFile(filePath)) {
+            return;
+        }
+
+        var actualColumnNames = queryCsvColumnNames(filePath, connection);
+        if (actualColumnNames.isEmpty()) {
+            return;
+        }
+
+        var fieldReferences = collectFieldReferences(view.getFields());
+        for (var ref : fieldReferences) {
+            // Check if any actual column matches case-insensitively but not case-sensitively
+            var hasExactMatch = actualColumnNames.contains(ref);
+            var hasCaseInsensitiveMatch = actualColumnNames.stream().anyMatch(col -> col.equalsIgnoreCase(ref));
+            if (hasCaseInsensitiveMatch && !hasExactMatch) {
+                throw new IllegalArgumentException(
+                        "CSV column reference '%s' does not match any column header case-sensitively. Available columns: %s"
+                                .formatted(ref, actualColumnNames));
+            }
+        }
     }
 
     @Override
@@ -162,5 +212,55 @@ final class CsvSourceHandler implements DuckDbSourceHandler {
     private static CompiledSource columnSource(String sourceSql, String cteAlias) {
         return new CompiledSource(
                 sourceSql, new ColumnSourceStrategy(cteAlias, ColumnSourceStrategy.TypeCompanionMode.NONE));
+    }
+
+    /**
+     * Queries the actual column names from a CSV file using DuckDB's {@code read_csv_auto} with
+     * {@code LIMIT 0} to read only the header.
+     */
+    @SuppressWarnings("java:S2077") // file path is from model, not user input
+    private static List<String> queryCsvColumnNames(String filePath, Connection connection) {
+        var sql = "SELECT * FROM read_csv_auto('%s') LIMIT 0".formatted(filePath.replace("'", "''"));
+        try (var statement = connection.createStatement();
+                var resultSet = statement.executeQuery(sql)) {
+            var metadata = resultSet.getMetaData();
+            var columns = new ArrayList<String>(metadata.getColumnCount());
+            for (var i = 1; i <= metadata.getColumnCount(); i++) {
+                columns.add(metadata.getColumnLabel(i));
+            }
+            return columns;
+        } catch (SQLException ex) {
+            LOG.debug("Could not query CSV column names for file: {}", filePath, ex);
+            return List.of();
+        }
+    }
+
+    /**
+     * Collects all reference expressions from the view's fields, including references from nested
+     * fields within iterable fields and template reference expressions.
+     */
+    private static Set<String> collectFieldReferences(Set<Field> fields) {
+        return fields.stream().flatMap(CsvSourceHandler::extractReferences).collect(Collectors.toUnmodifiableSet());
+    }
+
+    private static Stream<String> extractReferences(Field field) {
+        if (field instanceof ExpressionField exprField) {
+            return extractExpressionMapReferences(exprField);
+        }
+        if (field instanceof IterableField iterableField) {
+            return iterableField.getFields().stream().flatMap(CsvSourceHandler::extractReferences);
+        }
+        return Stream.empty();
+    }
+
+    private static Stream<String> extractExpressionMapReferences(ExpressionMap exprMap) {
+        if (exprMap.getReference() != null) {
+            return Stream.of(exprMap.getReference());
+        }
+        if (exprMap.getTemplate() != null) {
+            return exprMap.getTemplate().getReferenceExpressions().stream()
+                    .map(io.carml.model.Template.ReferenceExpression::getValue);
+        }
+        return Stream.empty();
     }
 }

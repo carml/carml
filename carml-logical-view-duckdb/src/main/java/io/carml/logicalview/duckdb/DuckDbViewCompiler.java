@@ -54,10 +54,9 @@ import org.jooq.impl.DSL;
  * structural annotation-based optimizations (DISTINCT elimination, JOIN elimination, LEFT to INNER
  * JOIN upgrade).
  *
- * <p>For JSON sources with iterators, uses {@code json_extract} + {@code UNNEST} to expand the
- * iterator path into rows, and {@code json_extract_string} to extract field values from the JSON
- * rows. JSONPath filter expressions are translated to SQL WHERE clauses via
- * {@link JsonPathAnalyzer}.
+ * <p>Source-specific compilation details (JSON field extraction, UNNEST expansion, multi-valued
+ * field handling) are delegated to {@link DuckDbSourceStrategy} implementations. The compiler
+ * orchestrates the overall SQL structure while the strategies handle formulation-specific logic.
  *
  * <p><b>IriSafe annotation note:</b> {@code IriSafeAnnotation} does not currently affect SQL
  * compilation. Templates already use raw {@code CONCAT} without percent-encoding. When IRI encoding
@@ -94,14 +93,6 @@ public final class DuckDbViewCompiler {
             DedupStrategy.none().getClass();
 
     /**
-     * Describes an UNNEST cross-join derived from an {@link IterableField}.
-     *
-     * @param unnestTable the jOOQ table expression for the UNNEST
-     * @param nestedSelects the SELECT fields for the nested expression fields
-     */
-    private record UnnestDescriptor(Table<?> unnestTable, List<SelectField<?>> nestedSelects) {}
-
-    /**
      * Describes a SQL JOIN derived from a {@link LogicalViewJoin}.
      *
      * @param table the jOOQ subquery table for the parent view
@@ -113,7 +104,8 @@ public final class DuckDbViewCompiler {
             Table<?> table, Condition condition, List<SelectField<?>> fields, boolean isLeftJoin) {}
 
     /**
-     * Compiles a {@link LogicalView} into a DuckDB SQL query string.
+     * Compiles a {@link LogicalView} into a {@link CompiledView} containing the DuckDB SQL query
+     * string and metadata needed for post-query validation.
      *
      * <p>Applies structural annotation optimizations:
      * <ul>
@@ -124,11 +116,11 @@ public final class DuckDbViewCompiler {
      *
      * @param view the logical view defining fields and the underlying data source
      * @param context the evaluation context controlling projection, dedup, and limits
-     * @return a DuckDB-compatible SQL query string
+     * @return the compiled view containing the SQL query and validation metadata
      * @throws IllegalArgumentException if the view's source type is unsupported or the view
      *     structure cannot be compiled
      */
-    public static String compile(LogicalView view, EvaluationContext context) {
+    static CompiledView compile(LogicalView view, EvaluationContext context) {
         var compilingViews = COMPILING_VIEWS.get();
         var isOutermostCall = compilingViews.isEmpty();
         if (!compilingViews.add(view)) {
@@ -147,7 +139,7 @@ public final class DuckDbViewCompiler {
         }
     }
 
-    private static String doCompile(LogicalView view, EvaluationContext context) {
+    private static CompiledView doCompile(LogicalView view, EvaluationContext context) {
         var viewOn = view.getViewOn();
 
         DuckDbSourceStrategy strategy;
@@ -158,8 +150,8 @@ public final class DuckDbViewCompiler {
             // The inner view produces a complete CTE query (WITH ... SELECT ...),
             // so it must be parenthesized to be used as a derived table in FROM.
             // ColumnSourceStrategy is used because the inner view exposes named columns.
-            var innerSql = compile(innerView, EvaluationContext.defaults());
-            sourceTable = "(%s)".formatted(innerSql);
+            var innerCompiledView = compile(innerView, EvaluationContext.defaults());
+            sourceTable = "(%s)".formatted(innerCompiledView.sql());
             strategy = new ColumnSourceStrategy(CTE_ALIAS, ColumnSourceStrategy.TypeCompanionMode.INNER_VIEW);
         } else if (viewOn instanceof LogicalSource logicalSource) {
             var compiledSource = compileSourceClause(logicalSource, view);
@@ -195,7 +187,7 @@ public final class DuckDbViewCompiler {
                 .as(CTX.select(asterisk(), rowNumber().over().as(name(INDEX_COLUMN)))
                         .from(sql(sourceTable)));
 
-        String result;
+        String sql;
         var allFieldSelects = collectAllFieldSelects(expressionFields, unnestDescriptors, joinDescriptors, strategy);
 
         if (useDistinct) {
@@ -211,36 +203,48 @@ public final class DuckDbViewCompiler {
                     .select(asterisk(), rowNumber().over().as(name(INDEX_COLUMN)))
                     .from(table(name(DEDUPED_ALIAS)));
 
-            result = context.getLimit()
+            sql = context.getLimit()
                     .map(limit -> outerQuery.limit(limit).getSQL())
                     .orElseGet(outerQuery::getSQL);
         } else {
             // Reference the pre-computed index from the CTE
             allFieldSelects.add(field(quotedName(CTE_ALIAS, INDEX_COLUMN)));
 
-            // Include raw JSON iterator column for source-level expression evaluation.
+            // Include raw source evaluation column for source-level expression evaluation.
             // When retainSourceEvaluation is true (implicit views), gather map expressions that
-            // are NOT view fields need to be evaluated from the raw JSON data. The __iter column
-            // carries the raw JSON for each iteration row, enabling DuckDbJsonSourceEvaluation to
-            // evaluate these expressions using JSONPath at mapping time.
-            // This is only added in the non-DISTINCT path because the raw JSON blob would interfere
-            // with deduplication (two rows with identical field values but different JSON formatting
+            // are NOT view fields need to be evaluated from the raw source data. For JSON sources,
+            // this is the __iter column that carries the raw JSON for each iteration row, enabling
+            // DuckDbJsonSourceEvaluation to evaluate expressions using JSONPath at mapping time.
+            // This is only added in the non-DISTINCT path because the raw data blob would interfere
+            // with deduplication (two rows with identical field values but different formatting
             // would survive DISTINCT).
-            if (context.retainSourceEvaluation() && strategy instanceof JsonIteratorSourceStrategy) {
-                allFieldSelects.add(field(quotedName(CTE_ALIAS, JsonPathSourceHandler.JSON_ITER_COLUMN))
-                        .as(quotedName(JsonPathSourceHandler.JSON_ITER_COLUMN)));
+            if (context.retainSourceEvaluation()) {
+                strategy.sourceEvaluationColumn()
+                        .ifPresent(column -> allFieldSelects.add(
+                                field(quotedName(CTE_ALIAS, column)).as(quotedName(column))));
             }
 
             var fromStep = buildFromClause(
                     CTX.with(viewSourceCte).select(allFieldSelects), unnestDescriptors, joinDescriptors);
 
-            result = context.getLimit()
+            sql = context.getLimit()
                     .map(limit -> fromStep.limit(limit).getSQL())
                     .orElseGet(fromStep::getSQL);
         }
 
-        LOG.debug("Compiled DuckDB SQL for view [{}]:\n{}", view.getResourceName(), result);
-        return result;
+        LOG.debug("Compiled DuckDB SQL for view [{}]:\n{}", view.getResourceName(), sql);
+
+        // Collect metadata for the evaluator: multi-valued field names and non-scalar type values.
+        // This is computed here during compilation because the strategy (which knows about
+        // multi-valued references and non-scalar types) is already resolved.
+        var multiValuedFieldNames = view.getFields().stream()
+                .filter(ExpressionField.class::isInstance)
+                .map(ExpressionField.class::cast)
+                .filter(f -> isMultiValuedExpressionField(f, strategy))
+                .map(Field::getFieldName)
+                .collect(Collectors.toUnmodifiableSet());
+
+        return new CompiledView(sql, multiValuedFieldNames, strategy.nonScalarTypeValues());
     }
 
     // --- Structural annotation optimization helpers ---
@@ -567,71 +571,8 @@ public final class DuckDbViewCompiler {
         }
 
         return multiValuedFields.stream()
-                .map(f -> compileMultiValuedUnnestDescriptor(f, strategy))
+                .map(f -> strategy.compileMultiValuedUnnestDescriptor(f, CTE_ALIAS))
                 .toList();
-    }
-
-    /**
-     * Compiles a multi-valued {@link ExpressionField} into an {@link UnnestDescriptor}. The field's
-     * reference is used as an iterator expression for UNNEST, and the unnested value is extracted
-     * using the strategy's nested field reference compilation with root path {@code "$"}.
-     *
-     * <p>When the reference contains JSONPath filter expressions (e.g.,
-     * {@code $.items[?(@.active==true)]}), the UNNEST table is compiled using the normalized base
-     * path ({@code $.items[*]}) and wrapped with a WHERE clause that applies the filter conditions
-     * to the unnested values. Ordinals are recomputed after filtering to produce sequential 0-based
-     * indices.
-     */
-    private static UnnestDescriptor compileMultiValuedUnnestDescriptor(
-            ExpressionField field, DuckDbSourceStrategy strategy) {
-        var fieldName = field.getFieldName();
-        var reference = field.getReference();
-
-        var parsed = JsonPathAnalyzer.analyze(reference);
-
-        Table<?> unnestTable;
-        if (parsed.filters().isEmpty()) {
-            unnestTable = strategy.compileUnnestTable(reference, CTE_ALIAS, true, fieldName);
-        } else {
-            // Build a filtered LATERAL: unnest all elements using the basePath, then apply a WHERE
-            // clause for the filter conditions and recompute ordinals as sequential 0-based indices.
-            //
-            // The inner unnest expands all array elements. The outer LATERAL wraps it with a WHERE
-            // clause to apply the filter, and row_number() to produce sequential ordinals.
-            var innerUnnest = strategy.compileUnnestTable(parsed.basePath(), CTE_ALIAS, true, fieldName + "_inner");
-
-            var filterCondition = parsed.filters().stream()
-                    .map(f -> JsonPathSourceHandler.compileFilterCondition(f, JsonIteratorSourceStrategy.UNNEST_FIELD))
-                    .reduce(Condition::and)
-                    .orElseThrow();
-
-            // Render the inner unnest as a subquery in a SELECT to capture its full SQL,
-            // then wrap with WHERE and ordinal recomputation. row_number() over() has no ORDER BY
-            // because DuckDB's UNNEST preserves array element order, and the LATERAL boundary
-            // resets numbering per parent row.
-            var innerQuery = CTX.renderInlined(CTX.selectFrom(innerUnnest));
-
-            unnestTable = table("LATERAL (SELECT \"unnest\", (row_number() over() - 1) AS \"%s\" FROM (%s) WHERE %s)"
-                            .formatted(
-                                    DuckDbSourceStrategy.ORDINAL_FIELD, innerQuery, CTX.renderInlined(filterCondition)))
-                    .as(quotedName(fieldName));
-        }
-
-        var nestedSelects = new ArrayList<SelectField<?>>();
-
-        // Extract value from unnested element: json_extract_string(fieldName."unnest", '$')
-        nestedSelects.add(strategy.compileNestedFieldReference(fieldName, "$", fieldAlias(fieldName)));
-
-        // Add type companion for the unnested value
-        var typeAlias = quotedName(fieldName + DuckDbSourceStrategy.TYPE_SUFFIX);
-        nestedSelects.add(strategy.compileNestedFieldTypeReference(fieldName, "$", typeAlias));
-
-        // Add ordinal column: fieldName."__ord" AS "fieldName.#"
-        var indexColumnName = fieldName + ".#";
-        nestedSelects.add(
-                field(quotedName(fieldName, DuckDbSourceStrategy.ORDINAL_FIELD)).as(quotedName(indexColumnName)));
-
-        return new UnnestDescriptor(unnestTable, nestedSelects);
     }
 
     /**
@@ -830,10 +771,10 @@ public final class DuckDbViewCompiler {
         var parentAlias = PARENT_ALIAS_PREFIX + parentIndex;
 
         // Recursively compile the parent view
-        var parentSql = compile(parentView, EvaluationContext.defaults());
+        var parentCompiledView = compile(parentView, EvaluationContext.defaults());
 
         // Wrap as subquery table with alias
-        var parentTable = table("({0})", sql(parentSql)).as(quotedName(parentAlias));
+        var parentTable = table("({0})", sql(parentCompiledView.sql())).as(quotedName(parentAlias));
 
         // Build ON condition from join conditions
         var joinConditions = viewJoin.getJoinConditions();
@@ -955,7 +896,7 @@ public final class DuckDbViewCompiler {
         return DSL.concat(concatParts).as(fieldAlias(fieldName));
     }
 
-    private static org.jooq.Name fieldAlias(String alias) {
+    static org.jooq.Name fieldAlias(String alias) {
         if (alias.matches("[a-zA-Z_]\\w*")) {
             return name(alias);
         }

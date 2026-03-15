@@ -9,8 +9,11 @@ import java.util.Queue;
 import java.util.regex.Pattern;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.RecognitionException;
+import org.antlr.v4.runtime.Recognizer;
 import org.jsfr.json.compiler.JsonPathBaseVisitor;
 import org.jsfr.json.compiler.JsonPathLexer;
 import org.jsfr.json.compiler.JsonPathParser;
@@ -179,7 +182,8 @@ final class JsonPathAnalyzer {
      *
      * @param jsonPath the JSONPath expression to analyze (e.g., {@code $.people[*]})
      * @return the parsed components
-     * @throws IllegalArgumentException if the expression contains an unrecognized filter type
+     * @throws IllegalArgumentException if the expression has invalid syntax or contains an
+     *     unrecognized filter type
      */
     static ParsedJsonPath analyze(String jsonPath) {
         // 1. Pre-process function calls (before operator rewriting, so functions handle all ops).
@@ -192,7 +196,33 @@ final class JsonPathAnalyzer {
         var lexer = new JsonPathLexer(CharStreams.fromString(preprocessed));
         var tokens = new CommonTokenStream(lexer);
         var parser = new JsonPathParser(tokens);
+
+        // Collect syntax errors instead of printing them to stderr. Both the lexer and parser
+        // have default error listeners that write to stderr, which pollutes test output.
+        var syntaxErrors = new ArrayList<String>();
+        var errorListener = new BaseErrorListener() {
+            @Override
+            public void syntaxError(
+                    Recognizer<?, ?> recognizer,
+                    Object offendingSymbol,
+                    int line,
+                    int charPositionInLine,
+                    String msg,
+                    RecognitionException e) {
+                syntaxErrors.add("at position %d: %s".formatted(charPositionInLine, msg));
+            }
+        };
+        lexer.removeErrorListeners();
+        lexer.addErrorListener(errorListener);
+        parser.removeErrorListeners();
+        parser.addErrorListener(errorListener);
+
         var tree = parser.path();
+
+        if (!syntaxErrors.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Invalid JSONPath expression '%s': %s".formatted(jsonPath, String.join("; ", syntaxErrors)));
+        }
 
         var visitor = new PathAnalysisVisitor();
         visitor.visit(tree);

@@ -19,8 +19,6 @@ class TestRmlIoRegistryTestCasesWithDuckDb extends DuckDbTestCaseSuite {
                 "RMLIOREGTC0006",
                 // Test case bugs
                 "RMLIOREGTC0002b",
-                // DuckDB error handling: invalid JSONPath reference returns NULL instead of error
-                "RMLIOREGTC0002c",
                 // XML/XPath sources: DuckDB has no native XML support
                 "RMLIOREGTC0003",
                 // Test case bug: expected output has plain literal for JSON integer

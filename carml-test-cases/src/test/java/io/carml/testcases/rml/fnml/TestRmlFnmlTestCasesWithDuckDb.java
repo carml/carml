@@ -45,10 +45,7 @@ class TestRmlFnmlTestCasesWithDuckDb extends DuckDbTestCaseSuite {
                 "RMLFNMLTC0004",
                 "RMLFNMLTC0007",
                 "RMLFNMLTC0021",
-                "RMLFNMLTC0081",
-                // DuckDB error handling: CSV column name matching is case-insensitive, so referencing
-                // lowercase "name" succeeds against uppercase "Name" column instead of producing an error
-                "RMLFNMLTC0101");
+                "RMLFNMLTC0081");
     }
 
     @Override

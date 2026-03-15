@@ -5,6 +5,9 @@ import static org.jooq.impl.DSL.field;
 import static org.jooq.impl.DSL.quotedName;
 import static org.jooq.impl.DSL.table;
 
+import io.carml.model.ExpressionField;
+import java.util.Optional;
+import java.util.Set;
 import org.jooq.Field;
 import org.jooq.Name;
 import org.jooq.SelectField;
@@ -99,5 +102,20 @@ record ColumnSourceStrategy(String cteAlias, TypeCompanionMode typeCompanionMode
     @Override
     public Field<Object> resolveJoinChildReference(String childRef) {
         return field(quotedName(cteAlias, childRef));
+    }
+
+    @Override
+    public Set<String> nonScalarTypeValues() {
+        return Set.of();
+    }
+
+    @Override
+    public Optional<String> sourceEvaluationColumn() {
+        return Optional.empty();
+    }
+
+    @Override
+    public UnnestDescriptor compileMultiValuedUnnestDescriptor(ExpressionField field, String cteAlias) {
+        throw new UnsupportedOperationException("Column-based sources do not support multi-valued expression fields");
     }
 }

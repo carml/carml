@@ -803,8 +803,46 @@ class DuckDbLogicalViewEvaluatorTest {
             var context = EvaluationContext.defaults();
 
             StepVerifier.create(evaluator.evaluate(view, source -> null, context))
-                    .expectErrorMatches(e -> e instanceof RuntimeException
-                            && e.getMessage().contains("Failed to execute DuckDB query for view"))
+                    .expectErrorMatches(e -> e instanceof IllegalArgumentException
+                            && e.getMessage().contains("Source file not found"))
+                    .verify();
+        }
+
+        @Test
+        void evaluate_csvSourceWithCaseMismatchedReference_emitsError() throws IOException {
+            var csvFile = tempDir.resolve("case_sensitive.csv");
+            Files.writeString(csvFile, """
+                    Name,Score
+                    Alice,95""");
+
+            // "name" reference does not match "Name" case-sensitively
+            var view = createCsvView(csvFile.toString(), Set.of(expressionField("name", "name")));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(evaluator.evaluate(view, source -> null, context))
+                    .expectErrorMatches(e -> e instanceof IllegalArgumentException
+                            && e.getMessage().contains("case-sensitively"))
+                    .verify();
+        }
+
+        @Test
+        void evaluate_invalidIteratorSyntax_emitsError() throws IOException {
+            var jsonFile = tempDir.resolve("valid_data.json");
+            Files.writeString(jsonFile, """
+                    {"students": [{"ID": 10, "Name": "Venus"}]}""");
+
+            // Iterator has extra trailing ']' which is invalid JSONPath syntax
+            var view = createJsonView(
+                    jsonFile.toString(),
+                    "$.students[*]]",
+                    Set.of(expressionField("id", "$.ID"), expressionField("name", "$.Name")));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(evaluator.evaluate(view, source -> null, context))
+                    .expectErrorMatches(e -> e instanceof IllegalArgumentException
+                            && e.getMessage().contains("Invalid JSONPath expression"))
                     .verify();
         }
     }

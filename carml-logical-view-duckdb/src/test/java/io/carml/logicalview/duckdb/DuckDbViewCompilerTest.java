@@ -59,7 +59,7 @@ class DuckDbViewCompilerTest {
                     "people.json", null, Set.of(expressionField("name", "name"), expressionField("age", "age")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("read_json_auto('people.json')"));
             assertThat(sql, containsString("\"name\" \"name\""));
@@ -74,7 +74,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonView("data.json", "$.items[*]", Set.of(expressionField("id", "id")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("read_text('data.json')"));
             assertThat(sql, containsString("json_extract(content, '$.items[*]')"));
@@ -87,7 +87,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonView("data.json", "$.items[*]", Set.of(expressionField("id", "id")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             // Type companion column should use json_type from the iterator column
             assertThat(sql, containsString("json_type(\"view_source\".\"__iter\", 'id') \"id.__type\""));
@@ -98,7 +98,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonView("data.json", null, Set.of(expressionField("name", "name")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             // Without iterator, read_json_auto is used (column strategy) => CAST(NULL AS VARCHAR)
             assertThat(sql, containsString("cast(null as varchar) \"name.__type\""));
@@ -110,7 +110,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonView("data.json", "   ", Set.of(expressionField("id", "id")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("read_json_auto('data.json')"));
             assertThat(sql, not(containsString("json_path")));
@@ -121,7 +121,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonView("data.json", null, Set.of(expressionField("id", "id")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("read_json_auto('data.json')"));
             assertThat(sql, not(containsString("json_path")));
@@ -143,7 +143,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonView("data.json", "$.people[*]", Set.of(field, expressionField("id", "$.id")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("json_extract_string(\"view_source\".\"__iter\", '$.first')"));
             assertThat(sql, containsString("json_extract_string(\"view_source\".\"__iter\", '$.last')"));
@@ -164,7 +164,7 @@ class DuckDbViewCompilerTest {
                     "data.json", "$.people[?(@.name == 'alice')]", Set.of(expressionField("name", "name")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("read_text('data.json')"));
             assertThat(sql, containsString("where"));
@@ -177,7 +177,7 @@ class DuckDbViewCompilerTest {
                     createJsonView("data.json", "$.items[?(@.price > 10)]", Set.of(expressionField("price", "price")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("where"));
             assertThat(sql, containsString("cast(json_extract_string(\"__iter\", '$.price') as double) > 1E1"));
@@ -188,7 +188,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonView("data.json", "$.items[?(@.type)]", Set.of(expressionField("type", "type")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("where"));
             assertThat(sql, containsString("json_extract(\"__iter\", '$.type') is not null"));
@@ -200,7 +200,7 @@ class DuckDbViewCompilerTest {
                     "data.json", "$.items[?(@.name =~ /^test/)]", Set.of(expressionField("name", "name")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("where"));
             assertThat(sql, containsString("regexp_matches(json_extract_string(\"__iter\", '$.name'), '^test')"));
@@ -212,7 +212,7 @@ class DuckDbViewCompilerTest {
                     createJsonView("data.json", "$.items[?(@.count == 5)]", Set.of(expressionField("count", "count")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("where"));
             assertThat(sql, containsString("cast(json_extract_string(\"__iter\", '$.count') as double) = 5E0"));
@@ -224,7 +224,7 @@ class DuckDbViewCompilerTest {
                     "data.json", "$.items[?(@.active == true)]", Set.of(expressionField("active", "active")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("where"));
             assertThat(sql, containsString("cast(json_extract_string(\"__iter\", '$.active') as boolean) = true"));
@@ -236,7 +236,7 @@ class DuckDbViewCompilerTest {
                     createJsonView("data.json", "$.items[?(@.price < 20)]", Set.of(expressionField("price", "price")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("where"));
             assertThat(sql, containsString("cast(json_extract_string(\"__iter\", '$.price') as double) < 2E1"));
@@ -253,7 +253,7 @@ class DuckDbViewCompilerTest {
             var view = createCsvView("data.csv", Set.of(expressionField("col1", "column1")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("read_csv_auto('data.csv')"));
             assertThat(sql, containsString("\"column1\" \"col1\""));
@@ -270,7 +270,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonView("data.parquet", null, Set.of(expressionField("id", "id")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("read_parquet('data.parquet')"));
             assertThat(sql, not(containsString("read_json_auto")));
@@ -281,7 +281,7 @@ class DuckDbViewCompilerTest {
             var view = createCsvView("data.parq", Set.of(expressionField("id", "id")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("read_parquet('data.parq')"));
             assertThat(sql, not(containsString("read_csv_auto")));
@@ -299,7 +299,7 @@ class DuckDbViewCompilerTest {
                     "SELECT id, name FROM users", Set.of(expressionField("id", "id"), expressionField("name", "name")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("(SELECT id, name FROM users)"));
         }
@@ -309,7 +309,7 @@ class DuckDbViewCompilerTest {
             var view = createSqlViewWithTable("users", Set.of(expressionField("id", "id")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("from \"users\""));
         }
@@ -322,7 +322,7 @@ class DuckDbViewCompilerTest {
             var view = createSqlViewWithDatabaseSource(dbSource, Set.of(expressionField("id", "id")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("(SELECT * FROM orders)"));
         }
@@ -333,7 +333,7 @@ class DuckDbViewCompilerTest {
                     "SELECT id, name FROM users", Set.of(expressionField("id", "id"), expressionField("name", "name")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             // SQL sources should use typeof() for type companions, not CAST(NULL AS VARCHAR)
             assertThat(sql, containsString("typeof(\"view_source\".\"id\") \"id.__type\""));
@@ -358,7 +358,7 @@ class DuckDbViewCompilerTest {
                             expressionField("email", "email")));
             var context = EvaluationContext.withProjectedFields(Set.of("name"));
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("\"name\" \"name\""));
             assertThat(sql, not(containsString("\"age\" \"age\"")));
@@ -371,7 +371,7 @@ class DuckDbViewCompilerTest {
                     "data.json", null, Set.of(expressionField("name", "name"), expressionField("age", "age")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("\"name\" \"name\""));
             assertThat(sql, containsString("\"age\" \"age\""));
@@ -388,7 +388,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonView("data.json", null, Set.of(expressionField("id", "id")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, not(containsString("select distinct")));
             assertThat(sql, not(containsString("\"deduped\"")));
@@ -399,7 +399,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonView("data.json", null, Set.of(expressionField("id", "id")));
             var context = EvaluationContext.of(Set.of(), DedupStrategy.exact(), null);
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("\"deduped\" as ("));
             assertThat(sql, containsString("select distinct"));
@@ -413,7 +413,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonView("data.json", null, Set.of(expressionField("id", "id")));
             var context = EvaluationContext.of(Set.of(), DedupStrategy.simpleEquality(), null);
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("\"deduped\" as ("));
             assertThat(sql, containsString("select distinct"));
@@ -430,7 +430,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonView("data.json", null, Set.of(expressionField("id", "id")));
             var context = EvaluationContext.withProjectedFieldsAndLimit(Set.of(), 100L);
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("limit 100"));
         }
@@ -440,7 +440,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonView("data.json", null, Set.of(expressionField("id", "id")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, not(containsString("limit")));
         }
@@ -456,7 +456,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonView("data.json", null, Set.of(expressionField("id", "id")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("row_number() over () \"__idx\""));
         }
@@ -477,7 +477,8 @@ class DuckDbViewCompilerTest {
             when(field.getTemplate()).thenReturn(template);
 
             var view = createJsonView("data.json", null, Set.of(field));
-            var sql = DuckDbViewCompiler.compile(view, EvaluationContext.defaults());
+            var sql = DuckDbViewCompiler.compile(view, EvaluationContext.defaults())
+                    .sql();
 
             assertThat(sql, containsString("\"id\" \"identifier\""));
             assertThat(sql, not(containsString("||")));
@@ -497,7 +498,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonView("data.json", null, Set.of(field));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("'http://example.org/'"));
             assertThat(sql, containsString("||"));
@@ -524,7 +525,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonView("data.json", null, Set.of(field));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("'fixed_value' \"status\""));
         }
@@ -769,7 +770,7 @@ class DuckDbViewCompilerTest {
 
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("read_json_auto('data/people.json')"));
         }
@@ -785,7 +786,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonView("data.json", null, Set.of(expressionField("col", "my\"column")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("\"my\"\"column\" \"col\""));
         }
@@ -795,7 +796,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonView("data's.json", null, Set.of(expressionField("id", "id")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("read_json_auto('data''s.json')"));
         }
@@ -805,7 +806,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonView("data.json", null, Set.of(expressionField("my-field", "ref")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("\"ref\" \"my-field\""));
         }
@@ -815,7 +816,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonView("data.json", null, Set.of(expressionField("myField_1", "ref")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             // jOOQ may quote unquoted names depending on dialect; verify the alias is present
             assertThat(sql, containsString("\"ref\""));
@@ -834,7 +835,7 @@ class DuckDbViewCompilerTest {
                     "data.json", null, Set.of(expressionField("name", "name"), expressionField("age", "age")));
             var context = EvaluationContext.of(Set.of(), DedupStrategy.exact(), 100L);
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("\"deduped\" as ("));
             assertThat(sql, containsString("select distinct"));
@@ -853,7 +854,7 @@ class DuckDbViewCompilerTest {
                             expressionField("email", "email")));
             var context = EvaluationContext.withProjectedFieldsAndLimit(Set.of("name", "email"), 50L);
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("\"name\" \"name\""));
             assertThat(sql, containsString("\"email\" \"email\""));
@@ -872,7 +873,7 @@ class DuckDbViewCompilerTest {
             var view = createViewWithRefFormulation(Rdf.Rml.JsonPath, "data.json", Set.of(expressionField("id", "id")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("read_json_auto('data.json')"));
         }
@@ -883,7 +884,7 @@ class DuckDbViewCompilerTest {
                     Rdf.Rml.SQL2008Table, null, "users", Set.of(expressionField("id", "id")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("from \"users\""));
         }
@@ -894,7 +895,7 @@ class DuckDbViewCompilerTest {
                     Rdf.Rml.SQL2008Query, "SELECT * FROM people", null, Set.of(expressionField("id", "id")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("(SELECT * FROM people)"));
         }
@@ -919,7 +920,7 @@ class DuckDbViewCompilerTest {
             var view = createViewWithRefFormulation(Rdf.Rml.Csv, "data.csv", Set.of(expressionField("id", "id")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("read_csv_auto('data.csv')"));
         }
@@ -935,7 +936,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonView("people.json", null, Set.of(expressionField("name", "name")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             var expected = "with \"view_source\" as ("
                     + "select *, row_number() over () \"__idx\" from read_json_auto('people.json')"
@@ -953,7 +954,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonView("people.json", null, Set.of(expressionField("name", "name")));
             var context = EvaluationContext.of(Set.of(), DedupStrategy.exact(), 10L);
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             var expected = "with \"view_source\" as ("
                     + "select *, row_number() over () \"__idx\" from read_json_auto('people.json')"
@@ -981,7 +982,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonView("data.json", "$.people[*]", Set.of(expressionField("item", "$.items[*]")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             // Multi-valued field should use LATERAL UNNEST
             assertThat(sql, containsString("LATERAL"));
@@ -997,7 +998,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonView("data.json", "$.people[*]", Set.of(expressionField("name", "$.name")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             // Single-valued field should have ordinal companion of 0 (BIGINT)
             assertThat(sql, containsString("json_extract_string(\"view_source\".\"__iter\", '$.name') \"name\""));
@@ -1016,7 +1017,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonViewWithFields("data.json", "$.people[*]", fields);
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             // Single-valued field with ordinal companion (BIGINT)
             assertThat(sql, containsString("json_extract_string(\"view_source\".\"__iter\", '$.name') \"name\""));
@@ -1040,7 +1041,7 @@ class DuckDbViewCompilerTest {
                     "main.json", null, Set.of(expressionField("name", "name")), Set.of(viewJoin), Set.of());
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             // Join projected field
             assertThat(sql, containsString("\"parent_0\".\"value\" \"parent_value\""));
@@ -1056,7 +1057,7 @@ class DuckDbViewCompilerTest {
                     "data.json", "$.people[*]", Set.of(expressionField("item", "$.items[?(@.active==true)]")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             // The UNNEST should use the normalized basePath ($.items[*]), not the raw filter path
             assertThat(sql, containsString("unnest(json_extract(\"view_source\".\"__iter\", '$.items[*]'))"));
@@ -1084,7 +1085,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonViewWithFields("data.json", "$.people[*]", Set.of(iterableField));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             // The raw JSONPath with filter should be passed through to DuckDB
             assertThat(sql, containsString("LATERAL"));
@@ -1102,7 +1103,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonViewWithFields("data.json", null, Set.of(iterableField));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("LATERAL"));
             assertThat(sql, containsString("unnest(\"view_source\".\"items\")"));
@@ -1121,7 +1122,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonViewWithFields("data.json", null, Set.of(iterableField));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("LATERAL"));
             assertThat(sql, containsString("unnest(\"view_source\".\"items\")"));
@@ -1144,7 +1145,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonViewWithFields("data.json", null, fields);
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             // Top-level expression field
             assertThat(sql, containsString("\"name\" \"person_name\""));
@@ -1168,7 +1169,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonViewWithFields("data.json", null, Set.of(iterableField));
             var context = EvaluationContext.withProjectedFields(Set.of("item.item_type"));
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("\"item\".\"type\" \"item.item_type\""));
             assertThat(sql, containsString("\"item\".\"__ord\" \"item.#\""));
@@ -1183,7 +1184,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonViewWithFields("data.json", null, Set.of(iterableField));
             var context = EvaluationContext.of(Set.of(), DedupStrategy.exact(), null);
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("\"deduped\" as ("));
             assertThat(sql, containsString("select distinct"));
@@ -1205,7 +1206,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonViewWithFields("data.json", "$.people[*]", fields);
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             // Top-level field type companion uses json_type from __iter
             assertThat(sql, containsString("json_type(\"view_source\".\"__iter\", '$.name') \"name.__type\""));
@@ -1227,7 +1228,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonViewWithFields("data.json", "$.people[*]", fields);
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             // Source uses read_text + json_extract + unnest for iterator
             assertThat(sql, containsString("read_text('data.json')"));
@@ -1267,7 +1268,7 @@ class DuckDbViewCompilerTest {
                     "employees.json", null, Set.of(expressionField("emp_name", "name")), Set.of(viewJoin), Set.of());
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("left outer join"));
             assertThat(sql, containsString("\"parent_0\""));
@@ -1290,7 +1291,7 @@ class DuckDbViewCompilerTest {
                     "employees.json", null, Set.of(expressionField("emp_name", "name")), Set.of(), Set.of(viewJoin));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("join ("));
             assertThat(sql, not(containsString("left outer join")));
@@ -1312,7 +1313,7 @@ class DuckDbViewCompilerTest {
                     "main.json", null, Set.of(expressionField("name", "name")), Set.of(viewJoin), Set.of());
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             // Both conditions should appear in the ON clause
             assertThat(sql, containsString("\"view_source\".\"id\" = \"parent_0\".\"id\""));
@@ -1337,7 +1338,7 @@ class DuckDbViewCompilerTest {
                     "cities.json", null, Set.of(expressionField("city_name", "name")), Set.of(viewJoin), Set.of());
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("\"parent_0\".\"code\" \"country_code\""));
             assertThat(sql, containsString("\"parent_0\".\"country_name\" \"country_name\""));
@@ -1371,7 +1372,7 @@ class DuckDbViewCompilerTest {
                     "employees.json", null, Set.of(expressionField("emp_name", "name")), leftJoins, Set.of());
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             // Two left joins with sequential parent aliases
             assertThat(sql, containsString("\"parent_0\""));
@@ -1400,7 +1401,7 @@ class DuckDbViewCompilerTest {
                     Set.of());
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             // Source uses json_extract for iterator
             assertThat(sql, containsString("read_text('employees.json')"));
@@ -1436,7 +1437,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonViewWithFieldsAndJoins("employees.json", null, fields, Set.of(viewJoin), Set.of());
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("LATERAL"));
             assertThat(sql, containsString("unnest(\"view_source\".\"items\")"));
@@ -1728,7 +1729,7 @@ class DuckDbViewCompilerTest {
             var outerView = createViewOnView(innerView, Set.of(expressionField("newName", "name")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(outerView, context);
+            var sql = DuckDbViewCompiler.compile(outerView, context).sql();
 
             // The inner view's CTE query must be parenthesized as a derived table
             assertThat(sql, containsString("(with "));
@@ -1748,7 +1749,7 @@ class DuckDbViewCompilerTest {
             var outerView = createViewOnView(innerView, Set.of(expressionField("person_age", "age")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(outerView, context);
+            var sql = DuckDbViewCompiler.compile(outerView, context).sql();
 
             // ColumnSourceStrategy produces direct column references, not json_extract_string
             assertThat(sql, containsString("\"view_source\".\"age\" \"person_age\""));
@@ -1789,7 +1790,7 @@ class DuckDbViewCompilerTest {
             var outerView = createViewOnView(innerView, Set.of(expressionField("person_name", "name")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(outerView, context);
+            var sql = DuckDbViewCompiler.compile(outerView, context).sql();
 
             // Outer ColumnSourceStrategy with hasTypeCompanions=true projects the inner type column
             assertThat(sql, containsString("\"view_source\".\"name.__type\" \"person_name.__type\""));
@@ -1801,7 +1802,8 @@ class DuckDbViewCompilerTest {
             var middle = createViewOnView(innermost, Set.of(expressionField("mid_id", "id")));
             var outer = createViewOnView(middle, Set.of(expressionField("out_id", "mid_id")));
 
-            var sql = DuckDbViewCompiler.compile(outer, EvaluationContext.defaults());
+            var sql = DuckDbViewCompiler.compile(outer, EvaluationContext.defaults())
+                    .sql();
 
             // Two levels of subquery nesting
             assertThat(sql, containsString("read_json_auto('data.json')"));
@@ -1824,7 +1826,7 @@ class DuckDbViewCompilerTest {
                     createJsonViewWithAnnotations("data.json", null, Set.of(idField, nameField), Set.of(pkAnnotation));
             var context = EvaluationContext.of(Set.of(), DedupStrategy.exact(), null);
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             // PK covers all selected fields, so DISTINCT should be omitted
             assertThat(sql, not(containsString("select distinct")));
@@ -1842,7 +1844,7 @@ class DuckDbViewCompilerTest {
                     "data.json", null, Set.of(idField, nameField), Set.of(uniqueAnnotation, notNullAnnotation));
             var context = EvaluationContext.of(Set.of(), DedupStrategy.exact(), null);
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             // Unique + NotNull covers all selected fields (unique field "id" is in selected fields
             // and is NotNull), so DISTINCT should be omitted
@@ -1861,7 +1863,7 @@ class DuckDbViewCompilerTest {
                     "data.json", null, Set.of(idField, nameField), Set.of(uniqueAnnotation));
             var context = EvaluationContext.of(Set.of(), DedupStrategy.exact(), null);
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             // Without NotNull, Unique alone is insufficient — DISTINCT must remain
             assertThat(sql, containsString("select distinct"));
@@ -1894,7 +1896,7 @@ class DuckDbViewCompilerTest {
                     Set.of(fkAnnotation));
             var context = EvaluationContext.withProjectedFields(Set.of("emp_name"));
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             // FK guarantees referential integrity and parent fields are not needed
             assertThat(sql, not(containsString("left outer join")));
@@ -1927,7 +1929,7 @@ class DuckDbViewCompilerTest {
                     Set.of(fkAnnotation));
             var context = EvaluationContext.withProjectedFields(Set.of("emp_name", "department_name"));
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             // Parent fields are projected — join must be retained
             assertThat(sql, containsString("left outer join"));
@@ -1958,7 +1960,7 @@ class DuckDbViewCompilerTest {
                     Set.of(notNullAnnotation));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             // NotNull on child join keys means LEFT JOIN can be upgraded to INNER JOIN
             assertThat(sql, not(containsString("left outer join")));
@@ -1987,7 +1989,7 @@ class DuckDbViewCompilerTest {
                     Set.of());
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             // Without NotNull, LEFT JOIN stays as LEFT JOIN
             assertThat(sql, containsString("left outer join"));
@@ -2004,7 +2006,7 @@ class DuckDbViewCompilerTest {
                     createJsonViewWithAnnotations("data.json", null, Set.of(idField, nameField), Set.of(pkAnnotation));
             var context = EvaluationContext.of(Set.of("name"), DedupStrategy.exact(), null);
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("select distinct"));
         }
@@ -2034,7 +2036,7 @@ class DuckDbViewCompilerTest {
                     Set.of(fkAnnotation));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("left outer join"));
             assertThat(sql, containsString("\"parent_0\""));
@@ -2066,7 +2068,7 @@ class DuckDbViewCompilerTest {
                     Set.of(fkAnnotation));
             var context = EvaluationContext.withProjectedFields(Set.of("emp_name"));
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             // FK does not match this join's parent — join must be retained
             assertThat(sql, containsString("left outer join"));
@@ -2096,7 +2098,7 @@ class DuckDbViewCompilerTest {
                     Set.of(notNullAnnotation));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             // "region" is not NotNull — LEFT JOIN must be retained
             assertThat(sql, containsString("left outer join"));
@@ -2111,7 +2113,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonView("data.json", "$.items[*]", Set.of(expressionField("id", "$.id")));
             var context = EvaluationContext.forImplicitView(null);
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             // __iter projected as an output field for source-level expression evaluation
             assertThat(sql, containsString("\"__iter\" \"__iter\""));
@@ -2122,7 +2124,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonView("data.json", null, Set.of(expressionField("id", "id")));
             var context = EvaluationContext.forImplicitView(null);
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, not(containsString("\"__iter\"")));
         }
@@ -2132,7 +2134,7 @@ class DuckDbViewCompilerTest {
             var view = createJsonView("data.json", "$.items[*]", Set.of(expressionField("id", "$.id")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context);
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             // __iter is used internally by JsonIteratorSourceStrategy but NOT projected as an output field
             assertThat(sql, not(containsString("\"__iter\" \"__iter\"")));

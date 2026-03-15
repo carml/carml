@@ -1,11 +1,13 @@
 package io.carml.logicalview.duckdb;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -714,6 +716,30 @@ class JsonPathAnalyzerTest {
             var eqInner = (JsonPathAnalyzer.EqualStr) rightNot.condition();
             assertThat(eqInner.fieldJsonPath(), is("$.type"));
             assertThat(eqInner.value(), is("sale"));
+        }
+    }
+
+    @Nested
+    class SyntaxValidation {
+
+        @Test
+        void analyze_trailingBracket_throwsIllegalArgument() {
+            var ex = assertThrows(IllegalArgumentException.class, () -> JsonPathAnalyzer.analyze("$.students[*]]"));
+            assertThat(ex.getMessage(), containsString("Invalid JSONPath expression"));
+            assertThat(ex.getMessage(), containsString("$.students[*]]"));
+        }
+
+        @Test
+        void analyze_missingDollarPrefix_throwsIllegalArgument() {
+            var ex = assertThrows(IllegalArgumentException.class, () -> JsonPathAnalyzer.analyze("students[*]"));
+            assertThat(ex.getMessage(), containsString("Invalid JSONPath expression"));
+        }
+
+        @Test
+        void analyze_nonsenseInput_throwsIllegalArgument() {
+            var ex = assertThrows(
+                    IllegalArgumentException.class, () -> JsonPathAnalyzer.analyze("Dhkef;esfkdleshfjdls;fk"));
+            assertThat(ex.getMessage(), containsString("Invalid JSONPath expression"));
         }
     }
 }

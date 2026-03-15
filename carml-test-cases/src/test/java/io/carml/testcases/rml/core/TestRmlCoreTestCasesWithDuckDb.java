@@ -14,15 +14,4 @@ class TestRmlCoreTestCasesWithDuckDb extends DuckDbTestCaseSuite {
     protected List<String> getLenientOutputTests() {
         return List.of("RMLTC0027b");
     }
-
-    @Override
-    protected List<String> getSkipTests() {
-        return List.of(
-                // DuckDB error handling: missing source file produces empty result instead of error
-                "RMLTC0002e",
-                // DuckDB error handling: invalid iterator syntax produces empty result instead of error
-                "RMLTC0002g",
-                // DuckDB error handling: invalid subject map produces empty result instead of error
-                "RMLTC0025b");
-    }
 }
