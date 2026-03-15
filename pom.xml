@@ -51,8 +51,10 @@
 		<module>carml-model</module>
 		<module>carml-rdf-mapper</module>
 		<module>carml-commons</module>
+		<module>carml-commons-csv</module>
 		<module>carml-logical-source-resolver</module>
 		<module>carml-logical-source-resolver-xpath</module>
+		<module>carml-commons-jsonpath</module>
 		<module>carml-logical-source-resolver-jsonpath</module>
 		<module>carml-logical-source-resolver-csv</module>
 		<module>carml-logical-view</module>
@@ -122,6 +124,18 @@
 			<dependency>
 				<groupId>io.carml</groupId>
 				<artifactId>carml-commons</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>io.carml</groupId>
+				<artifactId>carml-commons-csv</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>io.carml</groupId>
+				<artifactId>carml-commons-jsonpath</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 

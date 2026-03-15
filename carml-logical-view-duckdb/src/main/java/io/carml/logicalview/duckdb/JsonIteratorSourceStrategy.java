@@ -5,14 +5,15 @@ import static org.jooq.impl.DSL.inline;
 import static org.jooq.impl.DSL.quotedName;
 import static org.jooq.impl.DSL.table;
 
+import io.carml.jsonpath.JsonPathNormalizer;
+import io.carml.jsonpath.JsonPathValidationException;
+import io.carml.jsonpath.JsonPathValidator;
 import io.carml.model.ExpressionField;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
@@ -44,13 +45,6 @@ final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
 
     private static final String JSON_EXTRACT_STRING = "json_extract_string({0}, {1})";
 
-    /**
-     * Matches a single bracket-notation accessor in a JSONPath expression, e.g. {@code ['key name']}.
-     * The key may use single quotes and may contain RML template escape sequences ({@code \\{} and
-     * {@code \\}}).
-     */
-    private static final Pattern BRACKET_ACCESSOR = Pattern.compile("\\['((?>[^'\\\\]|\\\\.)*+)']");
-
     private static final DSLContext CTX = DSL.using(SQLDialect.DUCKDB);
 
     static final String UNNEST_FIELD = "unnest";
@@ -77,32 +71,10 @@ final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
     }
 
     /**
-     * Converts JSONPath bracket notation accessors to DuckDB-compatible quoted dot notation.
-     *
-     * <p>DuckDB's {@code json_extract_string} does not support bracket notation with single-quoted
-     * keys ({@code $['key']}). This method rewrites such accessors to quoted dot notation
-     * ({@code $."key"}), which DuckDB does support. RML template escape sequences ({@code \\{} and
-     * {@code \\}}) are unescaped to their literal characters during conversion.
-     *
-     * @param reference the JSONPath reference, possibly containing bracket notation
-     * @return the reference with bracket accessors rewritten to quoted dot notation
+     * Delegates to {@link JsonPathNormalizer#normalizeBracketNotation(String)}.
      */
     static String normalizeBracketNotation(String reference) {
-        Matcher matcher = BRACKET_ACCESSOR.matcher(reference);
-        if (!matcher.find()) {
-            return reference;
-        }
-
-        var sb = new StringBuilder();
-        matcher.reset();
-        while (matcher.find()) {
-            var key = matcher.group(1);
-            // Unescape RML template escape sequences: \\{ → { and \\} → }
-            var unescaped = key.replace("\\{", "{").replace("\\}", "}");
-            matcher.appendReplacement(sb, Matcher.quoteReplacement(".\"" + unescaped + "\""));
-        }
-        matcher.appendTail(sb);
-        return sb.toString();
+        return JsonPathNormalizer.normalizeBracketNotation(reference);
     }
 
     @Override
@@ -377,38 +349,28 @@ final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
     }
 
     /**
-     * Pattern matching valid relative JSONPath key references. Relative references (those not
-     * starting with {@code $}) must be simple property names: word characters, spaces, hyphens,
-     * dots (for nested access), and bracket notation ({@code ['key']}, {@code [0]}). Semicolons
-     * and other non-printable or structural characters indicate malformed expressions.
-     */
-    private static final Pattern VALID_RELATIVE_KEY = Pattern.compile("[\\w .\\-\\[\\]'*?@(),:!<>=&|]+");
-
-    /**
      * Validates that a JSONPath reference expression has valid syntax. DuckDB's
      * {@code json_extract_string} silently returns NULL for invalid JSONPath expressions, but the
      * RML spec requires that invalid reference expressions produce an error.
      *
-     * <p>References starting with {@code $} are validated as full JSONPath expressions via
-     * {@link JsonPathAnalyzer#analyze}. References without the {@code $} prefix are treated as
-     * relative key names and validated against a pattern that rejects clearly invalid characters
-     * (such as semicolons, which indicate malformed expressions).
+     * <p>For {@code $}-prefixed expressions, validation is delegated to
+     * {@link JsonPathAnalyzer#analyze}, which provides full ANTLR-based parsing needed for SQL
+     * translation. For bare expressions, the shared
+     * {@link JsonPathValidator#validateStrict(String)} is used.
      *
      * @param reference the JSONPath reference expression to validate
      * @throws IllegalArgumentException if the reference has invalid JSONPath syntax
      */
     private static void validateJsonPathSyntax(String reference) {
         if (reference.startsWith("$")) {
-            // Full JSONPath expression — validate via analyzer
+            // Full JSONPath expression — validate via analyzer (which also extracts
+            // structural information needed by the SQL compiler)
             JsonPathAnalyzer.analyze(reference);
         } else {
-            // Relative key reference — validate that it contains only characters valid in
-            // JSONPath property names and accessors. This catches garbage input like
-            // "Dhkef;esfkdleshfjdls;fk" while allowing valid relative keys like "name",
-            // "Country Code", or bracket notation like "['key']".
-            if (!VALID_RELATIVE_KEY.matcher(reference).matches()) {
-                throw new IllegalArgumentException(
-                        "Invalid JSONPath reference expression '%s': contains invalid characters".formatted(reference));
+            try {
+                JsonPathValidator.validateStrict(reference);
+            } catch (JsonPathValidationException e) {
+                throw new IllegalArgumentException(e.getMessage(), e);
             }
         }
     }

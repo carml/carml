@@ -13,6 +13,8 @@ import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.Option;
 import com.jayway.jsonpath.PathNotFoundException;
 import com.jayway.jsonpath.spi.json.JacksonJsonNodeJsonProvider;
+import io.carml.jsonpath.JsonPathValidationException;
+import io.carml.jsonpath.JsonPathValidator;
 import io.carml.logicalsourceresolver.sourceresolver.Encodings;
 import io.carml.model.JsonPathReferenceFormulation;
 import io.carml.model.LogicalSource;
@@ -31,7 +33,6 @@ import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.function.Function;
-import java.util.regex.Pattern;
 import java.util.stream.StreamSupport;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
@@ -41,7 +42,6 @@ import org.jsfr.json.JsonSurfer;
 import org.jsfr.json.JsonSurferJackson;
 import org.jsfr.json.NonBlockingParser;
 import org.jsfr.json.SurfingConfiguration;
-import org.jsfr.json.compiler.JsonPathCompiler;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -55,13 +55,6 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private static final String ERROR_INTERPRETING_RESULT = "Error interpreting expression result %s";
-
-    /**
-     * Characters valid in bare (non-$-prefixed) JSONPath expressions: letters, digits, underscore,
-     * hyphen, dot, brackets, wildcard, at, filter syntax, quotes, colon, comparison operators, and
-     * space. Anything outside this set indicates invalid syntax.
-     */
-    private static final Pattern INVALID_BARE_NAME_CHARS = Pattern.compile("[^\\w.\\[\\]*@?()'\":=!&|><\\s-]");
 
     private static final Configuration JSONPATH_CONF = Configuration.builder()
             .jsonProvider(new JacksonJsonNodeJsonProvider())
@@ -312,33 +305,15 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
     }
 
     /**
-     * Validates a JSONPath expression using JSurfer's ANTLR-based parser. Jayway silently accepts gibberish
-     * expressions (e.g. "Dhkef;esfkdleshfjdls;fk") as property name lookups and returns null. JSurfer's
-     * compiler rejects them with a {@code ParseCancellationException}.
-     *
-     * <p>Standard JSONPath expressions (starting with "$") are validated directly by JSurfer. Jayway also
-     * accepts bare expressions without "$" prefix (e.g. "Name", "@.id", "tags[*]"). These cannot be
-     * validated by JSurfer (which requires "$" prefix), so they are checked for characters that are
-     * clearly not part of JSONPath syntax or member names (e.g. semicolons).
+     * Validates a JSONPath expression, wrapping any {@link JsonPathValidationException} from the
+     * shared validator as a {@link LogicalSourceResolverException}.
      */
     private static void validateJsonPathExpression(String expression) {
-        if (expression == null || expression.isEmpty()) {
-            throw new LogicalSourceResolverException(
-                    "Invalid JSONPath expression: expression must not be null or empty");
+        try {
+            JsonPathValidator.validate(expression);
+        } catch (JsonPathValidationException e) {
+            throw new LogicalSourceResolverException(e.getMessage(), e.getCause());
         }
-        if (expression.startsWith("$")) {
-            try {
-                JsonPathCompiler.compile(expression);
-            } catch (Exception e) {
-                throw new LogicalSourceResolverException("Invalid JSONPath expression: " + expression, e);
-            }
-        } else if (containsInvalidBareNameChars(expression)) {
-            throw new LogicalSourceResolverException("Invalid JSONPath expression: " + expression);
-        }
-    }
-
-    private static boolean containsInvalidBareNameChars(String expression) {
-        return INVALID_BARE_NAME_CHARS.matcher(expression).find();
     }
 
     private static Optional<JsonNode> readExpression(JsonNode jsonNode, String expression) {

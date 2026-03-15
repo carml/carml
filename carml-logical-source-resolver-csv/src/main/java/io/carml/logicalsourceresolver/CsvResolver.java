@@ -10,11 +10,14 @@ import de.siegmar.fastcsv.reader.CsvReader;
 import de.siegmar.fastcsv.reader.CsvReader.CsvReaderBuilder;
 import de.siegmar.fastcsv.reader.NamedCsvRecord;
 import de.siegmar.fastcsv.reader.NamedCsvRecordHandler;
+import io.carml.csv.CsvDialectConfig;
+import io.carml.csv.CsvNullValueHandler;
+import io.carml.csv.CsvProcessingException;
+import io.carml.csv.CsvwDialectProcessor;
 import io.carml.logicalsourceresolver.sourceresolver.Encodings;
 import io.carml.model.CsvReferenceFormulation;
 import io.carml.model.LogicalSource;
 import io.carml.model.Source;
-import io.carml.model.source.csvw.CsvwDialect;
 import io.carml.model.source.csvw.CsvwTable;
 import io.carml.util.TypeRef;
 import java.io.IOException;
@@ -23,7 +26,6 @@ import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -158,7 +160,8 @@ public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
             var csvwDialect = csvwTable.getDialect();
 
             if (csvwDialect != null) {
-                applyCsvwDialect(csvwDialect, csvReaderBuilder);
+                var dialectConfig = processDialect(csvwDialect);
+                applyCsvwDialect(dialectConfig, csvReaderBuilder);
             }
             if (encoding != null) {
                 charset = Encodings.resolveCharset(encoding)
@@ -210,39 +213,23 @@ public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
         }
     }
 
-    private void applyCsvwDialect(CsvwDialect csvwDialect, CsvReaderBuilder csvReaderBuilder) {
-        applyDelimiter(csvwDialect, csvReaderBuilder);
-        applyQuoteCharacter(csvwDialect, csvReaderBuilder);
-        applyCommentStrategy(csvwDialect, csvReaderBuilder);
+    private static CsvDialectConfig processDialect(io.carml.model.source.csvw.CsvwDialect csvwDialect) {
+        try {
+            return CsvwDialectProcessor.process(csvwDialect);
+        } catch (CsvProcessingException csvProcessingException) {
+            throw new LogicalSourceResolverException(csvProcessingException.getMessage(), csvProcessingException);
+        }
     }
 
-    private void applyDelimiter(CsvwDialect csvwDialect, CsvReaderBuilder csvReaderBuilder) {
-        toChar(csvwDialect.getDelimiter(), "CSVW delimiter").ifPresent(csvReaderBuilder::fieldSeparator);
-    }
-
-    private void applyQuoteCharacter(CsvwDialect csvwDialect, CsvReaderBuilder csvReaderBuilder) {
-        toChar(csvwDialect.getQuoteChar(), "CSVW quote character").ifPresent(csvReaderBuilder::quoteCharacter);
-    }
-
-    private void applyCommentStrategy(CsvwDialect csvwDialect, CsvReaderBuilder csvReaderBuilder) {
-        toChar(csvwDialect.getCommentPrefix(), "CSVW comment prefix")
+    private static void applyCsvwDialect(CsvDialectConfig config, CsvReaderBuilder csvReaderBuilder) {
+        config.delimiter().ifPresent(csvReaderBuilder::fieldSeparator);
+        config.quoteChar().ifPresent(csvReaderBuilder::quoteCharacter);
+        config.commentPrefix()
                 .ifPresentOrElse(
                         commentCharacter -> csvReaderBuilder
                                 .commentCharacter(commentCharacter)
                                 .commentStrategy(CommentStrategy.SKIP),
                         () -> csvReaderBuilder.commentStrategy(CommentStrategy.NONE));
-    }
-
-    private Optional<Character> toChar(String string, String errorSubject) {
-        if (string == null || string.isEmpty()) {
-            return Optional.empty();
-        }
-        if (string.length() > 1) {
-            throw new LogicalSourceResolverException(
-                    "%s must be a single character, but was %s".formatted(errorSubject, string));
-        }
-
-        return Optional.of(string.charAt(0));
     }
 
     @Override
@@ -251,7 +238,7 @@ public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
                 && csvwTable.getDialect() != null
                 && csvwTable.getDialect().trim();
 
-        var nullValues = getNullValues();
+        var nullValues = CsvNullValueHandler.resolveNullValues(source);
 
         return namedCsvRecord -> headerName -> {
             logEvaluateExpression(headerName, LOG);
@@ -266,19 +253,6 @@ public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
             }
             return Optional.of(result);
         };
-    }
-
-    private Set<Object> getNullValues() {
-        var rmlNulls = source.getNulls();
-        if (source instanceof CsvwTable csvwTable) {
-            var csvwNulls = csvwTable.getCsvwNulls();
-            if (csvwNulls != null && !csvwNulls.isEmpty()) {
-                var merged = new HashSet<>(rmlNulls != null ? rmlNulls : Set.of());
-                merged.addAll(csvwNulls);
-                return Set.copyOf(merged);
-            }
-        }
-        return rmlNulls != null ? rmlNulls : Set.of();
     }
 
     @Override

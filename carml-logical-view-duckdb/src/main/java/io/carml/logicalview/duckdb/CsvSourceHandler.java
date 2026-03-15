@@ -2,18 +2,21 @@ package io.carml.logicalview.duckdb;
 
 import static org.jooq.impl.DSL.inline;
 
+import io.carml.csv.CsvDialectConfig;
+import io.carml.csv.CsvNullValueHandler;
+import io.carml.csv.CsvwDialectProcessor;
 import io.carml.model.ExpressionField;
 import io.carml.model.ExpressionMap;
 import io.carml.model.Field;
 import io.carml.model.IterableField;
 import io.carml.model.LogicalSource;
 import io.carml.model.LogicalView;
-import io.carml.model.source.csvw.CsvwDialect;
 import io.carml.model.source.csvw.CsvwTable;
 import io.carml.vocab.Rdf;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -33,15 +36,15 @@ import org.jooq.impl.DSL;
 @Slf4j
 final class CsvSourceHandler implements DuckDbSourceHandler {
 
+    /**
+     * Sentinel value used as DuckDB's {@code nullstr} parameter when no explicit null values are
+     * configured. Prevents DuckDB from treating empty quoted strings ({@code ""}) as SQL NULL.
+     */
+    static final String NO_NULL_SENTINEL = "__CARML_CSVW_NO_NULL__";
+
     private static final Set<Resource> SUPPORTED = Set.of(Rdf.Ql.Csv, Rdf.Rml.Csv);
 
     private static final org.jooq.DSLContext CTX = DSL.using(SQLDialect.DUCKDB);
-
-    /**
-     * Sentinel value used as {@code nullstr} parameter when no {@code csvw:null} values are
-     * specified. Prevents DuckDB from treating empty quoted strings ({@code ""}) as SQL NULL.
-     */
-    static final String NO_NULL_SENTINEL = "__CARML_CSVW_NO_NULL__";
 
     @Override
     public Set<Resource> supportedFormulations() {
@@ -111,7 +114,9 @@ final class CsvSourceHandler implements DuckDbSourceHandler {
         if (source instanceof CsvwTable csvwTable) {
             var dialect = csvwTable.getDialect();
             if (dialect != null) {
-                return compileCsvwSource(filePath, dialect, csvwTable.getCsvwNulls(), cteAlias);
+                var dialectConfig = CsvwDialectProcessor.process(dialect);
+                var nullValues = CsvNullValueHandler.resolveNullValues(csvwTable);
+                return compileCsvwSource(filePath, dialectConfig, nullValues, cteAlias);
             }
         }
 
@@ -119,53 +124,45 @@ final class CsvSourceHandler implements DuckDbSourceHandler {
     }
 
     /**
-     * Compiles a {@code read_csv()} call with explicit parameters derived from CSVW dialect options
-     * and null values.
+     * Compiles a {@code read_csv()} call with explicit parameters derived from the resolved dialect
+     * configuration and null values.
      *
-     * <p>Maps CSVW dialect properties to DuckDB {@code read_csv} named parameters:
+     * <p>Maps {@link CsvDialectConfig} properties to DuckDB {@code read_csv} named parameters:
      * <ul>
-     *   <li>{@code csvw:delimiter} &rarr; {@code delim}
-     *   <li>{@code csvw:quoteChar} &rarr; {@code quote}
-     *   <li>{@code csvw:encoding} &rarr; {@code encoding}
-     *   <li>{@code csvw:header} / {@code csvw:headerRowCount} &rarr; {@code header}
-     *   <li>{@code csvw:commentPrefix} &rarr; {@code comment}
-     *   <li>{@code csvw:skipRows} &rarr; {@code skip}
-     *   <li>{@code csvw:doubleQuote} &rarr; {@code escape} (backslash when false)
-     *   <li>{@code csvw:trim} &rarr; wraps source in a trimming subquery
-     *   <li>{@code csvw:null} &rarr; {@code nullstr}
+     *   <li>{@code delimiter} &rarr; {@code delim}
+     *   <li>{@code quoteChar} &rarr; {@code quote}
+     *   <li>{@code encoding} &rarr; {@code encoding}
+     *   <li>{@code commentPrefix} &rarr; {@code comment}
+     *   <li>{@code skipRows} &rarr; {@code skip}
+     *   <li>{@code useDoubleQuoteEscaping = false} &rarr; {@code escape = '\\'}
+     *   <li>{@code trim} &rarr; wraps source in a trimming subquery
+     *   <li>null values &rarr; {@code nullstr}
      * </ul>
      */
     private static CompiledSource compileCsvwSource(
-            String filePath, CsvwDialect dialect, Set<Object> nullValues, String cteAlias) {
+            String filePath, CsvDialectConfig config, Set<Object> nullValues, String cteAlias) {
         var params = new ArrayList<String>();
         params.add(CTX.render(inline(filePath)));
 
-        if (dialect.getDelimiter() != null) {
-            params.add("delim = %s".formatted(CTX.render(inline(dialect.getDelimiter()))));
-        }
+        config.delimiter().ifPresent(d -> params.add("delim = %s".formatted(CTX.render(inline(String.valueOf(d))))));
 
-        if (dialect.getQuoteChar() != null) {
-            params.add("quote = %s".formatted(CTX.render(inline(dialect.getQuoteChar()))));
-        }
+        config.quoteChar().ifPresent(q -> params.add("quote = %s".formatted(CTX.render(inline(String.valueOf(q))))));
 
-        if (dialect.getEncoding() != null) {
-            params.add("encoding = %s".formatted(CTX.render(inline(dialect.getEncoding()))));
-        }
+        config.encoding().ifPresent(e -> params.add("encoding = %s".formatted(CTX.render(inline(e)))));
 
         // CSVW spec default: header = true (headerRowCount = 1). DuckDB read_csv also defaults to
         // header = true. The CarmlCsvwDialect model defaults hasHeader to false / headerRowCount to
         // 0 due to Java primitive defaults, so we cannot reliably detect explicit false. Since both
         // CSVW and DuckDB defaults align, we omit the parameter — DuckDB will use header = true.
 
-        if (dialect.getCommentPrefix() != null) {
-            params.add("comment = %s".formatted(CTX.render(inline(dialect.getCommentPrefix()))));
+        config.commentPrefix()
+                .ifPresent(c -> params.add("comment = %s".formatted(CTX.render(inline(String.valueOf(c))))));
+
+        if (config.skipRows() > 0) {
+            params.add("skip = %d".formatted(config.skipRows()));
         }
 
-        if (dialect.getSkipRows() > 0) {
-            params.add("skip = %d".formatted(dialect.getSkipRows()));
-        }
-
-        if (dialect.getDoubleQuote() != null && "false".equalsIgnoreCase(dialect.getDoubleQuote())) {
+        if (!config.useDoubleQuoteEscaping()) {
             params.add("escape = %s".formatted(CTX.render(inline("\\"))));
         }
 
@@ -176,7 +173,7 @@ final class CsvSourceHandler implements DuckDbSourceHandler {
                                 CTX.render(inline(nullValues.iterator().next().toString()))));
             } else {
                 var nullList = nullValues.stream()
-                        .sorted(java.util.Comparator.comparing(Object::toString))
+                        .sorted(Comparator.comparing(Object::toString))
                         .map(v -> CTX.render(inline(v.toString())))
                         .collect(Collectors.joining(", "));
                 params.add("nullstr = [%s]".formatted(nullList));
@@ -194,7 +191,7 @@ final class CsvSourceHandler implements DuckDbSourceHandler {
 
         var sourceSql = "read_csv(%s)".formatted(String.join(", ", params));
 
-        if (dialect.trim()) {
+        if (config.trim()) {
             sourceSql = compileTrimWrapper(sourceSql);
         }
 
