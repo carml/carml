@@ -211,18 +211,18 @@ public final class DuckDbViewCompiler {
             allFieldSelects.add(field(quotedName(CTE_ALIAS, INDEX_COLUMN)));
 
             // Include raw source evaluation column for source-level expression evaluation.
-            // When retainSourceEvaluation is true (implicit views), gather map expressions that
-            // are NOT view fields need to be evaluated from the raw source data. For JSON sources,
-            // this is the __iter column that carries the raw JSON for each iteration row, enabling
-            // DuckDbJsonSourceEvaluation to evaluate expressions using JSONPath at mapping time.
-            // This is only added in the non-DISTINCT path because the raw data blob would interfere
-            // with deduplication (two rows with identical field values but different formatting
-            // would survive DISTINCT).
-            if (context.retainSourceEvaluation()) {
-                strategy.sourceEvaluationColumn()
-                        .ifPresent(column -> allFieldSelects.add(
-                                field(quotedName(CTE_ALIAS, column)).as(quotedName(column))));
-            }
+            // For JSON iterator sources, the __iter column carries the raw JSON for each iteration
+            // row, enabling DuckDbJsonSourceEvaluation to evaluate expressions using JSONPath at
+            // mapping time. This serves two purposes:
+            //   1. Gather map expressions (excluded from view fields) need raw source evaluation
+            //   2. Expressions that cannot be compiled to SQL (e.g., function-based fields) fall
+            //      back to per-row JSONPath evaluation via the engine's withSourceFallback mechanism
+            // The __iter column is always included when the strategy supports it, not just for
+            // implicit views. It is only added in the non-DISTINCT path because the raw data blob
+            // would interfere with deduplication.
+            strategy.sourceEvaluationColumn()
+                    .ifPresent(column -> allFieldSelects.add(
+                            field(quotedName(CTE_ALIAS, column)).as(quotedName(column))));
 
             var fromStep = buildFromClause(
                     CTX.with(viewSourceCte).select(allFieldSelects), unnestDescriptors, joinDescriptors);
@@ -833,15 +833,33 @@ public final class DuckDbViewCompiler {
     private static List<SelectField<?>> compileFieldSelects(
             List<ExpressionField> fields, DuckDbSourceStrategy strategy) {
         var selects = new ArrayList<SelectField<?>>();
-        for (var f : fields) {
-            selects.add(compileFieldExpression(f, strategy));
+        var hasSourceFallback = strategy.sourceEvaluationColumn().isPresent();
+        for (var field : fields) {
+            SelectField<?> compiled;
+            try {
+                compiled = compileFieldExpression(field, strategy);
+            } catch (UnsupportedOperationException e) {
+                if (hasSourceFallback) {
+                    // Skip this field — it will be evaluated per-row from the raw source data
+                    // via the engine's withSourceFallback mechanism. This is slower than SQL-compiled
+                    // evaluation but ensures correctness for expressions the SQL compiler cannot handle.
+                    LOG.warn(
+                            "Field [{}] cannot be compiled to SQL and will use per-row source evaluation fallback"
+                                    + " (slower). Reason: {}",
+                            field.getFieldName(),
+                            e.getMessage());
+                    continue;
+                }
+                throw e;
+            }
+            selects.add(compiled);
             // Add ordinal companion for reference-based expression fields.
             // Single-valued fields always have ordinal 0, cast to BIGINT to match range() type.
-            if (f.getReference() != null) {
-                selects.add(inline(0).cast(Long.class).as(quotedName(f.getFieldName() + ".#")));
+            if (field.getReference() != null) {
+                selects.add(inline(0).cast(Long.class).as(quotedName(field.getFieldName() + ".#")));
                 // Add type companion for reference-based expression fields.
-                var typeAlias = quotedName(f.getFieldName() + DuckDbSourceStrategy.TYPE_SUFFIX);
-                selects.add(strategy.compileFieldTypeReference(f.getReference(), typeAlias));
+                var typeAlias = quotedName(field.getFieldName() + DuckDbSourceStrategy.TYPE_SUFFIX);
+                selects.add(strategy.compileFieldTypeReference(field.getReference(), typeAlias));
             }
         }
         return selects;

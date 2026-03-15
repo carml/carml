@@ -2106,7 +2106,7 @@ class DuckDbViewCompilerTest {
     }
 
     @Nested
-    class RetainSourceEvaluation {
+    class SourceEvaluationColumn {
 
         @Test
         void compile_forImplicitViewWithJsonIterator_includesIterColumnAsOutputField() {
@@ -2130,14 +2130,97 @@ class DuckDbViewCompilerTest {
         }
 
         @Test
-        void compile_defaultContextWithJsonIterator_doesNotIncludeIterColumnAsOutputField() {
+        void compile_defaultContextWithJsonIterator_includesIterColumnAsOutputField() {
             var view = createJsonView("data.json", "$.items[*]", Set.of(expressionField("id", "$.id")));
             var context = EvaluationContext.defaults();
 
             var sql = DuckDbViewCompiler.compile(view, context).sql();
 
-            // __iter is used internally by JsonIteratorSourceStrategy but NOT projected as an output field
-            assertThat(sql, not(containsString("\"__iter\" \"__iter\"")));
+            // __iter is always projected for JSON iterator sources so that expressions not compiled
+            // to SQL can be evaluated per-row via the source evaluation fallback
+            assertThat(sql, containsString("\"__iter\" \"__iter\""));
+        }
+
+        @Test
+        void compile_defaultContextWithCsvSource_doesNotIncludeIterColumn() {
+            var view = createCsvView("data.csv", Set.of(expressionField("col1", "column1")));
+            var context = EvaluationContext.defaults();
+
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
+
+            // CSV sources do not have a source evaluation column
+            assertThat(sql, not(containsString("\"__iter\"")));
+        }
+    }
+
+    @Nested
+    class SourceEvaluationFallback {
+
+        @Test
+        void compile_functionFieldWithJsonIterator_skipsFieldAndIncludesIter() {
+            var functionField = mock(ExpressionField.class);
+            lenient().when(functionField.getFieldName()).thenReturn("computed");
+            lenient().when(functionField.getReference()).thenReturn(null);
+            lenient().when(functionField.getTemplate()).thenReturn(null);
+            lenient().when(functionField.getConstant()).thenReturn(null);
+            lenient().when(functionField.getFunctionValue()).thenReturn(mock(TriplesMap.class));
+
+            var regularField = expressionField("id", "$.id");
+
+            var fields = new LinkedHashSet<Field>();
+            fields.add(regularField);
+            fields.add(functionField);
+
+            var view = createJsonViewWithFields("data.json", "$.items[*]", fields);
+            var context = EvaluationContext.defaults();
+
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
+
+            // Regular field is compiled to SQL
+            assertThat(sql, containsString("json_extract_string(\"view_source\".\"__iter\", '$.id') \"id\""));
+            // Function-based field is NOT in the SQL (skipped for source evaluation fallback)
+            assertThat(sql, not(containsString("\"computed\"")));
+            // __iter is included for fallback evaluation
+            assertThat(sql, containsString("\"__iter\" \"__iter\""));
+        }
+
+        @Test
+        void compile_functionFieldWithCsvSource_throwsUnsupportedOperationException() {
+            var functionField = mock(ExpressionField.class);
+            when(functionField.getFieldName()).thenReturn("computed");
+            when(functionField.getReference()).thenReturn(null);
+            when(functionField.getTemplate()).thenReturn(null);
+            when(functionField.getConstant()).thenReturn(null);
+            when(functionField.getFunctionValue()).thenReturn(mock(TriplesMap.class));
+
+            var view = createCsvView("data.csv", Set.of(functionField));
+            var context = EvaluationContext.defaults();
+
+            // CSV sources have no source evaluation column, so the UnsupportedOperationException
+            // is propagated instead of being caught and skipped
+            assertThrows(UnsupportedOperationException.class, () -> DuckDbViewCompiler.compile(view, context));
+        }
+
+        @Test
+        void compile_allFieldsUnsupported_producesQueryWithNoValueFields() {
+            var functionField = mock(ExpressionField.class);
+            lenient().when(functionField.getFieldName()).thenReturn("computed");
+            lenient().when(functionField.getReference()).thenReturn(null);
+            lenient().when(functionField.getTemplate()).thenReturn(null);
+            lenient().when(functionField.getConstant()).thenReturn(null);
+            lenient().when(functionField.getFunctionValue()).thenReturn(mock(TriplesMap.class));
+
+            var view = createJsonViewWithFields("data.json", "$.items[*]", Set.of(functionField));
+            var context = EvaluationContext.defaults();
+
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
+
+            // No value fields in the SQL (all skipped)
+            assertThat(sql, not(containsString("\"computed\"")));
+            // __iter is still included for fallback evaluation
+            assertThat(sql, containsString("\"__iter\" \"__iter\""));
+            // Index column is still present
+            assertThat(sql, containsString("\"" + DuckDbViewCompiler.INDEX_COLUMN + "\""));
         }
     }
 }

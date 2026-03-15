@@ -157,6 +157,39 @@ class DuckDbLogicalViewEvaluatorTest {
                     })
                     .verifyComplete();
         }
+
+        @Test
+        void evaluate_jsonIteratorSource_populatesSourceEvaluation() throws IOException {
+            var jsonFile = tempDir.resolve("fallback.json");
+            Files.writeString(jsonFile, """
+                    {"people": [
+                        {"name": "Alice", "extra": "x1"},
+                        {"name": "Bob", "extra": "x2"}
+                    ]}""");
+
+            // Only "$.name" is a compiled view field; "$.extra" is not in the view
+            var view = createJsonView(jsonFile.toString(), "$.people[*]", Set.of(expressionField("name", "$.name")));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(
+                            evaluator.evaluate(view, source -> null, context).collectList())
+                    .assertNext(iterations -> {
+                        assertThat(iterations, hasSize(2));
+
+                        var first = iterations.get(0);
+                        assertThat(first.getValue("name"), is(Optional.of("Alice")));
+                        // Source evaluation is populated because __iter was projected
+                        assertThat(first.getSourceEvaluation().isPresent(), is(true));
+                        // Source evaluation can evaluate expressions not in view fields
+                        assertThat(first.getSourceEvaluation().get().apply("$.extra"), is(Optional.of("x1")));
+
+                        var second = iterations.get(1);
+                        assertThat(second.getSourceEvaluation().isPresent(), is(true));
+                        assertThat(second.getSourceEvaluation().get().apply("$.extra"), is(Optional.of("x2")));
+                    })
+                    .verifyComplete();
+        }
     }
 
     // --- JSON bracket notation tests ---
