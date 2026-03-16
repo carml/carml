@@ -127,6 +127,58 @@
 			<scope>test</scope>
 		</dependency>
 
+		<!-- Benchmark dependencies: end-to-end RdfRmlMapper execution -->
+		<dependency>
+			<groupId>io.carml</groupId>
+			<artifactId>carml-engine</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>io.carml</groupId>
+			<artifactId>carml-logical-source-resolver-jsonpath</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>io.carml</groupId>
+			<artifactId>carml-logical-source-resolver-csv</artifactId>
+			<scope>test</scope>
+		</dependency>
+
 	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<excludes>
+						<exclude>**/benchmark/**</exclude>
+					</excludes>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+	<profiles>
+		<profile>
+			<id>benchmark</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<configuration combine.self="override">
+							<includes>
+								<include>**/benchmark/*BenchmarkTest.java</include>
+							</includes>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 
 </project>
