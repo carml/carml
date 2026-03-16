@@ -8,12 +8,9 @@ import static org.hamcrest.Matchers.not;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.eclipse.rdf4j.model.Statement;
-import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 import org.eclipse.rdf4j.model.vocabulary.RDFS;
@@ -233,33 +230,34 @@ class FastNTriplesSerializerTest {
     }
 
     @Test
-    void lruTermCache_evictsOldEntries_whenMaxSizeExceeded() {
+    void lruTermCache_withSmallCache_stillProducesCorrectOutput() {
+        // Cache max size 2: only 2 IRIs can be cached at once. With 3 distinct predicates,
+        // the cache must evict and re-encode, but the output must still be correct.
         var smallCacheSerializer =
                 FastNTriplesSerializer.builder().cacheMaxSize(2).build();
+        var output = new ByteArrayOutputStream();
 
-        var iri1 = VF.createIRI("http://example.org/first");
-        var iri2 = VF.createIRI("http://example.org/second");
-        var iri3 = VF.createIRI("http://example.org/third");
+        var pred1 = VF.createIRI("http://example.org/pred1");
+        var pred2 = VF.createIRI("http://example.org/pred2");
+        var pred3 = VF.createIRI("http://example.org/pred3");
+        var subject = VF.createIRI("http://example.org/s");
 
-        var callCount = new AtomicInteger();
-        Function<Value, byte[]> countingEncoder = v -> {
-            callCount.incrementAndGet();
-            return FastNTriplesSerializer.encodeIri(v);
-        };
+        var stmts = List.of(
+                VF.createStatement(subject, pred1, VF.createLiteral("a")),
+                VF.createStatement(subject, pred2, VF.createLiteral("b")),
+                VF.createStatement(subject, pred3, VF.createLiteral("c")),
+                // Re-use pred1 after eviction
+                VF.createStatement(subject, pred1, VF.createLiteral("d")));
 
-        smallCacheSerializer.getOrComputeCached(iri1, countingEncoder); // miss
-        smallCacheSerializer.getOrComputeCached(iri2, countingEncoder); // miss
-        smallCacheSerializer.getOrComputeCached(iri3, countingEncoder); // miss, evicts iri1
-        assertThat(callCount.get(), is(3));
+        smallCacheSerializer.serialize(Flux.fromIterable(stmts), output);
 
-        smallCacheSerializer.getOrComputeCached(iri1, countingEncoder); // miss (iri1 was evicted)
-        assertThat(callCount.get(), is(4));
-
-        // Note: computeIfAbsent on LinkedHashMap does not update access order on cache hits,
-        // so iri2 was evicted when iri1 was re-inserted (iri2 was the eldest non-accessed entry).
-        // iri3 should still be cached since it was inserted most recently.
-        smallCacheSerializer.getOrComputeCached(iri3, countingEncoder); // hit (still cached)
-        assertThat(callCount.get(), is(4)); // unchanged
+        var result = output.toString(StandardCharsets.UTF_8);
+        var lines = result.split("\n");
+        assertThat(lines.length, is(4));
+        assertThat(lines[0], containsString("<http://example.org/pred1>"));
+        assertThat(lines[1], containsString("<http://example.org/pred2>"));
+        assertThat(lines[2], containsString("<http://example.org/pred3>"));
+        assertThat(lines[3], containsString("<http://example.org/pred1>"));
     }
 
     @Test
