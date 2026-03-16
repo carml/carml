@@ -115,7 +115,7 @@ public final class MappingResolver {
         var refObjectMapPrefixes = wrapResult.refObjectMapPrefixes();
         var expressionToTermMap = buildExpressionToTermMap(triplesMap);
         var fieldOrigins = buildFieldOrigins(triplesMap, syntheticView, expressionToTermMap);
-        var evaluationContext = EvaluationContext.forImplicitView(limit);
+        var evaluationContext = EvaluationContext.forImplicitView(limit, wrapResult.aggregatingJoins());
         return ResolvedMapping.of(
                 triplesMap, syntheticView, true, fieldOrigins, evaluationContext, dependencies, refObjectMapPrefixes);
     }

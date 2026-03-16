@@ -72,6 +72,7 @@ public class RdfPredicateObjectMapper {
      * @param pom the predicate-object map
      * @param triplesMap the TriplesMap containing the POM
      * @param rdfMapperConfig the mapper configuration
+     * @param rdfTermGeneratorFactory the term generator factory (may include refObjectMapPrefixes)
      * @param refObjectMapPrefixes mapping from each handled RefObjectMap to its expression prefix
      * @return a new {@link RdfPredicateObjectMapper} for the view path
      */
@@ -79,9 +80,9 @@ public class RdfPredicateObjectMapper {
             PredicateObjectMap pom,
             TriplesMap triplesMap,
             RdfMapperConfig rdfMapperConfig,
+            RdfTermGeneratorFactory rdfTermGeneratorFactory,
             Map<RefObjectMap, String> refObjectMapPrefixes) {
 
-        var rdfTermGeneratorFactory = (RdfTermGeneratorFactory) rdfMapperConfig.getTermGeneratorFactory();
         var graphGenerators = RdfTriplesMapper.createGraphGenerators(pom.getGraphMaps(), rdfTermGeneratorFactory);
         var predicateGenerators = createPredicateGenerators(pom, triplesMap, rdfTermGeneratorFactory);
         var objectMaps = pom.getObjectMaps();

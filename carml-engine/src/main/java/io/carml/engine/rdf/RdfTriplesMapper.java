@@ -148,10 +148,10 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
      * {@link #map(ViewIteration)}; the {@link LogicalSourceResolver.ExpressionEvaluationFactory}
      * is a no-op stub and must never be invoked.
      *
-     * @param triplesMap the LV-based TriplesMap
-     * @param rdfMapperConfig the mapper configuration
+     * @param triplesMap           the LV-based TriplesMap
+     * @param rdfMapperConfig      the mapper configuration
      * @param refObjectMapPrefixes mapping from RefObjectMaps to their expression prefixes for
-     *     joined RefObjectMap resolution via view left joins
+     *                             joined RefObjectMap resolution via view left joins
      * @return a mapper wired for view iteration mapping only
      */
     static RdfTriplesMapper<Object> ofForView(
@@ -163,9 +163,17 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
             LOG.debug("Creating LV mapper for TriplesMap {}", triplesMap.getResourceName());
         }
 
+        // Create a view-specific RdfTermGeneratorFactory with refObjectMapPrefixes so that
+        // gather maps with joined RefObjectMaps can resolve parent expressions via view left joins
+        var baseFactory = (RdfTermGeneratorFactory) rdfMapperConfig.getTermGeneratorFactory();
+        var rdfTermGeneratorFactory = refObjectMapPrefixes.isEmpty()
+                ? baseFactory
+                : baseFactory.withRefObjectMapPrefixes(refObjectMapPrefixes);
+
         var subjectMappers = createSubjectMappers(triplesMap, rdfMapperConfig);
         var predicateObjectMappers = triplesMap.getPredicateObjectMaps().stream()
-                .map(pom -> RdfPredicateObjectMapper.forView(pom, triplesMap, rdfMapperConfig, refObjectMapPrefixes))
+                .map(pom -> RdfPredicateObjectMapper.forView(
+                        pom, triplesMap, rdfMapperConfig, rdfTermGeneratorFactory, refObjectMapPrefixes))
                 .collect(toUnmodifiableSet());
 
         // No-op factory — never invoked; only map(ViewIteration) is called on LV mappers.
@@ -219,7 +227,7 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
     }
 
     @Override
-    public TriplesMap getTriplesMap() {
+    public @org.jspecify.annotations.NonNull TriplesMap getTriplesMap() {
         return triplesMap;
     }
 
@@ -269,14 +277,16 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
         fireMappingStartOnce();
         recordsProcessed = true;
         viewIterationUsed = true;
-        // Strict mode tracking is not applied here — ViewIterationExpressionEvaluation validates
-        // referenced keys eagerly in apply(), so unmatched references are caught immediately.
-        var viewEvaluation = new ViewIterationExpressionEvaluation(viewIteration, viewIteration.getKeys());
+        // Use schema-level referenceable keys for validation when available; otherwise fall back
+        // to the row's actual keys. Schema-level keys enable strict validation of field references,
+        // catching typos and invalid references (e.g., "Name" when the view field is "name").
+        var referenceableKeys = viewIteration.getReferenceableKeys().orElse(viewIteration.getKeys());
+        var viewEvaluation = new ViewIterationExpressionEvaluation(viewIteration, referenceableKeys);
         // Fall back to the source-level expression evaluation for expressions not captured as
         // view fields (e.g., gather map references that must retain multi-valued results).
         ExpressionEvaluation baseEvaluation = viewIteration
                 .getSourceEvaluation()
-                .<ExpressionEvaluation>map(sourceEval -> withSourceFallback(viewEvaluation, sourceEval))
+                .map(sourceEval -> withSourceFallback(viewEvaluation, sourceEval))
                 .orElse(viewEvaluation);
         var expressionEvaluation = resolvedMapping != null ? enrichingEvaluation(baseEvaluation) : baseEvaluation;
         return mapEvaluation(expressionEvaluation, viewIteration::getNaturalDatatype)

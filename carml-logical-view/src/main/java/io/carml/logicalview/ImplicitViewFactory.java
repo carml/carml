@@ -1,5 +1,6 @@
 package io.carml.logicalview;
 
+import io.carml.model.BaseObjectMap;
 import io.carml.model.Field;
 import io.carml.model.LogicalSource;
 import io.carml.model.LogicalView;
@@ -19,6 +20,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Creates synthetic {@link LogicalView} instances that wrap bare {@link LogicalSource} mappings.
@@ -36,7 +38,8 @@ public class ImplicitViewFactory {
      * @param refObjectMapPrefixes mapping from each handled RefObjectMap to its expression prefix
      *     (e.g. {@code "_ref0."})
      */
-    public record WrapResult(LogicalView view, Map<RefObjectMap, String> refObjectMapPrefixes) {}
+    public record WrapResult(
+            LogicalView view, Map<RefObjectMap, String> refObjectMapPrefixes, Set<LogicalViewJoin> aggregatingJoins) {}
 
     /**
      * Wraps a TriplesMap's bare LogicalSource in a synthetic LogicalView. RefObjectMaps with
@@ -59,26 +62,36 @@ public class ImplicitViewFactory {
                     .fields(fields)
                     .build();
 
-            return new WrapResult(view, Map.of());
+            return new WrapResult(view, Map.of(), Set.of());
         }
 
         // Collect RefObjectMaps with non-empty join conditions that are not self-joining
         var joiningRefObjectMaps = collectJoiningRefObjectMaps(triplesMap);
 
-        if (joiningRefObjectMaps.isEmpty()) {
+        // Collect RefObjectMaps from rml:gather with non-empty join conditions.
+        // These need aggregating joins that collect all matching parent values into lists.
+        var gatherJoiningRefObjectMaps = collectGatherJoiningRefObjectMaps(triplesMap);
+        var aggregatingRoms = new LinkedHashSet<>(gatherJoiningRefObjectMaps);
+
+        // Combine both lists, deduplicating
+        var allJoiningRoms = new LinkedHashSet<>(joiningRefObjectMaps);
+        allJoiningRoms.addAll(gatherJoiningRefObjectMaps);
+
+        if (allJoiningRoms.isEmpty()) {
             var view = CarmlLogicalView.builder()
                     .viewOn(logicalSource)
                     .fields(fields)
                     .build();
 
-            return new WrapResult(view, Map.of());
+            return new WrapResult(view, Map.of(), Set.of());
         }
 
         // Sort deterministically for stable prefix assignment
-        var sortedRoms = sortRefObjectMaps(joiningRefObjectMaps);
+        var sortedRoms = sortRefObjectMaps(new ArrayList<>(allJoiningRoms));
 
         var refObjectMapPrefixes = new LinkedHashMap<RefObjectMap, String>();
         var leftJoins = new LinkedHashSet<LogicalViewJoin>();
+        var aggregatingJoins = new LinkedHashSet<LogicalViewJoin>();
 
         for (int i = 0; i < sortedRoms.size(); i++) {
             var rom = sortedRoms.get(i);
@@ -136,6 +149,9 @@ public class ImplicitViewFactory {
                     .build();
 
             leftJoins.add(leftJoin);
+            if (aggregatingRoms.contains(rom)) {
+                aggregatingJoins.add(leftJoin);
+            }
         }
 
         var view = CarmlLogicalView.builder()
@@ -144,7 +160,7 @@ public class ImplicitViewFactory {
                 .leftJoins(leftJoins)
                 .build();
 
-        return new WrapResult(view, Map.copyOf(refObjectMapPrefixes));
+        return new WrapResult(view, Map.copyOf(refObjectMapPrefixes), Set.copyOf(aggregatingJoins));
     }
 
     /**
@@ -162,6 +178,10 @@ public class ImplicitViewFactory {
         var allExpressions = new LinkedHashSet<>(triplesMap.getReferenceExpressionSet());
         allExpressions.removeAll(collectGatherExpressions(triplesMap));
         collectJoinlessParentExpressions(triplesMap, allExpressions);
+        // Include join condition child expressions from gather-based RefObjectMaps so they are
+        // available as view fields for join matching. These are not collected by TriplesMap's
+        // getReferenceExpressionSet() because the ROM is nested inside a gather map.
+        collectGatherJoinChildExpressions(triplesMap, allExpressions);
 
         return allExpressions.stream()
                 .map(expression -> (Field) CarmlExpressionField.builder()
@@ -177,11 +197,7 @@ public class ImplicitViewFactory {
      * all values at once) for container/collection generation.
      */
     private static Set<String> collectGatherExpressions(TriplesMap triplesMap) {
-        return triplesMap.getPredicateObjectMaps().stream()
-                .flatMap(pom -> pom.getObjectMaps().stream())
-                .filter(ObjectMap.class::isInstance)
-                .map(ObjectMap.class::cast)
-                .flatMap(om -> om.getGathers().stream())
+        return streamGatherItems(triplesMap)
                 .filter(ObjectMap.class::isInstance)
                 .map(ObjectMap.class::cast)
                 .map(ObjectMap::getExpressionMapExpressionSet)
@@ -210,6 +226,19 @@ public class ImplicitViewFactory {
         }
     }
 
+    /**
+     * Collects join condition child expressions from RefObjectMaps nested inside gather maps. These
+     * expressions must be included as view fields so they are available in the evaluated values map
+     * for join key matching. They are not collected by {@link TriplesMap#getReferenceExpressionSet()}
+     * because the ROM is nested inside a gather, not a direct objectMap of the POM.
+     */
+    private static void collectGatherJoinChildExpressions(TriplesMap triplesMap, Set<String> allExpressions) {
+        streamGatherRefObjectMaps(triplesMap)
+                .flatMap(rom -> rom.getJoinConditions().stream())
+                .flatMap(join -> join.getChildMap().getExpressionMapExpressionSet().stream())
+                .forEach(allExpressions::add);
+    }
+
     private static List<RefObjectMap> collectJoiningRefObjectMaps(TriplesMap triplesMap) {
         var result = new ArrayList<RefObjectMap>();
         for (var pom : triplesMap.getPredicateObjectMaps()) {
@@ -223,6 +252,40 @@ public class ImplicitViewFactory {
         }
 
         return result;
+    }
+
+    /**
+     * Collects RefObjectMaps from {@code rml:gather} that have non-empty join conditions. These
+     * require aggregating left joins: all matching parent values are collected into a list per child
+     * row. Self-joining ROMs are NOT filtered out here because gather semantics require cross-row
+     * resolution even for self-joins.
+     */
+    private static List<RefObjectMap> collectGatherJoiningRefObjectMaps(TriplesMap triplesMap) {
+        return streamGatherRefObjectMaps(triplesMap)
+                .filter(rom -> !rom.getJoinConditions().isEmpty())
+                .toList();
+    }
+
+    /**
+     * Streams all {@link RefObjectMap} instances nested inside {@code rml:gather} lists across all
+     * predicate-object maps of the given TriplesMap.
+     */
+    private static Stream<RefObjectMap> streamGatherRefObjectMaps(TriplesMap triplesMap) {
+        return streamGatherItems(triplesMap)
+                .filter(RefObjectMap.class::isInstance)
+                .map(RefObjectMap.class::cast);
+    }
+
+    /**
+     * Streams all gather items (both {@link ObjectMap} and {@link RefObjectMap}) from
+     * {@code rml:gather} lists across all predicate-object maps of the given TriplesMap.
+     */
+    private static Stream<BaseObjectMap> streamGatherItems(TriplesMap triplesMap) {
+        return triplesMap.getPredicateObjectMaps().stream()
+                .flatMap(pom -> pom.getObjectMaps().stream())
+                .filter(ObjectMap.class::isInstance)
+                .map(ObjectMap.class::cast)
+                .flatMap(om -> om.getGathers().stream());
     }
 
     /**

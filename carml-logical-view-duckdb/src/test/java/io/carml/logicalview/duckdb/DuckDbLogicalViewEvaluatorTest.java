@@ -170,7 +170,9 @@ class DuckDbLogicalViewEvaluatorTest {
             // Only "$.name" is a compiled view field; "$.extra" is not in the view
             var view = createJsonView(jsonFile.toString(), "$.people[*]", Set.of(expressionField("name", "$.name")));
             var evaluator = new DuckDbLogicalViewEvaluator(connection);
-            var context = EvaluationContext.defaults();
+            // Use forImplicitView to retain source evaluation (as the engine does for implicit views
+            // that need source-level fallback for gather expressions)
+            var context = EvaluationContext.forImplicitView(null);
 
             StepVerifier.create(
                             evaluator.evaluate(view, source -> null, context).collectList())
@@ -187,6 +189,61 @@ class DuckDbLogicalViewEvaluatorTest {
                         var second = iterations.get(1);
                         assertThat(second.getSourceEvaluation().isPresent(), is(true));
                         assertThat(second.getSourceEvaluation().get().apply("$.extra"), is(Optional.of("x2")));
+                    })
+                    .verifyComplete();
+        }
+
+        @Test
+        void evaluate_jsonSource_populatesReferenceableKeys() throws IOException {
+            var jsonFile = tempDir.resolve("refkeys.json");
+            Files.writeString(jsonFile, """
+                    [
+                        {"name": "Alice", "age": 30}
+                    ]""");
+
+            var view = createJsonView(
+                    jsonFile.toString(), null, Set.of(expressionField("name", "name"), expressionField("age", "age")));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(
+                            evaluator.evaluate(view, source -> null, context).collectList())
+                    .assertNext(iterations -> {
+                        assertThat(iterations, hasSize(1));
+
+                        var first = iterations.get(0);
+                        var refKeys = first.getReferenceableKeys();
+                        assertThat(refKeys.isPresent(), is(true));
+                        var keys = refKeys.get();
+                        assertThat(keys.contains("name"), is(true));
+                        assertThat(keys.contains("age"), is(true));
+                        assertThat(keys.contains("#"), is(true));
+                        assertThat(keys.contains("name.#"), is(true));
+                        assertThat(keys.contains("age.#"), is(true));
+                        // <it> and internal keys should not be referenceable
+                        assertThat(keys.contains("<it>"), is(false));
+                    })
+                    .verifyComplete();
+        }
+
+        @Test
+        void evaluate_jsonSource_withoutRetainSourceEval_doesNotPopulateSourceEvaluation() throws IOException {
+            var jsonFile = tempDir.resolve("nosource.json");
+            Files.writeString(jsonFile, """
+                    {"people": [
+                        {"name": "Alice"}
+                    ]}""");
+
+            var view = createJsonView(jsonFile.toString(), "$.people[*]", Set.of(expressionField("name", "$.name")));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            // defaults() has retainSourceEvaluation=false
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(
+                            evaluator.evaluate(view, source -> null, context).collectList())
+                    .assertNext(iterations -> {
+                        assertThat(iterations, hasSize(1));
+                        assertThat(iterations.get(0).getSourceEvaluation().isPresent(), is(false));
                     })
                     .verifyComplete();
         }

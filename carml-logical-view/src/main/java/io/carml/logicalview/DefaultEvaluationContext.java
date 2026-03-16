@@ -1,5 +1,6 @@
 package io.carml.logicalview;
 
+import io.carml.model.LogicalViewJoin;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
@@ -22,6 +23,9 @@ class DefaultEvaluationContext implements EvaluationContext {
 
     @Builder.Default
     private final boolean retainSourceEvaluation = false;
+
+    @Builder.Default
+    private final Set<LogicalViewJoin> aggregatingJoins = Set.of();
 
     @Override
     public Set<String> getProjectedFields() {
@@ -51,5 +55,10 @@ class DefaultEvaluationContext implements EvaluationContext {
     @Override
     public boolean retainSourceEvaluation() {
         return retainSourceEvaluation;
+    }
+
+    @Override
+    public Set<LogicalViewJoin> getAggregatingJoins() {
+        return aggregatingJoins;
     }
 }

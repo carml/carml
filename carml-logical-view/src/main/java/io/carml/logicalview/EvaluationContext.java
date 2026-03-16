@@ -1,5 +1,6 @@
 package io.carml.logicalview;
 
+import io.carml.model.LogicalViewJoin;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
@@ -64,6 +65,17 @@ public interface EvaluationContext {
     }
 
     /**
+     * Returns the set of logical view joins that should use aggregating semantics. Aggregating joins
+     * collect all matching parent values into list-valued fields per child row (for
+     * {@code rml:gather} with joined RefObjectMaps), instead of producing row multiplication.
+     *
+     * @return the set of aggregating joins, empty if none
+     */
+    default Set<LogicalViewJoin> getAggregatingJoins() {
+        return Set.of();
+    }
+
+    /**
      * Returns a default batch evaluation context with all fields projected, no deduplication, no
      * join window, and no limit.
      *
@@ -118,11 +130,24 @@ public interface EvaluationContext {
      * @throws IllegalArgumentException if limit is non-null and not positive
      */
     static EvaluationContext forImplicitView(Long limit) {
+        return forImplicitView(limit, Set.of());
+    }
+
+    /**
+     * Creates an evaluation context for an implicit (synthetic) view with aggregating joins.
+     *
+     * @param limit the maximum number of iterations to produce, or {@code null} for no limit
+     * @param aggregatingJoins the set of joins that should use aggregating semantics
+     * @return a new evaluation context for an implicit view
+     * @throws IllegalArgumentException if limit is non-null and not positive
+     */
+    static EvaluationContext forImplicitView(Long limit, Set<LogicalViewJoin> aggregatingJoins) {
         if (limit != null && limit <= 0) {
             throw new IllegalArgumentException(LIMIT_MUST_BE_POSITIVE.formatted(limit));
         }
         return DefaultEvaluationContext.builder()
                 .retainSourceEvaluation(true)
+                .aggregatingJoins(Set.copyOf(aggregatingJoins))
                 .limit(limit)
                 .build();
     }

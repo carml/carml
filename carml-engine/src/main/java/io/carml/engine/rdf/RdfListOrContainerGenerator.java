@@ -15,12 +15,14 @@ import io.carml.model.GatherMap;
 import io.carml.model.ObjectMap;
 import io.carml.model.RefObjectMap;
 import io.carml.vocab.Rdf.Rml;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
-import lombok.AllArgsConstructor;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Value;
@@ -28,15 +30,40 @@ import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.util.ModelCollector;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 
-@AllArgsConstructor(staticName = "of")
 public class RdfListOrContainerGenerator
         implements BiFunction<ExpressionEvaluation, DatatypeMapper, List<MappedValue<Value>>> {
 
-    private GatherMap gatherMap;
+    private final GatherMap gatherMap;
 
-    private ValueFactory valueFactory;
+    private final ValueFactory valueFactory;
 
-    private RdfTermGeneratorFactory rdfTermGeneratorFactory;
+    private final RdfTermGeneratorFactory rdfTermGeneratorFactory;
+
+    private final Map<RefObjectMap, String> refObjectMapPrefixes;
+
+    private RdfListOrContainerGenerator(
+            GatherMap gatherMap,
+            ValueFactory valueFactory,
+            RdfTermGeneratorFactory rdfTermGeneratorFactory,
+            Map<RefObjectMap, String> refObjectMapPrefixes) {
+        this.gatherMap = gatherMap;
+        this.valueFactory = valueFactory;
+        this.rdfTermGeneratorFactory = rdfTermGeneratorFactory;
+        this.refObjectMapPrefixes = refObjectMapPrefixes;
+    }
+
+    public static RdfListOrContainerGenerator of(
+            GatherMap gatherMap, ValueFactory valueFactory, RdfTermGeneratorFactory rdfTermGeneratorFactory) {
+        return new RdfListOrContainerGenerator(gatherMap, valueFactory, rdfTermGeneratorFactory, Map.of());
+    }
+
+    public static RdfListOrContainerGenerator of(
+            GatherMap gatherMap,
+            ValueFactory valueFactory,
+            RdfTermGeneratorFactory rdfTermGeneratorFactory,
+            Map<RefObjectMap, String> refObjectMapPrefixes) {
+        return new RdfListOrContainerGenerator(gatherMap, valueFactory, rdfTermGeneratorFactory, refObjectMapPrefixes);
+    }
 
     @Override
     public List<MappedValue<Value>> apply(ExpressionEvaluation expressionEvaluation, DatatypeMapper datatypeMapper) {
@@ -85,8 +112,7 @@ public class RdfListOrContainerGenerator
 
         if (gatherItem instanceof RefObjectMap refObjectMap) {
             if (!refObjectMap.getJoinConditions().isEmpty()) {
-                throw new TermGeneratorFactoryException("Joined RefObjectMap in rml:gather is not yet supported. "
-                        + "Only joinless RefObjectMaps (without rml:joinCondition) are supported in gather maps.");
+                return createJoinedRefObjectMapGatherGenerator(refObjectMap);
             }
 
             // Joinless RefObjectMap: generate parent subjects from the current row's expression
@@ -104,6 +130,69 @@ public class RdfListOrContainerGenerator
 
         throw new TermGeneratorFactoryException("Unsupported gather item type: %s"
                 .formatted(gatherItem.getClass().getSimpleName()));
+    }
+
+    /**
+     * Creates a term generator for a joined RefObjectMap within a gather map. The aggregating join
+     * provides list-valued fields (all matching parent values for each child row). This generator
+     * iterates over the list positions and generates one parent subject per position.
+     */
+    @SuppressWarnings("unchecked")
+    private TermGenerator<Value> createJoinedRefObjectMapGatherGenerator(RefObjectMap refObjectMap) {
+        var prefix = refObjectMapPrefixes.get(refObjectMap);
+        if (prefix == null) {
+            throw new TermGeneratorFactoryException("No prefix found for joined RefObjectMap in gather. "
+                    + "Ensure ImplicitViewFactory processes gather joining RefObjectMaps.");
+        }
+
+        // Adapt parent SubjectMaps with the expression prefix
+        var adaptedSubjectGenerators = refObjectMap.getParentTriplesMap().getSubjectMaps().stream()
+                .map(sm -> sm.applyExpressionAdapter(expr -> prefix + expr))
+                .map(rdfTermGeneratorFactory::getSubjectGenerator)
+                .toList();
+
+        // Collect all prefixed expressions to determine list size
+        var prefixedExpressions = refObjectMap.getParentTriplesMap().getSubjectMaps().stream()
+                .flatMap(sm -> sm.getExpressionMapExpressionSet().stream())
+                .map(expr -> prefix + expr)
+                .sorted()
+                .toList();
+
+        return (expressionEvaluation, datatypeMapper) -> {
+            if (prefixedExpressions.isEmpty()) {
+                return List.of();
+            }
+
+            // Determine list size from first prefixed expression
+            var firstValues = expressionEvaluation
+                    .apply(prefixedExpressions.get(0))
+                    .map(ExpressionEvaluation::extractValues)
+                    .orElse(List.of());
+
+            int listSize = firstValues.size();
+            if (listSize == 0) {
+                return List.of();
+            }
+
+            // For each position, create a per-position evaluation and generate subjects
+            var results = new ArrayList<MappedValue<Value>>();
+            for (int i = 0; i < listSize; i++) {
+                final int pos = i;
+                // Create an expression evaluation that returns scalar value at position pos
+                ExpressionEvaluation posEval =
+                        expr -> expressionEvaluation.apply(expr).flatMap(obj -> {
+                            var vals = ExpressionEvaluation.extractValues(obj);
+                            return pos < vals.size() ? Optional.of(vals.get(pos)) : Optional.empty();
+                        });
+
+                for (var gen : adaptedSubjectGenerators) {
+                    gen.apply(posEval, datatypeMapper).stream()
+                            .map(mv -> (MappedValue<Value>) (MappedValue<?>) mv)
+                            .forEach(results::add);
+                }
+            }
+            return results;
+        };
     }
 
     private List<MappedValue<Value>> handleEmpty() {

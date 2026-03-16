@@ -28,6 +28,7 @@ import io.carml.model.impl.CarmlTemplate;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -68,6 +69,8 @@ import org.jooq.impl.DSL;
 public final class DuckDbViewCompiler {
 
     static final String INDEX_COLUMN = "__idx";
+
+    private static final String SUBQUERY_TEMPLATE = "({0})";
 
     private static final String CTE_ALIAS = "view_source";
 
@@ -174,8 +177,13 @@ public final class DuckDbViewCompiler {
         var annotations = view.getStructuralAnnotations();
         var notNullFieldNames = extractNotNullFieldNames(annotations);
 
-        var joinDescriptors =
-                compileJoins(view, annotations, notNullFieldNames, context.getProjectedFields(), strategy);
+        var joinDescriptors = compileJoins(
+                view,
+                annotations,
+                notNullFieldNames,
+                context.getProjectedFields(),
+                context.getAggregatingJoins(),
+                strategy);
 
         // Determine whether DISTINCT is needed, considering annotation-based optimization
         var dedupRequested = !NONE_DEDUP_CLASS.isInstance(context.getDedupStrategy());
@@ -727,6 +735,7 @@ public final class DuckDbViewCompiler {
             Set<StructuralAnnotation> annotations,
             Set<String> notNullFieldNames,
             Set<String> projectedFields,
+            Set<LogicalViewJoin> aggregatingJoins,
             DuckDbSourceStrategy strategy) {
         var joinDescriptors = new ArrayList<JoinDescriptor>();
         int parentIndex = 0;
@@ -740,7 +749,8 @@ public final class DuckDbViewCompiler {
 
                 // Check if LEFT JOIN can be upgraded to INNER JOIN
                 var effectivelyLeftJoin = !canUpgradeToInnerJoin(viewJoin, notNullFieldNames);
-                joinDescriptors.add(compileJoinDescriptor(viewJoin, parentIndex++, effectivelyLeftJoin, strategy));
+                joinDescriptors.add(compileJoinDescriptor(
+                        viewJoin, parentIndex++, effectivelyLeftJoin, aggregatingJoins.contains(viewJoin), strategy));
             }
         }
 
@@ -751,7 +761,8 @@ public final class DuckDbViewCompiler {
                     continue;
                 }
 
-                joinDescriptors.add(compileJoinDescriptor(viewJoin, parentIndex++, false, strategy));
+                joinDescriptors.add(compileJoinDescriptor(
+                        viewJoin, parentIndex++, false, aggregatingJoins.contains(viewJoin), strategy));
             }
         }
 
@@ -764,17 +775,31 @@ public final class DuckDbViewCompiler {
      * <p>The parent logical view is recursively compiled with default evaluation context, and the
      * resulting SQL is wrapped as a subquery table. The ON condition is built from the join's
      * conditions, and the projected fields from the parent are added to the SELECT.
+     *
+     * <p>For aggregating joins (used by {@code rml:gather} with joined RefObjectMaps), the parent
+     * view is wrapped in a GROUP BY subquery that aggregates all parent values into DuckDB list
+     * columns, so a single child row gets a list of all matching parent values instead of row
+     * multiplication.
      */
     private static JoinDescriptor compileJoinDescriptor(
-            LogicalViewJoin viewJoin, int parentIndex, boolean isLeftJoin, DuckDbSourceStrategy strategy) {
+            LogicalViewJoin viewJoin,
+            int parentIndex,
+            boolean isLeftJoin,
+            boolean isAggregating,
+            DuckDbSourceStrategy strategy) {
         var parentView = viewJoin.getParentLogicalView();
         var parentAlias = PARENT_ALIAS_PREFIX + parentIndex;
 
         // Recursively compile the parent view
         var parentCompiledView = compile(parentView, EvaluationContext.defaults());
+        var parentSql = parentCompiledView.sql();
+
+        if (isAggregating) {
+            return compileAggregatingJoinDescriptor(viewJoin, parentSql, parentAlias, isLeftJoin, strategy);
+        }
 
         // Wrap as subquery table with alias
-        var parentTable = table("({0})", sql(parentCompiledView.sql())).as(quotedName(parentAlias));
+        var parentTable = table(SUBQUERY_TEMPLATE, sql(parentSql)).as(quotedName(parentAlias));
 
         // Build ON condition from join conditions
         var joinConditions = viewJoin.getJoinConditions();
@@ -792,6 +817,71 @@ public final class DuckDbViewCompiler {
                 joinFields.add(field(quotedName(parentAlias, f.getReference() + DuckDbSourceStrategy.TYPE_SUFFIX))
                         .as(quotedName(f.getFieldName() + DuckDbSourceStrategy.TYPE_SUFFIX)));
             }
+        }
+
+        return new JoinDescriptor(parentTable, onCondition, joinFields, isLeftJoin);
+    }
+
+    /**
+     * Compiles an aggregating join descriptor. Wraps the parent SQL in a GROUP BY subquery that
+     * uses DuckDB's {@code list()} aggregate to collect all values into list columns per group key.
+     */
+    private static JoinDescriptor compileAggregatingJoinDescriptor(
+            LogicalViewJoin viewJoin,
+            String parentSql,
+            String parentAlias,
+            boolean isLeftJoin,
+            DuckDbSourceStrategy strategy) {
+
+        // Determine GROUP BY fields from join condition parent references
+        var groupByRefs = viewJoin.getJoinConditions().stream()
+                .map(join -> join.getParentMap().getReference())
+                .sorted()
+                .distinct()
+                .toList();
+
+        // Determine projected (aggregated) fields from join data fields
+        var projectedRefs = viewJoin.getFields().stream()
+                .map(io.carml.model.ExpressionField::getReference)
+                .filter(Objects::nonNull)
+                .sorted()
+                .distinct()
+                .toList();
+
+        // Build the aggregating subquery:
+        // SELECT "groupByRef", list("projRef" ORDER BY "__idx") AS "projRef", ...
+        // FROM (<parentSql>) __agg GROUP BY "groupByRef"
+        // ORDER BY __idx preserves source row order and ensures all projected fields are
+        // sorted consistently (maintaining tuple correspondence across columns).
+        var aggAlias = "__agg";
+        var orderByField = field(quotedName(aggAlias, INDEX_COLUMN));
+        var aggSelects = new ArrayList<SelectField<?>>();
+        for (var groupByRef : groupByRefs) {
+            aggSelects.add(field(quotedName(aggAlias, groupByRef)));
+        }
+        for (var projRef : projectedRefs) {
+            var projField = field(quotedName(aggAlias, projRef));
+            aggSelects.add(
+                    DSL.field("list({0} order by {1})", projField, orderByField).as(quotedName(projRef)));
+        }
+
+        var groupByFields = groupByRefs.stream()
+                .map(ref -> field(quotedName(aggAlias, ref)))
+                .toArray(org.jooq.Field[]::new);
+
+        var aggQuery = CTX.select(aggSelects)
+                .from(table(SUBQUERY_TEMPLATE, sql(parentSql)).as(quotedName(aggAlias)))
+                .groupBy(groupByFields);
+
+        var parentTable = table(SUBQUERY_TEMPLATE, sql(aggQuery.getSQL())).as(quotedName(parentAlias));
+
+        // Build ON condition
+        var onCondition = buildJoinCondition(viewJoin.getJoinConditions(), parentAlias, strategy);
+
+        // Build SELECT fields — aggregated fields are already lists, no ordinal/type companions
+        var joinFields = new ArrayList<SelectField<?>>();
+        for (var f : viewJoin.getFields()) {
+            joinFields.add(compileJoinFieldExpression(parentAlias, f));
         }
 
         return new JoinDescriptor(parentTable, onCondition, joinFields, isLeftJoin);

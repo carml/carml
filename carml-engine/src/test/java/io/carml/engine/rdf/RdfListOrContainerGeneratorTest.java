@@ -65,7 +65,7 @@ class RdfListOrContainerGeneratorTest {
     @Test
     void handleEmpty_gatherAsList_returnsRdfNil() {
         // Given
-        when(gatherMap.getGathers()).thenReturn(List.<BaseObjectMap>of(objectMap));
+        when(gatherMap.getGathers()).thenReturn(List.of(objectMap));
         when(rdfTermGeneratorFactory.getObjectGenerator(objectMap)).thenReturn(objectGenerator);
         when(objectGenerator.apply(any(), any())).thenReturn(List.of());
         when(gatherMap.getAllowEmptyListAndContainer()).thenReturn(true);
@@ -85,7 +85,7 @@ class RdfListOrContainerGeneratorTest {
     @Test
     void handleEmpty_gatherAsBag_returnsEmptyTypedContainer() {
         // Given
-        when(gatherMap.getGathers()).thenReturn(List.<BaseObjectMap>of(objectMap));
+        when(gatherMap.getGathers()).thenReturn(List.of(objectMap));
         when(rdfTermGeneratorFactory.getObjectGenerator(objectMap)).thenReturn(objectGenerator);
         when(objectGenerator.apply(any(), any())).thenReturn(List.of());
         when(gatherMap.getAllowEmptyListAndContainer()).thenReturn(true);
@@ -112,7 +112,7 @@ class RdfListOrContainerGeneratorTest {
     @Test
     void handleEmpty_gatherAsSeq_returnsEmptyTypedContainer() {
         // Given
-        when(gatherMap.getGathers()).thenReturn(List.<BaseObjectMap>of(objectMap));
+        when(gatherMap.getGathers()).thenReturn(List.of(objectMap));
         when(rdfTermGeneratorFactory.getObjectGenerator(objectMap)).thenReturn(objectGenerator);
         when(objectGenerator.apply(any(), any())).thenReturn(List.of());
         when(gatherMap.getAllowEmptyListAndContainer()).thenReturn(true);
@@ -138,7 +138,7 @@ class RdfListOrContainerGeneratorTest {
     @Test
     void handleEmpty_gatherAsAlt_returnsEmptyTypedContainer() {
         // Given
-        when(gatherMap.getGathers()).thenReturn(List.<BaseObjectMap>of(objectMap));
+        when(gatherMap.getGathers()).thenReturn(List.of(objectMap));
         when(rdfTermGeneratorFactory.getObjectGenerator(objectMap)).thenReturn(objectGenerator);
         when(objectGenerator.apply(any(), any())).thenReturn(List.of());
         when(gatherMap.getAllowEmptyListAndContainer()).thenReturn(true);
@@ -169,7 +169,7 @@ class RdfListOrContainerGeneratorTest {
         TermGenerator<Value> objectGenerator2 = org.mockito.Mockito.mock(TermGenerator.class);
 
         when(gatherMap.getStrategy()).thenReturn(Rml.cartesianProduct);
-        when(gatherMap.getGathers()).thenReturn(List.<BaseObjectMap>of(objectMap, objectMap2));
+        when(gatherMap.getGathers()).thenReturn(List.of(objectMap, objectMap2));
         when(rdfTermGeneratorFactory.getObjectGenerator(objectMap)).thenReturn(objectGenerator);
         when(rdfTermGeneratorFactory.getObjectGenerator(objectMap2)).thenReturn(objectGenerator2);
 
@@ -202,7 +202,7 @@ class RdfListOrContainerGeneratorTest {
     void nonAppendStrategy_withDuplicateValues_preservesDuplicates() {
         // Given
         when(gatherMap.getStrategy()).thenReturn(Rml.cartesianProduct);
-        when(gatherMap.getGathers()).thenReturn(List.<BaseObjectMap>of(objectMap));
+        when(gatherMap.getGathers()).thenReturn(List.of(objectMap));
         when(rdfTermGeneratorFactory.getObjectGenerator(objectMap)).thenReturn(objectGenerator);
 
         var val = RdfMappedValue.<Value>of(valueFactory.createLiteral("dup"));
@@ -243,7 +243,7 @@ class RdfListOrContainerGeneratorTest {
         when(refObjectMap.getJoinConditions()).thenReturn(Set.of());
         when(refObjectMap.getParentTriplesMap()).thenReturn(parentTriplesMap);
 
-        when(gatherMap.getGathers()).thenReturn(List.<BaseObjectMap>of(refObjectMap));
+        when(gatherMap.getGathers()).thenReturn(List.of(refObjectMap));
         when(gatherMap.getGatherAs()).thenReturn(RDF.LIST);
         when(gatherMap.getExpressionMapExpressionSet()).thenReturn(Set.of());
 
@@ -261,18 +261,69 @@ class RdfListOrContainerGeneratorTest {
     }
 
     @Test
-    void apply_givenJoinedRefObjectMapGather_throwsTermGeneratorFactoryException() {
-        // Given
+    void apply_givenJoinedRefObjectMapGather_withNoPrefixMap_throwsTermGeneratorFactoryException() {
+        // Given — joined ROM in gather but no refObjectMapPrefixes configured (misconfiguration)
         var join = mock(Join.class);
         var refObjectMap = mock(RefObjectMap.class);
         when(refObjectMap.getJoinConditions()).thenReturn(Set.of(join));
 
-        when(gatherMap.getGathers()).thenReturn(List.<BaseObjectMap>of(refObjectMap));
+        when(gatherMap.getGathers()).thenReturn(List.of(refObjectMap));
 
         var generator = RdfListOrContainerGenerator.of(gatherMap, valueFactory, rdfTermGeneratorFactory);
 
         // When / Then
         assertThrows(TermGeneratorFactoryException.class, () -> generator.apply(null, null));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void apply_givenJoinedRefObjectMapGather_withPrefixMap_returnsParentSubjects() {
+        // Given — joined ROM in gather with refObjectMapPrefixes configured
+        var join = mock(Join.class);
+        var refObjectMap = mock(RefObjectMap.class);
+        when(refObjectMap.getJoinConditions()).thenReturn(Set.of(join));
+
+        var parentTriplesMap = mock(TriplesMap.class);
+        var parentSubjectMap = mock(SubjectMap.class);
+        when(refObjectMap.getParentTriplesMap()).thenReturn(parentTriplesMap);
+        when(parentTriplesMap.getSubjectMaps()).thenReturn(Set.of(parentSubjectMap));
+        when(parentSubjectMap.getExpressionMapExpressionSet()).thenReturn(Set.of("ID"));
+        when(parentSubjectMap.applyExpressionAdapter(any())).thenReturn(parentSubjectMap);
+
+        // Subject generator returns one IRI per position evaluation
+        var parentSubjectGenerator = mock(TermGenerator.class);
+        when(rdfTermGeneratorFactory.getSubjectGenerator(parentSubjectMap)).thenReturn(parentSubjectGenerator);
+        var subject1 = RdfMappedValue.<Resource>of(valueFactory.createIRI("http://example.com/Student/10"));
+        var subject2 = RdfMappedValue.<Resource>of(valueFactory.createIRI("http://example.com/Student/20"));
+        when(parentSubjectGenerator.apply(any(), any()))
+                .thenReturn(List.of(subject1))
+                .thenReturn(List.of(subject2));
+
+        when(gatherMap.getGathers()).thenReturn(List.of(refObjectMap));
+        when(gatherMap.getGatherAs()).thenReturn(RDF.LIST);
+        when(gatherMap.getExpressionMapExpressionSet()).thenReturn(Set.of());
+
+        var headValue = RdfMappedValue.<Resource>of(valueFactory.createBNode("head1"));
+        when(subjectGenerator.apply(any(), any())).thenReturn(List.of(headValue));
+
+        var prefixes = java.util.Map.of(refObjectMap, "_ref0.");
+
+        // Expression evaluation returns aggregated list values for prefixed fields
+        io.carml.logicalsourceresolver.ExpressionEvaluation exprEval = expr -> {
+            if ("_ref0.ID".equals(expr)) {
+                return java.util.Optional.of(List.of("10", "20"));
+            }
+            return java.util.Optional.empty();
+        };
+
+        var generator = RdfListOrContainerGenerator.of(gatherMap, valueFactory, rdfTermGeneratorFactory, prefixes);
+
+        // When
+        var result = generator.apply(exprEval, null);
+
+        // Then — should produce one RDF list with 2 parent subjects
+        assertThat(result, hasSize(1));
+        assertThat(result.get(0), instanceOf(RdfList.class));
     }
 
     @Test
@@ -290,7 +341,7 @@ class RdfListOrContainerGeneratorTest {
     @Test
     void handleEmpty_allowEmptyFalse_returnsEmptyList() {
         // Given
-        when(gatherMap.getGathers()).thenReturn(List.<BaseObjectMap>of(objectMap));
+        when(gatherMap.getGathers()).thenReturn(List.of(objectMap));
         when(rdfTermGeneratorFactory.getObjectGenerator(objectMap)).thenReturn(objectGenerator);
         when(objectGenerator.apply(any(), any())).thenReturn(List.of());
         when(gatherMap.getAllowEmptyListAndContainer()).thenReturn(false);

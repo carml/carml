@@ -139,7 +139,8 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
         var evaluatedFlux = evaluateFieldsAndIndex(
                 exprEvalFlux, view.getFields(), rootRefForm, context, factoryResolver, inlineRecordParserResolver);
 
-        evaluatedFlux = applyJoins(evaluatedFlux, view, context.getProjectedFields(), sourceResolver);
+        evaluatedFlux = applyJoins(
+                evaluatedFlux, view, context.getProjectedFields(), context.getAggregatingJoins(), sourceResolver);
 
         // Convert to ViewIteration — root # already assigned before joins
         Flux<ViewIteration> viewIterations = evaluatedFlux.map(ev -> new DefaultViewIteration(
@@ -237,9 +238,12 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
             Flux<EvaluatedValues> evaluatedFlux,
             LogicalView view,
             Set<String> projectedFields,
+            Set<LogicalViewJoin> aggregatingJoins,
             Function<Source, ResolvedSource<?>> sourceResolver) {
-        evaluatedFlux = applyJoinSet(evaluatedFlux, view.getLeftJoins(), true, view, projectedFields, sourceResolver);
-        evaluatedFlux = applyJoinSet(evaluatedFlux, view.getInnerJoins(), false, view, projectedFields, sourceResolver);
+        evaluatedFlux = applyJoinSet(
+                evaluatedFlux, view.getLeftJoins(), true, view, projectedFields, aggregatingJoins, sourceResolver);
+        evaluatedFlux = applyJoinSet(
+                evaluatedFlux, view.getInnerJoins(), false, view, projectedFields, aggregatingJoins, sourceResolver);
         return evaluatedFlux;
     }
 
@@ -249,6 +253,7 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
             boolean leftJoin,
             LogicalView view,
             Set<String> projectedFields,
+            Set<LogicalViewJoin> aggregatingJoins,
             Function<Source, ResolvedSource<?>> sourceResolver) {
         if (joins == null) {
             return evaluatedFlux;
@@ -261,6 +266,7 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                         join,
                         leftJoin && !opts.effectiveInnerJoin(),
                         opts.singleMatch(),
+                        aggregatingJoins.contains(join),
                         sourceResolver);
             }
         }
@@ -332,7 +338,7 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
      * include expression field keys, index keys ({@code #}, {@code field.#}), and join field keys.
      * Iterable record keys and the root {@code <it>} key are excluded.
      */
-    static Set<String> collectReferenceableKeys(LogicalView view) {
+    public static Set<String> collectReferenceableKeys(LogicalView view) {
         var keys = collectAllFieldKeys(view);
         keys.add(INDEX_KEY);
         return Set.copyOf(keys);
@@ -692,6 +698,7 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
             LogicalViewJoin join,
             boolean isLeftJoin,
             boolean singleMatch,
+            boolean isAggregating,
             Function<Source, ResolvedSource<?>> sourceResolver) {
 
         var parentView = join.getParentLogicalView();
@@ -704,8 +711,18 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                             c -> c.getChildMap().getExpressionMapExpressionSet().toString()))
                     .toList();
             var joinIndex = buildJoinIndex(conditions, parentIterations, parentReferenceableKeys);
-            return childFlux.flatMapIterable(child -> matchAndExtend(
-                    child, conditions, join.getFields(), isLeftJoin, singleMatch, joinIndex, parentReferenceableKeys));
+            return childFlux.flatMapIterable(child -> {
+                var matched = resolveMatches(child, conditions, isLeftJoin, singleMatch, join.getFields(), joinIndex);
+                if (matched.isEmpty()) {
+                    return matched.nullExtension();
+                }
+                if (isAggregating) {
+                    return matchAndExtendAggregating(
+                            child, matched.sortedJoinFields(), matched.parents(), parentReferenceableKeys);
+                }
+                return matchAndExtendRegular(
+                        child, matched.sortedJoinFields(), matched.parents(), parentReferenceableKeys);
+            });
         });
     }
 
@@ -739,14 +756,25 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
         return key;
     }
 
-    private List<EvaluatedValues> matchAndExtend(
+    private record MatchResult(
+            List<ExpressionField> sortedJoinFields, List<ViewIteration> parents, List<EvaluatedValues> nullExtension) {
+
+        boolean isEmpty() {
+            return parents == null;
+        }
+    }
+
+    private MatchResult resolveMatches(
             EvaluatedValues child,
             List<Join> conditions,
-            Set<ExpressionField> joinFields,
             boolean isLeftJoin,
             boolean singleMatch,
-            JoinIndex<List<Object>, ViewIteration> joinIndex,
-            Set<String> parentReferenceableKeys) {
+            Set<ExpressionField> joinFields,
+            JoinIndex<List<Object>, ViewIteration> joinIndex) {
+
+        var sortedJoinFields = joinFields.stream()
+                .sorted(Comparator.comparing(ExpressionField::getFieldName))
+                .toList();
 
         // Build child key from EvaluatedValues — child field references point to field names in
         // child iteration values, so we use a simple lookup expression evaluation.
@@ -754,20 +782,28 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                 expression -> Optional.ofNullable(child.values().get(expression));
 
         var childKey = evaluateJoinKey(conditions, childExprEval, false);
+        List<ViewIteration> matchedParents;
         if (childKey.isEmpty()) {
-            return isLeftJoin ? List.of(extendWithNullJoinFields(child, joinFields)) : List.of();
+            matchedParents = List.of();
+        } else {
+            matchedParents = joinIndex.get(childKey);
         }
 
-        var matchedParents = joinIndex.get(childKey);
         if (matchedParents.isEmpty()) {
-            return isLeftJoin ? List.of(extendWithNullJoinFields(child, joinFields)) : List.of();
+            var nullExt =
+                    isLeftJoin ? List.of(extendWithNullJoinFields(child, joinFields)) : List.<EvaluatedValues>of();
+            return new MatchResult(sortedJoinFields, null, nullExt);
         }
 
         var effectiveParents = singleMatch ? matchedParents.subList(0, 1) : matchedParents;
+        return new MatchResult(sortedJoinFields, effectiveParents, List.of());
+    }
 
-        var sortedJoinFields = joinFields.stream()
-                .sorted(Comparator.comparing(ExpressionField::getFieldName))
-                .toList();
+    private List<EvaluatedValues> matchAndExtendRegular(
+            EvaluatedValues child,
+            List<ExpressionField> sortedJoinFields,
+            List<ViewIteration> effectiveParents,
+            Set<String> parentReferenceableKeys) {
 
         var result = new ArrayList<EvaluatedValues>();
         // Track running index per join field across all parent matches so that
@@ -819,6 +855,36 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
         }
 
         return result;
+    }
+
+    /**
+     * Aggregating match: instead of producing one row per matching parent, collects all matching
+     * parent values into a single list per join field, yielding a single extended child row.
+     */
+    private List<EvaluatedValues> matchAndExtendAggregating(
+            EvaluatedValues child,
+            List<ExpressionField> sortedJoinFields,
+            List<ViewIteration> effectiveParents,
+            Set<String> parentReferenceableKeys) {
+
+        var extendedValues = new LinkedHashMap<>(child.values());
+        var extendedDatatypes = new LinkedHashMap<>(child.naturalDatatypes());
+
+        for (var joinField : sortedJoinFields) {
+            var fieldName = joinField.getFieldName();
+            var allFieldValues = new ArrayList<>();
+
+            for (var parentIteration : effectiveParents) {
+                var parentExprEval = new ViewIterationExpressionEvaluation(parentIteration, parentReferenceableKeys);
+                var values = evaluateExpressionMap(joinField, parentExprEval);
+                allFieldValues.addAll(values);
+            }
+
+            extendedValues.put(fieldName, allFieldValues.isEmpty() ? null : allFieldValues);
+        }
+
+        return List.of(new EvaluatedValues(
+                extendedValues, child.referenceFormulations(), extendedDatatypes, child.sourceEvaluation()));
     }
 
     private static EvaluatedValues extendWithNullJoinFields(EvaluatedValues child, Set<ExpressionField> joinFields) {

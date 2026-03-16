@@ -62,4 +62,19 @@ public interface ViewIteration {
     default Optional<ExpressionEvaluation> getSourceEvaluation() {
         return Optional.empty();
     }
+
+    /**
+     * Returns the set of keys that are valid references for this iteration's logical view, if known.
+     * This is the schema-level set of declared field names (including index keys and join field keys)
+     * that a mapping is allowed to reference. When present, it enables strict validation that
+     * distinguishes truly invalid references from expressions that require source-level fallback
+     * evaluation (e.g., gather map references).
+     *
+     * <p>When empty, validation falls back to {@link #getKeys()} (all keys present in this row).
+     *
+     * @return an {@link Optional} containing the referenceable keys, or empty if not tracked
+     */
+    default Optional<Set<String>> getReferenceableKeys() {
+        return Optional.empty();
+    }
 }

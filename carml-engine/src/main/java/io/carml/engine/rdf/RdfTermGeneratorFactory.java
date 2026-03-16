@@ -16,17 +16,17 @@ import io.carml.model.GraphMap;
 import io.carml.model.LanguageMap;
 import io.carml.model.ObjectMap;
 import io.carml.model.PredicateMap;
+import io.carml.model.RefObjectMap;
 import io.carml.model.SubjectMap;
 import io.carml.model.TermMap;
 import io.carml.model.TermType;
 import io.carml.util.IriSafeMaker;
 import io.carml.util.RdfValues;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.UnaryOperator;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Literal;
@@ -37,7 +37,6 @@ import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.model.vocabulary.XSD;
 
 @Slf4j
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
 
     private static final ValueFactory SIMPLE_VALUE_FACTORY = SimpleValueFactory.getInstance();
@@ -50,6 +49,21 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
 
     private final UnaryOperator<String> makeUriSafe;
 
+    private final Map<RefObjectMap, String> refObjectMapPrefixes;
+
+    private RdfTermGeneratorFactory(
+            RdfTermGeneratorConfig rdfTermGeneratorConfig,
+            ValueFactory valueFactory,
+            UnaryOperator<String> makeIriSafe,
+            UnaryOperator<String> makeUriSafe,
+            Map<RefObjectMap, String> refObjectMapPrefixes) {
+        this.rdfTermGeneratorConfig = rdfTermGeneratorConfig;
+        this.valueFactory = valueFactory;
+        this.makeIriSafe = makeIriSafe;
+        this.makeUriSafe = makeUriSafe;
+        this.refObjectMapPrefixes = refObjectMapPrefixes;
+    }
+
     public static RdfTermGeneratorFactory of(RdfTermGeneratorConfig rdfTermGeneratorConfig) {
         return new RdfTermGeneratorFactory(
                 rdfTermGeneratorConfig,
@@ -57,7 +71,17 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
                 IriSafeMaker.create(
                         rdfTermGeneratorConfig.getNormalizationForm(),
                         rdfTermGeneratorConfig.isIriUpperCasePercentEncoding()),
-                IriSafeMaker.createUriSafe(rdfTermGeneratorConfig.getNormalizationForm()));
+                IriSafeMaker.createUriSafe(rdfTermGeneratorConfig.getNormalizationForm()),
+                Map.of());
+    }
+
+    /**
+     * Returns a new factory that includes the given RefObjectMap-to-prefix mappings. Used for
+     * LogicalView-based mappers where joined RefObjectMaps in gather maps need expression prefix
+     * resolution.
+     */
+    public RdfTermGeneratorFactory withRefObjectMapPrefixes(Map<RefObjectMap, String> prefixes) {
+        return new RdfTermGeneratorFactory(rdfTermGeneratorConfig, valueFactory, makeIriSafe, makeUriSafe, prefixes);
     }
 
     private void validateTermType(TermMap termMap, Set<TermType> allowedTermTypes) {
@@ -148,7 +172,8 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
     }
 
     private TermGenerator<? extends Value> getGatherMapGenerater(GatherMap gatherMap) {
-        return (expressionEvaluation, datatypeMapper) -> RdfListOrContainerGenerator.of(gatherMap, valueFactory, this)
+        return (expressionEvaluation, datatypeMapper) -> RdfListOrContainerGenerator.of(
+                        gatherMap, valueFactory, this, refObjectMapPrefixes)
                 .apply(expressionEvaluation, datatypeMapper);
     }
 
