@@ -1,30 +1,30 @@
 package io.carml.output;
 
-import java.io.ByteArrayOutputStream;
+import java.io.OutputStream;
 import org.eclipse.rdf4j.model.Statement;
 
 /**
- * A batch-oriented, byte-buffer based N-Triples serializer that bypasses Rio's per-statement
- * overhead.
+ * A high-throughput, byte-level N-Triples serializer that bypasses Rio's per-statement overhead.
  *
  * <p>Key optimizations over Rio's {@code NTriplesWriter}:
  * <ul>
  *   <li>Direct UTF-8 byte output -- no intermediate String, no OutputStreamWriter double-encoding</li>
- *   <li>Batch processing: serializes batches of statements into pre-allocated byte buffers</li>
- *   <li>Bounded LRU term cache for frequently repeated IRIs, blank nodes, and typed literals</li>
- *   <li>Batch serialization via reactive operators</li>
+ *   <li>Streaming output via {@link java.io.BufferedOutputStream} -- no per-batch byte array
+ *       allocation or copying</li>
+ *   <li>Bounded LRU term cache for frequently repeated IRIs and blank nodes</li>
+ *   <li>Streaming codepoint iteration for literal escaping -- no intermediate int[] allocation</li>
  * </ul>
  *
  * <p>Implements the <a href="https://www.w3.org/TR/n-triples/">W3C N-Triples</a> specification.
  *
  * <p><strong>Thread safety:</strong> Instances are not thread-safe. A single {@link #serialize}
- * call is safe (batches execute sequentially via {@code concatMap}), but concurrent
- * {@link #serialize} calls on the same instance will corrupt the LRU cache.
+ * call is safe (statements are written sequentially), but concurrent {@link #serialize} calls on
+ * the same instance will corrupt the LRU cache.
  */
 public final class FastNTriplesSerializer extends AbstractFastRdfSerializer {
 
-    private FastNTriplesSerializer(int batchSize, int cacheMaxSize) {
-        super(batchSize, cacheMaxSize);
+    private FastNTriplesSerializer(int cacheMaxSize) {
+        super(cacheMaxSize);
     }
 
     /**
@@ -47,13 +47,13 @@ public final class FastNTriplesSerializer extends AbstractFastRdfSerializer {
     }
 
     @Override
-    void writeStatement(Statement statement, ByteArrayOutputStream buffer) {
-        writeResource(statement.getSubject(), buffer);
-        writeBytes(SPACE, buffer);
-        writeValue(statement.getPredicate(), buffer);
-        writeBytes(SPACE, buffer);
-        writeValue(statement.getObject(), buffer);
-        writeBytes(DOT_NEWLINE, buffer);
+    void writeStatement(Statement statement, OutputStream output) {
+        writeResource(statement.getSubject(), output);
+        writeBytes(SPACE, output);
+        writeValue(statement.getPredicate(), output);
+        writeBytes(SPACE, output);
+        writeValue(statement.getObject(), output);
+        writeBytes(DOT_NEWLINE, output);
     }
 
     /**
@@ -70,7 +70,7 @@ public final class FastNTriplesSerializer extends AbstractFastRdfSerializer {
          */
         @Override
         public FastNTriplesSerializer build() {
-            return new FastNTriplesSerializer(batchSize, cacheMaxSize);
+            return new FastNTriplesSerializer(cacheMaxSize);
         }
     }
 }

@@ -194,32 +194,6 @@ class FastNTriplesSerializerTest {
     }
 
     @Test
-    void serialize_batchSizeConfiguration_respected() {
-        var smallBatchSerializer = FastNTriplesSerializer.builder().batchSize(2).build();
-        var output = new ByteArrayOutputStream();
-        var stmt1 = VF.createStatement(
-                VF.createIRI("http://example.org/s1"), RDF.TYPE, VF.createIRI("http://example.org/Thing"));
-        var stmt2 = VF.createStatement(
-                VF.createIRI("http://example.org/s2"), RDF.TYPE, VF.createIRI("http://example.org/Thing"));
-        var stmt3 = VF.createStatement(
-                VF.createIRI("http://example.org/s3"), RDF.TYPE, VF.createIRI("http://example.org/Thing"));
-
-        var count = smallBatchSerializer.serialize(Flux.just(stmt1, stmt2, stmt3), output);
-
-        assertThat(count, is(3L));
-    }
-
-    @Test
-    void builder_invalidBatchSize_throwsException() {
-        try {
-            FastNTriplesSerializer.builder().batchSize(0);
-            assertThat("Expected exception", is(not("Expected exception")));
-        } catch (IllegalArgumentException expected) {
-            assertThat(expected.getMessage(), is("Batch size must be positive, got 0"));
-        }
-    }
-
-    @Test
     void builder_invalidCacheMaxSize_throwsException() {
         try {
             FastNTriplesSerializer.builder().cacheMaxSize(-1);
@@ -343,14 +317,13 @@ class FastNTriplesSerializerTest {
 
     @Test
     void serialize_multipleFullBatches_preservesStatementOrder() {
-        var smallBatchSerializer = FastNTriplesSerializer.builder().batchSize(1).build();
         var output = new ByteArrayOutputStream();
         var stmts = IntStream.range(0, 5)
                 .mapToObj(i -> VF.createStatement(
                         VF.createIRI("http://example.org/s" + i), RDF.TYPE, VF.createIRI("http://example.org/T")))
                 .toList();
 
-        smallBatchSerializer.serialize(Flux.fromIterable(stmts), output);
+        serializer.serialize(Flux.fromIterable(stmts), output);
 
         var lines = output.toString(StandardCharsets.UTF_8).split("\n");
         assertThat(lines.length, is(5));
