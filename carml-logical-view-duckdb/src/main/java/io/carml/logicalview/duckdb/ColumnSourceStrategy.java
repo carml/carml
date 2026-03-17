@@ -51,7 +51,11 @@ record ColumnSourceStrategy(String cteAlias, TypeCompanionMode typeCompanionMode
 
     @Override
     public SelectField<?> compileFieldReference(String reference, Name fieldAlias) {
-        return field(quotedName(cteAlias, reference)).as(fieldAlias);
+        // Use template syntax to prevent jOOQ from stripping the table qualifier when
+        // the alias matches the column name. Without this, "view_source"."id" AS "id"
+        // can be simplified to just "id", causing ambiguous column errors when joins
+        // introduce identically-named columns from the parent table.
+        return DSL.field("{0}", field(quotedName(cteAlias, reference))).as(fieldAlias);
     }
 
     @Override
@@ -78,23 +82,20 @@ record ColumnSourceStrategy(String cteAlias, TypeCompanionMode typeCompanionMode
 
     @Override
     public SelectField<?> compileFieldTypeReference(String reference, Name typeAlias) {
-        return switch (typeCompanionMode) {
-            case INNER_VIEW ->
-                field(quotedName(cteAlias, reference + TYPE_SUFFIX)).as(typeAlias);
-            case SQL_TYPEOF ->
-                DSL.field("typeof({0})", field(quotedName(cteAlias, reference))).as(typeAlias);
-            case NONE -> castNull(String.class).as(typeAlias);
-        };
+        return compileTypeReference(cteAlias, reference, typeAlias);
     }
 
     @Override
     public SelectField<?> compileNestedFieldTypeReference(String unnestAlias, String reference, Name typeAlias) {
+        return compileTypeReference(unnestAlias, reference, typeAlias);
+    }
+
+    private SelectField<?> compileTypeReference(String tableAlias, String reference, Name typeAlias) {
         return switch (typeCompanionMode) {
             case INNER_VIEW ->
-                field(quotedName(unnestAlias, reference + TYPE_SUFFIX)).as(typeAlias);
+                field(quotedName(tableAlias, reference + TYPE_SUFFIX)).as(typeAlias);
             case SQL_TYPEOF ->
-                DSL.field("typeof({0})", field(quotedName(unnestAlias, reference)))
-                        .as(typeAlias);
+                DSL.field("typeof({0})", field(quotedName(tableAlias, reference))).as(typeAlias);
             case NONE -> castNull(String.class).as(typeAlias);
         };
     }
