@@ -1,5 +1,7 @@
 package io.carml.logicalview.duckdb;
 
+import static io.carml.logicalview.duckdb.DuckDbSourceStrategy.ORDINAL_FIELD;
+import static io.carml.logicalview.duckdb.DuckDbSourceStrategy.TYPE_SUFFIX;
 import static org.jooq.impl.DSL.asterisk;
 import static org.jooq.impl.DSL.field;
 import static org.jooq.impl.DSL.inline;
@@ -532,6 +534,11 @@ public final class DuckDbViewCompiler {
      * Resolves the top-level {@link ExpressionField} instances to include in the SELECT clause,
      * excluding multi-valued fields which are handled as UNNESTs. If projected fields is non-empty,
      * only fields whose names match the projection are included.
+     *
+     * <p>An expression field is included when the projection contains its field name directly, or
+     * its ordinal key ({@code fieldName.#}), or any nested field path ({@code fieldName.child.*}).
+     * This ensures expression fields with mixed-formulation children are selected when the mapping
+     * references their ordinal or nested fields from child iterables.
      */
     private static List<ExpressionField> resolveExpressionFields(
             Set<Field> viewFields, Set<String> projectedFields, DuckDbSourceStrategy strategy) {
@@ -546,8 +553,28 @@ public final class DuckDbViewCompiler {
         }
 
         return expressionFields.stream()
-                .filter(f -> projectedFields.contains(f.getFieldName()))
+                .filter(f -> isExpressionFieldProjected(f, projectedFields))
                 .toList();
+    }
+
+    /**
+     * Checks whether an expression field is needed by the projection. An expression field is
+     * projected when:
+     * <ul>
+     *   <li>The projection contains the field name directly (e.g., "items")</li>
+     *   <li>The projection contains the ordinal key (e.g., "items.#")</li>
+     *   <li>The projection contains any nested field path (e.g., "items.item.type"), indicating
+     *       a mixed-formulation child iterable needs the parent expression field's ordinal</li>
+     * </ul>
+     */
+    private static boolean isExpressionFieldProjected(ExpressionField field, Set<String> projectedFields) {
+        var fieldName = field.getFieldName();
+        if (projectedFields.contains(fieldName)) {
+            return true;
+        }
+        // Check for ordinal or nested field references (fieldName.*)
+        var prefix = fieldName + ".";
+        return projectedFields.stream().anyMatch(p -> p.startsWith(prefix));
     }
 
     /**
@@ -625,8 +652,95 @@ public final class DuckDbViewCompiler {
                 // Recursively process nested iterable fields
                 collectUnnestDescriptors(
                         iterableField.getFields(), projectedFields, strategy, absoluteName + ".", result);
+            } else if (field instanceof ExpressionField expressionField) {
+                // Check for child IterableFields with a different reference formulation (mixed-formulation).
+                // E.g., a CSV column containing JSON text, or a JSON field containing CSV text.
+                var childFields = expressionField.getFields();
+                if (childFields != null && !childFields.isEmpty()) {
+                    collectMixedFormulationUnnestDescriptors(
+                            expressionField, childFields, projectedFields, strategy, prefix, result);
+                }
             }
         }
+    }
+
+    // --- Mixed-formulation iterable field support ---
+
+    /**
+     * Checks child fields of an {@link ExpressionField} for nested {@link IterableField}s that use
+     * a different reference formulation than the parent source (mixed-formulation). For each such
+     * child, compiles an appropriate UNNEST descriptor.
+     *
+     * <p>This handles cases like:
+     * <ul>
+     *   <li>CSV parent with a column containing JSON text (parsed via JSONPath iterable)</li>
+     *   <li>JSON parent with a field containing CSV text (parsed via CSV iterable)</li>
+     * </ul>
+     *
+     * @param parentField the parent expression field whose value contains the embedded data
+     * @param childFields the child fields of the parent expression field
+     * @param projectedFields the context's projected fields
+     * @param strategy the parent source strategy
+     * @param prefix the dot-separated prefix for absolute field names
+     * @param result the accumulator for descriptors
+     */
+    private static void collectMixedFormulationUnnestDescriptors(
+            ExpressionField parentField,
+            Set<Field> childFields,
+            Set<String> projectedFields,
+            DuckDbSourceStrategy strategy,
+            String prefix,
+            List<UnnestDescriptor> result) {
+        var parentValueField = strategy.compileTemplateReference(parentField.getReference());
+
+        for (var child : childFields) {
+            if (child instanceof IterableField iterableChild && iterableChild.getReferenceFormulation() != null) {
+                var childFormulationIri =
+                        iterableChild.getReferenceFormulation().getAsResource();
+                var absoluteName = prefix + parentField.getFieldName() + "." + iterableChild.getFieldName();
+
+                var compiler = MixedFormulationCompiler.forFormulation(childFormulationIri, parentValueField);
+                if (compiler.isPresent()) {
+                    result.add(compileMixedFormulationUnnestDescriptor(
+                            iterableChild, projectedFields, absoluteName, compiler.get()));
+                } else {
+                    LOG.warn(
+                            "Unsupported mixed-formulation child reference formulation [{}] in field [{}]",
+                            childFormulationIri,
+                            absoluteName);
+                }
+            }
+        }
+    }
+
+    /**
+     * Compiles a mixed-formulation UNNEST descriptor using the given {@link MixedFormulationCompiler}.
+     * The compiler encapsulates formulation-specific logic for UNNEST table generation, nested field
+     * extraction, and type companion generation. Adding support for a new reference formulation
+     * requires only a new {@link MixedFormulationCompiler} implementation.
+     */
+    private static UnnestDescriptor compileMixedFormulationUnnestDescriptor(
+            IterableField iterableChild,
+            Set<String> projectedFields,
+            String absoluteName,
+            MixedFormulationCompiler compiler) {
+        var unnestTable = compiler.compileUnnestTable(iterableChild.getIterator(), absoluteName);
+        var filteredNested = filterNestedExpressionFields(iterableChild, projectedFields, absoluteName);
+
+        var nestedPrefix = absoluteName + ".";
+        var nestedSelects = new ArrayList<SelectField<?>>();
+        for (var nested : filteredNested) {
+            var absoluteFieldName = nestedPrefix + nested.getFieldName();
+            var reference = nested.getReference();
+            if (reference != null) {
+                nestedSelects.add(compiler.compileNestedField(absoluteName, reference, fieldAlias(absoluteFieldName)));
+                var typeAlias = quotedName(absoluteFieldName + TYPE_SUFFIX);
+                nestedSelects.add(compiler.compileNestedFieldType(absoluteName, reference, typeAlias));
+            }
+        }
+
+        appendOrdinalColumn(nestedSelects, absoluteName);
+        return new UnnestDescriptor(unnestTable, nestedSelects);
     }
 
     /**
@@ -657,23 +771,12 @@ public final class DuckDbViewCompiler {
         var unnestTable = strategy.compileUnnestTable(iterator, parentAlias, prefix.isEmpty(), absoluteName);
 
         // Resolve nested expression fields (not nested iterable fields — those are handled recursively)
-        var nestedFields = iterableField.getFields().stream()
-                .filter(ExpressionField.class::isInstance)
-                .map(ExpressionField.class::cast)
-                .toList();
+        var filteredNested = filterNestedExpressionFields(iterableField, projectedFields, absoluteName);
 
         var nestedPrefix = absoluteName + ".";
-        var filteredNested = projectedFields.isEmpty()
-                ? nestedFields
-                : nestedFields.stream()
-                        .filter(f -> projectedFields.contains(nestedPrefix + f.getFieldName()))
-                        .toList();
-
-        // Build SELECT fields qualified by the unnest alias, with type companions
         var nestedSelects = new ArrayList<SelectField<?>>();
         for (var nested : filteredNested) {
             nestedSelects.add(compileNestedFieldExpression(absoluteName, nested, strategy, nestedPrefix));
-            // Add type companion for reference-based nested fields
             if (nested.getReference() != null) {
                 var absoluteFieldName = nestedPrefix + nested.getFieldName();
                 var typeAlias = quotedName(absoluteFieldName + DuckDbSourceStrategy.TYPE_SUFFIX);
@@ -682,12 +785,37 @@ public final class DuckDbViewCompiler {
             }
         }
 
-        // Add iterable field ordinal column (0-based index within each parent's unnested array)
-        var indexColumnName = absoluteName + ".#";
-        nestedSelects.add(field(quotedName(absoluteName, DuckDbSourceStrategy.ORDINAL_FIELD))
-                .as(quotedName(indexColumnName)));
-
+        appendOrdinalColumn(nestedSelects, absoluteName);
         return new UnnestDescriptor(unnestTable, nestedSelects);
+    }
+
+    /**
+     * Filters nested {@link ExpressionField}s from an iterable field's children, applying projection
+     * filtering when projected fields are specified.
+     */
+    private static List<ExpressionField> filterNestedExpressionFields(
+            IterableField iterableField, Set<String> projectedFields, String absoluteName) {
+        var nestedFields = iterableField.getFields().stream()
+                .filter(ExpressionField.class::isInstance)
+                .map(ExpressionField.class::cast)
+                .toList();
+
+        if (projectedFields.isEmpty()) {
+            return nestedFields;
+        }
+
+        var nestedPrefix = absoluteName + ".";
+        return nestedFields.stream()
+                .filter(expressionField -> projectedFields.contains(nestedPrefix + expressionField.getFieldName()))
+                .toList();
+    }
+
+    /**
+     * Appends the ordinal column ({@code absoluteName + ".#"}) to the nested selects list.
+     */
+    private static void appendOrdinalColumn(List<SelectField<?>> nestedSelects, String absoluteName) {
+        var indexColumnName = absoluteName + ".#";
+        nestedSelects.add(field(quotedName(absoluteName, ORDINAL_FIELD)).as(quotedName(indexColumnName)));
     }
 
     /**

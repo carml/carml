@@ -299,6 +299,13 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                 var absoluteName = prefix + expressionField.getFieldName();
                 keys.add(absoluteName);
                 keys.add(absoluteName + INDEX_KEY_SUFFIX);
+                // Recurse into child fields for mixed-formulation support (ExpressionField with
+                // child IterableFields using a different reference formulation, e.g., CSV column
+                // containing JSON text or JSON field containing CSV text).
+                var childFields = expressionField.getFields();
+                if (childFields != null && !childFields.isEmpty()) {
+                    collectFieldKeys(childFields, absoluteName + ".", keys);
+                }
             } else if (field instanceof IterableField iterableField) {
                 var absoluteName = prefix + iterableField.getFieldName();
                 keys.add(absoluteName + INDEX_KEY_SUFFIX);

@@ -1448,6 +1448,153 @@ class DuckDbViewCompilerTest {
         }
     }
 
+    // --- Mixed-formulation iterable field tests ---
+
+    @Nested
+    class MixedFormulationIterable {
+
+        @Test
+        void compile_csvParentWithJsonArrayChild_producesJsonExtractUnnest() {
+            // CSV source with a column "items" containing JSON array text.
+            // The IterableField child uses JSONPath formulation with array iterator $[*].
+            var nestedType = expressionField("type", "$.type");
+            var nestedWeight = expressionField("weight", "$.weight");
+            var jsonIterable =
+                    mixedFormulationIterableField("item", "$[*]", Rdf.Ql.JsonPath, Set.of(nestedType, nestedWeight));
+
+            var parentField = expressionFieldWithChildren("items", "items", Set.of(jsonIterable));
+            var idField = expressionField("id", "id");
+
+            var fields = new LinkedHashSet<Field>();
+            fields.add(idField);
+            fields.add(parentField);
+
+            var view = createCsvViewWithMixedFields("data.csv", fields);
+            var context = EvaluationContext.defaults();
+
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
+
+            // CSV source read
+            assertThat(sql, containsString("read_csv_auto('data.csv')"));
+            // Parent CSV column projected
+            assertThat(sql, containsString("\"items\" \"items\""));
+            // JSON array extraction and unnest from parent column
+            assertThat(sql, containsString("json_extract(\"view_source\".\"items\""));
+            assertThat(sql, containsString("$[*]"));
+            // Ordinal generation via range(len(...))
+            assertThat(sql, containsString("unnest(range(len("));
+            // Nested field extraction using json_extract_string from unnested JSON
+            assertThat(sql, containsString("json_extract_string("));
+            assertThat(sql, containsString("'$.type'"));
+            assertThat(sql, containsString("\"items.item.type\""));
+            assertThat(sql, containsString("'$.weight'"));
+            assertThat(sql, containsString("\"items.item.weight\""));
+            // Type companion columns via json_type
+            assertThat(sql, containsString("json_type("));
+            assertThat(sql, containsString("\"items.item.type.__type\""));
+            assertThat(sql, containsString("\"items.item.weight.__type\""));
+            // Ordinal column
+            assertThat(sql, containsString("\"items.item.#\""));
+        }
+
+        @Test
+        void compile_csvParentWithJsonSingleValueChild_producesListValueWrapping() {
+            // CSV source with a column "metadata" containing a single JSON object.
+            // The IterableField child uses JSONPath formulation with single-value iterator $.
+            var nestedName = expressionField("name", "$.name");
+            var jsonIterable = mixedFormulationIterableField("entry", "$", Rdf.Ql.JsonPath, Set.of(nestedName));
+
+            var parentField = expressionFieldWithChildren("metadata", "metadata", Set.of(jsonIterable));
+
+            var fields = new LinkedHashSet<Field>();
+            fields.add(parentField);
+
+            var view = createCsvViewWithMixedFields("data.csv", fields);
+            var context = EvaluationContext.defaults();
+
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
+
+            // Single-value iterator wraps in list_value for a single-row unnest
+            assertThat(sql, containsString("list_value(json_extract("));
+            assertThat(sql, containsString("\"view_source\".\"metadata\""));
+            // Nested field extraction
+            assertThat(sql, containsString("json_extract_string("));
+            assertThat(sql, containsString("'$.name'"));
+            assertThat(sql, containsString("\"metadata.entry.name\""));
+        }
+
+        @Test
+        void compile_jsonParentWithCsvChild_producesStringSplitUnnest() {
+            // JSON source with iterator, containing a field "csv_data" with embedded CSV text.
+            // The IterableField child uses CSV formulation.
+            var nestedCity = expressionField("city", "city");
+            var nestedPop = expressionField("population", "population");
+            var csvIterable = mixedFormulationIterableField("row", null, Rdf.Ql.Csv, Set.of(nestedCity, nestedPop));
+
+            var parentField = expressionFieldWithChildren("csv_data", "$.csv_data", Set.of(csvIterable));
+            var nameField = expressionField("name", "$.name");
+
+            var fields = new LinkedHashSet<Field>();
+            fields.add(nameField);
+            fields.add(parentField);
+
+            var view = createJsonViewWithFields("data.json", "$.records[*]", fields);
+            var context = EvaluationContext.defaults();
+
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
+
+            // JSON source with iterator
+            assertThat(sql, containsString("read_text('data.json')"));
+            assertThat(sql, containsString("json_extract(content, '$.records[*]')"));
+            // Top-level JSON field
+            assertThat(sql, containsString("json_extract_string(\"view_source\".\"__iter\", '$.name') \"name\""));
+            // CSV row splitting: string_split by newline, skip header with [2:]
+            assertThat(sql, containsString("string_split("));
+            assertThat(sql, containsString("chr(10)"));
+            assertThat(sql, containsString("[2:]"));
+            // Column position lookup via list_position
+            assertThat(sql, containsString("list_position("));
+            // Field extraction via list_extract
+            assertThat(sql, containsString("list_extract("));
+            assertThat(sql, containsString("\"csv_data.row.city\""));
+            assertThat(sql, containsString("\"csv_data.row.population\""));
+            // Ordinal column
+            assertThat(sql, containsString("\"csv_data.row.#\""));
+            // CSV type companions are null (all strings)
+            assertThat(sql, containsString("\"csv_data.row.city.__type\""));
+            assertThat(sql, containsString("\"csv_data.row.population.__type\""));
+        }
+
+        @Test
+        void compile_csvParentWithJsonChildAndProjection_selectsOnlyProjectedNestedFields() {
+            // CSV source with a column "items" containing JSON array text.
+            // Only "items.item.type" is projected, so "items.item.weight" should be excluded.
+            var nestedType = expressionField("type", "$.type");
+            var nestedWeight = expressionField("weight", "$.weight");
+            var jsonIterable =
+                    mixedFormulationIterableField("item", "$[*]", Rdf.Ql.JsonPath, Set.of(nestedType, nestedWeight));
+
+            var parentField = expressionFieldWithChildren("items", "items", Set.of(jsonIterable));
+
+            var fields = new LinkedHashSet<Field>();
+            fields.add(parentField);
+
+            var view = createCsvViewWithMixedFields("data.csv", fields);
+            var context = EvaluationContext.withProjectedFields(Set.of("items.item.type"));
+
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
+
+            // Projected field IS present
+            assertThat(sql, containsString("\"items.item.type\""));
+            // Non-projected field is NOT present
+            assertThat(sql, not(containsString("\"items.item.weight\"")));
+            // Parent expression field is still included (needed for mixed-formulation child)
+            assertThat(sql, containsString("\"items\""));
+            // Ordinal column is present
+            assertThat(sql, containsString("\"items.item.#\""));
+        }
+    }
+
     // --- Helper methods ---
 
     private static ExpressionField expressionField(String fieldName, String reference) {
@@ -1457,11 +1604,46 @@ class DuckDbViewCompilerTest {
         return field;
     }
 
+    /**
+     * Creates an ExpressionField mock that has child fields, used for mixed-formulation scenarios
+     * where a parent expression field contains embedded data in a different format.
+     */
+    @SuppressWarnings("unchecked")
+    private static ExpressionField expressionFieldWithChildren(
+            String fieldName, String reference, Set<? extends Field> children) {
+        var field = mock(ExpressionField.class);
+        lenient().when(field.getFieldName()).thenReturn(fieldName);
+        lenient().when(field.getReference()).thenReturn(reference);
+        lenient().when(field.getFields()).thenReturn((Set<Field>) children);
+        return field;
+    }
+
     @SuppressWarnings("unchecked")
     private static IterableField iterableField(String fieldName, String iterator, Set<ExpressionField> nestedFields) {
         var field = mock(IterableField.class);
         lenient().when(field.getFieldName()).thenReturn(fieldName);
         lenient().when(field.getIterator()).thenReturn(iterator);
+        lenient().when(field.getFields()).thenReturn((Set<Field>) (Set<?>) nestedFields);
+        return field;
+    }
+
+    /**
+     * Creates an IterableField mock with a reference formulation, used for mixed-formulation
+     * scenarios where a child iterable uses a different formulation than its parent source.
+     */
+    @SuppressWarnings("unchecked")
+    private static IterableField mixedFormulationIterableField(
+            String fieldName,
+            String iterator,
+            org.eclipse.rdf4j.model.Resource formulationIri,
+            Set<ExpressionField> nestedFields) {
+        var refFormulation = mock(ReferenceFormulation.class);
+        lenient().when(refFormulation.getAsResource()).thenReturn(formulationIri);
+
+        var field = mock(IterableField.class);
+        lenient().when(field.getFieldName()).thenReturn(fieldName);
+        lenient().when(field.getIterator()).thenReturn(iterator);
+        lenient().when(field.getReferenceFormulation()).thenReturn(refFormulation);
         lenient().when(field.getFields()).thenReturn((Set<Field>) (Set<?>) nestedFields);
         return field;
     }
@@ -1523,6 +1705,10 @@ class DuckDbViewCompilerTest {
 
     private static LogicalView createCsvView(String fileName, Set<ExpressionField> fields) {
         return createViewWithRefFormulationAndIterator(Rdf.Ql.Csv, fileName, null, fields);
+    }
+
+    private static LogicalView createCsvViewWithMixedFields(String fileName, Set<Field> fields) {
+        return createViewWithRefFormulationAndIteratorMixed(Rdf.Ql.Csv, fileName, null, fields);
     }
 
     private static LogicalView createViewWithRefFormulation(
