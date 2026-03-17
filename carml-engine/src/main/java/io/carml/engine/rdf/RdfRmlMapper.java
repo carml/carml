@@ -114,7 +114,7 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
 
         private final FileResolver.FileResolverBuilder fileResolverBuilder = FileResolver.builder();
 
-        private Supplier<ValueFactory> valueFactorySupplier = SimpleValueFactory::getInstance;
+        private Supplier<ValueFactory> valueFactorySupplier = InterningValueFactory::new;
 
         private Normalizer.Form normalizationForm = Normalizer.Form.NFC;
 

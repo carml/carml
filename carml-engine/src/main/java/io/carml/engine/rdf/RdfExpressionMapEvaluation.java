@@ -106,7 +106,7 @@ public class RdfExpressionMapEvaluation {
     /**
      * Returns a derived instance that shares this instance's configuration but evaluates a different
      * expression map. Used for child evaluations such as resolving function IRIs, parameter values,
-     * and return maps.
+     * and return maps. Package-private to allow test access.
      */
     RdfExpressionMapEvaluation withExpressionMap(ExpressionMap childExpressionMap) {
         return new RdfExpressionMapEvaluation(
@@ -734,6 +734,7 @@ public class RdfExpressionMapEvaluation {
         }
 
         public RdfExpressionMapEvaluation build() {
+            Objects.requireNonNull(expressionMap, "expressionMap must not be null");
             return new RdfExpressionMapEvaluation(
                     expressionMap,
                     rdfTermGeneratorFactory,

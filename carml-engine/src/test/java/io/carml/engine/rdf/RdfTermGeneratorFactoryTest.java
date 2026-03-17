@@ -556,4 +556,17 @@ class RdfTermGeneratorFactoryTest {
             assertThat(terms, containsInAnyOrder(RdfMappedValue.of(iri("http://example.org/New%20York"))));
         }
     }
+
+    @Test
+    void givenConstantPredicateMap_whenAppliedTwice_thenReturnsSameListInstance() {
+        var predicateMap = CarmlPredicateMap.builder()
+                .constant(iri("http://example.org/predicate"))
+                .build();
+        var generator = rdfTermGeneratorFactory.getPredicateGenerator(predicateMap);
+
+        var result1 = generator.apply(expressionEvaluation, datatypeMapper);
+        var result2 = generator.apply(expressionEvaluation, datatypeMapper);
+
+        assertThat(result1, is(org.hamcrest.Matchers.sameInstance(result2)));
+    }
 }

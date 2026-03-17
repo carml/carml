@@ -188,7 +188,11 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
                     constant.getClass().getSimpleName()));
         }
 
-        // Pre-evaluate: constant terms produce the same result for every row.
+        // Pre-evaluate: constant terms produce the same result for every row — unless the
+        // term map has conditions that must be evaluated per row.
+        if (!termMap.getConditions().isEmpty()) {
+            return createEvaluatingGenerator(createEvaluation(termMap), termMap, null, null, null);
+        }
         var preComputed = List.of(RdfMappedValue.of(constant, termMap.getTargets()));
         return (expressionEvaluation, datatypeMapper) -> preComputed;
     }
@@ -198,7 +202,11 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
         var reference = termMap.getReference();
         var evaluation = createEvaluation(termMap);
 
-        return createEvaluatingGenerator(evaluation, termMap, generateOverrideDatatypes, languageMap,
+        return createEvaluatingGenerator(
+                evaluation,
+                termMap,
+                generateOverrideDatatypes,
+                languageMap,
                 (expressionEvaluation, datatypeMapper) -> datatypeMapper == null
                         ? null
                         : datatypeMapper.apply(reference).orElse(null));
