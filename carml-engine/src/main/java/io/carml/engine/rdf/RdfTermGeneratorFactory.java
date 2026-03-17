@@ -186,21 +186,9 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
                     constant.getClass().getSimpleName()));
         }
 
-        return (expressionEvaluation, datatypeMapper) -> {
-            var values = RdfExpressionMapEvaluation.builder()
-                    .expressionMap(termMap)
-                    .expressionEvaluation(expressionEvaluation)
-                    .datatypeMapper(datatypeMapper)
-                    .functionRegistry(rdfTermGeneratorConfig.getFunctionRegistry())
-                    .normalizationForm(rdfTermGeneratorConfig.getNormalizationForm())
-                    .rdfTermGeneratorFactory(this)
-                    .build()
-                    .evaluate(Value.class);
-
-            return values.stream()
-                    .map(value -> RdfMappedValue.of(value, termMap.getTargets()))
-                    .toList();
-        };
+        // Pre-evaluate: constant terms produce the same result for every row.
+        var preComputed = List.<MappedValue<Value>>of(RdfMappedValue.of(constant, termMap.getTargets()));
+        return (expressionEvaluation, datatypeMapper) -> preComputed;
     }
 
     private TermGenerator<? extends Value> getReferenceGenerator(
