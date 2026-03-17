@@ -48,6 +48,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.vocabulary.XSD;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 /**
  * Default implementation of {@link LogicalViewEvaluator} that evaluates a {@link LogicalView}
@@ -83,6 +84,11 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
     private record ExprEvalWithDatatypeMapper(ExpressionEvaluation exprEval, DatatypeMapper datatypeMapper) {}
 
     private record JoinOptimizations(boolean singleMatch, boolean eliminate, boolean effectiveInnerJoin) {}
+
+    private record JoinContext(
+            Function<Source, ResolvedSource<?>> sourceResolver,
+            Set<LogicalViewJoin> aggregatingJoins,
+            Map<LogicalView, List<ViewIteration>> parentViewCache) {}
 
     private record FieldEvaluationContext(
             ReferenceFormulation currentRefForm,
@@ -240,10 +246,11 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
             Set<String> projectedFields,
             Set<LogicalViewJoin> aggregatingJoins,
             Function<Source, ResolvedSource<?>> sourceResolver) {
-        evaluatedFlux = applyJoinSet(
-                evaluatedFlux, view.getLeftJoins(), true, view, projectedFields, aggregatingJoins, sourceResolver);
-        evaluatedFlux = applyJoinSet(
-                evaluatedFlux, view.getInnerJoins(), false, view, projectedFields, aggregatingJoins, sourceResolver);
+        // Cache parent view evaluations so that multiple joins to the same parent view reuse
+        // the materialized result instead of re-reading and re-evaluating the source each time.
+        var joinCtx = new JoinContext(sourceResolver, aggregatingJoins, new HashMap<>());
+        evaluatedFlux = applyJoinSet(evaluatedFlux, view.getLeftJoins(), true, view, projectedFields, joinCtx);
+        evaluatedFlux = applyJoinSet(evaluatedFlux, view.getInnerJoins(), false, view, projectedFields, joinCtx);
         return evaluatedFlux;
     }
 
@@ -253,8 +260,7 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
             boolean leftJoin,
             LogicalView view,
             Set<String> projectedFields,
-            Set<LogicalViewJoin> aggregatingJoins,
-            Function<Source, ResolvedSource<?>> sourceResolver) {
+            JoinContext joinCtx) {
         if (joins == null) {
             return evaluatedFlux;
         }
@@ -266,8 +272,8 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                         join,
                         leftJoin && !opts.effectiveInnerJoin(),
                         opts.singleMatch(),
-                        aggregatingJoins.contains(join),
-                        sourceResolver);
+                        joinCtx.aggregatingJoins().contains(join),
+                        joinCtx);
             }
         }
         return evaluatedFlux;
@@ -706,13 +712,22 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
             boolean isLeftJoin,
             boolean singleMatch,
             boolean isAggregating,
-            Function<Source, ResolvedSource<?>> sourceResolver) {
+            JoinContext joinCtx) {
 
         var parentView = join.getParentLogicalView();
         var parentReferenceableKeys = collectReferenceableKeys(parentView);
-        var parentFlux = evaluate(parentView, sourceResolver, EvaluationContext.defaults());
 
-        return parentFlux.collectList().flatMapMany(parentIterations -> {
+        var cachedParent = joinCtx.parentViewCache().get(parentView);
+        Mono<List<ViewIteration>> parentMono;
+        if (cachedParent != null) {
+            parentMono = Mono.just(cachedParent);
+        } else {
+            parentMono = evaluate(parentView, joinCtx.sourceResolver(), EvaluationContext.defaults())
+                    .collectList()
+                    .doOnNext(list -> joinCtx.parentViewCache().put(parentView, list));
+        }
+
+        return parentMono.flatMapMany(parentIterations -> {
             var conditions = join.getJoinConditions().stream()
                     .sorted(Comparator.comparing(
                             c -> c.getChildMap().getExpressionMapExpressionSet().toString()))
