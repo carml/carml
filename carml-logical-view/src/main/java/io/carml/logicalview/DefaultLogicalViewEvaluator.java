@@ -38,6 +38,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -246,12 +247,120 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
             Set<String> projectedFields,
             Set<LogicalViewJoin> aggregatingJoins,
             Function<Source, ResolvedSource<?>> sourceResolver) {
-        // Cache parent view evaluations so that multiple joins to the same parent view reuse
-        // the materialized result instead of re-reading and re-evaluating the source each time.
+        // Same-source optimization: when parent views share the child's LogicalSource and their
+        // fields are all present in the child view, derive parent iterations from the child data
+        // instead of re-reading the source. This requires materializing the child flux, then
+        // deriving parents eagerly before join processing starts.
+        var sameSourceParents = findSameSourceParentViews(view);
+
+        if (!sameSourceParents.isEmpty()) {
+            LOG.debug("Deriving {} same-source parent view(s) from child data", sameSourceParents.size());
+            return evaluatedFlux.collectList().flatMapMany(childList -> {
+                var parentViewCache = deriveParentIterations(childList, sameSourceParents);
+                var joinCtx = new JoinContext(sourceResolver, aggregatingJoins, parentViewCache);
+                var childFlux = Flux.fromIterable(childList);
+                childFlux = applyJoinSet(childFlux, view.getLeftJoins(), true, view, projectedFields, joinCtx);
+                childFlux = applyJoinSet(childFlux, view.getInnerJoins(), false, view, projectedFields, joinCtx);
+                return childFlux;
+            });
+        }
+
         var joinCtx = new JoinContext(sourceResolver, aggregatingJoins, new HashMap<>());
         evaluatedFlux = applyJoinSet(evaluatedFlux, view.getLeftJoins(), true, view, projectedFields, joinCtx);
         evaluatedFlux = applyJoinSet(evaluatedFlux, view.getInnerJoins(), false, view, projectedFields, joinCtx);
         return evaluatedFlux;
+    }
+
+    /**
+     * Finds parent views from the child view's joins that share the same {@link LogicalSource} and
+     * whose fields are all present in the child view's fields. These parents can be derived from the
+     * child data without re-reading the source.
+     */
+    private static Set<LogicalView> findSameSourceParentViews(LogicalView childView) {
+        var childViewOn = childView.getViewOn();
+        if (!(childViewOn instanceof LogicalSource)) {
+            return Set.of();
+        }
+
+        var childFieldNames = childView.getFields().stream()
+                .filter(ExpressionField.class::isInstance)
+                .map(Field::getFieldName)
+                .filter(Objects::nonNull)
+                .collect(toUnmodifiableSet());
+
+        var result = new LinkedHashSet<LogicalView>();
+        collectSameSourceParents(childView.getLeftJoins(), childViewOn, childFieldNames, result);
+        collectSameSourceParents(childView.getInnerJoins(), childViewOn, childFieldNames, result);
+        return result;
+    }
+
+    private static void collectSameSourceParents(
+            Set<LogicalViewJoin> joins,
+            AbstractLogicalSource childViewOn,
+            Set<String> childFieldNames,
+            Set<LogicalView> result) {
+        if (joins == null) {
+            return;
+        }
+        for (var join : joins) {
+            var parentView = join.getParentLogicalView();
+            // Only optimize flat parent views (ExpressionFields only) sharing the same source.
+            var allExpressionFields = parentView.getFields().stream()
+                    .allMatch(ExpressionField.class::isInstance);
+            if (childViewOn.equals(parentView.getViewOn()) && allExpressionFields) {
+                var parentFieldNames = parentView.getFields().stream()
+                        .map(Field::getFieldName)
+                        .filter(Objects::nonNull)
+                        .collect(toUnmodifiableSet());
+                if (!parentFieldNames.isEmpty() && childFieldNames.containsAll(parentFieldNames)) {
+                    result.add(parentView);
+                }
+            }
+        }
+    }
+
+    /**
+     * Derives parent {@link ViewIteration}s for same-source parent views from the materialized
+     * child data. Returns a pre-populated cache that {@code applyJoin} will use to skip parent
+     * source evaluation.
+     */
+    private static Map<LogicalView, List<ViewIteration>> deriveParentIterations(
+            List<EvaluatedValues> childList, Set<LogicalView> sameSourceParents) {
+        var cache = new HashMap<LogicalView, List<ViewIteration>>();
+        for (var parentView : sameSourceParents) {
+            var parentFieldKeys = collectReferenceableKeys(parentView);
+            var parentIterations = childList.stream()
+                    .map(ev -> projectToViewIteration(ev, parentFieldKeys))
+                    .toList();
+            cache.put(parentView, parentIterations);
+        }
+        return cache;
+    }
+
+    /**
+     * Projects an {@link EvaluatedValues} into a {@link ViewIteration} containing only the fields
+     * present in the given key set. Used to derive parent iterations from child data when both
+     * share the same source.
+     */
+    private static ViewIteration projectToViewIteration(EvaluatedValues ev, Set<String> parentKeys) {
+        var projectedValues = new LinkedHashMap<String, Object>();
+        var projectedDatatypes = new LinkedHashMap<String, IRI>();
+        var projectedRefFormulations = new LinkedHashMap<String, ReferenceFormulation>();
+        for (var key : parentKeys) {
+            if (ev.values().containsKey(key)) {
+                projectedValues.put(key, ev.values().get(key));
+            }
+            if (ev.naturalDatatypes().containsKey(key)) {
+                projectedDatatypes.put(key, ev.naturalDatatypes().get(key));
+            }
+            if (ev.referenceFormulations().containsKey(key)) {
+                projectedRefFormulations.put(key, ev.referenceFormulations().get(key));
+            }
+        }
+        var indexValue = ev.values().get(INDEX_KEY);
+        var index = indexValue instanceof Number number ? number.intValue() : 0;
+        projectedValues.put(INDEX_KEY, index);
+        return new DefaultViewIteration(index, projectedValues, projectedRefFormulations, projectedDatatypes);
     }
 
     private Flux<EvaluatedValues> applyJoinSet(

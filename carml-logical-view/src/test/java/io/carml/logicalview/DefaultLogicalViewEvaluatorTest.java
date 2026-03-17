@@ -4246,4 +4246,149 @@ class DefaultLogicalViewEvaluatorTest {
 
         assertThat(iterations, hasSize(2));
     }
+
+    // --- Same-source join optimization tests ---
+
+    /**
+     * Creates a parent view backed by the SAME logicalSource as the child. This enables the
+     * same-source optimization: parent iterations are derived from child data instead of
+     * re-reading the source.
+     */
+    private LogicalView setupSameSourceParentView(Set<Field> parentFields) {
+        var parentView = mock(LogicalView.class);
+        when(parentView.getViewOn()).thenReturn(logicalSource);
+        when(parentView.getFields()).thenReturn(parentFields);
+        lenient().when(parentView.getLeftJoins()).thenReturn(null);
+        lenient().when(parentView.getInnerJoins()).thenReturn(null);
+        return parentView;
+    }
+
+    @Test
+    void givenSameSourceParentJoin_whenEvaluated_thenSourceReadOnlyOnce() {
+        // Child view: fields id, name
+        var idField = mockExpressionField("id");
+        when(idField.getReference()).thenReturn("id");
+        var nameField = mockExpressionField("name");
+        when(nameField.getReference()).thenReturn("name");
+        when(logicalView.getFields()).thenReturn(Set.of(idField, nameField));
+
+        ExpressionEvaluation exprEval = expression -> switch (expression) {
+            case "id" -> Optional.of("1");
+            case "name" -> Optional.of("alice");
+            default -> Optional.empty();
+        };
+
+        var rec = createRecord("rec");
+
+        // Parent view: same source, fields "id" and "name" (subset of child)
+        var parentIdField = mockExpressionField("id");
+        lenient().when(parentIdField.getReference()).thenReturn("id");
+        var parentNameField = mockExpressionField("name");
+        lenient().when(parentNameField.getReference()).thenReturn("name");
+        var parentView = setupSameSourceParentView(Set.of(parentIdField, parentNameField));
+
+        var joinCond = mockJoinCondition("id", "id");
+        var joinField = mockExpressionField("_ref0.name");
+        when(joinField.getReference()).thenReturn("name");
+        var lvJoin = mockLogicalViewJoin(parentView, Set.of(joinCond), Set.of(joinField));
+        when(logicalView.getLeftJoins()).thenReturn(Set.of(lvJoin));
+
+        // Use setupMocks (not buildJoinEvaluator) — parent is derived from child, no parent
+        // resolver needed. This also verifies the optimization activates correctly.
+        setupMocks(Flux.just(rec), exprEval);
+
+        var iterations = evaluator
+                .evaluate(logicalView, sourceResolver, EvaluationContext.defaults())
+                .collectList()
+                .block();
+
+        assertThat(iterations, hasSize(1));
+        assertThat(iterations.get(0).getValue("name"), is(Optional.of("alice")));
+        assertThat(iterations.get(0).getValue("_ref0.name"), is(Optional.of("alice")));
+
+        // Source resolver called only once (for child) — parent derived from child data
+        verify(resolver, times(1)).getLogicalSourceRecords(anySet(), anyMap());
+    }
+
+    @Test
+    void givenParentFieldNotInChild_whenEvaluated_thenOptimizationSkippedAndSourceReadTwice() {
+        // Child view: field "id" only
+        var idField = mockExpressionField("id");
+        when(idField.getReference()).thenReturn("id");
+        when(logicalView.getFields()).thenReturn(Set.of(idField));
+
+        ExpressionEvaluation exprEval = expression -> switch (expression) {
+            case "id" -> Optional.of("1");
+            case "extra" -> Optional.of("x");
+            default -> Optional.empty();
+        };
+
+        var rec = createRecord("rec");
+        setupChildView(Flux.just(rec), exprEval);
+
+        // Parent view: same source but has "extra" field NOT in child — optimization skipped
+        var parentIdField = mockExpressionField("id");
+        when(parentIdField.getReference()).thenReturn("id");
+        var parentExtraField = mockExpressionField("extra");
+        when(parentExtraField.getReference()).thenReturn("extra");
+        var parentView = setupSameSourceParentView(Set.of(parentIdField, parentExtraField));
+
+        // Need parent resolver since optimization won't apply
+        parentBindings.add(new ViewResolverBinding(logicalSource, source, resolver));
+
+        var joinCond = mockJoinCondition("id", "id");
+        var joinField = mockExpressionField("_ref0.extra");
+        when(joinField.getReference()).thenReturn("extra");
+        var lvJoin = mockLogicalViewJoin(parentView, Set.of(joinCond), Set.of(joinField));
+        when(logicalView.getLeftJoins()).thenReturn(Set.of(lvJoin));
+
+        buildJoinEvaluator();
+
+        var iterations = evaluator
+                .evaluate(logicalView, sourceResolver, EvaluationContext.defaults())
+                .collectList()
+                .block();
+
+        assertThat(iterations, hasSize(1));
+
+        // Source resolver should be called twice — optimization skipped because "extra" not in child
+        verify(resolver, times(2)).getLogicalSourceRecords(anySet(), anyMap());
+    }
+
+    @Test
+    void givenViewOnViewChild_whenEvaluated_thenSameSourceOptimizationNotActivated() {
+        // Child viewOn is a LogicalView (not LogicalSource) — optimization should not apply
+        var innerView = mock(LogicalView.class);
+        when(innerView.getViewOn()).thenReturn(logicalSource);
+        when(logicalSource.getSource()).thenReturn(source);
+
+        var nameField = mockExpressionField("name");
+        when(nameField.getReference()).thenReturn("name");
+        when(innerView.getFields()).thenReturn(Set.of(nameField));
+
+        // Outer view wraps inner view (viewOn is a LogicalView, not LogicalSource)
+        when(logicalView.getViewOn()).thenReturn(innerView);
+
+        var outerNameField = mockExpressionField("name");
+        when(outerNameField.getReference()).thenReturn("name");
+        when(logicalView.getFields()).thenReturn(Set.of(outerNameField));
+
+        ExpressionEvaluation exprEval = expression -> "name".equals(expression)
+                ? Optional.of("alice")
+                : Optional.empty();
+
+        when(resolver.getLogicalSourceRecords(anySet(), anyMap()))
+                .thenReturn(rs -> Flux.just(LogicalSourceRecord.of(logicalSource, (Object) "rec")));
+        when(resolver.getExpressionEvaluationFactory()).thenReturn(rec -> exprEval);
+
+        buildJoinEvaluator();
+
+        // Succeeds without error — view-on-view guard prevents same-source optimization
+        var iterations = evaluator
+                .evaluate(logicalView, sourceResolver, EvaluationContext.defaults())
+                .collectList()
+                .block();
+
+        assertThat(iterations, hasSize(1));
+    }
 }
