@@ -41,8 +41,6 @@ import java.util.function.BiFunction;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import lombok.Builder;
-import lombok.Builder.Default;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.rdf4j.common.net.ParsedIRI;
 import org.eclipse.rdf4j.model.IRI;
@@ -54,15 +52,20 @@ import org.eclipse.rdf4j.model.util.ModelCollector;
 import org.eclipse.rdf4j.model.util.Models;
 import org.eclipse.rdf4j.model.vocabulary.XSD;
 
+/**
+ * Evaluates an {@link ExpressionMap} against a row's {@link ExpressionEvaluation} and
+ * {@link DatatypeMapper}. Instances hold the immutable evaluation configuration and can be reused
+ * across rows — only the per-row {@code expressionEvaluation} and {@code datatypeMapper} are
+ * supplied to each {@link #evaluate} call.
+ *
+ * <p>For child evaluations (e.g. resolving function IRIs or input bindings), use
+ * {@link #withExpressionMap(ExpressionMap)} to create a derived instance that shares the same
+ * configuration but evaluates a different expression map.
+ */
 @Slf4j
-@Builder(toBuilder = true)
 public class RdfExpressionMapEvaluation {
 
     private final ExpressionMap expressionMap;
-
-    private final ExpressionEvaluation expressionEvaluation;
-
-    private final DatatypeMapper datatypeMapper;
 
     private final RdfTermGeneratorFactory rdfTermGeneratorFactory;
 
@@ -70,20 +73,66 @@ public class RdfExpressionMapEvaluation {
 
     private final Normalizer.Form normalizationForm;
 
-    @Default
-    private final UnaryOperator<String> templateReferenceValueTransformingFunction = UnaryOperator.identity();
+    private final UnaryOperator<String> templateReferenceValueTransformingFunction;
 
-    @Default
-    private final Set<String> iriSafeFieldNames = Set.of();
+    private final Set<String> iriSafeFieldNames;
 
-    @Default
-    private final BiFunction<Object, IRI, String> rdfLexicalForm = CanonicalRdfLexicalForm.get();
+    private final BiFunction<Object, IRI, String> rdfLexicalForm;
 
+    private RdfExpressionMapEvaluation(
+            ExpressionMap expressionMap,
+            RdfTermGeneratorFactory rdfTermGeneratorFactory,
+            FunctionRegistry functionRegistry,
+            Normalizer.Form normalizationForm,
+            UnaryOperator<String> templateReferenceValueTransformingFunction,
+            Set<String> iriSafeFieldNames,
+            BiFunction<Object, IRI, String> rdfLexicalForm) {
+        this.expressionMap = expressionMap;
+        this.rdfTermGeneratorFactory = rdfTermGeneratorFactory;
+        this.functionRegistry = functionRegistry;
+        this.normalizationForm = normalizationForm;
+        this.templateReferenceValueTransformingFunction = templateReferenceValueTransformingFunction;
+        this.iriSafeFieldNames = iriSafeFieldNames;
+        this.rdfLexicalForm = rdfLexicalForm;
+    }
+
+    /**
+     * Creates a builder for constructing a reusable {@link RdfExpressionMapEvaluation} instance.
+     */
+    public static RdfExpressionMapEvaluationBuilder builder() {
+        return new RdfExpressionMapEvaluationBuilder();
+    }
+
+    /**
+     * Returns a derived instance that shares this instance's configuration but evaluates a different
+     * expression map. Used for child evaluations such as resolving function IRIs, parameter values,
+     * and return maps.
+     */
+    RdfExpressionMapEvaluation withExpressionMap(ExpressionMap childExpressionMap) {
+        return new RdfExpressionMapEvaluation(
+                childExpressionMap,
+                rdfTermGeneratorFactory,
+                functionRegistry,
+                normalizationForm,
+                templateReferenceValueTransformingFunction,
+                iriSafeFieldNames,
+                rdfLexicalForm);
+    }
+
+    /**
+     * Evaluates this expression map against the given row context.
+     *
+     * @param expressionEvaluation the row's expression evaluation function
+     * @param datatypeMapper the row's datatype mapper (may be {@code null})
+     * @param expectedType the expected result type
+     * @return the evaluation results, or an empty list if the expression produces no values
+     */
     @SuppressWarnings("unchecked")
-    public <T> List<T> evaluate(Class<T> expectedType) {
+    public <T> List<T> evaluate(
+            ExpressionEvaluation expressionEvaluation, DatatypeMapper datatypeMapper, Class<T> expectedType) {
         // Gate: evaluate conditions first — if any condition is falsy, produce no values
         var conditions = expressionMap.getConditions();
-        if (!conditions.isEmpty() && !evaluateConditions(conditions)) {
+        if (!conditions.isEmpty() && !evaluateConditions(conditions, expressionEvaluation, datatypeMapper)) {
             return List.of();
         }
 
@@ -96,13 +145,13 @@ public class RdfExpressionMapEvaluation {
             }
             return (List<T>) evaluateConstant();
         } else if (expressionMap.getReference() != null) {
-            return (List<T>) evaluateReference();
+            return (List<T>) evaluateReference(expressionEvaluation);
         } else if (expressionMap.getTemplate() != null) {
-            return (List<T>) evaluateTemplate();
+            return (List<T>) evaluateTemplate(expressionEvaluation, datatypeMapper);
         } else if (expressionMap.getFunctionExecution() != null) {
-            return (List<T>) evaluateFnmlFunctionExecution();
+            return (List<T>) evaluateFnmlFunctionExecution(expressionEvaluation, datatypeMapper);
         } else if (expressionMap.getFunctionValue() != null) {
-            return (List<T>) evaluateFunctionValue();
+            return (List<T>) evaluateFunctionValue(expressionEvaluation, datatypeMapper);
         } else {
             throw new RdfExpressionMapEvaluationException(
                     "Encountered expressionMap without an expression %s".formatted(exception(expressionMap)));
@@ -113,26 +162,30 @@ public class RdfExpressionMapEvaluation {
         return List.of(expressionMap.getConstant());
     }
 
-    private List<Object> evaluateReference() {
+    private List<Object> evaluateReference(ExpressionEvaluation expressionEvaluation) {
         return expressionEvaluation
                 .apply(expressionMap.getReference())
                 .map(ExpressionEvaluation::extractValues)
                 .orElse(List.of());
     }
 
-    private List<String> evaluateTemplate() {
+    private List<String> evaluateTemplate(ExpressionEvaluation expressionEvaluation, DatatypeMapper datatypeMapper) {
         var template = expressionMap.getTemplate();
 
         var templateEvaluationBuilder = TemplateEvaluation.builder().template(template);
 
         template.getReferenceExpressions()
-                .forEach(expression -> bindTemplateExpression(expression, templateEvaluationBuilder));
+                .forEach(expression -> bindTemplateExpression(
+                        expression, templateEvaluationBuilder, expressionEvaluation, datatypeMapper));
 
         return templateEvaluationBuilder.build().get();
     }
 
     private void bindTemplateExpression(
-            ReferenceExpression expression, TemplateEvaluationBuilder templateEvaluatorBuilder) {
+            ReferenceExpression expression,
+            TemplateEvaluationBuilder templateEvaluatorBuilder,
+            ExpressionEvaluation expressionEvaluation,
+            DatatypeMapper datatypeMapper) {
         var datatype = datatypeMapper == null
                 ? XSD.STRING
                 : datatypeMapper.apply(expression.getValue()).orElse(XSD.STRING);
@@ -163,17 +216,19 @@ public class RdfExpressionMapEvaluation {
         return rdfLexicalForm.andThen(transform).apply(result, datatype);
     }
 
-    private List<Object> evaluateFunctionValue() {
+    private List<Object> evaluateFunctionValue(
+            ExpressionEvaluation expressionEvaluation, DatatypeMapper datatypeMapper) {
         var functionValue = expressionMap.getFunctionValue();
 
-        return mapLegacyFunctionExecution(expressionMap, functionValue)
+        return mapLegacyFunctionExecution(expressionMap, functionValue, expressionEvaluation, datatypeMapper)
                 .map(ExpressionEvaluation::extractValues)
                 .orElse(List.of());
     }
 
-    private List<Object> evaluateFnmlFunctionExecution() {
+    private List<Object> evaluateFnmlFunctionExecution(
+            ExpressionEvaluation expressionEvaluation, DatatypeMapper datatypeMapper) {
         try {
-            return doEvaluateFnmlFunctionExecution();
+            return doEvaluateFnmlFunctionExecution(expressionEvaluation, datatypeMapper);
         } catch (RdfExpressionMapEvaluationException exception) {
             // Graceful degradation per RML-FNML spec: unknown function, unknown parameter,
             // or unknown return IRI produces empty output rather than an error.
@@ -189,7 +244,8 @@ public class RdfExpressionMapEvaluation {
         }
     }
 
-    private List<Object> doEvaluateFnmlFunctionExecution() {
+    private List<Object> doEvaluateFnmlFunctionExecution(
+            ExpressionEvaluation expressionEvaluation, DatatypeMapper datatypeMapper) {
         var fnExecution = expressionMap.getFunctionExecution();
         var termType = determineTermType(expressionMap);
         UnaryOperator<Object> returnValueAdapter =
@@ -201,13 +257,15 @@ public class RdfExpressionMapEvaluation {
             throw new RdfExpressionMapEvaluationException(
                     "FunctionExecution has no FunctionMap (rml:functionMap/rml:function is required)");
         }
-        IRI functionIri = resolveIriFromExpressionMap(functionMap, Rdf.Rml.FunctionMap);
+        IRI functionIri =
+                resolveIriFromExpressionMap(functionMap, Rdf.Rml.FunctionMap, expressionEvaluation, datatypeMapper);
 
         // 2. Look up descriptor
         FunctionDescriptor descriptor = lookupFunction(functionIri);
 
         // 3. Resolve input bindings
-        Map<IRI, Object> parameterValues = resolveInputBindings(fnExecution.getInputs(), descriptor);
+        Map<IRI, Object> parameterValues =
+                resolveInputBindings(fnExecution.getInputs(), descriptor, expressionEvaluation, datatypeMapper);
         LOG.debug(
                 "Function {}: parameterValues = {}, descriptor paramIris = {}",
                 functionIri,
@@ -223,7 +281,7 @@ public class RdfExpressionMapEvaluation {
         }
 
         // 5. Apply ReturnMap if present
-        result = applyReturnMap(result, descriptor);
+        result = applyReturnMap(result, descriptor, expressionEvaluation, datatypeMapper);
         if (result == null) {
             return List.of();
         }
@@ -242,10 +300,14 @@ public class RdfExpressionMapEvaluation {
                         "no function registered for function IRI [%s]".formatted(functionIri)));
     }
 
-    private IRI resolveIriFromExpressionMap(ExpressionMap iriExpressionMap, IRI mapType) {
-        var childEvaluation = this.toBuilder().expressionMap(iriExpressionMap).build();
+    private IRI resolveIriFromExpressionMap(
+            ExpressionMap iriExpressionMap,
+            IRI mapType,
+            ExpressionEvaluation expressionEvaluation,
+            DatatypeMapper datatypeMapper) {
+        var childEvaluation = withExpressionMap(iriExpressionMap);
 
-        var values = childEvaluation.evaluate(Value.class);
+        var values = childEvaluation.evaluate(expressionEvaluation, datatypeMapper, Value.class);
         if (values.isEmpty()) {
             throw new RdfExpressionMapEvaluationException("%s did not produce a value".formatted(mapType));
         }
@@ -257,18 +319,22 @@ public class RdfExpressionMapEvaluation {
         throw new RdfExpressionMapEvaluationException("%s produced non-IRI value: %s".formatted(mapType, value));
     }
 
-    private Map<IRI, Object> resolveInputBindings(Set<Input> inputs, FunctionDescriptor descriptor) {
+    private Map<IRI, Object> resolveInputBindings(
+            Set<Input> inputs,
+            FunctionDescriptor descriptor,
+            ExpressionEvaluation expressionEvaluation,
+            DatatypeMapper datatypeMapper) {
         var parameterValues = new HashMap<IRI, Object>();
 
         for (var input : inputs) {
             // Resolve parameter IRI from ParameterMap
-            IRI parameterIri = resolveIriFromExpressionMap(input.getParameterMap(), Rdf.Rml.ParameterMap);
+            IRI parameterIri = resolveIriFromExpressionMap(
+                    input.getParameterMap(), Rdf.Rml.ParameterMap, expressionEvaluation, datatypeMapper);
             LOG.debug("Resolved parameter IRI: {}", parameterIri);
 
             // Resolve value from InputValueMap using a child evaluation
-            var valueEvaluation =
-                    this.toBuilder().expressionMap(input.getInputValueMap()).build();
-            var values = valueEvaluation.evaluate(Object.class);
+            var valueEvaluation = withExpressionMap(input.getInputValueMap());
+            var values = valueEvaluation.evaluate(expressionEvaluation, datatypeMapper, Object.class);
             LOG.debug("Resolved values for parameter {}: {}", parameterIri, values);
 
             // Find matching parameter descriptor for type coercion.
@@ -321,13 +387,17 @@ public class RdfExpressionMapEvaluation {
         return value.toString();
     }
 
-    private Object applyReturnMap(Object result, FunctionDescriptor descriptor) {
+    private Object applyReturnMap(
+            Object result,
+            FunctionDescriptor descriptor,
+            ExpressionEvaluation expressionEvaluation,
+            DatatypeMapper datatypeMapper) {
         var returnMap = expressionMap.getReturnMap();
         if (returnMap == null) {
             return result;
         }
 
-        IRI returnIri = resolveIriFromExpressionMap(returnMap, Rdf.Rml.ReturnMap);
+        IRI returnIri = resolveIriFromExpressionMap(returnMap, Rdf.Rml.ReturnMap, expressionEvaluation, datatypeMapper);
 
         if (result instanceof Map<?, ?> resultMap) {
             // Multi-return function: select the requested return value from the map
@@ -349,12 +419,16 @@ public class RdfExpressionMapEvaluation {
         return null;
     }
 
-    private Optional<Object> mapLegacyFunctionExecution(ExpressionMap expressionMap, TriplesMap executionMap) {
+    private Optional<Object> mapLegacyFunctionExecution(
+            ExpressionMap expressionMap,
+            TriplesMap executionMap,
+            ExpressionEvaluation expressionEvaluation,
+            DatatypeMapper datatypeMapper) {
         MappedValue<Resource> functionExecution = RdfMappedValue.of(bnode());
 
         var executionStatements = executionMap.getPredicateObjectMaps().stream()
-                .flatMap(pom ->
-                        getFunctionPredicateObjectMapModel(functionExecution, executionMap, pom, expressionEvaluation))
+                .flatMap(pom -> getFunctionPredicateObjectMapModel(
+                        functionExecution, executionMap, pom, expressionEvaluation, datatypeMapper))
                 .collect(ModelCollector.toModel());
 
         var termType = determineTermType(expressionMap);
@@ -369,7 +443,8 @@ public class RdfExpressionMapEvaluation {
             MappedValue<Resource> functionExecution,
             TriplesMap executionMap,
             PredicateObjectMap pom,
-            ExpressionEvaluation expressionEvaluation) {
+            ExpressionEvaluation expressionEvaluation,
+            DatatypeMapper datatypeMapper) {
         var predicateGenerators = createPredicateGenerators(pom, executionMap, rdfTermGeneratorFactory);
         var objectGenerators = createObjectMapGenerators(pom.getObjectMaps(), executionMap, rdfTermGeneratorFactory);
 
@@ -492,8 +567,8 @@ public class RdfExpressionMapEvaluation {
 
             return TermType.IRI;
         } else {
-            throw new IllegalStateException(String.format(
-                    "Unknown expression map type %s for %s", map.getClass().getSimpleName(), map));
+            throw new IllegalStateException("Unknown expression map type %s for %s"
+                    .formatted(map.getClass().getSimpleName(), map));
         }
     }
 
@@ -503,61 +578,68 @@ public class RdfExpressionMapEvaluation {
 
     // --- Condition evaluation ---
 
-    private boolean evaluateConditions(Set<Condition> conditions) {
+    private boolean evaluateConditions(
+            Set<Condition> conditions, ExpressionEvaluation expressionEvaluation, DatatypeMapper datatypeMapper) {
         for (var condition : conditions) {
-            if (!evaluateCondition(condition)) {
+            if (!evaluateCondition(condition, expressionEvaluation, datatypeMapper)) {
                 return false;
             }
         }
         return true;
     }
 
-    private boolean evaluateCondition(Condition condition) {
+    private boolean evaluateCondition(
+            Condition condition, ExpressionEvaluation expressionEvaluation, DatatypeMapper datatypeMapper) {
         // Full form: FunctionExecution returning boolean
         if (condition.getFunctionExecution() != null) {
-            return evaluateConditionFunctionExecution(condition.getFunctionExecution());
+            return evaluateConditionFunctionExecution(
+                    condition.getFunctionExecution(), expressionEvaluation, datatypeMapper);
         }
 
         // Shortcut: isNull
         if (condition.getIsNull() != null) {
-            return evaluateUnaryCondition(Rdf.IdlabFn.isNull, condition.getIsNull());
+            return evaluateUnaryCondition(Rdf.IdlabFn.isNull, condition.getIsNull(), expressionEvaluation);
         }
 
         // Shortcut: isNotNull
         if (condition.getIsNotNull() != null) {
-            return evaluateUnaryCondition(Rdf.IdlabFn.isNotNull, condition.getIsNotNull());
+            return evaluateUnaryCondition(Rdf.IdlabFn.isNotNull, condition.getIsNotNull(), expressionEvaluation);
         }
 
         // Shortcut: equals
         var equalsRefs = condition.getEquals();
         if (equalsRefs != null && !equalsRefs.isEmpty()) {
-            return evaluateBinaryCondition(Rdf.IdlabFn.equal, equalsRefs);
+            return evaluateBinaryCondition(Rdf.IdlabFn.equal, equalsRefs, expressionEvaluation);
         }
 
         // Shortcut: notEquals
         var notEqualsRefs = condition.getNotEquals();
         if (notEqualsRefs != null && !notEqualsRefs.isEmpty()) {
-            return evaluateBinaryCondition(Rdf.IdlabFn.notEqual, notEqualsRefs);
+            return evaluateBinaryCondition(Rdf.IdlabFn.notEqual, notEqualsRefs, expressionEvaluation);
         }
 
         throw new RdfExpressionMapEvaluationException("Condition has no evaluable expression");
     }
 
-    private boolean evaluateConditionFunctionExecution(FunctionExecution fnExec) {
+    private boolean evaluateConditionFunctionExecution(
+            FunctionExecution fnExec, ExpressionEvaluation expressionEvaluation, DatatypeMapper datatypeMapper) {
         var functionMap = fnExec.getFunctionMap();
         if (functionMap == null) {
             throw new RdfExpressionMapEvaluationException("Condition FunctionExecution has no FunctionMap");
         }
-        IRI functionIri = resolveIriFromExpressionMap(functionMap, Rdf.Rml.FunctionMap);
+        IRI functionIri =
+                resolveIriFromExpressionMap(functionMap, Rdf.Rml.FunctionMap, expressionEvaluation, datatypeMapper);
 
         FunctionDescriptor descriptor = lookupFunction(functionIri);
 
-        Map<IRI, Object> parameterValues = resolveInputBindings(fnExec.getInputs(), descriptor);
+        Map<IRI, Object> parameterValues =
+                resolveInputBindings(fnExec.getInputs(), descriptor, expressionEvaluation, datatypeMapper);
         Object result = descriptor.execute(parameterValues);
         return BuiltInFunctionProvider.isTruthy(result);
     }
 
-    private boolean evaluateUnaryCondition(IRI functionIri, String reference) {
+    private boolean evaluateUnaryCondition(
+            IRI functionIri, String reference, ExpressionEvaluation expressionEvaluation) {
         FunctionDescriptor descriptor = lookupFunction(functionIri);
 
         Object value = expressionEvaluation.apply(reference).orElse(null);
@@ -568,7 +650,8 @@ public class RdfExpressionMapEvaluation {
         return BuiltInFunctionProvider.isTruthy(result);
     }
 
-    private boolean evaluateBinaryCondition(IRI functionIri, Set<String> references) {
+    private boolean evaluateBinaryCondition(
+            IRI functionIri, Set<String> references, ExpressionEvaluation expressionEvaluation) {
         if (references.size() != 2) {
             throw new RdfExpressionMapEvaluationException(
                     "Binary condition (equals/notEquals) requires exactly 2 references, but got %d"
@@ -590,5 +673,75 @@ public class RdfExpressionMapEvaluation {
 
         Object result = descriptor.execute(params);
         return BuiltInFunctionProvider.isTruthy(result);
+    }
+
+    /**
+     * Builder for constructing {@link RdfExpressionMapEvaluation} instances.
+     */
+    public static class RdfExpressionMapEvaluationBuilder {
+
+        private ExpressionMap expressionMap;
+
+        private RdfTermGeneratorFactory rdfTermGeneratorFactory;
+
+        private FunctionRegistry functionRegistry;
+
+        private Normalizer.Form normalizationForm;
+
+        private UnaryOperator<String> templateReferenceValueTransformingFunction = UnaryOperator.identity();
+
+        private Set<String> iriSafeFieldNames = Set.of();
+
+        private BiFunction<Object, IRI, String> rdfLexicalForm = CanonicalRdfLexicalForm.get();
+
+        RdfExpressionMapEvaluationBuilder() {}
+
+        public RdfExpressionMapEvaluationBuilder expressionMap(ExpressionMap expressionMap) {
+            this.expressionMap = expressionMap;
+            return this;
+        }
+
+        public RdfExpressionMapEvaluationBuilder rdfTermGeneratorFactory(
+                RdfTermGeneratorFactory rdfTermGeneratorFactory) {
+            this.rdfTermGeneratorFactory = rdfTermGeneratorFactory;
+            return this;
+        }
+
+        public RdfExpressionMapEvaluationBuilder functionRegistry(FunctionRegistry functionRegistry) {
+            this.functionRegistry = functionRegistry;
+            return this;
+        }
+
+        public RdfExpressionMapEvaluationBuilder normalizationForm(Normalizer.Form normalizationForm) {
+            this.normalizationForm = normalizationForm;
+            return this;
+        }
+
+        public RdfExpressionMapEvaluationBuilder templateReferenceValueTransformingFunction(
+                UnaryOperator<String> templateReferenceValueTransformingFunction) {
+            this.templateReferenceValueTransformingFunction = templateReferenceValueTransformingFunction;
+            return this;
+        }
+
+        public RdfExpressionMapEvaluationBuilder iriSafeFieldNames(Set<String> iriSafeFieldNames) {
+            this.iriSafeFieldNames = iriSafeFieldNames;
+            return this;
+        }
+
+        public RdfExpressionMapEvaluationBuilder rdfLexicalForm(BiFunction<Object, IRI, String> rdfLexicalForm) {
+            this.rdfLexicalForm = rdfLexicalForm;
+            return this;
+        }
+
+        public RdfExpressionMapEvaluation build() {
+            return new RdfExpressionMapEvaluation(
+                    expressionMap,
+                    rdfTermGeneratorFactory,
+                    functionRegistry,
+                    normalizationForm,
+                    templateReferenceValueTransformingFunction,
+                    iriSafeFieldNames,
+                    rdfLexicalForm);
+        }
     }
 }

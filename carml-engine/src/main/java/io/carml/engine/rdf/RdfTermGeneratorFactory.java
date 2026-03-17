@@ -11,6 +11,7 @@ import io.carml.engine.TermGeneratorFactoryException;
 import io.carml.logicalsourceresolver.DatatypeMapper;
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.model.DatatypeMap;
+import io.carml.model.ExpressionMap;
 import io.carml.model.GatherMap;
 import io.carml.model.GraphMap;
 import io.carml.model.LanguageMap;
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.UnaryOperator;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.rdf4j.model.IRI;
@@ -187,34 +189,19 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
         }
 
         // Pre-evaluate: constant terms produce the same result for every row.
-        var preComputed = List.<MappedValue<Value>>of(RdfMappedValue.of(constant, termMap.getTargets()));
+        var preComputed = List.of(RdfMappedValue.of(constant, termMap.getTargets()));
         return (expressionEvaluation, datatypeMapper) -> preComputed;
     }
 
     private TermGenerator<? extends Value> getReferenceGenerator(
             TermMap termMap, TermGenerator<? extends Value> generateOverrideDatatypes, LanguageMap languageMap) {
         var reference = termMap.getReference();
+        var evaluation = createEvaluation(termMap);
 
-        return (expressionEvaluation, datatypeMapper) -> {
-            var referenceValues = RdfExpressionMapEvaluation.builder()
-                    .expressionMap(termMap)
-                    .expressionEvaluation(expressionEvaluation)
-                    .datatypeMapper(datatypeMapper)
-                    .functionRegistry(rdfTermGeneratorConfig.getFunctionRegistry())
-                    .normalizationForm(rdfTermGeneratorConfig.getNormalizationForm())
-                    .rdfTermGeneratorFactory(this)
-                    .build()
-                    .evaluate(Object.class);
-
-            var mappedDatatype = datatypeMapper == null
-                    ? null
-                    : datatypeMapper.apply(reference).orElse(null);
-            var overrideDatatypes =
-                    getOverrideDatatypes(generateOverrideDatatypes, expressionEvaluation, datatypeMapper);
-            var languageTags = getLanguageTags(languageMap, expressionEvaluation, datatypeMapper);
-
-            return generateTerms(referenceValues, termMap, mappedDatatype, overrideDatatypes, languageTags);
-        };
+        return createEvaluatingGenerator(evaluation, termMap, generateOverrideDatatypes, languageMap,
+                (expressionEvaluation, datatypeMapper) -> datatypeMapper == null
+                        ? null
+                        : datatypeMapper.apply(reference).orElse(null));
     }
 
     private TermGenerator<? extends Value> getTemplateGenerator(
@@ -226,45 +213,47 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
                     case UNSAFE_IRI, BLANK_NODE, LITERAL -> UnaryOperator.identity();
                 };
 
-        return (expressionEvaluation, datatypeMapper) -> {
-            var templateValues = RdfExpressionMapEvaluation.builder()
-                    .expressionMap(termMap)
-                    .expressionEvaluation(expressionEvaluation)
-                    .datatypeMapper(datatypeMapper)
-                    .functionRegistry(rdfTermGeneratorConfig.getFunctionRegistry())
-                    .normalizationForm(rdfTermGeneratorConfig.getNormalizationForm())
-                    .rdfTermGeneratorFactory(this)
-                    .templateReferenceValueTransformingFunction(valueTransformingFunction)
-                    .iriSafeFieldNames(rdfTermGeneratorConfig.getIriSafeFieldNames())
-                    .build()
-                    .evaluate(Object.class);
+        var evaluation = RdfExpressionMapEvaluation.builder()
+                .expressionMap(termMap)
+                .functionRegistry(rdfTermGeneratorConfig.getFunctionRegistry())
+                .normalizationForm(rdfTermGeneratorConfig.getNormalizationForm())
+                .rdfTermGeneratorFactory(this)
+                .templateReferenceValueTransformingFunction(valueTransformingFunction)
+                .iriSafeFieldNames(rdfTermGeneratorConfig.getIriSafeFieldNames())
+                .build();
 
-            var overrideDatatypes =
-                    getOverrideDatatypes(generateOverrideDatatypes, expressionEvaluation, datatypeMapper);
-            var languageTags = getLanguageTags(languageMap, expressionEvaluation, datatypeMapper);
-
-            return generateTerms(templateValues, termMap, null, overrideDatatypes, languageTags);
-        };
+        return createEvaluatingGenerator(evaluation, termMap, generateOverrideDatatypes, languageMap, null);
     }
 
     private TermGenerator<? extends Value> getFunctionExecutionGenerator(
             TermMap termMap, TermGenerator<? extends Value> generateOverrideDatatypes, LanguageMap languageMap) {
-        return (expressionEvaluation, datatypeMapper) -> {
-            var functionExecutionValues = RdfExpressionMapEvaluation.builder()
-                    .expressionMap(termMap)
-                    .expressionEvaluation(expressionEvaluation)
-                    .datatypeMapper(datatypeMapper)
-                    .functionRegistry(rdfTermGeneratorConfig.getFunctionRegistry())
-                    .normalizationForm(rdfTermGeneratorConfig.getNormalizationForm())
-                    .rdfTermGeneratorFactory(this)
-                    .build()
-                    .evaluate(Object.class);
+        var evaluation = createEvaluation(termMap);
+        return createEvaluatingGenerator(evaluation, termMap, generateOverrideDatatypes, languageMap, null);
+    }
 
+    /**
+     * Creates a term generator that evaluates values from the pre-built evaluation, resolves
+     * override datatypes and language tags, and generates RDF terms. The optional
+     * {@code mappedDatatypeResolver} provides per-row mapped datatype lookup (for reference
+     * generators); when null, no mapped datatype is applied.
+     */
+    private TermGenerator<? extends Value> createEvaluatingGenerator(
+            RdfExpressionMapEvaluation evaluation,
+            TermMap termMap,
+            TermGenerator<? extends Value> generateOverrideDatatypes,
+            LanguageMap languageMap,
+            BiFunction<ExpressionEvaluation, DatatypeMapper, IRI> mappedDatatypeResolver) {
+        var languageEvaluation = languageMap != null ? createEvaluation(languageMap) : null;
+
+        return (expressionEvaluation, datatypeMapper) -> {
+            var values = evaluation.evaluate(expressionEvaluation, datatypeMapper, Object.class);
+            var mappedDatatype = mappedDatatypeResolver != null
+                    ? mappedDatatypeResolver.apply(expressionEvaluation, datatypeMapper)
+                    : null;
             var overrideDatatypes =
                     getOverrideDatatypes(generateOverrideDatatypes, expressionEvaluation, datatypeMapper);
-            var languageTags = getLanguageTags(languageMap, expressionEvaluation, datatypeMapper);
-
-            return generateTerms(functionExecutionValues, termMap, null, overrideDatatypes, languageTags);
+            var languageTags = getLanguageTags(languageEvaluation, expressionEvaluation, datatypeMapper);
+            return generateTerms(values, termMap, mappedDatatype, overrideDatatypes, languageTags);
         };
     }
 
@@ -281,20 +270,29 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
     }
 
     private List<String> getLanguageTags(
-            LanguageMap languageMap, ExpressionEvaluation expressionEvaluation, DatatypeMapper datatypeMapper) {
-        if (languageMap == null) {
+            RdfExpressionMapEvaluation languageEvaluation,
+            ExpressionEvaluation expressionEvaluation,
+            DatatypeMapper datatypeMapper) {
+        if (languageEvaluation == null) {
             return List.of();
         }
 
+        return languageEvaluation.evaluate(expressionEvaluation, datatypeMapper, String.class);
+    }
+
+    /**
+     * Creates a reusable {@link RdfExpressionMapEvaluation} with the factory's common configuration.
+     * The returned instance holds only immutable fields and can be reused across rows by passing
+     * per-row {@code expressionEvaluation} and {@code datatypeMapper} to
+     * {@link RdfExpressionMapEvaluation#evaluate}.
+     */
+    private RdfExpressionMapEvaluation createEvaluation(ExpressionMap expressionMap) {
         return RdfExpressionMapEvaluation.builder()
-                .expressionMap(languageMap)
-                .expressionEvaluation(expressionEvaluation)
-                .datatypeMapper(datatypeMapper)
+                .expressionMap(expressionMap)
                 .functionRegistry(rdfTermGeneratorConfig.getFunctionRegistry())
                 .normalizationForm(rdfTermGeneratorConfig.getNormalizationForm())
                 .rdfTermGeneratorFactory(this)
-                .build()
-                .evaluate(String.class);
+                .build();
     }
 
     private List<MappedValue<Value>> generateTerms(
