@@ -101,9 +101,10 @@ public class MergeableRdfList<T extends Value> extends RdfList<T> implements Mer
                                 ? bnodeMap.getOrDefault(headBNode, headBNode)
                                 : getHead();
 
-                        var linkingTriples = linkingSubjects.stream().flatMap(subject -> linkingPredicates.stream()
-                                .map(predicate ->
-                                        valueFactory.createStatement(subject, predicate, remappedHead, graph)));
+                        var linkingTriples = linkingSubjects.stream()
+                                .flatMap(subject -> linkingPredicates.stream()
+                                        .map(predicate ->
+                                                valueFactory.createStatement(subject, predicate, remappedHead, graph)));
 
                         return Stream.concat(graphStatements, linkingTriples);
                     }

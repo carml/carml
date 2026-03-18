@@ -331,10 +331,11 @@ public abstract class RmlMapper<T, K> {
     }
 
     private Flux<MappingResult<T>> mergeMergeables() {
-        return Flux.fromIterable(mergeables.values()).flatMap(values -> values.stream()
-                .reduce(MergeableMappingResult::merge)
-                .map(Flux::just)
-                .orElse(Flux.empty()));
+        return Flux.fromIterable(mergeables.values())
+                .flatMap(values -> values.stream()
+                        .reduce(MergeableMappingResult::merge)
+                        .map(Flux::just)
+                        .orElse(Flux.empty()));
     }
 
     @AllArgsConstructor(access = AccessLevel.PRIVATE)

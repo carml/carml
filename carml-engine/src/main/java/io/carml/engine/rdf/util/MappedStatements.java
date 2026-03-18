@@ -56,26 +56,29 @@ public class MappedStatements {
 
         if (mappedGraphs.isEmpty()) {
             return mappedSubjects.stream()
-                    .flatMap(subject -> mappedPredicates.stream().flatMap(predicate -> mappedObjects.stream()
-                            .map(object -> createMappedStatement(
-                                    subject,
-                                    predicate,
-                                    object,
-                                    null,
-                                    graphModifier,
-                                    valueFactory,
-                                    statementConsumers))));
+                    .flatMap(subject -> mappedPredicates.stream()
+                            .flatMap(predicate -> mappedObjects.stream()
+                                    .map(object -> createMappedStatement(
+                                            subject,
+                                            predicate,
+                                            object,
+                                            null,
+                                            graphModifier,
+                                            valueFactory,
+                                            statementConsumers))));
         } else {
-            return mappedSubjects.stream().flatMap(subject -> mappedPredicates.stream()
-                    .flatMap(predicate -> mappedObjects.stream().flatMap(object -> mappedGraphs.stream()
-                            .map(graph -> createMappedStatement(
-                                    subject,
-                                    predicate,
-                                    object,
-                                    graph,
-                                    graphModifier,
-                                    valueFactory,
-                                    statementConsumers)))));
+            return mappedSubjects.stream()
+                    .flatMap(subject -> mappedPredicates.stream()
+                            .flatMap(predicate -> mappedObjects.stream()
+                                    .flatMap(object -> mappedGraphs.stream()
+                                            .map(graph -> createMappedStatement(
+                                                    subject,
+                                                    predicate,
+                                                    object,
+                                                    graph,
+                                                    graphModifier,
+                                                    valueFactory,
+                                                    statementConsumers)))));
         }
     }
 

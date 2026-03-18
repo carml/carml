@@ -262,9 +262,9 @@ final class ArrowBatchEmitter {
             if (typeVector != null && !typeVector.isNull(row)) {
                 var duckDbType = normalizeArrowValue(typeVector.getObject(row));
                 if (duckDbType != null && nonScalarTypeValues.contains(duckDbType.toString())) {
-                    throw new IllegalArgumentException(
-                            "Reference '%s' resolves to a non-scalar value (type: %s). Per the RML spec, references must resolve to scalar values."
-                                    .formatted(fieldName, duckDbType));
+                    throw new IllegalArgumentException(("Reference '%s' resolves to a non-scalar value (type: %s)."
+                                    + " Per the RML spec, references must resolve to scalar values.")
+                            .formatted(fieldName, duckDbType));
                 }
             }
         }

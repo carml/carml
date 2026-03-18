@@ -384,8 +384,10 @@ public class RdfPredicateObjectMapper {
             Map<Set<MappedValue<Resource>>, Set<MappedValue<Resource>>> subjectsAndSubjectGraphs,
             Set<MappedValue<Resource>> pomGraphs) {
         return subjectsAndSubjectGraphs.entrySet().stream()
-                .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, subjectsAndSubjectGraphsEntry -> Stream.concat(
-                                subjectsAndSubjectGraphsEntry.getValue().stream(), pomGraphs.stream())
-                        .collect(toUnmodifiableSet())));
+                .collect(Collectors.toUnmodifiableMap(
+                        Map.Entry::getKey,
+                        subjectsAndSubjectGraphsEntry -> Stream.concat(
+                                        subjectsAndSubjectGraphsEntry.getValue().stream(), pomGraphs.stream())
+                                .collect(toUnmodifiableSet())));
     }
 }

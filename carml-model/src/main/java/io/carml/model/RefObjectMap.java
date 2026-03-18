@@ -15,8 +15,9 @@ public interface RefObjectMap extends BaseObjectMap {
         }
 
         // TODO check after childmap parentmap introduction
-        return getJoinConditions().stream().allMatch(join -> join.getChildMap()
-                .getExpressionMapExpressionSet()
-                .equals(join.getParentMap().getExpressionMapExpressionSet()));
+        return getJoinConditions().stream()
+                .allMatch(join -> join.getChildMap()
+                        .getExpressionMapExpressionSet()
+                        .equals(join.getParentMap().getExpressionMapExpressionSet()));
     }
 }

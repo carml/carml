@@ -142,8 +142,9 @@ public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
         var encoding = source.getEncoding();
 
         if (resolvedSource.getResolvedTypeRef().equals(new TypeRef<Mono<InputStream>>() {})) {
-            return ((Mono<InputStream>) resolved).flatMapMany(inputStream -> getCsvRecordFlux(inputStream, encoding)
-                    .map(lsRecord -> LogicalSourceRecord.of(logicalSource, lsRecord)));
+            return ((Mono<InputStream>) resolved)
+                    .flatMapMany(inputStream -> getCsvRecordFlux(inputStream, encoding)
+                            .map(lsRecord -> LogicalSourceRecord.of(logicalSource, lsRecord)));
         } else if (resolved instanceof NamedCsvRecord resolvedRecord) {
             return Flux.just(LogicalSourceRecord.of(logicalSource, resolvedRecord));
         } else {

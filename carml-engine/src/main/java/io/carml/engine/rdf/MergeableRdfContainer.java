@@ -101,9 +101,10 @@ public class MergeableRdfContainer<T extends Value> extends RdfContainer<T>
                                 ? bnodeMap.getOrDefault(containerBNode, containerBNode)
                                 : getContainer();
 
-                        var linkingTriples = linkingSubjects.stream().flatMap(subject -> linkingPredicates.stream()
-                                .map(predicate ->
-                                        valueFactory.createStatement(subject, predicate, remappedContainer, graph)));
+                        var linkingTriples = linkingSubjects.stream()
+                                .flatMap(subject -> linkingPredicates.stream()
+                                        .map(predicate -> valueFactory.createStatement(
+                                                subject, predicate, remappedContainer, graph)));
 
                         return Stream.concat(graphStatements, linkingTriples);
                     }

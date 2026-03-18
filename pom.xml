@@ -97,7 +97,7 @@
 		<duckdb.version>1.4.4.0</duckdb.version>
 		<testcontainers.version>1.21.4</testcontainers.version>
 		<spotless.version>3.2.1</spotless.version>
-		<palantir.version>2.87.0</palantir.version>
+		<palantir.version>2.89.0</palantir.version>
 		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
 		<sonar.organization>carml</sonar.organization>
 	</properties>

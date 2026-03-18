@@ -57,10 +57,12 @@ public class RdfMappingPipelineFactory {
 
         return groupedTriplesMaps.entrySet().stream()
                 .filter(entry -> entry.getKey() instanceof LogicalSource)
-                .collect(toUnmodifiableMap(entry -> (LogicalSource) entry.getKey(), entry -> entry.getValue().stream()
-                        .map(TriplesMap::getReferenceExpressionSet)
-                        .flatMap(Set::stream)
-                        .collect(toUnmodifiableSet())));
+                .collect(toUnmodifiableMap(
+                        entry -> (LogicalSource) entry.getKey(),
+                        entry -> entry.getValue().stream()
+                                .map(TriplesMap::getReferenceExpressionSet)
+                                .flatMap(Set::stream)
+                                .collect(toUnmodifiableSet())));
     }
 
     private Map<Source, LogicalSourceResolver<?>> buildLogicalSourceResolvers(

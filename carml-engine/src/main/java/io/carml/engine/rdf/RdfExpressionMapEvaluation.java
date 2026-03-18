@@ -194,10 +194,12 @@ public class RdfExpressionMapEvaluation {
                 ? UnaryOperator.<String>identity()
                 : templateReferenceValueTransformingFunction;
 
-        templateEvaluatorBuilder.bind(expression, expr -> expressionEvaluation
-                .apply(expr.getValue())
-                .map(result -> prepareValueForTemplate(result, datatype, effectiveTransform))
-                .orElse(List.of()));
+        templateEvaluatorBuilder.bind(
+                expression,
+                expr -> expressionEvaluation
+                        .apply(expr.getValue())
+                        .map(result -> prepareValueForTemplate(result, datatype, effectiveTransform))
+                        .orElse(List.of()));
     }
 
     private List<String> prepareValueForTemplate(Object result, IRI datatype, UnaryOperator<String> transform) {
