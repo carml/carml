@@ -87,22 +87,17 @@ abstract class AbstractFastRdfSerializer {
      * @return the total number of statements serialized
      */
     public long serialize(Flux<Statement> statements, OutputStream output) {
-        var allStatements = statements.collectList().block();
-        if (allStatements == null || allStatements.isEmpty()) {
-            return 0;
-        }
-
         try {
             var buffered = new BufferedOutputStream(output, OUTPUT_BUFFER_SIZE);
-            for (var statement : allStatements) {
-                writeStatement(statement, buffered);
-            }
+            var count = statements
+                    .doOnNext(statement -> writeStatement(statement, buffered))
+                    .count()
+                    .block();
             buffered.flush();
+            return count != null ? count : 0;
         } catch (IOException ioException) {
             throw new UncheckedIOException(ioException);
         }
-
-        return allStatements.size();
     }
 
     /**
