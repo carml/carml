@@ -92,6 +92,8 @@
 		<spotbugs-annotations.version>4.9.3</spotbugs-annotations.version>
 		<commons-csv.version>1.14.1</commons-csv.version>
 		<jooq.version>3.19.28</jooq.version>
+		<arrow.version>18.1.0</arrow.version>
+		<checker-qual.version>3.47.0</checker-qual.version>
 		<duckdb.version>1.4.4.0</duckdb.version>
 		<testcontainers.version>1.21.4</testcontainers.version>
 		<spotless.version>3.2.1</spotless.version>
@@ -173,6 +175,30 @@
 				<groupId>io.carml</groupId>
 				<artifactId>carml-logical-view-duckdb</artifactId>
 				<version>${project.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.apache.arrow</groupId>
+				<artifactId>arrow-vector</artifactId>
+				<version>${arrow.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.apache.arrow</groupId>
+				<artifactId>arrow-c-data</artifactId>
+				<version>${arrow.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.apache.arrow</groupId>
+				<artifactId>arrow-memory-netty</artifactId>
+				<version>${arrow.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.checkerframework</groupId>
+				<artifactId>checker-qual</artifactId>
+				<version>${checker-qual.version}</version>
 			</dependency>
 
 			<dependency>

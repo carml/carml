@@ -4373,9 +4373,8 @@ class DefaultLogicalViewEvaluatorTest {
         when(outerNameField.getReference()).thenReturn("name");
         when(logicalView.getFields()).thenReturn(Set.of(outerNameField));
 
-        ExpressionEvaluation exprEval = expression -> "name".equals(expression)
-                ? Optional.of("alice")
-                : Optional.empty();
+        ExpressionEvaluation exprEval =
+                expression -> "name".equals(expression) ? Optional.of("alice") : Optional.empty();
 
         when(resolver.getLogicalSourceRecords(anySet(), anyMap()))
                 .thenReturn(rs -> Flux.just(LogicalSourceRecord.of(logicalSource, (Object) "rec")));

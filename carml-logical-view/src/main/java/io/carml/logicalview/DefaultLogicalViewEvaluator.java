@@ -305,8 +305,7 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
         for (var join : joins) {
             var parentView = join.getParentLogicalView();
             // Only optimize flat parent views (ExpressionFields only) sharing the same source.
-            var allExpressionFields = parentView.getFields().stream()
-                    .allMatch(ExpressionField.class::isInstance);
+            var allExpressionFields = parentView.getFields().stream().allMatch(ExpressionField.class::isInstance);
             if (childViewOn.equals(parentView.getViewOn()) && allExpressionFields) {
                 var parentFieldNames = parentView.getFields().stream()
                         .map(Field::getFieldName)

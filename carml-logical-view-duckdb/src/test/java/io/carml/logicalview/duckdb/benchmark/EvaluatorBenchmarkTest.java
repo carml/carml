@@ -160,6 +160,50 @@ class EvaluatorBenchmarkTest {
         }
     }
 
+    // --- Per-phase profiling ---
+
+    @Test
+    void benchmark_csv_phaseBreakdown() throws IOException {
+        LOG.info("=== CSV Per-Phase Breakdown ===");
+        LOG.info("%-14s | %8s | %10s | %12s | %12s | %12s"
+                .formatted("Format", "Records", "Evaluator", "Count(ms)", "Model(ms)", "Total(ms)"));
+        LOG.info("Count = separate run: eval + RDF gen (no Model collect). "
+                + "Model ~ Total - Count (two independent runs; approximate).");
+
+        // Warm up both evaluators and both measurement modes
+        var warmUpPath = BenchmarkDataGenerator.generateCsv(tempDir, WARM_UP_RECORDS);
+        var warmUpMapping =
+                BenchmarkMappingGenerator.csvMapping(warmUpPath.getFileName().toString());
+        runMapping(warmUpMapping, "duckdb");
+        runCountOnly(warmUpMapping, "duckdb");
+        runMapping(warmUpMapping, "reactive");
+        runCountOnly(warmUpMapping, "reactive");
+
+        for (int count : RECORD_COUNTS) {
+            var dataPath = BenchmarkDataGenerator.generateCsv(tempDir, count);
+            var mapping =
+                    BenchmarkMappingGenerator.csvMapping(dataPath.getFileName().toString());
+
+            for (var evaluator : new String[] {"duckdb", "reactive"}) {
+                var countResult = runCountOnly(mapping, evaluator);
+                var fullResult = runMapping(mapping, evaluator);
+
+                long countMs = countResult.durationMs;
+                long modelMs = Math.max(0, fullResult.durationMs - countResult.durationMs);
+
+                LOG.info("%-14s | %8d | %10s | %12d | %12d | %12d"
+                        .formatted(
+                                "CSV",
+                                count,
+                                evaluator.equals("duckdb") ? "DuckDB" : "Reactive",
+                                countMs,
+                                modelMs,
+                                fullResult.durationMs));
+            }
+            LOG.info("");
+        }
+    }
+
     // --- Nested JSON (iterable field / UNNEST) benchmarks ---
     // Note: only DuckDB is benchmarked here. The reactive evaluator's iterable field evaluation
     // throws ClassCastException for self-referencing expressions (rml:reference "$") in iterable
@@ -228,6 +272,35 @@ class EvaluatorBenchmarkTest {
         long memDeltaBytes = Math.max(0, memAfter - memBefore);
 
         return new BenchmarkResult(tripleCount, durationMs, memDeltaBytes);
+    }
+
+    /**
+     * Measures evaluator + RDF generation: map() → count statements.
+     * No Model collection overhead.
+     */
+    private BenchmarkResult runCountOnly(String turtleMapping, String evaluatorMode) {
+        var mappingStream = new ByteArrayInputStream(turtleMapping.getBytes(StandardCharsets.UTF_8));
+        Set<TriplesMap> triplesMaps = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingStream);
+
+        var mapperBuilder = RdfRmlMapper.builder()
+                .valueFactorySupplier(ValidatingValueFactory::new)
+                .triplesMaps(triplesMaps)
+                .fileResolver(tempDir);
+
+        if ("duckdb".equals(evaluatorMode)) {
+            mapperBuilder.logicalViewEvaluatorFactory(new DuckDbLogicalViewEvaluatorFactory(duckDbConnection, tempDir));
+        } else {
+            mapperBuilder.logicalViewEvaluatorFactory(new DefaultLogicalViewEvaluatorFactory());
+        }
+
+        RdfRmlMapper mapper = mapperBuilder.build();
+
+        System.gc();
+        long startNanos = System.nanoTime();
+        long statementCount = mapper.map().count().block();
+        long durationMs = (System.nanoTime() - startNanos) / 1_000_000;
+
+        return new BenchmarkResult(statementCount, durationMs, 0);
     }
 
     // --- Result types ---

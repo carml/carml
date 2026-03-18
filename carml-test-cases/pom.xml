@@ -155,6 +155,19 @@
 
   </dependencies>
 
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <!-- Arrow memory access in DuckDB evaluator requires add-opens for Java 17+ -->
+          <argLine>-XX:+AllowRedefinitionToAddDeleteMethods --add-opens=java.base/java.nio=ALL-UNNAMED</argLine>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
   <repositories>
     <repository>
       <id>jitpack.io</id>

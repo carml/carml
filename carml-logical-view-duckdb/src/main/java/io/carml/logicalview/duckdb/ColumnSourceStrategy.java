@@ -95,7 +95,8 @@ record ColumnSourceStrategy(String cteAlias, TypeCompanionMode typeCompanionMode
             case INNER_VIEW ->
                 field(quotedName(tableAlias, reference + TYPE_SUFFIX)).as(typeAlias);
             case SQL_TYPEOF ->
-                DSL.field("typeof({0})", field(quotedName(tableAlias, reference))).as(typeAlias);
+                DSL.field("typeof({0})", field(quotedName(tableAlias, reference)))
+                        .as(typeAlias);
             case NONE -> castNull(String.class).as(typeAlias);
         };
     }

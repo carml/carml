@@ -247,6 +247,38 @@ class DuckDbLogicalViewEvaluatorTest {
                     })
                     .verifyComplete();
         }
+
+        @Test
+        void evaluate_jsonSource_jdbcFallback_producesIdenticalResults() throws IOException {
+            var jsonFile = tempDir.resolve("jdbc_fallback.json");
+            Files.writeString(jsonFile, """
+                    [
+                        {"name": "Alice", "age": 30},
+                        {"name": "Bob", "age": 25}
+                    ]""");
+
+            var view = createJsonView(
+                    jsonFile.toString(), null, Set.of(expressionField("name", "name"), expressionField("age", "age")));
+            // useArrow=false forces JDBC row-by-row path
+            var jdbcEvaluator = new DuckDbLogicalViewEvaluator(connection, false);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(jdbcEvaluator
+                            .evaluate(view, source -> null, context)
+                            .collectList())
+                    .assertNext(iterations -> {
+                        assertThat(iterations, hasSize(2));
+
+                        var first = iterations.get(0);
+                        assertThat(first.getValue("name"), is(Optional.of("Alice")));
+                        assertThat(first.getValue("age"), is(Optional.of(30L)));
+
+                        var second = iterations.get(1);
+                        assertThat(second.getValue("name"), is(Optional.of("Bob")));
+                        assertThat(second.getValue("age"), is(Optional.of(25L)));
+                    })
+                    .verifyComplete();
+        }
     }
 
     // --- JSON bracket notation tests ---
@@ -1905,6 +1937,62 @@ class DuckDbLogicalViewEvaluatorTest {
                         assertThat(iteration.getNaturalDatatype("created"), is(Optional.of(XSD.DATE)));
                         // Index always has xsd:integer
                         assertThat(iteration.getNaturalDatatype("#"), is(Optional.of(XSD.INTEGER)));
+                    })
+                    .verifyComplete();
+        }
+
+        @Test
+        void evaluate_sqlSource_arrowValueTypesMatchExpected() throws SQLException {
+            try (var stmt = connection.createStatement()) {
+                stmt.execute("CREATE OR REPLACE TABLE type_parity AS SELECT "
+                        + "42 AS int_val, "
+                        + "true AS bool_val, "
+                        + "3.14 AS double_val, "
+                        + "DATE '2023-06-15' AS date_val, "
+                        + "'hello' AS str_val");
+            }
+
+            var view = createSqlView(
+                    "SELECT * FROM type_parity",
+                    Set.of(
+                            expressionField("int_val", "int_val"),
+                            expressionField("bool_val", "bool_val"),
+                            expressionField("double_val", "double_val"),
+                            expressionField("date_val", "date_val"),
+                            expressionField("str_val", "str_val")));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(evaluator.evaluate(view, source -> null, context))
+                    .assertNext(iteration -> {
+                        // Verify value types, not just natural datatypes
+                        assertThat(iteration.getValue("int_val").orElseThrow().toString(), is("42"));
+                        assertThat(iteration.getValue("bool_val").orElseThrow().toString(), is("true"));
+                        assertThat(iteration.getValue("str_val").orElseThrow(), is("hello"));
+                        // date and double are present and non-null
+                        assertThat(iteration.getValue("date_val").isPresent(), is(true));
+                        assertThat(iteration.getValue("double_val").isPresent(), is(true));
+                    })
+                    .verifyComplete();
+        }
+
+        @Test
+        void evaluate_sqlSource_stringValueIsJavaString() throws SQLException {
+            // Verifies that Arrow's Text type is normalized to java.lang.String
+            try (var stmt = connection.createStatement()) {
+                stmt.execute("CREATE OR REPLACE TABLE str_type_test AS SELECT 'hello' AS val");
+            }
+
+            var view = createSqlView("SELECT * FROM str_type_test", Set.of(expressionField("val", "val")));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(evaluator.evaluate(view, source -> null, context))
+                    .assertNext(iteration -> {
+                        var val = iteration.getValue("val").orElseThrow();
+                        // Arrow VarCharVector returns Text; must be normalized to String
+                        assertThat(val, org.hamcrest.Matchers.instanceOf(String.class));
+                        assertThat(val, is("hello"));
                     })
                     .verifyComplete();
         }

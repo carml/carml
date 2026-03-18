@@ -48,9 +48,9 @@ import reactor.core.scheduler.Schedulers;
 @Slf4j
 public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
 
-    private static final String INDEX_KEY = "#";
+    static final String INDEX_KEY = "#";
 
-    private static final String ORDINAL_SUFFIX = ".#";
+    static final String INDEX_KEY_SUFFIX = ".#";
 
     /**
      * Maps DuckDB type strings to XSD datatype IRIs. This covers both {@code json_type()} return
@@ -89,8 +89,16 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
 
     private final Connection connection;
 
+    private final boolean useArrow;
+
     public DuckDbLogicalViewEvaluator(Connection connection) {
+        this(connection, true);
+    }
+
+    /** Package-private constructor for testing JDBC fallback path. */
+    DuckDbLogicalViewEvaluator(Connection connection, boolean useArrow) {
         this.connection = connection;
+        this.useArrow = useArrow;
     }
 
     @Override
@@ -232,13 +240,30 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
             var columnDescriptor = resolveColumns(resultSet);
             var referenceableKeys = DefaultLogicalViewEvaluator.collectReferenceableKeys(view);
 
-            emitRows(
-                    sink,
-                    resultSet,
-                    columnDescriptor,
-                    compiledView,
-                    referenceableKeys,
-                    context.retainSourceEvaluation());
+            // Try Arrow batch transfer first; fall back to JDBC row-by-row if unavailable.
+            // Arrow avoids the per-cell JNI overhead of ResultSet.getObject() by transferring
+            // data in columnar batches via the C Data Interface.
+            var arrowEmitted = false;
+            if (useArrow && resultSet instanceof org.duckdb.DuckDBResultSet duckDbResultSet) {
+                arrowEmitted = ArrowBatchEmitter.tryEmitArrowBatches(
+                        sink,
+                        duckDbResultSet,
+                        columnDescriptor,
+                        compiledView,
+                        referenceableKeys,
+                        context.retainSourceEvaluation());
+            }
+
+            if (!arrowEmitted) {
+                LOG.debug("Using JDBC row-by-row transfer for view [{}]", view.getResourceName());
+                emitRows(
+                        sink,
+                        resultSet,
+                        columnDescriptor,
+                        compiledView,
+                        referenceableKeys,
+                        context.retainSourceEvaluation());
+            }
 
             sink.complete();
         } catch (SQLException e) {
@@ -255,13 +280,17 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
         var typeColumns = new ArrayList<String>();
         var idxColumn = -1;
         var iterColumn = -1;
+        String idxColumnName = null;
+        String iterColumnName = null;
 
         for (var i = 1; i <= columnCount; i++) {
             var colName = metadata.getColumnLabel(i);
             if (DuckDbViewCompiler.INDEX_COLUMN.equals(colName)) {
                 idxColumn = i;
+                idxColumnName = colName;
             } else if (JsonPathSourceHandler.JSON_ITER_COLUMN.equals(colName)) {
                 iterColumn = i;
+                iterColumnName = colName;
             } else if (colName.endsWith(DuckDbSourceStrategy.TYPE_SUFFIX)) {
                 typeColumns.add(colName);
             } else {
@@ -269,7 +298,7 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
             }
         }
 
-        return new ColumnDescriptor(valueColumns, typeColumns, idxColumn, iterColumn);
+        return new ColumnDescriptor(valueColumns, typeColumns, idxColumn, iterColumn, idxColumnName, iterColumnName);
     }
 
     private void emitRows(
@@ -409,7 +438,7 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
 
         // All ordinal columns (.#) have xsd:integer
         for (var colName : values.keySet()) {
-            if (colName.endsWith(ORDINAL_SUFFIX)) {
+            if (colName.endsWith(INDEX_KEY_SUFFIX)) {
                 naturalDatatypes.put(colName, XSD.INTEGER);
             }
         }
@@ -438,7 +467,7 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
      * @param duckDbType the type string from DuckDB's {@code json_type()} or {@code typeof()}
      * @return the corresponding XSD IRI, or {@code null} if no mapping exists
      */
-    private static IRI resolveXsdType(String duckDbType) {
+    static IRI resolveXsdType(String duckDbType) {
         var xsdType = DUCKDB_TYPE_TO_XSD.get(duckDbType);
         if (xsdType != null) {
             return xsdType;
@@ -456,5 +485,26 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
         return null;
     }
 
-    private record ColumnDescriptor(List<String> valueNames, List<String> typeNames, int idxColumn, int iterColumn) {}
+    /**
+     * Describes the column layout of a DuckDB query result set.
+     *
+     * <p>Carries both index-based fields (for JDBC access) and name-based fields (for Arrow access)
+     * so that both transfer paths can use the same descriptor.
+     *
+     * @param valueNames ordered list of value column names (excludes type companions, idx, iter)
+     * @param typeNames list of type companion column names (ending with {@code .__type})
+     * @param idxColumn 1-based JDBC column index for the {@code __idx} column, or {@code -1} if
+     *     absent
+     * @param iterColumn 1-based JDBC column index for the {@code __iter} column, or {@code -1} if
+     *     absent
+     * @param idxColumnName column name for the index column, or {@code null} if absent
+     * @param iterColumnName column name for the iter column, or {@code null} if absent
+     */
+    record ColumnDescriptor(
+            List<String> valueNames,
+            List<String> typeNames,
+            int idxColumn,
+            int iterColumn,
+            String idxColumnName,
+            String iterColumnName) {}
 }
