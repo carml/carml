@@ -13,6 +13,7 @@ import io.carml.model.LogicalSource;
 import io.carml.model.NameableStream;
 import io.carml.model.Source;
 import io.carml.model.TriplesMap;
+import io.carml.output.NTriplesTermEncoder;
 import io.carml.util.Mappings;
 import io.carml.util.TypeRef;
 import java.io.ByteArrayInputStream;
@@ -246,8 +247,67 @@ public abstract class RmlMapper<T, K> {
 
     private Flux<MappingResult<T>> mapLogicalViews(
             Map<String, InputStream> namedInputStreams, Set<TriplesMap> triplesMapFilter) {
-        if (logicalViewEvaluator == null || lvTriplesMappers.isEmpty()) {
+        var prepared = prepareLogicalViewPipeline(namedInputStreams, triplesMapFilter);
+        if (prepared == null) {
             return Flux.empty();
+        }
+
+        return Flux.fromIterable(prepared.mappings()).flatMap(rm -> {
+            var mapper = lvTriplesMappers.get(rm.getOriginalTriplesMap());
+            return logicalViewEvaluator
+                    .evaluate(rm.getEffectiveView(), prepared.sourceResolver(), rm.getEvaluationContext())
+                    .flatMap(mapper::map);
+        });
+    }
+
+    /**
+     * Maps logical views to N-Triples/N-Quads bytes using the statement-less byte pipeline. Regular
+     * triples are encoded directly to bytes without creating Statement objects. Mergeable results
+     * (from {@code rml:gather} with collections) are collected across iterations and encoded to bytes
+     * after merging.
+     *
+     * @param namedInputStreams named input streams for resolving sources
+     * @param triplesMapFilter filter for specific TriplesMap instances; empty for all
+     * @param encoder the encoder to use for byte serialization
+     * @param includeGraph whether to include the graph field in encoded output (true for N-Quads,
+     *     false for N-Triples)
+     * @return a Flux of encoded byte arrays
+     */
+    protected Flux<byte[]> mapLogicalViewsToBytes(
+            Map<String, InputStream> namedInputStreams,
+            Set<TriplesMap> triplesMapFilter,
+            NTriplesTermEncoder encoder,
+            boolean includeGraph) {
+        var prepared = prepareLogicalViewPipeline(namedInputStreams, triplesMapFilter);
+        if (prepared == null) {
+            return Flux.empty();
+        }
+
+        return Flux.fromIterable(prepared.mappings())
+                .flatMap(rm -> {
+                    var mapper = lvTriplesMappers.get(rm.getOriginalTriplesMap());
+                    return logicalViewEvaluator
+                            .evaluate(rm.getEffectiveView(), prepared.sourceResolver(), rm.getEvaluationContext())
+                            .flatMapIterable(iteration -> {
+                                var result = mapper.mapToBytes(iteration, encoder, includeGraph);
+                                for (var mergeable : result.mergeables()) {
+                                    handleCompletable(mergeable);
+                                }
+                                return result.bytes();
+                            });
+                })
+                .concatWith(encodeMergeables(encoder, includeGraph));
+    }
+
+    /**
+     * Prepares the shared pipeline components for logical view mapping: filters the resolved
+     * mappings and creates a caching source resolver. Returns {@code null} when no mappable views
+     * exist (caller should return {@code Flux.empty()}).
+     */
+    private PreparedPipeline prepareLogicalViewPipeline(
+            Map<String, InputStream> namedInputStreams, Set<TriplesMap> triplesMapFilter) {
+        if (logicalViewEvaluator == null || lvTriplesMappers.isEmpty()) {
+            return null;
         }
 
         var filteredMappings = resolvedMappings.stream()
@@ -256,7 +316,7 @@ public abstract class RmlMapper<T, K> {
                 .toList();
 
         if (filteredMappings.isEmpty()) {
-            return Flux.empty();
+            return null;
         }
 
         // Cache resolved sources by Source identity. Sources are buffered into replayable
@@ -267,12 +327,33 @@ public abstract class RmlMapper<T, K> {
         Function<Source, ResolvedSource<?>> cachingSourceResolver = source -> sourceCache.computeIfAbsent(
                 source, s -> bufferResolvedSource(resolveSourceForView(s, namedInputStreams)));
 
-        return Flux.fromIterable(filteredMappings).flatMap(rm -> {
-            var mapper = lvTriplesMappers.get(rm.getOriginalTriplesMap());
-            return logicalViewEvaluator
-                    .evaluate(rm.getEffectiveView(), cachingSourceResolver, rm.getEvaluationContext())
-                    .flatMap(mapper::map);
-        });
+        return new PreparedPipeline(filteredMappings, cachingSourceResolver);
+    }
+
+    private record PreparedPipeline(
+            List<ResolvedMapping> mappings, Function<Source, ResolvedSource<?>> sourceResolver) {}
+
+    /**
+     * Encodes merged mergeable results to bytes. Called after all iterations have been processed
+     * to handle cross-iteration collection merging (rml:gather).
+     *
+     * @param encoder the encoder to use for byte serialization
+     * @param includeGraph whether to include the graph field in encoded output (true for N-Quads,
+     *     false for N-Triples)
+     */
+    private Flux<byte[]> encodeMergeables(NTriplesTermEncoder encoder, boolean includeGraph) {
+        return Flux.fromIterable(mergeables.values())
+                .flatMap(values -> values.stream()
+                        .reduce(MergeableMappingResult::merge)
+                        .map(merged -> Flux.from(merged.getResults()).map(result -> {
+                            var stmt = (org.eclipse.rdf4j.model.Statement) result;
+                            if (includeGraph) {
+                                return encoder.encodeNQuad(
+                                        stmt.getSubject(), stmt.getPredicate(), stmt.getObject(), stmt.getContext());
+                            }
+                            return encoder.encodeNTriple(stmt.getSubject(), stmt.getPredicate(), stmt.getObject());
+                        }))
+                        .orElse(Flux.empty()));
     }
 
     /**

@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Objects;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.rdf4j.model.impl.ValidatingValueFactory;
@@ -165,10 +166,14 @@ class EvaluatorBenchmarkTest {
     @Test
     void benchmark_csv_phaseBreakdown() throws IOException {
         LOG.info("=== CSV Per-Phase Breakdown ===");
-        LOG.info("%-14s | %8s | %10s | %12s | %12s | %12s"
-                .formatted("Format", "Records", "Evaluator", "Count(ms)", "Model(ms)", "Total(ms)"));
-        LOG.info("Count = separate run: eval + RDF gen (no Model collect). "
-                + "Model ~ Total - Count (two independent runs; approximate).");
+        LOG.info(
+                "{}",
+                "%-14s | %8s | %10s | %12s | %12s | %12s"
+                        .formatted("Format", "Records", "Evaluator", "Count(ms)", "Model(ms)", "Total(ms)"));
+        LOG.info(
+                "{}",
+                "Count = separate run: eval + RDF gen (no Model collect). "
+                        + "Model ~ Total - Count (two independent runs; approximate).");
 
         // Warm up both evaluators and both measurement modes
         var warmUpPath = BenchmarkDataGenerator.generateCsv(tempDir, WARM_UP_RECORDS);
@@ -191,14 +196,16 @@ class EvaluatorBenchmarkTest {
                 long countMs = countResult.durationMs;
                 long modelMs = Math.max(0, fullResult.durationMs - countResult.durationMs);
 
-                LOG.info("%-14s | %8d | %10s | %12d | %12d | %12d"
-                        .formatted(
-                                "CSV",
-                                count,
-                                evaluator.equals("duckdb") ? "DuckDB" : "Reactive",
-                                countMs,
-                                modelMs,
-                                fullResult.durationMs));
+                LOG.info(
+                        "{}",
+                        "%-14s | %8d | %10s | %12d | %12d | %12d"
+                                .formatted(
+                                        "CSV",
+                                        count,
+                                        evaluator.equals("duckdb") ? "DuckDB" : "Reactive",
+                                        countMs,
+                                        modelMs,
+                                        fullResult.durationMs));
             }
             LOG.info("");
         }
@@ -297,10 +304,129 @@ class EvaluatorBenchmarkTest {
 
         System.gc();
         long startNanos = System.nanoTime();
-        long statementCount = mapper.map().count().block();
+        long statementCount = Objects.requireNonNullElse(mapper.map().count().block(), 0L);
         long durationMs = (System.nanoTime() - startNanos) / 1_000_000;
 
         return new BenchmarkResult(statementCount, durationMs, 0);
+    }
+
+    /**
+     * Measures evaluator + byte encoding: mapToNTriplesBytes() → count byte arrays.
+     * No Statement objects created, no Model collection.
+     */
+    private BenchmarkResult runBytesOnly(String turtleMapping, String evaluatorMode) {
+        var mappingStream = new ByteArrayInputStream(turtleMapping.getBytes(StandardCharsets.UTF_8));
+        Set<TriplesMap> triplesMaps = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingStream);
+
+        var mapperBuilder = RdfRmlMapper.builder()
+                .valueFactorySupplier(ValidatingValueFactory::new)
+                .triplesMaps(triplesMaps)
+                .fileResolver(tempDir);
+
+        if ("duckdb".equals(evaluatorMode)) {
+            mapperBuilder.logicalViewEvaluatorFactory(new DuckDbLogicalViewEvaluatorFactory(duckDbConnection, tempDir));
+        } else {
+            mapperBuilder.logicalViewEvaluatorFactory(new DefaultLogicalViewEvaluatorFactory());
+        }
+
+        RdfRmlMapper mapper = mapperBuilder.build();
+
+        System.gc();
+        long startNanos = System.nanoTime();
+        long byteArrayCount =
+                Objects.requireNonNullElse(mapper.mapToNTriplesBytes().count().block(), 0L);
+        long durationMs = (System.nanoTime() - startNanos) / 1_000_000;
+
+        return new BenchmarkResult(byteArrayCount, durationMs, 0);
+    }
+
+    // --- Statement vs Bytes comparison ---
+
+    @Test
+    void benchmark_csv_statementVsBytes() throws IOException {
+        LOG.info("=== CSV Statement vs Bytes Pipeline ===");
+        LOG.info(
+                "{}",
+                "%-14s | %8s | %16s | %8s | %12s"
+                        .formatted("Format", "Records", "Pipeline", "Time(ms)", "Triples/sec"));
+
+        // Warm up
+        var warmUpPath = BenchmarkDataGenerator.generateCsv(tempDir, WARM_UP_RECORDS);
+        var warmUpMapping =
+                BenchmarkMappingGenerator.csvMapping(warmUpPath.getFileName().toString());
+        runCountOnly(warmUpMapping, "duckdb");
+        runBytesOnly(warmUpMapping, "duckdb");
+        runCountOnly(warmUpMapping, "reactive");
+        runBytesOnly(warmUpMapping, "reactive");
+
+        for (int count : RECORD_COUNTS) {
+            var dataPath = BenchmarkDataGenerator.generateCsv(tempDir, count);
+            var mapping =
+                    BenchmarkMappingGenerator.csvMapping(dataPath.getFileName().toString());
+
+            var duckStmt = runCountOnly(mapping, "duckdb");
+            var duckBytes = runBytesOnly(mapping, "duckdb");
+            var reactStmt = runCountOnly(mapping, "reactive");
+            var reactBytes = runBytesOnly(mapping, "reactive");
+
+            LOG.info(
+                    "{}",
+                    "%-14s | %8d | %16s | %8d | %12.0f"
+                            .formatted(
+                                    "CSV", count, "DuckDB Stmt", duckStmt.durationMs(), duckStmt.triplesPerSecond()));
+            LOG.info(
+                    "{}",
+                    "%-14s | %8d | %16s | %8d | %12.0f"
+                            .formatted(
+                                    "CSV",
+                                    count,
+                                    "DuckDB Bytes",
+                                    duckBytes.durationMs(),
+                                    duckBytes.triplesPerSecond()));
+            LOG.info(
+                    "{}",
+                    "%-14s | %8d | %16s | %8d | %12.0f"
+                            .formatted(
+                                    "CSV",
+                                    count,
+                                    "Reactive Stmt",
+                                    reactStmt.durationMs(),
+                                    reactStmt.triplesPerSecond()));
+            LOG.info(
+                    "{}",
+                    "%-14s | %8d | %16s | %8d | %12.0f"
+                            .formatted(
+                                    "CSV",
+                                    count,
+                                    "Reactive Bytes",
+                                    reactBytes.durationMs(),
+                                    reactBytes.triplesPerSecond()));
+
+            if (duckStmt.durationMs() > 0 && duckBytes.durationMs() > 0) {
+                LOG.info(
+                        "{}",
+                        "%-14s | %8d | %16s | %.2fx"
+                                .formatted(
+                                        "CSV",
+                                        count,
+                                        "Duck Stmt/Bytes",
+                                        (double) duckStmt.durationMs() / duckBytes.durationMs()));
+            }
+            if (reactStmt.durationMs() > 0 && reactBytes.durationMs() > 0) {
+                LOG.info(
+                        "{}",
+                        "%-14s | %8d | %16s | %.2fx"
+                                .formatted(
+                                        "CSV",
+                                        count,
+                                        "React Stmt/Bytes",
+                                        (double) reactStmt.durationMs() / reactBytes.durationMs()));
+            }
+            LOG.info("");
+
+            assertThat(duckBytes.tripleCount(), greaterThan(0L));
+            assertThat(reactBytes.tripleCount(), greaterThan(0L));
+        }
     }
 
     // --- Result types ---

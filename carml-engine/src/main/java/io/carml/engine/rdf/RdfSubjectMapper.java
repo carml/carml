@@ -1,5 +1,6 @@
 package io.carml.engine.rdf;
 
+import static io.carml.engine.rdf.util.MappedStatements.streamCartesianProductBytes;
 import static io.carml.engine.rdf.util.MappedStatements.streamCartesianProductMappedStatements;
 import static io.carml.util.LogUtil.exception;
 import static io.carml.util.LogUtil.log;
@@ -12,6 +13,7 @@ import io.carml.logicalsourceresolver.DatatypeMapper;
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.model.SubjectMap;
 import io.carml.model.TriplesMap;
+import io.carml.output.NTriplesTermEncoder;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -129,6 +131,50 @@ public class RdfSubjectMapper {
                 RdfTriplesMapper.logAddStatements);
 
         return Flux.fromStream(typeStatementStream);
+    }
+
+    /**
+     * Encodes rdf:type statements directly to N-Triples/N-Quads bytes, bypassing Statement object
+     * creation. Returns an empty list if no classes are defined on this subject map.
+     *
+     * @param subjects the evaluated subject terms
+     * @param graphs the evaluated graph terms
+     * @param encoder the encoder to use for byte serialization
+     * @return a list of encoded byte arrays, one per type statement line
+     */
+    List<byte[]> encodeTypeStatements(
+            Set<MappedValue<Resource>> subjects, Set<MappedValue<Resource>> graphs, NTriplesTermEncoder encoder) {
+        return encodeTypeStatements(subjects, graphs, encoder, true);
+    }
+
+    /**
+     * Encodes rdf:type statements directly to N-Triples/N-Quads bytes, bypassing Statement object
+     * creation. Returns an empty list if no classes are defined on this subject map.
+     *
+     * @param subjects the evaluated subject terms
+     * @param graphs the evaluated graph terms
+     * @param encoder the encoder to use for byte serialization
+     * @param includeGraph whether to include the graph field in encoded output
+     * @return a list of encoded byte arrays, one per type statement line
+     */
+    List<byte[]> encodeTypeStatements(
+            Set<MappedValue<Resource>> subjects,
+            Set<MappedValue<Resource>> graphs,
+            NTriplesTermEncoder encoder,
+            boolean includeGraph) {
+        if (classes.isEmpty() || subjects.isEmpty()) {
+            return List.of();
+        }
+
+        return streamCartesianProductBytes(
+                        subjects,
+                        Set.of(RdfMappedValue.of(RDF.TYPE)),
+                        List.copyOf(classes),
+                        graphs,
+                        RdfTriplesMapper.defaultGraphModifier,
+                        encoder,
+                        includeGraph)
+                .toList();
     }
 
     private static Result resultOf(

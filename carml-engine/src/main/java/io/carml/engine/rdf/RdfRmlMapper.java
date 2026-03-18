@@ -36,6 +36,7 @@ import io.carml.model.LogicalSource;
 import io.carml.model.Mapping;
 import io.carml.model.RefObjectMap;
 import io.carml.model.TriplesMap;
+import io.carml.output.NTriplesTermEncoder;
 import io.carml.util.Mappings;
 import io.carml.util.TypeRef;
 import java.io.InputStream;
@@ -535,7 +536,7 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
                     .filter(IriSafeAnnotation.class::isInstance)
                     .flatMap(a -> {
                         var fields = a.getOnFields();
-                        return fields == null ? Stream.<Field>empty() : fields.stream();
+                        return fields == null ? Stream.empty() : fields.stream();
                     })
                     .map(Field::getFieldName)
                     .collect(toUnmodifiableSet());
@@ -734,6 +735,57 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
 
     public <R> Model mapRecordToModel(R providedRecord, TypeRef<R> providedTypeRef, Set<TriplesMap> triplesMapFilter) {
         return toModel(mapRecord(providedRecord, providedTypeRef, triplesMapFilter));
+    }
+
+    /**
+     * Maps all logical views to N-Triples bytes using the statement-less byte pipeline. Each
+     * element in the returned Flux is a single encoded N-Triples line ({@code subject predicate
+     * object .\n}). Graph context is ignored (triples only).
+     *
+     * <p>This method bypasses {@link Statement} object creation entirely, encoding directly from
+     * evaluated RDF terms to UTF-8 bytes for maximum throughput.
+     *
+     * @return a Flux of N-Triples encoded byte arrays
+     */
+    public Flux<byte[]> mapToNTriplesBytes() {
+        return mapToNTriplesBytes(Map.of(), Set.of());
+    }
+
+    /**
+     * Maps logical views to N-Triples bytes using the statement-less byte pipeline.
+     *
+     * @param namedInputStreams named input streams for resolving sources
+     * @param triplesMapFilter filter for specific TriplesMap instances; empty for all
+     * @return a Flux of N-Triples encoded byte arrays
+     */
+    public Flux<byte[]> mapToNTriplesBytes(
+            Map<String, InputStream> namedInputStreams, Set<TriplesMap> triplesMapFilter) {
+        return mapLogicalViewsToBytes(namedInputStreams, triplesMapFilter, NTriplesTermEncoder.withDefaults(), false);
+    }
+
+    /**
+     * Maps all logical views to N-Quads bytes using the statement-less byte pipeline. Each element
+     * in the returned Flux is a single encoded N-Quads line ({@code subject predicate object
+     * [graph] .\n}). The graph field is included when present.
+     *
+     * <p>This method bypasses {@link Statement} object creation entirely, encoding directly from
+     * evaluated RDF terms to UTF-8 bytes for maximum throughput.
+     *
+     * @return a Flux of N-Quads encoded byte arrays
+     */
+    public Flux<byte[]> mapToNQuadsBytes() {
+        return mapToNQuadsBytes(Map.of(), Set.of());
+    }
+
+    /**
+     * Maps logical views to N-Quads bytes using the statement-less byte pipeline.
+     *
+     * @param namedInputStreams named input streams for resolving sources
+     * @param triplesMapFilter filter for specific TriplesMap instances; empty for all
+     * @return a Flux of N-Quads encoded byte arrays
+     */
+    public Flux<byte[]> mapToNQuadsBytes(Map<String, InputStream> namedInputStreams, Set<TriplesMap> triplesMapFilter) {
+        return mapLogicalViewsToBytes(namedInputStreams, triplesMapFilter, NTriplesTermEncoder.withDefaults(), true);
     }
 
     private Model toModel(Flux<Statement> statementFlux) {

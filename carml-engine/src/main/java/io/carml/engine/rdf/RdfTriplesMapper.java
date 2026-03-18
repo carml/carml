@@ -4,6 +4,7 @@ import static io.carml.util.LogUtil.exception;
 import static io.carml.vocab.Rdf.Rr;
 import static java.util.stream.Collectors.toUnmodifiableSet;
 
+import io.carml.engine.ByteMappingResult;
 import io.carml.engine.FieldOrigin;
 import io.carml.engine.MappedValue;
 import io.carml.engine.MappingError;
@@ -27,6 +28,7 @@ import io.carml.model.LogicalSource;
 import io.carml.model.RefObjectMap;
 import io.carml.model.SubjectMap;
 import io.carml.model.TriplesMap;
+import io.carml.output.NTriplesTermEncoder;
 import io.carml.vocab.Rdf.Rml;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -274,6 +276,17 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
     @Override
     public Flux<MappingResult<Statement>> map(ViewIteration viewIteration) {
         LOG.trace("Mapping triples for view iteration {}", viewIteration.getIndex());
+        var expressionEvaluation = prepareViewIterationEvaluation(viewIteration);
+        return mapEvaluation(expressionEvaluation, viewIteration::getNaturalDatatype)
+                .doOnError(ex -> fireError(viewIteration, ex));
+    }
+
+    /**
+     * Shared setup for both {@link #map(ViewIteration)} and {@link #mapToBytes}: fires the
+     * mapping-start event, marks iteration state, builds the expression evaluation chain
+     * (view evaluation → source fallback → error enrichment).
+     */
+    private ExpressionEvaluation prepareViewIterationEvaluation(ViewIteration viewIteration) {
         fireMappingStartOnce();
         recordsProcessed = true;
         viewIterationUsed = true;
@@ -288,9 +301,7 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
                 .getSourceEvaluation()
                 .map(sourceEval -> withSourceFallback(viewEvaluation, sourceEval))
                 .orElse(viewEvaluation);
-        var expressionEvaluation = resolvedMapping != null ? enrichingEvaluation(baseEvaluation) : baseEvaluation;
-        return mapEvaluation(expressionEvaluation, viewIteration::getNaturalDatatype)
-                .doOnError(ex -> fireError(viewIteration, ex));
+        return resolvedMapping != null ? enrichingEvaluation(baseEvaluation) : baseEvaluation;
     }
 
     private static ExpressionEvaluation withSourceFallback(
@@ -385,6 +396,95 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
                         predicateObjectMapper.map(expressionEvaluation, datatypeMapper, subjectsAndSubjectGraphs));
 
         return Flux.merge(subjectStatements, pomStatements);
+    }
+
+    @Override
+    public ByteMappingResult<Statement> mapToBytes(
+            ViewIteration viewIteration, NTriplesTermEncoder encoder, boolean includeGraph) {
+        LOG.trace("Byte-mapping triples for view iteration {}", viewIteration.getIndex());
+        var expressionEvaluation = prepareViewIterationEvaluation(viewIteration);
+        try {
+            return mapEvaluationToBytes(expressionEvaluation, viewIteration::getNaturalDatatype, encoder, includeGraph);
+        } catch (RuntimeException ex) {
+            fireError(viewIteration, ex);
+            throw ex;
+        }
+    }
+
+    private ByteMappingResult<Statement> mapEvaluationToBytes(
+            ExpressionEvaluation expressionEvaluation,
+            DatatypeMapper datatypeMapper,
+            NTriplesTermEncoder encoder,
+            boolean includeGraph) {
+
+        var subjectMapperResults = subjectMappers.stream()
+                .map(subjectMapper -> subjectMapper.map(expressionEvaluation, datatypeMapper))
+                .collect(toUnmodifiableSet());
+
+        var subjects = subjectMapperResults.stream()
+                .map(RdfSubjectMapper.Result::getSubjects)
+                .flatMap(Set::stream)
+                .collect(toUnmodifiableSet());
+
+        if (subjects.isEmpty()) {
+            return new ByteMappingResult<>(List.of(), List.of());
+        }
+
+        Map<Set<MappedValue<Resource>>, Set<MappedValue<Resource>>> subjectsAndSubjectGraphs = new HashMap<>();
+        var allBytes = new ArrayList<byte[]>();
+        var allMergeables = new ArrayList<MappingResult<Statement>>();
+
+        for (RdfSubjectMapper.Result subjectMapperResult : subjectMapperResults) {
+            var resultSubjects = subjectMapperResult.getSubjects();
+            if (!resultSubjects.isEmpty()) {
+                subjectsAndSubjectGraphs.put(resultSubjects, subjectMapperResult.getGraphs());
+
+                // Encode type statements to bytes
+                allBytes.addAll(subjectMappers.stream()
+                        .flatMap(sm -> sm
+                                .encodeTypeStatements(
+                                        resultSubjects, subjectMapperResult.getGraphs(), encoder, includeGraph)
+                                .stream())
+                        .toList());
+
+                // Handle collection subjects (RdfList/RdfContainer) -- encode their Statements.
+                // toStream() is safe here: RdfList/RdfContainer results are synchronous
+                // (backed by Flux.fromIterable over an in-memory Model).
+                resultSubjects.stream()
+                        .filter(s -> s instanceof RdfList || s instanceof RdfContainer)
+                        .forEach(collSubject -> {
+                            var collResult =
+                                    collSubject instanceof RdfList<?> rdfList ? rdfList : (RdfContainer<?>) collSubject;
+                            Flux.from(collResult.getResults())
+                                    .toStream()
+                                    .map(stmt -> encodeStatement(stmt, encoder, includeGraph))
+                                    .forEach(allBytes::add);
+                        });
+            }
+        }
+
+        // Encode POM results to bytes
+        for (var pomMapper : predicateObjectMappers) {
+            allBytes.addAll(pomMapper.mapToBytes(
+                    expressionEvaluation,
+                    datatypeMapper,
+                    subjectsAndSubjectGraphs,
+                    encoder,
+                    allMergeables,
+                    includeGraph));
+        }
+
+        return new ByteMappingResult<>(allBytes, allMergeables);
+    }
+
+    /**
+     * Encodes a single Statement to bytes, respecting the includeGraph flag.
+     */
+    private static byte[] encodeStatement(Statement stmt, NTriplesTermEncoder encoder, boolean includeGraph) {
+        if (includeGraph) {
+            return encoder.encodeNQuad(stmt.getSubject(), stmt.getPredicate(), stmt.getObject(), stmt.getContext());
+        }
+        return encoder.encodeNTriple(stmt.getSubject(), stmt.getPredicate(), stmt.getObject());
     }
 
     @Override

@@ -1,5 +1,6 @@
 package io.carml.engine.rdf;
 
+import static io.carml.engine.rdf.util.MappedStatements.streamCartesianProductBytes;
 import static io.carml.engine.rdf.util.MappedStatements.streamCartesianProductMappedStatements;
 import static io.carml.util.LogUtil.exception;
 import static io.carml.util.LogUtil.log;
@@ -17,6 +18,8 @@ import io.carml.model.ObjectMap;
 import io.carml.model.PredicateObjectMap;
 import io.carml.model.RefObjectMap;
 import io.carml.model.TriplesMap;
+import io.carml.output.NTriplesTermEncoder;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -325,6 +328,127 @@ public class RdfPredicateObjectMapper {
         statementsPerGraphSet.add(collectionResults);
 
         return Flux.merge(statementsPerGraphSet);
+    }
+
+    /**
+     * Encodes predicate-object mapping results directly to N-Triples/N-Quads bytes, bypassing
+     * {@link Statement} creation. Regular objects are encoded via the cartesian product byte path.
+     * Collection objects ({@link RdfList}, {@link RdfContainer}) and mergeable collections have their
+     * internal Statements encoded to bytes via the encoder.
+     *
+     * <p>Mergeable collection objects are returned separately via the provided accumulator list so
+     * the caller can handle cross-iteration merging.
+     *
+     * @param expressionEvaluation the expression evaluation for the current iteration
+     * @param datatypeMapper the datatype mapper for the current iteration
+     * @param subjectsAndSubjectGraphs subjects mapped to their associated graphs
+     * @param encoder the encoder to use for byte serialization
+     * @param mergeableAccumulator accumulator for mergeable results that must be handled by the caller
+     * @param includeGraph whether to include the graph field in encoded output (true for N-Quads,
+     *     false for N-Triples)
+     * @return a list of encoded byte arrays
+     */
+    List<byte[]> mapToBytes(
+            ExpressionEvaluation expressionEvaluation,
+            DatatypeMapper datatypeMapper,
+            Map<Set<MappedValue<Resource>>, Set<MappedValue<Resource>>> subjectsAndSubjectGraphs,
+            NTriplesTermEncoder encoder,
+            List<MappingResult<Statement>> mergeableAccumulator,
+            boolean includeGraph) {
+
+        Set<MappedValue<IRI>> predicates = predicateGenerators.stream()
+                .map(g -> g.apply(expressionEvaluation, datatypeMapper))
+                .flatMap(List::stream)
+                .collect(toUnmodifiableSet());
+
+        if (predicates.isEmpty()) {
+            return List.of();
+        }
+
+        var objects = objectGenerators.stream()
+                .map(g -> g.apply(expressionEvaluation, datatypeMapper))
+                .<MappedValue<? extends Value>>flatMap(List::stream)
+                .toList();
+
+        if (objects.isEmpty()) {
+            return List.of();
+        }
+
+        Set<MappedValue<Resource>> pomGraphs = graphGenerators.stream()
+                .flatMap(graphGenerator -> graphGenerator.apply(expressionEvaluation, datatypeMapper).stream())
+                .collect(toUnmodifiableSet());
+
+        var subjectsAndAllGraphs = addPomGraphsToSubjectsAndSubjectGraphs(subjectsAndSubjectGraphs, pomGraphs);
+
+        // Separate mergeable collection objects from regular objects -- same logic as map()
+        var mergeableObjects = objects.stream()
+                .filter(obj -> isMergeableCollection(obj) && !pomGraphs.isEmpty())
+                .toList();
+
+        var regularAndCollectionObjects =
+                objects.stream().filter(obj -> !mergeableObjects.contains(obj)).toList();
+
+        // Separate non-mergeable collection objects from truly regular objects
+        var collectionObjects = regularAndCollectionObjects.stream()
+                .filter(obj -> obj instanceof RdfList || obj instanceof RdfContainer)
+                .toList();
+
+        var regularObjects = regularAndCollectionObjects.stream()
+                .filter(obj -> !(obj instanceof RdfList) && !(obj instanceof RdfContainer))
+                .toList();
+
+        var result = new ArrayList<byte[]>();
+
+        // Encode regular objects via cartesian product bytes
+        if (!regularObjects.isEmpty()) {
+            subjectsAndAllGraphs.forEach((subjects, graphs) -> streamCartesianProductBytes(
+                            subjects,
+                            predicates,
+                            regularObjects,
+                            graphs,
+                            RdfTriplesMapper.defaultGraphModifier,
+                            encoder,
+                            includeGraph)
+                    .forEach(result::add));
+        }
+
+        // Encode non-mergeable collection objects by getting their Statements and encoding.
+        // toStream() is safe: RdfList/RdfContainer results are synchronous (in-memory Model).
+        for (var collectionObj : collectionObjects) {
+            var collectionResult = getCollectionResults(collectionObj, pomGraphs);
+            if (collectionResult != null) {
+                Flux.from(collectionResult.getResults())
+                        .toStream()
+                        .map(stmt -> encodeStatement(stmt, encoder, includeGraph))
+                        .forEach(result::add);
+            }
+        }
+
+        // Encode collection results from predicates and pomGraphs (same as Statement path)
+        Stream.<Collection<? extends MappedValue<? extends Value>>>of(predicates, regularObjects, pomGraphs)
+                .flatMap(Collection::stream)
+                .map(mappedValue -> getCollectionResults(mappedValue, pomGraphs))
+                .filter(Objects::nonNull)
+                .forEach(collResult -> Flux.from(collResult.getResults())
+                        .toStream()
+                        .map(stmt -> encodeStatement(stmt, encoder, includeGraph))
+                        .forEach(result::add));
+
+        // Handle mergeable objects -- collect them for cross-iteration merging by the caller
+        if (!mergeableObjects.isEmpty()) {
+            mergeableObjects.stream()
+                    .flatMap(obj -> scopeMergeableForGraphs(obj, subjectsAndAllGraphs, predicates))
+                    .forEach(mergeableAccumulator::add);
+        }
+
+        return result;
+    }
+
+    private static byte[] encodeStatement(Statement stmt, NTriplesTermEncoder encoder, boolean includeGraph) {
+        if (includeGraph) {
+            return encoder.encodeNQuad(stmt.getSubject(), stmt.getPredicate(), stmt.getObject(), stmt.getContext());
+        }
+        return encoder.encodeNTriple(stmt.getSubject(), stmt.getPredicate(), stmt.getObject());
     }
 
     private static boolean isMergeableCollection(MappedValue<? extends Value> mappedValue) {
