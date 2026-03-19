@@ -6,11 +6,15 @@ import io.carml.logicalview.EvaluationContext;
 import io.carml.logicalview.LogicalViewEvaluator;
 import io.carml.logicalview.LogicalViewEvaluatorFactory;
 import io.carml.logicalview.MatchedLogicalViewEvaluator;
+import io.carml.logicalview.SourceRecordCache;
 import io.carml.logicalview.ViewIteration;
+import io.carml.model.LogicalSource;
 import io.carml.model.LogicalView;
 import io.carml.model.Source;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -34,5 +38,24 @@ class FactoryDelegatingEvaluator implements LogicalViewEvaluator {
                 .orElseThrow(() -> new RmlMapperException("No evaluator matched logical view: %s".formatted(view)));
         LOG.debug("Selected evaluator {} for view {}", evaluator.getClass().getSimpleName(), view);
         return evaluator.evaluate(view, sourceResolver, context);
+    }
+
+    @Override
+    public Flux<ViewIteration> evaluate(
+            LogicalView view,
+            Function<Source, ResolvedSource<?>> sourceResolver,
+            EvaluationContext context,
+            SourceRecordCache recordCache,
+            Map<Source, Set<LogicalSource>> logicalSourcesPerSource,
+            Map<LogicalSource, Set<String>> expressionsPerLogicalSource) {
+        var matches = factories.stream()
+                .map(f -> f.match(view))
+                .flatMap(Optional::stream)
+                .toList();
+        var evaluator = MatchedLogicalViewEvaluator.select(matches)
+                .orElseThrow(() -> new RmlMapperException("No evaluator matched logical view: %s".formatted(view)));
+        LOG.debug("Selected evaluator {} for view {}", evaluator.getClass().getSimpleName(), view);
+        return evaluator.evaluate(
+                view, sourceResolver, context, recordCache, logicalSourcesPerSource, expressionsPerLogicalSource);
     }
 }

@@ -4390,4 +4390,121 @@ class DefaultLogicalViewEvaluatorTest {
 
         assertThat(iterations, hasSize(1));
     }
+
+    @Test
+    void givenCacheAwareEvaluate_whenSingleView_thenProducesSameResultAsBasicEvaluate() {
+        var nameField = mockExpressionField("name");
+        when(nameField.getReference()).thenReturn("name");
+        when(logicalView.getFields()).thenReturn(Set.of(nameField));
+
+        ExpressionEvaluation exprEval =
+                expression -> "name".equals(expression) ? Optional.of("alice") : Optional.empty();
+
+        var rec = createRecord("record-1");
+        setupMocks(Flux.just(rec), exprEval);
+
+        var logicalSourcesPerSource = Map.of(source, Set.of(logicalSource));
+        var expressionsPerLogicalSource = Map.of(logicalSource, Set.of("name"));
+        var cache = SourceRecordCache.create();
+
+        var iterations = evaluator
+                .evaluate(
+                        logicalView,
+                        sourceResolver,
+                        EvaluationContext.defaults(),
+                        cache,
+                        logicalSourcesPerSource,
+                        expressionsPerLogicalSource)
+                .collectList()
+                .block();
+
+        assertThat(iterations, hasSize(1));
+        assertThat(iterations.get(0).getIndex(), is(0));
+        assertThat(iterations.get(0).getValue("name"), is(Optional.of("alice")));
+    }
+
+    @Test
+    void givenCacheAwareEvaluate_whenTwoViewsShareSource_thenResolverCalledOnce() {
+        // Set up two LogicalSources sharing the same Source
+        var logicalSource2 = mock(LogicalSource.class);
+        when(logicalSource2.getSource()).thenReturn(source);
+
+        // View 1 uses logicalSource
+        when(logicalView.getViewOn()).thenReturn(logicalSource);
+        when(logicalSource.getSource()).thenReturn(source);
+
+        var nameField = mockExpressionField("name");
+        when(nameField.getReference()).thenReturn("name");
+        when(logicalView.getFields()).thenReturn(Set.of(nameField));
+
+        ExpressionEvaluation exprEval1 =
+                expression -> "name".equals(expression) ? Optional.of("alice") : Optional.empty();
+        ExpressionEvaluation exprEval2 =
+                expression -> "name".equals(expression) ? Optional.of("bob") : Optional.empty();
+
+        // Records for both LogicalSources
+        var rec1 = LogicalSourceRecord.of(logicalSource, (Object) "record-1");
+        var rec2 = LogicalSourceRecord.of(logicalSource2, (Object) "record-2");
+
+        var matchScore = MatchScore.builder().strongMatch().build();
+        LogicalSourceResolver.LogicalSourceResolverFactory<Object> resolverFactory = mock();
+        var matchedFactory = MatchedLogicalSourceResolverFactory.of(matchScore, resolverFactory);
+
+        when(matchingFactory.apply(any(LogicalSource.class))).thenReturn(Optional.of(matchedFactory));
+        when(resolverFactory.apply(source)).thenReturn(resolver);
+        // Returns records for BOTH LogicalSources in a single call
+        when(resolver.getLogicalSourceRecords(anySet(), anyMap())).thenReturn(rs -> Flux.just(rec1, rec2));
+        when(resolver.getExpressionEvaluationFactory()).thenReturn(rec -> {
+            if ("record-1".equals(rec)) {
+                return exprEval1;
+            }
+            return exprEval2;
+        });
+
+        var allLogicalSources = Set.of(logicalSource, logicalSource2);
+        var logicalSourcesPerSource = Map.of(source, allLogicalSources);
+        var expressionsPerLogicalSource =
+                Map.of(logicalSource, Set.of("name"), logicalSource2, Set.of("name"));
+
+        var cache = SourceRecordCache.create();
+
+        // Evaluate for logicalSource — should resolve and cache
+        var iterations1 = evaluator
+                .evaluate(
+                        logicalView,
+                        sourceResolver,
+                        EvaluationContext.defaults(),
+                        cache,
+                        logicalSourcesPerSource,
+                        expressionsPerLogicalSource)
+                .collectList()
+                .block();
+
+        // View 2 uses logicalSource2 (same Source)
+        var logicalView2 = mock(LogicalView.class);
+        when(logicalView2.getViewOn()).thenReturn(logicalSource2);
+        when(logicalView2.getFields()).thenReturn(Set.of(nameField));
+
+        // Evaluate for logicalSource2 — should use cached records
+        var iterations2 = evaluator
+                .evaluate(
+                        logicalView2,
+                        sourceResolver,
+                        EvaluationContext.defaults(),
+                        cache,
+                        logicalSourcesPerSource,
+                        expressionsPerLogicalSource)
+                .collectList()
+                .block();
+
+        // View 1 sees only rec1 (alice), view 2 sees only rec2 (bob)
+        assertThat(iterations1, hasSize(1));
+        assertThat(iterations1.get(0).getValue("name"), is(Optional.of("alice")));
+
+        assertThat(iterations2, hasSize(1));
+        assertThat(iterations2.get(0).getValue("name"), is(Optional.of("bob")));
+
+        // Resolver was called only once (for the first evaluate)
+        verify(resolver, times(1)).getLogicalSourceRecords(anySet(), anyMap());
+    }
 }

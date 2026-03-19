@@ -5,6 +5,7 @@ import static java.util.stream.Collectors.toUnmodifiableSet;
 
 import io.carml.logicalsourceresolver.DatatypeMapper;
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
+import io.carml.logicalsourceresolver.LogicalSourceRecord;
 import io.carml.logicalsourceresolver.LogicalSourceResolver;
 import io.carml.logicalsourceresolver.LogicalSourceResolverException;
 import io.carml.logicalsourceresolver.MatchedLogicalSourceResolverFactory;
@@ -89,7 +90,22 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
     private record JoinContext(
             Function<Source, ResolvedSource<?>> sourceResolver,
             Set<LogicalViewJoin> aggregatingJoins,
-            Map<LogicalView, List<ViewIteration>> parentViewCache) {}
+            Map<LogicalView, List<ViewIteration>> parentViewCache,
+            SourceRecordCache recordCache,
+            Map<Source, Set<LogicalSource>> logicalSourcesPerSource,
+            Map<LogicalSource, Set<String>> expressionsPerLogicalSource) {}
+
+    /**
+     * Groups the resolver caches, source record cache, and pre-collected LogicalSource info that
+     * are threaded through {@code evaluateView} and {@code resolveExpressionEvaluations}.
+     */
+    private record EvaluationPipeline(
+            Map<ReferenceFormulation, LogicalSourceResolver.ExpressionEvaluationFactory<Object>> factoryCache,
+            Function<ReferenceFormulation, LogicalSourceResolver.ExpressionEvaluationFactory<Object>> factoryResolver,
+            Function<ReferenceFormulation, Optional<Function<String, List<Object>>>> inlineRecordParserResolver,
+            SourceRecordCache recordCache,
+            Map<Source, Set<LogicalSource>> logicalSourcesPerSource,
+            Map<LogicalSource, Set<String>> expressionsPerLogicalSource) {}
 
     private record FieldEvaluationContext(
             ReferenceFormulation currentRefForm,
@@ -100,6 +116,17 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
     @Override
     public Flux<ViewIteration> evaluate(
             LogicalView view, Function<Source, ResolvedSource<?>> sourceResolver, EvaluationContext context) {
+        return evaluate(view, sourceResolver, context, SourceRecordCache.noop(), Map.of(), Map.of());
+    }
+
+    @Override
+    public Flux<ViewIteration> evaluate(
+            LogicalView view,
+            Function<Source, ResolvedSource<?>> sourceResolver,
+            EvaluationContext context,
+            SourceRecordCache recordCache,
+            Map<Source, Set<LogicalSource>> logicalSourcesPerSource,
+            Map<LogicalSource, Set<String>> expressionsPerLogicalSource) {
 
         var viewOn = view.getViewOn();
 
@@ -127,8 +154,15 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
         Function<ReferenceFormulation, Optional<Function<String, List<Object>>>> inlineRecordParserResolver = refForm ->
                 inlineRecordParserCache.computeIfAbsent(refForm, rf -> resolveInlineRecordParser(rf, rootSource));
 
-        return evaluateView(
-                view, sourceResolver, context, rootRefForm, factoryCache, factoryResolver, inlineRecordParserResolver);
+        var pipeline = new EvaluationPipeline(
+                factoryCache,
+                factoryResolver,
+                inlineRecordParserResolver,
+                recordCache,
+                logicalSourcesPerSource,
+                expressionsPerLogicalSource);
+
+        return evaluateView(view, sourceResolver, context, rootRefForm, pipeline);
     }
 
     private Flux<ViewIteration> evaluateView(
@@ -136,18 +170,29 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
             Function<Source, ResolvedSource<?>> sourceResolver,
             EvaluationContext context,
             ReferenceFormulation rootRefForm,
-            Map<ReferenceFormulation, LogicalSourceResolver.ExpressionEvaluationFactory<Object>> factoryCache,
-            Function<ReferenceFormulation, LogicalSourceResolver.ExpressionEvaluationFactory<Object>> factoryResolver,
-            Function<ReferenceFormulation, Optional<Function<String, List<Object>>>> inlineRecordParserResolver) {
+            EvaluationPipeline pipeline) {
 
-        var exprEvalFlux = resolveExpressionEvaluations(
-                view, sourceResolver, rootRefForm, factoryCache, factoryResolver, inlineRecordParserResolver);
+        var exprEvalFlux = resolveExpressionEvaluations(view, sourceResolver, rootRefForm, pipeline);
 
         var evaluatedFlux = evaluateFieldsAndIndex(
-                exprEvalFlux, view.getFields(), rootRefForm, context, factoryResolver, inlineRecordParserResolver);
+                exprEvalFlux,
+                view.getFields(),
+                rootRefForm,
+                context,
+                pipeline.factoryResolver(),
+                pipeline.inlineRecordParserResolver());
 
         evaluatedFlux = applyJoins(
-                evaluatedFlux, view, context.getProjectedFields(), context.getAggregatingJoins(), sourceResolver);
+                evaluatedFlux,
+                view,
+                context.getProjectedFields(),
+                new JoinContext(
+                        sourceResolver,
+                        context.getAggregatingJoins(),
+                        new HashMap<>(),
+                        pipeline.recordCache(),
+                        pipeline.logicalSourcesPerSource(),
+                        pipeline.expressionsPerLogicalSource()));
 
         // Convert to ViewIteration — root # already assigned before joins
         Flux<ViewIteration> viewIterations = evaluatedFlux.map(ev -> new DefaultViewIteration(
@@ -172,46 +217,82 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
             LogicalView view,
             Function<Source, ResolvedSource<?>> sourceResolver,
             ReferenceFormulation rootRefForm,
-            Map<ReferenceFormulation, LogicalSourceResolver.ExpressionEvaluationFactory<Object>> factoryCache,
-            Function<ReferenceFormulation, LogicalSourceResolver.ExpressionEvaluationFactory<Object>> factoryResolver,
-            Function<ReferenceFormulation, Optional<Function<String, List<Object>>>> inlineRecordParserResolver) {
+            EvaluationPipeline pipeline) {
 
         var viewOn = view.getViewOn();
 
         if (viewOn instanceof LogicalSource logicalSource) {
             var rootSource = logicalSource.getSource();
-            var resolver = (LogicalSourceResolver<Object>) findResolver(logicalSource, rootSource);
-            var expressionEvaluationFactory = resolver.getExpressionEvaluationFactory();
-            factoryCache.put(rootRefForm, expressionEvaluationFactory);
 
-            LogicalSourceResolver.DatatypeMapperFactory<Object> datatypeMapperFactory =
-                    resolver.getDatatypeMapperFactory().orElse(r -> value -> Optional.empty());
+            if (!pipeline.recordCache().isActive()) {
+                // No caching — lazy streaming (original code path)
+                var resolver = (LogicalSourceResolver<Object>) findResolver(logicalSource, rootSource);
+                var expressionEvaluationFactory = resolver.getExpressionEvaluationFactory();
+                pipeline.factoryCache().put(rootRefForm, expressionEvaluationFactory);
 
-            var resolvedSource = sourceResolver.apply(rootSource);
-            var expressions = collectViewExpressions(view, logicalSource);
-            return resolver.getLogicalSourceRecords(Set.of(logicalSource), expressions)
-                    .apply(resolvedSource)
-                    .map(rec -> {
-                        var sourceRecord = rec.getSourceRecord();
-                        return new ExprEvalWithDatatypeMapper(
-                                expressionEvaluationFactory.apply(sourceRecord),
-                                datatypeMapperFactory.apply(sourceRecord));
+                LogicalSourceResolver.DatatypeMapperFactory<Object> datatypeMapperFactory =
+                        resolver.getDatatypeMapperFactory().orElse(r -> value -> Optional.empty());
+
+                var resolvedSource = sourceResolver.apply(rootSource);
+                var expressions = collectViewExpressions(view, logicalSource);
+                return resolver.getLogicalSourceRecords(Set.of(logicalSource), expressions)
+                        .apply(resolvedSource)
+                        .map(rec -> {
+                            var sourceRecord = rec.getSourceRecord();
+                            return new ExprEvalWithDatatypeMapper(
+                                    expressionEvaluationFactory.apply(sourceRecord),
+                                    datatypeMapperFactory.apply(sourceRecord));
+                        });
+            }
+
+            // Thread-safe caching via Mono.cache()
+            return pipeline.recordCache()
+                    .getOrResolve(rootSource, () -> {
+                        var resolver = (LogicalSourceResolver<Object>) findResolver(logicalSource, rootSource);
+                        var exprEvalFactory = resolver.getExpressionEvaluationFactory();
+                        LogicalSourceResolver.DatatypeMapperFactory<Object> dtMapperFactory =
+                                resolver.getDatatypeMapperFactory().orElse(r -> value -> Optional.empty());
+                        var resolvedSource = sourceResolver.apply(rootSource);
+                        var allLogicalSources =
+                                pipeline.logicalSourcesPerSource().getOrDefault(rootSource, Set.of(logicalSource));
+                        return resolver.getLogicalSourceRecords(
+                                        allLogicalSources, pipeline.expressionsPerLogicalSource())
+                                .apply(resolvedSource)
+                                .collectList()
+                                .map(records -> new SourceRecordCache.CachedRecords(
+                                        List.copyOf(records), exprEvalFactory, dtMapperFactory));
+                    })
+                    .flatMapMany(cached -> {
+                        pipeline.factoryCache().put(rootRefForm, cached.expressionEvaluationFactory());
+                        return filterAndMapRecords(
+                                cached.records(),
+                                logicalSource,
+                                cached.expressionEvaluationFactory(),
+                                cached.datatypeMapperFactory());
                     });
         }
 
+        // view-on-view case: evaluate parent view recursively with cache
         var parentReferenceableKeys = collectReferenceableKeys((LogicalView) viewOn);
-        return evaluateView(
-                        (LogicalView) viewOn,
-                        sourceResolver,
-                        EvaluationContext.defaults(),
-                        rootRefForm,
-                        factoryCache,
-                        factoryResolver,
-                        inlineRecordParserResolver)
+        return evaluateView((LogicalView) viewOn, sourceResolver, EvaluationContext.defaults(), rootRefForm, pipeline)
                 .map(vi -> {
                     var viewExprEval = new ViewIterationExpressionEvaluation(vi, parentReferenceableKeys);
                     DatatypeMapper viewDatatypeMapper = vi::getNaturalDatatype;
                     return new ExprEvalWithDatatypeMapper(viewExprEval, viewDatatypeMapper);
+                });
+    }
+
+    private static Flux<ExprEvalWithDatatypeMapper> filterAndMapRecords(
+            List<LogicalSourceRecord<?>> records,
+            LogicalSource logicalSource,
+            LogicalSourceResolver.ExpressionEvaluationFactory<Object> expressionEvaluationFactory,
+            LogicalSourceResolver.DatatypeMapperFactory<Object> datatypeMapperFactory) {
+        return Flux.fromIterable(records)
+                .filter(rec -> rec.getLogicalSource().equals(logicalSource))
+                .map(rec -> {
+                    var sourceRecord = (Object) rec.getSourceRecord();
+                    return new ExprEvalWithDatatypeMapper(
+                            expressionEvaluationFactory.apply(sourceRecord), datatypeMapperFactory.apply(sourceRecord));
                 });
     }
 
@@ -245,8 +326,7 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
             Flux<EvaluatedValues> evaluatedFlux,
             LogicalView view,
             Set<String> projectedFields,
-            Set<LogicalViewJoin> aggregatingJoins,
-            Function<Source, ResolvedSource<?>> sourceResolver) {
+            JoinContext baseJoinCtx) {
         // Same-source optimization: when parent views share the child's LogicalSource and their
         // fields are all present in the child view, derive parent iterations from the child data
         // instead of re-reading the source. This requires materializing the child flux, then
@@ -257,7 +337,13 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
             LOG.debug("Deriving {} same-source parent view(s) from child data", sameSourceParents.size());
             return evaluatedFlux.collectList().flatMapMany(childList -> {
                 var parentViewCache = deriveParentIterations(childList, sameSourceParents);
-                var joinCtx = new JoinContext(sourceResolver, aggregatingJoins, parentViewCache);
+                var joinCtx = new JoinContext(
+                        baseJoinCtx.sourceResolver(),
+                        baseJoinCtx.aggregatingJoins(),
+                        parentViewCache,
+                        baseJoinCtx.recordCache(),
+                        baseJoinCtx.logicalSourcesPerSource(),
+                        baseJoinCtx.expressionsPerLogicalSource());
                 var childFlux = Flux.fromIterable(childList);
                 childFlux = applyJoinSet(childFlux, view.getLeftJoins(), true, view, projectedFields, joinCtx);
                 childFlux = applyJoinSet(childFlux, view.getInnerJoins(), false, view, projectedFields, joinCtx);
@@ -265,9 +351,8 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
             });
         }
 
-        var joinCtx = new JoinContext(sourceResolver, aggregatingJoins, new HashMap<>());
-        evaluatedFlux = applyJoinSet(evaluatedFlux, view.getLeftJoins(), true, view, projectedFields, joinCtx);
-        evaluatedFlux = applyJoinSet(evaluatedFlux, view.getInnerJoins(), false, view, projectedFields, joinCtx);
+        evaluatedFlux = applyJoinSet(evaluatedFlux, view.getLeftJoins(), true, view, projectedFields, baseJoinCtx);
+        evaluatedFlux = applyJoinSet(evaluatedFlux, view.getInnerJoins(), false, view, projectedFields, baseJoinCtx);
         return evaluatedFlux;
     }
 
@@ -829,6 +914,16 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
         Mono<List<ViewIteration>> parentMono;
         if (cachedParent != null) {
             parentMono = Mono.just(cachedParent);
+        } else if (joinCtx.recordCache().isActive()) {
+            parentMono = evaluate(
+                            parentView,
+                            joinCtx.sourceResolver(),
+                            EvaluationContext.defaults(),
+                            joinCtx.recordCache(),
+                            joinCtx.logicalSourcesPerSource(),
+                            joinCtx.expressionsPerLogicalSource())
+                    .collectList()
+                    .doOnNext(list -> joinCtx.parentViewCache().put(parentView, list));
         } else {
             parentMono = evaluate(parentView, joinCtx.sourceResolver(), EvaluationContext.defaults())
                     .collectList()

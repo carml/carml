@@ -211,6 +211,41 @@ class EvaluatorBenchmarkTest {
         }
     }
 
+    // --- Shared-source benchmarks (single-read cache) ---
+
+    @Test
+    void benchmark_json_sharedSource() throws IOException {
+        LOG.info("=== JSON Shared Source (2 TriplesMap on same file) ===");
+        LOG.info(
+                "{}",
+                "%-14s | %8s | %10s | %8s | %12s | %8s"
+                        .formatted("Format", "Records", "Evaluator", "Time(ms)", "Triples/sec", "Mem(MB)"));
+
+        // Warm up all paths
+        var warmUpPath = BenchmarkDataGenerator.generateJson(tempDir, WARM_UP_RECORDS);
+        var warmUpMapping = BenchmarkMappingGenerator.sharedSourceJsonMapping(
+                warmUpPath.getFileName().toString());
+        runMapping(warmUpMapping, "duckdb");
+        runMapping(warmUpMapping, "reactive");
+
+        for (int count : RECORD_COUNTS) {
+            var dataPath = BenchmarkDataGenerator.generateJson(tempDir, count);
+            var mapping = BenchmarkMappingGenerator.sharedSourceJsonMapping(
+                    dataPath.getFileName().toString());
+
+            var duckDbResult = runMapping(mapping, "duckdb");
+            var reactiveResult = runMapping(mapping, "reactive");
+
+            LOG.info("{}", formatRow("JSON 2TM", count, "DuckDB", duckDbResult));
+            LOG.info("{}", formatRow("JSON 2TM", count, "Reactive", reactiveResult));
+            LOG.info("{}", formatSpeedupRow("JSON 2TM", count, duckDbResult.durationMs, reactiveResult.durationMs));
+            LOG.info("");
+
+            assertThat(duckDbResult.tripleCount(), greaterThan(0L));
+            assertThat(reactiveResult.tripleCount(), greaterThan(0L));
+        }
+    }
+
     // --- Nested JSON (iterable field / UNNEST) benchmarks ---
     // Note: only DuckDB is benchmarked here. The reactive evaluator's iterable field evaluation
     // throws ClassCastException for self-referencing expressions (rml:reference "$") in iterable

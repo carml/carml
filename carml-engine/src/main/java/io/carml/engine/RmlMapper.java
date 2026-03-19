@@ -9,17 +9,18 @@ import io.carml.logicalsourceresolver.LogicalSourceResolver;
 import io.carml.logicalsourceresolver.ResolvedSource;
 import io.carml.logicalsourceresolver.sourceresolver.SourceResolver;
 import io.carml.logicalview.LogicalViewEvaluator;
+import io.carml.logicalview.SourceRecordCache;
 import io.carml.model.LogicalSource;
+import io.carml.model.LogicalView;
 import io.carml.model.NameableStream;
 import io.carml.model.Source;
 import io.carml.model.TriplesMap;
 import io.carml.output.NTriplesTermEncoder;
 import io.carml.util.Mappings;
 import io.carml.util.TypeRef;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -255,7 +256,13 @@ public abstract class RmlMapper<T, K> {
         return Flux.fromIterable(prepared.mappings()).flatMap(rm -> {
             var mapper = lvTriplesMappers.get(rm.getOriginalTriplesMap());
             return logicalViewEvaluator
-                    .evaluate(rm.getEffectiveView(), prepared.sourceResolver(), rm.getEvaluationContext())
+                    .evaluate(
+                            rm.getEffectiveView(),
+                            prepared.sourceResolver(),
+                            rm.getEvaluationContext(),
+                            prepared.recordCache(),
+                            prepared.logicalSourcesPerSource(),
+                            prepared.expressionsPerLogicalSource())
                     .flatMap(mapper::map);
         });
     }
@@ -287,7 +294,13 @@ public abstract class RmlMapper<T, K> {
                 .flatMap(rm -> {
                     var mapper = lvTriplesMappers.get(rm.getOriginalTriplesMap());
                     return logicalViewEvaluator
-                            .evaluate(rm.getEffectiveView(), prepared.sourceResolver(), rm.getEvaluationContext())
+                            .evaluate(
+                                    rm.getEffectiveView(),
+                                    prepared.sourceResolver(),
+                                    rm.getEvaluationContext(),
+                                    prepared.recordCache(),
+                                    prepared.logicalSourcesPerSource(),
+                                    prepared.expressionsPerLogicalSource())
                             .flatMapIterable(iteration -> {
                                 var result = mapper.mapToBytes(iteration, encoder, includeGraph);
                                 for (var mergeable : result.mergeables()) {
@@ -301,8 +314,9 @@ public abstract class RmlMapper<T, K> {
 
     /**
      * Prepares the shared pipeline components for logical view mapping: filters the resolved
-     * mappings and creates a caching source resolver. Returns {@code null} when no mappable views
-     * exist (caller should return {@code Flux.empty()}).
+     * mappings, pre-collects LogicalSource information across all views, and creates a source record
+     * cache. Returns {@code null} when no mappable views exist (caller should return
+     * {@code Flux.empty()}).
      */
     private PreparedPipeline prepareLogicalViewPipeline(
             Map<String, InputStream> namedInputStreams, Set<TriplesMap> triplesMapFilter) {
@@ -319,19 +333,42 @@ public abstract class RmlMapper<T, K> {
             return null;
         }
 
-        // Cache resolved sources by Source identity. Sources are buffered into replayable
-        // form so that the same source (e.g. an InputStream or classpath resource) can be
-        // consumed multiple times — once for the view's own records and again for each left
-        // join's parent records.
-        var sourceCache = new HashMap<Source, ResolvedSource<?>>();
-        Function<Source, ResolvedSource<?>> cachingSourceResolver = source -> sourceCache.computeIfAbsent(
-                source, s -> bufferResolvedSource(resolveSourceForView(s, namedInputStreams)));
+        // Pre-collect LogicalSource information across all views (including join parents
+        // recursively). This allows the resolver to be called once per Source with the
+        // full set of LogicalSources, and the resulting records are cached and filtered
+        // per view.
+        var logicalSourcesPerSource = new LinkedHashMap<Source, Set<LogicalSource>>();
+        var expressionsPerLogicalSource = new LinkedHashMap<LogicalSource, Set<String>>();
+        var allViews = filteredMappings.stream()
+                .map(ResolvedMapping::getEffectiveView)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        SourceRecordCache.collectLogicalSourceInfo(allViews, logicalSourcesPerSource, expressionsPerLogicalSource);
 
-        return new PreparedPipeline(filteredMappings, cachingSourceResolver);
+        // Use noop cache for a single view without joins to preserve lazy streaming.
+        // Otherwise, use a real cache to avoid re-parsing shared sources.
+        var needsCaching = filteredMappings.size() > 1
+                || filteredMappings.stream().anyMatch(rm -> hasJoins(rm.getEffectiveView()));
+        var recordCache = needsCaching ? SourceRecordCache.create() : SourceRecordCache.noop();
+
+        // Resolve sources eagerly — each Source is resolved once and shared via the cache.
+        var resolvedSourceCache = new HashMap<Source, ResolvedSource<?>>();
+        Function<Source, ResolvedSource<?>> cachingSourceResolver =
+                source -> resolvedSourceCache.computeIfAbsent(source, s -> resolveSourceForView(s, namedInputStreams));
+
+        return new PreparedPipeline(
+                filteredMappings,
+                cachingSourceResolver,
+                recordCache,
+                logicalSourcesPerSource,
+                expressionsPerLogicalSource);
     }
 
     private record PreparedPipeline(
-            List<ResolvedMapping> mappings, Function<Source, ResolvedSource<?>> sourceResolver) {}
+            List<ResolvedMapping> mappings,
+            Function<Source, ResolvedSource<?>> sourceResolver,
+            SourceRecordCache recordCache,
+            Map<Source, Set<LogicalSource>> logicalSourcesPerSource,
+            Map<LogicalSource, Set<String>> expressionsPerLogicalSource) {}
 
     /**
      * Encodes merged mergeable results to bytes. Called after all iterations have been processed
@@ -356,31 +393,6 @@ public abstract class RmlMapper<T, K> {
                         .orElse(Flux.empty()));
     }
 
-    /**
-     * Buffers an InputStream-based ResolvedSource into a replayable form. If the resolved value
-     * is a {@code Mono<InputStream>}, reads the stream into a byte array and wraps it in a Mono
-     * that creates a fresh {@code ByteArrayInputStream} on each subscription.
-     */
-    @SuppressWarnings("unchecked")
-    private ResolvedSource<?> bufferResolvedSource(ResolvedSource<?> resolvedSource) {
-        var resolved = resolvedSource.getResolved().orElse(null);
-        if (resolved instanceof Mono<?> mono) {
-            // Block to get the value, and if it's an InputStream, buffer it.
-            var value = mono.block();
-            if (value instanceof InputStream inputStream) {
-                try {
-                    var bytes = inputStream.readAllBytes();
-                    Mono<InputStream> replayableMono = Mono.fromSupplier(() -> new ByteArrayInputStream(bytes));
-                    return ResolvedSource.of(
-                            replayableMono, (TypeRef<Mono<InputStream>>) resolvedSource.getResolvedTypeRef());
-                } catch (IOException e) {
-                    throw new RmlMapperException("Failed to buffer input stream for reuse", e);
-                }
-            }
-        }
-        return resolvedSource;
-    }
-
     private ResolvedSource<?> resolveSourceForView(Source source, Map<String, InputStream> namedInputStreams) {
         if (source instanceof NameableStream stream) {
             var name = StringUtils.isBlank(stream.getStreamName()) ? DEFAULT_STREAM_NAME : stream.getStreamName();
@@ -396,6 +408,11 @@ public abstract class RmlMapper<T, K> {
                 .findFirst()
                 .flatMap(resolver -> resolver.apply(source))
                 .orElseThrow(() -> new RmlMapperException("No source resolver found for logical view source"));
+    }
+
+    private static boolean hasJoins(LogicalView view) {
+        return (view.getLeftJoins() != null && !view.getLeftJoins().isEmpty())
+                || (view.getInnerJoins() != null && !view.getInnerJoins().isEmpty());
     }
 
     /**
