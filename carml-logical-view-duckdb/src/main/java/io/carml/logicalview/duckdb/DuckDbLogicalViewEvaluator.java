@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.vocabulary.XSD;
@@ -91,14 +92,25 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
 
     private final boolean useArrow;
 
+    private final DuckDbSourceTableCache sourceTableCache;
+
     public DuckDbLogicalViewEvaluator(Connection connection) {
-        this(connection, true);
+        this(connection, true, null);
+    }
+
+    DuckDbLogicalViewEvaluator(Connection connection, DuckDbSourceTableCache sourceTableCache) {
+        this(connection, true, sourceTableCache);
     }
 
     /** Package-private constructor for testing JDBC fallback path. */
     DuckDbLogicalViewEvaluator(Connection connection, boolean useArrow) {
+        this(connection, useArrow, null);
+    }
+
+    DuckDbLogicalViewEvaluator(Connection connection, boolean useArrow, DuckDbSourceTableCache sourceTableCache) {
         this.connection = connection;
         this.useArrow = useArrow;
+        this.sourceTableCache = sourceTableCache;
     }
 
     @Override
@@ -111,7 +123,10 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
         return Flux.<ViewIteration>defer(() -> {
                     validateSourceFiles(view);
                     validateSourceHandler(view);
-                    var compiledView = DuckDbViewCompiler.compile(view, context);
+                    UnaryOperator<String> sourceTableResolver = sourceTableCache != null
+                            ? sourceSql -> sourceTableCache.getOrCreateTable(sourceSql, connection)
+                            : null;
+                    var compiledView = DuckDbViewCompiler.compile(view, context, sourceTableResolver);
                     LOG.debug("Executing DuckDB query for view [{}]", view.getResourceName());
                     return Flux.create(sink -> executeQuery(sink, compiledView, view, context));
                 })

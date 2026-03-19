@@ -1595,6 +1595,67 @@ class DuckDbViewCompilerTest {
         }
     }
 
+    // --- Source table resolver tests ---
+
+    @Nested
+    class SourceTableResolver {
+
+        @Test
+        void compile_withResolver_substitutesTableNameInSql() {
+            var view = createJsonView("file.json", null, Set.of(expressionField("id", "id")));
+            var context = EvaluationContext.defaults();
+
+            var compiledView = DuckDbViewCompiler.compile(view, context, sourceSql -> "__carml_src_0");
+
+            assertThat(compiledView.sql(), containsString("\"__carml_src_0\""));
+            assertThat(compiledView.sql(), not(containsString("read_")));
+        }
+
+        @Test
+        void compile_withResolver_returningNull_usesRawSourceSql() {
+            var view = createJsonView("file.json", null, Set.of(expressionField("id", "id")));
+            var context = EvaluationContext.defaults();
+
+            var compiledView = DuckDbViewCompiler.compile(view, context, sourceSql -> null);
+
+            assertThat(compiledView.sql(), not(containsString("__carml_src")));
+            assertThat(compiledView.sql(), not(containsString("\"null\"")));
+        }
+
+        @Test
+        void compile_withNullResolver_producesSameSqlAsTwoArgCompile() {
+            var view = createJsonView("file.json", null, Set.of(expressionField("id", "id")));
+            var context = EvaluationContext.defaults();
+
+            var withNull = DuckDbViewCompiler.compile(view, context, null);
+            var without = DuckDbViewCompiler.compile(view, context);
+
+            assertThat(withNull.sql(), is(without.sql()));
+        }
+
+        @Test
+        void compile_withResolver_exceptionInCompile_cleansUpThreadLocal() {
+            var view = mock(LogicalView.class);
+            lenient().when(view.getViewOn()).thenReturn(mock(AbstractLogicalSource.class));
+            lenient().when(view.getFields()).thenReturn(Set.of());
+            lenient().when(view.getLeftJoins()).thenReturn(Set.of());
+            lenient().when(view.getInnerJoins()).thenReturn(Set.of());
+            lenient().when(view.getStructuralAnnotations()).thenReturn(Set.of());
+            lenient().when(view.getResourceName()).thenReturn("failView");
+
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> DuckDbViewCompiler.compile(view, EvaluationContext.defaults(), sql -> "__carml_src_0"));
+
+            // After the exception the ThreadLocal must be clean — a subsequent compile
+            // must not see a stale resolver.
+            var goodView = createJsonView("good.json", null, Set.of(expressionField("id", "id")));
+            var sql = DuckDbViewCompiler.compile(goodView, EvaluationContext.defaults())
+                    .sql();
+            assertThat(sql, not(containsString("__carml_src")));
+        }
+    }
+
     // --- Helper methods ---
 
     private static ExpressionField expressionField(String fieldName, String reference) {

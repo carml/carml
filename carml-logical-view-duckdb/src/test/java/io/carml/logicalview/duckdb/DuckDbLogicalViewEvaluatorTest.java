@@ -1998,6 +1998,68 @@ class DuckDbLogicalViewEvaluatorTest {
         }
     }
 
+    // --- Source table cache integration tests ---
+
+    @Nested
+    class SourceTableCacheIntegration {
+
+        @Test
+        void evaluate_withCache_producesCorrectResults() throws IOException {
+            var jsonFile = tempDir.resolve("cache_test.json");
+            Files.writeString(jsonFile, """
+                    [
+                        {"name": "Alice"},
+                        {"name": "Bob"}
+                    ]""");
+
+            var cache = new DuckDbSourceTableCache();
+            var view = createJsonView(jsonFile.toString(), null, Set.of(expressionField("name", "name")));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection, cache);
+            var context = EvaluationContext.defaults();
+
+            StepVerifier.create(
+                            evaluator.evaluate(view, source -> null, context).collectList())
+                    .assertNext(iterations -> {
+                        assertThat(iterations, hasSize(2));
+                        assertThat(iterations.get(0).getValue("name"), is(Optional.of("Alice")));
+                    })
+                    .verifyComplete();
+
+            assertThat(cache.size(), is(1));
+            cache.clear(connection);
+        }
+
+        @Test
+        void evaluate_withCache_secondCallReusesCachedTable() throws IOException {
+            var jsonFile = tempDir.resolve("cache_reuse.json");
+            Files.writeString(jsonFile, """
+                    [{"id": 1}, {"id": 2}]""");
+
+            var cache = new DuckDbSourceTableCache();
+            var view = createJsonView(jsonFile.toString(), null, Set.of(expressionField("id", "id")));
+            var evaluator = new DuckDbLogicalViewEvaluator(connection, cache);
+            var context = EvaluationContext.defaults();
+
+            // First evaluation creates the temp table
+            var first = evaluator
+                    .evaluate(view, source -> null, context)
+                    .collectList()
+                    .block();
+            assertThat(cache.size(), is(1));
+
+            // Second evaluation reuses the same temp table
+            var second = evaluator
+                    .evaluate(view, source -> null, context)
+                    .collectList()
+                    .block();
+            assertThat(cache.size(), is(1));
+
+            assertThat(first, hasSize(2));
+            assertThat(second, hasSize(2));
+            cache.clear(connection);
+        }
+    }
+
     // --- Helper methods ---
 
     private static ExpressionField expressionField(String fieldName, String reference) {

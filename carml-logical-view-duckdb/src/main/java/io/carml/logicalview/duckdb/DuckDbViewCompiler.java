@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
@@ -90,6 +91,16 @@ public final class DuckDbViewCompiler {
     private static final ThreadLocal<Set<LogicalView>> COMPILING_VIEWS = ThreadLocal.withInitial(HashSet::new);
 
     /**
+     * Resolves source SQL expressions to cached temp table names. When set, the compiler replaces
+     * file-reading source SQL (e.g., {@code read_json_auto('file.json')}) with the temp table name,
+     * ensuring the file is read only once even when multiple views share the same source.
+     *
+     * <p>Set by the outermost {@link #compile(LogicalView, EvaluationContext, Function)} call and
+     * inherited by recursive calls for parent views.
+     */
+    private static final ThreadLocal<UnaryOperator<String>> SOURCE_TABLE_RESOLVER = new ThreadLocal<>();
+
+    /**
      * Cached class reference for the none dedup strategy, used to detect whether deduplication
      * should be applied. The concrete class is package-private in {@code io.carml.logicalview},
      * so we resolve it once via the public factory method.
@@ -107,6 +118,36 @@ public final class DuckDbViewCompiler {
      */
     private record JoinDescriptor(
             Table<?> table, Condition condition, List<SelectField<?>> fields, boolean isLeftJoin) {}
+
+    /**
+     * Compiles a {@link LogicalView} with a source table resolver that caches source SQL as temp
+     * tables. The resolver is set as a ThreadLocal so that recursive parent view compilations also
+     * benefit from the cache.
+     *
+     * @param view the logical view defining fields and the underlying data source
+     * @param context the evaluation context controlling projection, dedup, and limits
+     * @param sourceTableResolver resolves source SQL to a cached temp table name, or {@code null}
+     *     to use source SQL directly
+     * @return the compiled view containing the SQL query and validation metadata
+     */
+    static CompiledView compile(
+            LogicalView view, EvaluationContext context, UnaryOperator<String> sourceTableResolver) {
+        if (sourceTableResolver == null) {
+            return compile(view, context);
+        }
+
+        var isOutermostResolverCall = SOURCE_TABLE_RESOLVER.get() == null;
+        if (isOutermostResolverCall) {
+            SOURCE_TABLE_RESOLVER.set(sourceTableResolver);
+        }
+        try {
+            return compile(view, context);
+        } finally {
+            if (isOutermostResolverCall) {
+                SOURCE_TABLE_RESOLVER.remove();
+            }
+        }
+    }
 
     /**
      * Compiles a {@link LogicalView} into a {@link CompiledView} containing the DuckDB SQL query
@@ -161,7 +202,17 @@ public final class DuckDbViewCompiler {
         } else if (viewOn instanceof LogicalSource logicalSource) {
             var compiledSource = compileSourceClause(logicalSource, view);
             strategy = compiledSource.strategy();
-            sourceTable = compiledSource.sourceSql();
+            var resolver = SOURCE_TABLE_RESOLVER.get();
+            if (resolver != null) {
+                var tableName = resolver.apply(compiledSource.sourceSql());
+                if (tableName != null) {
+                    sourceTable = "\"%s\"".formatted(tableName);
+                } else {
+                    sourceTable = compiledSource.sourceSql();
+                }
+            } else {
+                sourceTable = compiledSource.sourceSql();
+            }
         } else {
             throw new IllegalArgumentException("Unsupported viewOn target type: %s"
                     .formatted(viewOn.getClass().getName()));

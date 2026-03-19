@@ -63,6 +63,8 @@ public class DuckDbLogicalViewEvaluatorFactory
 
     private final Connection connection;
 
+    private final DuckDbSourceTableCache sourceTableCache = new DuckDbSourceTableCache();
+
     /**
      * Creates a factory with an in-memory DuckDB connection. Used by {@link java.util.ServiceLoader}
      * for automatic discovery.
@@ -118,7 +120,7 @@ public class DuckDbLogicalViewEvaluatorFactory
         }
 
         LOG.debug("View [{}] matched for DuckDB evaluator", view.getResourceName());
-        var evaluator = new DuckDbLogicalViewEvaluator(connection);
+        var evaluator = new DuckDbLogicalViewEvaluator(connection, sourceTableCache);
         return Optional.of(MatchedLogicalViewEvaluator.of(STRONG_MATCH, evaluator));
     }
 
@@ -126,6 +128,7 @@ public class DuckDbLogicalViewEvaluatorFactory
     public void close() {
         try {
             if (connection != null && !connection.isClosed()) {
+                sourceTableCache.clear(connection);
                 connection.close();
             }
         } catch (SQLException e) {
