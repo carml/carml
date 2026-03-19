@@ -9,6 +9,9 @@ import io.carml.model.AbstractLogicalSource;
 import io.carml.model.LogicalSource;
 import io.carml.model.LogicalView;
 import io.carml.model.LogicalViewJoin;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -16,6 +19,7 @@ import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -63,6 +67,12 @@ public class DuckDbLogicalViewEvaluatorFactory
 
     private final Connection connection;
 
+    private final Path databasePath;
+
+    private final Thread shutdownHook;
+
+    private final AtomicBoolean closed = new AtomicBoolean(false);
+
     private final DuckDbSourceTableCache sourceTableCache = new DuckDbSourceTableCache();
 
     /**
@@ -80,6 +90,8 @@ public class DuckDbLogicalViewEvaluatorFactory
      */
     public DuckDbLogicalViewEvaluatorFactory(Connection connection) {
         this.connection = connection;
+        this.databasePath = null;
+        this.shutdownHook = null;
     }
 
     /**
@@ -92,6 +104,51 @@ public class DuckDbLogicalViewEvaluatorFactory
     public DuckDbLogicalViewEvaluatorFactory(Connection connection, Path fileBasePath) {
         this(connection);
         applyFileSearchPath(this.connection, fileBasePath);
+    }
+
+    private DuckDbLogicalViewEvaluatorFactory(Connection connection, Path databasePath, Thread shutdownHook) {
+        this.connection = connection;
+        this.databasePath = databasePath;
+        this.shutdownHook = shutdownHook;
+    }
+
+    /**
+     * Creates a factory backed by an on-disk DuckDB database in a temporary directory. This enables
+     * processing of larger-than-memory datasets by allowing DuckDB to spill to disk.
+     *
+     * <p>The temporary database files are cleaned up when the factory is {@link #close() closed} or
+     * when the JVM shuts down (whichever comes first).
+     *
+     * @return a new factory with an on-disk DuckDB connection
+     */
+    public static DuckDbLogicalViewEvaluatorFactory createOnDisk() {
+        try {
+            var tempDir = Files.createTempDirectory("carml-duckdb-");
+            var dbPath = tempDir.resolve("carml.duckdb");
+            LOG.info("Creating on-disk DuckDB database at: {}", dbPath);
+            var conn = DriverManager.getConnection("jdbc:duckdb:" + dbPath);
+
+            var factoryHolder = new DuckDbLogicalViewEvaluatorFactory[1];
+            // Lambda required: method reference would capture null (factoryHolder[0] is set after hook creation)
+            @SuppressWarnings("java:S1612")
+            var hook = new Thread(() -> factoryHolder[0].close(), "carml-duckdb-cleanup");
+            Runtime.getRuntime().addShutdownHook(hook);
+
+            var factory = new DuckDbLogicalViewEvaluatorFactory(conn, dbPath, hook);
+            factoryHolder[0] = factory;
+            return factory;
+        } catch (SQLException e) {
+            throw new IllegalStateException("Failed to create on-disk DuckDB connection", e);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to create temporary directory for DuckDB database", e);
+        }
+    }
+
+    /**
+     * Returns the path to the on-disk database file, or {@code null} for in-memory mode.
+     */
+    Path getDatabasePath() {
+        return databasePath;
     }
 
     @Override
@@ -126,6 +183,10 @@ public class DuckDbLogicalViewEvaluatorFactory
 
     @Override
     public void close() {
+        if (!closed.compareAndSet(false, true)) {
+            return;
+        }
+
         try {
             if (connection != null && !connection.isClosed()) {
                 sourceTableCache.clear(connection);
@@ -133,6 +194,33 @@ public class DuckDbLogicalViewEvaluatorFactory
             }
         } catch (SQLException e) {
             LOG.warn("Failed to close DuckDB connection", e);
+        }
+
+        if (databasePath != null) {
+            deleteDatabaseFiles();
+        }
+
+        if (shutdownHook != null) {
+            try {
+                Runtime.getRuntime().removeShutdownHook(shutdownHook);
+            } catch (IllegalStateException e) {
+                // JVM is already shutting down — hook removal not possible, which is fine
+            }
+        }
+    }
+
+    private void deleteDatabaseFiles() {
+        var parentDir = databasePath.getParent();
+        try (var entries = Files.walk(parentDir)) {
+            entries.sorted(java.util.Comparator.reverseOrder()).forEach(path -> {
+                try {
+                    Files.deleteIfExists(path);
+                } catch (IOException e) {
+                    LOG.warn("Failed to delete DuckDB file: {}", path, e);
+                }
+            });
+        } catch (IOException e) {
+            LOG.warn("Failed to clean up temporary DuckDB directory: {}", parentDir, e);
         }
     }
 

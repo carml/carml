@@ -14,6 +14,7 @@ import io.carml.model.LogicalViewJoin;
 import io.carml.model.NameableStream;
 import io.carml.model.ReferenceFormulation;
 import io.carml.vocab.Rdf;
+import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -474,6 +475,69 @@ class DuckDbLogicalViewEvaluatorFactoryTest {
                 assertThat(result.isPresent(), is(true));
                 assertThat(result.get().getMatchScore().getScore(), is(strongScore()));
             }
+        }
+    }
+
+    // --- On-disk mode ---
+
+    @Nested
+    class OnDiskMode {
+
+        @Test
+        void createOnDisk_createsConnectionAndDatabaseFile() {
+            try (var factory = DuckDbLogicalViewEvaluatorFactory.createOnDisk()) {
+                var view = createViewWithRefFormulation(Rdf.Ql.JsonPath);
+
+                var result = factory.match(view);
+
+                assertThat(result.isPresent(), is(true));
+                assertThat(result.get().getLogicalViewEvaluator(), instanceOf(DuckDbLogicalViewEvaluator.class));
+            }
+        }
+
+        @Test
+        void createOnDisk_matchesViews() {
+            try (var factory = DuckDbLogicalViewEvaluatorFactory.createOnDisk()) {
+                var view = createViewWithRefFormulation(Rdf.Ql.Csv);
+
+                var result = factory.match(view);
+
+                assertThat(result.isPresent(), is(true));
+                assertThat(result.get().getMatchScore().getScore(), is(strongScore()));
+            }
+        }
+
+        @Test
+        void close_onDisk_deletesDatabaseFiles() {
+            var factory = DuckDbLogicalViewEvaluatorFactory.createOnDisk();
+
+            var dbFile = factory.getDatabasePath();
+            var tempDir = dbFile.getParent();
+            assertThat("Database file should exist before close", Files.exists(dbFile), is(true));
+
+            factory.close();
+
+            assertThat("Database file should be deleted after close", Files.exists(dbFile), is(false));
+            assertThat("Temp directory should be deleted after close", Files.exists(tempDir), is(false));
+        }
+
+        @Test
+        void close_inMemory_noFileCleanup() {
+            var factory = new DuckDbLogicalViewEvaluatorFactory();
+            // Should not throw or fail — no file cleanup needed for in-memory mode
+            factory.close();
+        }
+
+        @Test
+        void close_calledTwice_isIdempotent() {
+            var factory = DuckDbLogicalViewEvaluatorFactory.createOnDisk();
+            var dbFile = factory.getDatabasePath();
+
+            factory.close();
+            // Second close must not throw
+            factory.close();
+
+            assertThat("Database file should be deleted", Files.exists(dbFile), is(false));
         }
     }
 
