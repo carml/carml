@@ -64,6 +64,16 @@
 			<scope>provided</scope>
 		</dependency>
 
+		<!-- Required at compile time to suppress javac warnings from jOOQ's Settings class
+		     which uses @XmlType JAXB annotations. Without this, -Xlint:all combined with
+		     -Werror fails because the annotation class is not found (JAXB removed in JDK 11+). -->
+		<dependency>
+			<groupId>jakarta.xml.bind</groupId>
+			<artifactId>jakarta.xml.bind-api</artifactId>
+			<version>4.0.2</version>
+			<scope>provided</scope>
+		</dependency>
+
 		<dependency>
 			<groupId>org.jooq</groupId>
 			<artifactId>jooq</artifactId>

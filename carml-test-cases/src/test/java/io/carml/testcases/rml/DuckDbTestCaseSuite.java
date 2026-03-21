@@ -45,6 +45,9 @@ public abstract class DuckDbTestCaseSuite extends RmlTestCaseSuite {
 
     @Override
     protected Model executeMapping(TestCase testCase, String testCaseIdentifier) {
+        // Drop temp tables from previous test case to prevent stale data collisions
+        dropTempTables();
+
         var evaluatorFactory = new DuckDbLogicalViewEvaluatorFactory(connection);
 
         var mapperBuilder = RdfRmlMapper.builder()
@@ -64,5 +67,26 @@ public abstract class DuckDbTestCaseSuite extends RmlTestCaseSuite {
                 .build();
 
         return mapper.map().collect(ModelCollector.toTreeModel()).block();
+    }
+
+    private void dropTempTables() {
+        synchronized (connection) {
+            dropTempTablesSynchronized();
+        }
+    }
+
+    private void dropTempTablesSynchronized() {
+        try (var stmt = connection.createStatement();
+                var rs = stmt.executeQuery(
+                        "SELECT table_name FROM information_schema.tables WHERE table_type = 'LOCAL TEMPORARY'")) {
+            while (rs.next()) {
+                var tableName = rs.getString(1);
+                try (var dropStmt = connection.createStatement()) {
+                    dropStmt.execute("DROP TABLE IF EXISTS \"%s\"".formatted(tableName));
+                }
+            }
+        } catch (java.sql.SQLException e) {
+            // Ignore — best effort cleanup
+        }
     }
 }

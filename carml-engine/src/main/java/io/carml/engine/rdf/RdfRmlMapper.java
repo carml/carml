@@ -368,6 +368,7 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
 
             var lsTriplesMaps = mappableTriplesMaps.stream()
                     .filter(tm -> tm.getLogicalSource() instanceof LogicalSource)
+                    .filter(tm -> hasMatchingResolver((LogicalSource) tm.getLogicalSource(), resolverFactories))
                     .collect(toUnmodifiableSet());
 
             if (mappableTriplesMaps.isEmpty()) {
@@ -395,6 +396,12 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
 
         private record LvPipelineResult(
                 Map<TriplesMap, TriplesMapper<Statement>> mappers, LogicalViewEvaluator evaluator) {}
+
+        private static boolean hasMatchingResolver(
+                LogicalSource logicalSource, Set<MatchingLogicalSourceResolverFactory> resolverFactories) {
+            return resolverFactories.stream()
+                    .anyMatch(factory -> factory.apply(logicalSource).isPresent());
+        }
 
         private Set<MatchingLogicalSourceResolverFactory> loadResolverFactories() {
             var factories = ServiceLoader.load(MatchingLogicalSourceResolverFactory.class).stream()
