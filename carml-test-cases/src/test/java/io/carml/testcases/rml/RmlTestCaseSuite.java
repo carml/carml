@@ -134,7 +134,7 @@ public abstract class RmlTestCaseSuite {
     }
 
     private Model parseExpectedOutput(InputStream stream, String testCaseIdentifier) {
-        boolean lenient = getLenientOutputTests().stream().anyMatch(prefix -> testCaseIdentifier.startsWith(prefix));
+        boolean lenient = getLenientOutputTests().stream().anyMatch(testCaseIdentifier::startsWith);
         if (lenient) {
             var settings = new ParserConfig();
             settings.set(BasicParserSettings.PRESERVE_BNODE_IDS, true);
