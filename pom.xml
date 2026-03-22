@@ -59,6 +59,9 @@
 		<module>carml-logical-source-resolver-csv</module>
 		<module>carml-logical-view</module>
 		<module>carml-logical-view-duckdb</module>
+		<module>carml-logical-view-sql</module>
+		<module>carml-logical-view-sql-mysql</module>
+		<module>carml-logical-view-sql-postgresql</module>
 		<module>carml-converters-jena</module>
     <module>carml-test-cases</module>
   </modules>
@@ -94,6 +97,7 @@
 		<jooq.version>3.19.28</jooq.version>
 		<arrow.version>18.1.0</arrow.version>
 		<checker-qual.version>3.47.0</checker-qual.version>
+		<vertx.version>4.5.12</vertx.version>
 		<duckdb.version>1.4.4.0</duckdb.version>
 		<testcontainers.version>1.21.4</testcontainers.version>
 		<spotless.version>3.2.1</spotless.version>
@@ -178,6 +182,24 @@
 			</dependency>
 
 			<dependency>
+				<groupId>io.carml</groupId>
+				<artifactId>carml-logical-view-sql</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>io.carml</groupId>
+				<artifactId>carml-logical-view-sql-mysql</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>io.carml</groupId>
+				<artifactId>carml-logical-view-sql-postgresql</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+
+			<dependency>
 				<groupId>org.apache.arrow</groupId>
 				<artifactId>arrow-vector</artifactId>
 				<version>${arrow.version}</version>
@@ -211,6 +233,14 @@
 				<groupId>org.jooq</groupId>
 				<artifactId>jooq</artifactId>
 				<version>${jooq.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>io.vertx</groupId>
+				<artifactId>vertx-stack-depchain</artifactId>
+				<version>${vertx.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
 			</dependency>
 
 			<dependency>

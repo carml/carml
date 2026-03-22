@@ -56,6 +56,30 @@
     </dependency>
 
     <dependency>
+      <groupId>io.carml</groupId>
+      <artifactId>carml-logical-view-sql</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>io.carml</groupId>
+      <artifactId>carml-logical-view-sql-mysql</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>io.carml</groupId>
+      <artifactId>carml-logical-view-sql-postgresql</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-codegen</artifactId>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
       <scope>test</scope>

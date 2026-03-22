@@ -1,0 +1,248 @@
+package io.carml.logicalview.sql;
+
+import io.carml.logicalsourceresolver.ResolvedSource;
+import io.carml.logicalview.DefaultLogicalViewEvaluator;
+import io.carml.logicalview.EvaluationContext;
+import io.carml.logicalview.LogicalViewEvaluator;
+import io.carml.logicalview.ViewIteration;
+import io.carml.model.LogicalView;
+import io.carml.model.Source;
+import io.vertx.sqlclient.Cursor;
+import io.vertx.sqlclient.Pool;
+import io.vertx.sqlclient.Row;
+import io.vertx.sqlclient.RowSet;
+import io.vertx.sqlclient.SqlConnection;
+import io.vertx.sqlclient.desc.ColumnDescriptor;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import lombok.extern.slf4j.Slf4j;
+import org.eclipse.rdf4j.model.IRI;
+import org.eclipse.rdf4j.model.vocabulary.XSD;
+import org.jooq.SQLDialect;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
+
+/**
+ * A {@link LogicalViewEvaluator} that compiles a {@link LogicalView} to a SQL query via
+ * {@link ReactiveSqlViewCompiler}, executes it directly against the source database via a Vert.x SQL
+ * client, and streams the result rows as {@link ViewIteration}s.
+ *
+ * <p>This evaluator is non-blocking — the Vert.x SQL client speaks the native database wire
+ * protocol and returns results via cursor-based streaming with configurable batch size. Each batch
+ * of rows is emitted into the reactive pipeline and becomes GC-eligible as soon as downstream
+ * processing completes, keeping heap usage proportional to the batch size rather than the total
+ * result set.
+ *
+ * <p>The {@code sourceResolver} parameter from the {@link LogicalViewEvaluator} interface is not
+ * used by this evaluator. Queries execute directly against the source database.
+ */
+@Slf4j
+public class ReactiveSqlLogicalViewEvaluator implements LogicalViewEvaluator {
+
+    static final String INDEX_KEY = "#";
+
+    static final int DEFAULT_CURSOR_BATCH_SIZE = 2048;
+
+    private final Pool pool;
+
+    private final SQLDialect dialect;
+
+    private final SqlClientProvider clientProvider;
+
+    private final int cursorBatchSize;
+
+    ReactiveSqlLogicalViewEvaluator(Pool pool, SQLDialect dialect, SqlClientProvider clientProvider) {
+        this(pool, dialect, clientProvider, DEFAULT_CURSOR_BATCH_SIZE);
+    }
+
+    ReactiveSqlLogicalViewEvaluator(
+            Pool pool, SQLDialect dialect, SqlClientProvider clientProvider, int cursorBatchSize) {
+        this.pool = pool;
+        this.dialect = dialect;
+        this.clientProvider = clientProvider;
+        this.cursorBatchSize = cursorBatchSize;
+    }
+
+    @Override
+    public Flux<ViewIteration> evaluate(
+            LogicalView view, Function<Source, ResolvedSource<?>> sourceResolver, EvaluationContext context) {
+        return Flux.defer(() -> {
+            var compiledSql = ReactiveSqlViewCompiler.compile(view, context, dialect);
+            LOG.debug("Executing reactive SQL query for view [{}]", view.getResourceName());
+            return streamQuery(compiledSql, view);
+        });
+    }
+
+    private Flux<ViewIteration> streamQuery(String sql, LogicalView view) {
+        var referenceableKeys = DefaultLogicalViewEvaluator.collectReferenceableKeys(view);
+        var lowerToOriginal = buildCaseNormalizationMap(referenceableKeys);
+
+        return Flux.<ViewIteration>create(sink -> pool.getConnection()
+                        .onSuccess(conn -> prepareAndStream(conn, sql, sink, lowerToOriginal, referenceableKeys))
+                        .onFailure(sink::error))
+                .onErrorMap(e -> new RuntimeException(
+                        "Failed to execute reactive SQL query for view [%s]".formatted(view.getResourceName()), e));
+    }
+
+    private void prepareAndStream(
+            SqlConnection conn,
+            String sql,
+            FluxSink<ViewIteration> sink,
+            Map<String, String> lowerToOriginal,
+            Set<String> referenceableKeys) {
+        // PostgreSQL requires cursors to run inside a transaction (portals are transaction-scoped).
+        // Begin a transaction before preparing the cursor; it is committed/rolled back on close.
+        conn.begin()
+                .onSuccess(tx -> conn.prepare(sql)
+                        .onSuccess(prepared -> {
+                            var cursor = prepared.cursor();
+                            sink.onDispose(() -> closeCursorAndConnection(cursor, tx, conn));
+                            fetchNextBatch(cursor, sink, lowerToOriginal, referenceableKeys, null);
+                        })
+                        .onFailure(err -> {
+                            tx.rollback();
+                            conn.close();
+                            sink.error(err);
+                        }))
+                .onFailure(err -> {
+                    conn.close();
+                    sink.error(err);
+                });
+    }
+
+    private void fetchNextBatch(
+            Cursor cursor,
+            FluxSink<ViewIteration> sink,
+            Map<String, String> lowerToOriginal,
+            Set<String> referenceableKeys,
+            ColumnMetadata columnMeta) {
+        if (sink.isCancelled()) {
+            return;
+        }
+
+        cursor.read(cursorBatchSize)
+                .onSuccess(rowSet -> {
+                    var meta = columnMeta;
+                    if (meta == null) {
+                        meta = resolveColumnMetadata(
+                                rowSet.columnsNames(), rowSet.columnDescriptors(), lowerToOriginal);
+                    }
+
+                    emitRows(rowSet, sink, lowerToOriginal, referenceableKeys, meta);
+
+                    if (!cursor.hasMore() || sink.isCancelled()) {
+                        sink.complete();
+                    } else {
+                        fetchNextBatch(cursor, sink, lowerToOriginal, referenceableKeys, meta);
+                    }
+                })
+                .onFailure(sink::error);
+    }
+
+    private void emitRows(
+            RowSet<Row> rowSet,
+            FluxSink<ViewIteration> sink,
+            Map<String, String> lowerToOriginal,
+            Set<String> referenceableKeys,
+            ColumnMetadata columnMeta) {
+        var columnNames = rowSet.columnsNames();
+        for (var row : rowSet) {
+            if (sink.isCancelled()) {
+                return;
+            }
+            sink.next(mapRow(row, columnNames, lowerToOriginal, referenceableKeys, columnMeta));
+        }
+    }
+
+    private ViewIteration mapRow(
+            Row row,
+            List<String> columnNames,
+            Map<String, String> lowerToOriginal,
+            Set<String> referenceableKeys,
+            ColumnMetadata columnMeta) {
+        var values = new LinkedHashMap<String, Object>();
+        var naturalDatatypes = new LinkedHashMap<>(columnMeta.typeMap);
+        naturalDatatypes.put(INDEX_KEY, XSD.INTEGER);
+
+        var zeroBasedIndex = 0;
+        for (var colName : columnNames) {
+            if (ReactiveSqlViewCompiler.INDEX_COLUMN.equals(colName)) {
+                zeroBasedIndex = readZeroBasedIndex(row, colName);
+                continue;
+            }
+
+            var normalizedName = lowerToOriginal.getOrDefault(colName.toLowerCase(Locale.ROOT), colName);
+            var value = row.getValue(colName);
+            values.put(normalizedName, coerceValue(value, normalizedName, columnMeta));
+        }
+
+        values.put(INDEX_KEY, zeroBasedIndex);
+        return new ReactiveSqlViewIteration(zeroBasedIndex, values, naturalDatatypes, referenceableKeys);
+    }
+
+    private static Object coerceValue(Object value, String normalizedName, ColumnMetadata columnMeta) {
+        if (value instanceof Number numValue && columnMeta.booleanColumns.contains(normalizedName)) {
+            return numValue.intValue() != 0;
+        }
+        return value;
+    }
+
+    private ColumnMetadata resolveColumnMetadata(
+            List<String> columnNames, List<ColumnDescriptor> columnDescriptors, Map<String, String> lowerToOriginal) {
+        var typeMap = new LinkedHashMap<String, IRI>();
+        var booleanColumns = new HashSet<String>();
+
+        for (int i = 0; i < columnNames.size(); i++) {
+            var colName = columnNames.get(i);
+            if (ReactiveSqlViewCompiler.INDEX_COLUMN.equals(colName)) {
+                continue;
+            }
+
+            var normalizedName = lowerToOriginal.getOrDefault(colName.toLowerCase(Locale.ROOT), colName);
+            var descriptor = columnDescriptors.get(i);
+            clientProvider
+                    .mapNaturalDatatype(descriptor.jdbcType(), descriptor.typeName())
+                    .ifPresent(dt -> {
+                        typeMap.put(normalizedName, dt);
+                        if (XSD.BOOLEAN.equals(dt)) {
+                            booleanColumns.add(normalizedName);
+                        }
+                    });
+        }
+
+        return new ColumnMetadata(typeMap, booleanColumns);
+    }
+
+    private static void closeCursorAndConnection(Cursor cursor, io.vertx.sqlclient.Transaction tx, SqlConnection conn) {
+        if (cursor != null && !cursor.isClosed()) {
+            cursor.close();
+        }
+        if (tx != null) {
+            tx.commit();
+        }
+        if (conn != null) {
+            conn.close();
+        }
+    }
+
+    private record ColumnMetadata(Map<String, IRI> typeMap, Set<String> booleanColumns) {}
+
+    private static int readZeroBasedIndex(Row row, String colName) {
+        var rawIndex = row.getInteger(colName);
+        return rawIndex != null && rawIndex > 0 ? rawIndex - 1 : 0;
+    }
+
+    private static Map<String, String> buildCaseNormalizationMap(Set<String> referenceableKeys) {
+        var lowerToOriginal = new HashMap<String, String>(referenceableKeys.size());
+        for (var key : referenceableKeys) {
+            lowerToOriginal.putIfAbsent(key.toLowerCase(Locale.ROOT), key);
+        }
+        return lowerToOriginal;
+    }
+}
