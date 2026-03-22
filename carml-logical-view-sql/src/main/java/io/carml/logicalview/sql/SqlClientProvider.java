@@ -32,13 +32,25 @@ public interface SqlClientProvider {
     boolean supports(DatabaseSource source);
 
     /**
-     * Creates a Vert.x SQL connection pool for the given database source.
+     * Creates a Vert.x SQL connection pool for the given database source with the default pool size.
      *
      * @param vertx the Vert.x instance to use for the pool
      * @param source the database source containing connection parameters
      * @return a configured connection pool
      */
     Pool createPool(Vertx vertx, DatabaseSource source);
+
+    /**
+     * Creates a Vert.x SQL connection pool with an explicit maximum pool size.
+     *
+     * @param vertx the Vert.x instance to use for the pool
+     * @param source the database source containing connection parameters
+     * @param maxPoolSize the maximum number of connections in the pool
+     * @return a configured connection pool
+     */
+    default Pool createPool(Vertx vertx, DatabaseSource source, int maxPoolSize) {
+        return createPool(vertx, source);
+    }
 
     /**
      * Returns the jOOQ SQL dialect for this database type.

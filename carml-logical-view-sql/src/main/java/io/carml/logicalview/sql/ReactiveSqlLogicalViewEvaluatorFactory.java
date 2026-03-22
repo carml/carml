@@ -66,6 +66,8 @@ public class ReactiveSqlLogicalViewEvaluatorFactory implements LogicalViewEvalua
 
     private final int cursorBatchSize;
 
+    private final int maxPoolSize;
+
     private final Map<DatabaseSourceIdentity, Pool> poolCache = new ConcurrentHashMap<>();
 
     private final AtomicBoolean closed = new AtomicBoolean(false);
@@ -80,6 +82,7 @@ public class ReactiveSqlLogicalViewEvaluatorFactory implements LogicalViewEvalua
                 .toList();
         this.vertx = Vertx.vertx();
         this.cursorBatchSize = ReactiveSqlLogicalViewEvaluator.DEFAULT_CURSOR_BATCH_SIZE;
+        this.maxPoolSize = 0;
     }
 
     /**
@@ -89,7 +92,7 @@ public class ReactiveSqlLogicalViewEvaluatorFactory implements LogicalViewEvalua
      * @param vertx the Vert.x instance for connection pool creation
      */
     public ReactiveSqlLogicalViewEvaluatorFactory(List<SqlClientProvider> providers, Vertx vertx) {
-        this(providers, vertx, ReactiveSqlLogicalViewEvaluator.DEFAULT_CURSOR_BATCH_SIZE);
+        this(providers, vertx, ReactiveSqlLogicalViewEvaluator.DEFAULT_CURSOR_BATCH_SIZE, 0);
     }
 
     /**
@@ -100,14 +103,28 @@ public class ReactiveSqlLogicalViewEvaluatorFactory implements LogicalViewEvalua
      * @param cursorBatchSize the number of rows to fetch per cursor batch
      */
     public ReactiveSqlLogicalViewEvaluatorFactory(List<SqlClientProvider> providers, Vertx vertx, int cursorBatchSize) {
+        this(providers, vertx, cursorBatchSize, 0);
+    }
+
+    /**
+     * Creates a factory with explicit providers, Vert.x instance, cursor batch size, and pool size.
+     *
+     * @param providers the SQL client providers to use for database matching
+     * @param vertx the Vert.x instance for connection pool creation
+     * @param cursorBatchSize the number of rows to fetch per cursor batch
+     * @param maxPoolSize the maximum connection pool size (0 = use provider default)
+     */
+    public ReactiveSqlLogicalViewEvaluatorFactory(
+            List<SqlClientProvider> providers, Vertx vertx, int cursorBatchSize, int maxPoolSize) {
         this.providers = providers;
         this.vertx = vertx;
         this.cursorBatchSize = cursorBatchSize;
+        this.maxPoolSize = maxPoolSize;
     }
 
     @Override
     public Optional<MatchedLogicalViewEvaluator> match(LogicalView view) {
-        if (providers.isEmpty()) {
+        if (closed.get() || providers.isEmpty()) {
             return Optional.empty();
         }
 
@@ -131,7 +148,12 @@ public class ReactiveSqlLogicalViewEvaluatorFactory implements LogicalViewEvalua
         }
 
         var identity = DatabaseSourceIdentity.of(representativeSource);
-        var pool = poolCache.computeIfAbsent(identity, id -> provider.get().createPool(vertx, representativeSource));
+        var resolvedProvider = provider.get();
+        var pool = poolCache.computeIfAbsent(
+                identity,
+                id -> maxPoolSize > 0
+                        ? resolvedProvider.createPool(vertx, representativeSource, maxPoolSize)
+                        : resolvedProvider.createPool(vertx, representativeSource));
         var evaluator =
                 new ReactiveSqlLogicalViewEvaluator(pool, provider.get().dialect(), provider.get(), cursorBatchSize);
 

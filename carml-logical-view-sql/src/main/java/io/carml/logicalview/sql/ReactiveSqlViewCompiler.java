@@ -43,6 +43,9 @@ import org.jooq.SelectField;
 import org.jooq.SelectFromStep;
 import org.jooq.SelectJoinStep;
 import org.jooq.Table;
+import org.jooq.conf.ParseUnknownFunctions;
+import org.jooq.conf.Settings;
+import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
 
 /**
@@ -220,8 +223,7 @@ public final class ReactiveSqlViewCompiler {
     private static String compileSourceClause(LogicalSource logicalSource) {
         var query = logicalSource.getQuery();
         if (query != null && !query.isBlank()) {
-            // MySQL requires derived tables (subqueries in FROM) to have aliases
-            return "(%s) __src".formatted(sanitizeQuery(query));
+            return "(%s) __src".formatted(validateAndRenderQuery(query));
         }
 
         var tableName = logicalSource.getTableName();
@@ -233,14 +235,35 @@ public final class ReactiveSqlViewCompiler {
         if (source instanceof DatabaseSource dbSource
                 && dbSource.getQuery() != null
                 && !dbSource.getQuery().isBlank()) {
-            return "(%s) __src".formatted(sanitizeQuery(dbSource.getQuery()));
+            return "(%s) __src".formatted(validateAndRenderQuery(dbSource.getQuery()));
         }
 
         throw new IllegalArgumentException("SQL logical source has no query or table name defined");
     }
 
-    private static String sanitizeQuery(String query) {
-        return query.strip().replaceAll(";\\s*$", "");
+    /**
+     * Validates a user-provided SQL query by parsing it through jOOQ's SQL parser and re-rendering
+     * it in the target dialect. This ensures:
+     * <ul>
+     *   <li>The query is syntactically valid SQL (rejects malformed input)</li>
+     *   <li>Only a single SELECT statement is allowed (rejects stacked queries like
+     *       {@code SELECT 1; DROP TABLE users})</li>
+     *   <li>Identifiers are consistently quoted in the target dialect</li>
+     * </ul>
+     *
+     * @throws IllegalArgumentException if the query cannot be parsed as a valid SELECT statement
+     */
+    private static String validateAndRenderQuery(String query) {
+        var dialect = CURRENT_DIALECT.get();
+        var cleaned = query.strip().replaceAll(";\\s*$", "");
+
+        try {
+            var settings = new Settings().withParseUnknownFunctions(ParseUnknownFunctions.IGNORE);
+            var parsed = DSL.using(dialect, settings).parser().parseQuery(cleaned);
+            return DSL.using(dialect, settings).render(parsed);
+        } catch (DataAccessException e) {
+            throw new IllegalArgumentException("Failed to parse SQL query for source: %s".formatted(e.getMessage()), e);
+        }
     }
 
     // --- Field compilation ---

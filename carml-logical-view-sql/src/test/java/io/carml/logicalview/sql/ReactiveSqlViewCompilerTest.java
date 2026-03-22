@@ -93,7 +93,8 @@ class ReactiveSqlViewCompilerTest {
 
             var sql = ReactiveSqlViewCompiler.compile(view, context, SQLDialect.POSTGRES);
 
-            assertThat(sql, containsString("(SELECT id, name FROM users)"));
+            // jOOQ parses and re-renders the query, so keywords are lowercased
+            assertThat(sql, containsString("(select id, name from users)"));
         }
 
         @Test
@@ -103,7 +104,7 @@ class ReactiveSqlViewCompilerTest {
 
             var sql = ReactiveSqlViewCompiler.compile(view, context, SQLDialect.POSTGRES);
 
-            assertThat(sql, containsString("(SELECT * FROM orders)"));
+            assertThat(sql, containsString("(select * from orders)"));
             assertThat(sql, not(containsString(";")));
         }
 
@@ -117,7 +118,18 @@ class ReactiveSqlViewCompilerTest {
 
             var sql = ReactiveSqlViewCompiler.compile(view, context, SQLDialect.POSTGRES);
 
-            assertThat(sql, containsString("(SELECT * FROM orders)"));
+            assertThat(sql, containsString("(select * from orders)"));
+        }
+
+        @Test
+        void compile_stackedQueryInjection_throwsIllegalArgumentException() {
+            var view = createSqlViewWithQuery(
+                    "SELECT * FROM users; DROP TABLE users", Set.of(expressionField("id", "id")));
+            var context = EvaluationContext.defaults();
+
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> ReactiveSqlViewCompiler.compile(view, context, SQLDialect.POSTGRES));
         }
 
         @Test
@@ -788,9 +800,10 @@ class ReactiveSqlViewCompilerTest {
             lenient().when(view.getStructuralAnnotations()).thenReturn(Set.of());
             lenient().when(view.getResourceName()).thenReturn("failView");
 
+            var context = EvaluationContext.defaults();
             assertThrows(
                     IllegalArgumentException.class,
-                    () -> ReactiveSqlViewCompiler.compile(view, EvaluationContext.defaults(), SQLDialect.POSTGRES));
+                    () -> ReactiveSqlViewCompiler.compile(view, context, SQLDialect.POSTGRES));
 
             // After the exception the ThreadLocal must be clean
             var goodView = createSqlViewWithTable("users", Set.of(expressionField("id", "id")));

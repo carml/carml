@@ -53,6 +53,11 @@ public class MySqlClientProvider implements SqlClientProvider {
 
     @Override
     public Pool createPool(Vertx vertx, DatabaseSource source) {
+        return createPool(vertx, source, DEFAULT_POOL_SIZE);
+    }
+
+    @Override
+    public Pool createPool(Vertx vertx, DatabaseSource source, int maxPoolSize) {
         var connectOptions = MySQLConnectOptions.fromUri(SqlClientProvider.toConnectionUri(source.getJdbcDsn()));
 
         if (source.getUsername() != null) {
@@ -63,12 +68,13 @@ public class MySqlClientProvider implements SqlClientProvider {
         }
 
         LOG.debug(
-                "Creating MySQL pool for {}:{}/{}",
+                "Creating MySQL pool (size={}) for {}:{}/{}",
+                maxPoolSize,
                 connectOptions.getHost(),
                 connectOptions.getPort(),
                 connectOptions.getDatabase());
 
-        return Pool.pool(vertx, connectOptions, new PoolOptions().setMaxSize(DEFAULT_POOL_SIZE));
+        return Pool.pool(vertx, connectOptions, new PoolOptions().setMaxSize(maxPoolSize));
     }
 
     @Override

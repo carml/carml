@@ -47,6 +47,11 @@ public class PostgreSqlClientProvider implements SqlClientProvider {
 
     @Override
     public Pool createPool(Vertx vertx, DatabaseSource source) {
+        return createPool(vertx, source, DEFAULT_POOL_SIZE);
+    }
+
+    @Override
+    public Pool createPool(Vertx vertx, DatabaseSource source, int maxPoolSize) {
         var connectOptions = PgConnectOptions.fromUri(SqlClientProvider.toConnectionUri(source.getJdbcDsn()));
 
         if (source.getUsername() != null) {
@@ -57,12 +62,13 @@ public class PostgreSqlClientProvider implements SqlClientProvider {
         }
 
         LOG.debug(
-                "Creating PostgreSQL pool for {}:{}/{}",
+                "Creating PostgreSQL pool (size={}) for {}:{}/{}",
+                maxPoolSize,
                 connectOptions.getHost(),
                 connectOptions.getPort(),
                 connectOptions.getDatabase());
 
-        return Pool.pool(vertx, connectOptions, new PoolOptions().setMaxSize(DEFAULT_POOL_SIZE));
+        return Pool.pool(vertx, connectOptions, new PoolOptions().setMaxSize(maxPoolSize));
     }
 
     @Override

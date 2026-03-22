@@ -219,6 +219,42 @@ class SqlEvaluatorBenchmarkTest {
         }
     }
 
+    // --- Pool size sweep ---
+
+    @Test
+    void benchmark_mysql_poolSizeSweep() throws SQLException {
+        LOG.info("=== MySQL Pool Size Sweep (10K rows) ===");
+        LOG.info(
+                "{}",
+                "%-12s | %8s | %8s | %12s | %8s"
+                        .formatted("PoolSize", "Time(ms)", "Triples", "Triples/sec", "Mem(MB)"));
+
+        int rowCount = 10_000;
+        loadMySqlData(rowCount);
+        var mapping = mysqlMapping("person", MYSQL.getJdbcUrl(), "bench");
+
+        int[] poolSizes = {1, 2, 4, 8, 16, 32};
+
+        // Warm up
+        runMapping(mapping, mysqlReactiveFactory);
+
+        for (int poolSize : poolSizes) {
+            var factory = new ReactiveSqlLogicalViewEvaluatorFactory(
+                    List.of(new MySqlClientProvider()), vertx, 2048, poolSize);
+            var result = runMapping(mapping, factory);
+
+            LOG.info(
+                    "{}",
+                    "%-12d | %8d | %8d | %12.0f | %8s"
+                            .formatted(
+                                    poolSize,
+                                    result.durationMs,
+                                    result.tripleCount,
+                                    result.triplesPerSecond(),
+                                    result.memMb()));
+        }
+    }
+
     // --- Data loading ---
 
     private void loadMySqlData(int rowCount) throws SQLException {
@@ -333,8 +369,7 @@ class SqlEvaluatorBenchmarkTest {
     }
 
     private BenchmarkResult runWithDuckDb(String turtleMapping, String dbType, String host, int port) {
-        try {
-            var conn = DriverManager.getConnection("jdbc:duckdb:");
+        try (var conn = DriverManager.getConnection("jdbc:duckdb:")) {
             try (Statement stmt = conn.createStatement()) {
                 stmt.execute("INSTALL %s".formatted(dbType));
                 stmt.execute("LOAD %s".formatted(dbType));
@@ -351,9 +386,7 @@ class SqlEvaluatorBenchmarkTest {
             }
 
             var factory = new DuckDbLogicalViewEvaluatorFactory(conn);
-            var result = runMapping(turtleMapping, factory);
-            conn.close();
-            return result;
+            return runMapping(turtleMapping, factory);
         } catch (SQLException e) {
             throw new IllegalStateException("Failed to run DuckDB %s benchmark".formatted(dbType), e);
         }
