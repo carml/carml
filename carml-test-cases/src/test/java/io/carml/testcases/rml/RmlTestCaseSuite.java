@@ -94,8 +94,10 @@ public abstract class RmlTestCaseSuite {
     @MethodSource("populateTestCases")
     void runTestCase(TestCase testCase, String testCaseIdentifier) {
         if (testCase.hasError()) {
-            // expect error
-            assertThrows(RuntimeException.class, () -> executeMapping(testCase, testCaseIdentifier));
+            assertThrows(
+                    RuntimeException.class,
+                    () -> executeMapping(testCase, testCaseIdentifier),
+                    "[%s] Expected error but mapping succeeded".formatted(testCaseIdentifier));
         } else {
             var result = executeMapping(testCase, testCaseIdentifier);
 
@@ -104,7 +106,7 @@ public abstract class RmlTestCaseSuite {
                     .flatMap(stream -> parseExpectedOutput(stream, testCaseIdentifier).stream())
                     .collect(ModelCollector.toTreeModel());
 
-            assertThat(result, isIsomorphicTo(expected));
+            assertThat("[%s]".formatted(testCaseIdentifier), result, isIsomorphicTo(expected));
         }
     }
 
