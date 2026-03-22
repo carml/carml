@@ -88,7 +88,14 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
             MappingExecutionObserver observer,
             Map<TriplesMap, TriplesMapper<Statement>> lvTriplesMappers,
             LogicalViewEvaluator logicalViewEvaluator) {
-        super(triplesMaps, mappingPipeline, sourceResolvers, resolvedMappings, lvTriplesMappers, logicalViewEvaluator);
+        super(
+                triplesMaps,
+                mappingPipeline,
+                sourceResolvers,
+                resolvedMappings,
+                lvTriplesMappers,
+                logicalViewEvaluator,
+                observer);
         this.observer = observer;
     }
 

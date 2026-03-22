@@ -10,6 +10,7 @@ import io.carml.logicalsourceresolver.ResolvedSource;
 import io.carml.logicalsourceresolver.sourceresolver.SourceResolver;
 import io.carml.logicalview.LogicalViewEvaluator;
 import io.carml.logicalview.SourceRecordCache;
+import io.carml.logicalview.ViewIteration;
 import io.carml.model.LogicalSource;
 import io.carml.model.LogicalView;
 import io.carml.model.NameableStream;
@@ -19,12 +20,14 @@ import io.carml.output.NTriplesTermEncoder;
 import io.carml.util.Mappings;
 import io.carml.util.TypeRef;
 import java.io.InputStream;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.AccessLevel;
@@ -70,13 +73,21 @@ public abstract class RmlMapper<T, K> {
      */
     private final LogicalViewEvaluator logicalViewEvaluator;
 
+    /**
+     * Observer for mapping execution events. Receives callbacks at key points in the pipeline:
+     * view evaluation start/complete, iteration processing, statement generation, and mapping
+     * completion. Defaults to {@link NoOpObserver} when no observer is configured.
+     */
+    private final MappingExecutionObserver observer;
+
     protected RmlMapper(
             @NonNull Set<TriplesMap> triplesMaps,
             @NonNull MappingPipeline<T> mappingPipeline,
             @NonNull Set<SourceResolver<?>> sourceResolvers,
             @NonNull List<ResolvedMapping> resolvedMappings,
             @NonNull Map<TriplesMap, TriplesMapper<T>> lvTriplesMappers,
-            LogicalViewEvaluator logicalViewEvaluator) {
+            LogicalViewEvaluator logicalViewEvaluator,
+            @NonNull MappingExecutionObserver observer) {
         this.triplesMaps = triplesMaps;
         this.sourceResolvers = sourceResolvers;
         this.mappingPipeline = mappingPipeline;
@@ -84,6 +95,7 @@ public abstract class RmlMapper<T, K> {
         this.resolvedMappings = resolvedMappings;
         this.lvTriplesMappers = lvTriplesMappers;
         this.logicalViewEvaluator = logicalViewEvaluator;
+        this.observer = observer;
     }
 
     public <R> Flux<T> mapRecord(R providedRecord, Class<R> providedRecordClass) {
@@ -255,15 +267,13 @@ public abstract class RmlMapper<T, K> {
 
         return Flux.fromIterable(prepared.mappings()).flatMap(rm -> {
             var mapper = lvTriplesMappers.get(rm.getOriginalTriplesMap());
-            return logicalViewEvaluator
-                    .evaluate(
-                            rm.getEffectiveView(),
-                            prepared.sourceResolver(),
-                            rm.getEvaluationContext(),
-                            prepared.recordCache(),
-                            prepared.logicalSourcesPerSource(),
-                            prepared.expressionsPerLogicalSource())
-                    .flatMap(mapper::map);
+            var counters = PipelineCounters.create();
+
+            var mapped = evaluateWithObservation(rm, prepared, counters)
+                    .flatMap(mapper::map)
+                    .doOnNext(result -> counters.statementCount.incrementAndGet());
+
+            return withCompletionCallbacks(mapped, rm, counters);
         });
     }
 
@@ -293,21 +303,18 @@ public abstract class RmlMapper<T, K> {
         return Flux.fromIterable(prepared.mappings())
                 .flatMap(rm -> {
                     var mapper = lvTriplesMappers.get(rm.getOriginalTriplesMap());
-                    return logicalViewEvaluator
-                            .evaluate(
-                                    rm.getEffectiveView(),
-                                    prepared.sourceResolver(),
-                                    rm.getEvaluationContext(),
-                                    prepared.recordCache(),
-                                    prepared.logicalSourcesPerSource(),
-                                    prepared.expressionsPerLogicalSource())
-                            .flatMapIterable(iteration -> {
-                                var result = mapper.mapToBytes(iteration, encoder, includeGraph);
-                                for (var mergeable : result.mergeables()) {
-                                    handleCompletable(mergeable);
-                                }
-                                return result.bytes();
-                            });
+                    var counters = PipelineCounters.create();
+
+                    var mapped = evaluateWithObservation(rm, prepared, counters).flatMapIterable(iteration -> {
+                        var result = mapper.mapToBytes(iteration, encoder, includeGraph);
+                        counters.statementCount.addAndGet(result.bytes().size());
+                        for (var mergeable : result.mergeables()) {
+                            handleCompletable(mergeable);
+                        }
+                        return result.bytes();
+                    });
+
+                    return withCompletionCallbacks(mapped, rm, counters);
                 })
                 .concatWith(encodeMergeables(encoder, includeGraph));
     }
@@ -434,6 +441,72 @@ public abstract class RmlMapper<T, K> {
                         .reduce(MergeableMappingResult::merge)
                         .map(Flux::just)
                         .orElse(Flux.empty()));
+    }
+
+    /**
+     * Holds per-mapping pipeline counters for observer callbacks. Created once per mapping
+     * evaluation and shared between the view evaluation and statement generation phases.
+     */
+    private record PipelineCounters(
+            AtomicLong iterationCount, AtomicLong statementCount, AtomicLong errorCount, AtomicLong startNanos) {
+
+        static PipelineCounters create() {
+            return new PipelineCounters(new AtomicLong(0), new AtomicLong(0), new AtomicLong(0), new AtomicLong(0));
+        }
+    }
+
+    /**
+     * Evaluates a logical view with observer instrumentation: fires onViewEvaluationStart on
+     * subscribe, onViewIteration per iteration, and onViewEvaluationComplete when the evaluate flux
+     * completes.
+     */
+    private Flux<ViewIteration> evaluateWithObservation(
+            ResolvedMapping rm, PreparedPipeline prepared, PipelineCounters counters) {
+        return logicalViewEvaluator
+                .evaluate(
+                        rm.getEffectiveView(),
+                        prepared.sourceResolver(),
+                        rm.getEvaluationContext(),
+                        prepared.recordCache(),
+                        prepared.logicalSourcesPerSource(),
+                        prepared.expressionsPerLogicalSource())
+                .doOnSubscribe(sub -> {
+                    counters.startNanos.set(System.nanoTime());
+                    observer.onViewEvaluationStart(rm, logicalViewEvaluator);
+                })
+                .doOnNext(iteration -> {
+                    counters.iterationCount.incrementAndGet();
+                    observer.onViewIteration(rm, iteration);
+                })
+                .doOnComplete(() -> observer.onViewEvaluationComplete(
+                        rm,
+                        counters.iterationCount.get(),
+                        Duration.ofNanos(System.nanoTime() - counters.startNanos.get())));
+    }
+
+    /**
+     * Wires completion and error callbacks onto a downstream flux, firing onMappingComplete with
+     * accumulated pipeline counters.
+     */
+    private <R> Flux<R> withCompletionCallbacks(Flux<R> downstream, ResolvedMapping rm, PipelineCounters counters) {
+        return downstream
+                .doOnError(ex -> counters.errorCount.incrementAndGet())
+                .doOnComplete(() -> fireMappingComplete(rm, counters, CompletionReason.EXHAUSTED))
+                .doOnError(ex -> fireMappingComplete(rm, counters, CompletionReason.ERROR));
+    }
+
+    private void fireMappingComplete(ResolvedMapping rm, PipelineCounters counters, CompletionReason reason) {
+        var duration = Duration.ofNanos(System.nanoTime() - counters.startNanos.get());
+        // iterationsDeduplicated is 0: deduplication happens inside the evaluator (DISTINCT in SQL)
+        // before iterations reach the mapper, so it is not observable at this level.
+        var executionResult = new MappingExecutionResult(
+                counters.statementCount.get(),
+                counters.iterationCount.get(),
+                0L,
+                counters.errorCount.get(),
+                duration,
+                reason);
+        observer.onMappingComplete(rm, executionResult);
     }
 
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
