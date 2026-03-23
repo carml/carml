@@ -155,27 +155,27 @@ final class RdfTermEncoding {
     static void writeEscapedLiteralBytes(String label, OutputStream output) {
         int len = label.length();
         int asciiRunStart = -1;
-        int i = 0;
+        int idx = 0;
 
-        while (i < len) {
-            int codePoint = label.codePointAt(i);
+        while (idx < len) {
+            int codePoint = label.codePointAt(idx);
             int charCount = Character.charCount(codePoint);
 
             if (isPrintableAscii(codePoint)) {
                 if (asciiRunStart < 0) {
-                    asciiRunStart = i;
+                    asciiRunStart = idx;
                 }
-                i += charCount;
+                idx += charCount;
                 continue;
             }
 
             if (asciiRunStart >= 0) {
-                writeAsciiRun(label, asciiRunStart, i, output);
+                writeAsciiRun(label, asciiRunStart, idx, output);
                 asciiRunStart = -1;
             }
 
             writeEscapedCodePoint(codePoint, output);
-            i += charCount;
+            idx += charCount;
         }
 
         if (asciiRunStart >= 0) {

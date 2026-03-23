@@ -156,9 +156,9 @@ public final class DuckDbDirectSerializer {
 
     private static void validateFormat(String rdfFormat) {
         if (!FORMAT_NTRIPLES.equals(rdfFormat) && !FORMAT_NQUADS.equals(rdfFormat)) {
-            throw new IllegalArgumentException(
-                    "Unsupported RDF format for direct serialization: '%s'. Only 'nt' (N-Triples) and 'nq' (N-Quads) are supported."
-                            .formatted(rdfFormat));
+            throw new IllegalArgumentException(("Unsupported RDF format for direct serialization: '%s'."
+                            + " Only 'nt' (N-Triples) and 'nq' (N-Quads) are supported.")
+                    .formatted(rdfFormat));
         }
     }
 

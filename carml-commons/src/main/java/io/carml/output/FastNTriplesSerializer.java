@@ -70,7 +70,7 @@ public final class FastNTriplesSerializer extends AbstractFastRdfSerializer {
          */
         @Override
         public FastNTriplesSerializer build() {
-            return new FastNTriplesSerializer(cacheMaxSize);
+            return new FastNTriplesSerializer(getCacheMaxSize());
         }
     }
 }

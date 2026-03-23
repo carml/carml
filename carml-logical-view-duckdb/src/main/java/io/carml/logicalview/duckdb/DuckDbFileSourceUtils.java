@@ -28,6 +28,7 @@ final class DuckDbFileSourceUtils {
      * @return the resolved file path string
      * @throws IllegalArgumentException if the source is null, unsupported, or has no path/URL
      */
+    @SuppressWarnings("checkstyle:CyclomaticComplexity")
     static String resolveFilePath(Source source) {
         if (source instanceof FileSource fileSource) {
             var url = fileSource.getUrl();

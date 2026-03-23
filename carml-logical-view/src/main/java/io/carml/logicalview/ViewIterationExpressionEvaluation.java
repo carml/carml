@@ -48,12 +48,15 @@ public class ViewIterationExpressionEvaluation implements ExpressionEvaluation {
 
     private String buildErrorMessage(String expression) {
         if (IT_KEY.equals(expression)) {
-            return "Reference to root iterable record key '%s' is not allowed; '%s' is not a referenceable key in a logical view"
+            return ("Reference to root iterable record key '%s' is not allowed;"
+                            + " '%s' is not a referenceable key in a logical view")
                     .formatted(IT_KEY, IT_KEY);
         }
 
         if (referenceableKeys.contains(expression + DefaultLogicalViewEvaluator.INDEX_KEY_SUFFIX)) {
-            return "Reference to iterable record key '%s' is not allowed; '%s' is not a referenceable key. Use its nested field names instead (e.g., '%s.fieldName')"
+            return ("Reference to iterable record key '%s' is not allowed;"
+                            + " '%s' is not a referenceable key."
+                            + " Use its nested field names instead (e.g., '%s.fieldName')")
                     .formatted(expression, expression, expression);
         }
 

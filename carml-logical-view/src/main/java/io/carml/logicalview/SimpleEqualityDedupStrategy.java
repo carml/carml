@@ -16,7 +16,8 @@ class SimpleEqualityDedupStrategy implements DedupStrategy {
                     .map(field -> iteration
                             .getValue(field)
                             .orElseThrow(() -> new IllegalStateException(
-                                    "SimpleEqualityDedupStrategy encountered null for field '%s'; this strategy requires all key fields to be non-null"
+                                    ("SimpleEqualityDedupStrategy encountered null for field '%s';"
+                                                    + " this strategy requires all key fields to be non-null")
                                             .formatted(field))))
                     .toList();
             return seen.add(key);

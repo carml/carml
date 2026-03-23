@@ -117,9 +117,13 @@ abstract class AbstractFastRdfSerializer {
      */
     abstract static class AbstractBuilder<S extends AbstractFastRdfSerializer, B extends AbstractBuilder<S, B>> {
 
-        int cacheMaxSize = DEFAULT_CACHE_MAX_SIZE;
+        private int cacheMaxSize = DEFAULT_CACHE_MAX_SIZE;
 
         AbstractBuilder() {}
+
+        protected int getCacheMaxSize() {
+            return cacheMaxSize;
+        }
 
         /**
          * Sets the maximum number of entries in the LRU term cache. When the cache exceeds this

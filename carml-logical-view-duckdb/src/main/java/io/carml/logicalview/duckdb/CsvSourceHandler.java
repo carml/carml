@@ -95,9 +95,9 @@ final class CsvSourceHandler implements DuckDbSourceHandler {
             var hasExactMatch = actualColumnNames.contains(ref);
             var hasCaseInsensitiveMatch = actualColumnNames.stream().anyMatch(col -> col.equalsIgnoreCase(ref));
             if (hasCaseInsensitiveMatch && !hasExactMatch) {
-                throw new IllegalArgumentException(
-                        "CSV column reference '%s' does not match any column header case-sensitively. Available columns: %s"
-                                .formatted(ref, actualColumnNames));
+                throw new IllegalArgumentException(("CSV column reference '%s' does not match any column header"
+                                + " case-sensitively. Available columns: %s")
+                        .formatted(ref, actualColumnNames));
             }
         }
     }

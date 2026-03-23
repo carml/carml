@@ -346,9 +346,10 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
 
         if (resultNode.isArray()) {
             if (JsonPath.compile(expression).isDefinite()) {
-                throw new LogicalSourceResolverException(
-                        "JSONPath expression '%s' evaluated to an array, but only scalar values are allowed. Use an iterator to process array data."
-                                .formatted(expression));
+                throw new LogicalSourceResolverException(("JSONPath expression '%s' evaluated to an array,"
+                                + " but only scalar values are allowed."
+                                + " Use an iterator to process array data.")
+                        .formatted(expression));
             }
             return Optional.of(StreamSupport.stream(resultNode.spliterator(), false)
                     .filter(node -> !node.isNull())

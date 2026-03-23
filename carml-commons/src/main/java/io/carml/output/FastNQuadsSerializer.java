@@ -83,7 +83,7 @@ public final class FastNQuadsSerializer extends AbstractFastRdfSerializer {
          */
         @Override
         public FastNQuadsSerializer build() {
-            return new FastNQuadsSerializer(cacheMaxSize);
+            return new FastNQuadsSerializer(getCacheMaxSize());
         }
     }
 }

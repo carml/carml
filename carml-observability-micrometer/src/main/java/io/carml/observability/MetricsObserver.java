@@ -47,7 +47,8 @@ import org.eclipse.rdf4j.model.Statement;
  *       <td>Completed mapping executions by reason (EXHAUSTED, CANCELLED, ERROR)</td></tr>
  *   <tr><td>{@code carml.mapping.statements}</td><td>DistributionSummary</td><td>{@code triples_map}</td>
  *       <td>Statements produced per mapping execution (count/total/max/mean)</td></tr>
- *   <tr><td>{@code carml.view.evaluation.iterations}</td><td>DistributionSummary</td><td>{@code view}, {@code evaluator}</td>
+ *   <tr><td>{@code carml.view.evaluation.iterations}</td><td>DistributionSummary</td>
+ *       <td>{@code view}, {@code evaluator}</td>
  *       <td>Iterations produced per view evaluation (count/total/max/mean)</td></tr>
  *   <tr><td>{@code carml.mappings.active}</td><td>Gauge</td><td>—</td>
  *       <td>Number of TriplesMap evaluations currently in progress</td></tr>

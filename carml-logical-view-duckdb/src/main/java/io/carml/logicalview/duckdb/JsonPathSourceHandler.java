@@ -98,6 +98,7 @@ final class JsonPathSourceHandler implements DuckDbSourceHandler {
      * @param filter the filter condition to translate
      * @param columnName the column to apply the filter to (e.g., {@code __iter} or {@code unnest})
      */
+    @SuppressWarnings("checkstyle:CyclomaticComplexity")
     static Condition compileFilterCondition(JsonPathAnalyzer.FilterCondition filter, String columnName) {
         var iterCol = field(quotedName(columnName));
         if (filter instanceof JsonPathAnalyzer.EqualStr f) {
@@ -151,27 +152,29 @@ final class JsonPathSourceHandler implements DuckDbSourceHandler {
      * measures the length of a JSON value and compares it. The length is type-aware: arrays use
      * {@code json_array_length}, while strings and objects use {@code length()}.
      */
-    private static Condition compileLengthCompare(JsonPathAnalyzer.LengthCompare f, org.jooq.Field<Object> iterCol) {
-        var pathInline = inline(f.fieldJsonPath());
+    private static Condition compileLengthCompare(
+            JsonPathAnalyzer.LengthCompare field, org.jooq.Field<Object> iterCol) {
+        var pathInline = inline(field.fieldJsonPath());
         var lengthExpr = DSL.field(
-                "CASE json_type({0}, {1}) WHEN {2} THEN json_array_length(json_extract({0}, {1})) ELSE length(json_extract_string({0}, {1})) END",
+                "CASE json_type({0}, {1}) WHEN {2} THEN json_array_length(json_extract({0}, {1}))"
+                        + " ELSE length(json_extract_string({0}, {1})) END",
                 iterCol, pathInline, inline("ARRAY"));
-        var val = inline(f.value().doubleValue());
+        var val = inline(field.value().doubleValue());
 
-        if (f.op() == JsonPathAnalyzer.CompOp.EQ) {
+        if (field.op() == JsonPathAnalyzer.CompOp.EQ) {
             return DSL.condition("{0} = {1}", lengthExpr, val);
-        } else if (f.op() == JsonPathAnalyzer.CompOp.NEQ) {
+        } else if (field.op() == JsonPathAnalyzer.CompOp.NEQ) {
             return DSL.condition("{0} != {1}", lengthExpr, val);
-        } else if (f.op() == JsonPathAnalyzer.CompOp.GT) {
+        } else if (field.op() == JsonPathAnalyzer.CompOp.GT) {
             return DSL.condition("{0} > {1}", lengthExpr, val);
-        } else if (f.op() == JsonPathAnalyzer.CompOp.LT) {
+        } else if (field.op() == JsonPathAnalyzer.CompOp.LT) {
             return DSL.condition("{0} < {1}", lengthExpr, val);
-        } else if (f.op() == JsonPathAnalyzer.CompOp.GTE) {
+        } else if (field.op() == JsonPathAnalyzer.CompOp.GTE) {
             return DSL.condition("{0} >= {1}", lengthExpr, val);
-        } else if (f.op() == JsonPathAnalyzer.CompOp.LTE) {
+        } else if (field.op() == JsonPathAnalyzer.CompOp.LTE) {
             return DSL.condition("{0} <= {1}", lengthExpr, val);
         }
-        throw new UnsupportedOperationException("Unknown CompOp: %s".formatted(f.op()));
+        throw new UnsupportedOperationException("Unknown CompOp: %s".formatted(field.op()));
     }
 
     /**

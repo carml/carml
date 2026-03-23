@@ -192,10 +192,11 @@
       <property name="separated" value="true"/>
       <property name="sortStaticImportsAlphabetically" value="true"/>
     </module>
-    <module name="Indentation"> <!-- Java Style Guide: Block indentation: +4 spaces -->
-      <property name="arrayInitIndent" value="8"/>
-      <property name="lineWrappingIndentation" value="8"/>
-    </module>
+<!--    CARML: indentation handled by spotless -->
+<!--    <module name="Indentation"> &lt;!&ndash; Java Style Guide: Block indentation: +4 spaces &ndash;&gt;-->
+<!--      <property name="arrayInitIndent" value="8"/>-->
+<!--      <property name="lineWrappingIndentation" value="8"/>-->
+<!--    </module>-->
     <module name="InnerAssignment"/> <!-- Java Coding Guidelines: Inner assignments: Not used -->
     <module name="LeftCurly"/> <!-- Java Style Guide: Nonempty blocks: K & R style -->
     <module name="MemberName"> <!-- Java Style Guide: Non-constant field names -->

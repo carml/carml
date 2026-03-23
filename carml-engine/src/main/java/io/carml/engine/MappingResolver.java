@@ -10,6 +10,7 @@ import io.carml.model.ExpressionField;
 import io.carml.model.ExpressionMap;
 import io.carml.model.Field;
 import io.carml.model.ForeignKeyAnnotation;
+import io.carml.model.Join;
 import io.carml.model.LogicalView;
 import io.carml.model.LogicalViewJoin;
 import io.carml.model.NotNullAnnotation;
@@ -31,6 +32,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -416,7 +418,6 @@ public final class MappingResolver {
             AbstractLogicalSource childViewOn, Map<String, ExpressionField> childFieldIndex, LogicalViewJoin join) {
         var parentView = join.getParentLogicalView();
 
-        // Same underlying source (identity comparison)
         if (childViewOn != parentView.getViewOn()) {
             return false;
         }
@@ -426,10 +427,21 @@ public final class MappingResolver {
             return false;
         }
 
-        // Build parent field index
         var parentFieldIndex = buildFieldIndex(nullSafe(parentView.getFields()));
+        var parentJoinFieldNames = resolveIdentityJoinFields(conditions, childFieldIndex, parentFieldIndex);
 
-        // Check all join conditions use simple references resolving to the same source expression
+        return parentJoinFieldNames.isPresent() && hasParentUniquenessGuarantee(parentView, parentJoinFieldNames.get());
+    }
+
+    /**
+     * Validates that all join conditions are identity joins (child and parent reference the same
+     * source expression). Returns the set of parent join field names, or empty if any condition is
+     * not an identity join.
+     */
+    private static Optional<Set<String>> resolveIdentityJoinFields(
+            Set<Join> conditions,
+            Map<String, ExpressionField> childFieldIndex,
+            Map<String, ExpressionField> parentFieldIndex) {
         var parentJoinFieldNames = new LinkedHashSet<String>();
         for (var condition : conditions) {
             var childMap = condition.getChildMap();
@@ -438,7 +450,7 @@ public final class MappingResolver {
                     || parentMap == null
                     || childMap.getReference() == null
                     || parentMap.getReference() == null) {
-                return false;
+                return Optional.empty();
             }
 
             var childField = childFieldIndex.get(childMap.getReference());
@@ -447,18 +459,19 @@ public final class MappingResolver {
                     || parentField == null
                     || childField.getReference() == null
                     || parentField.getReference() == null) {
-                return false;
+                return Optional.empty();
             }
 
-            // Same source expression → identity join condition
             if (!childField.getReference().equals(parentField.getReference())) {
-                return false;
+                return Optional.empty();
             }
 
             parentJoinFieldNames.add(parentMap.getReference());
         }
+        return Optional.of(parentJoinFieldNames);
+    }
 
-        // PK or Unique+NotNull on parent covering join condition fields
+    private static boolean hasParentUniquenessGuarantee(LogicalView parentView, Set<String> parentJoinFieldNames) {
         var parentAnnotations = parentView.getStructuralAnnotations();
         if (parentAnnotations == null || parentAnnotations.isEmpty()) {
             return false;

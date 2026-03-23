@@ -351,9 +351,9 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
             });
         }
 
-        evaluatedFlux = applyJoinSet(evaluatedFlux, view.getLeftJoins(), true, view, projectedFields, baseJoinCtx);
-        evaluatedFlux = applyJoinSet(evaluatedFlux, view.getInnerJoins(), false, view, projectedFields, baseJoinCtx);
-        return evaluatedFlux;
+        var result = applyJoinSet(evaluatedFlux, view.getLeftJoins(), true, view, projectedFields, baseJoinCtx);
+        result = applyJoinSet(result, view.getInnerJoins(), false, view, projectedFields, baseJoinCtx);
+        return result;
     }
 
     /**
@@ -457,11 +457,12 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
         if (joins == null) {
             return evaluatedFlux;
         }
+        var result = evaluatedFlux;
         for (var join : joins) {
             var opts = analyzeJoinOptimizations(view, join, leftJoin, projectedFields);
             if (!opts.eliminate()) {
-                evaluatedFlux = applyJoin(
-                        evaluatedFlux,
+                result = applyJoin(
+                        result,
                         join,
                         leftJoin && !opts.effectiveInnerJoin(),
                         opts.singleMatch(),
@@ -469,7 +470,7 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                         joinCtx);
             }
         }
-        return evaluatedFlux;
+        return result;
     }
 
     private Set<String> collectDedupKeyFields(LogicalView view) {

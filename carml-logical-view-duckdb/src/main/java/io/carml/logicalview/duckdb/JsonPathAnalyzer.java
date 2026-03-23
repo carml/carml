@@ -208,7 +208,7 @@ final class JsonPathAnalyzer {
                     int line,
                     int charPositionInLine,
                     String msg,
-                    RecognitionException e) {
+                    RecognitionException ex) {
                 syntaxErrors.add("at position %d: %s".formatted(charPositionInLine, msg));
             }
         };
@@ -252,6 +252,7 @@ final class JsonPathAnalyzer {
      * starts the relative path and forwards for the value end (delimited by {@code )}, {@code &},
      * or {@code |}).
      */
+    @SuppressWarnings("checkstyle:CyclomaticComplexity")
     private static String preprocessUnsupportedOperators(String jsonPath) {
         var matcher = UNSUPPORTED_OP.matcher(jsonPath);
         if (!matcher.find()) {
@@ -347,12 +348,12 @@ final class JsonPathAnalyzer {
     private static FunctionPreprocessResult preprocessFunctions(String jsonPath) {
         var conditions = new ArrayList<FilterCondition>();
         var sb = new StringBuilder();
-        var i = 0;
+        var idx = 0;
         var len = jsonPath.length();
         var rewritten = false;
 
-        while (i < len) {
-            var fnMatch = matchFunctionCall(jsonPath, i);
+        while (idx < len) {
+            var fnMatch = matchFunctionCall(jsonPath, idx);
             if (fnMatch != null) {
                 rewritten = true;
                 var condition = buildFunctionCondition(fnMatch);
@@ -368,10 +369,10 @@ final class JsonPathAnalyzer {
                         sb.append(' ').append(fnMatch.compOp).append(' ').append(fnMatch.compValue);
                     }
                 }
-                i = fnMatch.fullExpressionEnd;
+                idx = fnMatch.fullExpressionEnd;
             } else {
-                sb.append(jsonPath.charAt(i));
-                i++;
+                sb.append(jsonPath.charAt(idx));
+                idx++;
             }
         }
 
@@ -465,11 +466,11 @@ final class JsonPathAnalyzer {
 
     /** Finds the nearest non-whitespace character before the given position. */
     private static char findPrecedingNonWhitespace(String jsonPath, int pos) {
-        var p = pos - 1;
-        while (p >= 0 && Character.isWhitespace(jsonPath.charAt(p))) {
-            p--;
+        var position = pos - 1;
+        while (position >= 0 && Character.isWhitespace(jsonPath.charAt(position))) {
+            position--;
         }
-        return p >= 0 ? jsonPath.charAt(p) : '\0';
+        return position >= 0 ? jsonPath.charAt(position) : '\0';
     }
 
     /**
@@ -501,11 +502,11 @@ final class JsonPathAnalyzer {
 
     /** Mutable state for argument parsing, extracted to reduce cognitive complexity. */
     private static class ArgParseState {
-        final String jsonPath;
-        final List<String> args = new ArrayList<>();
-        final StringBuilder current = new StringBuilder();
-        int depth = 1;
-        int pos;
+        private final String jsonPath;
+        private final List<String> args = new ArrayList<>();
+        private final StringBuilder current = new StringBuilder();
+        private int depth = 1;
+        private int pos;
 
         ArgParseState(String jsonPath) {
             this.jsonPath = jsonPath;
@@ -550,17 +551,17 @@ final class JsonPathAnalyzer {
      */
     private static int scanPastStringLiteral(String jsonPath, int start) {
         var quote = jsonPath.charAt(start);
-        var i = start + 1;
-        while (i < jsonPath.length()) {
-            if (jsonPath.charAt(i) == '\\') {
-                i += 2; // Skip escaped character
-            } else if (jsonPath.charAt(i) == quote) {
-                return i + 1;
+        var idx = start + 1;
+        while (idx < jsonPath.length()) {
+            if (jsonPath.charAt(idx) == '\\') {
+                idx += 2; // Skip escaped character
+            } else if (jsonPath.charAt(idx) == quote) {
+                return idx + 1;
             } else {
-                i++;
+                idx++;
             }
         }
-        return i;
+        return idx;
     }
 
     /**
@@ -571,16 +572,16 @@ final class JsonPathAnalyzer {
      */
     private static FunctionCallMatch scanComparisonAfterCall(
             String jsonPath, String funcName, List<String> args, int callEnd) {
-        var i = callEnd;
+        var idx = callEnd;
         var len = jsonPath.length();
 
         // Skip whitespace
-        while (i < len && Character.isWhitespace(jsonPath.charAt(i))) {
-            i++;
+        while (idx < len && Character.isWhitespace(jsonPath.charAt(idx))) {
+            idx++;
         }
 
         // Scan for a comparison operator
-        var opResult = scanComparisonOp(jsonPath, i);
+        var opResult = scanComparisonOp(jsonPath, idx);
         if (opResult == null) {
             // No comparison operator — for value() this means the expression is just `value(@.path)`,
             // which might be used in an existence check context. Treat fullExpressionEnd as callEnd.
@@ -632,21 +633,21 @@ final class JsonPathAnalyzer {
 
     /** Scans forward to find the end of a comparison value, delimited by ')', '&', or '|'. */
     private static int scanValueEnd(String jsonPath, int start) {
-        var i = start;
+        var idx = start;
         var len = jsonPath.length();
-        while (i < len) {
-            var ch = jsonPath.charAt(i);
+        while (idx < len) {
+            var ch = jsonPath.charAt(idx);
             if (ch == ')' || ch == '&' || ch == '|') {
                 break;
             }
             if (ch == '\'' || ch == '"') {
-                i = scanPastStringLiteral(jsonPath, i);
+                idx = scanPastStringLiteral(jsonPath, idx);
             } else {
-                i++;
+                idx++;
             }
         }
         // Trim trailing whitespace
-        var end = i;
+        var end = idx;
         while (end > start && Character.isWhitespace(jsonPath.charAt(end - 1))) {
             end--;
         }
@@ -970,6 +971,7 @@ final class JsonPathAnalyzer {
             return null;
         }
 
+        @SuppressWarnings("checkstyle:CyclomaticComplexity")
         private static FilterCondition extractFilterCondition(JsonPathParser.FilterExprContext ctx) {
             if (ctx.filterGtNum() != null) {
                 return extractGreaterThan(ctx.filterGtNum());
