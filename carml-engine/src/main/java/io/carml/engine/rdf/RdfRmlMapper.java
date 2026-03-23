@@ -387,8 +387,7 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
                     buildLsPipeline(lsTriplesMaps, rdfMapperConfig, resolverFactories, resolvedMappings, observer);
 
             // LV mappers: built for ALL TMs (both LS-based via implicit views AND LV-based)
-            var lvResult =
-                    buildLvMappers(mappableTriplesMaps, rdfMapperConfig, resolverFactories, resolvedMappings, observer);
+            var lvResult = buildLvMappers(mappableTriplesMaps, rdfMapperConfig, resolvedMappings, observer);
             registerSourceResolvers();
 
             return new RdfRmlMapper(
@@ -460,7 +459,6 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
         private LvPipelineResult buildLvMappers(
                 Set<TriplesMap> allTriplesMaps,
                 RdfMapperConfig rdfMapperConfig,
-                Set<MatchingLogicalSourceResolverFactory> resolverFactories,
                 List<ResolvedMapping> resolvedMappings,
                 MappingExecutionObserver observer) {
 

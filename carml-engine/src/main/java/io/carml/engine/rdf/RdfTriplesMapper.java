@@ -208,9 +208,9 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
         }
 
         if (subjectMaps.size() > 1 && !rdfMapperConfig.isAllowMultipleSubjectMaps()) {
-            throw new TriplesMapperException(
-                    "TriplesMap %s has %s subject maps, but only one is allowed. Use allowMultipleSubjectMaps(true) to enable multiple subject maps."
-                            .formatted(exception(triplesMap, triplesMap), subjectMaps.size()));
+            throw new TriplesMapperException("TriplesMap %s has %s subject maps, but only one is allowed. "
+                            .formatted(exception(triplesMap, triplesMap), subjectMaps.size())
+                    + "Use allowMultipleSubjectMaps(true) to enable multiple subject maps.");
         }
 
         return subjectMaps.stream()

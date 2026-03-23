@@ -4463,8 +4463,7 @@ class DefaultLogicalViewEvaluatorTest {
 
         var allLogicalSources = Set.of(logicalSource, logicalSource2);
         var logicalSourcesPerSource = Map.of(source, allLogicalSources);
-        var expressionsPerLogicalSource =
-                Map.of(logicalSource, Set.of("name"), logicalSource2, Set.of("name"));
+        var expressionsPerLogicalSource = Map.of(logicalSource, Set.of("name"), logicalSource2, Set.of("name"));
 
         var cache = SourceRecordCache.create();
 

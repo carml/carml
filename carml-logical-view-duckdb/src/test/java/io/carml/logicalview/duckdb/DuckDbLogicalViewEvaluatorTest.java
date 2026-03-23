@@ -2014,7 +2014,7 @@ class DuckDbLogicalViewEvaluatorTest {
 
             var cache = new DuckDbSourceTableCache();
             var view = createJsonView(jsonFile.toString(), null, Set.of(expressionField("name", "name")));
-            var evaluator = new DuckDbLogicalViewEvaluator(connection, cache);
+            var evaluator = new DuckDbLogicalViewEvaluator(connection, false, cache, null);
             var context = EvaluationContext.defaults();
 
             StepVerifier.create(
@@ -2037,7 +2037,7 @@ class DuckDbLogicalViewEvaluatorTest {
 
             var cache = new DuckDbSourceTableCache();
             var view = createJsonView(jsonFile.toString(), null, Set.of(expressionField("id", "id")));
-            var evaluator = new DuckDbLogicalViewEvaluator(connection, cache);
+            var evaluator = new DuckDbLogicalViewEvaluator(connection, false, cache, null);
             var context = EvaluationContext.defaults();
 
             // First evaluation creates the temp table

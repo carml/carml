@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Semaphore;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import lombok.extern.slf4j.Slf4j;
@@ -44,9 +45,11 @@ import reactor.core.scheduler.Schedulers;
  * used by this evaluator. DuckDB reads data files directly via functions such as
  * {@code read_json_auto}, {@code read_csv_auto}, and {@code read_parquet}.
  *
- * <p><strong>Thread safety:</strong> This evaluator is not thread-safe. The provided
- * {@link Connection} must not be shared with concurrent callers. DuckDB JDBC connections are
- * single-threaded; concurrent use will result in undefined behavior.
+ * <p><strong>Thread safety:</strong> Each evaluator instance should have its own dedicated
+ * {@link Connection}. When created by {@link DuckDbLogicalViewEvaluatorFactory}, each evaluator
+ * receives a duplicated connection (via {@code DuckDBConnection.duplicate()}) that shares the same
+ * underlying database but can be used independently. The evaluator closes its connection after
+ * evaluation completes if it owns the connection.
  */
 @Slf4j
 public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
@@ -92,27 +95,44 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
 
     private final Connection connection;
 
+    private final boolean ownsConnection;
+
     private final boolean useArrow;
 
     private final DuckDbSourceTableCache sourceTableCache;
 
+    private final Semaphore concurrencyLimit;
+
+    private volatile boolean permitAcquired;
+
     public DuckDbLogicalViewEvaluator(Connection connection) {
-        this(connection, true, null);
+        this(connection, false, true, null, null);
     }
 
-    DuckDbLogicalViewEvaluator(Connection connection, DuckDbSourceTableCache sourceTableCache) {
-        this(connection, true, sourceTableCache);
+    DuckDbLogicalViewEvaluator(
+            Connection connection,
+            boolean ownsConnection,
+            DuckDbSourceTableCache sourceTableCache,
+            Semaphore concurrencyLimit) {
+        this(connection, ownsConnection, true, sourceTableCache, concurrencyLimit);
     }
 
     /** Package-private constructor for testing JDBC fallback path. */
     DuckDbLogicalViewEvaluator(Connection connection, boolean useArrow) {
-        this(connection, useArrow, null);
+        this(connection, false, useArrow, null, null);
     }
 
-    DuckDbLogicalViewEvaluator(Connection connection, boolean useArrow, DuckDbSourceTableCache sourceTableCache) {
+    DuckDbLogicalViewEvaluator(
+            Connection connection,
+            boolean ownsConnection,
+            boolean useArrow,
+            DuckDbSourceTableCache sourceTableCache,
+            Semaphore concurrencyLimit) {
         this.connection = connection;
+        this.ownsConnection = ownsConnection;
         this.useArrow = useArrow;
         this.sourceTableCache = sourceTableCache;
+        this.concurrencyLimit = concurrencyLimit;
     }
 
     @Override
@@ -122,22 +142,53 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
         // Flux error signals rather than synchronous exceptions. This ensures that invalid
         // iterators, missing source files, and other compilation errors propagate through the
         // reactive pipeline and can be caught by downstream error handlers.
-        // DuckDB in-process connections do not support concurrent access. Synchronize the
-        // entire evaluation (compile + execute) to prevent connection state corruption when
-        // multiple views are evaluated concurrently via flatMap.
+        // Each evaluator has its own connection (via DuckDBConnection.duplicate()), so no
+        // synchronization is needed. Multiple evaluators can execute queries in parallel.
         return Flux.<ViewIteration>create(sink -> {
-                    synchronized (connection) {
-                        validateSourceFiles(view);
-                        validateSourceHandler(view);
-                        UnaryOperator<String> sourceTableResolver = sourceTableCache != null
-                                ? sourceSql -> sourceTableCache.getOrCreateTable(sourceSql, connection)
-                                : null;
-                        var compiledView = DuckDbViewCompiler.compile(view, context, sourceTableResolver);
-                        LOG.debug("Executing DuckDB query for view [{}]", view.getResourceName());
-                        executeQuerySynchronized(sink, compiledView, view, context);
-                    }
+                    acquireConcurrencyPermit();
+                    validateSourceFiles(view);
+                    validateSourceHandler(view);
+                    UnaryOperator<String> sourceTableResolver = sourceTableCache != null
+                            ? sourceSql -> sourceTableCache.getOrCreateTable(sourceSql, connection)
+                            : null;
+                    var compiledView = DuckDbViewCompiler.compile(view, context, sourceTableResolver);
+                    LOG.debug("Executing DuckDB query for view [{}]", view.getResourceName());
+                    executeQuery(sink, compiledView, view, context);
+                })
+                .doFinally(signal -> {
+                    releaseConcurrencyPermit();
+                    closeConnectionIfOwned();
                 })
                 .subscribeOn(Schedulers.boundedElastic());
+    }
+
+    private void acquireConcurrencyPermit() {
+        if (concurrencyLimit != null) {
+            try {
+                concurrencyLimit.acquire();
+                permitAcquired = true;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("Interrupted while waiting for DuckDB concurrency permit", e);
+            }
+        }
+    }
+
+    private void releaseConcurrencyPermit() {
+        if (concurrencyLimit != null && permitAcquired) {
+            permitAcquired = false;
+            concurrencyLimit.release();
+        }
+    }
+
+    private void closeConnectionIfOwned() {
+        if (ownsConnection) {
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                LOG.warn("Failed to close DuckDB connection", e);
+            }
+        }
     }
 
     /**
@@ -255,7 +306,7 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
     }
 
     @SuppressWarnings("java:S2077") // SQL is generated by jOOQ, not from user input
-    private void executeQuerySynchronized(
+    private void executeQuery(
             FluxSink<ViewIteration> sink, CompiledView compiledView, LogicalView view, EvaluationContext context) {
         try (var statement = connection.createStatement();
                 var resultSet = statement.executeQuery(compiledView.sql())) {
@@ -469,8 +520,8 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
             var duckDbType = resultSet.getString(typeCol);
             if (duckDbType != null && nonScalarTypeValues.contains(duckDbType)) {
                 throw new IllegalArgumentException(
-                        "Reference '%s' resolves to a non-scalar value (type: %s). Per the RML spec, references must resolve to scalar values."
-                                .formatted(fieldName, duckDbType));
+                        "Reference '%s' resolves to a non-scalar value (type: %s). ".formatted(fieldName, duckDbType)
+                                + "Per the RML spec, references must resolve to scalar values.");
             }
         }
     }

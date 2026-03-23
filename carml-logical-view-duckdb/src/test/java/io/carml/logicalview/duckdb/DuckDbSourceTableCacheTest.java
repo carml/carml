@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.startsWith;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -107,13 +108,16 @@ class DuckDbSourceTableCacheTest {
     void clear_resetsCounter_nextTableStartsAtZero() {
         var sql1 = "(SELECT 1 AS id)";
         var first = cache.getOrCreateTable(sql1, connection);
-        assertThat(first, is("__carml_src_0"));
+        assertThat(first, startsWith("__carml_src_"));
+        // Table name ends with _0 (first counter value)
+        assertThat(first.endsWith("_0"), is(true));
 
         cache.clear(connection);
 
         var sql2 = "(SELECT 2 AS id)";
         var afterClear = cache.getOrCreateTable(sql2, connection);
-        assertThat(afterClear, is("__carml_src_0"));
+        // After clear, counter resets so the suffix is _0 again
+        assertThat(afterClear.endsWith("_0"), is(true));
     }
 
     @Test

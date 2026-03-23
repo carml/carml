@@ -91,11 +91,11 @@ public final class DuckDbViewCompiler {
     private static final ThreadLocal<Set<LogicalView>> COMPILING_VIEWS = ThreadLocal.withInitial(HashSet::new);
 
     /**
-     * Resolves source SQL expressions to cached temp table names. When set, the compiler replaces
-     * file-reading source SQL (e.g., {@code read_json_auto('file.json')}) with the temp table name,
+     * Resolves source SQL expressions to cached source table names. When set, the compiler replaces
+     * file-reading source SQL (e.g., {@code read_json_auto('file.json')}) with the cached table name,
      * ensuring the file is read only once even when multiple views share the same source.
      *
-     * <p>Set by the outermost {@link #compile(LogicalView, EvaluationContext, Function)} call and
+     * <p>Set by the outermost {@link #compile(LogicalView, EvaluationContext, UnaryOperator)} call and
      * inherited by recursive calls for parent views.
      */
     private static final ThreadLocal<UnaryOperator<String>> SOURCE_TABLE_RESOLVER = new ThreadLocal<>();
@@ -126,7 +126,7 @@ public final class DuckDbViewCompiler {
      *
      * @param view the logical view defining fields and the underlying data source
      * @param context the evaluation context controlling projection, dedup, and limits
-     * @param sourceTableResolver resolves source SQL to a cached temp table name, or {@code null}
+     * @param sourceTableResolver resolves source SQL to a cached source table name, or {@code null}
      *     to use source SQL directly
      * @return the compiled view containing the SQL query and validation metadata
      */
@@ -206,7 +206,10 @@ public final class DuckDbViewCompiler {
             if (resolver != null) {
                 var tableName = resolver.apply(compiledSource.sourceSql());
                 if (tableName != null) {
-                    sourceTable = "\"%s\"".formatted(tableName);
+                    // Qualify with memory.main to ensure the table is found regardless of the
+                    // connection's current catalog/schema (e.g. when USE <catalog>.<schema> is set
+                    // for attached external databases).
+                    sourceTable = "memory.main.\"%s\"".formatted(tableName);
                 } else {
                     sourceTable = compiledSource.sourceSql();
                 }

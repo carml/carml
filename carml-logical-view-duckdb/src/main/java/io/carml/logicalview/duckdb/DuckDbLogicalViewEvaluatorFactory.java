@@ -19,8 +19,10 @@ import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.extern.slf4j.Slf4j;
+import org.duckdb.DuckDBConnection;
 
 /**
  * A {@link LogicalViewEvaluatorFactory} that matches {@link LogicalView} instances where all sources
@@ -53,9 +55,11 @@ import lombok.extern.slf4j.Slf4j;
  * {@link io.carml.logicalview.DefaultLogicalViewEvaluatorFactory} (reactive fallback) to handle the
  * view instead.
  *
- * <p><strong>Thread safety:</strong> The factory itself is thread-safe for matching. However, the
- * produced {@link DuckDbLogicalViewEvaluator} instances share the underlying {@link Connection},
- * which is not thread-safe. See {@link DuckDbLogicalViewEvaluator} for details.
+ * <p><strong>Thread safety:</strong> The factory itself is thread-safe for matching. Each produced
+ * {@link DuckDbLogicalViewEvaluator} receives its own duplicated {@link Connection} (via
+ * {@link DuckDBConnection#duplicate()}), enabling parallel evaluation of multiple views. The
+ * duplicated connections share the same underlying DuckDB database, so regular tables created by
+ * the shared {@link DuckDbSourceTableCache} are visible to all evaluators.
  */
 @Slf4j
 @AutoService(LogicalViewEvaluatorFactory.class)
@@ -74,6 +78,22 @@ public class DuckDbLogicalViewEvaluatorFactory
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
     private final DuckDbSourceTableCache sourceTableCache = new DuckDbSourceTableCache();
+
+    @SuppressWarnings("java:S3077") // Path is immutable, so volatile is sufficient
+    private volatile Path fileBasePath;
+
+    private volatile String currentCatalog;
+
+    private volatile String currentSchema;
+
+    /**
+     * Limits the number of concurrent DuckDB query executions to the number of available CPU cores.
+     * Each duplicated connection runs a heavy vectorized SQL query; exceeding the core count causes
+     * CPU contention that degrades throughput. The semaphore is acquired by evaluators before query
+     * execution and released on completion (via {@code doFinally}).
+     */
+    private final Semaphore concurrencyLimit =
+            new Semaphore(Runtime.getRuntime().availableProcessors());
 
     /**
      * Creates a factory with an in-memory DuckDB connection. Used by {@link java.util.ServiceLoader}
@@ -103,6 +123,7 @@ public class DuckDbLogicalViewEvaluatorFactory
      */
     public DuckDbLogicalViewEvaluatorFactory(Connection connection, Path fileBasePath) {
         this(connection);
+        this.fileBasePath = fileBasePath;
         applyFileSearchPath(this.connection, fileBasePath);
     }
 
@@ -153,6 +174,7 @@ public class DuckDbLogicalViewEvaluatorFactory
 
     @Override
     public void setFileBasePath(Path basePath) {
+        this.fileBasePath = basePath;
         applyFileSearchPath(connection, basePath);
     }
 
@@ -168,6 +190,54 @@ public class DuckDbLogicalViewEvaluatorFactory
         }
     }
 
+    /**
+     * Propagates connection-level settings to a duplicated connection.
+     * {@code DuckDBConnection.duplicate()} shares the same database but starts with default
+     * connection settings. This method copies:
+     * <ul>
+     *   <li>{@code file_search_path} — for resolving relative file references</li>
+     *   <li>{@code current_catalog} and {@code current_schema} — for SQL sources using
+     *       {@code USE <catalog>.<schema>} (e.g., attached MySQL/PostgreSQL databases)</li>
+     * </ul>
+     *
+     * <p>Catalog and schema are cached from the base connection when first set (via
+     * {@code USE} commands from test infrastructure or scanner setup) to avoid querying the
+     * base connection from concurrent threads.
+     */
+    private void propagateConnectionSettings(Connection target) throws SQLException {
+        var storedBasePath = fileBasePath;
+        if (storedBasePath != null) {
+            applyFileSearchPath(target, storedBasePath);
+        }
+
+        var catalog = currentCatalog;
+        var schema = currentSchema;
+        if (catalog != null && schema != null && !("memory".equals(catalog) && "main".equals(schema))) {
+            try (var stmt = target.createStatement()) {
+                stmt.execute("USE \"%s\".\"%s\"".formatted(catalog, schema));
+            }
+        }
+    }
+
+    /**
+     * Caches the current catalog and schema from the base connection. Called once before evaluations
+     * start (from {@link #match}) to avoid querying the base connection from concurrent threads.
+     */
+    private synchronized void cacheCurrentCatalogAndSchema() {
+        if (currentCatalog != null) {
+            return;
+        }
+        try (var stmt = connection.createStatement();
+                var rs = stmt.executeQuery("SELECT current_catalog(), current_schema()")) {
+            if (rs.next()) {
+                currentCatalog = rs.getString(1);
+                currentSchema = rs.getString(2);
+            }
+        } catch (SQLException e) {
+            LOG.debug("Could not read current catalog/schema", e);
+        }
+    }
+
     @Override
     public Optional<MatchedLogicalViewEvaluator> match(LogicalView view) {
         var visited = new HashSet<LogicalView>();
@@ -177,10 +247,48 @@ public class DuckDbLogicalViewEvaluatorFactory
         }
 
         LOG.debug("View [{}] matched for DuckDB evaluator", view.getResourceName());
-        var evaluator = new DuckDbLogicalViewEvaluator(connection, sourceTableCache);
+
+        // Try to create a per-evaluator duplicated connection so multiple views can be evaluated
+        // in parallel. DuckDBConnection.duplicate() creates a new connection that shares the same
+        // underlying database, so regular tables (source cache) are visible to all evaluators.
+        // If the connection is not a DuckDBConnection (e.g. in tests with mocks), fall back to
+        // using the base connection directly (existing single-threaded behavior).
+        // Cache catalog/schema from the base connection before any duplication. This avoids
+        // querying the base connection from concurrent threads.
+        cacheCurrentCatalogAndSchema();
+
+        Connection evalConnection = connection;
+        boolean ownsConnection = false;
+        if (connection instanceof DuckDBConnection duckDbConnection) {
+            try {
+                evalConnection = duckDbConnection.duplicate();
+                ownsConnection = true;
+                propagateConnectionSettings(evalConnection);
+            } catch (Exception e) {
+                LOG.warn("Failed to duplicate/configure DuckDB connection, falling back to shared connection", e);
+                if (ownsConnection) {
+                    try {
+                        evalConnection.close();
+                    } catch (SQLException ex) {
+                        LOG.debug("Failed to close leaked duplicated connection", ex);
+                    }
+                }
+                evalConnection = connection;
+                ownsConnection = false;
+            }
+        }
+
+        var evaluator =
+                new DuckDbLogicalViewEvaluator(evalConnection, ownsConnection, sourceTableCache, concurrencyLimit);
         return Optional.of(MatchedLogicalViewEvaluator.of(STRONG_MATCH, evaluator));
     }
 
+    /**
+     * Closes the factory and its base DuckDB connection. The caller must ensure that all
+     * evaluations produced by {@link #match} have completed before calling this method.
+     * In-flight evaluators use duplicated connections that close independently, but they
+     * reference shared source cache tables that are dropped here.
+     */
     @Override
     public void close() {
         if (!closed.compareAndSet(false, true)) {

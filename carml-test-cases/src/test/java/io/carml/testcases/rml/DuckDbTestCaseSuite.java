@@ -45,8 +45,8 @@ public abstract class DuckDbTestCaseSuite extends RmlTestCaseSuite {
 
     @Override
     protected Model executeMapping(TestCase testCase, String testCaseIdentifier) {
-        // Drop temp tables from previous test case to prevent stale data collisions
-        dropTempTables();
+        // Drop source cache tables from previous test case to prevent stale data collisions
+        dropSourceCacheTables();
 
         var evaluatorFactory = new DuckDbLogicalViewEvaluatorFactory(connection);
 
@@ -69,20 +69,19 @@ public abstract class DuckDbTestCaseSuite extends RmlTestCaseSuite {
         return mapper.map().collect(ModelCollector.toTreeModel()).block();
     }
 
-    private void dropTempTables() {
-        synchronized (connection) {
-            dropTempTablesSynchronized();
-        }
-    }
-
-    private void dropTempTablesSynchronized() {
+    /**
+     * Drops all source cache tables (regular tables with the {@code __carml_src_} prefix) created by
+     * previous test cases. The source table cache creates regular tables so they are visible across
+     * duplicated connections; this cleanup prevents stale data from leaking across test cases.
+     */
+    private void dropSourceCacheTables() {
         try (var stmt = connection.createStatement();
                 var rs = stmt.executeQuery(
-                        "SELECT table_name FROM information_schema.tables WHERE table_type = 'LOCAL TEMPORARY'")) {
+                        "SELECT table_name FROM memory.information_schema.tables WHERE table_name LIKE '__carml_src_%'")) {
             while (rs.next()) {
                 var tableName = rs.getString(1);
                 try (var dropStmt = connection.createStatement()) {
-                    dropStmt.execute("DROP TABLE IF EXISTS \"%s\"".formatted(tableName));
+                    dropStmt.execute("DROP TABLE IF EXISTS memory.main.\"%s\"".formatted(tableName));
                 }
             }
         } catch (java.sql.SQLException e) {

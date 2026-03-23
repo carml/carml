@@ -211,6 +211,9 @@
         <configuration>
           <!-- Arrow memory access in DuckDB evaluator requires add-opens for Java 17+ -->
           <argLine>-XX:+AllowRedefinitionToAddDeleteMethods --add-opens=java.base/java.nio=ALL-UNNAMED</argLine>
+          <excludes>
+            <exclude>**/benchmark/**</exclude>
+          </excludes>
         </configuration>
       </plugin>
     </plugins>

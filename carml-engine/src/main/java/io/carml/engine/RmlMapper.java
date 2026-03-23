@@ -168,7 +168,7 @@ public abstract class RmlMapper<T, K> {
     }
 
     @SuppressWarnings("unchecked")
-    private MappingResult<T> handleCompletable(MappingResult<T> mappingResult) {
+    private synchronized MappingResult<T> handleCompletable(MappingResult<T> mappingResult) {
         if (mappingResult instanceof MergeableMappingResult<?, ?> completable) {
             var completableToMerge = (MergeableMappingResult<K, T>) completable;
             var completableSet = new LinkedHashSet<MergeableMappingResult<K, T>>();
