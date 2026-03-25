@@ -3,6 +3,7 @@ package io.carml.logicalview.duckdb;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 
@@ -524,8 +525,9 @@ class DuckDbLogicalViewEvaluatorFactoryTest {
         @Test
         void close_inMemory_noFileCleanup() {
             var factory = new DuckDbLogicalViewEvaluatorFactory();
-            // Should not throw or fail — no file cleanup needed for in-memory mode
             factory.close();
+
+            assertThat("Database path should be null for in-memory mode", factory.getDatabasePath(), is(nullValue()));
         }
 
         @Test
@@ -538,6 +540,56 @@ class DuckDbLogicalViewEvaluatorFactoryTest {
             factory.close();
 
             assertThat("Database file should be deleted", Files.exists(dbFile), is(false));
+        }
+    }
+
+    // --- Scheduler lifecycle ---
+
+    @Nested
+    class SchedulerLifecycle {
+
+        @Test
+        void close_withCustomScheduler_disposesScheduler() {
+            var scheduler = reactor.core.scheduler.Schedulers.newBoundedElastic(1, 10, "test-scheduler");
+            var factory = new DuckDbLogicalViewEvaluatorFactory(scheduler);
+
+            factory.close();
+
+            assertThat("Scheduler should be disposed after factory close", scheduler.isDisposed(), is(true));
+        }
+
+        @Test
+        void close_onDiskWithCustomScheduler_disposesScheduler() {
+            var scheduler = reactor.core.scheduler.Schedulers.newBoundedElastic(1, 10, "test-scheduler");
+            var factory = DuckDbLogicalViewEvaluatorFactory.createOnDisk(scheduler);
+
+            factory.close();
+
+            assertThat("Scheduler should be disposed after factory close", scheduler.isDisposed(), is(true));
+        }
+
+        @Test
+        void close_withDefaultScheduler_doesNotDisposeSharedBoundedElastic() {
+            var factory = new DuckDbLogicalViewEvaluatorFactory(connection);
+            factory.close();
+
+            assertThat(
+                    "Shared boundedElastic must not be disposed",
+                    reactor.core.scheduler.Schedulers.boundedElastic().isDisposed(),
+                    is(false));
+        }
+
+        @Test
+        void constructor_withCustomScheduler_matchesViews() {
+            var scheduler = reactor.core.scheduler.Schedulers.newBoundedElastic(1, 10, "test-scheduler");
+            try (var factory = new DuckDbLogicalViewEvaluatorFactory(scheduler)) {
+                var view = createViewWithRefFormulation(Rdf.Ql.JsonPath);
+
+                var result = factory.match(view);
+
+                assertThat(result.isPresent(), is(true));
+                assertThat(result.get().getMatchScore().getScore(), is(strongScore()));
+            }
         }
     }
 

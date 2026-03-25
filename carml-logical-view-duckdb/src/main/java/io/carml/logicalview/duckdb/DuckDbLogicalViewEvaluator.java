@@ -29,6 +29,7 @@ import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.vocabulary.XSD;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
+import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
 /**
@@ -36,10 +37,11 @@ import reactor.core.scheduler.Schedulers;
  * {@link DuckDbViewCompiler}, executes it against a DuckDB JDBC {@link Connection}, and streams the
  * result rows as {@link ViewIteration}s.
  *
- * <p>Since DuckDB JDBC is blocking, the query execution is offloaded to a bounded elastic thread
- * pool via {@link Schedulers#boundedElastic()}, preserving the reactive API contract. From a
- * downstream consumer's perspective, this evaluator produces a standard {@code Flux<ViewIteration>}
- * indistinguishable from a fully non-blocking evaluator.
+ * <p>Since DuckDB JDBC is blocking, the query execution is offloaded to a configurable Reactor
+ * {@link Scheduler} (defaulting to {@link Schedulers#boundedElastic()}), preserving the reactive API
+ * contract. On Java 21+, a virtual-thread-based scheduler can be injected for more efficient thread
+ * utilization. From a downstream consumer's perspective, this evaluator produces a standard
+ * {@code Flux<ViewIteration>} indistinguishable from a fully non-blocking evaluator.
  *
  * <p>The {@code sourceResolver} parameter from the {@link LogicalViewEvaluator} interface is not
  * used by this evaluator. DuckDB reads data files directly via functions such as
@@ -103,10 +105,12 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
 
     private final Semaphore concurrencyLimit;
 
+    private final Scheduler scheduler;
+
     private volatile boolean permitAcquired;
 
     public DuckDbLogicalViewEvaluator(Connection connection) {
-        this(connection, false, true, null, null);
+        this(connection, false, true, null, null, Schedulers.boundedElastic());
     }
 
     DuckDbLogicalViewEvaluator(
@@ -114,12 +118,21 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
             boolean ownsConnection,
             DuckDbSourceTableCache sourceTableCache,
             Semaphore concurrencyLimit) {
-        this(connection, ownsConnection, true, sourceTableCache, concurrencyLimit);
+        this(connection, ownsConnection, true, sourceTableCache, concurrencyLimit, Schedulers.boundedElastic());
+    }
+
+    DuckDbLogicalViewEvaluator(
+            Connection connection,
+            boolean ownsConnection,
+            DuckDbSourceTableCache sourceTableCache,
+            Semaphore concurrencyLimit,
+            Scheduler scheduler) {
+        this(connection, ownsConnection, true, sourceTableCache, concurrencyLimit, scheduler);
     }
 
     /** Package-private constructor for testing JDBC fallback path. */
     DuckDbLogicalViewEvaluator(Connection connection, boolean useArrow) {
-        this(connection, false, useArrow, null, null);
+        this(connection, false, useArrow, null, null, Schedulers.boundedElastic());
     }
 
     DuckDbLogicalViewEvaluator(
@@ -128,11 +141,22 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
             boolean useArrow,
             DuckDbSourceTableCache sourceTableCache,
             Semaphore concurrencyLimit) {
+        this(connection, ownsConnection, useArrow, sourceTableCache, concurrencyLimit, Schedulers.boundedElastic());
+    }
+
+    DuckDbLogicalViewEvaluator(
+            Connection connection,
+            boolean ownsConnection,
+            boolean useArrow,
+            DuckDbSourceTableCache sourceTableCache,
+            Semaphore concurrencyLimit,
+            Scheduler scheduler) {
         this.connection = connection;
         this.ownsConnection = ownsConnection;
         this.useArrow = useArrow;
         this.sourceTableCache = sourceTableCache;
         this.concurrencyLimit = concurrencyLimit;
+        this.scheduler = scheduler;
     }
 
     @Override
@@ -159,7 +183,7 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
                     releaseConcurrencyPermit();
                     closeConnectionIfOwned();
                 })
-                .subscribeOn(Schedulers.boundedElastic());
+                .subscribeOn(scheduler);
     }
 
     private void acquireConcurrencyPermit() {

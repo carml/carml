@@ -23,6 +23,8 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.extern.slf4j.Slf4j;
 import org.duckdb.DuckDBConnection;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 /**
  * A {@link LogicalViewEvaluatorFactory} that matches {@link LogicalView} instances where all sources
@@ -79,6 +81,10 @@ public class DuckDbLogicalViewEvaluatorFactory
 
     private final DuckDbSourceTableCache sourceTableCache = new DuckDbSourceTableCache();
 
+    private final Scheduler scheduler;
+
+    private final boolean ownsScheduler;
+
     @SuppressWarnings("java:S3077") // Path is immutable, so volatile is sufficient
     private volatile Path fileBasePath;
 
@@ -104,6 +110,20 @@ public class DuckDbLogicalViewEvaluatorFactory
     }
 
     /**
+     * Creates a factory with an in-memory DuckDB connection and a custom scheduler for offloading
+     * blocking JDBC calls. This enables callers to supply a virtual-thread-based scheduler (e.g. on
+     * Java 21+) for more efficient thread utilization.
+     *
+     * <p>The factory takes ownership of the scheduler and will {@link Scheduler#dispose() dispose}
+     * it when {@link #close()} is called.
+     *
+     * @param scheduler the Reactor {@link Scheduler} for offloading blocking query execution
+     */
+    public DuckDbLogicalViewEvaluatorFactory(Scheduler scheduler) {
+        this(createInMemoryConnection(), scheduler);
+    }
+
+    /**
      * Creates a factory with the given DuckDB JDBC connection.
      *
      * @param connection the DuckDB JDBC connection to use for query execution
@@ -112,6 +132,27 @@ public class DuckDbLogicalViewEvaluatorFactory
         this.connection = connection;
         this.databasePath = null;
         this.shutdownHook = null;
+        this.scheduler = Schedulers.boundedElastic();
+        this.ownsScheduler = false;
+    }
+
+    /**
+     * Creates a factory with the given DuckDB JDBC connection and a custom scheduler for offloading
+     * blocking JDBC calls. This enables callers to supply a virtual-thread-based scheduler (e.g. on
+     * Java 21+) for more efficient thread utilization.
+     *
+     * <p>The factory takes ownership of the scheduler and will {@link Scheduler#dispose() dispose}
+     * it when {@link #close()} is called.
+     *
+     * @param connection the DuckDB JDBC connection to use for query execution
+     * @param scheduler the Reactor {@link Scheduler} for offloading blocking query execution
+     */
+    public DuckDbLogicalViewEvaluatorFactory(Connection connection, Scheduler scheduler) {
+        this.connection = connection;
+        this.databasePath = null;
+        this.shutdownHook = null;
+        this.scheduler = scheduler;
+        this.ownsScheduler = true;
     }
 
     /**
@@ -127,10 +168,29 @@ public class DuckDbLogicalViewEvaluatorFactory
         applyFileSearchPath(this.connection, fileBasePath);
     }
 
-    private DuckDbLogicalViewEvaluatorFactory(Connection connection, Path databasePath, Thread shutdownHook) {
+    /**
+     * Creates a factory with the given DuckDB JDBC connection, file base path, and custom scheduler.
+     *
+     * <p>The factory takes ownership of the scheduler and will {@link Scheduler#dispose() dispose}
+     * it when {@link #close()} is called.
+     *
+     * @param connection the DuckDB JDBC connection to use for query execution
+     * @param fileBasePath the base path for resolving relative file references
+     * @param scheduler the Reactor {@link Scheduler} for offloading blocking query execution
+     */
+    public DuckDbLogicalViewEvaluatorFactory(Connection connection, Path fileBasePath, Scheduler scheduler) {
+        this(connection, scheduler);
+        this.fileBasePath = fileBasePath;
+        applyFileSearchPath(this.connection, fileBasePath);
+    }
+
+    private DuckDbLogicalViewEvaluatorFactory(
+            Connection connection, Path databasePath, Thread shutdownHook, Scheduler scheduler, boolean ownsScheduler) {
         this.connection = connection;
         this.databasePath = databasePath;
         this.shutdownHook = shutdownHook;
+        this.scheduler = scheduler;
+        this.ownsScheduler = ownsScheduler;
     }
 
     /**
@@ -143,6 +203,28 @@ public class DuckDbLogicalViewEvaluatorFactory
      * @return a new factory with an on-disk DuckDB connection
      */
     public static DuckDbLogicalViewEvaluatorFactory createOnDisk() {
+        return createOnDisk(Schedulers.boundedElastic(), false);
+    }
+
+    /**
+     * Creates a factory backed by an on-disk DuckDB database in a temporary directory, using the
+     * given scheduler for offloading blocking JDBC calls. This enables callers to supply a
+     * virtual-thread-based scheduler (e.g. on Java 21+) for more efficient thread utilization.
+     *
+     * <p>The factory takes ownership of the scheduler and will {@link Scheduler#dispose() dispose}
+     * it when {@link #close()} is called.
+     *
+     * <p>The temporary database files are cleaned up when the factory is {@link #close() closed} or
+     * when the JVM shuts down (whichever comes first).
+     *
+     * @param scheduler the Reactor {@link Scheduler} for offloading blocking query execution
+     * @return a new factory with an on-disk DuckDB connection
+     */
+    public static DuckDbLogicalViewEvaluatorFactory createOnDisk(Scheduler scheduler) {
+        return createOnDisk(scheduler, true);
+    }
+
+    private static DuckDbLogicalViewEvaluatorFactory createOnDisk(Scheduler scheduler, boolean ownsScheduler) {
         try {
             var tempDir = Files.createTempDirectory("carml-duckdb-");
             var dbPath = tempDir.resolve("carml.duckdb");
@@ -155,7 +237,7 @@ public class DuckDbLogicalViewEvaluatorFactory
             var hook = new Thread(() -> factoryHolder[0].close(), "carml-duckdb-cleanup");
             Runtime.getRuntime().addShutdownHook(hook);
 
-            var factory = new DuckDbLogicalViewEvaluatorFactory(conn, dbPath, hook);
+            var factory = new DuckDbLogicalViewEvaluatorFactory(conn, dbPath, hook, scheduler, ownsScheduler);
             factoryHolder[0] = factory;
             return factory;
         } catch (SQLException e) {
@@ -278,8 +360,8 @@ public class DuckDbLogicalViewEvaluatorFactory
             }
         }
 
-        var evaluator =
-                new DuckDbLogicalViewEvaluator(evalConnection, ownsConnection, sourceTableCache, concurrencyLimit);
+        var evaluator = new DuckDbLogicalViewEvaluator(
+                evalConnection, ownsConnection, sourceTableCache, concurrencyLimit, scheduler);
         return Optional.of(MatchedLogicalViewEvaluator.of(STRONG_MATCH, evaluator));
     }
 
@@ -302,6 +384,10 @@ public class DuckDbLogicalViewEvaluatorFactory
             }
         } catch (SQLException e) {
             LOG.warn("Failed to close DuckDB connection", e);
+        }
+
+        if (ownsScheduler) {
+            scheduler.dispose();
         }
 
         if (databasePath != null) {
