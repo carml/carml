@@ -6,6 +6,8 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -13,6 +15,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 class DuckDbSourceTableCacheTest {
@@ -35,7 +38,7 @@ class DuckDbSourceTableCacheTest {
 
     @BeforeEach
     void beforeEach() {
-        cache = new DuckDbSourceTableCache();
+        cache = new DuckDbSourceTableCache(connection);
     }
 
     @AfterEach
@@ -136,6 +139,74 @@ class DuckDbSourceTableCacheTest {
                                 .formatted(tableName))) {
             resultSet.next();
             assertThat(resultSet.getInt(1), is(0));
+        }
+    }
+
+    @Test
+    void qualify_inMemory_usesMemoryMain() {
+        var qualified = cache.qualify("my_table");
+        assertThat(qualified, is("\"memory\".\"main\".\"my_table\""));
+    }
+
+    @Nested
+    class OnDiskMode {
+
+        @Test
+        void getOrCreate_onDiskConnection_createsQueryableTable() throws SQLException, IOException {
+            var tempDir = Files.createTempDirectory("duckdb-cache-test-");
+            var dbPath = tempDir.resolve("test.duckdb");
+            try (var onDiskConn = DriverManager.getConnection("jdbc:duckdb:" + dbPath)) {
+                var onDiskCache = new DuckDbSourceTableCache(onDiskConn);
+
+                var sourceSql = "(SELECT 1 AS id, 'Alice' AS name UNION ALL SELECT 2, 'Bob')";
+                var tableName = onDiskCache.getOrCreateTable(sourceSql, onDiskConn);
+
+                assertThat(tableName, is(not(nullValue())));
+
+                // Verify the table is queryable using the qualified name
+                var qualifiedName = onDiskCache.qualify(tableName);
+                try (var stmt = onDiskConn.createStatement();
+                        var rs = stmt.executeQuery("SELECT count(*) FROM %s".formatted(qualifiedName))) {
+                    rs.next();
+                    assertThat(rs.getInt(1), is(2));
+                }
+
+                onDiskCache.clear(onDiskConn);
+            } finally {
+                // Clean up temporary files
+                try (var entries = Files.walk(tempDir)) {
+                    entries.sorted(java.util.Comparator.reverseOrder()).forEach(path -> {
+                        try {
+                            Files.deleteIfExists(path);
+                        } catch (IOException ignored) {
+                            // best effort
+                        }
+                    });
+                }
+            }
+        }
+
+        @Test
+        void qualify_onDiskConnection_usesDatabaseCatalog() throws SQLException, IOException {
+            var tempDir = Files.createTempDirectory("duckdb-cache-test-");
+            var dbPath = tempDir.resolve("mydb.duckdb");
+            try (var onDiskConn = DriverManager.getConnection("jdbc:duckdb:" + dbPath)) {
+                var onDiskCache = new DuckDbSourceTableCache(onDiskConn);
+
+                var qualified = onDiskCache.qualify("my_table");
+                // On-disk DuckDB catalog name is derived from the database file stem
+                assertThat(qualified, is("\"mydb\".\"main\".\"my_table\""));
+            } finally {
+                try (var entries = Files.walk(tempDir)) {
+                    entries.sorted(java.util.Comparator.reverseOrder()).forEach(path -> {
+                        try {
+                            Files.deleteIfExists(path);
+                        } catch (IOException ignored) {
+                            // best effort
+                        }
+                    });
+                }
+            }
         }
     }
 }

@@ -206,10 +206,10 @@ public final class DuckDbViewCompiler {
             if (resolver != null) {
                 var tableName = resolver.apply(compiledSource.sourceSql());
                 if (tableName != null) {
-                    // Qualify with memory.main to ensure the table is found regardless of the
-                    // connection's current catalog/schema (e.g. when USE <catalog>.<schema> is set
-                    // for attached external databases).
-                    sourceTable = "memory.main.\"%s\"".formatted(tableName);
+                    // The resolver returns a fully qualified table reference (e.g.,
+                    // "memory"."main"."__carml_src_abc12345_0") from DuckDbSourceTableCache,
+                    // so it can be used as-is regardless of the connection's current catalog.
+                    sourceTable = tableName;
                 } else {
                     sourceTable = compiledSource.sourceSql();
                 }

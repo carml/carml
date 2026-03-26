@@ -2012,7 +2012,7 @@ class DuckDbLogicalViewEvaluatorTest {
                         {"name": "Bob"}
                     ]""");
 
-            var cache = new DuckDbSourceTableCache();
+            var cache = new DuckDbSourceTableCache(connection);
             var view = createJsonView(jsonFile.toString(), null, Set.of(expressionField("name", "name")));
             var evaluator = new DuckDbLogicalViewEvaluator(connection, false, cache, null);
             var context = EvaluationContext.defaults();
@@ -2035,7 +2035,7 @@ class DuckDbLogicalViewEvaluatorTest {
             Files.writeString(jsonFile, """
                     [{"id": 1}, {"id": 2}]""");
 
-            var cache = new DuckDbSourceTableCache();
+            var cache = new DuckDbSourceTableCache(connection);
             var view = createJsonView(jsonFile.toString(), null, Set.of(expressionField("id", "id")));
             var evaluator = new DuckDbLogicalViewEvaluator(connection, false, cache, null);
             var context = EvaluationContext.defaults();

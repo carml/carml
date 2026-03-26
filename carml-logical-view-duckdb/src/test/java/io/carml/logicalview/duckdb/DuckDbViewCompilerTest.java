@@ -1605,7 +1605,10 @@ class DuckDbViewCompilerTest {
             var view = createJsonView("file.json", null, Set.of(expressionField("id", "id")));
             var context = EvaluationContext.defaults();
 
-            var compiledView = DuckDbViewCompiler.compile(view, context, sourceSql -> "__carml_src_0");
+            // The resolver returns a fully qualified table reference (as produced by
+            // DuckDbSourceTableCache.qualify()), which the compiler uses as-is.
+            var compiledView =
+                    DuckDbViewCompiler.compile(view, context, sourceSql -> "\"memory\".\"main\".\"__carml_src_0\"");
 
             assertThat(compiledView.sql(), containsString("\"__carml_src_0\""));
             assertThat(compiledView.sql(), not(containsString("read_")));

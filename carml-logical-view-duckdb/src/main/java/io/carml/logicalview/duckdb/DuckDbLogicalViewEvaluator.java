@@ -172,9 +172,8 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
                     acquireConcurrencyPermit();
                     validateSourceFiles(view);
                     validateSourceHandler(view);
-                    UnaryOperator<String> sourceTableResolver = sourceTableCache != null
-                            ? sourceSql -> sourceTableCache.getOrCreateTable(sourceSql, connection)
-                            : null;
+                    UnaryOperator<String> sourceTableResolver =
+                            sourceTableCache != null ? this::resolveSourceTable : null;
                     var compiledView = DuckDbViewCompiler.compile(view, context, sourceTableResolver);
                     LOG.debug("Executing DuckDB query for view [{}]", view.getResourceName());
                     executeQuery(sink, compiledView, view, context);
@@ -184,6 +183,14 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
                     closeConnectionIfOwned();
                 })
                 .subscribeOn(scheduler);
+    }
+
+    private String resolveSourceTable(String sourceSql) {
+        var tableName = sourceTableCache.getOrCreateTable(sourceSql, connection);
+        if (tableName == null) {
+            return null;
+        }
+        return sourceTableCache.qualify(tableName);
     }
 
     private void acquireConcurrencyPermit() {

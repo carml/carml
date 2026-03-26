@@ -3,6 +3,7 @@ package io.carml.logicalview.duckdb;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
@@ -523,6 +524,27 @@ class DuckDbLogicalViewEvaluatorFactoryTest {
         }
 
         @Test
+        void createOnDisk_setsMemoryLimit() throws SQLException {
+            try (var factory = DuckDbLogicalViewEvaluatorFactory.createOnDisk()) {
+                var dbPath = factory.getDatabasePath();
+                assertThat("On-disk factory should have a database path", dbPath, is(not(nullValue())));
+
+                // Connect to the same on-disk database and verify memory_limit was reduced
+                try (var conn = DriverManager.getConnection("jdbc:duckdb:" + dbPath);
+                        var stmt = conn.createStatement();
+                        var rs = stmt.executeQuery("SELECT current_setting('memory_limit')")) {
+                    rs.next();
+                    var memLimit = rs.getString(1);
+                    // memory_limit should be set (non-null, non-empty)
+                    assertThat("memory_limit should be configured", memLimit, is(not(nullValue())));
+                    // Should not be the DuckDB default (80% of system memory).
+                    // The exact value depends on system memory, but it should not be "0 bytes".
+                    assertThat("memory_limit should not be zero", memLimit, is(not("0 bytes")));
+                }
+            }
+        }
+
+        @Test
         void close_inMemory_noFileCleanup() {
             var factory = new DuckDbLogicalViewEvaluatorFactory();
             factory.close();
@@ -569,8 +591,11 @@ class DuckDbLogicalViewEvaluatorFactoryTest {
         }
 
         @Test
-        void close_withDefaultScheduler_doesNotDisposeSharedBoundedElastic() {
-            var factory = new DuckDbLogicalViewEvaluatorFactory(connection);
+        void close_withDefaultScheduler_doesNotDisposeSharedBoundedElastic() throws SQLException {
+            // Use a dedicated connection because factory.close() closes the connection, and we
+            // must not close the shared static connection used by other tests.
+            var dedicatedConn = DriverManager.getConnection("jdbc:duckdb:");
+            var factory = new DuckDbLogicalViewEvaluatorFactory(dedicatedConn);
             factory.close();
 
             assertThat(

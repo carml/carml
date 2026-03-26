@@ -21,6 +21,12 @@ import lombok.extern.slf4j.Slf4j;
  * names include a unique instance prefix to avoid collisions between concurrent factory instances.
  * {@link #clear(Connection)} must be called for explicit cleanup before the factory is closed.
  *
+ * <p>Tables are qualified with the native catalog and schema of the DuckDB database (determined at
+ * construction time) so they are correctly referenced even when the evaluator connection has been
+ * switched to an attached external database via {@code USE <catalog>.<schema>}. For in-memory
+ * databases the qualifier is {@code "memory"."main"}; for on-disk databases it is
+ * {@code "<dbname>"."main"}.
+ *
  * <p><strong>Thread safety:</strong> This class is thread-safe. Multiple evaluator threads may call
  * {@link #getOrCreateTable(String, Connection)} concurrently; table creation is internally
  * synchronized to prevent duplicate CREATE TABLE statements.
@@ -35,17 +41,50 @@ class DuckDbSourceTableCache {
 
     private final String instancePrefix;
 
+    /**
+     * Fully qualified catalog.schema prefix for table creation, e.g. {@code "memory"."main"} or
+     * {@code "carml"."main"}. Determined from the factory connection at construction time, before
+     * any {@code USE} commands are applied.
+     */
+    private final String nativeQualifier;
+
     private final ConcurrentHashMap<String, String> cache = new ConcurrentHashMap<>();
 
     private final AtomicInteger counter = new AtomicInteger(0);
 
-    DuckDbSourceTableCache() {
+    /**
+     * Creates a cache that stores tables in the native catalog/schema of the given connection.
+     * This constructor queries the connection for its current catalog and schema, so it must be
+     * called before any {@code USE <catalog>.<schema>} commands are applied.
+     *
+     * @param connection the DuckDB JDBC connection (must be in its initial catalog/schema state)
+     */
+    DuckDbSourceTableCache(Connection connection) {
         this.instancePrefix = UUID.randomUUID().toString().substring(0, 8);
+        this.nativeQualifier = resolveNativeQualifier(connection);
+    }
+
+    /** Package-private constructor for testing with a known qualifier. */
+    DuckDbSourceTableCache(String nativeQualifier) {
+        this.instancePrefix = UUID.randomUUID().toString().substring(0, 8);
+        this.nativeQualifier = nativeQualifier;
+    }
+
+    /**
+     * Returns the fully qualified reference to the given table name, using the native catalog and
+     * schema. Used by the view compiler to produce SQL that resolves to the cached table regardless
+     * of the connection's current catalog/schema.
+     *
+     * @param tableName the unqualified table name
+     * @return the qualified reference, e.g. {@code "memory"."main"."__carml_src_abc12345_0"}
+     */
+    String qualify(String tableName) {
+        return "%s.\"%s\"".formatted(nativeQualifier, tableName);
     }
 
     /**
      * Returns the table name for the given source SQL, creating it if necessary. On first encounter,
-     * executes {@code CREATE TABLE IF NOT EXISTS "<name>" AS SELECT * FROM <sourceSql>} to
+     * executes {@code CREATE TABLE IF NOT EXISTS <qualified-name> AS SELECT * FROM <sourceSql>} to
      * materialize the source data as a regular table visible across all connections.
      *
      * <p>If table creation fails (e.g., due to insufficient memory for large sources), returns
@@ -87,13 +126,15 @@ class DuckDbSourceTableCache {
             }
 
             var tableName = TABLE_PREFIX + instancePrefix + "_" + counter.getAndIncrement();
-            LOG.debug("Creating source table [{}] for: {}", tableName, sourceSql);
+            var qualifiedName = qualify(tableName);
+            LOG.debug("Creating source table [{}] for: {}", qualifiedName, sourceSql);
 
             try (var statement = connection.createStatement()) {
-                // Always create in memory.main to avoid writing to attached external databases
-                // when the connection has USE <catalog>.<schema> set.
-                statement.execute("CREATE TABLE IF NOT EXISTS memory.main.\"%s\" AS SELECT * FROM %s"
-                        .formatted(tableName, sourceSql));
+                // Qualify with native catalog.schema to ensure the table is created in the DuckDB
+                // database's own catalog, not in an attached external database that may have been
+                // activated via USE <catalog>.<schema>.
+                statement.execute(
+                        "CREATE TABLE IF NOT EXISTS %s AS SELECT * FROM %s".formatted(qualifiedName, sourceSql));
             } catch (SQLException e) {
                 LOG.warn(
                         "Failed to materialize source into table, falling back to direct source read: {}",
@@ -120,7 +161,7 @@ class DuckDbSourceTableCache {
                 continue;
             }
             try (var statement = connection.createStatement()) {
-                statement.execute("DROP TABLE IF EXISTS memory.main.\"%s\"".formatted(tableName));
+                statement.execute("DROP TABLE IF EXISTS %s".formatted(qualify(tableName)));
             } catch (SQLException e) {
                 LOG.warn("Failed to drop source table [{}]", tableName, e);
             }
@@ -132,5 +173,21 @@ class DuckDbSourceTableCache {
     /** Returns the number of cached source tables. */
     int size() {
         return cache.size();
+    }
+
+    private static String resolveNativeQualifier(Connection connection) {
+        try (var stmt = connection.createStatement();
+                var rs = stmt.executeQuery("SELECT current_catalog(), current_schema()")) {
+            if (rs.next()) {
+                var catalog = rs.getString(1);
+                var schema = rs.getString(2);
+                var qualifier = "\"%s\".\"%s\"".formatted(catalog, schema);
+                LOG.debug("Resolved native qualifier: {}", qualifier);
+                return qualifier;
+            }
+        } catch (SQLException e) {
+            LOG.warn("Could not determine native catalog/schema, defaulting to memory.main", e);
+        }
+        return "\"memory\".\"main\"";
     }
 }

@@ -1,6 +1,7 @@
 package io.carml.logicalview.duckdb;
 
 import com.google.auto.service.AutoService;
+import com.sun.management.OperatingSystemMXBean;
 import io.carml.logicalsourceresolver.MatchedLogicalSourceResolverFactory.MatchScore;
 import io.carml.logicalview.FileBasePathConfigurable;
 import io.carml.logicalview.LogicalViewEvaluatorFactory;
@@ -11,6 +12,7 @@ import io.carml.model.LogicalView;
 import io.carml.model.LogicalViewJoin;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.lang.management.ManagementFactory;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
@@ -79,11 +81,20 @@ public class DuckDbLogicalViewEvaluatorFactory
 
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
-    private final DuckDbSourceTableCache sourceTableCache = new DuckDbSourceTableCache();
+    private final DuckDbSourceTableCache sourceTableCache;
 
     private final Scheduler scheduler;
 
     private final boolean ownsScheduler;
+
+    /**
+     * The native catalog and schema of the DuckDB database, determined at construction time before
+     * any {@code USE} commands are applied. Used to detect whether {@link #currentCatalog} and
+     * {@link #currentSchema} have been changed by external code.
+     */
+    private final String nativeCatalog;
+
+    private final String nativeSchema;
 
     @SuppressWarnings("java:S3077") // Path is immutable, so volatile is sufficient
     private volatile Path fileBasePath;
@@ -132,6 +143,10 @@ public class DuckDbLogicalViewEvaluatorFactory
         this.connection = connection;
         this.databasePath = null;
         this.shutdownHook = null;
+        this.sourceTableCache = new DuckDbSourceTableCache(connection);
+        var nativeCatalogSchema = resolveNativeCatalogSchema(connection);
+        this.nativeCatalog = nativeCatalogSchema[0];
+        this.nativeSchema = nativeCatalogSchema[1];
         this.scheduler = Schedulers.boundedElastic();
         this.ownsScheduler = false;
     }
@@ -151,6 +166,10 @@ public class DuckDbLogicalViewEvaluatorFactory
         this.connection = connection;
         this.databasePath = null;
         this.shutdownHook = null;
+        this.sourceTableCache = new DuckDbSourceTableCache(connection);
+        var nativeCatalogSchema = resolveNativeCatalogSchema(connection);
+        this.nativeCatalog = nativeCatalogSchema[0];
+        this.nativeSchema = nativeCatalogSchema[1];
         this.scheduler = scheduler;
         this.ownsScheduler = true;
     }
@@ -189,6 +208,10 @@ public class DuckDbLogicalViewEvaluatorFactory
         this.connection = connection;
         this.databasePath = databasePath;
         this.shutdownHook = shutdownHook;
+        this.sourceTableCache = new DuckDbSourceTableCache(connection);
+        var nativeCatalogSchema = resolveNativeCatalogSchema(connection);
+        this.nativeCatalog = nativeCatalogSchema[0];
+        this.nativeSchema = nativeCatalogSchema[1];
         this.scheduler = scheduler;
         this.ownsScheduler = ownsScheduler;
     }
@@ -203,7 +226,7 @@ public class DuckDbLogicalViewEvaluatorFactory
      * @return a new factory with an on-disk DuckDB connection
      */
     public static DuckDbLogicalViewEvaluatorFactory createOnDisk() {
-        return createOnDisk(Schedulers.boundedElastic(), false);
+        return createOnDisk(Schedulers.boundedElastic(), false, null);
     }
 
     /**
@@ -221,15 +244,29 @@ public class DuckDbLogicalViewEvaluatorFactory
      * @return a new factory with an on-disk DuckDB connection
      */
     public static DuckDbLogicalViewEvaluatorFactory createOnDisk(Scheduler scheduler) {
-        return createOnDisk(scheduler, true);
+        return createOnDisk(scheduler, true, null);
     }
 
-    private static DuckDbLogicalViewEvaluatorFactory createOnDisk(Scheduler scheduler, boolean ownsScheduler) {
+    /**
+     * Creates an on-disk factory with a custom scheduler and explicit memory limit.
+     *
+     * @param scheduler the Reactor {@link Scheduler} for offloading blocking query execution
+     * @param memoryLimit explicit DuckDB memory limit (e.g. {@code "4GB"}), or {@code null} for auto-tuning
+     * @return a new factory with an on-disk DuckDB connection
+     */
+    public static DuckDbLogicalViewEvaluatorFactory createOnDisk(Scheduler scheduler, String memoryLimit) {
+        return createOnDisk(scheduler, true, memoryLimit);
+    }
+
+    private static DuckDbLogicalViewEvaluatorFactory createOnDisk(
+            Scheduler scheduler, boolean ownsScheduler, String memoryLimit) {
         try {
             var tempDir = Files.createTempDirectory("carml-duckdb-");
             var dbPath = tempDir.resolve("carml.duckdb");
             LOG.info("Creating on-disk DuckDB database at: {}", dbPath);
             var conn = DriverManager.getConnection("jdbc:duckdb:" + dbPath);
+
+            applyOnDiskSettings(conn, dbPath, memoryLimit);
 
             var factoryHolder = new DuckDbLogicalViewEvaluatorFactory[1];
             // Lambda required: method reference would capture null (factoryHolder[0] is set after hook creation)
@@ -244,6 +281,87 @@ public class DuckDbLogicalViewEvaluatorFactory
             throw new IllegalStateException("Failed to create on-disk DuckDB connection", e);
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to create temporary directory for DuckDB database", e);
+        }
+    }
+
+    /**
+     * Minimum memory budget (50 MB) per DuckDB thread in on-disk mode. Lower than the general 125 MB
+     * guideline because the buffer manager can page base table data from the database file,
+     * reducing per-thread working memory requirements.
+     */
+    private static final long MIN_MEMORY_PER_THREAD_BYTES = 50L * 1024 * 1024;
+
+    /**
+     * Configures DuckDB for on-disk mode: reduces memory limit to leave room for JVM heap,
+     * sets temp_directory for spilling intermediate query results, and adjusts thread count
+     * to stay above ~50 MB per thread.
+     *
+     * <p>Without this, DuckDB auto-detects system/cgroup memory and claims up to 80%, leaving
+     * too little for the JVM — especially in Docker containers with tight memory limits.
+     *
+     * <p>When {@code memoryLimitOverride} is {@code null}, the memory limit is auto-tuned to
+     * {@code system_memory - JVM_max_heap - 512MB}, obtained via
+     * {@link java.lang.management.OperatingSystemMXBean} which is cgroup-aware on modern JVMs.
+     * Thread count is then adjusted to ensure at least 50 MB per thread.
+     *
+     * <p>The {@code temp_directory} is set to {@code /duckdb-tmp} if that directory exists
+     * (e.g., in Docker), otherwise to a subdirectory next to the database file. This is where
+     * DuckDB writes intermediate results when the memory budget is exceeded during joins, sorts,
+     * and aggregations.
+     *
+     * @param memoryLimitOverride explicit DuckDB memory limit (e.g. {@code "4GB"}), or {@code null}
+     *     to auto-tune based on available system memory
+     */
+    @SuppressWarnings({
+        "java:S2077", // memoryLimitOverride is validated by DuckDB's SET parser, not executed as general SQL
+        "java:S3649" // temp_directory is a controlled Path, not user input
+    })
+    private static void applyOnDiskSettings(Connection conn, Path databasePath, String memoryLimitOverride) {
+        try (var stmt = conn.createStatement()) {
+            // 1. Set memory_limit
+            if (memoryLimitOverride != null && !memoryLimitOverride.isBlank()) {
+                stmt.execute("SET memory_limit = '%s'".formatted(memoryLimitOverride));
+                LOG.info("Set DuckDB memory_limit to {} (user-specified)", memoryLimitOverride);
+            } else {
+                // Auto-tune: system memory - JVM max heap - 512 MB overhead buffer
+                var osBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+                var systemMemory = osBean.getTotalMemorySize();
+                var jvmMaxHeap = Runtime.getRuntime().maxMemory();
+                var overheadBuffer = 512L * 1024 * 1024;
+                var memoryLimitBytes =
+                        Math.max(MIN_MEMORY_PER_THREAD_BYTES, systemMemory - jvmMaxHeap - overheadBuffer);
+                stmt.execute("SET memory_limit = '%dB'".formatted(memoryLimitBytes));
+                LOG.info(
+                        "Set DuckDB memory_limit to {}MB ({}MB system - {}MB JVM heap - 512MB overhead)",
+                        memoryLimitBytes / (1024 * 1024),
+                        systemMemory / (1024 * 1024),
+                        jvmMaxHeap / (1024 * 1024));
+
+                // 2. Reduce threads to stay above 50 MB/thread minimum (only for auto-tuned memory)
+                var maxThreads = Math.max(1, memoryLimitBytes / MIN_MEMORY_PER_THREAD_BYTES);
+                var currentThreads = Runtime.getRuntime().availableProcessors();
+                if (maxThreads < currentThreads) {
+                    stmt.execute("SET threads = %d".formatted(maxThreads));
+                    LOG.info(
+                            "Set DuckDB threads to {} ({}MB budget / 50MB per thread)",
+                            maxThreads,
+                            memoryLimitBytes / (1024 * 1024));
+                }
+            }
+
+            // 3. Set temp_directory for spilling intermediate query results
+            var tempDir = Path.of("/duckdb-tmp");
+            if (!Files.isDirectory(tempDir)) {
+                // Outside Docker: use a directory next to the database file
+                tempDir = databasePath.resolveSibling("duckdb-tmp");
+                Files.createDirectories(tempDir);
+            }
+            stmt.execute("SET temp_directory = '%s'".formatted(tempDir));
+            LOG.info("Set DuckDB temp_directory to {}", tempDir);
+        } catch (SQLException e) {
+            LOG.warn("Failed to configure DuckDB on-disk settings: {}", e.getMessage());
+        } catch (IOException e) {
+            LOG.warn("Failed to create DuckDB temp directory: {}", e.getMessage());
         }
     }
 
@@ -294,7 +412,7 @@ public class DuckDbLogicalViewEvaluatorFactory
 
         var catalog = currentCatalog;
         var schema = currentSchema;
-        if (catalog != null && schema != null && !("memory".equals(catalog) && "main".equals(schema))) {
+        if (catalog != null && schema != null && !(nativeCatalog.equals(catalog) && nativeSchema.equals(schema))) {
             try (var stmt = target.createStatement()) {
                 stmt.execute("USE \"%s\".\"%s\"".formatted(catalog, schema));
             }
@@ -493,5 +611,24 @@ public class DuckDbLogicalViewEvaluatorFactory
             throw new IllegalStateException(
                     "Failed to create in-memory DuckDB connection. Ensure DuckDB JDBC is on the classpath.", e);
         }
+    }
+
+    /**
+     * Queries the connection for its current catalog and schema. Must be called before any
+     * {@code USE <catalog>.<schema>} commands are applied, so the result reflects the native
+     * catalog/schema of the DuckDB database.
+     *
+     * @return a two-element array: {@code [catalog, schema]}
+     */
+    private static String[] resolveNativeCatalogSchema(Connection conn) {
+        try (var stmt = conn.createStatement();
+                var rs = stmt.executeQuery("SELECT current_catalog(), current_schema()")) {
+            if (rs.next()) {
+                return new String[] {rs.getString(1), rs.getString(2)};
+            }
+        } catch (SQLException e) {
+            LOG.warn("Could not determine native catalog/schema, defaulting to memory.main", e);
+        }
+        return new String[] {"memory", "main"};
     }
 }
