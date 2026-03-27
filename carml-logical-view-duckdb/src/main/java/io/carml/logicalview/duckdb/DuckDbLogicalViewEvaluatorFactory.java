@@ -1,7 +1,6 @@
 package io.carml.logicalview.duckdb;
 
 import com.google.auto.service.AutoService;
-import com.sun.management.OperatingSystemMXBean;
 import io.carml.logicalsourceresolver.MatchedLogicalSourceResolverFactory.MatchScore;
 import io.carml.logicalview.FileBasePathConfigurable;
 import io.carml.logicalview.LogicalViewEvaluatorFactory;
@@ -23,6 +22,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.duckdb.DuckDBConnection;
 import reactor.core.scheduler.Scheduler;
@@ -269,9 +269,16 @@ public class DuckDbLogicalViewEvaluatorFactory
             applyOnDiskSettings(conn, dbPath, memoryLimit);
 
             var factoryHolder = new DuckDbLogicalViewEvaluatorFactory[1];
-            // Lambda required: method reference would capture null (factoryHolder[0] is set after hook creation)
+            // Lambda required: method reference would capture null (factoryHolder[0] is set after hook creation).
+            // Null check guards against the tiny window between addShutdownHook and factoryHolder assignment.
             @SuppressWarnings("java:S1612")
-            var hook = new Thread(() -> factoryHolder[0].close(), "carml-duckdb-cleanup");
+            var hook = new Thread(
+                    () -> {
+                        if (factoryHolder[0] != null) {
+                            factoryHolder[0].close();
+                        }
+                    },
+                    "carml-duckdb-cleanup");
             Runtime.getRuntime().addShutdownHook(hook);
 
             var factory = new DuckDbLogicalViewEvaluatorFactory(conn, dbPath, hook, scheduler, ownsScheduler);
@@ -284,84 +291,131 @@ public class DuckDbLogicalViewEvaluatorFactory
         }
     }
 
-    /**
-     * Minimum memory budget (50 MB) per DuckDB thread in on-disk mode. Lower than the general 125 MB
-     * guideline because the buffer manager can page base table data from the database file,
-     * reducing per-thread working memory requirements.
-     */
-    private static final long MIN_MEMORY_PER_THREAD_BYTES = 50L * 1024 * 1024;
+    /** Validates DuckDB memory limit format (e.g. "4GB", "512MB", "2.5GiB"). */
+    private static final Pattern MEMORY_LIMIT_PATTERN =
+            Pattern.compile("^\\d+(\\.\\d+)?\\s*(B|KB|KiB|MB|MiB|GB|GiB|TB|TiB)$", Pattern.CASE_INSENSITIVE);
 
     /**
-     * Configures DuckDB for on-disk mode: reduces memory limit to leave room for JVM heap,
-     * sets temp_directory for spilling intermediate query results, and adjusts thread count
-     * to stay above ~50 MB per thread.
+     * Estimated total memory per DuckDB thread including both buffer-managed and non-buffer-managed
+     * allocations (CSV reader ~32MB, vectors, hash table partitions). Used to determine thread count
+     * from total available memory.
+     */
+    private static final long ESTIMATED_MEMORY_PER_THREAD_BYTES = 250L * 1024 * 1024;
+
+    /**
+     * Estimated non-buffer-managed memory per thread (vectors, CSV reader buffers, hash table build
+     * structures). Subtracted from total budget to derive the buffer pool size.
+     */
+    private static final long NON_BUFFER_OVERHEAD_PER_THREAD_BYTES = 150L * 1024 * 1024;
+
+    /**
+     * Configures DuckDB for on-disk mode with resource-aware tuning.
      *
-     * <p>Without this, DuckDB auto-detects system/cgroup memory and claims up to 80%, leaving
-     * too little for the JVM — especially in Docker containers with tight memory limits.
+     * <p>DuckDB's {@code memory_limit} only controls the buffer manager pool — vectors, hash
+     * tables, CSV reader buffers, and query results allocate <em>outside</em> the buffer manager.
+     * Therefore, thread count is the primary lever for total memory control: each thread
+     * independently allocates ~150 MB of non-buffer memory. The tuning formula:
      *
-     * <p>When {@code memoryLimitOverride} is {@code null}, the memory limit is auto-tuned to
-     * {@code system_memory - JVM_max_heap - 512MB}, obtained via
-     * {@link java.lang.management.OperatingSystemMXBean} which is cgroup-aware on modern JVMs.
-     * Thread count is then adjusted to ensure at least 50 MB per thread.
+     * <pre>
+     *   total_available = system_memory - JVM_heap - 512MB
+     *   threads         = max(1, total_available / 250MB)
+     *   memory_limit    = total_available - threads * 150MB
+     * </pre>
+     *
+     * <p>When {@code memoryLimitOverride} is specified, only {@code memory_limit} is set to the
+     * user's value. Thread count is still auto-tuned based on total available memory.
      *
      * <p>The {@code temp_directory} is set to {@code /duckdb-tmp} if that directory exists
-     * (e.g., in Docker), otherwise to a subdirectory next to the database file. This is where
-     * DuckDB writes intermediate results when the memory budget is exceeded during joins, sorts,
-     * and aggregations.
+     * (e.g., in Docker), otherwise to a subdirectory next to the database file.
      *
      * @param memoryLimitOverride explicit DuckDB memory limit (e.g. {@code "4GB"}), or {@code null}
      *     to auto-tune based on available system memory
      */
     @SuppressWarnings({
-        "java:S2077", // memoryLimitOverride is validated by DuckDB's SET parser, not executed as general SQL
-        "java:S3649" // temp_directory is a controlled Path, not user input
+        "java:S2077", // SET commands use validated/computed values, not arbitrary user input
+        "java:S3649" // temp_directory is a controlled Path; memoryLimitOverride is regex-validated
     })
     private static void applyOnDiskSettings(Connection conn, Path databasePath, String memoryLimitOverride) {
+        // Validate memoryLimitOverride before interpolating into SQL
+        if (memoryLimitOverride != null
+                && !memoryLimitOverride.isBlank()
+                && !MEMORY_LIMIT_PATTERN.matcher(memoryLimitOverride).matches()) {
+            throw new IllegalArgumentException(
+                    "Invalid memory limit format: '%s'. Expected: <number><unit> (e.g. '4GB', '512MB')"
+                            .formatted(memoryLimitOverride));
+        }
+
         try (var stmt = conn.createStatement()) {
-            // 1. Set memory_limit
+            var totalAvailable = resolveAvailableMemory();
+
+            // 1. Set thread count based on total available memory (~250MB per thread)
+            var threads = Math.max(1, totalAvailable / ESTIMATED_MEMORY_PER_THREAD_BYTES);
+            var availableProcessors = (long) Runtime.getRuntime().availableProcessors();
+            threads = Math.min(threads, availableProcessors);
+            if (threads < availableProcessors) {
+                stmt.execute("SET threads = %d".formatted(threads));
+            }
+            LOG.info(
+                    "Set DuckDB threads to {} ({}MB available / 250MB per thread)",
+                    threads,
+                    totalAvailable / (1024 * 1024));
+
+            // 2. Set memory_limit (buffer pool size)
             if (memoryLimitOverride != null && !memoryLimitOverride.isBlank()) {
                 stmt.execute("SET memory_limit = '%s'".formatted(memoryLimitOverride));
                 LOG.info("Set DuckDB memory_limit to {} (user-specified)", memoryLimitOverride);
             } else {
-                // Auto-tune: system memory - JVM max heap - 512 MB overhead buffer
-                var osBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
-                var systemMemory = osBean.getTotalMemorySize();
-                var jvmMaxHeap = Runtime.getRuntime().maxMemory();
-                var overheadBuffer = 512L * 1024 * 1024;
-                var memoryLimitBytes =
-                        Math.max(MIN_MEMORY_PER_THREAD_BYTES, systemMemory - jvmMaxHeap - overheadBuffer);
-                stmt.execute("SET memory_limit = '%dB'".formatted(memoryLimitBytes));
+                // Buffer pool = total available minus non-buffer overhead per thread
+                var bufferPoolBytes =
+                        Math.max(50L * 1024 * 1024, totalAvailable - threads * NON_BUFFER_OVERHEAD_PER_THREAD_BYTES);
+                stmt.execute("SET memory_limit = '%dB'".formatted(bufferPoolBytes));
                 LOG.info(
-                        "Set DuckDB memory_limit to {}MB ({}MB system - {}MB JVM heap - 512MB overhead)",
-                        memoryLimitBytes / (1024 * 1024),
-                        systemMemory / (1024 * 1024),
-                        jvmMaxHeap / (1024 * 1024));
-
-                // 2. Reduce threads to stay above 50 MB/thread minimum (only for auto-tuned memory)
-                var maxThreads = Math.max(1, memoryLimitBytes / MIN_MEMORY_PER_THREAD_BYTES);
-                var currentThreads = Runtime.getRuntime().availableProcessors();
-                if (maxThreads < currentThreads) {
-                    stmt.execute("SET threads = %d".formatted(maxThreads));
-                    LOG.info(
-                            "Set DuckDB threads to {} ({}MB budget / 50MB per thread)",
-                            maxThreads,
-                            memoryLimitBytes / (1024 * 1024));
-                }
+                        "Set DuckDB memory_limit to {}MB ({}MB available - {} threads * 150MB non-buffer overhead)",
+                        bufferPoolBytes / (1024 * 1024),
+                        totalAvailable / (1024 * 1024),
+                        threads);
             }
 
-            // 3. Set temp_directory for spilling intermediate query results
+            // 3. Disable insertion order preservation to reduce peak memory during table creation
+            stmt.execute("SET preserve_insertion_order = false");
+
+            // 4. Set temp_directory for spilling intermediate query results
             var tempDir = Path.of("/duckdb-tmp");
             if (!Files.isDirectory(tempDir)) {
-                // Outside Docker: use a directory next to the database file
                 tempDir = databasePath.resolveSibling("duckdb-tmp");
                 Files.createDirectories(tempDir);
             }
-            stmt.execute("SET temp_directory = '%s'".formatted(tempDir));
+            var escapedTempDir = tempDir.toString().replace("'", "''");
+            stmt.execute("SET temp_directory = '%s'".formatted(escapedTempDir));
             LOG.info("Set DuckDB temp_directory to {}", tempDir);
         } catch (SQLException e) {
             LOG.warn("Failed to configure DuckDB on-disk settings: {}", e.getMessage());
         } catch (IOException e) {
             LOG.warn("Failed to create DuckDB temp directory: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Resolves total memory available for DuckDB by querying system memory via
+     * {@code OperatingSystemMXBean}. Falls back to JVM max heap if the platform-specific
+     * MXBean is unavailable (e.g., on non-HotSpot JVMs).
+     *
+     * <p>Note: {@code Runtime.getRuntime().maxMemory()} returns {@code Long.MAX_VALUE} when the
+     * JVM heap is uncapped ({@code -Xmx} not set). The {@code Math.max} floor in the caller
+     * handles this by falling back to {@link #ESTIMATED_MEMORY_PER_THREAD_BYTES}.
+     */
+    private static long resolveAvailableMemory() {
+        var jvmMaxHeap = Runtime.getRuntime().maxMemory();
+        var overheadBuffer = 512L * 1024 * 1024;
+
+        try {
+            var osBean = (com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+            var systemMemory = osBean.getTotalMemorySize();
+            return Math.max(ESTIMATED_MEMORY_PER_THREAD_BYTES, systemMemory - jvmMaxHeap - overheadBuffer);
+        } catch (ClassCastException e) {
+            // Non-HotSpot JVM (e.g., OpenJ9) — fall back to JVM heap as proxy
+            LOG.warn("OperatingSystemMXBean not available, using JVM max heap as memory estimate");
+            return Math.max(ESTIMATED_MEMORY_PER_THREAD_BYTES, jvmMaxHeap - overheadBuffer);
         }
     }
 
@@ -414,7 +468,8 @@ public class DuckDbLogicalViewEvaluatorFactory
         var schema = currentSchema;
         if (catalog != null && schema != null && !(nativeCatalog.equals(catalog) && nativeSchema.equals(schema))) {
             try (var stmt = target.createStatement()) {
-                stmt.execute("USE \"%s\".\"%s\"".formatted(catalog, schema));
+                stmt.execute(
+                        "USE \"%s\".\"%s\"".formatted(catalog.replace("\"", "\"\""), schema.replace("\"", "\"\"")));
             }
         }
     }

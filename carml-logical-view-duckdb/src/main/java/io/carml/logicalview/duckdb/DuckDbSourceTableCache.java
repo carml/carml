@@ -181,7 +181,7 @@ class DuckDbSourceTableCache {
             if (rs.next()) {
                 var catalog = rs.getString(1);
                 var schema = rs.getString(2);
-                var qualifier = "\"%s\".\"%s\"".formatted(catalog, schema);
+                var qualifier = "\"%s\".\"%s\"".formatted(catalog.replace("\"", "\"\""), schema.replace("\"", "\"\""));
                 LOG.debug("Resolved native qualifier: {}", qualifier);
                 return qualifier;
             }
