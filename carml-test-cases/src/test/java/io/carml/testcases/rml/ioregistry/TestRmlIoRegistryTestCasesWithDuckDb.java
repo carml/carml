@@ -1,16 +1,26 @@
 package io.carml.testcases.rml.ioregistry;
 
+import io.carml.engine.rdf.RdfRmlMapper;
+import io.carml.logicalsourceresolver.sourceresolver.ClassPathResolver;
+import io.carml.logicalview.duckdb.DuckDbLogicalViewEvaluatorFactory;
+import io.carml.model.DatabaseSource;
+import io.carml.model.TriplesMap;
 import io.carml.testcases.model.TestCase;
 import io.carml.testcases.rml.DuckDbTestCaseSuite;
+import io.carml.util.RmlMappingLoader;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.rdf4j.model.Model;
-import org.junit.jupiter.api.BeforeAll;
+import org.eclipse.rdf4j.model.impl.ValidatingValueFactory;
+import org.eclipse.rdf4j.model.util.ModelCollector;
+import org.eclipse.rdf4j.rio.RDFFormat;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -21,8 +31,15 @@ import org.testcontainers.junit.jupiter.Container;
  * container via DuckDB's {@code mysql} scanner extension, and PostgreSQL tests (RMLIOREGTC0005*)
  * run against a real PostgreSQL container via DuckDB's {@code postgres} scanner extension.
  *
+ * <p>The mapping's {@code CONNECTIONDSN} placeholder is substituted with the real JDBC URL at
+ * runtime. The {@link DuckDbLogicalViewEvaluatorFactory}'s internal {@code DuckDbDatabaseAttacher}
+ * parses the JDBC DSN, INSTALLs/LOADs the scanner extension, and ATTACHes the database
+ * automatically. SQL source handlers then emit fully qualified table names (e.g.,
+ * {@code "<catalog>"."<schema>"."<table>"}), eliminating the need for {@code USE} commands.
+ *
  * <p>For each SQL test case, the {@code resource.sql} is loaded into the appropriate database via
- * JDBC, then the DuckDB scanner is refreshed via DETACH/REATTACH to see the new tables.
+ * JDBC, then the database attachment is refreshed via the attacher to pick up schema changes
+ * (DROPped/CREATEd tables).
  */
 @Slf4j
 class TestRmlIoRegistryTestCasesWithDuckDb extends DuckDbTestCaseSuite {
@@ -41,27 +58,6 @@ class TestRmlIoRegistryTestCasesWithDuckDb extends DuckDbTestCaseSuite {
             .withDatabaseName("test")
             .withUsername("postgres")
             .withPassword("test");
-
-    @BeforeAll
-    void setUpScanners() throws SQLException {
-        try (Statement stmt = getConnection().createStatement()) {
-            stmt.execute("INSTALL mysql");
-            stmt.execute("LOAD mysql");
-            stmt.execute("ATTACH 'host=%s user=root password=test port=%d database=test' AS mysql_db (TYPE MYSQL)"
-                    .formatted(MYSQL.getHost(), MYSQL.getMappedPort(3306)));
-
-            stmt.execute("INSTALL postgres");
-            stmt.execute("LOAD postgres");
-            stmt.execute("ATTACH 'host=%s user=postgres password=test port=%d dbname=test' AS pg_db (TYPE POSTGRES)"
-                    .formatted(POSTGRESQL.getHost(), POSTGRESQL.getMappedPort(5432)));
-        }
-        LOG.info(
-                "DuckDB scanners attached — MySQL: {}:{}, PostgreSQL: {}:{}",
-                MYSQL.getHost(),
-                MYSQL.getMappedPort(3306),
-                POSTGRESQL.getHost(),
-                POSTGRESQL.getMappedPort(5432));
-    }
 
     @Override
     protected String getBasePath() {
@@ -152,44 +148,102 @@ class TestRmlIoRegistryTestCasesWithDuckDb extends DuckDbTestCaseSuite {
     @Override
     protected Model executeMapping(TestCase testCase, String testCaseIdentifier) {
         var sqlStream = getTestCaseFileInputStream(getBasePath(), testCaseIdentifier, "resource.sql");
-        if (sqlStream != null) {
-            String sql;
-            try {
-                sql = new String(sqlStream.readAllBytes(), StandardCharsets.UTF_8);
-            } catch (IOException e) {
-                throw new IllegalStateException(
-                        "Failed to read resource.sql for test case %s".formatted(testCaseIdentifier), e);
-            }
-
-            var mappingContent = readMappingContent(testCaseIdentifier);
-            if (mappingContent.contains(MYSQL_DRIVER)) {
-                loadMySqlResourceSql(sql, testCaseIdentifier);
-                refreshMySqlAttachment();
-                useMySqlSchema();
-            } else if (mappingContent.contains(POSTGRESQL_DRIVER)) {
-                loadPostgreSqlResourceSql(sql, testCaseIdentifier);
-                refreshPostgresAttachment();
-                usePostgresSchema();
-            } else {
-                throw new IllegalStateException(
-                        "resource.sql found but mapping does not reference a known JDBC driver for test case %s"
-                                .formatted(testCaseIdentifier));
-            }
+        if (sqlStream == null) {
+            // Non-SQL test case: use default DuckDB evaluator path
+            return super.executeMapping(testCase, testCaseIdentifier);
         }
 
-        return super.executeMapping(testCase, testCaseIdentifier);
-    }
-
-    private String readMappingContent(String testCaseIdentifier) {
-        var mappingStream = getTestCaseFileInputStream(getBasePath(), testCaseIdentifier, "mapping.ttl");
-        if (mappingStream == null) {
-            throw new IllegalStateException("mapping.ttl not found for test case %s".formatted(testCaseIdentifier));
-        }
+        // SQL test case: detect database, load SQL, substitute DSN in mapping
+        String sql;
         try {
-            return new String(mappingStream.readAllBytes(), StandardCharsets.UTF_8);
+            sql = new String(sqlStream.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new IllegalStateException(
-                    "Failed to read mapping.ttl for test case %s".formatted(testCaseIdentifier), e);
+                    "Failed to read resource.sql for test case %s".formatted(testCaseIdentifier), e);
+        }
+
+        var mappingBytes = readMappingBytes(testCase, testCaseIdentifier);
+        var mappingContent = new String(mappingBytes, StandardCharsets.UTF_8);
+
+        String jdbcUrl;
+        String password = "test";
+        if (mappingContent.contains(MYSQL_DRIVER)) {
+            loadMySqlResourceSql(sql, testCaseIdentifier);
+            jdbcUrl = MYSQL.getJdbcUrl();
+        } else if (mappingContent.contains(POSTGRESQL_DRIVER)) {
+            loadPostgreSqlResourceSql(sql, testCaseIdentifier);
+            jdbcUrl = POSTGRESQL.getJdbcUrl();
+        } else {
+            throw new IllegalStateException(
+                    "resource.sql found but mapping does not reference a known JDBC driver for test case %s"
+                            .formatted(testCaseIdentifier));
+        }
+
+        // Substitute CONNECTIONDSN and password in the mapping so the DatabaseSource model has
+        // the real JDBC URL. The DuckDbDatabaseAttacher parses this DSN to ATTACH the database.
+        var substituted = mappingContent
+                .replace("CONNECTIONDSN", jdbcUrl)
+                .replace("d2rq:password \"\"", "d2rq:password \"%s\"".formatted(password));
+
+        // Drop source cache tables from previous test case to prevent stale data collisions
+        dropSourceCacheTables();
+
+        var factory = new DuckDbLogicalViewEvaluatorFactory(getConnection());
+
+        // Refresh the attachment for this DSN so DuckDB picks up the new tables. The attacher
+        // needs to see the DatabaseSource from the parsed mapping to know which DSN to refresh.
+        // We load the mapping, find the DatabaseSource, and refresh before running the mapper.
+        Set<TriplesMap> mapping = RmlMappingLoader.build()
+                .load(RDFFormat.TURTLE, new ByteArrayInputStream(substituted.getBytes(StandardCharsets.UTF_8)));
+        refreshDatabaseAttachments(factory, mapping);
+
+        var mapper = RdfRmlMapper.builder()
+                .valueFactorySupplier(ValidatingValueFactory::new)
+                .logicalViewEvaluatorFactory(factory)
+                .triplesMaps(mapping)
+                .classPathResolver(ClassPathResolver.of(
+                        "%s/%s".formatted(getBasePath(), testCase.getIdentifier()), DuckDbTestCaseSuite.class))
+                .build();
+
+        return mapper.map().collect(ModelCollector.toTreeModel()).block();
+    }
+
+    /**
+     * Refreshes all database ATTACHments referenced by the mapping's database sources. This ensures
+     * DuckDB's scanner sees the latest schema after SQL data is loaded into the test containers.
+     * Walks through TriplesMap -> LogicalSource/LogicalView -> LogicalSource -> DatabaseSource.
+     */
+    private static void refreshDatabaseAttachments(DuckDbLogicalViewEvaluatorFactory factory, Set<TriplesMap> mapping) {
+        var attacher = factory.getDatabaseAttacher();
+        mapping.stream()
+                .map(TriplesMap::getLogicalSource)
+                .flatMap(als -> {
+                    if (als instanceof io.carml.model.LogicalView view) {
+                        var viewOn = view.getViewOn();
+                        if (viewOn instanceof io.carml.model.LogicalSource ls) {
+                            return java.util.stream.Stream.of(ls);
+                        }
+                        return java.util.stream.Stream.empty();
+                    }
+                    if (als instanceof io.carml.model.LogicalSource ls) {
+                        return java.util.stream.Stream.of(ls);
+                    }
+                    return java.util.stream.Stream.empty();
+                })
+                .map(io.carml.model.LogicalSource::getSource)
+                .filter(DatabaseSource.class::isInstance)
+                .map(DatabaseSource.class::cast)
+                .filter(ds -> ds.getJdbcDsn() != null && !ds.getJdbcDsn().isBlank())
+                .distinct()
+                .forEach(attacher::refresh);
+    }
+
+    private byte[] readMappingBytes(TestCase testCase, String testCaseIdentifier) {
+        try {
+            return getTestCaseFileInputStream(getBasePath(), testCaseIdentifier, testCase.getMappingDocument())
+                    .readAllBytes();
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to read mapping for test case %s".formatted(testCaseIdentifier), e);
         }
     }
 
@@ -210,25 +264,6 @@ class TestRmlIoRegistryTestCasesWithDuckDb extends DuckDbTestCaseSuite {
         }
     }
 
-    private void refreshMySqlAttachment() {
-        try (Statement stmt = getConnection().createStatement()) {
-            stmt.execute("USE memory");
-            stmt.execute("DETACH mysql_db");
-            stmt.execute("ATTACH 'host=%s user=root password=test port=%d database=test' AS mysql_db (TYPE MYSQL)"
-                    .formatted(MYSQL.getHost(), MYSQL.getMappedPort(3306)));
-        } catch (SQLException e) {
-            throw new IllegalStateException("Failed to refresh DuckDB mysql attachment", e);
-        }
-    }
-
-    private void useMySqlSchema() {
-        try (Statement stmt = getConnection().createStatement()) {
-            stmt.execute("USE mysql_db.test");
-        } catch (SQLException e) {
-            throw new IllegalStateException("Failed to switch to mysql_db.test schema", e);
-        }
-    }
-
     // --- PostgreSQL ---
 
     private void loadPostgreSqlResourceSql(String sql, String testCaseIdentifier) {
@@ -238,25 +273,6 @@ class TestRmlIoRegistryTestCasesWithDuckDb extends DuckDbTestCaseSuite {
         } catch (SQLException e) {
             throw new IllegalStateException(
                     "Failed to execute resource.sql for PostgreSQL test case %s".formatted(testCaseIdentifier), e);
-        }
-    }
-
-    private void refreshPostgresAttachment() {
-        try (Statement stmt = getConnection().createStatement()) {
-            stmt.execute("USE memory");
-            stmt.execute("DETACH pg_db");
-            stmt.execute("ATTACH 'host=%s user=postgres password=test port=%d dbname=test' AS pg_db (TYPE POSTGRES)"
-                    .formatted(POSTGRESQL.getHost(), POSTGRESQL.getMappedPort(5432)));
-        } catch (SQLException e) {
-            throw new IllegalStateException("Failed to refresh DuckDB postgres attachment", e);
-        }
-    }
-
-    private void usePostgresSchema() {
-        try (Statement stmt = getConnection().createStatement()) {
-            stmt.execute("USE pg_db.public");
-        } catch (SQLException e) {
-            throw new IllegalStateException("Failed to switch to pg_db.public schema", e);
         }
     }
 }

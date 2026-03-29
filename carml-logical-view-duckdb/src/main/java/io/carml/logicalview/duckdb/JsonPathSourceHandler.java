@@ -56,7 +56,11 @@ final class JsonPathSourceHandler implements DuckDbSourceHandler {
     }
 
     @Override
-    public CompiledSource compileSource(LogicalSource logicalSource, Set<Field> viewFields, String cteAlias) {
+    public CompiledSource compileSource(
+            LogicalSource logicalSource,
+            Set<Field> viewFields,
+            String cteAlias,
+            DuckDbDatabaseAttacher databaseAttacher) {
         var filePath = DuckDbFileSourceUtils.resolveFilePath(logicalSource.getSource());
 
         if (DuckDbFileSourceUtils.isParquetFile(filePath)) {

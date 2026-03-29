@@ -204,7 +204,7 @@ class DuckDbSourceHandlerTest {
             when(logicalSource.getIterator()).thenReturn("$.people[*]");
             var fields = Set.<Field>of(expressionField("name", "name"));
 
-            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS);
+            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS, null);
 
             assertThat(result.sourceSql(), containsString("json_extract"));
             assertThat(result.sourceSql(), containsString("unnest"));
@@ -218,7 +218,7 @@ class DuckDbSourceHandlerTest {
             when(logicalSource.getIterator()).thenReturn(null);
             var fields = Set.<Field>of(expressionField("name", "name"));
 
-            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS);
+            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS, null);
 
             assertThat(result.sourceSql(), containsString("read_json_auto"));
             assertThat(result.strategy(), instanceOf(ColumnSourceStrategy.class));
@@ -229,7 +229,7 @@ class DuckDbSourceHandlerTest {
             var logicalSource = mockLogicalSourceWithFileSource("data.parquet");
             var fields = Set.<Field>of(expressionField("name", "name"));
 
-            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS);
+            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS, null);
 
             assertThat(result.sourceSql(), containsString("read_parquet"));
             assertThat(result.strategy(), instanceOf(ColumnSourceStrategy.class));
@@ -241,7 +241,7 @@ class DuckDbSourceHandlerTest {
             when(logicalSource.getIterator()).thenReturn("$.people[?(@.active==true)]");
             var fields = Set.<Field>of(expressionField("name", "name"));
 
-            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS);
+            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS, null);
 
             assertThat(result.sourceSql(), containsString("where"));
             assertThat(result.strategy(), instanceOf(JsonIteratorSourceStrategy.class));
@@ -258,7 +258,7 @@ class DuckDbSourceHandlerTest {
             var logicalSource = mockLogicalSourceWithFileSource("data.csv");
             var fields = Set.<Field>of(expressionField("name", "name"));
 
-            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS);
+            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS, null);
 
             assertThat(result.sourceSql(), containsString("read_csv_auto"));
             assertThat(result.strategy(), instanceOf(ColumnSourceStrategy.class));
@@ -269,7 +269,7 @@ class DuckDbSourceHandlerTest {
             var logicalSource = mockLogicalSourceWithFileSource("data.parquet");
             var fields = Set.<Field>of(expressionField("name", "name"));
 
-            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS);
+            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS, null);
 
             assertThat(result.sourceSql(), containsString("read_parquet"));
             assertThat(result.strategy(), instanceOf(ColumnSourceStrategy.class));
@@ -280,7 +280,7 @@ class DuckDbSourceHandlerTest {
             var logicalSource = mockLogicalSourceWithCsvwTable("data.csv", mockDialect(";", null, null), Set.of());
             var fields = Set.<Field>of(expressionField("name", "name"));
 
-            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS);
+            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS, null);
 
             assertThat(result.sourceSql(), containsString("read_csv("));
             assertThat(result.sourceSql(), containsString("delim = "));
@@ -293,7 +293,7 @@ class DuckDbSourceHandlerTest {
             var logicalSource = mockLogicalSourceWithCsvwTable("data.csv", mockDialect(null, "'", null), Set.of());
             var fields = Set.<Field>of(expressionField("name", "name"));
 
-            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS);
+            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS, null);
 
             assertThat(result.sourceSql(), containsString("read_csv("));
             assertThat(result.sourceSql(), containsString("quote = "));
@@ -305,7 +305,7 @@ class DuckDbSourceHandlerTest {
             var logicalSource = mockLogicalSourceWithCsvwTable("data.csv", mockDialect(null, null, "UTF-8"), Set.of());
             var fields = Set.<Field>of(expressionField("name", "name"));
 
-            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS);
+            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS, null);
 
             assertThat(result.sourceSql(), containsString("read_csv("));
             assertThat(result.sourceSql(), containsString("encoding = "));
@@ -318,7 +318,7 @@ class DuckDbSourceHandlerTest {
                     mockLogicalSourceWithCsvwTable("data.csv", mockDialect(";", null, null), Set.of("NULL"));
             var fields = Set.<Field>of(expressionField("name", "name"));
 
-            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS);
+            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS, null);
 
             assertThat(result.sourceSql(), containsString("read_csv("));
             assertThat(result.sourceSql(), containsString("nullstr = "));
@@ -334,7 +334,7 @@ class DuckDbSourceHandlerTest {
             when(logicalSource.getSource()).thenReturn(csvwTable);
             var fields = Set.<Field>of(expressionField("name", "name"));
 
-            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS);
+            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS, null);
 
             assertThat(result.sourceSql(), containsString("read_csv_auto"));
         }
@@ -346,7 +346,7 @@ class DuckDbSourceHandlerTest {
             var logicalSource = mockLogicalSourceWithCsvwTable("data.csv", dialect, Set.of());
             var fields = Set.<Field>of(expressionField("name", "name"));
 
-            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS);
+            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS, null);
 
             assertThat(result.sourceSql(), containsString("trim(columns(*)"));
             assertThat(result.sourceSql(), containsString("read_csv("));
@@ -359,7 +359,7 @@ class DuckDbSourceHandlerTest {
             var logicalSource = mockLogicalSourceWithCsvwTable("data.csv", dialect, Set.of());
             var fields = Set.<Field>of(expressionField("name", "name"));
 
-            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS);
+            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS, null);
 
             assertThat(result.sourceSql(), containsString("comment = "));
             assertThat(result.sourceSql(), containsString("#"));
@@ -370,7 +370,7 @@ class DuckDbSourceHandlerTest {
             var logicalSource = mockLogicalSourceWithCsvwTable("data.csv", mockDialect(";", null, null), Set.of());
             var fields = Set.<Field>of(expressionField("name", "name"));
 
-            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS);
+            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS, null);
 
             assertThat(result.sourceSql(), containsString("all_varchar = true"));
         }
@@ -382,7 +382,7 @@ class DuckDbSourceHandlerTest {
             var logicalSource = mockLogicalSourceWithCsvwTable("data.csv", dialect, Set.of());
             var fields = Set.<Field>of(expressionField("name", "name"));
 
-            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS);
+            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS, null);
 
             assertThat(result.sourceSql(), containsString("skip = 2"));
         }
@@ -394,7 +394,7 @@ class DuckDbSourceHandlerTest {
             var logicalSource = mockLogicalSourceWithCsvwTable("data.csv", dialect, Set.of());
             var fields = Set.<Field>of(expressionField("name", "name"));
 
-            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS);
+            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS, null);
 
             assertThat(result.sourceSql(), containsString("escape = "));
         }
@@ -405,7 +405,7 @@ class DuckDbSourceHandlerTest {
                     mockLogicalSourceWithCsvwTable("data.csv", mockDialect(";", null, null), Set.of("NULL", "N/A"));
             var fields = Set.<Field>of(expressionField("name", "name"));
 
-            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS);
+            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS, null);
 
             assertThat(result.sourceSql(), containsString("nullstr = ["));
         }
@@ -415,7 +415,7 @@ class DuckDbSourceHandlerTest {
             var logicalSource = mockLogicalSourceWithCsvwTable("data.csv", mockDialect(";", null, null), Set.of());
             var fields = Set.<Field>of(expressionField("name", "name"));
 
-            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS);
+            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS, null);
 
             assertThat(result.sourceSql(), containsString(CsvSourceHandler.NO_NULL_SENTINEL));
         }
@@ -432,7 +432,7 @@ class DuckDbSourceHandlerTest {
             when(logicalSource.getQuery()).thenReturn("SELECT * FROM people");
             var fields = Set.<Field>of(expressionField("name", "name"));
 
-            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS);
+            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS, null);
 
             assertThat(result.sourceSql(), is("(SELECT * FROM people)"));
             assertThat(result.strategy(), instanceOf(ColumnSourceStrategy.class));
@@ -445,7 +445,7 @@ class DuckDbSourceHandlerTest {
             when(logicalSource.getTableName()).thenReturn("employees");
             var fields = Set.<Field>of(expressionField("name", "name"));
 
-            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS);
+            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS, null);
 
             assertThat(result.sourceSql(), containsString("employees"));
             assertThat(result.strategy(), instanceOf(ColumnSourceStrategy.class));
@@ -461,7 +461,7 @@ class DuckDbSourceHandlerTest {
             when(logicalSource.getSource()).thenReturn(dbSource);
             var fields = Set.<Field>of(expressionField("name", "name"));
 
-            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS);
+            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS, null);
 
             assertThat(result.sourceSql(), is("(SELECT id, name FROM departments)"));
             assertThat(result.strategy(), instanceOf(ColumnSourceStrategy.class));
@@ -474,7 +474,7 @@ class DuckDbSourceHandlerTest {
             when(logicalSource.getTableName()).thenReturn("employees");
             var fields = Set.<Field>of(expressionField("name", "name"));
 
-            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS);
+            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS, null);
 
             assertThat(result.sourceSql(), containsString("employees"));
         }
@@ -489,7 +489,7 @@ class DuckDbSourceHandlerTest {
             when(logicalSource.getSource()).thenReturn(dbSource);
             var fields = Set.<Field>of(expressionField("name", "name"));
 
-            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS);
+            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS, null);
 
             assertThat(result.sourceSql(), is("(SELECT 1)"));
         }
@@ -502,7 +502,9 @@ class DuckDbSourceHandlerTest {
             when(logicalSource.getSource()).thenReturn(null);
             var fields = Set.<Field>of(expressionField("name", "name"));
 
-            assertThrows(IllegalArgumentException.class, () -> handler.compileSource(logicalSource, fields, CTE_ALIAS));
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> handler.compileSource(logicalSource, fields, CTE_ALIAS, null));
         }
 
         @Test
@@ -515,7 +517,9 @@ class DuckDbSourceHandlerTest {
             when(logicalSource.getSource()).thenReturn(dbSource);
             var fields = Set.<Field>of(expressionField("name", "name"));
 
-            assertThrows(IllegalArgumentException.class, () -> handler.compileSource(logicalSource, fields, CTE_ALIAS));
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> handler.compileSource(logicalSource, fields, CTE_ALIAS, null));
         }
     }
 

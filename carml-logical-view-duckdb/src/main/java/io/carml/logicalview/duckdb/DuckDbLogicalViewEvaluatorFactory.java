@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.duckdb.DuckDBConnection;
 import reactor.core.scheduler.Scheduler;
@@ -83,25 +84,20 @@ public class DuckDbLogicalViewEvaluatorFactory
 
     private final DuckDbSourceTableCache sourceTableCache;
 
+    /**
+     * -- GETTER --
+     *  Returns the database attacher for use by test infrastructure that needs to refresh ATTACHed
+     *  databases between test cases.
+     */
+    @Getter
+    private final DuckDbDatabaseAttacher databaseAttacher;
+
     private final Scheduler scheduler;
 
     private final boolean ownsScheduler;
 
-    /**
-     * The native catalog and schema of the DuckDB database, determined at construction time before
-     * any {@code USE} commands are applied. Used to detect whether {@link #currentCatalog} and
-     * {@link #currentSchema} have been changed by external code.
-     */
-    private final String nativeCatalog;
-
-    private final String nativeSchema;
-
     @SuppressWarnings("java:S3077") // Path is immutable, so volatile is sufficient
     private volatile Path fileBasePath;
-
-    private volatile String currentCatalog;
-
-    private volatile String currentSchema;
 
     /**
      * Limits the number of concurrent DuckDB query executions to the number of available CPU cores.
@@ -144,9 +140,8 @@ public class DuckDbLogicalViewEvaluatorFactory
         this.databasePath = null;
         this.shutdownHook = null;
         this.sourceTableCache = new DuckDbSourceTableCache(connection);
-        var nativeCatalogSchema = resolveNativeCatalogSchema(connection);
-        this.nativeCatalog = nativeCatalogSchema[0];
-        this.nativeSchema = nativeCatalogSchema[1];
+        this.databaseAttacher = new DuckDbDatabaseAttacher(connection);
+
         this.scheduler = Schedulers.boundedElastic();
         this.ownsScheduler = false;
     }
@@ -167,9 +162,8 @@ public class DuckDbLogicalViewEvaluatorFactory
         this.databasePath = null;
         this.shutdownHook = null;
         this.sourceTableCache = new DuckDbSourceTableCache(connection);
-        var nativeCatalogSchema = resolveNativeCatalogSchema(connection);
-        this.nativeCatalog = nativeCatalogSchema[0];
-        this.nativeSchema = nativeCatalogSchema[1];
+        this.databaseAttacher = new DuckDbDatabaseAttacher(connection);
+
         this.scheduler = scheduler;
         this.ownsScheduler = true;
     }
@@ -209,9 +203,8 @@ public class DuckDbLogicalViewEvaluatorFactory
         this.databasePath = databasePath;
         this.shutdownHook = shutdownHook;
         this.sourceTableCache = new DuckDbSourceTableCache(connection);
-        var nativeCatalogSchema = resolveNativeCatalogSchema(connection);
-        this.nativeCatalog = nativeCatalogSchema[0];
-        this.nativeSchema = nativeCatalogSchema[1];
+        this.databaseAttacher = new DuckDbDatabaseAttacher(connection);
+
         this.scheduler = scheduler;
         this.ownsScheduler = ownsScheduler;
     }
@@ -447,49 +440,17 @@ public class DuckDbLogicalViewEvaluatorFactory
     /**
      * Propagates connection-level settings to a duplicated connection.
      * {@code DuckDBConnection.duplicate()} shares the same database but starts with default
-     * connection settings. This method copies:
-     * <ul>
-     *   <li>{@code file_search_path} — for resolving relative file references</li>
-     *   <li>{@code current_catalog} and {@code current_schema} — for SQL sources using
-     *       {@code USE <catalog>.<schema>} (e.g., attached MySQL/PostgreSQL databases)</li>
-     * </ul>
+     * connection settings. This method copies {@code file_search_path} for resolving relative file
+     * references.
      *
-     * <p>Catalog and schema are cached from the base connection when first set (via
-     * {@code USE} commands from test infrastructure or scanner setup) to avoid querying the
-     * base connection from concurrent threads.
+     * <p>Catalog and schema propagation (previously done via {@code USE}) is no longer needed:
+     * SQL source handlers now produce fully qualified table references via
+     * {@link DuckDbDatabaseAttacher}, making the connection's default catalog irrelevant.
      */
-    private void propagateConnectionSettings(Connection target) throws SQLException {
+    private void propagateConnectionSettings(Connection target) {
         var storedBasePath = fileBasePath;
         if (storedBasePath != null) {
             applyFileSearchPath(target, storedBasePath);
-        }
-
-        var catalog = currentCatalog;
-        var schema = currentSchema;
-        if (catalog != null && schema != null && !(nativeCatalog.equals(catalog) && nativeSchema.equals(schema))) {
-            try (var stmt = target.createStatement()) {
-                stmt.execute(
-                        "USE \"%s\".\"%s\"".formatted(catalog.replace("\"", "\"\""), schema.replace("\"", "\"\"")));
-            }
-        }
-    }
-
-    /**
-     * Caches the current catalog and schema from the base connection. Called once before evaluations
-     * start (from {@link #match}) to avoid querying the base connection from concurrent threads.
-     */
-    private synchronized void cacheCurrentCatalogAndSchema() {
-        if (currentCatalog != null) {
-            return;
-        }
-        try (var stmt = connection.createStatement();
-                var rs = stmt.executeQuery("SELECT current_catalog(), current_schema()")) {
-            if (rs.next()) {
-                currentCatalog = rs.getString(1);
-                currentSchema = rs.getString(2);
-            }
-        } catch (SQLException e) {
-            LOG.debug("Could not read current catalog/schema", e);
         }
     }
 
@@ -508,10 +469,7 @@ public class DuckDbLogicalViewEvaluatorFactory
         // underlying database, so regular tables (source cache) are visible to all evaluators.
         // If the connection is not a DuckDBConnection (e.g. in tests with mocks), fall back to
         // using the base connection directly (existing single-threaded behavior).
-        // Cache catalog/schema from the base connection before any duplication. This avoids
-        // querying the base connection from concurrent threads.
-        cacheCurrentCatalogAndSchema();
-
+        //
         Connection evalConnection = connection;
         boolean ownsConnection = false;
         if (connection instanceof DuckDBConnection duckDbConnection) {
@@ -534,7 +492,7 @@ public class DuckDbLogicalViewEvaluatorFactory
         }
 
         var evaluator = new DuckDbLogicalViewEvaluator(
-                evalConnection, ownsConnection, sourceTableCache, concurrencyLimit, scheduler);
+                evalConnection, ownsConnection, sourceTableCache, databaseAttacher, concurrencyLimit, scheduler);
         return Optional.of(MatchedLogicalViewEvaluator.of(STRONG_MATCH, evaluator));
     }
 
@@ -548,6 +506,12 @@ public class DuckDbLogicalViewEvaluatorFactory
     public void close() {
         if (!closed.compareAndSet(false, true)) {
             return;
+        }
+
+        try {
+            databaseAttacher.detachAll();
+        } catch (Exception e) {
+            LOG.warn("Failed to detach databases during close", e);
         }
 
         try {
@@ -666,24 +630,5 @@ public class DuckDbLogicalViewEvaluatorFactory
             throw new IllegalStateException(
                     "Failed to create in-memory DuckDB connection. Ensure DuckDB JDBC is on the classpath.", e);
         }
-    }
-
-    /**
-     * Queries the connection for its current catalog and schema. Must be called before any
-     * {@code USE <catalog>.<schema>} commands are applied, so the result reflects the native
-     * catalog/schema of the DuckDB database.
-     *
-     * @return a two-element array: {@code [catalog, schema]}
-     */
-    private static String[] resolveNativeCatalogSchema(Connection conn) {
-        try (var stmt = conn.createStatement();
-                var rs = stmt.executeQuery("SELECT current_catalog(), current_schema()")) {
-            if (rs.next()) {
-                return new String[] {rs.getString(1), rs.getString(2)};
-            }
-        } catch (SQLException e) {
-            LOG.warn("Could not determine native catalog/schema, defaulting to memory.main", e);
-        }
-        return new String[] {"memory", "main"};
     }
 }

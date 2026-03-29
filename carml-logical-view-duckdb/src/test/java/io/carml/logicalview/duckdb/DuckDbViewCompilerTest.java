@@ -38,6 +38,7 @@ import io.carml.vocab.Rdf;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.UnaryOperator;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.junit.jupiter.api.Nested;
@@ -1646,9 +1647,9 @@ class DuckDbViewCompilerTest {
             lenient().when(view.getStructuralAnnotations()).thenReturn(Set.of());
             lenient().when(view.getResourceName()).thenReturn("failView");
 
-            assertThrows(
-                    IllegalArgumentException.class,
-                    () -> DuckDbViewCompiler.compile(view, EvaluationContext.defaults(), sql -> "__carml_src_0"));
+            UnaryOperator<String> resolver = sql -> "__carml_src_0";
+            var context = EvaluationContext.defaults();
+            assertThrows(IllegalArgumentException.class, () -> DuckDbViewCompiler.compile(view, context, resolver));
 
             // After the exception the ThreadLocal must be clean — a subsequent compile
             // must not see a stale resolver.
@@ -1849,7 +1850,7 @@ class DuckDbViewCompilerTest {
 
         var logicalSource = mock(LogicalSource.class);
         when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
-        when(logicalSource.getQuery()).thenReturn(null);
+        lenient().when(logicalSource.getQuery()).thenReturn(null);
         when(logicalSource.getTableName()).thenReturn(tableName);
 
         var view = mock(LogicalView.class);
@@ -1887,7 +1888,7 @@ class DuckDbViewCompilerTest {
 
         var logicalSource = mock(LogicalSource.class);
         when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
-        when(logicalSource.getQuery()).thenReturn(query);
+        lenient().when(logicalSource.getQuery()).thenReturn(query);
         lenient().when(logicalSource.getTableName()).thenReturn(tableName);
 
         var view = mock(LogicalView.class);

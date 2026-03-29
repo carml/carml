@@ -74,7 +74,7 @@ public abstract class DuckDbTestCaseSuite extends RmlTestCaseSuite {
      * previous test cases. The source table cache creates regular tables so they are visible across
      * duplicated connections; this cleanup prevents stale data from leaking across test cases.
      */
-    private void dropSourceCacheTables() {
+    protected void dropSourceCacheTables() {
         try (var stmt = connection.createStatement();
                 var rs = stmt.executeQuery(
                         "SELECT table_name FROM memory.information_schema.tables WHERE table_name LIKE '__carml_src_%'")) {

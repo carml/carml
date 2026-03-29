@@ -361,34 +361,24 @@ class SqlEvaluatorBenchmarkTest {
     // --- Mapping execution ---
 
     private BenchmarkResult runDuckDbMySQL(String turtleMapping) {
-        return runWithDuckDb(turtleMapping, "mysql", MYSQL.getHost(), MYSQL.getMappedPort(3306));
+        return runWithDuckDb(turtleMapping);
     }
 
     private BenchmarkResult runDuckDbPostgreSQL(String turtleMapping) {
-        return runWithDuckDb(turtleMapping, "postgres", POSTGRESQL.getHost(), POSTGRESQL.getMappedPort(5432));
+        return runWithDuckDb(turtleMapping);
     }
 
-    private BenchmarkResult runWithDuckDb(String turtleMapping, String dbType, String host, int port) {
+    /**
+     * Runs a mapping through the DuckDB evaluator. The {@link DuckDbDatabaseAttacher} inside the
+     * factory automatically INSTALLs, LOADs, and ATTACHes the database when it encounters the JDBC
+     * DSN in the mapping's {@code DatabaseSource}. No manual ATTACH or USE is needed.
+     */
+    private BenchmarkResult runWithDuckDb(String turtleMapping) {
         try (var conn = DriverManager.getConnection("jdbc:duckdb:")) {
-            try (Statement stmt = conn.createStatement()) {
-                stmt.execute("INSTALL %s".formatted(dbType));
-                stmt.execute("LOAD %s".formatted(dbType));
-                if ("mysql".equals(dbType)) {
-                    stmt.execute(
-                            "ATTACH 'host=%s user=root password=bench port=%d database=bench' AS db_bench (TYPE MYSQL)"
-                                    .formatted(host, port));
-                } else {
-                    stmt.execute(
-                            "ATTACH 'host=%s user=postgres password=bench port=%d dbname=bench' AS db_bench (TYPE POSTGRES)"
-                                    .formatted(host, port));
-                }
-                stmt.execute("USE db_bench");
-            }
-
             var factory = new DuckDbLogicalViewEvaluatorFactory(conn);
             return runMapping(turtleMapping, factory);
         } catch (SQLException e) {
-            throw new IllegalStateException("Failed to run DuckDB %s benchmark".formatted(dbType), e);
+            throw new IllegalStateException("Failed to run DuckDB benchmark", e);
         }
     }
 

@@ -103,6 +103,8 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
 
     private final DuckDbSourceTableCache sourceTableCache;
 
+    private final DuckDbDatabaseAttacher databaseAttacher;
+
     private final Semaphore concurrencyLimit;
 
     private final Scheduler scheduler;
@@ -110,7 +112,7 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
     private volatile boolean permitAcquired;
 
     public DuckDbLogicalViewEvaluator(Connection connection) {
-        this(connection, false, true, null, null, Schedulers.boundedElastic());
+        this(connection, false, true, null, null, null, Schedulers.boundedElastic());
     }
 
     DuckDbLogicalViewEvaluator(
@@ -118,21 +120,22 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
             boolean ownsConnection,
             DuckDbSourceTableCache sourceTableCache,
             Semaphore concurrencyLimit) {
-        this(connection, ownsConnection, true, sourceTableCache, concurrencyLimit, Schedulers.boundedElastic());
+        this(connection, ownsConnection, true, sourceTableCache, null, concurrencyLimit, Schedulers.boundedElastic());
     }
 
     DuckDbLogicalViewEvaluator(
             Connection connection,
             boolean ownsConnection,
             DuckDbSourceTableCache sourceTableCache,
+            DuckDbDatabaseAttacher databaseAttacher,
             Semaphore concurrencyLimit,
             Scheduler scheduler) {
-        this(connection, ownsConnection, true, sourceTableCache, concurrencyLimit, scheduler);
+        this(connection, ownsConnection, true, sourceTableCache, databaseAttacher, concurrencyLimit, scheduler);
     }
 
     /** Package-private constructor for testing JDBC fallback path. */
     DuckDbLogicalViewEvaluator(Connection connection, boolean useArrow) {
-        this(connection, false, useArrow, null, null, Schedulers.boundedElastic());
+        this(connection, false, useArrow, null, null, null, Schedulers.boundedElastic());
     }
 
     DuckDbLogicalViewEvaluator(
@@ -141,7 +144,14 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
             boolean useArrow,
             DuckDbSourceTableCache sourceTableCache,
             Semaphore concurrencyLimit) {
-        this(connection, ownsConnection, useArrow, sourceTableCache, concurrencyLimit, Schedulers.boundedElastic());
+        this(
+                connection,
+                ownsConnection,
+                useArrow,
+                sourceTableCache,
+                null,
+                concurrencyLimit,
+                Schedulers.boundedElastic());
     }
 
     DuckDbLogicalViewEvaluator(
@@ -149,12 +159,14 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
             boolean ownsConnection,
             boolean useArrow,
             DuckDbSourceTableCache sourceTableCache,
+            DuckDbDatabaseAttacher databaseAttacher,
             Semaphore concurrencyLimit,
             Scheduler scheduler) {
         this.connection = connection;
         this.ownsConnection = ownsConnection;
         this.useArrow = useArrow;
         this.sourceTableCache = sourceTableCache;
+        this.databaseAttacher = databaseAttacher;
         this.concurrencyLimit = concurrencyLimit;
         this.scheduler = scheduler;
     }
@@ -174,7 +186,7 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
                     validateSourceHandler(view);
                     UnaryOperator<String> sourceTableResolver =
                             sourceTableCache != null ? this::resolveSourceTable : null;
-                    var compiledView = DuckDbViewCompiler.compile(view, context, sourceTableResolver);
+                    var compiledView = DuckDbViewCompiler.compile(view, context, sourceTableResolver, databaseAttacher);
                     LOG.debug("Executing DuckDB query for view [{}]", view.getResourceName());
                     executeQuery(sink, compiledView, view, context);
                 })

@@ -103,7 +103,11 @@ final class CsvSourceHandler implements DuckDbSourceHandler {
     }
 
     @Override
-    public CompiledSource compileSource(LogicalSource logicalSource, Set<Field> viewFields, String cteAlias) {
+    public CompiledSource compileSource(
+            LogicalSource logicalSource,
+            Set<Field> viewFields,
+            String cteAlias,
+            DuckDbDatabaseAttacher databaseAttacher) {
         var source = logicalSource.getSource();
         var filePath = DuckDbFileSourceUtils.resolveFilePath(source);
 

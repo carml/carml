@@ -101,6 +101,16 @@ public final class DuckDbViewCompiler {
     private static final ThreadLocal<UnaryOperator<String>> SOURCE_TABLE_RESOLVER = new ThreadLocal<>();
 
     /**
+     * The database attacher for the current compilation. When set, SQL source handlers use it to
+     * ATTACH remote databases and produce fully qualified table references, eliminating the need for
+     * {@code USE} on duplicated connections.
+     *
+     * <p>Set by the outermost {@link #compile(LogicalView, EvaluationContext, UnaryOperator,
+     * DuckDbDatabaseAttacher)} call and inherited by recursive calls for parent views.
+     */
+    private static final ThreadLocal<DuckDbDatabaseAttacher> DATABASE_ATTACHER = new ThreadLocal<>();
+
+    /**
      * Cached class reference for the none dedup strategy, used to detect whether deduplication
      * should be applied. The concrete class is package-private in {@code io.carml.logicalview},
      * so we resolve it once via the public factory method.
@@ -132,19 +142,42 @@ public final class DuckDbViewCompiler {
      */
     static CompiledView compile(
             LogicalView view, EvaluationContext context, UnaryOperator<String> sourceTableResolver) {
-        if (sourceTableResolver == null) {
-            return compile(view, context);
-        }
+        return compile(view, context, sourceTableResolver, null);
+    }
 
-        var isOutermostResolverCall = SOURCE_TABLE_RESOLVER.get() == null;
+    /**
+     * Compiles a {@link LogicalView} with a source table resolver and a database attacher. Both are
+     * set as ThreadLocals so that recursive parent view compilations inherit them.
+     *
+     * @param view the logical view defining fields and the underlying data source
+     * @param context the evaluation context controlling projection, dedup, and limits
+     * @param sourceTableResolver resolves source SQL to a cached source table name, or {@code null}
+     *     to use source SQL directly
+     * @param databaseAttacher the attacher for SQL database sources, or {@code null} if not available
+     * @return the compiled view containing the SQL query and validation metadata
+     */
+    static CompiledView compile(
+            LogicalView view,
+            EvaluationContext context,
+            UnaryOperator<String> sourceTableResolver,
+            DuckDbDatabaseAttacher databaseAttacher) {
+        var isOutermostResolverCall = sourceTableResolver != null && SOURCE_TABLE_RESOLVER.get() == null;
+        var isOutermostAttacherCall = databaseAttacher != null && DATABASE_ATTACHER.get() == null;
+
         if (isOutermostResolverCall) {
             SOURCE_TABLE_RESOLVER.set(sourceTableResolver);
+        }
+        if (isOutermostAttacherCall) {
+            DATABASE_ATTACHER.set(databaseAttacher);
         }
         try {
             return compile(view, context);
         } finally {
             if (isOutermostResolverCall) {
                 SOURCE_TABLE_RESOLVER.remove();
+            }
+            if (isOutermostAttacherCall) {
+                DATABASE_ATTACHER.remove();
             }
         }
     }
@@ -581,7 +614,7 @@ public final class DuckDbViewCompiler {
         return DuckDbSourceHandler.forFormulation(refIri)
                 .orElseThrow(
                         () -> new IllegalArgumentException("Unsupported reference formulation: %s".formatted(refIri)))
-                .compileSource(logicalSource, view.getFields(), CTE_ALIAS);
+                .compileSource(logicalSource, view.getFields(), CTE_ALIAS, DATABASE_ATTACHER.get());
     }
 
     /**
