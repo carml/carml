@@ -100,7 +100,7 @@
 		<checker-qual.version>3.47.0</checker-qual.version>
 		<micrometer.version>1.14.6</micrometer.version>
 		<vertx.version>4.5.12</vertx.version>
-		<duckdb.version>1.4.4.0</duckdb.version>
+		<duckdb.version>1.5.1.0</duckdb.version>
 		<testcontainers.version>1.21.4</testcontainers.version>
 		<spotless.version>3.2.1</spotless.version>
 		<palantir.version>2.89.0</palantir.version>
