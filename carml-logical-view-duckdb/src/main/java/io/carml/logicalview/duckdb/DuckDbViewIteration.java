@@ -67,6 +67,44 @@ class DuckDbViewIteration implements ViewIteration {
         this.referenceableKeys = referenceableKeys;
     }
 
+    /**
+     * Private constructor that skips defensive copies. Callers must pass freshly created maps that
+     * are already wrapped with {@link Collections#unmodifiableMap(Map)}.
+     */
+    private DuckDbViewIteration(
+            int index,
+            Map<String, Object> values,
+            Map<String, IRI> naturalDatatypes,
+            ExpressionEvaluation sourceEvaluation,
+            Set<String> referenceableKeys,
+            @SuppressWarnings("unused") boolean noCopy) {
+        this.index = index;
+        this.values = values;
+        this.naturalDatatypes = naturalDatatypes;
+        this.sourceEvaluation = sourceEvaluation;
+        this.referenceableKeys = referenceableKeys;
+    }
+
+    /**
+     * Creates a view iteration that wraps the given maps directly without defensive copies. The
+     * caller must guarantee that the maps are freshly created and will not be modified after this
+     * call. The maps are wrapped with {@link Collections#unmodifiableMap(Map)} for safety.
+     */
+    static DuckDbViewIteration ofOwnedMaps(
+            int index,
+            LinkedHashMap<String, Object> values,
+            Map<String, IRI> naturalDatatypes,
+            ExpressionEvaluation sourceEvaluation,
+            Set<String> referenceableKeys) {
+        return new DuckDbViewIteration(
+                index,
+                Collections.unmodifiableMap(values),
+                Collections.unmodifiableMap(naturalDatatypes),
+                sourceEvaluation,
+                referenceableKeys,
+                true);
+    }
+
     @Override
     public Optional<Object> getValue(String key) {
         return Optional.ofNullable(values.get(key));

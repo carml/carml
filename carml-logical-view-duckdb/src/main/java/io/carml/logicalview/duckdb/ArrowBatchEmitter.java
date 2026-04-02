@@ -1,5 +1,6 @@
 package io.carml.logicalview.duckdb;
 
+import io.carml.logicalsourceresolver.PausableFluxBridge;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -16,7 +17,6 @@ import org.apache.arrow.vector.ipc.ArrowReader;
 import org.duckdb.DuckDBResultSet;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.vocabulary.XSD;
-import reactor.core.publisher.FluxSink;
 
 /**
  * Emits {@link DuckDbViewIteration}s from a DuckDB {@link java.sql.ResultSet} using Apache Arrow
@@ -43,7 +43,7 @@ final class ArrowBatchEmitter {
      * Default Arrow batch size. DuckDB's internal vector size is 2048, so we match it to avoid
      * partial batch overhead.
      */
-    private static final long ARROW_BATCH_SIZE = 2048;
+    static final long ARROW_BATCH_SIZE = 2048;
 
     private ArrowBatchEmitter() {}
 
@@ -56,7 +56,8 @@ final class ArrowBatchEmitter {
      *     would produce corrupt output since the ResultSet is consumed
      */
     static boolean tryEmitArrowBatches(
-            FluxSink<? super DuckDbViewIteration> sink,
+            PausableFluxBridge.Emitter<? super DuckDbViewIteration> emitter,
+            DuckDbPausableSource source,
             DuckDBResultSet duckDbResultSet,
             DuckDbLogicalViewEvaluator.ColumnDescriptor columns,
             CompiledView compiledView,
@@ -64,15 +65,24 @@ final class ArrowBatchEmitter {
             boolean retainSourceEvaluation) {
         try (var allocator = new RootAllocator()) {
             return emitArrowBatches(
-                    sink, duckDbResultSet, allocator, columns, compiledView, referenceableKeys, retainSourceEvaluation);
+                    emitter,
+                    source,
+                    duckDbResultSet,
+                    allocator,
+                    columns,
+                    compiledView,
+                    referenceableKeys,
+                    retainSourceEvaluation);
         } catch (NoClassDefFoundError | UnsupportedOperationException e) {
             LOG.debug("Arrow transfer not available, falling back to JDBC: {}", e.getMessage());
             return false;
         }
     }
 
+    @SuppressWarnings("java:S107") // Parameter count justified: allocator is lifecycle-managed by caller
     private static boolean emitArrowBatches(
-            FluxSink<? super DuckDbViewIteration> sink,
+            PausableFluxBridge.Emitter<? super DuckDbViewIteration> emitter,
+            DuckDbPausableSource source,
             DuckDBResultSet duckDbResultSet,
             BufferAllocator allocator,
             DuckDbLogicalViewEvaluator.ColumnDescriptor columns,
@@ -99,7 +109,8 @@ final class ArrowBatchEmitter {
         // Phase 2: Read batches. Once we start reading, the ResultSet is consumed and
         // JDBC fallback would produce corrupt output. Any exception here must propagate.
         try (arrowReader) {
-            emitFromReader(sink, arrowReader, columns, compiledView, referenceableKeys, retainSourceEvaluation);
+            emitFromReader(
+                    emitter, source, arrowReader, columns, compiledView, referenceableKeys, retainSourceEvaluation);
         } catch (IOException e) {
             throw new ArrowTransferException("Arrow batch reading failed after data transfer started", e);
         }
@@ -109,7 +120,8 @@ final class ArrowBatchEmitter {
     }
 
     private static void emitFromReader(
-            FluxSink<? super DuckDbViewIteration> sink,
+            PausableFluxBridge.Emitter<? super DuckDbViewIteration> emitter,
+            DuckDbPausableSource source,
             ArrowReader arrowReader,
             DuckDbLogicalViewEvaluator.ColumnDescriptor columns,
             CompiledView compiledView,
@@ -127,7 +139,7 @@ final class ArrowBatchEmitter {
             var columnIndex = buildColumnIndex(root);
 
             for (var row = 0; row < rowCount; row++) {
-                if (sink.isCancelled()) {
+                if (source.isCancelled()) {
                     return;
                 }
 
@@ -139,8 +151,9 @@ final class ArrowBatchEmitter {
                 var naturalDatatypes = resolveNaturalDatatypes(columnIndex, columns, values, row);
                 var sourceEvaluation = resolveSourceEvaluation(columnIndex, columns, retainSourceEvaluation, row);
 
-                sink.next(new DuckDbViewIteration(
+                emitter.next(DuckDbViewIteration.ofOwnedMaps(
                         zeroBasedIndex, values, naturalDatatypes, sourceEvaluation, referenceableKeys));
+                source.awaitDemand();
             }
         }
     }

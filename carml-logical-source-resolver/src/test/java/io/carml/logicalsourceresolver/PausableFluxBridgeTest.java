@@ -2,6 +2,7 @@ package io.carml.logicalsourceresolver;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.Duration;
@@ -11,6 +12,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import reactor.test.StepVerifier;
 
@@ -371,6 +373,160 @@ class PausableFluxBridgeTest {
 
         // When / Then
         StepVerifier.create(flux).expectNext(42).verifyComplete();
+    }
+
+    @Test
+    void givenParkBasedSource_whenUnboundedDemand_thenAllItemsDelivered() {
+        // Given — park-based source with unlimited demand (Long.MAX_VALUE from collectList).
+        // The source never pauses because demand is always positive.
+        var flux = PausableFluxBridge.<Integer>builder()
+                .sourceFactory(emitter -> new ParkBasedSource(emitter, 100))
+                .flux();
+
+        // When / Then
+        StepVerifier.create(flux).expectNextCount(100).verifyComplete();
+    }
+
+    @Test
+    void givenParkBasedSource_whenSubscribeOnDifferentThread_thenAllItemsDelivered() {
+        // Given — park-based source with subscribeOn (matching the real DuckDB evaluator pattern).
+        // No limitRate — the downstream requests Long.MAX_VALUE, so the source never pauses.
+        var flux = PausableFluxBridge.<Integer>builder()
+                .sourceFactory(emitter -> new ParkBasedSource(emitter, 1000))
+                .flux()
+                .subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic());
+
+        // When / Then
+        StepVerifier.create(flux).expectNextCount(1000).expectComplete().verify(Duration.ofSeconds(5));
+    }
+
+    @Test
+    void givenParkBasedSource_whenFullPipelineWithFlatMap_thenAllItemsDelivered() {
+        // Given — full pattern matching the byte pipeline: limitRate + subscribeOn + flatMap
+        // (with Flux.fromIterable) + publishOn. This works because flatMap creates async inner
+        // publishers, so sink.next() returns immediately without blocking the producer thread.
+        // (flatMapIterable would deadlock here because it blocks sink.next() synchronously.)
+        var flux = PausableFluxBridge.<Integer>builder()
+                .sourceFactory(emitter -> new ParkBasedSource(emitter, 500))
+                .flux()
+                .limitRate(64)
+                .subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic())
+                .flatMap(i -> reactor.core.publisher.Flux.fromIterable(List.of(i * 2, i * 2 + 1)))
+                .publishOn(reactor.core.scheduler.Schedulers.boundedElastic());
+
+        // When / Then — 500 items expanded to 1000
+        var items = flux.collectList().block(Duration.ofSeconds(5));
+        assertNotNull(items);
+        assertThat(items.size(), is(1000));
+    }
+
+    @Test
+    void givenParkBasedSource_whenCancelledAfterFewItems_thenProducerThreadExitsCleanly() throws InterruptedException {
+        // Given — park-based source emitting many items; subscriber requests a few, then cancels.
+        // Verify the producer thread exits cleanly (does not hang). Uses onDispose to cancel
+        // the source, matching the real DuckDB evaluator pattern.
+        var producerFinished = new CountDownLatch(1);
+        var sourceRef = new AtomicReference<ParkBasedSource>();
+        var itemCount = 10_000;
+
+        var flux = PausableFluxBridge.<Integer>builder()
+                .sourceFactory(emitter -> {
+                    var source = new ParkBasedSource(emitter, itemCount) {
+                        @Override
+                        public void start() {
+                            try {
+                                super.start();
+                            } finally {
+                                producerFinished.countDown();
+                            }
+                        }
+                    };
+                    sourceRef.set(source);
+                    return source;
+                })
+                .onDispose(() -> {
+                    var source = sourceRef.get();
+                    if (source != null) {
+                        source.cancelSource();
+                    }
+                })
+                .flux()
+                .subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic());
+
+        // When — request 3 items then cancel
+        StepVerifier.create(flux, 3).expectNextCount(3).thenCancel().verify(Duration.ofSeconds(5));
+
+        // Then — producer thread must exit within a reasonable time
+        assertThat(producerFinished.await(5, TimeUnit.SECONDS), is(true));
+    }
+
+    /**
+     * A source that parks the producer thread when demand is exhausted, similar to DuckDB's
+     * evaluator pattern. Unlike {@link ResumableSource} which returns from start() on pause,
+     * this source keeps start() running and parks the thread via {@link java.util.concurrent.locks.LockSupport#park}.
+     */
+    private static class ParkBasedSource implements PausableSource {
+        private final PausableFluxBridge.Emitter<Integer> emitter;
+        private final int itemCount;
+        private volatile boolean paused;
+        private volatile boolean completed;
+        private volatile boolean cancelled;
+        private volatile Thread producerThread;
+
+        ParkBasedSource(PausableFluxBridge.Emitter<Integer> emitter, int itemCount) {
+            this.emitter = emitter;
+            this.itemCount = itemCount;
+        }
+
+        @Override
+        public void start() {
+            producerThread = Thread.currentThread();
+            for (int i = 0; i < itemCount; i++) {
+                if (cancelled) {
+                    break;
+                }
+                emitter.next(i);
+                // Park when demand is exhausted (pause was called by emitter.next)
+                while (paused && !cancelled) {
+                    java.util.concurrent.locks.LockSupport.park(this);
+                }
+            }
+            completed = true;
+            emitter.complete();
+        }
+
+        @Override
+        public void pause() {
+            paused = true;
+        }
+
+        @Override
+        public void resume() {
+            paused = false;
+            var t = producerThread;
+            if (t != null) {
+                java.util.concurrent.locks.LockSupport.unpark(t);
+            }
+        }
+
+        @Override
+        public boolean isPaused() {
+            return paused;
+        }
+
+        @Override
+        public boolean isCompleted() {
+            return completed;
+        }
+
+        /** Cancels the source, unparking the producer thread so it exits its loop. */
+        void cancelSource() {
+            cancelled = true;
+            var t = producerThread;
+            if (t != null) {
+                java.util.concurrent.locks.LockSupport.unpark(t);
+            }
+        }
     }
 
     /**

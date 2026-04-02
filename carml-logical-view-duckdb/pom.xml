@@ -21,6 +21,11 @@
 
 		<dependency>
 			<groupId>io.carml</groupId>
+			<artifactId>carml-logical-source-resolver</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>io.carml</groupId>
 			<artifactId>carml-model</artifactId>
 		</dependency>
 

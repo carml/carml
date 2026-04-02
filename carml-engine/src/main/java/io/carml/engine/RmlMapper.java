@@ -270,6 +270,7 @@ public abstract class RmlMapper<T, K> {
             var counters = PipelineCounters.create();
 
             var mapped = evaluateWithObservation(rm, prepared, counters)
+                    .limitRate(256)
                     .flatMap(mapper::map)
                     .doOnNext(result -> counters.statementCount.incrementAndGet());
 
