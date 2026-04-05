@@ -2,6 +2,7 @@ package io.carml.engine;
 
 import io.carml.logicalview.EvaluationContext;
 import io.carml.model.LogicalView;
+import io.carml.model.PredicateObjectMap;
 import io.carml.model.RefObjectMap;
 import io.carml.model.TriplesMap;
 import java.util.Collections;
@@ -49,6 +50,21 @@ class DefaultResolvedMapping implements ResolvedMapping {
     @Builder.Default
     @ToString.Exclude
     private final Map<RefObjectMap, String> refObjectMapPrefixes = Map.of();
+
+    @NonNull
+    @Builder.Default
+    private final Set<PredicateObjectMap> activePredicateObjectMaps = Set.of();
+
+    // Lombok generates isEmitsClassTriples() for boolean fields, but the interface declares
+    // emitsClassTriples(). Suppress the Lombok getter and provide a manual override.
+    @Getter(lombok.AccessLevel.NONE)
+    @Builder.Default
+    private final boolean emitsClassTriples = true;
+
+    @Override
+    public boolean emitsClassTriples() {
+        return emitsClassTriples;
+    }
 
     @Override
     public Optional<FieldOrigin> getFieldOrigin(String fieldName) {

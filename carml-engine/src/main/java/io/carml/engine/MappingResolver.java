@@ -5,6 +5,7 @@ import static java.util.stream.Collectors.toUnmodifiableSet;
 import io.carml.logicalview.DedupStrategy;
 import io.carml.logicalview.EvaluationContext;
 import io.carml.logicalview.ImplicitViewFactory;
+import io.carml.logicalview.ViewDecomposer;
 import io.carml.model.AbstractLogicalSource;
 import io.carml.model.ExpressionField;
 import io.carml.model.ExpressionMap;
@@ -86,29 +87,51 @@ public final class MappingResolver {
         var sorted = topologicalSort(dependencies);
         return sorted.stream()
                 .map(tm -> resolveOne(tm, limit, dependencies.getOrDefault(tm, Set.of())))
+                .flatMap(List::stream)
                 .toList();
     }
 
-    private static ResolvedMapping resolveOne(TriplesMap triplesMap, Long limit, Set<TriplesMap> dependencies) {
+    private static List<ResolvedMapping> resolveOne(TriplesMap triplesMap, Long limit, Set<TriplesMap> dependencies) {
         var logicalSource = triplesMap.getLogicalSource();
 
         if (logicalSource instanceof LogicalView logicalView) {
             return resolveExplicit(triplesMap, logicalView, limit, dependencies);
         }
 
-        return resolveImplicit(triplesMap, limit, dependencies);
+        return List.of(resolveImplicit(triplesMap, limit, dependencies));
     }
 
-    private static ResolvedMapping resolveExplicit(
+    private static List<ResolvedMapping> resolveExplicit(
             TriplesMap triplesMap, LogicalView logicalView, Long limit, Set<TriplesMap> dependencies) {
         validateViewAndFieldNoCycles(logicalView);
         validateNoNameCollisions(logicalView);
         var optimizedView = eliminateSelfJoins(logicalView);
         var fieldOrigins = buildFieldOrigins(triplesMap, optimizedView);
-        var projectedFields = triplesMap.getReferenceExpressionSet();
-        var dedupStrategy = selectDedupStrategy(optimizedView, projectedFields);
-        var evaluationContext = EvaluationContext.of(projectedFields, dedupStrategy, limit);
-        return ResolvedMapping.of(triplesMap, optimizedView, false, fieldOrigins, evaluationContext, dependencies);
+
+        var decomposition = ViewDecomposer.decompose(triplesMap, optimizedView);
+        if (!decomposition.isDecomposed()) {
+            var projectedFields = triplesMap.getReferenceExpressionSet();
+            var dedupStrategy = selectDedupStrategy(optimizedView, projectedFields);
+            var evaluationContext = EvaluationContext.of(projectedFields, dedupStrategy, limit);
+            return List.of(ResolvedMapping.of(
+                    triplesMap, optimizedView, false, fieldOrigins, evaluationContext, dependencies));
+        }
+
+        var result = new ArrayList<ResolvedMapping>();
+        for (var group : decomposition.groups()) {
+            var projectedFields = group.projectedFields();
+            var dedupStrategy = selectDedupStrategy(optimizedView, projectedFields);
+            var evaluationContext = EvaluationContext.of(projectedFields, dedupStrategy, limit);
+            result.add(ResolvedMapping.of(
+                    triplesMap,
+                    optimizedView,
+                    fieldOrigins,
+                    evaluationContext,
+                    dependencies,
+                    group.predicateObjectMaps(),
+                    group.emitsClassTriples()));
+        }
+        return List.copyOf(result);
     }
 
     private static ResolvedMapping resolveImplicit(TriplesMap triplesMap, Long limit, Set<TriplesMap> dependencies) {

@@ -193,6 +193,56 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
                 Set.of());
     }
 
+    /**
+     * Creates a {@link RdfTriplesMapper} for a LogicalView-based TriplesMap with a specific subset
+     * of predicate-object maps and class triple emission control. Used for view decomposition where
+     * each group of POMs is evaluated separately.
+     *
+     * @param triplesMap the LV-based TriplesMap
+     * @param rdfMapperConfig the mapper configuration
+     * @param refObjectMapPrefixes mapping from RefObjectMaps to their expression prefixes
+     * @param activePredicateObjectMaps the subset of POMs to evaluate; must not be empty
+     * @param emitsClassTriples whether this mapper should emit rdf:type class triples
+     * @return a mapper wired for view iteration mapping with the given POM subset
+     */
+    static RdfTriplesMapper<Object> ofForView(
+            @NonNull TriplesMap triplesMap,
+            @NonNull RdfMapperConfig rdfMapperConfig,
+            Map<RefObjectMap, String> refObjectMapPrefixes,
+            Set<io.carml.model.PredicateObjectMap> activePredicateObjectMaps,
+            boolean emitsClassTriples) {
+
+        if (LOG.isDebugEnabled()) {
+            LOG.debug(
+                    "Creating decomposed LV mapper for TriplesMap {} with {} POMs, emitsClassTriples={}",
+                    triplesMap.getResourceName(),
+                    activePredicateObjectMaps.size(),
+                    emitsClassTriples);
+        }
+
+        var baseFactory = (RdfTermGeneratorFactory) rdfMapperConfig.getTermGeneratorFactory();
+        var rdfTermGeneratorFactory = refObjectMapPrefixes.isEmpty()
+                ? baseFactory
+                : baseFactory.withRefObjectMapPrefixes(refObjectMapPrefixes);
+
+        var subjectMappers = emitsClassTriples
+                ? createSubjectMappers(triplesMap, rdfMapperConfig)
+                : triplesMap.getSubjectMaps().stream()
+                        .map(sm -> RdfSubjectMapper.ofWithoutClasses(sm, triplesMap, rdfMapperConfig))
+                        .collect(toUnmodifiableSet());
+
+        var predicateObjectMappers = activePredicateObjectMaps.stream()
+                .map(pom -> RdfPredicateObjectMapper.forView(
+                        pom, triplesMap, rdfMapperConfig, rdfTermGeneratorFactory, refObjectMapPrefixes))
+                .collect(toUnmodifiableSet());
+
+        LogicalSourceResolver.ExpressionEvaluationFactory<Object> noOpFactory =
+                sourceRecord -> expression -> Optional.empty();
+
+        return new RdfTriplesMapper<>(
+                triplesMap, subjectMappers, predicateObjectMappers, noOpFactory, null, false, Set.of(), Set.of());
+    }
+
     static Set<TermGenerator<Resource>> createGraphGenerators(
             Set<GraphMap> graphMaps, RdfTermGeneratorFactory termGeneratorFactory) {
         return graphMaps.stream().map(termGeneratorFactory::getGraphGenerator).collect(toUnmodifiableSet());

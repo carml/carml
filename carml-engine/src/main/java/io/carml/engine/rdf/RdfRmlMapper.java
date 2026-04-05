@@ -5,6 +5,7 @@ import static java.util.stream.Collectors.toUnmodifiableSet;
 import static org.eclipse.rdf4j.model.util.Values.iri;
 
 import io.carml.engine.CompositeObserver;
+import io.carml.engine.DecompositionAwareObserver;
 import io.carml.engine.MappedValue;
 import io.carml.engine.MappingExecution;
 import io.carml.engine.MappingExecutionObserver;
@@ -45,8 +46,8 @@ import java.text.Normalizer;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
@@ -86,7 +87,7 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
             Set<SourceResolver<?>> sourceResolvers,
             List<ResolvedMapping> resolvedMappings,
             MappingExecutionObserver observer,
-            Map<TriplesMap, TriplesMapper<Statement>> lvTriplesMappers,
+            Map<ResolvedMapping, TriplesMapper<Statement>> lvTriplesMappers,
             LogicalViewEvaluator logicalViewEvaluator) {
         super(
                 triplesMaps,
@@ -401,7 +402,7 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
         }
 
         private record LvPipelineResult(
-                Map<TriplesMap, TriplesMapper<Statement>> mappers, LogicalViewEvaluator evaluator) {}
+                Map<ResolvedMapping, TriplesMapper<Statement>> mappers, LogicalViewEvaluator evaluator) {}
 
         private static boolean hasMatchingResolver(
                 LogicalSource logicalSource, Set<MatchingLogicalSourceResolverFactory> resolverFactories) {
@@ -472,16 +473,10 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
 
             var evaluator = new FactoryDelegatingEvaluator(evaluatorFactories);
 
-            // Build an index for O(1) lookup of ResolvedMapping by TriplesMap
-            var resolvedMappingIndex = new HashMap<TriplesMap, ResolvedMapping>();
+            Map<ResolvedMapping, TriplesMapper<Statement>> lvMappers = new IdentityHashMap<>();
             for (var rm : resolvedMappings) {
-                resolvedMappingIndex.putIfAbsent(rm.getOriginalTriplesMap(), rm);
-            }
-
-            Map<TriplesMap, TriplesMapper<Statement>> lvMappers = new HashMap<>();
-            for (var tm : allTriplesMaps) {
+                var tm = rm.getOriginalTriplesMap();
                 var effectiveConfig = getEffectiveMapperConfig(tm, rdfMapperConfig);
-                var rm = resolvedMappingIndex.get(tm);
 
                 var iriSafeFieldNames = extractIriSafeFieldNames(rm);
 
@@ -494,12 +489,18 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
                             .build();
                 }
 
-                Map<RefObjectMap, String> prefixes = rm != null ? rm.getRefObjectMapPrefixes() : Map.of();
+                Map<RefObjectMap, String> prefixes = rm.getRefObjectMapPrefixes();
+                var activePoms = rm.getActivePredicateObjectMaps();
+                var emitsClassTriples = rm.emitsClassTriples();
 
-                lvMappers.put(tm, RdfTriplesMapper.ofForView(tm, effectiveConfig, prefixes));
+                var mapper = activePoms.isEmpty()
+                        ? RdfTriplesMapper.ofForView(tm, effectiveConfig, prefixes)
+                        : RdfTriplesMapper.ofForView(tm, effectiveConfig, prefixes, activePoms, emitsClassTriples);
+                lvMappers.put(rm, mapper);
             }
 
-            wireMappers(lvMappers.values(), resolvedMappings, observer);
+            var effectiveObserver = DecompositionAwareObserver.wrap(observer, resolvedMappings);
+            wireLvMappers(lvMappers, effectiveObserver);
             return new LvPipelineResult(Map.copyOf(lvMappers), evaluator);
         }
 
@@ -515,6 +516,18 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
                         rtm.setObserver(observer);
                         break;
                     }
+                }
+            }
+        }
+
+        private static void wireLvMappers(
+                Map<ResolvedMapping, TriplesMapper<Statement>> lvMappers, MappingExecutionObserver observer) {
+            for (var entry : lvMappers.entrySet()) {
+                var rm = entry.getKey();
+                var mapper = entry.getValue();
+                if (mapper instanceof RdfTriplesMapper<?> rtm) {
+                    rtm.setResolvedMapping(rm);
+                    rtm.setObserver(observer);
                 }
             }
         }

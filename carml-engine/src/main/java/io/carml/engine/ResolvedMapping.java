@@ -2,6 +2,7 @@ package io.carml.engine;
 
 import io.carml.logicalview.EvaluationContext;
 import io.carml.model.LogicalView;
+import io.carml.model.PredicateObjectMap;
 import io.carml.model.RefObjectMap;
 import io.carml.model.TriplesMap;
 import java.util.Map;
@@ -102,6 +103,40 @@ public interface ResolvedMapping {
     }
 
     /**
+     * Creates a ResolvedMapping for a decomposed view group, with a subset of predicate-object maps
+     * and a flag controlling class triple emission.
+     *
+     * @param originalTriplesMap the TriplesMap as authored by the user
+     * @param effectiveView the effective LogicalView the engine processes
+     * @param fieldOrigins mapping from field names to their provenance information
+     * @param evaluationContext the evaluation context controlling field projection and limits
+     * @param dependencies the set of TriplesMaps that this mapping depends on via RefObjectMaps
+     * @param activePredicateObjectMaps the subset of POMs for this decomposition group; empty means
+     *     all
+     * @param emitsClassTriples whether this group should emit rdf:type class triples
+     * @return a new ResolvedMapping instance
+     */
+    static ResolvedMapping of(
+            TriplesMap originalTriplesMap,
+            LogicalView effectiveView,
+            Map<String, FieldOrigin> fieldOrigins,
+            EvaluationContext evaluationContext,
+            Set<TriplesMap> dependencies,
+            Set<PredicateObjectMap> activePredicateObjectMaps,
+            boolean emitsClassTriples) {
+        return DefaultResolvedMapping.builder()
+                .originalTriplesMap(originalTriplesMap)
+                .effectiveView(effectiveView)
+                .implicitView(false)
+                .fieldOrigins(fieldOrigins)
+                .evaluationContext(evaluationContext)
+                .dependencies(dependencies)
+                .activePredicateObjectMaps(activePredicateObjectMaps)
+                .emitsClassTriples(emitsClassTriples)
+                .build();
+    }
+
+    /**
      * The TriplesMap as authored by the user. Used for error reporting and diagnostics.
      */
     TriplesMap getOriginalTriplesMap();
@@ -155,5 +190,29 @@ public interface ResolvedMapping {
      */
     default Map<RefObjectMap, String> getRefObjectMapPrefixes() {
         return Map.of();
+    }
+
+    /**
+     * Returns the subset of predicate-object maps that this resolved mapping should evaluate. An
+     * empty set indicates all POMs from the original TriplesMap should be evaluated.
+     *
+     * <p>Non-empty when this mapping represents a decomposition group containing only a subset of
+     * the original TriplesMap's POMs.
+     *
+     * @return the active POM subset, or an empty set if all POMs are active
+     */
+    default Set<PredicateObjectMap> getActivePredicateObjectMaps() {
+        return Set.of();
+    }
+
+    /**
+     * Whether this resolved mapping should emit rdf:type class triples for the subject. When a
+     * TriplesMap is decomposed, only one group (the narrowest determinant) emits class triples to
+     * avoid duplicates.
+     *
+     * @return {@code true} if class triples should be emitted, {@code false} otherwise
+     */
+    default boolean emitsClassTriples() {
+        return true;
     }
 }

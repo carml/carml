@@ -78,6 +78,41 @@ public class RdfSubjectMapper {
                 rdfMapperConfig.getValueFactorySupplier().get());
     }
 
+    /**
+     * Creates a subject mapper that does not emit rdf:type class triples. Used for decomposition
+     * groups that are not the narrowest determinant, to avoid duplicate class triples.
+     *
+     * @param subjectMap the subject map definition
+     * @param triplesMap the parent TriplesMap
+     * @param rdfMapperConfig the mapper configuration
+     * @return a subject mapper with an empty class set
+     */
+    public static RdfSubjectMapper ofWithoutClasses(
+            @NonNull SubjectMap subjectMap, @NonNull TriplesMap triplesMap, @NonNull RdfMapperConfig rdfMapperConfig) {
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Creating class-less mapper for SubjectMap {}", log(triplesMap, subjectMap));
+        }
+
+        RdfTermGeneratorFactory rdfTermGeneratorFactory =
+                (RdfTermGeneratorFactory) rdfMapperConfig.getTermGeneratorFactory();
+
+        TermGenerator<Resource> subjectGenerator;
+        try {
+            subjectGenerator = rdfTermGeneratorFactory.getSubjectGenerator(subjectMap);
+        } catch (RuntimeException ex) {
+            throw new TriplesMapperException(
+                    "Exception occurred while creating subject generator for %s"
+                            .formatted(exception(triplesMap, subjectMap)),
+                    ex);
+        }
+
+        return new RdfSubjectMapper(
+                subjectGenerator,
+                RdfTriplesMapper.createGraphGenerators(subjectMap.getGraphMaps(), rdfTermGeneratorFactory),
+                Set.of(),
+                rdfMapperConfig.getValueFactorySupplier().get());
+    }
+
     public Result map(ExpressionEvaluation expressionEvaluation, DatatypeMapper datatypeMapper) {
         LOG.debug("Determining subjects ...");
 

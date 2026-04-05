@@ -32,6 +32,7 @@ import io.carml.model.ParentMap;
 import io.carml.model.PredicateObjectMap;
 import io.carml.model.PrimaryKeyAnnotation;
 import io.carml.model.RefObjectMap;
+import io.carml.model.StructuralAnnotation;
 import io.carml.model.SubjectMap;
 import io.carml.model.TriplesMap;
 import io.carml.model.UniqueAnnotation;
@@ -582,6 +583,154 @@ class MappingResolverTest {
         assertThat(
                 noArgResult.get(0).getEvaluationContext().getLimit(),
                 is(nullLimitResult.get(0).getEvaluationContext().getLimit()));
+    }
+
+    // --- View decomposition ---
+
+    @Nested
+    class ViewDecompositionTests {
+
+        @Test
+        void resolve_givenDecomposableView_returnsMultipleResolvedMappings() {
+            // PK on {id, student_id}, FK on {student_id} -> parent view
+            // Join from parent view gives us _join0.student_name
+            // POM1 uses "name" (determined by full PK)
+            // POM2 uses "_join0.student_name" (determined by FK subset {student_id})
+            var idField = mockField("id");
+            var studentIdField = mockField("student_id");
+            var nameField = mockField("name");
+
+            var pk = mock(PrimaryKeyAnnotation.class);
+            when(pk.getOnFields()).thenReturn(List.of(idField, studentIdField));
+
+            var parentView = mock(LogicalView.class);
+            var joinField = mockExpressionField("_join0.student_name");
+            var join = mock(LogicalViewJoin.class);
+            when(join.getParentLogicalView()).thenReturn(parentView);
+            when(join.getFields()).thenReturn(Set.of(joinField));
+            when(join.getJoinConditions()).thenReturn(Set.of());
+
+            var fk = mock(ForeignKeyAnnotation.class);
+            when(fk.getOnFields()).thenReturn(List.of(studentIdField));
+            when(fk.getTargetView()).thenReturn(parentView);
+
+            var view = mockLogicalViewForDecomposition(
+                    Set.of(idField, studentIdField, nameField), Set.of(pk, fk), Set.of(join));
+
+            var pom1 = mockPom(Set.of("name"), false);
+            var pom2 = mockPom(Set.of("_join0.student_name"), false);
+
+            var tm = mockTriplesMapForDecomposition(
+                    view,
+                    Set.of(pom1, pom2),
+                    Set.of("id", "student_id"),
+                    Set.of("id", "student_id", "name", "_join0.student_name"));
+
+            var result = MappingResolver.resolve(Set.of(tm));
+
+            // Should produce 2 resolved mappings due to different determinants
+            assertThat(result, hasSize(2));
+
+            // Exactly one emits class triples
+            var classTripleCount =
+                    result.stream().filter(ResolvedMapping::emitsClassTriples).count();
+            assertThat(classTripleCount, is(1L));
+
+            // Each has different non-empty activePredicateObjectMaps
+            for (var mapping : result) {
+                assertThat(
+                        "activePredicateObjectMaps must not be empty",
+                        mapping.getActivePredicateObjectMaps().isEmpty(),
+                        is(false));
+            }
+            assertThat(
+                    "activePredicateObjectMaps must differ across sub-groups",
+                    result.get(0)
+                            .getActivePredicateObjectMaps()
+                            .equals(result.get(1).getActivePredicateObjectMaps()),
+                    is(false));
+
+            // Each has different projectedFields in its EvaluationContext
+            assertThat(
+                    "projectedFields must differ across sub-groups",
+                    result.get(0)
+                            .getEvaluationContext()
+                            .getProjectedFields()
+                            .equals(result.get(1).getEvaluationContext().getProjectedFields()),
+                    is(false));
+        }
+
+        private ExpressionField mockExpressionField(String fieldName) {
+            var field = mock(ExpressionField.class);
+            lenient().when(field.getFieldName()).thenReturn(fieldName);
+            lenient().when(field.getFields()).thenReturn(Set.of());
+            return field;
+        }
+
+        private Field mockField(String fieldName) {
+            var field = mock(Field.class);
+            lenient().when(field.getFieldName()).thenReturn(fieldName);
+            lenient().when(field.getFields()).thenReturn(Set.of());
+            return field;
+        }
+
+        private PredicateObjectMap mockPom(Set<String> referenceExpressions, boolean hasJoinCondition) {
+            var pom = mock(PredicateObjectMap.class);
+            lenient().when(pom.getReferenceExpressionSet()).thenReturn(referenceExpressions);
+            lenient().when(pom.getPredicateMaps()).thenReturn(Set.of());
+            lenient().when(pom.getGraphMaps()).thenReturn(Set.of());
+
+            if (hasJoinCondition) {
+                var joinCondition = mock(Join.class);
+                var refObjectMap = mock(RefObjectMap.class);
+                lenient().when(refObjectMap.getJoinConditions()).thenReturn(Set.of(joinCondition));
+                lenient().when(pom.getObjectMaps()).thenReturn(Set.of(refObjectMap));
+            } else {
+                lenient().when(pom.getObjectMaps()).thenReturn(Set.of());
+            }
+
+            return pom;
+        }
+
+        private LogicalView mockLogicalViewForDecomposition(
+                Set<Field> fields, Set<? extends StructuralAnnotation> annotations, Set<LogicalViewJoin> leftJoins) {
+            var view = mock(LogicalView.class);
+            lenient().when(view.getFields()).thenReturn(fields);
+            @SuppressWarnings("unchecked")
+            var typedAnnotations = (Set<StructuralAnnotation>) annotations;
+            lenient().when(view.getStructuralAnnotations()).thenReturn(typedAnnotations);
+            lenient().when(view.getLeftJoins()).thenReturn(leftJoins);
+            lenient().when(view.getInnerJoins()).thenReturn(Set.of());
+            return view;
+        }
+
+        private TriplesMap mockTriplesMapForDecomposition(
+                LogicalView view,
+                Set<PredicateObjectMap> poms,
+                Set<String> subjectExpressions,
+                Set<String> allExpressions) {
+            var tm = mock(TriplesMap.class);
+            lenient().when(tm.getLogicalSource()).thenReturn(view);
+            lenient().when(tm.getPredicateObjectMaps()).thenReturn(poms);
+            lenient().when(tm.getReferenceExpressionSet()).thenReturn(allExpressions);
+
+            var subjectMap = mock(SubjectMap.class);
+            lenient().when(subjectMap.getReferenceExpressionSet()).thenReturn(subjectExpressions);
+            lenient().when(tm.getSubjectMaps()).thenReturn(Set.of(subjectMap));
+
+            // Set up per-POM reference expression set
+            for (var pom : poms) {
+                var pomExprs = pom.getReferenceExpressionSet();
+                var subjectAndPomExprs = new java.util.LinkedHashSet<>(subjectExpressions);
+                subjectAndPomExprs.addAll(pomExprs);
+                lenient().when(tm.getReferenceExpressionSet(Set.of(pom))).thenReturn(Set.copyOf(subjectAndPomExprs));
+            }
+
+            // Also set up for any combination of POMs (for the single-group case)
+            lenient().when(tm.getReferenceExpressionSet(poms)).thenReturn(allExpressions);
+
+            return tm;
+        }
     }
 
     // --- Cycle detection: viewOn cycles ---
@@ -1695,7 +1844,8 @@ class MappingResolverTest {
             assertThat(result, hasSize(3));
 
             // C must come before B, B must come before A
-            var order = result.stream().map(m -> m.getOriginalTriplesMap()).toList();
+            var order =
+                    result.stream().map(ResolvedMapping::getOriginalTriplesMap).toList();
             assertThat(order.indexOf(tmC) < order.indexOf(tmB), is(true));
             assertThat(order.indexOf(tmB) < order.indexOf(tmA), is(true));
         }
@@ -1712,7 +1862,8 @@ class MappingResolverTest {
 
             assertThat(result, hasSize(4));
 
-            var order = result.stream().map(m -> m.getOriginalTriplesMap()).toList();
+            var order =
+                    result.stream().map(ResolvedMapping::getOriginalTriplesMap).toList();
             // D must come before B and C
             assertThat(order.indexOf(tmD) < order.indexOf(tmB), is(true));
             assertThat(order.indexOf(tmD) < order.indexOf(tmC), is(true));
@@ -1740,8 +1891,9 @@ class MappingResolverTest {
             var pomB = mock(PredicateObjectMap.class);
             when(pomB.getObjectMaps()).thenReturn(Set.of(romBtoA));
             when(tmB.getPredicateObjectMaps()).thenReturn(Set.of(pomB));
+            var tmaps = Set.of(tmA, tmB);
 
-            var exception = assertThrows(RmlMapperException.class, () -> MappingResolver.resolve(Set.of(tmA, tmB)));
+            var exception = assertThrows(RmlMapperException.class, () -> MappingResolver.resolve(tmaps));
 
             assertThat(exception.getMessage(), containsString("Cycle detected in TriplesMap dependencies"));
             assertThat(exception.getMessage(), containsString("A"));
@@ -1775,9 +1927,9 @@ class MappingResolverTest {
             var pomC = mock(PredicateObjectMap.class);
             when(pomC.getObjectMaps()).thenReturn(Set.of(romCtoA));
             when(tmC.getPredicateObjectMaps()).thenReturn(Set.of(pomC));
+            var tmaps = Set.of(tmA, tmB, tmC);
 
-            var exception =
-                    assertThrows(RmlMapperException.class, () -> MappingResolver.resolve(Set.of(tmA, tmB, tmC)));
+            var exception = assertThrows(RmlMapperException.class, () -> MappingResolver.resolve(tmaps));
 
             assertThat(exception.getMessage(), containsString("Cycle detected in TriplesMap dependencies"));
         }

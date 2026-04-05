@@ -63,10 +63,11 @@ public abstract class RmlMapper<T, K> {
     private final List<ResolvedMapping> resolvedMappings;
 
     /**
-     * LV-based triples mappers, keyed by TriplesMap. Empty when no TriplesMap uses an explicit
-     * LogicalView.
+     * LV-based triples mappers, keyed by ResolvedMapping. Empty when no TriplesMap uses an explicit
+     * LogicalView. When decomposition is active, a single TriplesMap may have multiple entries (one
+     * per decomposition group).
      */
-    private final Map<TriplesMap, TriplesMapper<T>> lvTriplesMappers;
+    private final Map<ResolvedMapping, TriplesMapper<T>> lvTriplesMappers;
 
     /**
      * Evaluator for LogicalView-based TriplesMap instances. Null when no LV TMs exist.
@@ -85,7 +86,7 @@ public abstract class RmlMapper<T, K> {
             @NonNull MappingPipeline<T> mappingPipeline,
             @NonNull Set<SourceResolver<?>> sourceResolvers,
             @NonNull List<ResolvedMapping> resolvedMappings,
-            @NonNull Map<TriplesMap, TriplesMapper<T>> lvTriplesMappers,
+            @NonNull Map<ResolvedMapping, TriplesMapper<T>> lvTriplesMappers,
             LogicalViewEvaluator logicalViewEvaluator,
             @NonNull MappingExecutionObserver observer) {
         this.triplesMaps = triplesMaps;
@@ -266,7 +267,7 @@ public abstract class RmlMapper<T, K> {
         }
 
         return Flux.fromIterable(prepared.mappings()).flatMap(rm -> {
-            var mapper = lvTriplesMappers.get(rm.getOriginalTriplesMap());
+            var mapper = lvTriplesMappers.get(rm);
             var counters = PipelineCounters.create();
 
             var mapped = evaluateWithObservation(rm, prepared, counters)
@@ -303,7 +304,7 @@ public abstract class RmlMapper<T, K> {
 
         return Flux.fromIterable(prepared.mappings())
                 .flatMap(rm -> {
-                    var mapper = lvTriplesMappers.get(rm.getOriginalTriplesMap());
+                    var mapper = lvTriplesMappers.get(rm);
                     var counters = PipelineCounters.create();
 
                     var mapped = evaluateWithObservation(rm, prepared, counters).flatMapIterable(iteration -> {
@@ -334,7 +335,7 @@ public abstract class RmlMapper<T, K> {
 
         var filteredMappings = resolvedMappings.stream()
                 .filter(rm -> triplesMapFilter.isEmpty() || triplesMapFilter.contains(rm.getOriginalTriplesMap()))
-                .filter(rm -> lvTriplesMappers.containsKey(rm.getOriginalTriplesMap()))
+                .filter(lvTriplesMappers::containsKey)
                 .toList();
 
         if (filteredMappings.isEmpty()) {
