@@ -7,7 +7,8 @@
 .factorypath
 
 # maven
-**/target
+**/target/
+!**/src/**/target/
 
 # Intellij
 .idea/

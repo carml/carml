@@ -24,6 +24,7 @@ import io.carml.engine.function.FunctionProvider;
 import io.carml.engine.function.FunctionRegistry;
 import io.carml.engine.function.ParameterDescriptor;
 import io.carml.engine.function.ReturnDescriptor;
+import io.carml.engine.target.TargetRouter;
 import io.carml.logicalsourceresolver.MatchingLogicalSourceResolverFactory;
 import io.carml.logicalsourceresolver.sourceresolver.ClassPathResolver;
 import io.carml.logicalsourceresolver.sourceresolver.FileResolver;
@@ -142,6 +143,8 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
         private Set<String> excludeLogicalSourceResolvers = new HashSet<>();
 
         private final List<LogicalViewEvaluatorFactory> logicalViewEvaluatorFactories = new ArrayList<>();
+
+        private TargetRouter targetRouter;
 
         /**
          * Sets the base IRI used in resolving relative IRIs produced by RML mappings.<br>
@@ -359,6 +362,20 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
             return this;
         }
 
+        /**
+         * Registers a {@link TargetRouter} for routing generated statements to declared
+         * {@code rml:LogicalTarget}s. The router is automatically added as an observer and manages
+         * its own lifecycle: opening writers on the first mapping start, flushing on checkpoints,
+         * and closing when all mappings complete.
+         *
+         * @param targetRouter the target router to register
+         * @return {@link Builder}
+         */
+        public Builder targetRouter(TargetRouter targetRouter) {
+            this.targetRouter = targetRouter;
+            return this;
+        }
+
         public RdfRmlMapper build() {
             var resolverFactories = loadResolverFactories();
 
@@ -372,6 +389,11 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
             var mappableTriplesMaps = Mappings.filterMappable(triplesMaps);
 
             var resolvedMappings = MappingResolver.resolve(mappableTriplesMaps, limit);
+
+            if (targetRouter != null) {
+                observers.add(targetRouter);
+            }
+
             var observer = CompositeObserver.of(observers);
 
             var lsTriplesMaps = mappableTriplesMaps.stream()
