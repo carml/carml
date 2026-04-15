@@ -5,6 +5,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
+import java.util.Map;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.Value;
@@ -16,6 +17,10 @@ import reactor.core.publisher.Flux;
  * <p>Contains all shared serialization logic: direct stream output, term encoding, literal
  * escaping, LRU caching, and the builder pattern. Subclasses only need to implement
  * {@link #writeStatement(Statement, OutputStream)} to define the per-statement output format.
+ *
+ * <p>Implements the {@link RdfSerializer} lifecycle ({@link #start}, {@link #write}, {@link #end},
+ * {@link #close}) as well as the byte-level fast path ({@link #supportsByteEncoding()},
+ * {@link #encode(Statement)}).
  *
  * <p>Key optimizations:
  * <ul>
@@ -30,7 +35,7 @@ import reactor.core.publisher.Flux;
  * call is safe (statements are written sequentially), but concurrent {@link #serialize} calls on
  * the same instance will corrupt the shared LRU cache.
  */
-abstract class AbstractFastRdfSerializer {
+abstract class AbstractFastRdfSerializer implements RdfSerializer {
 
     static final byte[] SPACE = RdfTermEncoding.SPACE;
 
@@ -43,13 +48,78 @@ abstract class AbstractFastRdfSerializer {
 
     private final LruTermCache termCache;
 
+    /** The buffered output stream used by the {@link RdfSerializer} lifecycle methods. */
+    private BufferedOutputStream lifecycleOutput;
+
     AbstractFastRdfSerializer(int cacheMaxSize) {
         this.termCache = new LruTermCache(cacheMaxSize);
     }
 
+    // ---- RdfSerializer lifecycle ----
+
+    @Override
+    public void start(OutputStream output, Map<String, String> namespaces) {
+        if (lifecycleOutput != null) {
+            throw new IllegalStateException("start() called while a session is already active");
+        }
+        // N-Triples and N-Quads have no preamble; namespaces are ignored.
+        this.lifecycleOutput = new BufferedOutputStream(output, OUTPUT_BUFFER_SIZE);
+    }
+
+    @Override
+    public void write(Statement statement) {
+        if (lifecycleOutput == null) {
+            throw new IllegalStateException("write() called outside of an active serialization session");
+        }
+        writeStatement(statement, lifecycleOutput);
+    }
+
+    @Override
+    public void flush() {
+        if (lifecycleOutput != null) {
+            try {
+                lifecycleOutput.flush();
+            } catch (IOException ioException) {
+                throw new UncheckedIOException(ioException);
+            }
+        }
+    }
+
+    @Override
+    public void end() {
+        // N-Triples and N-Quads have no epilogue; flush and release the session so further write()
+        // calls fail fast.
+        flush();
+        lifecycleOutput = null;
+    }
+
+    @Override
+    public void close() {
+        // Release the reference without closing the underlying output stream.
+        lifecycleOutput = null;
+    }
+
+    // ---- Byte-level fast path ----
+
+    @Override
+    public boolean supportsByteEncoding() {
+        return true;
+    }
+
+    @Override
+    public byte[] encode(Statement statement) {
+        return serializeStatement(statement);
+    }
+
+    // ---- Legacy Flux-based API (used by OutputHandler) ----
+
     /**
      * Serializes a {@link Flux} of {@link Statement}s to the provided {@link OutputStream}.
      * Statements are written directly through a {@link BufferedOutputStream} for throughput.
+     *
+     * <p>This is a standalone convenience method that does <strong>not</strong> use the
+     * {@link RdfSerializer} lifecycle ({@link #start}/{@link #write}/{@link #end}). It creates
+     * its own internal buffer and flushes on completion.
      *
      * @param statements the reactive stream of RDF statements to serialize
      * @param output the output stream to write serialized bytes to
