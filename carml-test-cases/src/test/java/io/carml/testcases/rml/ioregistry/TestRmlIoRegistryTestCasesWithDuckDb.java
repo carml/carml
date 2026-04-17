@@ -48,7 +48,7 @@ class TestRmlIoRegistryTestCasesWithDuckDb extends DuckDbTestCaseSuite {
     private static final String POSTGRESQL_DRIVER = "org.postgresql.Driver";
 
     @Container
-    private static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.0")
+    private static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.4")
             .withDatabaseName("test")
             .withUsername("root")
             .withPassword("test");

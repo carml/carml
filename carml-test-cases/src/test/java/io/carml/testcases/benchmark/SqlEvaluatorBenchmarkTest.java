@@ -54,7 +54,7 @@ class SqlEvaluatorBenchmarkTest {
     private static final int[] ROW_COUNTS = {100, 1_000, 10_000, 100_000};
 
     @Container
-    private static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.0")
+    private static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.4")
             .withDatabaseName("bench")
             .withUsername("root")
             .withPassword("bench");
