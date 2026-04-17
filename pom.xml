@@ -64,6 +64,7 @@
 		<module>carml-logical-view-sql-postgresql</module>
 		<module>carml-observability-micrometer</module>
 		<module>carml-converters-jena</module>
+		<module>carml-serializer-jena</module>
     <module>carml-test-cases</module>
   </modules>
 
@@ -204,6 +205,18 @@
 			<dependency>
 				<groupId>io.carml</groupId>
 				<artifactId>carml-observability-micrometer</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>io.carml</groupId>
+				<artifactId>carml-converters-jena</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>io.carml</groupId>
+				<artifactId>carml-serializer-jena</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 
