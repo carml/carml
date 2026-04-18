@@ -2,22 +2,20 @@ package io.carml.engine.target;
 
 import io.carml.model.FilePath;
 import io.carml.output.RdfSerializerFactory;
+import io.carml.output.SerializerMode;
 import io.carml.util.Encodings;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.rdf4j.model.IRI;
-import org.eclipse.rdf4j.rio.RDFFormat;
 
 /**
  * Creates {@link TargetWriter} instances from RML target model objects. Handles mapping of
- * serialization format IRIs ({@code http://www.w3.org/ns/formats/}) to RDF4J {@link RDFFormat},
- * resolution of file paths from {@link FilePath} targets, and configuration of compression and
- * encoding.
+ * serialization format IRIs ({@code http://www.w3.org/ns/formats/}) to the bare format tokens
+ * understood by the {@link RdfSerializerFactory} SPI, resolution of file paths from
+ * {@link FilePath} targets, and configuration of compression and encoding.
  *
  * <p>For file-based targets, use {@link #createFileWriter(FilePath, IRI)}. The serialization format
  * is passed separately because in RML-IO it is a property of the {@code rml:LogicalTarget}, not of
@@ -29,37 +27,33 @@ public class TargetWriterFactory {
 
     private static final String FORMATS_NS = "http://www.w3.org/ns/formats/";
 
-    private static final Map<String, RDFFormat> FORMAT_MAP = Map.of(
-            FORMATS_NS + "N-Triples", RDFFormat.NTRIPLES,
-            FORMATS_NS + "N-Quads", RDFFormat.NQUADS,
-            FORMATS_NS + "Turtle", RDFFormat.TURTLE,
-            FORMATS_NS + "TriG", RDFFormat.TRIG,
-            FORMATS_NS + "JSON-LD", RDFFormat.JSONLD,
-            FORMATS_NS + "RDF_XML", RDFFormat.RDFXML,
-            FORMATS_NS + "N3", RDFFormat.N3,
-            FORMATS_NS + "RDF_JSON", RDFFormat.RDFJSON);
-
-    private static final RDFFormat DEFAULT_FORMAT = RDFFormat.NQUADS;
+    /**
+     * Default {@link RdfSerializerFactory} shared by instances that do not configure one
+     * explicitly. Initialized once at class load to avoid a {@link java.util.ServiceLoader} scan on
+     * every builder invocation — mirrors the single-scan pattern used by
+     * {@link FileTargetWriter}.
+     */
+    private static final RdfSerializerFactory DEFAULT_SERIALIZER_FACTORY = RdfSerializerFactory.create();
 
     /**
-     * Maps RDF4J {@link RDFFormat}s to the bare format tokens understood by the
-     * {@link io.carml.output.RdfSerializerFactory RdfSerializerFactory} SPI. Bare tokens align with
-     * common file extensions.
+     * Maps W3C Formats namespace IRIs directly to the bare format tokens understood by the
+     * {@link RdfSerializerFactory} SPI. Bare tokens align with common file extensions.
      *
-     * <p>{@link RDFFormat#RDFJSON} is intentionally absent: no {@code RdfSerializerProvider}
-     * currently registers the {@code "rdfjson"} token, so attempting to select a serializer for
-     * that format would fail at runtime inside {@link RdfSerializerFactory#selectProvider}. Config
-     * time rejection via {@link #rdfFormatToSerializerFormat(RDFFormat)} surfaces the problem
-     * before any file is opened.
+     * <p>{@code formats:RDF_JSON} is intentionally omitted: no {@code RdfSerializerProvider}
+     * currently registers an {@code "rdfjson"} token, so requests for that format are rejected at
+     * configuration time by {@link #resolveSerializerFormat(IRI)} rather than failing mid-write
+     * inside {@link RdfSerializerFactory#selectProvider}.
      */
-    private static final Map<RDFFormat, String> SERIALIZER_FORMAT_BY_RDF_FORMAT = Map.of(
-            RDFFormat.NTRIPLES, "nt",
-            RDFFormat.NQUADS, "nq",
-            RDFFormat.TURTLE, "ttl",
-            RDFFormat.TRIG, "trig",
-            RDFFormat.JSONLD, "jsonld",
-            RDFFormat.RDFXML, "rdfxml",
-            RDFFormat.N3, "n3");
+    private static final Map<String, String> SERIALIZER_FORMAT_BY_IRI = Map.of(
+            FORMATS_NS + "N-Triples", "nt",
+            FORMATS_NS + "N-Quads", "nq",
+            FORMATS_NS + "Turtle", "ttl",
+            FORMATS_NS + "TriG", "trig",
+            FORMATS_NS + "JSON-LD", "jsonld",
+            FORMATS_NS + "RDF_XML", "rdfxml",
+            FORMATS_NS + "N3", "n3");
+
+    private static final String DEFAULT_FORMAT_TOKEN = "nq";
 
     /**
      * Base path for resolving relative file paths when root is
@@ -75,16 +69,28 @@ public class TargetWriterFactory {
     private final Path mappingDirectoryPath;
 
     /**
+     * {@link RdfSerializerFactory} used both for config-time provider validation and for creating
+     * serializers inside the {@link FileTargetWriter}. Defaults to a class-static factory instance
+     * shared across all builders — see {@link #DEFAULT_SERIALIZER_FACTORY}.
+     */
+    @Builder.Default
+    private final RdfSerializerFactory serializerFactory = DEFAULT_SERIALIZER_FACTORY;
+
+    /**
      * Creates a {@link FileTargetWriter} for a file-based RML target.
      *
      * @param filePath the file path target containing path, root, compression, and encoding
      * @param serialization the serialization format IRI (e.g. {@code formats:N-Triples}), or
      *     {@code null} to use the default (N-Quads)
      * @return a configured {@link FileTargetWriter}, not yet opened
+     * @throws IllegalArgumentException if {@code serialization} is a non-null IRI that cannot be
+     *     resolved to a supported format token, or if no registered
+     *     {@link io.carml.output.RdfSerializerProvider} supports the resolved token in
+     *     {@link SerializerMode#STREAMING} mode
      */
     public TargetWriter createFileWriter(FilePath filePath, IRI serialization) {
-        var rdfFormat = resolveRdfFormat(serialization);
-        var formatToken = rdfFormatToSerializerFormat(rdfFormat);
+        var formatToken = resolveSerializerFormat(serialization);
+        validateProviderExists(formatToken);
         var compression = filePath.getCompression();
         var charset = Encodings.resolveCharset(filePath.getEncoding()).orElse(null);
         var resolvedPath = resolveFilePath(filePath);
@@ -92,55 +98,76 @@ public class TargetWriterFactory {
         LOG.debug(
                 "Creating file target writer: path={}, format={}, compression={}",
                 resolvedPath,
-                rdfFormat,
+                formatToken,
                 compression);
 
         return FileTargetWriter.builder()
                 .filePath(resolvedPath)
                 .format(formatToken)
+                .serializerFactory(serializerFactory)
                 .compression(compression)
                 .charset(charset)
                 .build();
     }
 
     /**
-     * Maps an RDF4J {@link RDFFormat} to the bare serializer format token expected by
-     * {@link io.carml.output.RdfSerializerFactory}. Used here as a temporary shim until Task 7.8
-     * reworks the factory to operate directly on serialization IRIs / format tokens.
+     * Resolves a W3C Formats namespace IRI directly to the bare serializer format token expected by
+     * {@link RdfSerializerFactory}.
      *
-     * <p>{@link RDFFormat#RDFJSON} is rejected explicitly: no {@code RdfSerializerProvider}
-     * registers the {@code "rdfjson"} token, and failing at config time is preferable to failing
-     * mid-write inside {@link RdfSerializerFactory#selectProvider}.
+     * <p><strong>Behavior change vs. Task 7.7:</strong> previously, IRIs in the Formats namespace
+     * that were not in the lookup table produced a warning and silently fell back to N-Quads. Now
+     * any unknown IRI — whether in the Formats namespace (e.g. {@code formats:RDF_JSON}, or any
+     * future addition we have not mapped) or outside it (not a valid {@code rml:serialization}
+     * value) — causes an {@link IllegalArgumentException} to be thrown. Failing fast at
+     * configuration time is the right call now that the {@link RdfSerializerFactory} SPI rejects
+     * bad tokens at runtime anyway, and it surfaces configuration mistakes before any file is
+     * opened.
      *
-     * @throws IllegalArgumentException if {@code format} has no serializer token mapping
-     *     (including {@link RDFFormat#RDFJSON})
+     * @param serialization the format IRI (e.g. {@code http://www.w3.org/ns/formats/N-Triples}),
+     *     or {@code null} to use the default N-Quads token
+     * @return the bare format token (e.g. {@code "nt"}, {@code "nq"}, {@code "ttl"})
+     * @throws IllegalArgumentException if {@code serialization} is non-null and does not map to a
+     *     supported format token
      */
-    private static String rdfFormatToSerializerFormat(RDFFormat format) {
-        Objects.requireNonNull(format, "format must not be null");
-        if (RDFFormat.RDFJSON.equals(format)) {
-            throw new IllegalArgumentException("RDF/JSON serialization is not supported for file targets");
+    private static String resolveSerializerFormat(IRI serialization) {
+        if (serialization == null) {
+            return DEFAULT_FORMAT_TOKEN;
         }
-        var token = SERIALIZER_FORMAT_BY_RDF_FORMAT.get(format);
-        if (token == null) {
-            throw new IllegalArgumentException("No serializer format token mapping for %s".formatted(format));
+        var iri = serialization.stringValue();
+        var token = SERIALIZER_FORMAT_BY_IRI.get(iri);
+        if (token != null) {
+            return token;
         }
-        return token;
+        if (iri.startsWith(FORMATS_NS)) {
+            throw new IllegalArgumentException(
+                    "Unsupported serialization format IRI <%s>: no serializer format token mapping. Supported IRIs: %s"
+                            .formatted(iri, SERIALIZER_FORMAT_BY_IRI.keySet()));
+        }
+        throw new IllegalArgumentException(
+                "Invalid serialization IRI <%s>: not in the W3C Formats namespace <%s>".formatted(iri, FORMATS_NS));
     }
 
     /**
-     * Resolves a W3C Formats namespace IRI to the corresponding RDF4J {@link RDFFormat}.
+     * Validates that the configured {@link RdfSerializerFactory} has a provider for the given
+     * format token in {@link SerializerMode#STREAMING} mode. Surfaces misconfigurations (e.g.
+     * using {@code carml-jar} without {@code carml-serializer-jena} on the classpath but
+     * requesting Turtle) before any file is opened.
      *
-     * @param serialization the format IRI (e.g. {@code http://www.w3.org/ns/formats/N-Triples})
-     * @return the corresponding {@link RDFFormat}, or {@link RDFFormat#NQUADS} as default
+     * @param formatToken the bare format token
+     * @throws IllegalArgumentException if no registered provider supports the combination; the
+     *     message lists the available provider class names for diagnostic context
      */
-    public static RDFFormat resolveRdfFormat(IRI serialization) {
-        if (serialization == null) {
-            return DEFAULT_FORMAT;
+    private void validateProviderExists(String formatToken) {
+        var hasProvider = serializerFactory.getProviders().stream()
+                .anyMatch(provider -> provider.supports(formatToken, SerializerMode.STREAMING));
+        if (!hasProvider) {
+            var available = serializerFactory.getProviders().stream()
+                    .map(provider -> provider.getClass().getSimpleName())
+                    .toList();
+            throw new IllegalArgumentException(
+                    "No RdfSerializerProvider supports format token \"%s\" in STREAMING mode (available providers: %s)"
+                            .formatted(formatToken, available));
         }
-        return Optional.ofNullable(FORMAT_MAP.get(serialization.stringValue())).orElseGet(() -> {
-            LOG.warn("Unknown serialization format {}, defaulting to {}", serialization, DEFAULT_FORMAT);
-            return DEFAULT_FORMAT;
-        });
     }
 
     private Path resolveFilePath(FilePath filePath) {

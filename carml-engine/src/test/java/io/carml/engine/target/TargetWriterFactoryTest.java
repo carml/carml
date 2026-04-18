@@ -11,12 +11,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import io.carml.model.impl.CarmlFilePath;
+import io.carml.output.RdfSerializerFactory;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.zip.GZIPInputStream;
 import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
@@ -41,7 +43,7 @@ class TargetWriterFactoryTest {
     Path tempDir;
 
     @Test
-    void createFileWriter_ntriples_createsFileTargetWriter() {
+    void createFileWriter_ntriples_writesNTriplesOutput() throws IOException {
         // Given
         var filePath = CarmlFilePath.builder()
                 .path("output.nt")
@@ -52,9 +54,33 @@ class TargetWriterFactoryTest {
 
         // When
         var writer = factory.createFileWriter(filePath, serialization);
+        writer.open();
+        writer.write(TEST_STATEMENT);
+        writer.close();
 
         // Then
         assertThat(writer, instanceOf(FileTargetWriter.class));
+        var content = Files.readString(tempDir.resolve("output.nt"));
+        assertThat(content, containsString("<http://example.org/s>"));
+        assertThat(content, containsString(RDF.TYPE.stringValue()));
+    }
+
+    @Test
+    void createFileWriter_withNullRoot_resolvesAgainstBasePath() throws IOException {
+        // Given - FilePath without an explicit rml:root must still resolve under basePath
+        var filePath = CarmlFilePath.builder().path("output.nt").build();
+        var serialization = VF.createIRI(FORMATS_NS, "N-Triples");
+        var factory = TargetWriterFactory.builder().basePath(tempDir).build();
+
+        // When
+        var writer = factory.createFileWriter(filePath, serialization);
+        writer.open();
+        writer.write(TEST_STATEMENT);
+        writer.close();
+
+        // Then
+        var content = Files.readString(tempDir.resolve("output.nt"));
+        assertThat(content, containsString("<http://example.org/s>"));
     }
 
     @Test
@@ -94,9 +120,13 @@ class TargetWriterFactoryTest {
         writer.write(TEST_STATEMENT);
         writer.close();
 
-        // Then
+        // Then - Rio can parse the output as Turtle and recovers the written statement
         var content = Files.readString(tempDir.resolve("output.ttl"));
-        assertThat(content, containsString("example.org"));
+        try (var input = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8))) {
+            var parsedModel = Rio.parse(input, "", RDFFormat.TURTLE);
+            assertThat(parsedModel.size(), equalTo(1));
+            assertThat(parsedModel.contains(TEST_STATEMENT), is(true));
+        }
     }
 
     @Test
@@ -206,8 +236,10 @@ class TargetWriterFactoryTest {
     }
 
     @Test
-    void createFileWriter_nullSerialization_defaultsToNQuads() throws IOException {
-        // Given
+    void createFileWriter_withNullSerialization_defaultsToNQuads() throws IOException {
+        // Given - explicit null serialization must resolve to the N-Quads default; verified by
+        // writing a statement and reading the output back as N-Quads. The test doubles as coverage
+        // for the null branch of the private resolveSerializerFormat method
         var filePath = CarmlFilePath.builder()
                 .path("output.nq")
                 .root(VF.createIRI(RML_NS, "CurrentWorkingDirectory"))
@@ -220,14 +252,20 @@ class TargetWriterFactoryTest {
         writer.write(TEST_STATEMENT);
         writer.close();
 
-        // Then
-        var content = Files.readString(tempDir.resolve("output.nq"));
-        assertThat(content, containsString("<http://example.org/s>"));
+        // Then - the file parses as N-Quads and recovers the statement
+        var outputFile = tempDir.resolve("output.nq");
+        assertTrue(Files.exists(outputFile));
+        try (var input = Files.newInputStream(outputFile)) {
+            var parsedModel = Rio.parse(input, "", RDFFormat.NQUADS);
+            assertThat(parsedModel.size(), is(1));
+        }
     }
 
     @Test
-    void createFileWriter_unknownSerialization_defaultsToNQuads() throws IOException {
-        // Given
+    void createFileWriter_withUnknownFormatsIri_throwsIllegalArgumentException() {
+        // Given - a W3C Formats namespace IRI that is not in the lookup table (e.g. a hypothetical
+        // future format). Task 7.8 changed the behavior here: previously this warned and silently
+        // fell back to N-Quads; now it must fail fast at config time
         var filePath = CarmlFilePath.builder()
                 .path("output.nq")
                 .root(VF.createIRI(RML_NS, "CurrentWorkingDirectory"))
@@ -235,56 +273,21 @@ class TargetWriterFactoryTest {
         var serialization = VF.createIRI(FORMATS_NS, "UnknownFormat");
         var factory = TargetWriterFactory.builder().basePath(tempDir).build();
 
-        // When
-        var writer = factory.createFileWriter(filePath, serialization);
-        writer.open();
-        writer.write(TEST_STATEMENT);
-        writer.close();
-
-        // Then
-        var content = Files.readString(tempDir.resolve("output.nq"));
-        assertThat(content, containsString("<http://example.org/s>"));
-    }
-
-    @Test
-    void resolveRdfFormat_ntriples_returnsNTriples() {
-        var iri = VF.createIRI(FORMATS_NS, "N-Triples");
-        assertThat(TargetWriterFactory.resolveRdfFormat(iri), is(RDFFormat.NTRIPLES));
-    }
-
-    @Test
-    void resolveRdfFormat_nquads_returnsNQuads() {
-        var iri = VF.createIRI(FORMATS_NS, "N-Quads");
-        assertThat(TargetWriterFactory.resolveRdfFormat(iri), is(RDFFormat.NQUADS));
-    }
-
-    @Test
-    void resolveRdfFormat_turtle_returnsTurtle() {
-        var iri = VF.createIRI(FORMATS_NS, "Turtle");
-        assertThat(TargetWriterFactory.resolveRdfFormat(iri), is(RDFFormat.TURTLE));
-    }
-
-    @Test
-    void resolveRdfFormat_jsonld_returnsJsonLd() {
-        var iri = VF.createIRI(FORMATS_NS, "JSON-LD");
-        assertThat(TargetWriterFactory.resolveRdfFormat(iri), is(RDFFormat.JSONLD));
-    }
-
-    @Test
-    void resolveRdfFormat_rdfxml_returnsRdfXml() {
-        var iri = VF.createIRI(FORMATS_NS, "RDF_XML");
-        assertThat(TargetWriterFactory.resolveRdfFormat(iri), is(RDFFormat.RDFXML));
-    }
-
-    @Test
-    void resolveRdfFormat_null_returnsDefault() {
-        assertThat(TargetWriterFactory.resolveRdfFormat(null), is(RDFFormat.NQUADS));
+        // When / Then
+        var exception = assertThrows(IllegalArgumentException.class, () -> {
+            try (var writer = factory.createFileWriter(filePath, serialization)) {
+                fail("Expected IllegalArgumentException but createFileWriter returned: " + writer);
+            }
+        });
+        assertThat(exception.getMessage(), containsString(FORMATS_NS + "UnknownFormat"));
+        assertThat(exception.getMessage(), containsString("no serializer format token mapping"));
     }
 
     @Test
     void createFileWriter_withRdfJsonSerialization_throwsIllegalArgumentException() {
-        // Given - RDF/JSON has no corresponding RdfSerializerProvider, so it must be rejected at
-        // config time rather than failing mid-write inside RdfSerializerFactory.selectProvider
+        // Given - RDF/JSON has no corresponding RdfSerializerProvider. Task 7.8 removed the
+        // RDFFormat-based shim; rejection now happens in the IRI -> token resolver (same message
+        // shape as any other unsupported Formats IRI), rather than in a format-specific shim
         var filePath = CarmlFilePath.builder()
                 .path("output.rj")
                 .root(VF.createIRI(RML_NS, "CurrentWorkingDirectory"))
@@ -298,28 +301,57 @@ class TargetWriterFactoryTest {
                 fail("Expected IllegalArgumentException but createFileWriter returned: " + writer);
             }
         });
-        assertThat(exception.getMessage(), containsString("RDF/JSON serialization is not supported"));
+        assertThat(exception.getMessage(), containsString(FORMATS_NS + "RDF_JSON"));
+        assertThat(exception.getMessage(), containsString("no serializer format token mapping"));
     }
 
     @Test
-    void resolveRdfFormat_withTrigIri_returnsTrig() {
-        var iri = VF.createIRI(FORMATS_NS, "TriG");
-        assertThat(TargetWriterFactory.resolveRdfFormat(iri), is(RDFFormat.TRIG));
+    void createFileWriter_withNonFormatsIri_throwsIllegalArgumentException() {
+        // Given - an IRI outside the W3C Formats namespace is not a valid rml:serialization value.
+        // The resolver rejects it with a distinct message pointing at the namespace requirement
+        var filePath = CarmlFilePath.builder()
+                .path("output.nq")
+                .root(VF.createIRI(RML_NS, "CurrentWorkingDirectory"))
+                .build();
+        var serialization = VF.createIRI("http://example.org/SomeFormat");
+        var factory = TargetWriterFactory.builder().basePath(tempDir).build();
+
+        // When / Then
+        var exception = assertThrows(IllegalArgumentException.class, () -> {
+            try (var writer = factory.createFileWriter(filePath, serialization)) {
+                fail("Expected IllegalArgumentException but createFileWriter returned: " + writer);
+            }
+        });
+        assertThat(exception.getMessage(), containsString("http://example.org/SomeFormat"));
+        assertThat(exception.getMessage(), containsString("W3C Formats namespace"));
     }
 
     @Test
-    void resolveRdfFormat_withN3Iri_returnsN3() {
-        var iri = VF.createIRI(FORMATS_NS, "N3");
-        assertThat(TargetWriterFactory.resolveRdfFormat(iri), is(RDFFormat.N3));
-    }
+    void createFileWriter_withMissingProvider_throwsIllegalArgumentException() {
+        // Given - a TargetWriterFactory configured with an RdfSerializerFactory that has no
+        // providers. Even for a valid IRI like formats:N-Triples, config-time validation must fail
+        // with a diagnostic message listing the (empty) set of available providers. This models
+        // the "carml-jar without a serializer module on the classpath" misconfiguration
+        var filePath = CarmlFilePath.builder()
+                .path("output.nt")
+                .root(VF.createIRI(RML_NS, "CurrentWorkingDirectory"))
+                .build();
+        var serialization = VF.createIRI(FORMATS_NS, "N-Triples");
+        var emptyFactory = RdfSerializerFactory.of(List.of());
+        var factory = TargetWriterFactory.builder()
+                .basePath(tempDir)
+                .serializerFactory(emptyFactory)
+                .build();
 
-    @Test
-    void resolveRdfFormat_withRdfJsonIri_returnsRdfJson() {
-        // The IRI-to-RDFFormat map still maps RDF_JSON; the format is only rejected later by the
-        // private shim rdfFormatToSerializerFormat. Verifying the mapping separately keeps the two
-        // responsibilities independently testable.
-        var iri = VF.createIRI(FORMATS_NS, "RDF_JSON");
-        assertThat(TargetWriterFactory.resolveRdfFormat(iri), is(RDFFormat.RDFJSON));
+        // When / Then
+        var exception = assertThrows(IllegalArgumentException.class, () -> {
+            try (var writer = factory.createFileWriter(filePath, serialization)) {
+                fail("Expected IllegalArgumentException but createFileWriter returned: " + writer);
+            }
+        });
+        assertThat(exception.getMessage(), containsString("No RdfSerializerProvider"));
+        assertThat(exception.getMessage(), containsString("nt"));
+        assertThat(exception.getMessage(), containsString("STREAMING"));
     }
 
     @Test
@@ -384,8 +416,7 @@ class TargetWriterFactoryTest {
 
     @Test
     void createFileWriter_withJsonLdSerialization_writesJsonLdFile() throws IOException {
-        // Given - JSON-LD exercises the rdfFormatToSerializerFormat shim end-to-end for the
-        // "jsonld" token
+        // Given - JSON-LD exercises the IRI -> token resolver end-to-end for the "jsonld" token
         var filePath = CarmlFilePath.builder()
                 .path("output.jsonld")
                 .root(VF.createIRI(RML_NS, "CurrentWorkingDirectory"))
@@ -410,7 +441,7 @@ class TargetWriterFactoryTest {
 
     @Test
     void createFileWriter_withRdfXmlSerialization_writesRdfXmlFile() throws IOException {
-        // Given - RDF/XML exercises the "rdfxml" token through the shim
+        // Given - RDF/XML exercises the "rdfxml" token through the IRI -> token resolver
         var filePath = CarmlFilePath.builder()
                 .path("output.rdf")
                 .root(VF.createIRI(RML_NS, "CurrentWorkingDirectory"))
