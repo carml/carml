@@ -25,6 +25,7 @@ import io.carml.engine.function.FunctionRegistry;
 import io.carml.engine.function.ParameterDescriptor;
 import io.carml.engine.function.ReturnDescriptor;
 import io.carml.engine.target.TargetRouter;
+import io.carml.engine.target.TargetWriter;
 import io.carml.logicalsourceresolver.MatchingLogicalSourceResolverFactory;
 import io.carml.logicalsourceresolver.sourceresolver.ClassPathResolver;
 import io.carml.logicalsourceresolver.sourceresolver.FileResolver;
@@ -364,9 +365,28 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
 
         /**
          * Registers a {@link TargetRouter} for routing generated statements to declared
-         * {@code rml:LogicalTarget}s. The router is automatically added as an observer and manages
-         * its own lifecycle: opening writers on the first mapping start, flushing on checkpoints,
-         * and closing when all mappings complete.
+         * {@code rml:LogicalTarget}s. The router is automatically added as an observer and handles
+         * open/flush events from the pipeline: it lazily opens writers on the first mapping start
+         * and flushes them on checkpoints.
+         *
+         * <p><strong>The caller owns the router's close lifecycle.</strong> The router does NOT
+         * close its writers on mapping completion — {@code onMappingComplete} can fire without a
+         * matching {@code onMappingStart} (empty source fluxes, filtered views, upstream errors),
+         * so a completion-driven auto-close would prematurely close writers while other concurrent
+         * mappings are still writing. Wrap the router in try-with-resources or call
+         * {@link TargetRouter#close()} explicitly once the mapping execution has fully terminated.
+         *
+         * <p>Observer ordering: the router is appended to the observer list <em>after</em> any
+         * observers registered via {@link #observer(MappingExecutionObserver)}. The
+         * {@link CompositeObserver} dispatches observer callbacks in registration order, so
+         * user-registered observers see statement-generated events before the router routes them
+         * to target writers. This ordering is intentional — observers that wish to inspect or
+         * transform events independently of target I/O should not be affected by write-path
+         * latency.
+         *
+         * <p>Each {@code TargetRouter} instance is single-use: once its writers have been closed,
+         * it cannot be reopened. Supply a fresh router (with fresh {@link TargetWriter} instances)
+         * per {@link RdfRmlMapper} build that needs targets.
          *
          * @param targetRouter the target router to register
          * @return {@link Builder}
