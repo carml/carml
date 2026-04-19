@@ -10,8 +10,10 @@ import java.util.Map;
 import java.util.Objects;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
+import org.apache.jena.riot.RIOT;
 import org.apache.jena.riot.system.StreamRDF;
 import org.apache.jena.riot.system.StreamRDFWriter;
+import org.apache.jena.sparql.util.Context;
 import org.eclipse.rdf4j.model.Statement;
 
 /**
@@ -57,7 +59,12 @@ final class JenaStreamingSerializer implements RdfSerializer {
         }
         this.output = output;
         try {
-            this.stream = StreamRDFWriter.getWriterStream(output, lang);
+            // Force Turtle 1.1 directive style ("@prefix"/"@base") for backward compatibility
+            // with tooling that diffs output against Turtle 1.1 baselines. Jena 5 defaults to
+            // Turtle 1.2 / SPARQL-style PREFIX and BASE directives.
+            var context = new Context();
+            context.set(RIOT.symTurtleDirectiveStyle, "at");
+            this.stream = StreamRDFWriter.getWriterStream(output, lang, context);
             stream.start();
             namespaces.forEach(stream::prefix);
         } catch (RuntimeException runtimeException) {
@@ -101,6 +108,7 @@ final class JenaStreamingSerializer implements RdfSerializer {
     @Override
     public void end() {
         if (stream != null) {
+            var currentOutput = output;
             try {
                 stream.finish();
             } catch (RuntimeException runtimeException) {
@@ -109,9 +117,20 @@ final class JenaStreamingSerializer implements RdfSerializer {
                 throw new RdfSerializationException(
                         "Failed to end Jena %s streaming session".formatted(lang.getName()), runtimeException);
             }
-            flush();
-            stream = null;
-            output = null;
+            try {
+                flushOutput(currentOutput);
+            } finally {
+                stream = null;
+                output = null;
+            }
+        }
+    }
+
+    private void flushOutput(OutputStream outputStream) {
+        try {
+            outputStream.flush();
+        } catch (IOException ioException) {
+            throw new UncheckedIOException(ioException);
         }
     }
 

@@ -115,6 +115,21 @@ class JenaSerializerRoundTripTest {
         assertThat(Models.isomorphic(parsed, sampleTriples()), is(true));
     }
 
+    @ParameterizedTest
+    @EnumSource(
+            value = SerializerMode.class,
+            names = {"STREAMING", "PRETTY"})
+    void roundTrip_trix_isIsomorphic(SerializerMode mode) {
+        var parsed = serializeAndParseBack(Lang.TRIX, RDFFormat.TRIX, mode, sampleTriples());
+        assertThat(Models.isomorphic(parsed, sampleTriples()), is(true));
+    }
+
+    @Test
+    void roundTrip_rdfjson_pretty_isIsomorphic() {
+        var parsed = serializeAndParseBack(Lang.RDFJSON, RDFFormat.RDFJSON, SerializerMode.PRETTY, sampleTriples());
+        assertThat(Models.isomorphic(parsed, sampleTriples()), is(true));
+    }
+
     // ---- quad format round-trips ----
 
     @ParameterizedTest
@@ -150,8 +165,8 @@ class JenaSerializerRoundTripTest {
         }
 
         var result = output.toString();
-        // Jena uses SPARQL-style PREFIX declarations rather than Turtle @prefix
-        assertThat(result, containsString("ex:"));
-        assertThat(result, containsString("rdfs:"));
+        // Directive style forced to "at" via RIOT.symTurtleDirectiveStyle for backward compatibility
+        assertThat(result, containsString("@prefix ex:"));
+        assertThat(result, containsString("@prefix rdfs:"));
     }
 }

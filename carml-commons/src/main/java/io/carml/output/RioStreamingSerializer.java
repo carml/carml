@@ -106,9 +106,12 @@ final class RioStreamingSerializer implements RdfSerializer {
                 throw new RdfSerializationException(
                         "Failed to end Rio %s serialization session".formatted(format.getName()), rdfHandlerException);
             }
-            flush();
-            writer = null;
-            output = null;
+            try {
+                flush();
+            } finally {
+                writer = null;
+                output = null;
+            }
         }
     }
 

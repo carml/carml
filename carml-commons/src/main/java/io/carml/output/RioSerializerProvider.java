@@ -7,8 +7,8 @@ import org.eclipse.rdf4j.rio.RDFFormat;
 
 /**
  * {@link RdfSerializerProvider} backed by RDF4J Rio writers. Serves as the baseline fallback
- * for RDF serialization across a broad set of formats (N-Triples, N-Quads, Turtle, TriG, RDF/XML,
- * JSON-LD, N3).
+ * for RDF serialization across a broad set of formats (N-Triples, N-Quads, Turtle, TriG,
+ * Turtle-star, TriG-star, RDF/XML, JSON-LD, NDJSON-LD, N3, TriX, BinaryRDF, RDF/JSON).
  *
  * <p>Registered at priority 10, so higher-priority providers (e.g. {@link FastSerializerProvider}
  * at priority 100) override it for formats where a specialized implementation exists.
@@ -29,11 +29,17 @@ public final class RioSerializerProvider implements RdfSerializerProvider {
             Map.entry("nquads", RDFFormat.NQUADS),
             Map.entry("ttl", RDFFormat.TURTLE),
             Map.entry("turtle", RDFFormat.TURTLE),
+            Map.entry("ttls", RDFFormat.TURTLESTAR),
             Map.entry("trig", RDFFormat.TRIG),
+            Map.entry("trigs", RDFFormat.TRIGSTAR),
             Map.entry("rdf", RDFFormat.RDFXML),
             Map.entry("rdfxml", RDFFormat.RDFXML),
             Map.entry("jsonld", RDFFormat.JSONLD),
-            Map.entry("n3", RDFFormat.N3));
+            Map.entry("ndjsonld", RDFFormat.NDJSONLD),
+            Map.entry("n3", RDFFormat.N3),
+            Map.entry("trix", RDFFormat.TRIX),
+            Map.entry("brf", RDFFormat.BINARY),
+            Map.entry("rj", RDFFormat.RDFJSON));
 
     private static final Set<SerializerMode> SUPPORTED_MODES = Set.of(SerializerMode.STREAMING, SerializerMode.PRETTY);
 

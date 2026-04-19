@@ -115,6 +115,51 @@ class RioSerializerRoundTripTest {
         assertThat(Models.isomorphic(parsed, sampleTriples()), is(true));
     }
 
+    @ParameterizedTest
+    @EnumSource(
+            value = SerializerMode.class,
+            names = {"STREAMING", "PRETTY"})
+    void roundTrip_ndjsonld_isIsomorphic(SerializerMode mode) {
+        var parsed = tripleFormatsStreamingAndParseBack("ndjsonld", RDFFormat.NDJSONLD, mode);
+        assertThat(Models.isomorphic(parsed, sampleTriples()), is(true));
+    }
+
+    @ParameterizedTest
+    @EnumSource(
+            value = SerializerMode.class,
+            names = {"STREAMING", "PRETTY"})
+    void roundTrip_turtleStar_isIsomorphic(SerializerMode mode) {
+        var parsed = tripleFormatsStreamingAndParseBack("ttls", RDFFormat.TURTLESTAR, mode);
+        assertThat(Models.isomorphic(parsed, sampleTriples()), is(true));
+    }
+
+    @ParameterizedTest
+    @EnumSource(
+            value = SerializerMode.class,
+            names = {"STREAMING", "PRETTY"})
+    void roundTrip_trix_isIsomorphic(SerializerMode mode) {
+        var parsed = tripleFormatsStreamingAndParseBack("trix", RDFFormat.TRIX, mode);
+        assertThat(Models.isomorphic(parsed, sampleTriples()), is(true));
+    }
+
+    @ParameterizedTest
+    @EnumSource(
+            value = SerializerMode.class,
+            names = {"STREAMING", "PRETTY"})
+    void roundTrip_binary_isIsomorphic(SerializerMode mode) {
+        var parsed = tripleFormatsStreamingAndParseBack("brf", RDFFormat.BINARY, mode);
+        assertThat(Models.isomorphic(parsed, sampleTriples()), is(true));
+    }
+
+    @ParameterizedTest
+    @EnumSource(
+            value = SerializerMode.class,
+            names = {"STREAMING", "PRETTY"})
+    void roundTrip_rdfjson_isIsomorphic(SerializerMode mode) {
+        var parsed = tripleFormatsStreamingAndParseBack("rj", RDFFormat.RDFJSON, mode);
+        assertThat(Models.isomorphic(parsed, sampleTriples()), is(true));
+    }
+
     // ---- quad formats round-trip in both modes ----
 
     private static Model quadFormatsStreamingAndParseBack(String alias, RDFFormat format, SerializerMode mode) {
@@ -157,6 +202,15 @@ class RioSerializerRoundTripTest {
             names = {"STREAMING", "PRETTY"})
     void roundTrip_trig_isIsomorphic(SerializerMode mode) {
         var parsed = quadFormatsStreamingAndParseBack("trig", RDFFormat.TRIG, mode);
+        assertThat(Models.isomorphic(parsed, sampleQuads()), is(true));
+    }
+
+    @ParameterizedTest
+    @EnumSource(
+            value = SerializerMode.class,
+            names = {"STREAMING", "PRETTY"})
+    void roundTrip_trigStar_isIsomorphic(SerializerMode mode) {
+        var parsed = quadFormatsStreamingAndParseBack("trigs", RDFFormat.TRIGSTAR, mode);
         assertThat(Models.isomorphic(parsed, sampleQuads()), is(true));
     }
 

@@ -7,8 +7,9 @@ import java.io.OutputStream;
 import java.util.Map;
 import java.util.Objects;
 import org.apache.jena.riot.Lang;
-import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RDFLanguages;
+import org.apache.jena.riot.RDFWriter;
+import org.apache.jena.riot.RIOT;
 import org.apache.jena.sparql.core.DatasetGraph;
 import org.apache.jena.sparql.core.DatasetGraphFactory;
 import org.eclipse.rdf4j.model.Statement;
@@ -16,7 +17,7 @@ import org.eclipse.rdf4j.model.Statement;
 /**
  * Buffering {@link RdfSerializer} backed by Apache Jena. Collects statements into an in-memory
  * {@link DatasetGraph}, then writes the complete dataset (or its default graph for triples-only
- * formats) via {@link RDFDataMgr} on {@link #end()}. This enables pretty-printing features such as
+ * formats) via {@link RDFWriter} on {@link #end()}. This enables pretty-printing features such as
  * prefix shortening, blank node inlining, and sorted output for block-structured formats (Turtle,
  * TriG, RDF/XML, JSON-LD).
  *
@@ -59,8 +60,15 @@ final class JenaModelSerializer implements RdfSerializer {
         }
         this.datasetGraph = DatasetGraphFactory.create();
         this.output = output;
-        var prefixMapping = datasetGraph.getDefaultGraph().getPrefixMapping();
-        namespaces.forEach(prefixMapping::setNsPrefix);
+        try {
+            var prefixMapping = datasetGraph.getDefaultGraph().getPrefixMapping();
+            namespaces.forEach(prefixMapping::setNsPrefix);
+        } catch (RuntimeException runtimeException) {
+            this.datasetGraph = null;
+            this.output = null;
+            throw new RdfSerializationException(
+                    "Failed to start Jena %s pretty session".formatted(lang.getName()), runtimeException);
+        }
     }
 
     @Override
@@ -80,20 +88,28 @@ final class JenaModelSerializer implements RdfSerializer {
     public void end() {
         if (datasetGraph != null) {
             try {
+                // Force Turtle 1.1 directive style ("@prefix"/"@base") for backward compatibility
+                // with tooling that diffs output against Turtle 1.1 baselines. Jena 5 defaults to
+                // Turtle 1.2 / SPARQL-style PREFIX and BASE directives.
                 if (quads) {
-                    RDFDataMgr.write(output, datasetGraph, lang);
+                    RDFWriter.source(datasetGraph)
+                            .lang(lang)
+                            .set(RIOT.symTurtleDirectiveStyle, "at")
+                            .output(output);
                 } else {
-                    RDFDataMgr.write(output, datasetGraph.getDefaultGraph(), lang);
+                    RDFWriter.source(datasetGraph.getDefaultGraph())
+                            .lang(lang)
+                            .set(RIOT.symTurtleDirectiveStyle, "at")
+                            .output(output);
                 }
             } catch (RuntimeException runtimeException) {
-                datasetGraph = null;
-                output = null;
                 throw new RdfSerializationException(
                         "Failed to write buffered model to Jena %s serializer".formatted(lang.getName()),
                         runtimeException);
+            } finally {
+                datasetGraph = null;
+                output = null;
             }
-            datasetGraph = null;
-            output = null;
         }
     }
 

@@ -43,7 +43,9 @@ public final class JenaSerializerProvider implements RdfSerializerProvider {
             Map.entry("rdf", Lang.RDFXML),
             Map.entry("rdfxml", Lang.RDFXML),
             Map.entry("jsonld", Lang.JSONLD),
-            Map.entry("n3", Lang.N3));
+            Map.entry("n3", Lang.N3),
+            Map.entry("trix", Lang.TRIX),
+            Map.entry("rj", Lang.RDFJSON));
 
     private static final Set<SerializerMode> PRETTY_ONLY = Set.of(SerializerMode.PRETTY);
 

@@ -3,12 +3,15 @@ package io.carml.output.jena;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.carml.output.FastSerializerProvider;
+import io.carml.output.RdfSerializerFactory;
 import io.carml.output.RdfSerializerProvider;
 import io.carml.output.RioSerializerProvider;
 import io.carml.output.SerializerMode;
+import java.util.List;
 import java.util.ServiceLoader;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -39,7 +42,10 @@ class JenaSerializerProviderTest {
                 Arguments.of("rdf", SerializerMode.PRETTY),
                 Arguments.of("rdfxml", SerializerMode.PRETTY),
                 Arguments.of("jsonld", SerializerMode.PRETTY),
-                Arguments.of("n3", SerializerMode.PRETTY));
+                Arguments.of("n3", SerializerMode.PRETTY),
+                Arguments.of("trix", SerializerMode.STREAMING),
+                Arguments.of("trix", SerializerMode.PRETTY),
+                Arguments.of("rj", SerializerMode.PRETTY));
     }
 
     @ParameterizedTest(name = "supports({0}, {1}) = true")
@@ -49,19 +55,19 @@ class JenaSerializerProviderTest {
     }
 
     @ParameterizedTest(name = "supports({0}, BYTE_LEVEL) = false")
-    @ValueSource(strings = {"nt", "nq", "ttl", "trig", "rdf", "rdfxml", "jsonld", "n3"})
+    @ValueSource(strings = {"nt", "nq", "ttl", "trig", "rdf", "rdfxml", "jsonld", "n3", "trix", "rj"})
     void supports_byteLevelMode_returnsFalse(String format) {
         assertThat(provider.supports(format, SerializerMode.BYTE_LEVEL), is(false));
     }
 
     @ParameterizedTest(name = "supports({0}, STREAMING) = false (pretty-only format)")
-    @ValueSource(strings = {"rdf", "rdfxml", "jsonld", "n3"})
+    @ValueSource(strings = {"rdf", "rdfxml", "jsonld", "n3", "rj"})
     void supports_prettyOnlyFormat_returnsFalseForStreaming(String format) {
         assertThat(provider.supports(format, SerializerMode.STREAMING), is(false));
     }
 
     @ParameterizedTest(name = "supports({0}, PRETTY) = true (pretty-only format)")
-    @ValueSource(strings = {"rdf", "rdfxml", "jsonld", "n3"})
+    @ValueSource(strings = {"rdf", "rdfxml", "jsonld", "n3", "rj"})
     void supports_prettyOnlyFormat_returnsTrueForPretty(String format) {
         assertThat(provider.supports(format, SerializerMode.PRETTY), is(true));
     }
@@ -95,7 +101,8 @@ class JenaSerializerProviderTest {
                 Arguments.of("nquads"),
                 Arguments.of("ttl"),
                 Arguments.of("turtle"),
-                Arguments.of("trig"));
+                Arguments.of("trig"),
+                Arguments.of("trix"));
     }
 
     @ParameterizedTest(name = "createSerializer({0}, STREAMING) returns JenaStreamingSerializer")
@@ -118,7 +125,9 @@ class JenaSerializerProviderTest {
                 Arguments.of("rdf"),
                 Arguments.of("rdfxml"),
                 Arguments.of("jsonld"),
-                Arguments.of("n3"));
+                Arguments.of("n3"),
+                Arguments.of("trix"),
+                Arguments.of("rj"));
     }
 
     @ParameterizedTest(name = "createSerializer({0}, PRETTY) returns JenaModelSerializer")
@@ -166,5 +175,37 @@ class JenaSerializerProviderTest {
         assertThat(providers.stream().anyMatch(JenaSerializerProvider.class::isInstance), is(true));
         assertThat(providers.stream().anyMatch(FastSerializerProvider.class::isInstance), is(true));
         assertThat(providers.stream().anyMatch(RioSerializerProvider.class::isInstance), is(true));
+    }
+
+    // ---- Rio fallback for formats Jena does not support ----
+
+    /**
+     * CLI aliases Jena does not natively support. The {@link JenaSerializerProvider} must decline
+     * these (so the factory falls back to {@link RioSerializerProvider}); the combined factory must
+     * still produce a usable serializer for them in PRETTY mode.
+     */
+    static Stream<Arguments> jenaUnsupportedAliases() {
+        return Stream.of(Arguments.of("ttls"), Arguments.of("trigs"), Arguments.of("ndjsonld"), Arguments.of("brf"));
+    }
+
+    @ParameterizedTest(name = "Jena provider declines {0} in PRETTY mode (Rio fallback path)")
+    @MethodSource("jenaUnsupportedAliases")
+    void supports_jenaUnsupportedAlias_returnsFalse(String format) {
+        assertThat(provider.supports(format, SerializerMode.PRETTY), is(false));
+        assertThat(provider.supports(format, SerializerMode.STREAMING), is(false));
+    }
+
+    @ParameterizedTest(name = "combined factory produces Rio serializer for Jena-unsupported alias {0}")
+    @MethodSource("jenaUnsupportedAliases")
+    void combinedFactory_jenaUnsupportedAlias_fallsBackToRio(String format) {
+        var factory = RdfSerializerFactory.of(
+                List.of(new JenaSerializerProvider(), new RioSerializerProvider(), new FastSerializerProvider()));
+
+        var selected = factory.selectProvider(format, SerializerMode.PRETTY);
+
+        assertThat(selected, is(instanceOf(RioSerializerProvider.class)));
+        try (var serializer = factory.createSerializer(format, SerializerMode.PRETTY)) {
+            assertThat(serializer, is(notNullValue()));
+        }
     }
 }

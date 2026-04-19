@@ -31,13 +31,25 @@ class RioSerializerProviderTest {
                 Arguments.of("ttl", SerializerMode.STREAMING),
                 Arguments.of("ttl", SerializerMode.PRETTY),
                 Arguments.of("turtle", SerializerMode.PRETTY),
+                Arguments.of("ttls", SerializerMode.STREAMING),
+                Arguments.of("ttls", SerializerMode.PRETTY),
                 Arguments.of("trig", SerializerMode.STREAMING),
                 Arguments.of("trig", SerializerMode.PRETTY),
+                Arguments.of("trigs", SerializerMode.STREAMING),
+                Arguments.of("trigs", SerializerMode.PRETTY),
                 Arguments.of("rdf", SerializerMode.PRETTY),
                 Arguments.of("rdfxml", SerializerMode.PRETTY),
                 Arguments.of("jsonld", SerializerMode.PRETTY),
                 Arguments.of("jsonld", SerializerMode.STREAMING),
-                Arguments.of("n3", SerializerMode.PRETTY));
+                Arguments.of("ndjsonld", SerializerMode.STREAMING),
+                Arguments.of("ndjsonld", SerializerMode.PRETTY),
+                Arguments.of("n3", SerializerMode.PRETTY),
+                Arguments.of("trix", SerializerMode.STREAMING),
+                Arguments.of("trix", SerializerMode.PRETTY),
+                Arguments.of("brf", SerializerMode.STREAMING),
+                Arguments.of("brf", SerializerMode.PRETTY),
+                Arguments.of("rj", SerializerMode.STREAMING),
+                Arguments.of("rj", SerializerMode.PRETTY));
     }
 
     @ParameterizedTest(name = "supports({0}, {1}) = true")
@@ -47,7 +59,23 @@ class RioSerializerProviderTest {
     }
 
     @ParameterizedTest(name = "supports({0}, BYTE_LEVEL) = false")
-    @ValueSource(strings = {"nt", "nq", "ttl", "trig", "rdf", "rdfxml", "jsonld", "n3"})
+    @ValueSource(
+            strings = {
+                "nt",
+                "nq",
+                "ttl",
+                "ttls",
+                "trig",
+                "trigs",
+                "rdf",
+                "rdfxml",
+                "jsonld",
+                "ndjsonld",
+                "n3",
+                "trix",
+                "brf",
+                "rj"
+            })
     void supports_byteLevelMode_returnsFalse(String format) {
         assertThat(provider.supports(format, SerializerMode.BYTE_LEVEL), is(false));
     }
@@ -81,11 +109,17 @@ class RioSerializerProviderTest {
                 Arguments.of("nquads"),
                 Arguments.of("ttl"),
                 Arguments.of("turtle"),
+                Arguments.of("ttls"),
                 Arguments.of("trig"),
+                Arguments.of("trigs"),
                 Arguments.of("rdf"),
                 Arguments.of("rdfxml"),
                 Arguments.of("jsonld"),
-                Arguments.of("n3"));
+                Arguments.of("ndjsonld"),
+                Arguments.of("n3"),
+                Arguments.of("trix"),
+                Arguments.of("brf"),
+                Arguments.of("rj"));
     }
 
     @ParameterizedTest(name = "createSerializer({0}, STREAMING) returns RioStreamingSerializer")
