@@ -7,7 +7,7 @@ import io.carml.engine.MappingExecutionResult;
 import io.carml.engine.ResolvedMapping;
 import io.carml.logicalview.LogicalViewEvaluator;
 import io.carml.logicalview.ViewIteration;
-import io.carml.model.TermMap;
+import io.carml.model.LogicalTarget;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.Gauge;
@@ -15,6 +15,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.time.Duration;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -201,7 +202,7 @@ public final class MetricsObserver implements MappingExecutionObserver {
 
     @Override
     public void onStatementGenerated(
-            ResolvedMapping mapping, ViewIteration source, Statement statement, TermMap termMap) {
+            ResolvedMapping mapping, ViewIteration source, Statement statement, Set<LogicalTarget> logicalTargets) {
         // Statement counts are recorded in onMappingComplete/onCheckpoint from authoritative totals.
         // Per-statement callback is intentionally a no-op to reduce hot-path overhead.
     }

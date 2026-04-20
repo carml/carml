@@ -6,11 +6,11 @@ import io.carml.engine.MappingExecutionResult;
 import io.carml.engine.ResolvedMapping;
 import io.carml.logicalview.ViewIteration;
 import io.carml.model.LogicalTarget;
-import io.carml.model.TermMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.rdf4j.model.Statement;
 
@@ -19,9 +19,10 @@ import org.eclipse.rdf4j.model.Statement;
  * {@link MappingExecutionObserver} to intercept statement generation events and dispatch them to the
  * appropriate {@link TargetWriter} instances.
  *
- * <p>Each statement is routed based on the {@link LogicalTarget}s declared on the {@link TermMap}
- * that produced it. Statements without explicit logical targets are written to the default writer
- * (if configured), representing the default output (e.g. stdout or an output file).
+ * <p>Each statement is routed based on the {@link LogicalTarget}s declared on the term maps that
+ * produced it (subject, predicate, object and optional graph). Statements without explicit logical
+ * targets are written to the default writer (if configured), representing the default output (e.g.
+ * stdout or an output file).
  *
  * <p>Lifecycle:
  * <ul>
@@ -92,6 +93,18 @@ public class TargetRouter implements MappingExecutionObserver, AutoCloseable {
     private volatile boolean closed;
 
     /**
+     * Counts the total number of {@link Statement}s dispatched to writers — incremented once per
+     * {@link #onStatementGenerated} invocation that actually dispatches a write. A statement with
+     * N declared logical targets is written N times to writers but counted only once here. A
+     * statement with empty targets is counted once when it is dispatched to the default writer; a
+     * statement with empty targets and no default writer is silently dropped and is NOT counted —
+     * the counter strictly reflects "writes actually dispatched", matching the CLI's
+     * {@code wrote Y statements} log line. Distinct from the CLI's "observed" count which
+     * includes mergeable statements that never reach the router.
+     */
+    private final AtomicLong writtenCount = new AtomicLong();
+
+    /**
      * Creates a TargetRouter with the given writers and optional default writer.
      *
      * @param writers mapping from LogicalTarget to its TargetWriter
@@ -142,13 +155,13 @@ public class TargetRouter implements MappingExecutionObserver, AutoCloseable {
 
     @Override
     public void onStatementGenerated(
-            ResolvedMapping mapping, ViewIteration source, Statement statement, TermMap termMap) {
-        var logicalTargets = termMap.getLogicalTargets();
-
+            ResolvedMapping mapping, ViewIteration source, Statement statement, Set<LogicalTarget> logicalTargets) {
         if (logicalTargets.isEmpty()) {
             if (defaultWriter != null) {
                 defaultWriter.write(statement);
+                writtenCount.incrementAndGet();
             }
+            // No default writer: statement is silently dropped, NOT counted as written.
         } else {
             for (var logicalTarget : logicalTargets) {
                 var writer = writers.get(logicalTarget);
@@ -158,6 +171,7 @@ public class TargetRouter implements MappingExecutionObserver, AutoCloseable {
                 }
                 writer.write(statement);
             }
+            writtenCount.incrementAndGet();
         }
     }
 
@@ -213,6 +227,26 @@ public class TargetRouter implements MappingExecutionObserver, AutoCloseable {
      */
     public boolean hasDefaultWriter() {
         return defaultWriter != null;
+    }
+
+    /**
+     * Returns the total number of distinct {@link Statement}s that this router has dispatched to
+     * writers. A statement routed to multiple logical targets is counted once (writers see N
+     * writes, the counter sees 1). A statement with empty targets and no default writer is
+     * silently dropped and is NOT counted — the counter strictly reflects the number of writes
+     * the router actually dispatched. Distinct from the CLI's "observed" count which may include
+     * upstream results (e.g. mergeable statements) that never reach the router.
+     */
+    public long getWrittenCount() {
+        return writtenCount.get();
+    }
+
+    /**
+     * Returns the total number of target writers managed by this router, including the default
+     * writer if configured.
+     */
+    public int getTargetWriterCount() {
+        return writers.size() + (defaultWriter != null ? 1 : 0);
     }
 
     /**

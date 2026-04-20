@@ -9,6 +9,8 @@ import io.carml.engine.MappedValue;
 import io.carml.engine.MappingResult;
 import io.carml.engine.TermGenerator;
 import io.carml.engine.TriplesMapperException;
+import io.carml.engine.rdf.cc.RdfContainer;
+import io.carml.engine.rdf.cc.RdfList;
 import io.carml.logicalsourceresolver.DatatypeMapper;
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.model.SubjectMap;

@@ -11,9 +11,10 @@ import static org.mockito.Mockito.verify;
 
 import io.carml.logicalview.LogicalViewEvaluator;
 import io.carml.logicalview.ViewIteration;
-import io.carml.model.TermMap;
+import io.carml.model.LogicalTarget;
 import java.time.Duration;
 import java.util.List;
+import java.util.Set;
 import org.eclipse.rdf4j.model.Statement;
 import org.junit.jupiter.api.Test;
 
@@ -135,13 +136,13 @@ class CompositeObserverTest {
         var mapping = mock(ResolvedMapping.class);
         var iteration = mock(ViewIteration.class);
         var statement = mock(Statement.class);
-        var termMap = mock(TermMap.class);
+        Set<LogicalTarget> logicalTargets = Set.of(mock(LogicalTarget.class));
 
         var composite = CompositeObserver.of(List.of(first, second));
-        composite.onStatementGenerated(mapping, iteration, statement, termMap);
+        composite.onStatementGenerated(mapping, iteration, statement, logicalTargets);
 
-        verify(first).onStatementGenerated(mapping, iteration, statement, termMap);
-        verify(second).onStatementGenerated(mapping, iteration, statement, termMap);
+        verify(first).onStatementGenerated(mapping, iteration, statement, logicalTargets);
+        verify(second).onStatementGenerated(mapping, iteration, statement, logicalTargets);
     }
 
     @Test

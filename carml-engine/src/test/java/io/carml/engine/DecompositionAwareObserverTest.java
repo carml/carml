@@ -5,12 +5,14 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 import io.carml.logicalview.EvaluationContext;
 import io.carml.logicalview.LogicalViewEvaluator;
 import io.carml.logicalview.ViewIteration;
+import io.carml.model.LogicalTarget;
 import io.carml.model.LogicalView;
 import io.carml.model.TriplesMap;
 import java.time.Duration;
@@ -145,14 +147,34 @@ class DecompositionAwareObserverTest {
         var iteration = mock(ViewIteration.class);
         var statement1 = mock(Statement.class);
         var statement2 = mock(Statement.class);
-        var termMap = mock(io.carml.model.TermMap.class);
+        Set<LogicalTarget> logicalTargets = Set.of(mock(LogicalTarget.class));
 
-        observer.onStatementGenerated(mapping0, iteration, statement1, termMap);
-        observer.onStatementGenerated(mapping1, iteration, statement2, termMap);
+        observer.onStatementGenerated(mapping0, iteration, statement1, logicalTargets);
+        observer.onStatementGenerated(mapping1, iteration, statement2, logicalTargets);
 
         // Both calls should be forwarded (no aggregation for onStatementGenerated)
-        verify(delegate).onStatementGenerated(any(), eq(iteration), eq(statement1), eq(termMap));
-        verify(delegate).onStatementGenerated(any(), eq(iteration), eq(statement2), eq(termMap));
+        verify(delegate).onStatementGenerated(any(), eq(iteration), eq(statement1), eq(logicalTargets));
+        verify(delegate).onStatementGenerated(any(), eq(iteration), eq(statement2), eq(logicalTargets));
+    }
+
+    @Test
+    void onStatementGenerated_withNullMapping_forwardsThroughWithoutAggregation() {
+        // Given — post-merge firing path (RdfRmlMapper#wrapMergedForObserver) passes null for
+        // ResolvedMapping because merged results aggregate across iterations and often across
+        // decomposed sub-mappings; no single mapping is meaningful. The wrapper must not NPE on
+        // isAggregated(mapping) and must forward the call through to the delegate unchanged.
+        var triplesMap = mock(TriplesMap.class);
+        var mapping0 = buildResolvedMapping(triplesMap, true);
+        var mapping1 = buildResolvedMapping(triplesMap, false);
+
+        var observer = DecompositionAwareObserver.wrap(delegate, List.of(mapping0, mapping1));
+
+        var statement = mock(Statement.class);
+        Set<LogicalTarget> logicalTargets = Set.of(mock(LogicalTarget.class));
+
+        observer.onStatementGenerated(null, null, statement, logicalTargets);
+
+        verify(delegate).onStatementGenerated(isNull(), isNull(), eq(statement), eq(logicalTargets));
     }
 
     /**

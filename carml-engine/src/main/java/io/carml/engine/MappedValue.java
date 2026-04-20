@@ -1,11 +1,11 @@
 package io.carml.engine;
 
-import io.carml.model.Target;
+import io.carml.model.LogicalTarget;
 import java.util.Set;
 
 public interface MappedValue<T> {
 
     T getValue();
 
-    Set<Target> getTargets();
+    Set<LogicalTarget> getLogicalTargets();
 }

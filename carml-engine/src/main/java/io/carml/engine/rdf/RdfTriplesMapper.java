@@ -10,12 +10,15 @@ import io.carml.engine.MappedValue;
 import io.carml.engine.MappingError;
 import io.carml.engine.MappingExecutionObserver;
 import io.carml.engine.MappingResult;
+import io.carml.engine.MergeableMappingResult;
 import io.carml.engine.NoOpObserver;
 import io.carml.engine.NonExistentReferenceException;
 import io.carml.engine.ResolvedMapping;
 import io.carml.engine.TermGenerator;
 import io.carml.engine.TriplesMapper;
 import io.carml.engine.TriplesMapperException;
+import io.carml.engine.rdf.cc.RdfContainer;
+import io.carml.engine.rdf.cc.RdfList;
 import io.carml.logicalsourceresolver.DatatypeMapper;
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.logicalsourceresolver.LogicalSourceRecord;
@@ -320,7 +323,9 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
         var expressionEvaluation = expressionEvaluationFactory.apply(sourceRecord);
         var datatypeMapper = datatypeMapperFactory != null ? datatypeMapperFactory.apply(sourceRecord) : null;
 
-        return mapEvaluation(expressionEvaluation, datatypeMapper).doOnError(ex -> fireError(null, ex));
+        return mapEvaluation(expressionEvaluation, datatypeMapper)
+                .map(result -> instrumentWithObserver(result, null))
+                .doOnError(ex -> fireError(null, ex));
     }
 
     @Override
@@ -328,7 +333,49 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
         LOG.trace("Mapping triples for view iteration {}", viewIteration.getIndex());
         var expressionEvaluation = prepareViewIterationEvaluation(viewIteration);
         return mapEvaluation(expressionEvaluation, viewIteration::getNaturalDatatype)
+                .map(result -> instrumentWithObserver(result, viewIteration))
                 .doOnError(ex -> fireError(viewIteration, ex));
+    }
+
+    /**
+     * Returns a {@link MappingResult} whose inner results publisher fires
+     * {@link MappingExecutionObserver#onStatementGenerated} for every emitted {@link Statement}
+     * as a side effect of subscription. When no observer or no resolved mapping is configured,
+     * the original result is returned unchanged — the NoOp path is a simple identity that avoids
+     * adding any reactive operators on the hot path.
+     *
+     * <p>{@link MergeableMappingResult} instances (per-iteration pieces of rdf:List / rdf:Container
+     * results that will be merged across iterations) are returned unchanged here. Wrapping them
+     * would produce an {@link ObserverFiringMappingResult} which is a {@code MappingResult}
+     * (not a {@code MergeableMappingResult}), breaking the {@code instanceof MergeableMappingResult}
+     * check in {@code RmlMapper.handleCompletable} that captures them for merging.
+     * The observer-firing wrap for the merged tail happens later at
+     * {@code RmlMapper.wrapMergedForObserver} (overridden in
+     * {@code RdfRmlMapper}) — merged rdf:List / rdf:Container statements DO fire the observer
+     * there, with {@code null} for both {@link ResolvedMapping} and the view iteration (merged
+     * results aggregate across iterations, often across decomposed sub-mappings).
+     *
+     * <p>The {@code source} iteration is {@code null} for the legacy {@link LogicalSourceRecord}
+     * path. Observers inspecting {@code source} must tolerate that (e.g.
+     * {@link io.carml.engine.LoggingObserver#onStatementGenerated} guards against it).
+     *
+     * <p><strong>Per-term-map provenance:</strong> the wrapped {@link MappingResult} carries the
+     * exact union of {@link io.carml.model.LogicalTarget}s declared on the subject, predicate,
+     * object and (optional) graph term maps that produced each statement. That union is surfaced
+     * to the observer via {@link ObserverFiringMappingResult}; no heuristic attribution is
+     * performed by this mapper.
+     *
+     * <p>Visibility: package-private to permit direct unit testing of the
+     * {@link MergeableMappingResult} bypass branch. Not part of the public engine API.
+     */
+    MappingResult<Statement> instrumentWithObserver(MappingResult<Statement> mappingResult, ViewIteration source) {
+        if (resolvedMapping == null || observer == NoOpObserver.getInstance()) {
+            return mappingResult;
+        }
+        if (mappingResult instanceof MergeableMappingResult<?, ?>) {
+            return mappingResult;
+        }
+        return new ObserverFiringMappingResult<>(mappingResult, resolvedMapping, source, observer);
     }
 
     /**

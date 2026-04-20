@@ -11,6 +11,8 @@ import io.carml.engine.MappingExecution;
 import io.carml.engine.MappingExecutionObserver;
 import io.carml.engine.MappingPipeline;
 import io.carml.engine.MappingResolver;
+import io.carml.engine.MappingResult;
+import io.carml.engine.NoOpObserver;
 import io.carml.engine.ResolvedMapping;
 import io.carml.engine.RmlMapper;
 import io.carml.engine.RmlMapperException;
@@ -100,6 +102,30 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
                 logicalViewEvaluator,
                 observer);
         this.observer = observer;
+    }
+
+    /**
+     * Wraps each merged mergeable result with {@link ObserverFiringMappingResult} so that every
+     * statement emitted from the post-merge tail (e.g. {@code rml:gather}-produced rdf:List /
+     * rdf:Container statements) fires {@code onStatementGenerated} and is therefore routed to any
+     * declared {@link io.carml.engine.target.TargetRouter}. When no observer is configured
+     * (NoOp), the result is returned unchanged to avoid any reactive overhead on the hot path.
+     *
+     * <p>The wrap passes {@code null} for both {@link ResolvedMapping} and the view iteration
+     * source: merged results aggregate across iterations (often across decomposed sub-mappings),
+     * so neither per-mapping nor per-iteration context is meaningful here. Observers that consume
+     * {@code ResolvedMapping} or {@code source} on this callback must tolerate {@code null} (see
+     * {@link io.carml.engine.LoggingObserver} and {@link io.carml.engine.DecompositionAwareObserver}).
+     * {@link io.carml.engine.target.TargetRouter#onStatementGenerated} uses only the statement and
+     * the logical targets, which the merged {@link io.carml.engine.MergeableMappingResult} surfaces
+     * as the union of its merged pieces' targets.
+     */
+    @Override
+    protected MappingResult<Statement> wrapMergedForObserver(MappingResult<Statement> merged) {
+        if (observer == NoOpObserver.getInstance()) {
+            return merged;
+        }
+        return new ObserverFiringMappingResult<>(merged, null, null, observer);
     }
 
     public static Builder builder() {

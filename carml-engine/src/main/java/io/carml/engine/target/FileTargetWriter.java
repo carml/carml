@@ -49,6 +49,13 @@ import org.eclipse.rdf4j.model.Statement;
  * Calling {@code open()} a second time on a writer that is already open throws
  * {@link IllegalStateException}. To reuse configuration for multiple files, build a fresh writer
  * via the {@link #builder()}.
+ *
+ * <p><strong>Thread-safety:</strong> <em>not</em> thread-safe. When used with
+ * {@link TargetRouter} in a parallel pipeline (multiple reactive threads calling
+ * {@link #write(Statement)} concurrently), external synchronization is required — consider
+ * {@link StreamTargetWriter} for concurrent scenarios (it serializes writes internally), or wrap
+ * this writer in a synchronized adapter. See {@link TargetRouter} Javadoc for the router's
+ * delegation contract.
  */
 @Slf4j
 public class FileTargetWriter implements TargetWriter {
@@ -131,20 +138,29 @@ public class FileTargetWriter implements TargetWriter {
         try {
             createParentDirectories();
             var raw = new BufferedOutputStream(Files.newOutputStream(filePath));
-            OutputStream compressed = null;
-            try {
-                compressed = Compressions.compress(
-                        raw, compression, filePath.getFileName().toString());
-                outputStream = applyCharset(compressed);
-                serializer = serializerFactory.createSerializer(format, mode);
-                serializer.start(outputStream, namespaces);
-                LOG.debug("Opened file target writer for {}", filePath);
-            } catch (RuntimeException | IOException failure) {
-                closePartiallyOpened(raw, compressed);
-                throw failure;
-            }
+            initializeSerializerChain(raw);
+            LOG.debug("Opened file target writer for {}", filePath);
         } catch (IOException ioException) {
             throw new UncheckedIOException("Failed to open file target %s".formatted(filePath), ioException);
+        }
+    }
+
+    /**
+     * Applies compression + charset transcoding to the raw file stream and starts the serializer.
+     * On any failure, closes whatever portion of the stream chain was successfully opened and
+     * rethrows so {@link #open()} can decide whether to wrap the exception.
+     */
+    private void initializeSerializerChain(OutputStream raw) throws IOException {
+        OutputStream compressed = null;
+        try {
+            compressed = Compressions.compress(
+                    raw, compression, filePath.getFileName().toString());
+            outputStream = applyCharset(compressed);
+            serializer = serializerFactory.createSerializer(format, mode);
+            serializer.start(outputStream, namespaces);
+        } catch (RuntimeException | IOException failure) {
+            closePartiallyOpened(raw, compressed);
+            throw failure;
         }
     }
 

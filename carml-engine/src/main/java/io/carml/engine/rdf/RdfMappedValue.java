@@ -1,7 +1,7 @@
 package io.carml.engine.rdf;
 
 import io.carml.engine.MappedValue;
-import io.carml.model.Target;
+import io.carml.model.LogicalTarget;
 import java.util.Set;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -18,14 +18,14 @@ public class RdfMappedValue<T extends Value> implements MappedValue<T> {
     private final T value;
 
     @Singular
-    private final Set<Target> targets;
+    private final Set<LogicalTarget> logicalTargets;
 
     public static <T extends Value> MappedValue<T> of(T value) {
         return of(value, Set.of());
     }
 
-    public static <T extends Value> MappedValue<T> of(T value, Set<Target> targets) {
-        return new RdfMappedValue<>(value, targets);
+    public static <T extends Value> MappedValue<T> of(T value, Set<LogicalTarget> logicalTargets) {
+        return new RdfMappedValue<>(value, logicalTargets);
     }
 
     @Override
@@ -34,7 +34,7 @@ public class RdfMappedValue<T extends Value> implements MappedValue<T> {
     }
 
     @Override
-    public Set<Target> getTargets() {
-        return targets;
+    public Set<LogicalTarget> getLogicalTargets() {
+        return logicalTargets;
     }
 }

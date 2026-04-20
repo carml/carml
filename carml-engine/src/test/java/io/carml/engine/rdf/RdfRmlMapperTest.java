@@ -3,19 +3,26 @@ package io.carml.engine.rdf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import io.carml.engine.CompositeObserver;
 import io.carml.engine.MappingExecution;
 import io.carml.engine.MappingExecutionObserver;
+import io.carml.engine.MappingResult;
 import io.carml.engine.NoOpObserver;
 import io.carml.engine.RmlMapperException;
 import io.carml.logicalsourceresolver.sourceresolver.ClassPathResolver;
 import io.carml.logicalsourceresolver.sourceresolver.SourceResolverException;
+import io.carml.model.LogicalTarget;
 import io.carml.model.Mapping;
 import io.carml.model.TriplesMap;
 import io.carml.rdfmapper.impl.CarmlMapperException;
@@ -28,6 +35,7 @@ import java.util.Map;
 import java.util.Set;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
+import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.model.impl.TreeModel;
 import org.eclipse.rdf4j.model.impl.ValidatingValueFactory;
@@ -37,6 +45,7 @@ import org.eclipse.rdf4j.rio.RDFFormat;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -647,5 +656,68 @@ class RdfRmlMapperTest {
 
         // Then
         assertThat(rmlMapper.getObserver(), is(instanceOf(CompositeObserver.class)));
+    }
+
+    // --- Post-merge observer wrap ---
+
+    @Test
+    void wrapMergedForObserver_withNoOpObserver_returnsIdentity() {
+        // Given — no observer configured; the wrap must be a zero-overhead identity so the
+        // post-merge tail adds no reactive operators on the hot path.
+        var mappingSource = RdfRmlMapperTest.class.getResourceAsStream("mapping.rml.ttl");
+        var mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
+        var rmlMapper = RdfRmlMapper.builder()
+                .triplesMaps(mapping)
+                .allowMultipleSubjectMaps(true)
+                .build();
+
+        assertThat(rmlMapper.getObserver(), is(instanceOf(NoOpObserver.class)));
+
+        @SuppressWarnings("unchecked")
+        MappingResult<Statement> merged = mock(MappingResult.class);
+
+        // When
+        var result = rmlMapper.wrapMergedForObserver(merged);
+
+        // Then
+        assertThat(result, is(sameInstance(merged)));
+    }
+
+    @Test
+    void wrapMergedForObserver_withActiveObserver_firesOnStatementGeneratedWithMergedLogicalTargets() {
+        // Given — an active observer and a merged MappingResult whose getLogicalTargets() reports
+        // the UNION of targets from merged-in pieces. The post-merge wrap must surface that union
+        // to onStatementGenerated, with null mapping and null source (merged results aggregate
+        // across iterations; no single ResolvedMapping is meaningful).
+        var mappingSource = RdfRmlMapperTest.class.getResourceAsStream("mapping.rml.ttl");
+        var mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
+        var observer = mock(MappingExecutionObserver.class);
+        var rmlMapper = RdfRmlMapper.builder()
+                .triplesMaps(mapping)
+                .allowMultipleSubjectMaps(true)
+                .observer(observer)
+                .build();
+
+        var targetA = mock(LogicalTarget.class);
+        var targetB = mock(LogicalTarget.class);
+        Set<LogicalTarget> mergedTargets = Set.of(targetA, targetB);
+        var vf = SimpleValueFactory.getInstance();
+        var statement = vf.createStatement(vf.createIRI("urn:s"), vf.createIRI("urn:p"), vf.createIRI("urn:o"));
+
+        @SuppressWarnings("unchecked")
+        MappingResult<Statement> merged = mock(MappingResult.class);
+        when(merged.getLogicalTargets()).thenReturn(mergedTargets);
+        when(merged.getResults()).thenReturn(Mono.just(statement));
+
+        // When
+        var result = rmlMapper.wrapMergedForObserver(merged);
+
+        // Then — a decorator is returned, not the original instance.
+        assertThat(result, is(not(sameInstance(merged))));
+
+        // And — subscribing the result fires onStatementGenerated exactly once with the merged
+        // logical targets and null mapping/source.
+        StepVerifier.create(Flux.from(result.getResults())).expectNextCount(1).verifyComplete();
+        verify(observer).onStatementGenerated(isNull(), isNull(), eq(statement), eq(mergedTargets));
     }
 }

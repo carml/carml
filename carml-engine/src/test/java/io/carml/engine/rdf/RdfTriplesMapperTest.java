@@ -10,6 +10,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -27,6 +28,7 @@ import io.carml.engine.FieldOrigin;
 import io.carml.engine.MappedValue;
 import io.carml.engine.MappingExecutionObserver;
 import io.carml.engine.MappingResult;
+import io.carml.engine.MergeableMappingResult;
 import io.carml.engine.ResolvedMapping;
 import io.carml.engine.TermGenerator;
 import io.carml.engine.TriplesMapperException;
@@ -36,6 +38,7 @@ import io.carml.logicalsourceresolver.LogicalSourceResolver;
 import io.carml.logicalview.ViewIteration;
 import io.carml.model.Field;
 import io.carml.model.GraphMap;
+import io.carml.model.LogicalTarget;
 import io.carml.model.ObjectMap;
 import io.carml.model.PredicateMap;
 import io.carml.model.PredicateObjectMap;
@@ -57,8 +60,10 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -849,5 +854,285 @@ class RdfTriplesMapperTest {
 
         // Then
         verify(observer, never()).onError(any(), any(), any());
+    }
+
+    // --- onStatementGenerated firing ---
+
+    @Test
+    void givenObserverAndResolvedMapping_whenMapLogicalSourceRecord_thenOnStatementGeneratedFiredPerStatement() {
+        // Given — one subject, two classes produces two rdf:type statements.
+        IRI subject = iri("http://foo.bar/subject");
+        IRI class1 = iri("http://foo.bar/Class1");
+        IRI class2 = iri("http://foo.bar/Class2");
+        MappedValue<Resource> mappedSubject = RdfMappedValue.of(subject);
+        when(subjectGenerator.apply(any(), any())).thenReturn(List.of(mappedSubject));
+        when(subjectMap.getClasses()).thenReturn(Set.of(class1, class2));
+        when(triplesMap.getPredicateObjectMaps()).thenReturn(Set.of());
+
+        var rdfMapperConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
+                .valueFactorySupplier(Values::getValueFactory)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .build();
+
+        RdfTriplesMapper<String> rdfTriplesMapper =
+                RdfTriplesMapper.of(triplesMap, logicalSourceResolver, rdfMapperConfig);
+
+        var observer = mock(MappingExecutionObserver.class);
+        var resolvedMapping = mock(ResolvedMapping.class);
+        rdfTriplesMapper.setObserver(observer);
+        rdfTriplesMapper.setResolvedMapping(resolvedMapping);
+
+        // When — drain the outer Flux and each inner Publisher so side effects fire.
+        var statements = rdfTriplesMapper.map(logicalSourceRecord);
+        StepVerifier.create(statements.flatMap(mr -> reactor.core.publisher.Flux.from(mr.getResults())))
+                .expectNextCount(2)
+                .verifyComplete();
+
+        // Then — one onStatementGenerated per emitted statement, source is null (LS path),
+        // logicalTargets is the empty set (neither the subject map nor the rdf:type/class terms
+        // declare logical targets).
+        verify(observer, times(2))
+                .onStatementGenerated(eq(resolvedMapping), isNull(), any(Statement.class), eq(Set.<LogicalTarget>of()));
+    }
+
+    @Test
+    void givenObserverAndResolvedMapping_whenMapViewIteration_thenOnStatementGeneratedFiredWithViewIteration() {
+        // Given
+        IRI subject = iri("http://foo.bar/subject");
+        IRI class1 = iri("http://foo.bar/Class1");
+        MappedValue<Resource> mappedSubject = RdfMappedValue.of(subject);
+        when(subjectGenerator.apply(any(), any())).thenReturn(List.of(mappedSubject));
+        when(subjectMap.getClasses()).thenReturn(Set.of(class1));
+        when(triplesMap.getPredicateObjectMaps()).thenReturn(Set.of());
+        when(viewIteration.getKeys()).thenReturn(Set.of("fieldName"));
+        when(viewIteration.getIndex()).thenReturn(42);
+
+        var rdfMapperConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
+                .valueFactorySupplier(Values::getValueFactory)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .build();
+
+        RdfTriplesMapper<String> rdfTriplesMapper =
+                RdfTriplesMapper.of(triplesMap, logicalSourceResolver, rdfMapperConfig);
+
+        var observer = mock(MappingExecutionObserver.class);
+        var resolvedMapping = mock(ResolvedMapping.class);
+        rdfTriplesMapper.setObserver(observer);
+        rdfTriplesMapper.setResolvedMapping(resolvedMapping);
+
+        // When
+        StepVerifier.create(rdfTriplesMapper
+                        .map(viewIteration)
+                        .flatMap(mr -> reactor.core.publisher.Flux.from(mr.getResults())))
+                .expectNextCount(1)
+                .verifyComplete();
+
+        // Then — source is the view iteration, not null.
+        verify(observer)
+                .onStatementGenerated(
+                        eq(resolvedMapping), eq(viewIteration), any(Statement.class), eq(Set.<LogicalTarget>of()));
+    }
+
+    @Test
+    void givenNoResolvedMapping_whenMap_thenOnStatementGeneratedNotFired() {
+        // Given — resolvedMapping is NOT set (null by default)
+        IRI subject = iri("http://foo.bar/subject");
+        IRI class1 = iri("http://foo.bar/Class1");
+        MappedValue<Resource> mappedSubject = RdfMappedValue.of(subject);
+        when(subjectGenerator.apply(any(), any())).thenReturn(List.of(mappedSubject));
+        when(subjectMap.getClasses()).thenReturn(Set.of(class1));
+        when(triplesMap.getPredicateObjectMaps()).thenReturn(Set.of());
+
+        var rdfMapperConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
+                .valueFactorySupplier(Values::getValueFactory)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .build();
+
+        RdfTriplesMapper<String> rdfTriplesMapper =
+                RdfTriplesMapper.of(triplesMap, logicalSourceResolver, rdfMapperConfig);
+
+        var observer = mock(MappingExecutionObserver.class);
+        rdfTriplesMapper.setObserver(observer);
+        // resolvedMapping NOT set
+
+        // When
+        StepVerifier.create(rdfTriplesMapper
+                        .map(logicalSourceRecord)
+                        .flatMap(mr -> reactor.core.publisher.Flux.from(mr.getResults())))
+                .expectNextCount(1)
+                .verifyComplete();
+
+        // Then — no firing when resolvedMapping is null.
+        verify(observer, never()).onStatementGenerated(any(), any(), any(), any());
+    }
+
+    @Test
+    void givenDefaultNoOpObserver_whenMap_thenInstrumentationIsBypassed() {
+        // Given — observer defaults to NoOpObserver; resolvedMapping set.
+        IRI subject = iri("http://foo.bar/subject");
+        IRI class1 = iri("http://foo.bar/Class1");
+        MappedValue<Resource> mappedSubject = RdfMappedValue.of(subject);
+        when(subjectGenerator.apply(any(), any())).thenReturn(List.of(mappedSubject));
+        when(subjectMap.getClasses()).thenReturn(Set.of(class1));
+        when(triplesMap.getPredicateObjectMaps()).thenReturn(Set.of());
+
+        var rdfMapperConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
+                .valueFactorySupplier(Values::getValueFactory)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .build();
+
+        RdfTriplesMapper<String> rdfTriplesMapper =
+                RdfTriplesMapper.of(triplesMap, logicalSourceResolver, rdfMapperConfig);
+
+        var resolvedMapping = mock(ResolvedMapping.class);
+        rdfTriplesMapper.setResolvedMapping(resolvedMapping);
+        // observer left at default NoOpObserver — should be identity path, no wrapping.
+
+        // When
+        var firstResult = rdfTriplesMapper.map(logicalSourceRecord).blockFirst();
+
+        // Then — the MappingResult is a plain MappedStatement (no wrapper decoration).
+        assertThat(firstResult, instanceOf(MappedStatement.class));
+    }
+
+    // --- Per-term-map provenance: LogicalTargets carried on the MappedValue surface to the
+    //     observer unchanged. The class-triple path produces one statement per (subject, class)
+    //     combination; the subject carries the LogicalTarget declared on its SubjectMap, so
+    //     MappedStatements.createMappedStatement unions that target into the emitted statement's
+    //     logicalTargets set.
+
+    @Test
+    void onStatementGenerated_withLogicalTargetOnSubjectMappedValue_surfacesTargetToObserver() {
+        // Given — a SubjectMap declares a LogicalTarget. The term generator returns a
+        // MappedValue that carries that LogicalTarget on it. The engine must surface that
+        // target set to the observer as the routing key for the emitted statement — no
+        // heuristic, no attribution TermMap, just the actual per-term-map provenance.
+        var logicalTarget = mock(LogicalTarget.class);
+
+        IRI subject = iri("http://foo.bar/subject");
+        IRI class1 = iri("http://foo.bar/Class1");
+        when(subjectGenerator.apply(any(), any()))
+                .thenReturn(List.of(RdfMappedValue.of(subject, Set.of(logicalTarget))));
+        when(subjectMap.getClasses()).thenReturn(Set.of(class1));
+        when(triplesMap.getPredicateObjectMaps()).thenReturn(Set.of());
+
+        var rdfMapperConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
+                .valueFactorySupplier(Values::getValueFactory)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .build();
+
+        RdfTriplesMapper<String> rdfTriplesMapper =
+                RdfTriplesMapper.of(triplesMap, logicalSourceResolver, rdfMapperConfig);
+
+        var observer = mock(MappingExecutionObserver.class);
+        var resolvedMapping = mock(ResolvedMapping.class);
+        rdfTriplesMapper.setObserver(observer);
+        rdfTriplesMapper.setResolvedMapping(resolvedMapping);
+
+        // When
+        StepVerifier.create(rdfTriplesMapper
+                        .map(logicalSourceRecord)
+                        .flatMap(mr -> reactor.core.publisher.Flux.from(mr.getResults())))
+                .expectNextCount(1)
+                .verifyComplete();
+
+        // Then — the observer receives the exact set of LogicalTargets declared on the term map
+        // that produced the subject. No SubjectMap heuristic is involved; the routing key is the
+        // actual per-term-map provenance carried on the MappedValue.
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Set<LogicalTarget>> targetsCaptor = ArgumentCaptor.forClass(Set.class);
+        verify(observer)
+                .onStatementGenerated(eq(resolvedMapping), isNull(), any(Statement.class), targetsCaptor.capture());
+        assertThat(targetsCaptor.getValue(), is(Set.of(logicalTarget)));
+    }
+
+    // --- MergeableMappingResult bypass ---
+
+    @Test
+    void instrumentWithObserver_withMergeableMappingResult_returnsIdentityAndDoesNotFireObserver() {
+        // Given — a MergeableMappingResult must NOT be wrapped at this firing point, because
+        // RmlMapper#handleCompletable relies on the `instanceof MergeableMappingResult` check to
+        // queue per-iteration pieces for cross-iteration merging. Decorating with
+        // ObserverFiringMappingResult (itself a MappingResult<Statement>, not a
+        // MergeableMappingResult) would break that branch and silently suppress merge handling.
+        // The observer-firing wrap for merged results happens at the merge output instead — see
+        // RdfRmlMapper#wrapMergedForObserver. This test pins the per-iteration bypass at the unit
+        // boundary; the post-merge firing is covered at the MergeableRdfList/Container level.
+        var rdfMapperConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
+                .valueFactorySupplier(Values::getValueFactory)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .build();
+
+        RdfTriplesMapper<String> rdfTriplesMapper =
+                RdfTriplesMapper.of(triplesMap, logicalSourceResolver, rdfMapperConfig);
+
+        var observer = mock(MappingExecutionObserver.class);
+        var resolvedMapping = mock(ResolvedMapping.class);
+        rdfTriplesMapper.setObserver(observer);
+        rdfTriplesMapper.setResolvedMapping(resolvedMapping);
+
+        IRI subject = iri("http://foo.bar/subject");
+        IRI predicate = iri("http://foo.bar/p");
+        IRI object = iri("http://foo.bar/o");
+        var mergeable =
+                new TestMergeableMappingResult(statement(subject, predicate, object, null), iri("urn:carml:merge-key"));
+
+        // When — invoke the package-private instrumentation directly.
+        var result = rdfTriplesMapper.instrumentWithObserver(mergeable, null);
+
+        // Then — same instance returned (identity bypass), preserving the
+        // `instanceof MergeableMappingResult` check downstream.
+        assertThat(result, sameInstance(mergeable));
+
+        // And — subscribing the bypassed result must NOT fire the observer.
+        StepVerifier.create(reactor.core.publisher.Flux.from(result.getResults()))
+                .expectNextCount(1)
+                .verifyComplete();
+        verify(observer, never()).onStatementGenerated(any(), any(), any(), any());
+    }
+
+    /**
+     * Minimal {@link MergeableMappingResult} stub for the bypass test. Implements only what is
+     * needed: a single-statement publisher and a key. {@link #merge} is unused by the bypass path
+     * under test and throws if invoked, surfacing accidental usage.
+     */
+    private static final class TestMergeableMappingResult
+            implements MergeableMappingResult<org.eclipse.rdf4j.model.Resource, Statement> {
+
+        private final Statement statement;
+
+        private final org.eclipse.rdf4j.model.Resource key;
+
+        TestMergeableMappingResult(Statement statement, org.eclipse.rdf4j.model.Resource key) {
+            this.statement = statement;
+            this.key = key;
+        }
+
+        @Override
+        public org.eclipse.rdf4j.model.Resource getKey() {
+            return key;
+        }
+
+        @Override
+        public MergeableMappingResult<org.eclipse.rdf4j.model.Resource, Statement> merge(
+                MergeableMappingResult<org.eclipse.rdf4j.model.Resource, Statement> other) {
+            throw new UnsupportedOperationException("merge() not used in bypass test");
+        }
+
+        @Override
+        public Set<LogicalTarget> getLogicalTargets() {
+            return Set.of();
+        }
+
+        @Override
+        public Publisher<Statement> getResults() {
+            return Mono.just(statement);
+        }
     }
 }

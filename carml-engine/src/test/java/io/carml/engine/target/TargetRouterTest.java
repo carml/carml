@@ -13,14 +13,12 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
 
 import io.carml.engine.CheckpointInfo;
 import io.carml.engine.MappingExecutionResult;
 import io.carml.engine.ResolvedMapping;
 import io.carml.logicalview.ViewIteration;
 import io.carml.model.LogicalTarget;
-import io.carml.model.TermMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -57,16 +55,15 @@ class TargetRouterTest {
         var logicalTarget = mock(LogicalTarget.class);
         var targetWriter = mock(TargetWriter.class);
         var defaultWriter = mock(TargetWriter.class);
-        var termMap = mock(TermMap.class);
-        when(termMap.getLogicalTargets()).thenReturn(Set.of(logicalTarget));
 
         try (var router = new TargetRouter(Map.of(logicalTarget, targetWriter), defaultWriter)) {
             // When
-            router.onStatementGenerated(mapping, viewIteration, statement, termMap);
+            router.onStatementGenerated(mapping, viewIteration, statement, Set.of(logicalTarget));
 
             // Then
             verify(targetWriter).write(statement);
             verifyNoInteractions(defaultWriter);
+            assertThat(router.getWrittenCount(), is(1L));
         }
     }
 
@@ -74,12 +71,10 @@ class TargetRouterTest {
     void onStatementGenerated_withoutLogicalTarget_routesToDefaultWriter() {
         // Given
         var defaultWriter = mock(TargetWriter.class);
-        var termMap = mock(TermMap.class);
-        when(termMap.getLogicalTargets()).thenReturn(Set.of());
 
         try (var router = new TargetRouter(Map.of(), defaultWriter)) {
             // When
-            router.onStatementGenerated(mapping, viewIteration, statement, termMap);
+            router.onStatementGenerated(mapping, viewIteration, statement, Set.of());
 
             // Then
             verify(defaultWriter).write(statement);
@@ -88,13 +83,9 @@ class TargetRouterTest {
 
     @Test
     void onStatementGenerated_withoutLogicalTargetOrDefault_silentlyDrops() {
-        // Given
-        var termMap = mock(TermMap.class);
-        when(termMap.getLogicalTargets()).thenReturn(Set.of());
-
         try (var router = new TargetRouter(Map.of(), null)) {
             // When
-            router.onStatementGenerated(mapping, viewIteration, statement, termMap);
+            router.onStatementGenerated(mapping, viewIteration, statement, Set.of());
 
             // Then - no writers to interact with, statement is silently dropped
             assertThat(router.hasDefaultWriter(), is(false));
@@ -108,27 +99,26 @@ class TargetRouterTest {
         var target2 = mock(LogicalTarget.class);
         var writer1 = mock(TargetWriter.class);
         var writer2 = mock(TargetWriter.class);
-        var termMap = mock(TermMap.class);
-        when(termMap.getLogicalTargets()).thenReturn(Set.of(target1, target2));
 
         try (var router = new TargetRouter(Map.of(target1, writer1, target2, writer2), null)) {
             // When
-            router.onStatementGenerated(mapping, viewIteration, statement, termMap);
+            router.onStatementGenerated(mapping, viewIteration, statement, Set.of(target1, target2));
 
             // Then
             verify(writer1).write(statement);
             verify(writer2).write(statement);
+            // Pin the "once per invocation, not per writer write" contract: a statement routed
+            // to N targets is written N times to writers but counted once at the router.
+            assertThat(router.getWrittenCount(), is(1L));
         }
     }
 
     @Test
     void onStatementGenerated_missingWriterForDeclaredTarget_throwsIllegalState() {
-        // Given - termMap declares a target that has no registered writer
+        // Given - the logical-targets argument declares a target that has no registered writer
         var declaredTarget = mock(LogicalTarget.class);
         var unrelatedTarget = mock(LogicalTarget.class);
         var unrelatedWriter = mock(TargetWriter.class);
-        var termMap = mock(TermMap.class);
-        when(termMap.getLogicalTargets()).thenReturn(Set.of(declaredTarget));
 
         try (var router = new TargetRouter(Map.of(unrelatedTarget, unrelatedWriter), null)) {
             // When / Then - missing writer is a configuration bug that must surface as error, not
@@ -136,7 +126,7 @@ class TargetRouterTest {
             // mapping.
             assertThrows(
                     IllegalStateException.class,
-                    () -> router.onStatementGenerated(mapping, viewIteration, statement, termMap));
+                    () -> router.onStatementGenerated(mapping, viewIteration, statement, Set.of(declaredTarget)));
             verifyNoInteractions(unrelatedWriter);
         }
     }
@@ -482,12 +472,10 @@ class TargetRouterTest {
         // is a no-op at the router level), so close verification runs after the block.
         var target = mock(LogicalTarget.class);
         var targetWriter = mock(TargetWriter.class);
-        var termMap = mock(TermMap.class);
-        when(termMap.getLogicalTargets()).thenReturn(Set.of(target));
 
         try (var router = new TargetRouter(Map.of(target, targetWriter), null)) {
             router.onMappingStart(mapping);
-            router.onStatementGenerated(mapping, viewIteration, statement, termMap);
+            router.onStatementGenerated(mapping, viewIteration, statement, Set.of(target));
             router.onCheckpoint(mapping, checkpoint);
             router.onMappingComplete(mapping, result);
         }
@@ -570,6 +558,73 @@ class TargetRouterTest {
     }
 
     @Test
+    void getTargetWriterCount_withDefaultWriter_includesDefault() {
+        // Given - one registered target writer plus a default writer.
+        var logicalTarget = mock(LogicalTarget.class);
+        var targetWriter = mock(TargetWriter.class);
+        var defaultWriter = mock(TargetWriter.class);
+
+        try (var router = new TargetRouter(Map.of(logicalTarget, targetWriter), defaultWriter)) {
+            // Then
+            assertThat(router.getTargetWriterCount(), is(2));
+        }
+    }
+
+    @Test
+    void getTargetWriterCount_withoutDefaultWriter_excludesDefault() {
+        // Given - one registered target writer with no default writer.
+        var logicalTarget = mock(LogicalTarget.class);
+        var targetWriter = mock(TargetWriter.class);
+
+        try (var router = new TargetRouter(Map.of(logicalTarget, targetWriter), null)) {
+            // Then - the count reflects only registered writers when there is no default.
+            assertThat(router.getTargetWriterCount(), is(1));
+        }
+    }
+
+    @Test
+    void getWrittenCount_beforeAnyWrites_isZero() {
+        // Given - a freshly constructed router with no statements dispatched yet.
+        var logicalTarget = mock(LogicalTarget.class);
+        var targetWriter = mock(TargetWriter.class);
+
+        try (var router = new TargetRouter(Map.of(logicalTarget, targetWriter), null)) {
+            // Then
+            assertThat(router.getWrittenCount(), is(0L));
+        }
+    }
+
+    @Test
+    void getWrittenCount_onStatementWithoutLogicalTargets_incrementsForDefault() {
+        // Given - statement with empty targets is dispatched to the default writer; the counter
+        // increments because a write was actually dispatched.
+        var defaultWriter = mock(TargetWriter.class);
+
+        try (var router = new TargetRouter(Map.of(), defaultWriter)) {
+            // When
+            router.onStatementGenerated(mapping, viewIteration, statement, Set.of());
+
+            // Then
+            verify(defaultWriter).write(statement);
+            assertThat(router.getWrittenCount(), is(1L));
+        }
+    }
+
+    @Test
+    void getWrittenCount_onStatementWithoutLogicalTargetsAndNoDefault_doesNotIncrement() {
+        // Given - statement with empty targets and no default writer is silently dropped. The
+        // counter strictly reflects writes actually dispatched, so it must NOT increment in this
+        // case (matches the CLI's "wrote Y statements" log line semantics).
+        try (var router = new TargetRouter(Map.of(), null)) {
+            // When
+            router.onStatementGenerated(mapping, viewIteration, statement, Set.of());
+
+            // Then - statement was dropped; nothing was "written".
+            assertThat(router.getWrittenCount(), is(0L));
+        }
+    }
+
+    @Test
     // explicit close is the behavior under test
     void onStatementGenerated_afterClose_propagatesWriterException() {
         // Given - the router does not guard onStatementGenerated against post-close state. Writes
@@ -578,8 +633,6 @@ class TargetRouterTest {
         // regress into silent drops
         var logicalTarget = mock(LogicalTarget.class);
         var targetWriter = mock(TargetWriter.class);
-        var termMap = mock(TermMap.class);
-        when(termMap.getLogicalTargets()).thenReturn(Set.of(logicalTarget));
         doThrow(new IllegalStateException("writer already closed"))
                 .when(targetWriter)
                 .write(statement);
@@ -591,7 +644,7 @@ class TargetRouterTest {
         // When / Then
         var exception = assertThrows(
                 IllegalStateException.class,
-                () -> router.onStatementGenerated(mapping, viewIteration, statement, termMap));
+                () -> router.onStatementGenerated(mapping, viewIteration, statement, Set.of(logicalTarget)));
         assertThat(exception.getMessage(), is("writer already closed"));
     }
 }

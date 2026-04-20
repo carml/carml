@@ -79,6 +79,7 @@ public abstract class RmlMapper<T, K> {
      * view evaluation start/complete, iteration processing, statement generation, and mapping
      * completion. Defaults to {@link NoOpObserver} when no observer is configured.
      */
+    @Getter(AccessLevel.PROTECTED)
     private final MappingExecutionObserver observer;
 
     protected RmlMapper(
@@ -441,8 +442,31 @@ public abstract class RmlMapper<T, K> {
         return Flux.fromIterable(mergeables.values())
                 .flatMap(values -> values.stream()
                         .reduce(MergeableMappingResult::merge)
+                        .map(this::wrapMergedForObserver)
                         .map(Flux::just)
                         .orElse(Flux.empty()));
+    }
+
+    /**
+     * Hook for observer instrumentation of merged mergeable results. Called once per merge key
+     * after {@link MergeableMappingResult#merge} has been reduced over all captured pieces. The
+     * default implementation returns the merged result unchanged; subclasses that produce
+     * {@link org.eclipse.rdf4j.model.Statement} output override this to wrap the result with an
+     * observer-firing decorator.
+     *
+     * <p>Per-iteration mergeable results are intentionally left unwrapped at their production site
+     * (see {@code RdfTriplesMapper.instrumentWithObserver}) so that
+     * {@link #handleCompletable}'s {@code instanceof MergeableMappingResult} check still queues
+     * them for merging. Wrapping happens here, on the merged tail, where the
+     * {@code instanceof} check has already done its job.
+     *
+     * @param merged the merged {@link MappingResult} (always a {@link MergeableMappingResult} by
+     *     construction); downstream callers only consume {@link MappingResult#getResults()} so any
+     *     wrapper is safe to return
+     * @return the merged result, possibly wrapped for observer instrumentation
+     */
+    protected MappingResult<T> wrapMergedForObserver(MappingResult<T> merged) {
+        return merged;
     }
 
     /**

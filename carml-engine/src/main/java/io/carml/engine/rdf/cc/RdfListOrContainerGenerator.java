@@ -1,13 +1,15 @@
-package io.carml.engine.rdf;
+package io.carml.engine.rdf.cc;
 
 import static io.carml.util.CartesianProduct.listCartesianProduct;
 
 import io.carml.engine.MappedValue;
 import io.carml.engine.TermGenerator;
 import io.carml.engine.TermGeneratorFactoryException;
-import io.carml.engine.rdf.RdfContainer.RdfContainerBuilder;
-import io.carml.engine.rdf.RdfList.RdfListBuilder;
-import io.carml.engine.rdf.util.RdfCollectionsAndContainers;
+import io.carml.engine.rdf.ModelBearing;
+import io.carml.engine.rdf.RdfMappedValue;
+import io.carml.engine.rdf.RdfTermGeneratorFactory;
+import io.carml.engine.rdf.cc.RdfContainer.RdfContainerBuilder;
+import io.carml.engine.rdf.cc.RdfList.RdfListBuilder;
 import io.carml.logicalsourceresolver.DatatypeMapper;
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.model.BaseObjectMap;
@@ -198,9 +200,9 @@ public class RdfListOrContainerGenerator
     private List<MappedValue<Value>> handleEmpty() {
         if (gatherMap.getAllowEmptyListAndContainer()) {
             if (gatherMap.getGatherAs().equals(RDF.LIST)) {
-                return List.of(RdfMappedValue.of(RDF.NIL, gatherMap.getTargets()));
+                return List.of(RdfMappedValue.of(RDF.NIL, gatherMap.getLogicalTargets()));
             }
-            return List.of(RdfContainer.empty(gatherMap.getGatherAs(), valueFactory, gatherMap.getTargets()));
+            return List.of(RdfContainer.empty(gatherMap.getGatherAs(), valueFactory, gatherMap.getLogicalTargets()));
         } else {
             return List.of();
         }

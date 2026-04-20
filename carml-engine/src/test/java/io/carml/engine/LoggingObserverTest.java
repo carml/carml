@@ -10,8 +10,8 @@ import static org.mockito.Mockito.when;
 
 import io.carml.logicalview.LogicalViewEvaluator;
 import io.carml.logicalview.ViewIteration;
+import io.carml.model.LogicalTarget;
 import io.carml.model.LogicalView;
-import io.carml.model.TermMap;
 import io.carml.model.TriplesMap;
 import java.time.Duration;
 import java.util.Optional;
@@ -104,10 +104,20 @@ class LoggingObserverTest {
             var iteration = mock(ViewIteration.class);
             when(iteration.getIndex()).thenReturn(0);
             var statement = mock(Statement.class);
-            var termMap = mock(TermMap.class);
-            when(termMap.getResourceName()).thenReturn(":objectMap");
+            Set<LogicalTarget> logicalTargets = Set.of(mock(LogicalTarget.class));
 
-            assertDoesNotThrow(() -> observer.onStatementGenerated(mapping, iteration, statement, termMap));
+            assertDoesNotThrow(() -> observer.onStatementGenerated(mapping, iteration, statement, logicalTargets));
+        }
+
+        @Test
+        void onStatementGenerated_withNullMappingAndNullSource_doesNotThrow() {
+            // Given — post-merge firing path passes null for both ResolvedMapping and ViewIteration
+            // (merged results aggregate across iterations; no single mapping/iteration is
+            // meaningful). The observer must tolerate that without NPE.
+            var statement = mock(Statement.class);
+            Set<LogicalTarget> logicalTargets = Set.of(mock(LogicalTarget.class));
+
+            assertDoesNotThrow(() -> observer.onStatementGenerated(null, null, statement, logicalTargets));
         }
 
         @Test

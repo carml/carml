@@ -1,7 +1,7 @@
 package io.carml.engine.rdf;
 
 import io.carml.engine.MappingResult;
-import io.carml.model.Target;
+import io.carml.model.LogicalTarget;
 import java.util.Set;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -21,11 +21,11 @@ public class MappedStatement implements MappingResult<Statement> {
     private Statement statement;
 
     @Singular
-    private Set<Target> targets;
+    private Set<LogicalTarget> logicalTargets;
 
     @Override
-    public Set<Target> getTargets() {
-        return targets;
+    public Set<LogicalTarget> getLogicalTargets() {
+        return logicalTargets;
     }
 
     @Override

@@ -5,11 +5,13 @@ import static java.util.stream.Collectors.groupingBy;
 
 import io.carml.logicalview.LogicalViewEvaluator;
 import io.carml.logicalview.ViewIteration;
+import io.carml.model.LogicalTarget;
 import io.carml.model.TriplesMap;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.rdf4j.model.Statement;
 
@@ -195,8 +197,15 @@ public final class DecompositionAwareObserver implements MappingExecutionObserve
 
     @Override
     public void onStatementGenerated(
-            ResolvedMapping mapping, ViewIteration source, Statement statement, io.carml.model.TermMap termMap) {
-        delegate.onStatementGenerated(isAggregated(mapping) ? primaryOf(mapping) : mapping, source, statement, termMap);
+            ResolvedMapping mapping, ViewIteration source, Statement statement, Set<LogicalTarget> logicalTargets) {
+        // mapping may be null on the post-merge firing path (see RdfRmlMapper#wrapMergedForObserver)
+        // pass through unchanged since there is no sub-group to aggregate over.
+        if (mapping == null) {
+            delegate.onStatementGenerated(null, source, statement, logicalTargets);
+            return;
+        }
+        delegate.onStatementGenerated(
+                isAggregated(mapping) ? primaryOf(mapping) : mapping, source, statement, logicalTargets);
     }
 
     @Override

@@ -2,9 +2,10 @@ package io.carml.engine;
 
 import io.carml.logicalview.LogicalViewEvaluator;
 import io.carml.logicalview.ViewIteration;
-import io.carml.model.TermMap;
+import io.carml.model.LogicalTarget;
 import java.time.Duration;
 import java.util.Locale;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.rdf4j.model.Statement;
 
@@ -117,14 +118,16 @@ public final class LoggingObserver implements MappingExecutionObserver {
 
     @Override
     public void onStatementGenerated(
-            ResolvedMapping mapping, ViewIteration source, Statement statement, TermMap termMap) {
+            ResolvedMapping mapping, ViewIteration source, Statement statement, Set<LogicalTarget> logicalTargets) {
         if (LOG.isTraceEnabled()) {
+            // mapping may be null on the post-merge firing path (merged rdf:List / rdf:Container
+            // results aggregate across iterations, so no single ResolvedMapping is meaningful).
             LOG.trace(
-                    "Mapping {} generated statement: {} (iteration: {}, termMap: {})",
-                    mapping.getOriginalTriplesMap().getResourceName(),
+                    "Mapping {} generated statement: {} (iteration: {}, logicalTargets: {})",
+                    mapping != null ? mapping.getOriginalTriplesMap().getResourceName() : "n/a",
                     statement,
-                    source.getIndex(),
-                    termMap.getResourceName());
+                    source != null ? source.getIndex() : "n/a",
+                    logicalTargets != null ? logicalTargets.size() : 0);
         }
     }
 

@@ -2,9 +2,10 @@ package io.carml.engine;
 
 import io.carml.logicalview.LogicalViewEvaluator;
 import io.carml.logicalview.ViewIteration;
-import io.carml.model.TermMap;
+import io.carml.model.LogicalTarget;
 import java.time.Duration;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.rdf4j.model.Statement;
@@ -98,8 +99,8 @@ public final class CompositeObserver implements MappingExecutionObserver {
 
     @Override
     public void onStatementGenerated(
-            ResolvedMapping mapping, ViewIteration source, Statement statement, TermMap termMap) {
-        fanOut(d -> d.onStatementGenerated(mapping, source, statement, termMap));
+            ResolvedMapping mapping, ViewIteration source, Statement statement, Set<LogicalTarget> logicalTargets) {
+        fanOut(d -> d.onStatementGenerated(mapping, source, statement, logicalTargets));
     }
 
     @Override

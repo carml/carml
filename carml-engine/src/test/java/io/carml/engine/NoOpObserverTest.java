@@ -27,7 +27,7 @@ class NoOpObserverTest {
         observer.onViewEvaluationStart(null, null);
         observer.onViewIteration(null, null);
         observer.onViewEvaluationComplete(null, 0, null);
-        observer.onStatementGenerated(null, null, null, null);
+        observer.onStatementGenerated(null, null, null, java.util.Set.of());
         observer.onIterationDeduplicated(null, null);
         observer.onError(null, null, null);
     }

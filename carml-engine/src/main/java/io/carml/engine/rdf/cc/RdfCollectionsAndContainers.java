@@ -1,4 +1,4 @@
-package io.carml.engine.rdf.util;
+package io.carml.engine.rdf.cc;
 
 import java.util.List;
 import java.util.function.Consumer;

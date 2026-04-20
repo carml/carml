@@ -1,7 +1,6 @@
-package io.carml.engine.rdf;
+package io.carml.engine.rdf.cc;
 
 import io.carml.engine.MergeableMappingResult;
-import io.carml.engine.rdf.util.RdfCollectionsAndContainers;
 import io.carml.util.Models;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -69,8 +68,13 @@ public class MergeableRdfList<T extends Value> extends RdfList<T> implements Mer
         var mergedLinkingPredicates = new HashSet<>(linkingPredicates);
         mergedLinkingPredicates.addAll(otherList.getLinkingPredicates());
 
+        // Propagate logicalTargets union: toBuilder() pre-fills with this instance's targets;
+        // .logicalTargets(Iterable) adds (not replaces) under @Singular, so the resulting builder
+        // holds the union of both sides. The observer-firing wrap at RmlMapper.mergeMergeables()
+        // relies on this union being surfaced to onStatementGenerated.
         return toBuilder()
                 .model(concatenateCollection((T) GraphScopedMergeKey.unwrap(other.getKey()), otherList.getModel()))
+                .logicalTargets(otherList.getLogicalTargets())
                 .linkingSubjects(Set.copyOf(mergedLinkingSubjects))
                 .linkingPredicates(Set.copyOf(mergedLinkingPredicates))
                 .build();

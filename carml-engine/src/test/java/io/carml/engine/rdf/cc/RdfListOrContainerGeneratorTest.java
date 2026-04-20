@@ -1,4 +1,4 @@
-package io.carml.engine.rdf;
+package io.carml.engine.rdf.cc;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
@@ -12,6 +12,8 @@ import static org.mockito.Mockito.when;
 
 import io.carml.engine.TermGenerator;
 import io.carml.engine.TermGeneratorFactoryException;
+import io.carml.engine.rdf.RdfMappedValue;
+import io.carml.engine.rdf.RdfTermGeneratorFactory;
 import io.carml.model.BaseObjectMap;
 import io.carml.model.GatherMap;
 import io.carml.model.Join;
@@ -70,7 +72,7 @@ class RdfListOrContainerGeneratorTest {
         when(objectGenerator.apply(any(), any())).thenReturn(List.of());
         when(gatherMap.getAllowEmptyListAndContainer()).thenReturn(true);
         when(gatherMap.getGatherAs()).thenReturn(RDF.LIST);
-        when(gatherMap.getTargets()).thenReturn(Set.of());
+        when(gatherMap.getLogicalTargets()).thenReturn(Set.of());
 
         var generator = RdfListOrContainerGenerator.of(gatherMap, valueFactory, rdfTermGeneratorFactory);
 
@@ -90,7 +92,7 @@ class RdfListOrContainerGeneratorTest {
         when(objectGenerator.apply(any(), any())).thenReturn(List.of());
         when(gatherMap.getAllowEmptyListAndContainer()).thenReturn(true);
         when(gatherMap.getGatherAs()).thenReturn(RDF.BAG);
-        when(gatherMap.getTargets()).thenReturn(Set.of());
+        when(gatherMap.getLogicalTargets()).thenReturn(Set.of());
 
         var generator = RdfListOrContainerGenerator.of(gatherMap, valueFactory, rdfTermGeneratorFactory);
 
@@ -117,7 +119,7 @@ class RdfListOrContainerGeneratorTest {
         when(objectGenerator.apply(any(), any())).thenReturn(List.of());
         when(gatherMap.getAllowEmptyListAndContainer()).thenReturn(true);
         when(gatherMap.getGatherAs()).thenReturn(RDF.SEQ);
-        when(gatherMap.getTargets()).thenReturn(Set.of());
+        when(gatherMap.getLogicalTargets()).thenReturn(Set.of());
 
         var generator = RdfListOrContainerGenerator.of(gatherMap, valueFactory, rdfTermGeneratorFactory);
 
@@ -143,7 +145,7 @@ class RdfListOrContainerGeneratorTest {
         when(objectGenerator.apply(any(), any())).thenReturn(List.of());
         when(gatherMap.getAllowEmptyListAndContainer()).thenReturn(true);
         when(gatherMap.getGatherAs()).thenReturn(RDF.ALT);
-        when(gatherMap.getTargets()).thenReturn(Set.of());
+        when(gatherMap.getLogicalTargets()).thenReturn(Set.of());
 
         var generator = RdfListOrContainerGenerator.of(gatherMap, valueFactory, rdfTermGeneratorFactory);
 

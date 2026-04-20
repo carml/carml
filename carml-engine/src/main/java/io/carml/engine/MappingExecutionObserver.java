@@ -2,8 +2,9 @@ package io.carml.engine;
 
 import io.carml.logicalview.LogicalViewEvaluator;
 import io.carml.logicalview.ViewIteration;
-import io.carml.model.TermMap;
+import io.carml.model.LogicalTarget;
 import java.time.Duration;
+import java.util.Set;
 import org.eclipse.rdf4j.model.Statement;
 
 /**
@@ -88,13 +89,19 @@ public interface MappingExecutionObserver {
     /**
      * Called for each RDF statement generated from a {@link ViewIteration}.
      *
+     * <p>The {@code logicalTargets} set is the union of the {@link LogicalTarget}s declared on the
+     * subject, predicate, object and (optional) graph term maps that produced the statement. An
+     * empty set indicates the statement has no explicit logical target and should be routed to the
+     * default output.
+     *
      * @param mapping the resolved mapping being processed
      * @param source the view iteration that produced the statement
      * @param statement the generated RDF statement
-     * @param termMap the term map that produced the statement's object term
+     * @param logicalTargets the union of logical targets declared on the term maps that produced
+     *     the statement
      */
     default void onStatementGenerated(
-            ResolvedMapping mapping, ViewIteration source, Statement statement, TermMap termMap) {}
+            ResolvedMapping mapping, ViewIteration source, Statement statement, Set<LogicalTarget> logicalTargets) {}
 
     /**
      * Called when a {@link ViewIteration} is skipped by deduplication.

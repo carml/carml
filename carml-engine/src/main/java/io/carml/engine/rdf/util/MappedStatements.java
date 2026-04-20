@@ -5,7 +5,7 @@ import static org.eclipse.rdf4j.model.util.Values.getValueFactory;
 import io.carml.engine.MappedValue;
 import io.carml.engine.MappingResult;
 import io.carml.engine.rdf.MappedStatement;
-import io.carml.model.Target;
+import io.carml.model.LogicalTarget;
 import io.carml.output.NTriplesTermEncoder;
 import io.carml.util.ModelsException;
 import java.util.List;
@@ -145,16 +145,19 @@ public class MappedStatements {
             statementConsumer.accept(statement);
         }
 
-        var graphTargets = graphValue != null ? graphValue.getTargets() : Set.<Target>of();
+        var graphTargets = graphValue != null ? graphValue.getLogicalTargets() : Set.<LogicalTarget>of();
 
-        var targets = Stream.of(
-                        subjectValue.getTargets(), predicateValue.getTargets(), objectValue.getTargets(), graphTargets)
+        var logicalTargets = Stream.of(
+                        subjectValue.getLogicalTargets(),
+                        predicateValue.getLogicalTargets(),
+                        objectValue.getLogicalTargets(),
+                        graphTargets)
                 .flatMap(Set::stream)
                 .collect(Collectors.toUnmodifiableSet());
 
         return MappedStatement.builder() //
                 .statement(statement)
-                .targets(targets)
+                .logicalTargets(logicalTargets)
                 .build();
     }
 }

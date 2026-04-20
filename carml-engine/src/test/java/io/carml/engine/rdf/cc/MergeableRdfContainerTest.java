@@ -1,4 +1,4 @@
-package io.carml.engine.rdf;
+package io.carml.engine.rdf.cc;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -7,8 +7,9 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.mock;
 
-import io.carml.engine.rdf.util.RdfCollectionsAndContainers;
+import io.carml.model.LogicalTarget;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -177,6 +178,41 @@ class MergeableRdfContainerTest {
     }
 
     @Test
+    void merge_propagatesLogicalTargetsUnion() {
+        // Given — two mergeable container pieces each carrying distinct LogicalTargets. The
+        // merged result must surface the union so that the post-merge observer wrap in
+        // RdfRmlMapper#wrapMergedForObserver can route statements to every declared target.
+        var container = VF.createBNode("container");
+        var targetA = mock(LogicalTarget.class);
+        var targetB = mock(LogicalTarget.class);
+
+        var model1 =
+                RdfCollectionsAndContainers.toRdfContainerModel(RDF.BAG, List.of(VF.createLiteral("1")), container, VF);
+        var model2 =
+                RdfCollectionsAndContainers.toRdfContainerModel(RDF.BAG, List.of(VF.createLiteral("2")), container, VF);
+
+        var c1 = MergeableRdfContainer.<Value>builder()
+                .type(RDF.BAG)
+                .container(container)
+                .model(model1)
+                .logicalTarget(targetA)
+                .build();
+
+        var c2 = MergeableRdfContainer.<Value>builder()
+                .type(RDF.BAG)
+                .container(container)
+                .model(model2)
+                .logicalTarget(targetB)
+                .build();
+
+        // When
+        var merged = c1.merge(c2);
+
+        // Then — the merged result carries the union of both targets.
+        assertThat(merged.getLogicalTargets(), is(Set.of(targetA, targetB)));
+    }
+
+    @Test
     void getResults_withGraphs_producesDistinctBlanksPerGraph() {
         // Given
         var container = VF.createBNode("container");
@@ -265,7 +301,7 @@ class MergeableRdfContainerTest {
         assertThat(scoped.getLinkingPredicates(), is(Set.of(predicate)));
         assertThat(scoped.getContainer(), is(container));
         assertThat(scoped.getType(), is(RDF.BAG));
-        assertThat(scoped.getTargets(), is(Set.of()));
+        assertThat(scoped.getLogicalTargets(), is(Set.of()));
     }
 
     private List<BNode> extractBlanks(List<Statement> statements) {

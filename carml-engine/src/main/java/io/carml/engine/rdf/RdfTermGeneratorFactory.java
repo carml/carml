@@ -8,6 +8,7 @@ import io.carml.engine.MappedValue;
 import io.carml.engine.TermGenerator;
 import io.carml.engine.TermGeneratorFactory;
 import io.carml.engine.TermGeneratorFactoryException;
+import io.carml.engine.rdf.cc.RdfListOrContainerGenerator;
 import io.carml.logicalsourceresolver.DatatypeMapper;
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.model.DatatypeMap;
@@ -193,7 +194,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
         if (!termMap.getConditions().isEmpty()) {
             return createEvaluatingGenerator(createEvaluation(termMap), termMap, null, null, null);
         }
-        var preComputed = List.of(RdfMappedValue.of(constant, termMap.getTargets()));
+        var preComputed = List.of(RdfMappedValue.of(constant, termMap.getLogicalTargets()));
         return (expressionEvaluation, datatypeMapper) -> preComputed;
     }
 
@@ -330,12 +331,12 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
         }
 
         if (RdfValues.isValidIri(lexicalForm)) {
-            return RdfMappedValue.of(valueFactory.createIRI(lexicalForm), termMap.getTargets());
+            return RdfMappedValue.of(valueFactory.createIRI(lexicalForm), termMap.getLogicalTargets());
         }
 
         String iri = rdfTermGeneratorConfig.getBaseIri().stringValue() + lexicalForm;
         if (RdfValues.isValidIri(iri)) {
-            return RdfMappedValue.of(valueFactory.createIRI(iri), termMap.getTargets());
+            return RdfMappedValue.of(valueFactory.createIRI(iri), termMap.getLogicalTargets());
         }
 
         throw new TermGeneratorFactoryException(String.format(
@@ -347,15 +348,15 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
         // SIMPLE_VALUE_FACTORY is used intentionally to bypass IRI validation, since rml:UnsafeIRI
         // produces IRIs without percent-encoding that may contain characters invalid per RFC 3987.
         if (lexicalForm.contains(":")) {
-            return RdfMappedValue.of(SIMPLE_VALUE_FACTORY.createIRI(lexicalForm), termMap.getTargets());
+            return RdfMappedValue.of(SIMPLE_VALUE_FACTORY.createIRI(lexicalForm), termMap.getLogicalTargets());
         }
         String unsafeIri = rdfTermGeneratorConfig.getBaseIri().stringValue() + lexicalForm;
-        return RdfMappedValue.of(SIMPLE_VALUE_FACTORY.createIRI(unsafeIri), termMap.getTargets());
+        return RdfMappedValue.of(SIMPLE_VALUE_FACTORY.createIRI(unsafeIri), termMap.getLogicalTargets());
     }
 
     private MappedValue<Value> generateBNodeTerm(String lexicalForm, TermMap termMap) {
         String id = createValidBNodeId(lexicalForm);
-        return RdfMappedValue.of(valueFactory.createBNode(id), termMap.getTargets());
+        return RdfMappedValue.of(valueFactory.createBNode(id), termMap.getLogicalTargets());
     }
 
     private String createValidBNodeId(String lexicalForm) {
@@ -374,7 +375,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
                             .map(value -> CanonicalRdfLexicalForm.get().apply(value, mappedDatatype))
                             .map(lexicalForm -> valueFactory.createLiteral(lexicalForm, languageTag))
                             .map(Value.class::cast))
-                    .map(value -> RdfMappedValue.of(value, termMap.getTargets()))
+                    .map(value -> RdfMappedValue.of(value, termMap.getLogicalTargets()))
                     .toList();
         }
 
@@ -388,7 +389,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
 
         return values.stream()
                 .map(this::createNativeTypedLiteral)
-                .map(value -> RdfMappedValue.of(value, termMap.getTargets()))
+                .map(value -> RdfMappedValue.of(value, termMap.getLogicalTargets()))
                 .toList();
     }
 
@@ -422,7 +423,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
                 .flatMap(datatype -> values.stream()
                         .map(value -> CanonicalRdfLexicalForm.get().apply(value, datatype))
                         .map(lexicalForm -> (Value) valueFactory.createLiteral(lexicalForm, datatype)))
-                .map(value -> RdfMappedValue.of(value, termMap.getTargets()))
+                .map(value -> RdfMappedValue.of(value, termMap.getLogicalTargets()))
                 .toList();
     }
 }

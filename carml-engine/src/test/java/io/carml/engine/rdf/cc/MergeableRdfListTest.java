@@ -1,4 +1,4 @@
-package io.carml.engine.rdf;
+package io.carml.engine.rdf.cc;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -7,8 +7,9 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.mock;
 
-import io.carml.engine.rdf.util.RdfCollectionsAndContainers;
+import io.carml.model.LogicalTarget;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -158,6 +159,37 @@ class MergeableRdfListTest {
                 .filter(s -> s.getSubject().equals(subject) && s.getPredicate().equals(predicate))
                 .toList();
         assertThat(linkingTriples, hasSize(1));
+    }
+
+    @Test
+    void merge_propagatesLogicalTargetsUnion() {
+        // Given — two mergeable pieces each carrying distinct LogicalTargets. The merged result
+        // must surface the union so that the post-merge observer wrap in
+        // RdfRmlMapper#wrapMergedForObserver can route statements to every declared target.
+        var head = VF.createBNode("head");
+        var targetA = mock(LogicalTarget.class);
+        var targetB = mock(LogicalTarget.class);
+
+        var model1 = RdfCollectionsAndContainers.toRdfListModel(List.of(VF.createLiteral("1")), head, VF);
+        var model2 = RdfCollectionsAndContainers.toRdfListModel(List.of(VF.createLiteral("2")), head, VF);
+
+        var list1 = MergeableRdfList.<Value>builder()
+                .head(head)
+                .model(model1)
+                .logicalTarget(targetA)
+                .build();
+
+        var list2 = MergeableRdfList.<Value>builder()
+                .head(head)
+                .model(model2)
+                .logicalTarget(targetB)
+                .build();
+
+        // When
+        var merged = list1.merge(list2);
+
+        // Then — the merged result carries the union of both targets.
+        assertThat(merged.getLogicalTargets(), is(Set.of(targetA, targetB)));
     }
 
     @Test

@@ -1,4 +1,4 @@
-package io.carml.engine.rdf;
+package io.carml.engine.rdf.cc;
 
 import java.io.Serial;
 import java.util.Objects;
