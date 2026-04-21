@@ -5,6 +5,7 @@ import io.carml.model.DcatDistribution;
 import io.carml.model.FilePath;
 import io.carml.model.FileSource;
 import io.carml.model.NameableStream;
+import io.carml.model.Target;
 import io.carml.model.TermType;
 import io.carml.model.TriplesMap;
 import io.carml.model.XmlSource;
@@ -13,6 +14,7 @@ import io.carml.model.impl.CarmlDcatDistribution;
 import io.carml.model.impl.CarmlFilePath;
 import io.carml.model.impl.CarmlFileSource;
 import io.carml.model.impl.CarmlStream;
+import io.carml.model.impl.CarmlTarget;
 import io.carml.model.impl.CarmlTriplesMap;
 import io.carml.model.impl.CarmlXmlSource;
 import io.carml.model.impl.source.csvw.CarmlCsvwTable;
@@ -107,6 +109,8 @@ public class RmlMappingLoader {
                             .addDecidableType(Rdf.Rml.FilePath, FilePath.class)
                             .addDecidableType(Rdf.Rml.RelativePathSource, FilePath.class)
                             .bindInterfaceImplementation(FilePath.class, CarmlFilePath.class)
+                            .addDecidableType(Rdf.Rml.Target, Target.class)
+                            .bindInterfaceImplementation(Target.class, CarmlTarget.class)
                             .addDecidableType(DCAT.DISTRIBUTION, DcatDistribution.class)
                             .bindInterfaceImplementation(DcatDistribution.class, CarmlDcatDistribution.class)
                             .addDecidableType(Csvw.Table, CsvwTable.class)

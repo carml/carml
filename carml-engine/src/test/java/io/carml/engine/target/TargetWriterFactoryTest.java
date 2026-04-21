@@ -53,7 +53,8 @@ class TargetWriterFactoryTest {
         var factory = TargetWriterFactory.builder().basePath(tempDir).build();
 
         // When
-        var writer = factory.createFileWriter(filePath, serialization);
+        var writer =
+                factory.createFileWriter(filePath, serialization, filePath.getEncoding(), filePath.getCompression());
         writer.open();
         writer.write(TEST_STATEMENT);
         writer.close();
@@ -73,7 +74,8 @@ class TargetWriterFactoryTest {
         var factory = TargetWriterFactory.builder().basePath(tempDir).build();
 
         // When
-        var writer = factory.createFileWriter(filePath, serialization);
+        var writer =
+                factory.createFileWriter(filePath, serialization, filePath.getEncoding(), filePath.getCompression());
         writer.open();
         writer.write(TEST_STATEMENT);
         writer.close();
@@ -94,7 +96,8 @@ class TargetWriterFactoryTest {
         var factory = TargetWriterFactory.builder().basePath(tempDir).build();
 
         // When
-        var writer = factory.createFileWriter(filePath, serialization);
+        var writer =
+                factory.createFileWriter(filePath, serialization, filePath.getEncoding(), filePath.getCompression());
         writer.open();
         writer.write(TEST_STATEMENT);
         writer.close();
@@ -115,7 +118,8 @@ class TargetWriterFactoryTest {
         var factory = TargetWriterFactory.builder().basePath(tempDir).build();
 
         // When
-        var writer = factory.createFileWriter(filePath, serialization);
+        var writer =
+                factory.createFileWriter(filePath, serialization, filePath.getEncoding(), filePath.getCompression());
         writer.open();
         writer.write(TEST_STATEMENT);
         writer.close();
@@ -140,7 +144,8 @@ class TargetWriterFactoryTest {
         var factory = TargetWriterFactory.builder().basePath(tempDir).build();
 
         // When
-        var writer = factory.createFileWriter(filePath, serialization);
+        var writer =
+                factory.createFileWriter(filePath, serialization, filePath.getEncoding(), filePath.getCompression());
         writer.open();
         writer.write(TEST_STATEMENT);
         writer.close();
@@ -167,7 +172,8 @@ class TargetWriterFactoryTest {
                 .build();
 
         // When
-        var writer = factory.createFileWriter(filePath, serialization);
+        var writer =
+                factory.createFileWriter(filePath, serialization, filePath.getEncoding(), filePath.getCompression());
         writer.open();
         writer.write(TEST_STATEMENT);
         writer.close();
@@ -190,7 +196,8 @@ class TargetWriterFactoryTest {
         var factory = TargetWriterFactory.builder().basePath(tempDir).build();
 
         // When - write a statement through the compressed writer
-        var writer = factory.createFileWriter(filePath, serialization);
+        var writer =
+                factory.createFileWriter(filePath, serialization, filePath.getEncoding(), filePath.getCompression());
         writer.open();
         writer.write(TEST_STATEMENT);
         writer.close();
@@ -218,7 +225,8 @@ class TargetWriterFactoryTest {
         var factory = TargetWriterFactory.builder().basePath(tempDir).build();
 
         // When
-        var writer = factory.createFileWriter(filePath, serialization);
+        var writer =
+                factory.createFileWriter(filePath, serialization, filePath.getEncoding(), filePath.getCompression());
         writer.open();
         writer.write(TEST_STATEMENT);
         writer.close();
@@ -247,7 +255,7 @@ class TargetWriterFactoryTest {
         var factory = TargetWriterFactory.builder().basePath(tempDir).build();
 
         // When
-        var writer = factory.createFileWriter(filePath, null);
+        var writer = factory.createFileWriter(filePath, null, filePath.getEncoding(), filePath.getCompression());
         writer.open();
         writer.write(TEST_STATEMENT);
         writer.close();
@@ -275,7 +283,8 @@ class TargetWriterFactoryTest {
 
         // When / Then
         var exception = assertThrows(IllegalArgumentException.class, () -> {
-            try (var writer = factory.createFileWriter(filePath, serialization)) {
+            try (var writer = factory.createFileWriter(
+                    filePath, serialization, filePath.getEncoding(), filePath.getCompression())) {
                 fail("Expected IllegalArgumentException but createFileWriter returned: " + writer);
             }
         });
@@ -297,7 +306,8 @@ class TargetWriterFactoryTest {
 
         // When / Then
         var exception = assertThrows(IllegalArgumentException.class, () -> {
-            try (var writer = factory.createFileWriter(filePath, serialization)) {
+            try (var writer = factory.createFileWriter(
+                    filePath, serialization, filePath.getEncoding(), filePath.getCompression())) {
                 fail("Expected IllegalArgumentException but createFileWriter returned: " + writer);
             }
         });
@@ -318,7 +328,8 @@ class TargetWriterFactoryTest {
 
         // When / Then
         var exception = assertThrows(IllegalArgumentException.class, () -> {
-            try (var writer = factory.createFileWriter(filePath, serialization)) {
+            try (var writer = factory.createFileWriter(
+                    filePath, serialization, filePath.getEncoding(), filePath.getCompression())) {
                 fail("Expected IllegalArgumentException but createFileWriter returned: " + writer);
             }
         });
@@ -345,7 +356,8 @@ class TargetWriterFactoryTest {
 
         // When / Then
         var exception = assertThrows(IllegalArgumentException.class, () -> {
-            try (var writer = factory.createFileWriter(filePath, serialization)) {
+            try (var writer = factory.createFileWriter(
+                    filePath, serialization, filePath.getEncoding(), filePath.getCompression())) {
                 fail("Expected IllegalArgumentException but createFileWriter returned: " + writer);
             }
         });
@@ -370,7 +382,8 @@ class TargetWriterFactoryTest {
         var factory = TargetWriterFactory.builder().basePath(tempDir).build();
 
         // When
-        var writer = factory.createFileWriter(filePath, serialization);
+        var writer =
+                factory.createFileWriter(filePath, serialization, filePath.getEncoding(), filePath.getCompression());
         writer.open();
         writer.write(quad);
         writer.close();
@@ -399,7 +412,8 @@ class TargetWriterFactoryTest {
         var factory = TargetWriterFactory.builder().basePath(tempDir).build();
 
         // When
-        var writer = factory.createFileWriter(filePath, serialization);
+        var writer =
+                factory.createFileWriter(filePath, serialization, filePath.getEncoding(), filePath.getCompression());
         writer.open();
         writer.write(TEST_STATEMENT);
         writer.close();
@@ -425,7 +439,8 @@ class TargetWriterFactoryTest {
         var factory = TargetWriterFactory.builder().basePath(tempDir).build();
 
         // When
-        var writer = factory.createFileWriter(filePath, serialization);
+        var writer =
+                factory.createFileWriter(filePath, serialization, filePath.getEncoding(), filePath.getCompression());
         writer.open();
         writer.write(TEST_STATEMENT);
         writer.close();
@@ -450,7 +465,8 @@ class TargetWriterFactoryTest {
         var factory = TargetWriterFactory.builder().basePath(tempDir).build();
 
         // When
-        var writer = factory.createFileWriter(filePath, serialization);
+        var writer =
+                factory.createFileWriter(filePath, serialization, filePath.getEncoding(), filePath.getCompression());
         writer.open();
         writer.write(TEST_STATEMENT);
         writer.close();
@@ -477,7 +493,8 @@ class TargetWriterFactoryTest {
         var factory = TargetWriterFactory.builder().basePath(tempDir).build();
 
         // When
-        var writer = factory.createFileWriter(filePath, serialization);
+        var writer =
+                factory.createFileWriter(filePath, serialization, filePath.getEncoding(), filePath.getCompression());
         writer.open();
         writer.write(TEST_STATEMENT);
         writer.close();
@@ -486,6 +503,93 @@ class TargetWriterFactoryTest {
         var outputFile = tempDir.resolve("output.nt");
         assertTrue(Files.exists(outputFile));
         var content = Files.readString(outputFile);
+        assertThat(content, containsString("<http://example.org/s>"));
+    }
+
+    @Test
+    void createFileWriter_fourArg_prefersExplicitEncodingOverFilePath() throws IOException {
+        // Given a FilePath that declares UTF-8 encoding, but the caller supplies UTF-16
+        // explicitly. The four-argument overload is the one the CLI uses when LogicalTarget-level
+        // values override file-path-level values per RML-IO precedence — the explicit value wins.
+        var filePath = CarmlFilePath.builder()
+                .path("output.nt")
+                .root(VF.createIRI(RML_NS, "CurrentWorkingDirectory"))
+                .encoding(VF.createIRI(RML_NS, "UTF-8"))
+                .build();
+        var serialization = VF.createIRI(FORMATS_NS, "N-Triples");
+        var explicitEncoding = VF.createIRI(RML_NS, "UTF-16");
+        var factory = TargetWriterFactory.builder().basePath(tempDir).build();
+
+        // When
+        try (var writer = factory.createFileWriter(filePath, serialization, explicitEncoding, null)) {
+            writer.open();
+            writer.write(TEST_STATEMENT);
+        }
+
+        // Then — file reads back only as UTF-16 (not as UTF-8), so the explicit encoding was the
+        // one applied, not the file-path's UTF-8 declaration
+        var outputFile = tempDir.resolve("output.nt");
+        var utf16Content = Files.readString(outputFile, StandardCharsets.UTF_16);
+        assertThat(utf16Content, containsString("<http://example.org/s>"));
+
+        var rawBytes = Files.readAllBytes(outputFile);
+        var utf8Bytes = utf16Content.getBytes(StandardCharsets.UTF_8);
+        assertThat(rawBytes.length, not(equalTo(utf8Bytes.length)));
+    }
+
+    @Test
+    void createFileWriter_fourArg_prefersExplicitCompressionOverFilePath() throws IOException {
+        // Given a FilePath that declares NO compression, but the caller supplies GZIP explicitly.
+        // Ensures the four-arg overload ignores the file-path-level compression entirely in favor
+        // of the explicit parameter.
+        var filePath = CarmlFilePath.builder()
+                .path("output.nt.gz")
+                .root(VF.createIRI(RML_NS, "CurrentWorkingDirectory"))
+                .build();
+        var serialization = VF.createIRI(FORMATS_NS, "N-Triples");
+        var explicitCompression = VF.createIRI(RML_NS, "gzip");
+        var factory = TargetWriterFactory.builder().basePath(tempDir).build();
+
+        // When
+        try (var writer = factory.createFileWriter(filePath, serialization, null, explicitCompression)) {
+            writer.open();
+            writer.write(TEST_STATEMENT);
+        }
+
+        // Then — file exists and bytes decode through GZIPInputStream
+        var compressedFile = tempDir.resolve("output.nt.gz");
+        assertTrue(Files.exists(compressedFile));
+        try (InputStream input = new GZIPInputStream(Files.newInputStream(compressedFile))) {
+            var content = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+            assertThat(content, containsString("<http://example.org/s>"));
+        }
+    }
+
+    @Test
+    void createFileWriter_fourArg_ignoresFilePathEncodingAndCompression() throws IOException {
+        // Given a FilePath that declares UTF-16 encoding and GZIP compression, but the caller
+        // passes null for both. The four-arg overload must NOT silently fall back to the file-path
+        // values — the contract is that the four-arg form takes its encoding/compression strictly
+        // from the explicit parameters, so the result is a plain unencoded uncompressed file.
+        var filePath = CarmlFilePath.builder()
+                .path("output.nt")
+                .root(VF.createIRI(RML_NS, "CurrentWorkingDirectory"))
+                .encoding(VF.createIRI(RML_NS, "UTF-16"))
+                .compression(VF.createIRI(RML_NS, "gzip"))
+                .build();
+        var serialization = VF.createIRI(FORMATS_NS, "N-Triples");
+        var factory = TargetWriterFactory.builder().basePath(tempDir).build();
+
+        // When
+        try (var writer = factory.createFileWriter(filePath, serialization, null, null)) {
+            writer.open();
+            writer.write(TEST_STATEMENT);
+        }
+
+        // Then — reading as UTF-8 (the default) recovers the content, i.e. no UTF-16 BOM/encoding
+        // was applied; and the bytes are plain N-Triples, not GZIP-framed
+        var outputFile = tempDir.resolve("output.nt");
+        var content = Files.readString(outputFile, StandardCharsets.UTF_8);
         assertThat(content, containsString("<http://example.org/s>"));
     }
 
@@ -502,7 +606,8 @@ class TargetWriterFactoryTest {
         var factory = TargetWriterFactory.builder().basePath(tempDir).build();
 
         // When
-        var writer = factory.createFileWriter(filePath, serialization);
+        var writer =
+                factory.createFileWriter(filePath, serialization, filePath.getEncoding(), filePath.getCompression());
         writer.open();
         writer.write(TEST_STATEMENT);
         writer.close();

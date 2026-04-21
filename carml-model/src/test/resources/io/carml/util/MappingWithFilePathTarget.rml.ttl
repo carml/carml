@@ -1,0 +1,115 @@
+@prefix rml: <http://w3id.org/rml/> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix formats: <http://www.w3.org/ns/formats/> .
+@base <http://example.com/rules/> .
+
+<#TriplesMap> a rml:TriplesMap ;
+  rml:logicalSource [ a rml:LogicalSource ;
+    rml:source [ a rml:FilePath ;
+      rml:root rml:MappingDirectory ;
+      rml:path "Friends.json"
+    ] ;
+    rml:referenceFormulation rml:JSONPath ;
+    rml:iterator "$[*]"
+  ] ;
+  rml:subjectMap [ a rml:SubjectMap ;
+    rml:template "http://example.org/{$.id}" ;
+    rml:logicalTarget <#TargetA>
+  ] ;
+  rml:predicateObjectMap [ a rml:PredicateObjectMap ;
+    rml:predicateMap [ a rml:PredicateMap ; rml:constant foaf:name ] ;
+    rml:objectMap [ a rml:ObjectMap ; rml:reference "$.name" ]
+  ] .
+
+# rml:target with ONLY `a rml:FilePath` — exercises the single-type path in TypeFromTripleTypeDecider
+<#TargetA> a rml:LogicalTarget ;
+  rml:target [ a rml:FilePath ;
+    rml:root rml:CurrentWorkingDirectory ;
+    rml:path "./dumpA.nq"
+  ] ;
+  rml:serialization formats:N-Quads .
+
+# rml:target with both `a rml:Target, rml:FilePath` — exercises the multi-type path where both
+# decidable types must be registered on the mapper.
+<#TriplesMap2> a rml:TriplesMap ;
+  rml:logicalSource [ a rml:LogicalSource ;
+    rml:source [ a rml:FilePath ;
+      rml:root rml:MappingDirectory ;
+      rml:path "Friends.json"
+    ] ;
+    rml:referenceFormulation rml:JSONPath ;
+    rml:iterator "$[*]"
+  ] ;
+  rml:subjectMap [ a rml:SubjectMap ;
+    rml:template "http://example.org/{$.id}" ;
+    rml:logicalTarget <#TargetB>
+  ] ;
+  rml:predicateObjectMap [ a rml:PredicateObjectMap ;
+    rml:predicateMap [ a rml:PredicateMap ; rml:constant foaf:name ] ;
+    rml:objectMap [ a rml:ObjectMap ; rml:reference "$.name" ]
+  ] .
+
+<#TargetB> a rml:LogicalTarget ;
+  rml:target [ a rml:Target, rml:FilePath ;
+    rml:root rml:CurrentWorkingDirectory ;
+    rml:path "./dumpB.nq"
+  ] ;
+  rml:serialization formats:N-Triples ;
+  rml:encoding rml:UTF-16 .
+
+# rml:target with both `a rml:Target, rml:FilePath` AND the serialization declared on the nested
+# target instance (NOT on the surrounding LogicalTarget). Exercises the first-delegate-wins path
+# in CarmlMapper.doMultipleInterfaceMapping for the target.getSerialization() dispatch.
+<#TriplesMap3> a rml:TriplesMap ;
+  rml:logicalSource [ a rml:LogicalSource ;
+    rml:source [ a rml:FilePath ;
+      rml:root rml:MappingDirectory ;
+      rml:path "Friends.json"
+    ] ;
+    rml:referenceFormulation rml:JSONPath ;
+    rml:iterator "$[*]"
+  ] ;
+  rml:subjectMap [ a rml:SubjectMap ;
+    rml:template "http://example.org/{$.id}" ;
+    rml:logicalTarget <#TargetC>
+  ] ;
+  rml:predicateObjectMap [ a rml:PredicateObjectMap ;
+    rml:predicateMap [ a rml:PredicateMap ; rml:constant foaf:name ] ;
+    rml:objectMap [ a rml:ObjectMap ; rml:reference "$.name" ]
+  ] .
+
+<#TargetC> a rml:LogicalTarget ;
+  rml:target [ a rml:Target, rml:FilePath ;
+    rml:root rml:CurrentWorkingDirectory ;
+    rml:path "./dumpC.nt" ;
+    rml:serialization formats:N-Triples
+  ] .
+
+# rml:target with ONLY `a rml:Target` (no rml:FilePath type) — exercises the defensive binding
+# addDecidableType(Rdf.Rml.Target, Target.class) + bindInterfaceImplementation(Target.class,
+# CarmlTarget.class) in RmlMappingLoader. The loader must resolve this to a CarmlTarget instance
+# that IS a Target but NOT a FilePath. (The CLI routing path would reject this at write time
+# because there's no path to resolve — the fixture exists purely to prove the loader handles
+# bare `a rml:Target` nodes without throwing.)
+<#TriplesMap4> a rml:TriplesMap ;
+  rml:logicalSource [ a rml:LogicalSource ;
+    rml:source [ a rml:FilePath ;
+      rml:root rml:MappingDirectory ;
+      rml:path "Friends.json"
+    ] ;
+    rml:referenceFormulation rml:JSONPath ;
+    rml:iterator "$[*]"
+  ] ;
+  rml:subjectMap [ a rml:SubjectMap ;
+    rml:template "http://example.org/{$.id}" ;
+    rml:logicalTarget <#TargetD>
+  ] ;
+  rml:predicateObjectMap [ a rml:PredicateObjectMap ;
+    rml:predicateMap [ a rml:PredicateMap ; rml:constant foaf:name ] ;
+    rml:objectMap [ a rml:ObjectMap ; rml:reference "$.name" ]
+  ] .
+
+<#TargetD> a rml:LogicalTarget ;
+  rml:target [ a rml:Target ;
+    rml:serialization formats:N-Quads
+  ] .

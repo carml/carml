@@ -56,8 +56,57 @@ class TestRmlIoTestCases extends RmlTestCaseSuite {
                 // scalar reference values. Nested data should use rml:LogicalView instead.
                 "RMLSTC0012e",
 
-                // Target tests (rml:Target) — not yet supported
-                "RMLTTC" // all target test cases
-                );
+                // RMLTTC test-case bug family (same as RMLSTC0004/0007*): expected output has
+                // plain string literals "NN" for JSON integer ages, but per RML-IO natural type
+                // inference CARML emits "NN"^^xsd:integer (the RMLSTC0001a passing baseline
+                // encodes the correct behavior).
+                "RMLTTC0001a",
+                "RMLTTC0001d",
+                "RMLTTC0002a",
+                "RMLTTC0002b",
+                "RMLTTC0002c",
+                "RMLTTC0002d",
+                "RMLTTC0002e",
+                "RMLTTC0002f",
+                "RMLTTC0002g",
+                "RMLTTC0002h",
+                "RMLTTC0002i",
+                "RMLTTC0002j",
+                "RMLTTC0002m",
+                "RMLTTC0002n",
+                "RMLTTC0002o",
+                "RMLTTC0002r",
+                "RMLTTC0003a",
+                "RMLTTC0004a",
+                "RMLTTC0004b",
+                "RMLTTC0004c",
+                "RMLTTC0004d",
+                "RMLTTC0004e",
+                "RMLTTC0004f",
+                "RMLTTC0004g",
+                "RMLTTC0005a",
+                "RMLTTC0005b",
+                "RMLTTC0006a",
+                "RMLTTC0006b",
+                "RMLTTC0006c",
+                "RMLTTC0006e",
+                "RMLTTC0007a",
+
+                // RMLTTC0002k test-case bug: mapping declares no rml:languageMap on the name
+                // object map, but default.nq expects "..."@en language-tagged literals. CARML
+                // correctly emits plain literals per the mapping.
+                "RMLTTC0002k",
+
+                // RMLTTC0002q test-case bug: expected dump2.nq contains xsd:double literals in
+                // non-canonical lexical form ("33"^^xsd:double). CARML's ValidatingValueFactory
+                // normalizes to the W3C XSD canonical form ("3.3E1"^^xsd:double), which is the
+                // spec-correct representation. Fixing this would require either a per-datatype
+                // lexical-preservation mode in the value factory or amending the test fixtures.
+                "RMLTTC0002q",
+
+                // RMLTTC0006d test-fixture bug: file is named dump1.nq.tar.xz but the actual bytes
+                // are gzip-compressed tar (magic 1f 8b …), not xz. Decompression chokes on the
+                // declared xz format.
+                "RMLTTC0006d");
     }
 }

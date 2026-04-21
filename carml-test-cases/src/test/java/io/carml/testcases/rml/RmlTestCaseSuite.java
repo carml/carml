@@ -11,9 +11,14 @@ import io.carml.logicalview.DefaultLogicalViewEvaluatorFactory;
 import io.carml.model.TriplesMap;
 import io.carml.rdfmapper.util.RdfObjectLoader;
 import io.carml.testcases.model.TestCase;
+import io.carml.util.Compressions;
 import io.carml.util.Models;
 import io.carml.util.RmlMappingLoader;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.UncheckedIOException;
+import java.nio.charset.Charset;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -21,17 +26,24 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.commons.io.ByteOrderMark;
+import org.apache.commons.io.input.BOMInputStream;
+import org.eclipse.rdf4j.common.lang.FileFormat;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.ValueFactory;
+import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.model.impl.ValidatingValueFactory;
 import org.eclipse.rdf4j.model.util.ModelCollector;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 import org.eclipse.rdf4j.rio.ParserConfig;
 import org.eclipse.rdf4j.rio.RDFFormat;
+import org.eclipse.rdf4j.rio.RDFParserRegistry;
+import org.eclipse.rdf4j.rio.Rio;
 import org.eclipse.rdf4j.rio.helpers.BasicParserSettings;
+import org.eclipse.rdf4j.rio.helpers.StatementCollector;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -102,8 +114,11 @@ public abstract class RmlTestCaseSuite {
             var result = executeMapping(testCase, testCaseIdentifier);
 
             Model expected = testCase.getOutputs().stream()
-                    .map(output -> getTestCaseFileInputStream(getBasePath(), testCaseIdentifier, output))
-                    .flatMap(stream -> parseExpectedOutput(stream, testCaseIdentifier).stream())
+                    .flatMap(output -> parseExpectedOutput(
+                            getTestCaseFileInputStream(getBasePath(), testCaseIdentifier, output),
+                            output,
+                            testCaseIdentifier)
+                            .stream())
                     .collect(ModelCollector.toTreeModel());
 
             assertThat("[%s]".formatted(testCaseIdentifier), result, isIsomorphicTo(expected));
@@ -135,14 +150,90 @@ public abstract class RmlTestCaseSuite {
                 String.format("%s/%s/%s", basePath, testCaseIdentifier, fileName));
     }
 
-    private Model parseExpectedOutput(InputStream stream, String testCaseIdentifier) {
-        boolean lenient = getLenientOutputTests().stream().anyMatch(testCaseIdentifier::startsWith);
-        if (lenient) {
-            var settings = new ParserConfig();
-            settings.set(BasicParserSettings.PRESERVE_BNODE_IDS, true);
-            settings.set(BasicParserSettings.VERIFY_URI_SYNTAX, false);
-            return Models.parse(stream, RDFFormat.NQUADS, settings);
+    private Model parseExpectedOutput(InputStream stream, String fileName, String testCaseIdentifier) {
+        var compression = compressionIriFor(fileName);
+        var decodedName = stripCompressionSuffix(fileName);
+        var format = detectFormat(decodedName);
+        var config = lenientParserConfig(testCaseIdentifier);
+        try (var decompressed = Compressions.decompress(stream, compression);
+                var bom = BOMInputStream.builder()
+                        .setInputStream(decompressed)
+                        .setInclude(false)
+                        .setByteOrderMarks(ByteOrderMark.UTF_8, ByteOrderMark.UTF_16LE, ByteOrderMark.UTF_16BE)
+                        .get()) {
+            var bomCharsetName = bom.getBOMCharsetName();
+            if (bomCharsetName != null && !"UTF-8".equals(bomCharsetName)) {
+                var model = new LinkedHashModel();
+                var parser = Rio.createParser(format);
+                parser.setParserConfig(config);
+                parser.setRDFHandler(new StatementCollector(model));
+                try (var reader = new InputStreamReader(bom, Charset.forName(bomCharsetName))) {
+                    parser.parse(reader, "");
+                }
+                return model;
+            }
+            return Models.parse(bom, format, config);
+        } catch (IOException ioException) {
+            throw new UncheckedIOException(
+                    "Could not read expected output %s for %s".formatted(fileName, testCaseIdentifier), ioException);
         }
-        return Models.parse(stream, RDFFormat.NQUADS);
+    }
+
+    private ParserConfig lenientParserConfig(String testCaseIdentifier) {
+        var config = new ParserConfig();
+        if (getLenientOutputTests().stream().anyMatch(testCaseIdentifier::startsWith)) {
+            config.set(BasicParserSettings.PRESERVE_BNODE_IDS, true);
+            config.set(BasicParserSettings.VERIFY_URI_SYNTAX, false);
+        }
+        return config;
+    }
+
+    private static RDFFormat detectFormat(String fileName) {
+        // Non-standard extensions used in RMLTTC fixtures that FileFormat.matchFileName does not
+        // recognize — RDF/XML registers "rdf" and RDF/JSON registers "rj".
+        if (fileName.endsWith(".rdfxml")) {
+            return RDFFormat.RDFXML;
+        }
+        if (fileName.endsWith(".rdfjson")) {
+            return RDFFormat.RDFJSON;
+        }
+        return FileFormat.matchFileName(
+                        fileName, RDFParserRegistry.getInstance().getKeys())
+                .orElse(RDFFormat.NQUADS);
+    }
+
+    private static final String RML_NS = "http://w3id.org/rml/";
+
+    private static final IRI GZIP = VF.createIRI(RML_NS + "gzip");
+
+    private static final IRI ZIP = VF.createIRI(RML_NS + "zip");
+
+    private static final IRI TARXZ = VF.createIRI(RML_NS + "tarxz");
+
+    private static final IRI TARGZ = VF.createIRI(RML_NS + "targz");
+
+    private static IRI compressionIriFor(String fileName) {
+        if (fileName.endsWith(".tar.xz")) {
+            return TARXZ;
+        }
+        if (fileName.endsWith(".tar.gz")) {
+            return TARGZ;
+        }
+        if (fileName.endsWith(".gz")) {
+            return GZIP;
+        }
+        if (fileName.endsWith(".zip")) {
+            return ZIP;
+        }
+        return null;
+    }
+
+    private static String stripCompressionSuffix(String fileName) {
+        for (var suffix : List.of(".tar.xz", ".tar.gz", ".gz", ".zip")) {
+            if (fileName.endsWith(suffix)) {
+                return fileName.substring(0, fileName.length() - suffix.length());
+            }
+        }
+        return fileName;
     }
 }

@@ -38,7 +38,46 @@ class TestRmlIoTestCasesWithDuckDb extends DuckDbTestCaseSuite {
                 "RMLSTC0012c",
                 "RMLSTC0012d",
                 "RMLSTC0012e",
-                // Target tests — not yet supported
-                "RMLTTC");
+                // RMLTTC: same per-test skip list as TestRmlIoTestCases — see that class for
+                // rationale. The subset carries over unchanged because none of the skipped
+                // behaviors are evaluator-specific (they are either test-case bugs on plain-
+                // string JSON ages, or the harness-level parse-as-NQUADS constraint).
+                "RMLTTC0001a",
+                "RMLTTC0001d",
+                "RMLTTC0002a",
+                "RMLTTC0002b",
+                "RMLTTC0002c",
+                "RMLTTC0002d",
+                "RMLTTC0002e",
+                "RMLTTC0002f",
+                "RMLTTC0002g",
+                "RMLTTC0002h",
+                "RMLTTC0002i",
+                "RMLTTC0002j",
+                "RMLTTC0002m",
+                "RMLTTC0002n",
+                "RMLTTC0002o",
+                "RMLTTC0002r",
+                "RMLTTC0003a",
+                "RMLTTC0004a",
+                "RMLTTC0004b",
+                "RMLTTC0004c",
+                "RMLTTC0004d",
+                "RMLTTC0004e",
+                "RMLTTC0004f",
+                "RMLTTC0004g",
+                "RMLTTC0005a",
+                "RMLTTC0005b",
+                "RMLTTC0006a",
+                "RMLTTC0006b",
+                "RMLTTC0006c",
+                "RMLTTC0006e",
+                "RMLTTC0007a",
+                // RMLTTC0002k: expected @en language tag on names not declared in mapping.
+                "RMLTTC0002k",
+                // RMLTTC0002q: xsd:double canonical form ("3.3E1" vs "33") mismatch.
+                "RMLTTC0002q",
+                // RMLTTC0006d test-fixture bug: file named .tar.xz but bytes are gzip-tar.
+                "RMLTTC0006d");
     }
 }

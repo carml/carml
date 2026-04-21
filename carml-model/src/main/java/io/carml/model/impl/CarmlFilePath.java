@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
+import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.util.ModelBuilder;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
@@ -39,6 +40,18 @@ public class CarmlFilePath extends CarmlSource implements FilePath {
     @Override
     public String getPath() {
         return path;
+    }
+
+    /**
+     * {@code rml:FilePath} does not carry a serialization property itself — per the RML-IO
+     * specification, {@code rml:serialization} is a property of {@code rml:LogicalTarget}. This
+     * method exists to satisfy the {@link io.carml.model.Target} contract (inherited via
+     * {@link FilePath}) and always returns {@code null}. Callers reading an effective serialization
+     * must consult the enclosing {@code rml:LogicalTarget} first.
+     */
+    @Override
+    public IRI getSerialization() {
+        return null;
     }
 
     @Override

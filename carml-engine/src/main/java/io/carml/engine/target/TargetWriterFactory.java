@@ -17,9 +17,9 @@ import org.eclipse.rdf4j.model.IRI;
  * understood by the {@link RdfSerializerFactory} SPI, resolution of file paths from
  * {@link FilePath} targets, and configuration of compression and encoding.
  *
- * <p>For file-based targets, use {@link #createFileWriter(FilePath, IRI)}. The serialization format
- * is passed separately because in RML-IO it is a property of the {@code rml:LogicalTarget}, not of
- * the target resource itself.
+ * <p>For file-based targets, use {@link #createFileWriter(FilePath, IRI, IRI, IRI)} to pass
+ * serialization, encoding, and compression explicitly — this mirrors the RML-IO specification
+ * where all three are primarily properties of {@code rml:LogicalTarget}.
  */
 @Slf4j
 @Builder
@@ -77,22 +77,26 @@ public class TargetWriterFactory {
     private final RdfSerializerFactory serializerFactory = DEFAULT_SERIALIZER_FACTORY;
 
     /**
-     * Creates a {@link FileTargetWriter} for a file-based RML target.
+     * Creates a {@link FileTargetWriter} for a file-based RML target. Per the RML-IO specification,
+     * {@code rml:serialization}, {@code rml:encoding}, and {@code rml:compression} are primarily
+     * properties of {@code rml:LogicalTarget} — callers (e.g. {@code CarmlMapCommand.buildTargetRouter})
+     * resolve effective values with LogicalTarget-level precedence and pass them here, rather than
+     * reading them off the {@link FilePath} alone.
      *
-     * @param filePath the file path target containing path, root, compression, and encoding
-     * @param serialization the serialization format IRI (e.g. {@code formats:N-Triples}), or
-     *     {@code null} to use the default (N-Quads)
+     * @param filePath the file path target providing path and root (encoding/compression on the
+     *     file-path are NOT consulted)
+     * @param serialization the serialization format IRI, or {@code null} to use the default
+     *     (N-Quads)
+     * @param encoding the encoding IRI to apply, or {@code null} to use the writer default
+     * @param compression the compression IRI to apply, or {@code null} for uncompressed output
      * @return a configured {@link FileTargetWriter}, not yet opened
      * @throws IllegalArgumentException if {@code serialization} is a non-null IRI that cannot be
-     *     resolved to a supported format token, or if no registered
-     *     {@link io.carml.output.RdfSerializerProvider} supports the resolved token in
-     *     {@link SerializerMode#STREAMING} mode
+     *     resolved, or if no registered provider supports the resolved token in streaming mode
      */
-    public TargetWriter createFileWriter(FilePath filePath, IRI serialization) {
+    public TargetWriter createFileWriter(FilePath filePath, IRI serialization, IRI encoding, IRI compression) {
         var formatToken = resolveSerializerFormat(serialization);
         validateProviderExists(formatToken);
-        var compression = filePath.getCompression();
-        var charset = Encodings.resolveCharset(filePath.getEncoding()).orElse(null);
+        var charset = Encodings.resolveCharset(encoding).orElse(null);
         var resolvedPath = resolveFilePath(filePath);
 
         LOG.debug(
