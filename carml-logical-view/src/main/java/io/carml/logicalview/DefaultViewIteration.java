@@ -111,7 +111,7 @@ class DefaultViewIteration implements ViewIteration, Serializable {
         @SuppressWarnings("java:S1948")
         private final LinkedHashMap<String, Object> values;
 
-        private final LinkedHashMap<String, String> referenceFormulationIris;
+        private final Map<String, String> referenceFormulationIris;
 
         private final LinkedHashMap<String, IRI> naturalDatatypes;
 

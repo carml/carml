@@ -311,8 +311,12 @@ class DuckDbJoinExecutorTest {
 
     @Test
     void matches_blobRoundtrip_preservesValueTypesAndNaturalDatatypes(@TempDir Path spillDir) {
-        // Build a parent ViewIteration with mixed value types and non-trivial
-        // referenceFormulations + naturalDatatypes maps; verify the round-trip preserves them.
+        // Round-trip through the Arrow IPC codec is lexical-form-equivalent rather than
+        // Object-identity-preserving: all values come back as the canonical Utf8 string the
+        // engine's CanonicalRdfLexicalForm would otherwise produce. Datatype semantics are
+        // preserved separately via naturalDatatypes (xsd:integer, xsd:boolean, ...). This is the
+        // intentional Option A design — RDF output is unchanged because lexical form generation
+        // is datatype-driven, not Java-runtime-type-driven.
         Map<String, ReferenceFormulation> refForms = new LinkedHashMap<>();
         refForms.put(
                 "name",
@@ -349,10 +353,10 @@ class DuckDbJoinExecutorTest {
 
             assertThat(rows, hasSize(1));
             var matched = rows.get(0).matchedParents().get(0);
-            assertThat(matched.getValue("name").orElseThrow(), is("alpha"));
-            assertThat(matched.getValue("count").orElseThrow(), is(42));
-            assertThat(matched.getValue("ratio").orElseThrow(), is(3.14d));
-            assertThat(matched.getValue("active").orElseThrow(), is(Boolean.TRUE));
+            assertThat(matched.getValue("name").orElseThrow().toString(), is("alpha"));
+            assertThat(matched.getValue("count").orElseThrow().toString(), is("42"));
+            assertThat(matched.getValue("ratio").orElseThrow().toString(), is("3.14"));
+            assertThat(matched.getValue("active").orElseThrow().toString(), is("true"));
             assertThat(matched.getValue("note").isPresent(), is(false));
             assertThat(matched.getIndex(), is(7));
             assertThat(matched.getNaturalDatatype("count").orElseThrow(), is(XSD.INTEGER));

@@ -9,21 +9,26 @@ import java.util.stream.Collectors;
 /**
  * Serialization helper for {@link ReferenceFormulation} maps. {@link ReferenceFormulation}
  * instances are not {@link java.io.Serializable} (their {@code CarmlResource} superclass is not),
- * so the {@code SerializationProxy} pattern in {@link EvaluatedValues} and
- * {@link DefaultViewIteration} converts them to IRI strings on the wire and reconstructs minimal
- * {@link CarmlReferenceFormulation} instances on read. Downstream consumers of deserialized
- * iterations (notably the join executor stack) only need IRI identity — full RDF annotations are
- * not required.
+ * so wire formats convert them to IRI strings and reconstruct minimal
+ * {@link CarmlReferenceFormulation} instances on read. Downstream consumers (notably the join
+ * executor stack) only need IRI identity — full RDF annotations are not required.
+ *
+ * <p>Used by both the in-module {@code SerializationProxy}s in {@link EvaluatedValues} and
+ * {@link DefaultViewIteration} and by sibling-module wire formats (e.g. the Arrow IPC codec in
+ * the DuckDB join executor module).
  */
-final class ReferenceFormulationCodec {
+public final class ReferenceFormulationCodec {
 
     private ReferenceFormulationCodec() {}
 
     /**
-     * Encodes a map of reference formulations as IRI strings, preserving insertion order.
-     * Returns an empty map if the input is {@code null}.
+     * Encodes a map of reference formulations as IRI strings, preserving insertion order. Returns
+     * an empty map if the input is {@code null}.
+     *
+     * @param source the reference-formulation map (may be {@code null})
+     * @return a new {@link LinkedHashMap} of IRI strings keyed by the source keys
      */
-    static LinkedHashMap<String, String> toIris(Map<String, ReferenceFormulation> source) {
+    public static Map<String, String> toIris(Map<String, ReferenceFormulation> source) {
         if (source == null) {
             return new LinkedHashMap<>();
         }
@@ -38,8 +43,12 @@ final class ReferenceFormulationCodec {
     /**
      * Reconstructs a map of {@link ReferenceFormulation} instances from IRI strings, preserving
      * insertion order. Returns an empty map if the input is {@code null}.
+     *
+     * @param iris the IRI-string map (may be {@code null})
+     * @return a new {@link LinkedHashMap} of {@link ReferenceFormulation} instances keyed by the
+     *     source keys
      */
-    static LinkedHashMap<String, ReferenceFormulation> fromIris(Map<String, String> iris) {
+    public static Map<String, ReferenceFormulation> fromIris(Map<String, String> iris) {
         if (iris == null) {
             return new LinkedHashMap<>();
         }

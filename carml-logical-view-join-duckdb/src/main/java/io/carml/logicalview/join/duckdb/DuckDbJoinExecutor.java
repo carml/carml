@@ -7,12 +7,7 @@ import io.carml.logicalview.JoinKeyExtractor;
 import io.carml.logicalview.MatchedRow;
 import io.carml.logicalview.ViewIteration;
 import io.carml.model.Join;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
@@ -52,10 +47,11 @@ import reactor.core.publisher.Mono;
  * intermediate spill is configurable via {@code temp_directory} (set to {@code workingDir} in
  * file-backed mode). The result stream is back-pressure aware via {@link PausableFluxBridge}.
  *
- * <p>Row payloads are serialized via Java serialization into BLOB columns. {@link ViewIteration}
- * and {@link EvaluatedValues} provide {@code SerializationProxy}s that drop {@code
- * sourceEvaluation} and convert {@link io.carml.model.ReferenceFormulation} into IRI strings on
- * the wire — both lossless for join consumers.
+ * <p>Row payloads are encoded as Arrow IPC byte streams (see {@link ArrowBlobCodec}) into BLOB
+ * columns. The codec stores all values as Utf8 with a parallel {@code naturalDatatypes} IRI map —
+ * RDF-output-equivalent to the original {@code Map<String, Object>} because downstream lexical
+ * form generation is datatype-driven, not Java-runtime-type-driven. {@code sourceEvaluation} is
+ * always {@code null} on the join path and is dropped on the wire.
  */
 @Slf4j
 public final class DuckDbJoinExecutor implements JoinExecutor {
@@ -211,7 +207,12 @@ public final class DuckDbJoinExecutor implements JoinExecutor {
                     var childRowId = new AtomicInteger();
                     return children.doOnNext(child -> {
                                 var key = JoinKeyExtractor.childKey(conditions, child);
-                                appendRow(childAppender, childRowId.getAndIncrement(), key, serialize(child), keyArity);
+                                appendRow(
+                                        childAppender,
+                                        childRowId.getAndIncrement(),
+                                        key,
+                                        ArrowBlobCodec.encodeChild(child),
+                                        keyArity);
                             })
                             .then(Mono.fromRunnable(() -> closeChildAppender(childAppender)))
                             .thenMany(Flux.defer(() -> executeJoinAndStream(leftJoin, keyArity)));
@@ -268,7 +269,7 @@ public final class DuckDbJoinExecutor implements JoinExecutor {
 
     private static MatchedRow readMatchedRow(ResultSet rs) throws SQLException {
         var childBytes = toByteArray(rs.getObject(2));
-        var child = deserialize(childBytes, EvaluatedValues.class);
+        var child = ArrowBlobCodec.decodeChild(childBytes);
         var arr = rs.getArray(3);
         List<ViewIteration> parents;
         if (arr == null) {
@@ -281,7 +282,7 @@ public final class DuckDbJoinExecutor implements JoinExecutor {
                 parents = new ArrayList<>(raw.length);
                 for (var blob : raw) {
                     if (blob != null) {
-                        parents.add(deserialize(toByteArray(blob), ViewIteration.class));
+                        parents.add(ArrowBlobCodec.decodeParent(toByteArray(blob)));
                     }
                 }
             }
@@ -373,7 +374,7 @@ public final class DuckDbJoinExecutor implements JoinExecutor {
             parentRowId++;
             return;
         }
-        appendRow(parentAppender, parentRowId++, key, serialize(parent), keyArity);
+        appendRow(parentAppender, parentRowId++, key, ArrowBlobCodec.encodeParent(parent), keyArity);
     }
 
     private static void appendRow(DuckDBAppender appender, int rowId, List<Object> key, byte[] blob, int keyArity) {
@@ -391,27 +392,6 @@ public final class DuckDbJoinExecutor implements JoinExecutor {
             appender.endRow();
         } catch (SQLException e) {
             throw new IllegalStateException("Failed to append row to DuckDB appender", e);
-        }
-    }
-
-    private static byte[] serialize(Object value) {
-        try (var baos = new ByteArrayOutputStream();
-                var oos = new ObjectOutputStream(baos)) {
-            oos.writeObject(value);
-            oos.flush();
-            return baos.toByteArray();
-        } catch (IOException e) {
-            throw new UncheckedIOException("Failed to serialize join row payload", e);
-        }
-    }
-
-    private static <T> T deserialize(byte[] bytes, Class<T> type) {
-        try (var bais = new ByteArrayInputStream(bytes);
-                var ois = new ObjectInputStream(bais)) {
-            return type.cast(ois.readObject());
-        } catch (IOException | ClassNotFoundException e) {
-            throw new UncheckedIOException(new IOException(
-                    "Failed to deserialize join row payload (expected %s)".formatted(type.getName()), e));
         }
     }
 
