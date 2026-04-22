@@ -1,0 +1,3 @@
+# Enable auto-env through the sdkman_auto_env config
+# See: https://sdkman.io/usage#autoenv
+java=21.0.9-tem

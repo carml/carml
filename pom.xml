@@ -628,6 +628,12 @@
 									<requireMavenVersion>
 										<version>3.3.9</version>
 									</requireMavenVersion>
+									<!-- Build/test JDK must be Java 21+ (upstream dependency idlab-functions-java is Java 21 bytecode).
+									     Library modules still publish Java 17 bytecode via maven.compiler.release=17. -->
+									<requireJavaVersion>
+										<version>[21,)</version>
+										<message>CARML requires JDK 21 or newer to build and test. Library modules publish Java 17 bytecode (see maven.compiler.release); the Java 21+ requirement is for the build/test environment only.</message>
+									</requireJavaVersion>
 								</rules>
 							</configuration>
 						</execution>

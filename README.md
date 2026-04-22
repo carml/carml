@@ -45,6 +45,17 @@ CARML is available as a runnable jar with CLI: [CARML jar](https://github.com/ca
 
 CARML is also available from the Central Maven Repository.
 
+### JDK requirements
+
+- **Consuming CARML as a library**: Java 17 or newer. Published artifacts target Java 17 bytecode
+  (`maven.compiler.release=17`), so downstream projects on Java 17 can embed CARML unchanged. Consumers
+  that themselves invoke FNML idlab functions at runtime need Java 21, because the upstream
+  `be.ugent.idlab.knows:idlab-functions-java` artifact on Maven Central ships Java 21 bytecode.
+- **Building and testing CARML itself**: Java 21 or newer. This is enforced by the
+  `maven-enforcer-plugin` (`requireJavaVersion [21,)`), so a Java 17 build environment fails fast
+  with a clear message instead of producing a cryptic `UnsupportedClassVersionError` during the
+  FNML conformance tests. The repo ships a `.sdkmanrc` for contributors using SDKMAN.
+
 ```xml
 
 <dependency>
