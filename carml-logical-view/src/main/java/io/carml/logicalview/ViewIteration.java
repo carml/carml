@@ -2,6 +2,7 @@ package io.carml.logicalview;
 
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.model.ReferenceFormulation;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.eclipse.rdf4j.model.IRI;
@@ -76,5 +77,24 @@ public interface ViewIteration {
      */
     default Optional<Set<String>> getReferenceableKeys() {
         return Optional.empty();
+    }
+
+    /**
+     * Constructs a default {@link ViewIteration} from raw maps. Intended for {@link JoinExecutor}
+     * implementations and tests in sibling modules that need to materialize iterations without
+     * accessing the package-private default implementation directly.
+     *
+     * @param index the iteration index
+     * @param values the field values keyed by absolute name
+     * @param referenceFormulations per-field reference formulations
+     * @param naturalDatatypes per-field natural datatypes
+     * @return a new {@link ViewIteration}
+     */
+    static ViewIteration of(
+            int index,
+            Map<String, Object> values,
+            Map<String, ReferenceFormulation> referenceFormulations,
+            Map<String, IRI> naturalDatatypes) {
+        return new DefaultViewIteration(index, values, referenceFormulations, naturalDatatypes);
     }
 }

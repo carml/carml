@@ -318,7 +318,7 @@ public class DuckDbLogicalViewEvaluatorFactory
      * <p>When {@code memoryLimitOverride} is specified, only {@code memory_limit} is set to the
      * user's value. Thread count is still auto-tuned based on total available memory.
      *
-     * <p>The {@code temp_directory} is set to {@code /duckdb-tmp} if that directory exists
+     * <p>The {@code temp_directory} is set to {@code /carml-spill} if that directory exists
      * (e.g., in Docker), otherwise to a subdirectory next to the database file.
      *
      * @param memoryLimitOverride explicit DuckDB memory limit (e.g. {@code "4GB"}), or {@code null}
@@ -373,14 +373,14 @@ public class DuckDbLogicalViewEvaluatorFactory
             stmt.execute("SET preserve_insertion_order = false");
 
             // 4. Set temp_directory for spilling intermediate query results
-            var tempDir = Path.of("/duckdb-tmp");
+            var tempDir = Path.of("/carml-spill");
             if (!Files.isDirectory(tempDir)) {
-                tempDir = databasePath.resolveSibling("duckdb-tmp");
+                tempDir = databasePath.resolveSibling("carml-spill");
                 Files.createDirectories(tempDir);
             }
             var escapedTempDir = tempDir.toString().replace("'", "''");
             stmt.execute("SET temp_directory = '%s'".formatted(escapedTempDir));
-            LOG.info("Set DuckDB temp_directory to {}", tempDir);
+            LOG.info("Set in-process DB temp_directory to {}", tempDir);
         } catch (SQLException e) {
             LOG.warn("Failed to configure DuckDB on-disk settings: {}", e.getMessage());
         } catch (IOException e) {

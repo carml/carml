@@ -13,11 +13,9 @@ import io.carml.logicalsourceresolver.MatchingLogicalSourceResolverFactory;
 import io.carml.logicalsourceresolver.ResolvedSource;
 import io.carml.model.AbstractLogicalSource;
 import io.carml.model.ExpressionField;
-import io.carml.model.ExpressionMap;
 import io.carml.model.Field;
 import io.carml.model.ForeignKeyAnnotation;
 import io.carml.model.IterableField;
-import io.carml.model.Join;
 import io.carml.model.LogicalSource;
 import io.carml.model.LogicalView;
 import io.carml.model.LogicalViewJoin;
@@ -26,11 +24,8 @@ import io.carml.model.PrimaryKeyAnnotation;
 import io.carml.model.ReferenceFormulation;
 import io.carml.model.Source;
 import io.carml.model.StructuralAnnotation;
-import io.carml.model.Template;
 import io.carml.model.UniqueAnnotation;
 import io.carml.model.impl.CarmlLogicalSource;
-import io.carml.model.impl.CarmlTemplate.ExpressionSegment;
-import io.carml.model.impl.CarmlTemplate.TextSegment;
 import io.carml.util.CartesianProduct;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -45,12 +40,10 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.IntStream;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.vocabulary.XSD;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 /**
  * Default implementation of {@link LogicalViewEvaluator} that evaluates a {@link LogicalView}
@@ -60,7 +53,6 @@ import reactor.core.publisher.Mono;
  * multivalued fields with absolute field name prefixing for nested fields.
  */
 @Slf4j
-@AllArgsConstructor
 public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
 
     static final String INDEX_KEY = "#";
@@ -69,18 +61,16 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
 
     private final Set<MatchingLogicalSourceResolverFactory> resolverFactories;
 
-    private record EvaluatedValues(
-            Map<String, Object> values,
-            Map<String, ReferenceFormulation> referenceFormulations,
-            Map<String, IRI> naturalDatatypes,
-            ExpressionEvaluation sourceEvaluation) {
+    private final JoinExecutorFactory joinExecutorFactory;
 
-        EvaluatedValues(
-                Map<String, Object> values,
-                Map<String, ReferenceFormulation> referenceFormulations,
-                Map<String, IRI> naturalDatatypes) {
-            this(values, referenceFormulations, naturalDatatypes, null);
-        }
+    public DefaultLogicalViewEvaluator(Set<MatchingLogicalSourceResolverFactory> resolverFactories) {
+        this(resolverFactories, JoinExecutorFactory.inMemory());
+    }
+
+    public DefaultLogicalViewEvaluator(
+            Set<MatchingLogicalSourceResolverFactory> resolverFactories, JoinExecutorFactory joinExecutorFactory) {
+        this.resolverFactories = resolverFactories;
+        this.joinExecutorFactory = joinExecutorFactory;
     }
 
     private record ExprEvalWithDatatypeMapper(ExpressionEvaluation exprEval, DatatypeMapper datatypeMapper) {}
@@ -612,7 +602,7 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                 .sorted(Comparator.comparing(Field::getFieldName))
                 .map(field -> {
                     if (field instanceof ExpressionField ef) {
-                        var values = evaluateExpressionMap(ef, exprEval);
+                        var values = JoinKeyExtractor.evaluateExpressionMap(ef, exprEval);
                         var absoluteName = prefix + ef.getFieldName();
                         var indexKey = absoluteName + INDEX_KEY_SUFFIX;
                         var refFormMap = fieldCtx.currentRefForm() != null
@@ -910,119 +900,74 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
 
         var parentView = join.getParentLogicalView();
         var parentReferenceableKeys = collectReferenceableKeys(parentView);
-
-        var cachedParent = joinCtx.parentViewCache().get(parentView);
-        Mono<List<ViewIteration>> parentMono;
-        if (cachedParent != null) {
-            parentMono = Mono.just(cachedParent);
-        } else if (joinCtx.recordCache().isActive()) {
-            parentMono = evaluate(
-                            parentView,
-                            joinCtx.sourceResolver(),
-                            EvaluationContext.defaults(),
-                            joinCtx.recordCache(),
-                            joinCtx.logicalSourcesPerSource(),
-                            joinCtx.expressionsPerLogicalSource())
-                    .collectList()
-                    .doOnNext(list -> joinCtx.parentViewCache().put(parentView, list));
-        } else {
-            parentMono = evaluate(parentView, joinCtx.sourceResolver(), EvaluationContext.defaults())
-                    .collectList()
-                    .doOnNext(list -> joinCtx.parentViewCache().put(parentView, list));
-        }
-
-        return parentMono.flatMapMany(parentIterations -> {
-            var conditions = join.getJoinConditions().stream()
-                    .sorted(Comparator.comparing(
-                            c -> c.getChildMap().getExpressionMapExpressionSet().toString()))
-                    .toList();
-            var joinIndex = buildJoinIndex(conditions, parentIterations, parentReferenceableKeys);
-            return childFlux.flatMapIterable(child -> {
-                var matched = resolveMatches(child, conditions, isLeftJoin, singleMatch, join.getFields(), joinIndex);
-                if (matched.isEmpty()) {
-                    return matched.nullExtension();
-                }
-                if (isAggregating) {
-                    return matchAndExtendAggregating(
-                            child, matched.sortedJoinFields(), matched.parents(), parentReferenceableKeys);
-                }
-                return matchAndExtendRegular(
-                        child, matched.sortedJoinFields(), matched.parents(), parentReferenceableKeys);
-            });
-        });
-    }
-
-    private JoinIndex<List<Object>, ViewIteration> buildJoinIndex(
-            List<Join> conditions, List<ViewIteration> parentIterations, Set<String> parentReferenceableKeys) {
-        var joinIndex = new HashMapJoinIndex<List<Object>, ViewIteration>();
-        for (var parentIteration : parentIterations) {
-            var parentExprEval = new ViewIterationExpressionEvaluation(parentIteration, parentReferenceableKeys);
-            var key = evaluateJoinKey(conditions, parentExprEval, true);
-            if (!key.isEmpty()) {
-                joinIndex.put(key, parentIteration);
-            }
-        }
-        return joinIndex;
-    }
-
-    private List<Object> evaluateJoinKey(List<Join> conditions, ExpressionEvaluation exprEval, boolean isParent) {
-        var key = new ArrayList<>(conditions.size());
-        for (var condition : conditions) {
-            var expressionMap = isParent ? condition.getParentMap() : condition.getChildMap();
-            var values = evaluateExpressionMap(expressionMap, exprEval);
-            if (values.isEmpty()) {
-                return List.of();
-            }
-            // Use the first value of each condition as the key component.
-            // Normalize to String for consistent cross-source comparison — SQL resolvers
-            // may return Integer/Long while the child field stores String values, causing
-            // Integer.equals(String) to fail.
-            key.add(values.get(0).toString());
-        }
-        return key;
-    }
-
-    private record MatchResult(
-            List<ExpressionField> sortedJoinFields, List<ViewIteration> parents, List<EvaluatedValues> nullExtension) {
-
-        boolean isEmpty() {
-            return parents == null;
-        }
-    }
-
-    private MatchResult resolveMatches(
-            EvaluatedValues child,
-            List<Join> conditions,
-            boolean isLeftJoin,
-            boolean singleMatch,
-            Set<ExpressionField> joinFields,
-            JoinIndex<List<Object>, ViewIteration> joinIndex) {
-
-        var sortedJoinFields = joinFields.stream()
+        var conditions = join.getJoinConditions().stream()
+                .sorted(Comparator.comparing(
+                        c -> c.getChildMap().getExpressionMapExpressionSet().toString()))
+                .toList();
+        var sortedJoinFields = join.getFields().stream()
                 .sorted(Comparator.comparing(ExpressionField::getFieldName))
                 .toList();
 
-        // Build child key from EvaluatedValues — child field references point to field names in
-        // child iteration values, so we use a simple lookup expression evaluation.
-        ExpressionEvaluation childExprEval =
-                expression -> Optional.ofNullable(child.values().get(expression));
-
-        var childKey = evaluateJoinKey(conditions, childExprEval, false);
-        List<ViewIteration> matchedParents;
-        if (childKey.isEmpty()) {
-            matchedParents = List.of();
+        var cachedParent = joinCtx.parentViewCache().get(parentView);
+        Flux<ViewIteration> parentFlux;
+        if (cachedParent != null) {
+            parentFlux = Flux.fromIterable(cachedParent);
+        } else if (joinCtx.recordCache().isActive()) {
+            parentFlux = evaluate(
+                    parentView,
+                    joinCtx.sourceResolver(),
+                    EvaluationContext.defaults(),
+                    joinCtx.recordCache(),
+                    joinCtx.logicalSourcesPerSource(),
+                    joinCtx.expressionsPerLogicalSource());
         } else {
-            matchedParents = joinIndex.get(childKey);
+            parentFlux = evaluate(parentView, joinCtx.sourceResolver(), EvaluationContext.defaults());
         }
 
+        // For in-memory executors that already materialize the parent stream, write the
+        // materialized list back into the per-mapping parent cache so subsequent joins to the
+        // same parent view can reuse it without re-evaluating the source. Spillable executors
+        // opt out via JoinExecutorFactory#cachesParentsInMemory() returning false — caching
+        // there would defeat the spill-to-disk path's purpose.
+        var finalParentFlux = cachedParent == null && joinExecutorFactory.cachesParentsInMemory()
+                ? parentFlux
+                        .collectList()
+                        .doOnNext(list -> joinCtx.parentViewCache().put(parentView, list))
+                        .flatMapIterable(Function.identity())
+                : parentFlux;
+
+        return Flux.using(
+                joinExecutorFactory::create,
+                executor -> executor.matches(
+                                finalParentFlux, childFlux, conditions, parentReferenceableKeys, isLeftJoin)
+                        .flatMapIterable(matched -> extendChildWithMatches(
+                                matched,
+                                sortedJoinFields,
+                                join.getFields(),
+                                singleMatch,
+                                isLeftJoin,
+                                isAggregating,
+                                parentReferenceableKeys)),
+                JoinExecutor::close);
+    }
+
+    private List<EvaluatedValues> extendChildWithMatches(
+            MatchedRow matched,
+            List<ExpressionField> sortedJoinFields,
+            Set<ExpressionField> joinFields,
+            boolean singleMatch,
+            boolean isLeftJoin,
+            boolean isAggregating,
+            Set<String> parentReferenceableKeys) {
+        var matchedParents = matched.matchedParents();
         if (matchedParents.isEmpty()) {
-            var nullExt =
-                    isLeftJoin ? List.of(extendWithNullJoinFields(child, joinFields)) : List.<EvaluatedValues>of();
-            return new MatchResult(sortedJoinFields, null, nullExt);
+            return isLeftJoin ? List.of(extendWithNullJoinFields(matched.child(), joinFields)) : List.of();
         }
-
         var effectiveParents = singleMatch ? matchedParents.subList(0, 1) : matchedParents;
-        return new MatchResult(sortedJoinFields, effectiveParents, List.of());
+        return isAggregating
+                ? matchAndExtendAggregating(
+                        matched.child(), sortedJoinFields, effectiveParents, parentReferenceableKeys)
+                : matchAndExtendRegular(matched.child(), sortedJoinFields, effectiveParents, parentReferenceableKeys);
     }
 
     private List<EvaluatedValues> matchAndExtendRegular(
@@ -1047,7 +992,7 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                     .map(joinField -> {
                         var fieldName = joinField.getFieldName();
                         var indexKey = fieldName + INDEX_KEY_SUFFIX;
-                        var values = evaluateExpressionMap(joinField, parentExprEval);
+                        var values = JoinKeyExtractor.evaluateExpressionMap(joinField, parentExprEval);
 
                         // Resolve natural datatypes from parent iteration for join fields
                         var joinNaturalDatatypes = new LinkedHashMap<String, IRI>();
@@ -1102,7 +1047,7 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
 
             for (var parentIteration : effectiveParents) {
                 var parentExprEval = new ViewIterationExpressionEvaluation(parentIteration, parentReferenceableKeys);
-                var values = evaluateExpressionMap(joinField, parentExprEval);
+                var values = JoinKeyExtractor.evaluateExpressionMap(joinField, parentExprEval);
                 allFieldValues.addAll(values);
             }
 
@@ -1258,61 +1203,6 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
     private static Set<StructuralAnnotation> nullSafeAnnotations(LogicalView view) {
         var annotations = view.getStructuralAnnotations();
         return annotations != null ? annotations : Set.of();
-    }
-
-    private static List<Object> evaluateExpressionMap(ExpressionMap field, ExpressionEvaluation exprEval) {
-        if (field.getReference() != null) {
-            return evaluateReference(field.getReference(), exprEval);
-        }
-
-        if (field.getTemplate() != null) {
-            return evaluateTemplate(field.getTemplate(), exprEval);
-        }
-
-        if (field.getConstant() != null) {
-            return List.of(field.getConstant().stringValue());
-        }
-
-        if (field.getFunctionExecution() != null) {
-            throw new UnsupportedOperationException("Function execution in expression fields not yet supported");
-        }
-
-        return List.of();
-    }
-
-    private static List<Object> evaluateReference(String reference, ExpressionEvaluation exprEval) {
-        return exprEval.apply(reference)
-                .map(ExpressionEvaluation::extractValues)
-                .orElse(List.of());
-    }
-
-    private static List<Object> evaluateTemplate(Template template, ExpressionEvaluation exprEval) {
-        var segmentValueLists = new ArrayList<List<String>>();
-
-        for (var segment : template.getSegments()) {
-            if (segment instanceof TextSegment textSegment) {
-                segmentValueLists.add(List.of(textSegment.getValue()));
-            } else if (segment instanceof ExpressionSegment expressionSegment) {
-                var values = exprEval.apply(expressionSegment.getValue())
-                        .map(ExpressionEvaluation::extractStringValues)
-                        .orElse(List.of());
-
-                if (values.isEmpty()) {
-                    return List.of();
-                }
-
-                segmentValueLists.add(values);
-            } else {
-                throw new UnsupportedOperationException("Unsupported template segment type: %s"
-                        .formatted(segment.getClass().getSimpleName()));
-            }
-        }
-
-        var segmentCombinations = CartesianProduct.listCartesianProduct(segmentValueLists);
-
-        return segmentCombinations.stream()
-                .map(combination -> (Object) String.join("", combination))
-                .toList();
     }
 
     private static Map<LogicalSource, Set<String>> collectViewExpressions(

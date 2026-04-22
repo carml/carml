@@ -59,6 +59,7 @@
 		<module>carml-logical-source-resolver-csv</module>
 		<module>carml-logical-view</module>
 		<module>carml-logical-view-duckdb</module>
+		<module>carml-logical-view-join-duckdb</module>
 		<module>carml-logical-view-sql</module>
 		<module>carml-logical-view-sql-mysql</module>
 		<module>carml-logical-view-sql-postgresql</module>
@@ -181,6 +182,12 @@
 			<dependency>
 				<groupId>io.carml</groupId>
 				<artifactId>carml-logical-view-duckdb</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>io.carml</groupId>
+				<artifactId>carml-logical-view-join-duckdb</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 
