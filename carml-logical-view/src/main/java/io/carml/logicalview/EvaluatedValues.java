@@ -65,6 +65,11 @@ public record EvaluatedValues(
         @SuppressWarnings("java:S1948")
         private final LinkedHashMap<String, Object> values;
 
+        // The declared Map<String, String> type (from ReferenceFormulationCodec.toIris) is an
+        // interface and not statically Serializable, but the codec always returns a
+        // LinkedHashMap instance — Serializable and insertion-order preserving — so the field is
+        // safe on the serialization wire.
+        @SuppressWarnings("serial")
         private final Map<String, String> referenceFormulationIris;
 
         private final LinkedHashMap<String, IRI> naturalDatatypes;
