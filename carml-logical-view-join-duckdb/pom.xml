@@ -35,6 +35,13 @@
 			<artifactId>arrow-vector</artifactId>
 		</dependency>
 
+		<!-- DuckDB's arrowExportStream returns an ArrowArrayStream from this module. Required at
+		     runtime and compile-time for the ArrowReader wiring in ArrowJoinResultReader. -->
+		<dependency>
+			<groupId>org.apache.arrow</groupId>
+			<artifactId>arrow-c-data</artifactId>
+		</dependency>
+
 		<dependency>
 			<groupId>org.apache.arrow</groupId>
 			<artifactId>arrow-memory-netty</artifactId>

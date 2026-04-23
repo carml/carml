@@ -12,7 +12,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,6 +26,7 @@ import java.util.stream.IntStream;
 import lombok.extern.slf4j.Slf4j;
 import org.duckdb.DuckDBAppender;
 import org.duckdb.DuckDBConnection;
+import org.duckdb.DuckDBResultSet;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -52,6 +52,11 @@ import reactor.core.publisher.Mono;
  * RDF-output-equivalent to the original {@code Map<String, Object>} because downstream lexical
  * form generation is datatype-driven, not Java-runtime-type-driven. {@code sourceEvaluation} is
  * always {@code null} on the join path and is dropped on the wire.
+ *
+ * <p>Join result rows are read back via DuckDB's Arrow C Data Interface (see
+ * {@link ArrowJoinResultReader}), which transfers columnar batches with zero-copy from native
+ * memory — avoiding the per-cell JNI overhead of JDBC {@code ResultSet.getObject()} /
+ * {@code getArray()}.
  */
 @Slf4j
 public final class DuckDbJoinExecutor implements JoinExecutor {
@@ -255,54 +260,21 @@ public final class DuckDbJoinExecutor implements JoinExecutor {
     private void streamJoinResults(
             String sql, PausableFluxBridge.Emitter<MatchedRow> emitter, DuckDbPausableSource source) {
         try (var stmt = connection.createStatement();
-                var rs = stmt.executeQuery(sql)) {
-            while (rs.next() && !source.isCancelled()) {
-                emitter.next(readMatchedRow(rs));
-                source.awaitDemand();
+                var rresultSet = stmt.executeQuery(sql)) {
+            if (!(rresultSet instanceof DuckDBResultSet duckDbResultSet)) {
+                throw new IllegalStateException("Expected DuckDBResultSet but got %s"
+                        .formatted(rresultSet.getClass().getName()));
             }
+            ArrowJoinResultReader.emit(duckDbResultSet, emitter, source);
             source.complete();
             emitter.complete();
-        } catch (SQLException e) {
+        } catch (Exception e) {
+            // Catch-all (SQLException, IOException, IllegalStateException from schema mismatch, any
+            // runtime failure from Arrow decoding) so every failure is routed through emitter.error
+            // rather than some through emitter.error and others unwinding up to the bridge's
+            // startSource catch-all.
             emitter.error(new IllegalStateException("DuckDB join query failed: %s".formatted(e.getMessage()), e));
         }
-    }
-
-    private static MatchedRow readMatchedRow(ResultSet rs) throws SQLException {
-        var childBytes = toByteArray(rs.getObject(2));
-        var child = ArrowBlobCodec.decodeChild(childBytes);
-        var arr = rs.getArray(3);
-        List<ViewIteration> parents;
-        if (arr == null) {
-            parents = List.of();
-        } else {
-            var raw = (Object[]) arr.getArray();
-            if (raw == null || raw.length == 0) {
-                parents = List.of();
-            } else {
-                parents = new ArrayList<>(raw.length);
-                for (var blob : raw) {
-                    if (blob != null) {
-                        parents.add(ArrowBlobCodec.decodeParent(toByteArray(blob)));
-                    }
-                }
-            }
-        }
-        return new MatchedRow(child, parents);
-    }
-
-    private static byte[] toByteArray(Object blobValue) {
-        if (blobValue instanceof byte[] bytes) {
-            return bytes;
-        }
-        if (blobValue instanceof java.sql.Blob blob) {
-            try {
-                return blob.getBytes(1, (int) blob.length());
-            } catch (SQLException e) {
-                throw new IllegalStateException("Failed to read JDBC Blob payload from DuckDB result", e);
-            }
-        }
-        throw new IllegalStateException("Unexpected BLOB element type from DuckDB: %s"
-                .formatted(blobValue.getClass().getName()));
     }
 
     private static String buildJoinSql(boolean leftJoin, int keyArity) {
