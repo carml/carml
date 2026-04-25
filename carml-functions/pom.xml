@@ -7,17 +7,12 @@
 		<version>1.0.0-SNAPSHOT</version>
 	</parent>
 
-	<artifactId>carml-logical-view</artifactId>
+	<artifactId>carml-functions</artifactId>
 	<packaging>jar</packaging>
 
-	<name>carml-logical-view</name>
+	<name>carml-functions</name>
 
 	<dependencies>
-
-		<dependency>
-			<groupId>io.carml</groupId>
-			<artifactId>carml-commons</artifactId>
-		</dependency>
 
 		<dependency>
 			<groupId>io.carml</groupId>
@@ -26,22 +21,7 @@
 
 		<dependency>
 			<groupId>io.carml</groupId>
-			<artifactId>carml-functions</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>io.carml</groupId>
 			<artifactId>carml-logical-source-resolver</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>com.google.auto.service</groupId>
-			<artifactId>auto-service-annotations</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>com.google.auto.service</groupId>
-			<artifactId>auto-service</artifactId>
 		</dependency>
 
 		<dependency>
@@ -50,8 +30,14 @@
 		</dependency>
 
 		<dependency>
-			<groupId>io.projectreactor</groupId>
-			<artifactId>reactor-core</artifactId>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>com.github.spotbugs</groupId>
+			<artifactId>spotbugs-annotations</artifactId>
+			<scope>test</scope>
 		</dependency>
 
 		<dependency>
@@ -75,12 +61,6 @@
 		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-junit-jupiter</artifactId>
-			<scope>test</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>io.projectreactor</groupId>
-			<artifactId>reactor-test</artifactId>
 			<scope>test</scope>
 		</dependency>
 

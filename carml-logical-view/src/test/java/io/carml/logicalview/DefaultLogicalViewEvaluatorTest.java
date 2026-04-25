@@ -307,8 +307,6 @@ class DefaultLogicalViewEvaluatorTest {
     @Test
     void givenConstantField_whenEvaluated_thenConstantValueUsed() {
         var constField = mockExpressionField("status");
-        when(constField.getReference()).thenReturn(null);
-        when(constField.getTemplate()).thenReturn(null);
 
         var value = mock(Value.class);
         when(value.stringValue()).thenReturn("fixed");
@@ -495,11 +493,12 @@ class DefaultLogicalViewEvaluatorTest {
     }
 
     @Test
-    void givenFieldWithFunctionExecution_whenEvaluated_thenThrowsUnsupportedOperation() {
-        var funcField = mock(ExpressionField.class);
-        when(funcField.getReference()).thenReturn(null);
-        when(funcField.getTemplate()).thenReturn(null);
-        when(funcField.getConstant()).thenReturn(null);
+    void givenFieldWithUnresolvableFunctionExecution_whenEvaluated_thenIterationEmittedWithNullValue() {
+        // The default evaluator resolves function executions against a FunctionRegistry. A
+        // FunctionExecution whose function cannot be resolved (no registry descriptor, empty
+        // inputs) degrades to an empty value list rather than throwing, so the view iteration
+        // is still emitted with the field contributing a null entry.
+        var funcField = mockExpressionField("greeting");
         when(funcField.getFunctionExecution()).thenReturn(mock(FunctionExecution.class));
         when(logicalView.getFields()).thenReturn(Set.of(funcField));
 
@@ -508,8 +507,11 @@ class DefaultLogicalViewEvaluatorTest {
         setupMocks(Flux.just(rec), exprEval);
 
         StepVerifier.create(evaluator.evaluate(logicalView, sourceResolver, EvaluationContext.defaults()))
-                .expectError(UnsupportedOperationException.class)
-                .verify();
+                .assertNext(iteration -> {
+                    assertThat(iteration.getValue("greeting"), is(Optional.empty()));
+                    assertThat(iteration.getKeys(), hasItem("greeting"));
+                })
+                .verifyComplete();
     }
 
     @Test
@@ -3570,12 +3572,7 @@ class DefaultLogicalViewEvaluatorTest {
     @Test
     void givenTemplateFieldWithDatatypeMapper_whenEvaluated_thenNoNaturalDatatypeForTemplateField() {
         var labelField = mockExpressionField("label");
-        var seg1 = mock(CarmlTemplate.TextSegment.class);
-        when(seg1.getValue()).thenReturn("item-");
-        var seg2 = mock(CarmlTemplate.ExpressionSegment.class);
-        when(seg2.getValue()).thenReturn("id");
-        var template = mock(Template.class);
-        when(template.getSegments()).thenReturn(List.of(seg1, seg2));
+        Template template = CarmlTemplate.of(List.of(new TextSegment("item-"), new ExpressionSegment(0, "id")));
         when(labelField.getTemplate()).thenReturn(template);
         when(labelField.getReference()).thenReturn(null);
         when(logicalView.getFields()).thenReturn(Set.of(labelField));

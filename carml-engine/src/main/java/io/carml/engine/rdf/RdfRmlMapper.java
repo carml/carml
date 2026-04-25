@@ -18,21 +18,23 @@ import io.carml.engine.RmlMapper;
 import io.carml.engine.RmlMapperException;
 import io.carml.engine.TermGeneratorFactory;
 import io.carml.engine.TriplesMapper;
-import io.carml.engine.function.AnnotatedFunctionProvider;
-import io.carml.engine.function.BuiltInFunctionProvider;
-import io.carml.engine.function.FnoDescriptionProvider;
-import io.carml.engine.function.FunctionDescriptor;
-import io.carml.engine.function.FunctionProvider;
-import io.carml.engine.function.FunctionRegistry;
-import io.carml.engine.function.ParameterDescriptor;
-import io.carml.engine.function.ReturnDescriptor;
 import io.carml.engine.target.TargetRouter;
 import io.carml.engine.target.TargetWriter;
+import io.carml.functions.AnnotatedFunctionProvider;
+import io.carml.functions.BuiltInFunctionProvider;
+import io.carml.functions.FnoDescriptionProvider;
+import io.carml.functions.FunctionDescriptor;
+import io.carml.functions.FunctionProvider;
+import io.carml.functions.FunctionRegistry;
+import io.carml.functions.ParameterDescriptor;
+import io.carml.functions.ReturnDescriptor;
 import io.carml.logicalsourceresolver.MatchingLogicalSourceResolverFactory;
 import io.carml.logicalsourceresolver.sourceresolver.ClassPathResolver;
 import io.carml.logicalsourceresolver.sourceresolver.FileResolver;
 import io.carml.logicalsourceresolver.sourceresolver.SourceResolver;
+import io.carml.logicalview.DefaultLogicalViewEvaluatorFactory;
 import io.carml.logicalview.FileBasePathConfigurable;
+import io.carml.logicalview.JoinExecutorFactory;
 import io.carml.logicalview.LogicalViewEvaluator;
 import io.carml.logicalview.LogicalViewEvaluatorFactory;
 import io.carml.model.Field;
@@ -146,6 +148,8 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
         private final List<FunctionDescriptor> pendingDescriptors = new ArrayList<>();
 
         private final List<Model> pendingFnoDescriptions = new ArrayList<>();
+
+        private FunctionRegistry suppliedFunctionRegistry;
 
         private final Set<SourceResolver<?>> sourceResolvers = new HashSet<>();
 
@@ -261,6 +265,24 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
          */
         public FunctionBuilder function(String iri) {
             return new FunctionBuilder(this, iri);
+        }
+
+        /**
+         * Supplies an external {@link FunctionRegistry} for this mapper. When set, {@link #build()}
+         * populates this registry with discovered providers and any pending registrations added via
+         * {@link #addFunctions(Object...)}, {@link #addFunctionClasses(String...)},
+         * {@link #addFunctionDescriptions(Model)} and {@link #function(String)} instead of creating
+         * a fresh registry. This is the hook callers use to share the same
+         * {@link FunctionRegistry} instance between the mapper's term generation and a
+         * {@link DefaultLogicalViewEvaluatorFactory} constructed externally — the CLI wires this up
+         * so functions resolve consistently in join keys and output terms.
+         *
+         * @param functionRegistry the registry to populate and use
+         * @return {@link Builder}
+         */
+        public Builder functionRegistry(FunctionRegistry functionRegistry) {
+            this.suppliedFunctionRegistry = functionRegistry;
+            return this;
         }
 
         public Builder sourceResolver(SourceResolver<?> sourceResolver) {
@@ -456,7 +478,7 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
                     buildLsPipeline(lsTriplesMaps, rdfMapperConfig, resolverFactories, resolvedMappings, observer);
 
             // LV mappers: built for ALL TMs (both LS-based via implicit views AND LV-based)
-            var lvResult = buildLvMappers(mappableTriplesMaps, rdfMapperConfig, resolvedMappings, observer);
+            var lvResult = buildLvMappers(rdfMapperConfig, resolvedMappings, observer);
             registerSourceResolvers();
 
             return new RdfRmlMapper(
@@ -526,20 +548,17 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
         }
 
         private LvPipelineResult buildLvMappers(
-                Set<TriplesMap> allTriplesMaps,
                 RdfMapperConfig rdfMapperConfig,
                 List<ResolvedMapping> resolvedMappings,
                 MappingExecutionObserver observer) {
 
-            var evaluatorFactories = logicalViewEvaluatorFactories.isEmpty()
-                    ? ServiceLoader.load(LogicalViewEvaluatorFactory.class).stream()
-                            .map(ServiceLoader.Provider::get)
-                            .toList()
-                    : List.copyOf(logicalViewEvaluatorFactories);
+            var functionRegistry = rdfMapperConfig.getRdfTermGeneratorConfig().getFunctionRegistry();
 
-            configureFileBasePath(evaluatorFactories);
+            var effectiveFactories = resolveLogicalViewEvaluatorFactories(functionRegistry);
 
-            var evaluator = new FactoryDelegatingEvaluator(evaluatorFactories);
+            configureFileBasePath(effectiveFactories);
+
+            var evaluator = new FactoryDelegatingEvaluator(effectiveFactories);
 
             Map<ResolvedMapping, TriplesMapper<Statement>> lvMappers = new IdentityHashMap<>();
             for (var rm : resolvedMappings) {
@@ -600,6 +619,37 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
             }
         }
 
+        /**
+         * Resolves the {@link LogicalViewEvaluatorFactory} list for this mapper.
+         *
+         * <p>When the caller registered explicit factories via
+         * {@link #logicalViewEvaluatorFactory(LogicalViewEvaluatorFactory)} they are used verbatim —
+         * the builder does not inject a {@link FunctionRegistry} into user-supplied factories.
+         * Callers who register their own {@link DefaultLogicalViewEvaluatorFactory} and want join
+         * maps to see functions registered via {@link #function(Object)} /
+         * {@link #functionRegistry(FunctionRegistry)} must pass the mapper's registry to its
+         * constructor (see {@link DefaultLogicalViewEvaluatorFactory#DefaultLogicalViewEvaluatorFactory(
+         * io.carml.logicalview.JoinExecutorFactory, FunctionRegistry)}). Otherwise the factory's
+         * self-wired default registry (SPI-discovered descriptors only) is used.
+         *
+         * <p>When no explicit factory is registered, factories are discovered via
+         * {@link ServiceLoader}; any discovered {@link DefaultLogicalViewEvaluatorFactory} is
+         * replaced with one that shares this mapper's {@code FunctionRegistry} so programmatically
+         * registered functions participate in join-key evaluation consistently with term generation.
+         */
+        private List<LogicalViewEvaluatorFactory> resolveLogicalViewEvaluatorFactories(
+                FunctionRegistry functionRegistry) {
+            if (!logicalViewEvaluatorFactories.isEmpty()) {
+                return List.copyOf(logicalViewEvaluatorFactories);
+            }
+            return ServiceLoader.load(LogicalViewEvaluatorFactory.class).stream()
+                    .map(ServiceLoader.Provider::get)
+                    .map(factory -> factory instanceof DefaultLogicalViewEvaluatorFactory
+                            ? new DefaultLogicalViewEvaluatorFactory(JoinExecutorFactory.inMemory(), functionRegistry)
+                            : factory)
+                    .toList();
+        }
+
         private void configureFileBasePath(List<LogicalViewEvaluatorFactory> factories) {
             fileResolverBuilder.resolveFileBasePath().ifPresent(path -> {
                 for (var factory : factories) {
@@ -651,7 +701,10 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
         }
 
         private FunctionRegistry buildFunctionRegistry() {
-            var registry = FunctionRegistry.create();
+            // When the caller supplied a FunctionRegistry (e.g. via the CLI which shares it with a
+            // DefaultLogicalViewEvaluatorFactory), reuse it so term generation and join-key
+            // evaluation resolve against the same registry. Otherwise build one from scratch.
+            var registry = suppliedFunctionRegistry != null ? suppliedFunctionRegistry : FunctionRegistry.create();
 
             // 1. Built-in functions (lowest priority)
             registry.registerAll(new BuiltInFunctionProvider());

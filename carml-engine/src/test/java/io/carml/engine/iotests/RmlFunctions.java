@@ -1,7 +1,7 @@
 package io.carml.engine.iotests;
 
-import io.carml.engine.function.FnoFunction;
-import io.carml.engine.function.FnoParam;
+import io.carml.functions.FnoFunction;
+import io.carml.functions.FnoParam;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.rdf4j.model.IRI;
@@ -10,6 +10,7 @@ import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 @SuppressWarnings("deprecation")
 public class RmlFunctions {
 
+    @SuppressWarnings({"java:S115", "java:S1845"})
     private static class Ex {
 
         static final String prefix = "http://example.com/";
@@ -43,41 +44,49 @@ public class RmlFunctions {
         static final String baseIriParam = prefix + "baseIriParam";
     }
 
+    @SuppressWarnings("unused")
     @FnoFunction(Ex.toBoolFunction)
     public boolean toBoolFunction(@FnoParam(Ex.startString) String startString) {
-        return startString.toLowerCase().equals("yes");
+        return startString.equalsIgnoreCase("yes");
     }
 
+    @SuppressWarnings("unused")
     @FnoFunction(Ex.removeNonLatinCharsFunction)
     public String removeNonLatinCharsFunction(@FnoParam(Ex.startString) String inputString) {
         return inputString.replaceAll("[^A-Za-z0-9]", "");
     }
 
+    @SuppressWarnings("unused")
     @FnoFunction(Ex.toLowercase)
     public String toLowercase(@FnoParam(Ex.startString) String inputString) {
         return inputString.toLowerCase();
     }
 
+    @SuppressWarnings("unused")
     @FnoFunction(Ex.toIntFunction)
     public int toIntFunction(@FnoParam(Ex.stringParam) String inputString) {
         return Integer.parseInt(inputString);
     }
 
+    @SuppressWarnings("unused")
     @FnoFunction(Ex.sumFunction)
     public int sumFunction(@FnoParam(Ex.toIntOutput) int toIntOutput, @FnoParam(Ex.intParam) int inputInt) {
         return toIntOutput + inputInt;
     }
 
+    @SuppressWarnings("unused")
     @FnoFunction(Ex.constantListFunction)
     public List<String> constantListFunction() {
         return List.of(Ex.prefix + "abc", Ex.prefix + "def", Ex.prefix + "ghi");
     }
 
+    @SuppressWarnings("unused")
     @FnoFunction(Ex.listParamFunction)
     public List<String> listParamFunction(@FnoParam(Ex.listParam) List<String> listParam) {
         return listParam;
     }
 
+    @SuppressWarnings("unused")
     @FnoFunction(Ex.iriFunction)
     public IRI iriFunction(@FnoParam(Ex.baseIriParam) String baseIri, @FnoParam(Ex.stringParam) String namePart) {
         if (StringUtils.isEmpty(namePart)) {
@@ -85,8 +94,4 @@ public class RmlFunctions {
         }
         return SimpleValueFactory.getInstance().createIRI(baseIri + namePart);
     }
-
-    // TODO: PM: Add test for when parameter is not found
-    // TODO: PM: Add test for when function returns null
-
 }

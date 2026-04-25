@@ -12,7 +12,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 
+import io.carml.functions.FunctionRegistry;
+import io.carml.logicalsourceresolver.ExpressionEvaluation;
+import io.carml.logicalview.DefaultExpressionMapEvaluator;
 import io.carml.logicalview.EvaluatedValues;
+import io.carml.logicalview.ExpressionMapEvaluator;
 import io.carml.logicalview.InMemoryJoinExecutor;
 import io.carml.logicalview.MatchedRow;
 import io.carml.logicalview.ViewIteration;
@@ -64,7 +68,8 @@ class DuckDbJoinExecutorTest {
         var parents = Flux.range(0, 100).map(i -> parent(i, Map.of("pid", String.valueOf(i), "#", i)));
         var children = Flux.range(0, 100).map(i -> child(Map.of("cid", String.valueOf(i), "#", i)));
 
-        try (var executor = new DuckDbJoinExecutor(1000, true, spillDir)) {
+        try (var executor = new DuckDbJoinExecutor(
+                1000, true, spillDir, new DefaultExpressionMapEvaluator(FunctionRegistry.create()))) {
             var rows = executor.matches(parents, children, conditions, Set.of("pid", "#"), false)
                     .collectList()
                     .block();
@@ -81,7 +86,8 @@ class DuckDbJoinExecutorTest {
         var parents = Flux.range(0, 100).map(i -> parent(i, Map.of("pid", String.valueOf(i), "name", "p" + i, "#", i)));
         var children = Flux.range(0, 100).map(i -> child(Map.of("cid", String.valueOf(i), "#", i)));
 
-        try (var executor = new DuckDbJoinExecutor(10, true, spillDir)) {
+        try (var executor = new DuckDbJoinExecutor(
+                10, true, spillDir, new DefaultExpressionMapEvaluator(FunctionRegistry.create()))) {
             var rows = executor.matches(parents, children, conditions, Set.of("pid", "name", "#"), false)
                     .collectList()
                     .block();
@@ -106,7 +112,8 @@ class DuckDbJoinExecutorTest {
         // Children with cids 100..149 don't match any parent.
         var children = Flux.range(100, 50).map(i -> child(Map.of("cid", String.valueOf(i), "#", i)));
 
-        try (var executor = new DuckDbJoinExecutor(10, true, spillDir)) {
+        try (var executor = new DuckDbJoinExecutor(
+                10, true, spillDir, new DefaultExpressionMapEvaluator(FunctionRegistry.create()))) {
             var rows = executor.matches(parents, children, conditions, Set.of("pid", "#"), true)
                     .collectList()
                     .block();
@@ -125,7 +132,8 @@ class DuckDbJoinExecutorTest {
         // Mix: half match, half do not.
         var children = Flux.range(0, 100).map(i -> child(Map.of("cid", String.valueOf(i), "#", i)));
 
-        try (var executor = new DuckDbJoinExecutor(10, true, spillDir)) {
+        try (var executor = new DuckDbJoinExecutor(
+                10, true, spillDir, new DefaultExpressionMapEvaluator(FunctionRegistry.create()))) {
             var rows = executor.matches(parents, children, conditions, Set.of("pid", "#"), false)
                     .collectList()
                     .block();
@@ -141,13 +149,15 @@ class DuckDbJoinExecutorTest {
         // Only children with c1=a and c2 in {0..99} match.
         var children = Flux.range(0, 100).map(i -> child(Map.of("c1", "a", "c2", String.valueOf(i), "#", i)));
 
-        try (var executor = new DuckDbJoinExecutor(10, true, spillDir)) {
+        try (var executor = new DuckDbJoinExecutor(
+                10, true, spillDir, new DefaultExpressionMapEvaluator(FunctionRegistry.create()))) {
             var rows = executor.matches(parents, children, conditions, Set.of("p1", "p2", "#"), false)
                     .collectList()
                     .block();
             assertThat(rows, hasSize(100));
             // Now check non-matching c1 yields nothing.
-            try (var executor2 = new DuckDbJoinExecutor(10, true, spillDir)) {
+            try (var executor2 = new DuckDbJoinExecutor(
+                    10, true, spillDir, new DefaultExpressionMapEvaluator(FunctionRegistry.create()))) {
                 var rows2 = executor2
                         .matches(
                                 Flux.range(0, 100)
@@ -170,7 +180,8 @@ class DuckDbJoinExecutorTest {
         var parents = Flux.range(0, 50).map(i -> parent(i, Map.of("pid", "1", "name", "p" + i, "#", i)));
         var children = Flux.just(child(Map.of("cid", "1", "#", 0)));
 
-        try (var executor = new DuckDbJoinExecutor(10, true, spillDir)) {
+        try (var executor = new DuckDbJoinExecutor(
+                10, true, spillDir, new DefaultExpressionMapEvaluator(FunctionRegistry.create()))) {
             var rows = executor.matches(parents, children, conditions, Set.of("pid", "name", "#"), false)
                     .collectList()
                     .block();
@@ -192,7 +203,8 @@ class DuckDbJoinExecutorTest {
         var parents = Flux.just(parent(0, Map.of("pid", "Aa", "#", 0)), parent(1, Map.of("pid", "BB", "#", 1)));
         var children = Flux.just(child(Map.of("cid", "Aa", "#", 0)), child(Map.of("cid", "BB", "#", 1)));
 
-        try (var executor = new DuckDbJoinExecutor(0, true, spillDir)) {
+        try (var executor = new DuckDbJoinExecutor(
+                0, true, spillDir, new DefaultExpressionMapEvaluator(FunctionRegistry.create()))) {
             var rows = executor.matches(parents, children, conditions, Set.of("pid", "#"), false)
                     .collectList()
                     .block();
@@ -209,7 +221,8 @@ class DuckDbJoinExecutorTest {
         var children = Flux.range(0, 50).map(i -> child(Map.of("cid", String.valueOf(i), "#", i)));
 
         Path workingDirObserved;
-        try (var executor = new DuckDbJoinExecutor(10, true, spillDir)) {
+        try (var executor = new DuckDbJoinExecutor(
+                10, true, spillDir, new DefaultExpressionMapEvaluator(FunctionRegistry.create()))) {
             executor.matches(parents, children, conditions, Set.of("pid", "#"), false)
                     .collectList()
                     .block();
@@ -232,7 +245,8 @@ class DuckDbJoinExecutorTest {
         var parents = Flux.range(0, 100).map(i -> parent(i, Map.of("pid", String.valueOf(i), "#", i)));
         var children = Flux.range(0, 100).map(i -> child(Map.of("cid", String.valueOf(i), "#", i)));
 
-        try (var executor = new DuckDbJoinExecutor(10, true, spillDir)) {
+        try (var executor = new DuckDbJoinExecutor(
+                10, true, spillDir, new DefaultExpressionMapEvaluator(FunctionRegistry.create()))) {
             var rows = executor.matches(parents, children, conditions, Set.of("pid", "#"), false)
                     .take(5)
                     .collectList()
@@ -258,7 +272,8 @@ class DuckDbJoinExecutorTest {
         var children = Flux.range(0, 100).map(i -> child(Map.of("cid", String.valueOf(i), "#", i)));
 
         var timeout = java.time.Duration.ofSeconds(30);
-        try (var executor = new DuckDbJoinExecutor(10, true, spillDir)) {
+        try (var executor = new DuckDbJoinExecutor(
+                10, true, spillDir, new DefaultExpressionMapEvaluator(FunctionRegistry.create()))) {
             // Simulate a downstream failure by mapping the first emitted row into onError. Using
             // handle() instead of throwing inside map() is the Reactor-idiomatic way — Sonar's
             // S6916 flags the "throw in map" anti-pattern, and this also gives Reactor a clean
@@ -281,7 +296,8 @@ class DuckDbJoinExecutorTest {
         var children = Flux.range(0, 5).map(i -> child(Map.of("cid", String.valueOf(i), "#", i)));
 
         var timeout = java.time.Duration.ofSeconds(5);
-        try (var executor = new DuckDbJoinExecutor(1000, true, spillDir)) {
+        try (var executor = new DuckDbJoinExecutor(
+                1000, true, spillDir, new DefaultExpressionMapEvaluator(FunctionRegistry.create()))) {
             executor.matches(parents, children, conditions, Set.of("pid", "#"), false)
                     .collectList()
                     .block();
@@ -302,7 +318,8 @@ class DuckDbJoinExecutorTest {
     @SuppressWarnings("resource") // Test specifically verifies explicit close() idempotency,
     // try-with-resources would mask the contract under test.
     void close_idempotent(@TempDir Path spillDir) {
-        var executor = new DuckDbJoinExecutor(1000, true, spillDir);
+        var executor = new DuckDbJoinExecutor(
+                1000, true, spillDir, new DefaultExpressionMapEvaluator(FunctionRegistry.create()));
         assertDoesNotThrow(() -> {
             executor.close();
             executor.close();
@@ -341,7 +358,8 @@ class DuckDbJoinExecutorTest {
         var parents = Flux.just(parent);
         var children = Flux.just(child(Map.of("cid", "k1", "#", 0)));
 
-        try (var executor = new DuckDbJoinExecutor(0, true, spillDir)) {
+        try (var executor = new DuckDbJoinExecutor(
+                0, true, spillDir, new DefaultExpressionMapEvaluator(FunctionRegistry.create()))) {
             var rows = executor.matches(
                             parents,
                             children,
@@ -398,11 +416,12 @@ class DuckDbJoinExecutorTest {
             List<Join> conditions,
             boolean useSpill) {
         if (useSpill) {
-            try (var executor = new DuckDbJoinExecutor(100, true, spillDir)) {
+            try (var executor = new DuckDbJoinExecutor(
+                    100, true, spillDir, new DefaultExpressionMapEvaluator(FunctionRegistry.create()))) {
                 return projectRows(executor, parents, children, conditions);
             }
         }
-        try (var executor = new InMemoryJoinExecutor()) {
+        try (var executor = new InMemoryJoinExecutor(new DefaultExpressionMapEvaluator(FunctionRegistry.create()))) {
             return projectRows(executor, parents, children, conditions);
         }
     }
@@ -442,7 +461,8 @@ class DuckDbJoinExecutorTest {
         var parents = Flux.range(0, 100).map(i -> parent(i, Map.of("pid", String.valueOf(i), "#", i)));
         var children = Flux.range(0, 100).map(i -> child(Map.of("cid", String.valueOf(i), "#", i)));
 
-        try (var executor = new DuckDbJoinExecutor(10, false, spillDir)) {
+        try (var executor = new DuckDbJoinExecutor(
+                10, false, spillDir, new DefaultExpressionMapEvaluator(FunctionRegistry.create()))) {
             var rows = executor.matches(parents, children, conditions, Set.of("pid", "#"), false)
                     .collectList()
                     .block();
@@ -464,7 +484,8 @@ class DuckDbJoinExecutorTest {
                 child(Map.of("cid", "1", "#", 1)),
                 child(Map.of("cid", "2", "#", 2)));
 
-        try (var executor = new DuckDbJoinExecutor(10, true, spillDir)) {
+        try (var executor = new DuckDbJoinExecutor(
+                10, true, spillDir, new DefaultExpressionMapEvaluator(FunctionRegistry.create()))) {
             var rows = executor.matches(parents, children, conditions, Set.of("pid", "tag", "#"), false)
                     .collectList()
                     .block();
@@ -483,6 +504,45 @@ class DuckDbJoinExecutorTest {
                         .toList();
                 assertThat(tags, contains(expectedTags.toArray()));
                 assertThat(tags, containsInAnyOrder(expectedTags.toArray()));
+            }
+        }
+    }
+
+    @Test
+    void matches_aboveThreshold_threadsCustomEvaluatorThroughSpilledPath(@TempDir Path spillDir) {
+        // Verifies the DuckDbJoinExecutor threads its ExpressionMapEvaluator through to both
+        // parent and child join-key extraction on the spilled path. The custom evaluator uppercases
+        // all resolved reference values. Parents carry lower-case pids and children carry
+        // upper-case cids — equality on raw values would miss every row. Both sides going through
+        // the custom evaluator produces matching upper-case keys.
+        // Minimal reference-only evaluator: the join conditions here use reference maps exclusively,
+        // so resolving the reference and uppercasing the resulting string is enough to exercise the
+        // spilled-path plumbing for custom evaluators.
+        ExpressionMapEvaluator uppercasingEvaluator = (em, ee, dm) ->
+                ee.apply(em.getReference()).map(ExpressionEvaluation::extractValues).orElse(List.of()).stream()
+                        .map(v -> (Object) v.toString().toUpperCase())
+                        .toList();
+
+        var conditions = List.of(joinCondition("cid", "pid"));
+        var parents =
+                Flux.range(0, 50).map(i -> parent(i, Map.of("pid", "k" + i, "tag", "p" + i, "#", i))); // lower-case pid
+        var children = Flux.range(0, 50).map(i -> child(Map.of("cid", "K" + i, "#", i))); // upper-case cid
+
+        try (var executor = new DuckDbJoinExecutor(10, true, spillDir, uppercasingEvaluator)) {
+            var rows = executor.matches(parents, children, conditions, Set.of("pid", "tag", "#"), false)
+                    .collectList()
+                    .block();
+
+            assertThat(rows, hasSize(50));
+            // Spill triggered → custom evaluator is exercised on both parent append path and
+            // child stream path within the DuckDB-backed execution.
+            assertThat(executor.getWorkingDir(), is(notNullValue()));
+            for (var row : rows) {
+                var cid = (String) row.child().values().get("cid");
+                var matchedTag =
+                        (String) row.matchedParents().get(0).getValue("tag").orElseThrow();
+                // cid="K0", matched parent has tag="p0"; i.e. the numeric suffix aligns.
+                assertThat(matchedTag.substring(1), is(cid.substring(1)));
             }
         }
     }

@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 
+import io.carml.functions.FunctionRegistry;
 import io.carml.model.ChildMap;
 import io.carml.model.Join;
 import io.carml.model.ParentMap;
@@ -54,7 +55,7 @@ class InMemoryJoinExecutorTest {
                 child(Map.of("cid", "2", "#", 1)),
                 child(Map.of("cid", "3", "#", 2)));
 
-        try (var executor = new InMemoryJoinExecutor()) {
+        try (var executor = new InMemoryJoinExecutor(new DefaultExpressionMapEvaluator(FunctionRegistry.create()))) {
             var rows = executor.matches(parents, children, conditions, Set.of("pid", "#"), false)
                     .collectList()
                     .block();
@@ -72,7 +73,7 @@ class InMemoryJoinExecutorTest {
         var parents = Flux.<ViewIteration>empty();
         var children = Flux.just(child(Map.of("cid", "1", "#", 0)));
 
-        try (var executor = new InMemoryJoinExecutor()) {
+        try (var executor = new InMemoryJoinExecutor(new DefaultExpressionMapEvaluator(FunctionRegistry.create()))) {
             var rows = executor.matches(parents, children, conditions, Set.of("pid", "#"), true)
                     .collectList()
                     .block();
@@ -88,7 +89,7 @@ class InMemoryJoinExecutorTest {
         var parents = Flux.just(parent(0, Map.of("pid", "1", "#", 0)));
         var children = Flux.just(child(Map.of("cid", "99", "#", 0)));
 
-        try (var executor = new InMemoryJoinExecutor()) {
+        try (var executor = new InMemoryJoinExecutor(new DefaultExpressionMapEvaluator(FunctionRegistry.create()))) {
             var rows = executor.matches(parents, children, conditions, Set.of("pid", "#"), false)
                     .collectList()
                     .block();
@@ -106,7 +107,7 @@ class InMemoryJoinExecutorTest {
                 parent(2, Map.of("pid", "1", "name", "C", "#", 2)));
         var children = Flux.just(child(Map.of("cid", "1", "#", 0)));
 
-        try (var executor = new InMemoryJoinExecutor()) {
+        try (var executor = new InMemoryJoinExecutor(new DefaultExpressionMapEvaluator(FunctionRegistry.create()))) {
             var rows = executor.matches(parents, children, conditions, Set.of("pid", "name", "#"), false)
                     .collectList()
                     .block();
@@ -129,7 +130,7 @@ class InMemoryJoinExecutorTest {
         var children =
                 Flux.just(child(Map.of("c1", "a", "c2", "x", "#", 0)), child(Map.of("c1", "a", "c2", "y", "#", 1)));
 
-        try (var executor = new InMemoryJoinExecutor()) {
+        try (var executor = new InMemoryJoinExecutor(new DefaultExpressionMapEvaluator(FunctionRegistry.create()))) {
             var rows = executor.matches(parents, children, conditions, Set.of("p1", "p2", "#"), false)
                     .collectList()
                     .block();
@@ -150,14 +151,14 @@ class InMemoryJoinExecutorTest {
         // Child has no value for "cid" — key is empty.
         var children = Flux.just(child(Map.of("other", "v", "#", 0)));
 
-        try (var inner = new InMemoryJoinExecutor()) {
+        try (var inner = new InMemoryJoinExecutor(new DefaultExpressionMapEvaluator(FunctionRegistry.create()))) {
             var rows = inner.matches(parents, children, conditions, Set.of("pid", "#"), false)
                     .collectList()
                     .block();
             assertThat("INNER join with empty child key filters out the child", rows, is(empty()));
         }
 
-        try (var left = new InMemoryJoinExecutor()) {
+        try (var left = new InMemoryJoinExecutor(new DefaultExpressionMapEvaluator(FunctionRegistry.create()))) {
             var rows = left.matches(
                             Flux.just(parent(0, Map.of("pid", "1", "#", 0))),
                             Flux.just(child(Map.of("other", "v", "#", 0))),
@@ -178,7 +179,7 @@ class InMemoryJoinExecutorTest {
         var parents = Flux.just(parent(0, Map.of("other", "v", "#", 0)));
         var children = Flux.just(child(Map.of("cid", "1", "#", 0)));
 
-        try (var executor = new InMemoryJoinExecutor()) {
+        try (var executor = new InMemoryJoinExecutor(new DefaultExpressionMapEvaluator(FunctionRegistry.create()))) {
             var rows = executor.matches(parents, children, conditions, Set.of("pid", "other", "#"), false)
                     .collectList()
                     .block();
@@ -190,7 +191,7 @@ class InMemoryJoinExecutorTest {
     @SuppressWarnings("resource") // Test specifically verifies explicit close() idempotency,
     // try-with-resources would mask the contract under test.
     void close_idempotent_doesNotThrow() {
-        var executor = new InMemoryJoinExecutor();
+        var executor = new InMemoryJoinExecutor(new DefaultExpressionMapEvaluator(FunctionRegistry.create()));
         assertDoesNotThrow(() -> {
             executor.close();
             executor.close();
@@ -200,8 +201,9 @@ class InMemoryJoinExecutorTest {
     @Test
     void factory_createReturnsFreshInstance() {
         var factory = new InMemoryJoinExecutorFactory();
-        try (var first = factory.create();
-                var second = factory.create()) {
+        var evaluator = new DefaultExpressionMapEvaluator(FunctionRegistry.create());
+        try (var first = factory.create(evaluator);
+                var second = factory.create(evaluator)) {
             assertThat(first, is(notNullValue()));
             assertThat(second, is(notNullValue()));
             // Different instances — no shared state.

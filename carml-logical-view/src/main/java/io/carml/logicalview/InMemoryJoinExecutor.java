@@ -16,6 +16,12 @@ import reactor.core.publisher.Mono;
  */
 public final class InMemoryJoinExecutor implements JoinExecutor {
 
+    private final ExpressionMapEvaluator evaluator;
+
+    public InMemoryJoinExecutor(ExpressionMapEvaluator evaluator) {
+        this.evaluator = evaluator;
+    }
+
     @Override
     public Flux<MatchedRow> matches(
             Flux<ViewIteration> parents,
@@ -34,11 +40,11 @@ public final class InMemoryJoinExecutor implements JoinExecutor {
                         JoinIndex::close));
     }
 
-    private static HashMapJoinIndex<List<Object>, ViewIteration> buildIndex(
+    private HashMapJoinIndex<List<Object>, ViewIteration> buildIndex(
             List<ViewIteration> parents, List<Join> conditions, Set<String> parentReferenceableKeys) {
         var index = new HashMapJoinIndex<List<Object>, ViewIteration>();
         parents.forEach(parent -> {
-            var key = JoinKeyExtractor.parentKey(conditions, parent, parentReferenceableKeys);
+            var key = JoinKeyExtractor.parentKey(conditions, parent, parentReferenceableKeys, evaluator);
             if (!key.isEmpty()) {
                 index.put(key, parent);
             }
@@ -46,12 +52,12 @@ public final class InMemoryJoinExecutor implements JoinExecutor {
         return index;
     }
 
-    private static Mono<MatchedRow> matchChild(
+    private Mono<MatchedRow> matchChild(
             EvaluatedValues child,
             List<Join> conditions,
             boolean leftJoin,
             JoinIndex<List<Object>, ViewIteration> index) {
-        var ckey = JoinKeyExtractor.childKey(conditions, child);
+        var ckey = JoinKeyExtractor.childKey(conditions, child, evaluator);
         var matched = ckey.isEmpty() ? List.<ViewIteration>of() : index.get(ckey);
         if (matched.isEmpty() && !leftJoin) {
             return Mono.empty();

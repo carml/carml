@@ -2,6 +2,7 @@ package io.carml.logicalview.join.duckdb;
 
 import io.carml.logicalsourceresolver.PausableFluxBridge;
 import io.carml.logicalview.EvaluatedValues;
+import io.carml.logicalview.ExpressionMapEvaluator;
 import io.carml.logicalview.JoinExecutor;
 import io.carml.logicalview.JoinKeyExtractor;
 import io.carml.logicalview.MatchedRow;
@@ -71,6 +72,8 @@ public final class DuckDbJoinExecutor implements JoinExecutor {
 
     private final Path spillDir;
 
+    private final ExpressionMapEvaluator evaluator;
+
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
     private final AtomicBoolean subscribed = new AtomicBoolean(false);
@@ -85,10 +88,11 @@ public final class DuckDbJoinExecutor implements JoinExecutor {
 
     private int parentRowId;
 
-    DuckDbJoinExecutor(int spillThreshold, boolean fileBacked, Path spillDir) {
+    DuckDbJoinExecutor(int spillThreshold, boolean fileBacked, Path spillDir, ExpressionMapEvaluator evaluator) {
         this.spillThreshold = spillThreshold;
         this.fileBacked = fileBacked;
         this.spillDir = spillDir;
+        this.evaluator = evaluator;
     }
 
     @Override
@@ -181,13 +185,13 @@ public final class DuckDbJoinExecutor implements JoinExecutor {
             boolean leftJoin) {
         var index = new HashMap<List<Object>, List<ViewIteration>>();
         for (var parent : parentList) {
-            var key = JoinKeyExtractor.parentKey(conditions, parent, parentReferenceableKeys);
+            var key = JoinKeyExtractor.parentKey(conditions, parent, parentReferenceableKeys, evaluator);
             if (!key.isEmpty()) {
                 index.computeIfAbsent(key, k -> new ArrayList<>()).add(parent);
             }
         }
         return children.flatMap(child -> {
-            var ckey = JoinKeyExtractor.childKey(conditions, child);
+            var ckey = JoinKeyExtractor.childKey(conditions, child, evaluator);
             var matched = ckey.isEmpty() ? List.<ViewIteration>of() : index.getOrDefault(ckey, List.of());
             if (matched.isEmpty() && !leftJoin) {
                 return Mono.empty();
@@ -211,7 +215,7 @@ public final class DuckDbJoinExecutor implements JoinExecutor {
                 childAppender -> {
                     var childRowId = new AtomicInteger();
                     return children.doOnNext(child -> {
-                                var key = JoinKeyExtractor.childKey(conditions, child);
+                                var key = JoinKeyExtractor.childKey(conditions, child, evaluator);
                                 appendRow(
                                         childAppender,
                                         childRowId.getAndIncrement(),
@@ -339,7 +343,7 @@ public final class DuckDbJoinExecutor implements JoinExecutor {
 
     private void appendParent(
             ViewIteration parent, List<Join> conditions, Set<String> parentReferenceableKeys, int keyArity) {
-        var key = JoinKeyExtractor.parentKey(conditions, parent, parentReferenceableKeys);
+        var key = JoinKeyExtractor.parentKey(conditions, parent, parentReferenceableKeys, evaluator);
         // Skip parents whose join key did not produce a value — they cannot match any child key,
         // matching the in-memory path semantics where the HashMapJoinIndex never stores them.
         if (key.isEmpty()) {

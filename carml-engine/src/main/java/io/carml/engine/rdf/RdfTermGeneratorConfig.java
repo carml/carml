@@ -1,6 +1,6 @@
 package io.carml.engine.rdf;
 
-import io.carml.engine.function.FunctionRegistry;
+import io.carml.functions.FunctionRegistry;
 import java.text.Normalizer;
 import java.util.Set;
 import lombok.AccessLevel;

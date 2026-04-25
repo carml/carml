@@ -1,0 +1,14 @@
+@prefix ex: <http://example.com/ns#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+<http://example.com/person/p1> a ex:Person ;
+    ex:city <http://example.com/city/PARIS> .
+
+<http://example.com/person/p2> a ex:Person ;
+    ex:city <http://example.com/city/BERLIN> .
+
+<http://example.com/city/PARIS> a ex:City ;
+    ex:country "FR" .
+
+<http://example.com/city/BERLIN> a ex:City ;
+    ex:country "DE" .

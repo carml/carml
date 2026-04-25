@@ -3,6 +3,7 @@ package io.carml.logicalview;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toUnmodifiableSet;
 
+import io.carml.functions.FunctionRegistry;
 import io.carml.logicalsourceresolver.DatatypeMapper;
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
 import io.carml.logicalsourceresolver.LogicalSourceRecord;
@@ -63,14 +64,27 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
 
     private final JoinExecutorFactory joinExecutorFactory;
 
+    private final ExpressionMapEvaluator expressionMapValueEvaluator;
+
     public DefaultLogicalViewEvaluator(Set<MatchingLogicalSourceResolverFactory> resolverFactories) {
-        this(resolverFactories, JoinExecutorFactory.inMemory());
+        this(
+                resolverFactories,
+                JoinExecutorFactory.inMemory(),
+                new DefaultExpressionMapEvaluator(FunctionRegistry.create()));
     }
 
     public DefaultLogicalViewEvaluator(
             Set<MatchingLogicalSourceResolverFactory> resolverFactories, JoinExecutorFactory joinExecutorFactory) {
+        this(resolverFactories, joinExecutorFactory, new DefaultExpressionMapEvaluator(FunctionRegistry.create()));
+    }
+
+    public DefaultLogicalViewEvaluator(
+            Set<MatchingLogicalSourceResolverFactory> resolverFactories,
+            JoinExecutorFactory joinExecutorFactory,
+            ExpressionMapEvaluator expressionMapValueEvaluator) {
         this.resolverFactories = resolverFactories;
         this.joinExecutorFactory = joinExecutorFactory;
+        this.expressionMapValueEvaluator = expressionMapValueEvaluator;
     }
 
     private record ExprEvalWithDatatypeMapper(ExpressionEvaluation exprEval, DatatypeMapper datatypeMapper) {}
@@ -101,7 +115,8 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
             ReferenceFormulation currentRefForm,
             DatatypeMapper datatypeMapper,
             Function<ReferenceFormulation, LogicalSourceResolver.ExpressionEvaluationFactory<Object>> factoryResolver,
-            Function<ReferenceFormulation, Optional<Function<String, List<Object>>>> inlineRecordParserResolver) {}
+            Function<ReferenceFormulation, Optional<Function<String, List<Object>>>> inlineRecordParserResolver,
+            ExpressionMapEvaluator expressionMapValueEvaluator) {}
 
     @Override
     public Flux<ViewIteration> evaluate(
@@ -301,7 +316,11 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
         return exprEvalFlux.flatMapIterable(pair -> {
             var idx = sourceIndex.getAndIncrement();
             var fieldCtx = new FieldEvaluationContext(
-                    rootRefForm, pair.datatypeMapper(), factoryResolver, inlineRecordParserResolver);
+                    rootRefForm,
+                    pair.datatypeMapper(),
+                    factoryResolver,
+                    inlineRecordParserResolver,
+                    expressionMapValueEvaluator);
             var fieldEvals = evaluateFields(fields, pair.exprEval(), "", fieldCtx);
             var evaluatedStream = fieldEvals.stream();
             if (context.retainSourceEvaluation()) {
@@ -602,7 +621,8 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                 .sorted(Comparator.comparing(Field::getFieldName))
                 .map(field -> {
                     if (field instanceof ExpressionField ef) {
-                        var values = JoinKeyExtractor.evaluateExpressionMap(ef, exprEval);
+                        var values = fieldCtx.expressionMapValueEvaluator()
+                                .evaluate(ef, exprEval, fieldCtx.datatypeMapper());
                         var absoluteName = prefix + ef.getFieldName();
                         var indexKey = absoluteName + INDEX_KEY_SUFFIX;
                         var refFormMap = fieldCtx.currentRefForm() != null
@@ -747,17 +767,7 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
         }
 
         var nestedFactory = fieldCtx.factoryResolver().apply(nestedRefForm);
-        var subPrefix = prefix + field.getFieldName() + ".";
-        var iterableIndexKey = prefix + field.getFieldName() + INDEX_KEY_SUFFIX;
-
-        var nestedFieldCtx = new FieldEvaluationContext(
-                nestedRefForm,
-                fieldCtx.datatypeMapper(),
-                fieldCtx.factoryResolver(),
-                fieldCtx.inlineRecordParserResolver());
-
-        return stampIndexOnSubRecords(
-                subRecords, iterableIndexKey, nestedFactory, nestedFields, subPrefix, nestedFieldCtx);
+        return stampNestedSubRecords(field, prefix, subRecords, nestedRefForm, nestedFactory, nestedFields, fieldCtx);
     }
 
     /**
@@ -866,15 +876,32 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
             return List.of();
         }
 
+        return stampNestedSubRecords(field, prefix, subRecords, nestedRefForm, nestedFactory, nestedFields, fieldCtx);
+    }
+
+    /**
+     * Builds the nested {@link FieldEvaluationContext}, prefixes, and index key for an iterable
+     * sub-record traversal and delegates to {@link #stampIndexOnSubRecords}. Shared by
+     * {@link #evaluateIterableField} and {@link #evaluateInlineIterableField} — both arrive at the
+     * same shape (sub-records + nested fields + a resolved nested ref formulation and factory)
+     * through different parsing paths.
+     */
+    private static List<EvaluatedValues> stampNestedSubRecords(
+            IterableField field,
+            String prefix,
+            List<Object> subRecords,
+            ReferenceFormulation nestedRefForm,
+            LogicalSourceResolver.ExpressionEvaluationFactory<Object> nestedFactory,
+            Set<Field> nestedFields,
+            FieldEvaluationContext fieldCtx) {
         var subPrefix = prefix + field.getFieldName() + ".";
         var iterableIndexKey = prefix + field.getFieldName() + INDEX_KEY_SUFFIX;
-
         var nestedFieldCtx = new FieldEvaluationContext(
                 nestedRefForm,
                 fieldCtx.datatypeMapper(),
                 fieldCtx.factoryResolver(),
-                fieldCtx.inlineRecordParserResolver());
-
+                fieldCtx.inlineRecordParserResolver(),
+                fieldCtx.expressionMapValueEvaluator());
         return stampIndexOnSubRecords(
                 subRecords, iterableIndexKey, nestedFactory, nestedFields, subPrefix, nestedFieldCtx);
     }
@@ -937,7 +964,7 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                 : parentFlux;
 
         return Flux.using(
-                joinExecutorFactory::create,
+                () -> joinExecutorFactory.create(expressionMapValueEvaluator),
                 executor -> executor.matches(
                                 finalParentFlux, childFlux, conditions, parentReferenceableKeys, isLeftJoin)
                         .flatMapIterable(matched -> extendChildWithMatches(
@@ -986,13 +1013,15 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
 
         for (var parentIteration : effectiveParents) {
             var parentExprEval = new ViewIterationExpressionEvaluation(parentIteration, parentReferenceableKeys);
+            DatatypeMapper parentDatatypeMapper = parentIteration::getNaturalDatatype;
 
             // Evaluate join fields from the parent iteration, producing per-field value lists
             var fieldContributions = sortedJoinFields.stream()
                     .map(joinField -> {
                         var fieldName = joinField.getFieldName();
                         var indexKey = fieldName + INDEX_KEY_SUFFIX;
-                        var values = JoinKeyExtractor.evaluateExpressionMap(joinField, parentExprEval);
+                        var values =
+                                expressionMapValueEvaluator.evaluate(joinField, parentExprEval, parentDatatypeMapper);
 
                         // Resolve natural datatypes from parent iteration for join fields
                         var joinNaturalDatatypes = new LinkedHashMap<String, IRI>();
@@ -1047,7 +1076,8 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
 
             for (var parentIteration : effectiveParents) {
                 var parentExprEval = new ViewIterationExpressionEvaluation(parentIteration, parentReferenceableKeys);
-                var values = JoinKeyExtractor.evaluateExpressionMap(joinField, parentExprEval);
+                DatatypeMapper parentDatatypeMapper = parentIteration::getNaturalDatatype;
+                var values = expressionMapValueEvaluator.evaluate(joinField, parentExprEval, parentDatatypeMapper);
                 allFieldValues.addAll(values);
             }
 

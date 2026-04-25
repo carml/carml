@@ -1,9 +1,9 @@
 package io.carml.logicalview;
 
 /**
- * Factory for creating {@link JoinExecutor} instances. Each invocation of {@link #create()} must
- * return a fresh, independent executor — the evaluator constructs one executor per join and
- * closes it via try/using when the join completes.
+ * Factory for creating {@link JoinExecutor} instances. Each invocation of
+ * {@link #create(ExpressionMapEvaluator)} must return a fresh, independent executor — the
+ * evaluator constructs one executor per join and closes it via try/using when the join completes.
  *
  * <p>The default in-memory factory is exposed via {@link #inMemory()}. Spillable implementations
  * (e.g. DuckDB-backed) live in their own modules and are constructed explicitly by the
@@ -14,11 +14,15 @@ public interface JoinExecutorFactory {
 
     /**
      * Creates a fresh {@link JoinExecutor}. Each returned executor has its own state and lifecycle —
-     * implementations must not share mutable state between returned instances.
+     * implementations must not share mutable state between returned instances. The executor uses the
+     * supplied {@link ExpressionMapEvaluator} to resolve each join condition's child and parent
+     * expression maps when building join keys; this allows function-valued {@code rml:childMap} /
+     * {@code rml:parentMap} to participate in joins.
      *
+     * @param evaluator the evaluator used to resolve condition expression maps into key values
      * @return a new join executor
      */
-    JoinExecutor create();
+    JoinExecutor create(ExpressionMapEvaluator evaluator);
 
     /**
      * Returns {@code true} if the executors created by this factory materialize the parent stream

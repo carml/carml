@@ -16,6 +16,11 @@
 
 		<dependency>
 			<groupId>io.carml</groupId>
+			<artifactId>carml-commons</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>io.carml</groupId>
 			<artifactId>carml-rdf-mapper</artifactId>
 		</dependency>
 

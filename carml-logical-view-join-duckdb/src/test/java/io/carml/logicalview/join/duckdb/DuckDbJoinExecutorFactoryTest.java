@@ -7,6 +7,8 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import io.carml.functions.FunctionRegistry;
+import io.carml.logicalview.DefaultExpressionMapEvaluator;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -16,8 +18,8 @@ class DuckDbJoinExecutorFactoryTest {
     @Test
     void create_returnsFreshInstancePerCall(@TempDir Path spillDir) {
         var factory = new DuckDbJoinExecutorFactory(1000, true, spillDir);
-        try (var first = factory.create();
-                var second = factory.create()) {
+        try (var first = factory.create(new DefaultExpressionMapEvaluator(FunctionRegistry.create()));
+                var second = factory.create(new DefaultExpressionMapEvaluator(FunctionRegistry.create()))) {
             assertThat(first, is(not(sameInstance(second))));
         }
     }
@@ -37,7 +39,7 @@ class DuckDbJoinExecutorFactoryTest {
     @Test
     void constructor_inMemoryMode_acceptsNullSpillDir() {
         var factory = new DuckDbJoinExecutorFactory(100, false, null);
-        try (var executor = factory.create()) {
+        try (var executor = factory.create(new DefaultExpressionMapEvaluator(FunctionRegistry.create()))) {
             assertThat(executor, is(notNullValue()));
         }
     }

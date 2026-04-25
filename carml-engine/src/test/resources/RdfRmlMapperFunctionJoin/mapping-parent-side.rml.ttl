@@ -1,0 +1,51 @@
+@prefix rr: <http://www.w3.org/ns/r2rml#> .
+@prefix rml-old: <http://semweb.mmlab.be/ns/rml#> .
+@prefix rml: <http://w3id.org/rml/> .
+@prefix ql: <http://semweb.mmlab.be/ns/ql#> .
+@prefix ex: <http://example.com/ns#> .
+@prefix fno: <https://w3id.org/function/ontology#> .
+
+<#PersonMapping>
+    rml-old:logicalSource [
+        rml-old:source "persons.json" ;
+        rml-old:referenceFormulation ql:JSONPath ;
+        rml-old:iterator "$[*]"
+    ] ;
+    rr:subjectMap [
+        rr:template "http://example.com/person/{id}" ;
+        rr:class ex:Person
+    ] ;
+    rr:predicateObjectMap [
+        rr:predicate ex:city ;
+        rr:objectMap [
+            rr:parentTriplesMap <#CityMapping> ;
+            rr:joinCondition [
+                rml:childMap [ rml-old:reference "city" ] ;
+                rml:parentMap <#LowerCaseNameParentMap>
+            ]
+        ]
+    ] .
+
+<#LowerCaseNameParentMap>
+    rml:functionExecution [
+        rml:functionMap [ rml:constant ex:toLowerCase ] ;
+        rml:input [
+            rml:parameterMap [ rml:constant ex:inputParam ] ;
+            rml:inputValueMap [ rml-old:reference "name" ]
+        ]
+    ] .
+
+<#CityMapping>
+    rml-old:logicalSource [
+        rml-old:source "cities.json" ;
+        rml-old:referenceFormulation ql:JSONPath ;
+        rml-old:iterator "$[*]"
+    ] ;
+    rr:subjectMap [
+        rr:template "http://example.com/city/{name}" ;
+        rr:class ex:City
+    ] ;
+    rr:predicateObjectMap [
+        rr:predicate ex:country ;
+        rr:objectMap [ rml-old:reference "country" ]
+    ] .

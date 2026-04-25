@@ -1,5 +1,6 @@
 package io.carml.logicalview.join.duckdb;
 
+import io.carml.logicalview.ExpressionMapEvaluator;
 import io.carml.logicalview.JoinExecutor;
 import io.carml.logicalview.JoinExecutorFactory;
 import java.nio.file.Path;
@@ -35,7 +36,7 @@ public final class DuckDbJoinExecutorFactory implements JoinExecutorFactory {
     }
 
     @Override
-    public JoinExecutor create() {
-        return new DuckDbJoinExecutor(spillThreshold, fileBacked, spillDir);
+    public JoinExecutor create(ExpressionMapEvaluator evaluator) {
+        return new DuckDbJoinExecutor(spillThreshold, fileBacked, spillDir, evaluator);
     }
 }
