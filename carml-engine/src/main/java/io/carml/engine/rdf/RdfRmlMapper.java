@@ -175,6 +175,8 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
 
         private final List<LogicalViewEvaluatorFactory> logicalViewEvaluatorFactories = new ArrayList<>();
 
+        private JoinExecutorFactory joinExecutorFactory;
+
         private TargetRouter targetRouter;
 
         /**
@@ -392,8 +394,52 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
             return this;
         }
 
+        /**
+         * Registers an additional {@link LogicalViewEvaluatorFactory} for this mapper. Calling this
+         * method opts out of {@link ServiceLoader}-based factory discovery — the explicit list is
+         * used verbatim. This is the lower-level API for callers who need full control over the
+         * evaluator chain (e.g. registering a custom evaluator for a specific evaluator mode, or
+         * suppressing SPI-discovered evaluators).
+         *
+         * <p>For the common case of "swap the {@link JoinExecutorFactory} for the default reactive
+         * evaluator," prefer {@link #joinExecutorFactory(JoinExecutorFactory)} — it threads the
+         * mapper's {@link FunctionRegistry} into the constructed
+         * {@link DefaultLogicalViewEvaluatorFactory} automatically so functions resolve consistently
+         * in both term generation and join-key evaluation.
+         *
+         * @param factory the factory to register
+         * @return {@link Builder}
+         */
         public Builder logicalViewEvaluatorFactory(LogicalViewEvaluatorFactory factory) {
             logicalViewEvaluatorFactories.add(factory);
+            return this;
+        }
+
+        /**
+         * Configures a custom {@link JoinExecutorFactory} for the default reactive
+         * {@link LogicalViewEvaluatorFactory}. The builder constructs a
+         * {@link DefaultLogicalViewEvaluatorFactory} backed by this join factory and the mapper's
+         * {@link FunctionRegistry} at {@link #build()} time, hiding the registry-sharing wiring
+         * from callers.
+         *
+         * <p>Use this for spill-to-disk scenarios where you want to swap the in-memory join probe
+         * for a spillable implementation (e.g. {@code DuckDbJoinExecutorFactory}) without losing
+         * function support on join keys. To register an additional evaluator alongside (e.g. an
+         * in-process-DB evaluator that handles SQL views, with the reactive default as fallback for
+         * everything else), combine this method with {@link #logicalViewEvaluatorFactory(LogicalViewEvaluatorFactory)}.
+         *
+         * <p>If an explicit {@link DefaultLogicalViewEvaluatorFactory} is already registered via
+         * {@link #logicalViewEvaluatorFactory(LogicalViewEvaluatorFactory)}, the auto-add is
+         * suppressed (with a warning) — the explicit factory wins.
+         *
+         * <p>Calling this method opts out of {@link ServiceLoader}-based discovery the same way
+         * {@link #logicalViewEvaluatorFactory(LogicalViewEvaluatorFactory)} does.
+         *
+         * @param joinExecutorFactory the factory used to materialize joins for the default reactive evaluator
+         * @return {@link Builder}
+         */
+        public Builder joinExecutorFactory(JoinExecutorFactory joinExecutorFactory) {
+            this.joinExecutorFactory = joinExecutorFactory;
             return this;
         }
 
@@ -622,25 +668,44 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
         /**
          * Resolves the {@link LogicalViewEvaluatorFactory} list for this mapper.
          *
-         * <p>When the caller registered explicit factories via
-         * {@link #logicalViewEvaluatorFactory(LogicalViewEvaluatorFactory)} they are used verbatim —
-         * the builder does not inject a {@link FunctionRegistry} into user-supplied factories.
-         * Callers who register their own {@link DefaultLogicalViewEvaluatorFactory} and want join
-         * maps to see functions registered via {@link #function(Object)} /
-         * {@link #functionRegistry(FunctionRegistry)} must pass the mapper's registry to its
-         * constructor (see {@link DefaultLogicalViewEvaluatorFactory#DefaultLogicalViewEvaluatorFactory(
-         * io.carml.logicalview.JoinExecutorFactory, FunctionRegistry)}). Otherwise the factory's
-         * self-wired default registry (SPI-discovered descriptors only) is used.
+         * <p>When the caller supplied a {@link JoinExecutorFactory} via
+         * {@link #joinExecutorFactory(JoinExecutorFactory)}, the builder appends a
+         * {@link DefaultLogicalViewEvaluatorFactory} backed by that join factory and this mapper's
+         * {@link FunctionRegistry} to the explicit factory list. The append is suppressed if the
+         * explicit list already contains a {@link DefaultLogicalViewEvaluatorFactory} — the
+         * user-provided one wins to avoid two competing default evaluators.
          *
-         * <p>When no explicit factory is registered, factories are discovered via
-         * {@link ServiceLoader}; any discovered {@link DefaultLogicalViewEvaluatorFactory} is
-         * replaced with one that shares this mapper's {@code FunctionRegistry} so programmatically
-         * registered functions participate in join-key evaluation consistently with term generation.
+         * <p>When the caller registered explicit factories via
+         * {@link #logicalViewEvaluatorFactory(LogicalViewEvaluatorFactory)} (with or without a
+         * {@code joinExecutorFactory}), the resulting list is used verbatim — the builder does not
+         * inject a {@link FunctionRegistry} into user-supplied factories. Callers who register
+         * their own {@link DefaultLogicalViewEvaluatorFactory} and want join maps to see functions
+         * registered via {@link #function(String)} / {@link #functionRegistry(FunctionRegistry)}
+         * must pass the mapper's registry to its constructor — or just use
+         * {@link #joinExecutorFactory(JoinExecutorFactory)} which handles this automatically.
+         *
+         * <p>When neither method is called, factories are discovered via {@link ServiceLoader}; any
+         * discovered {@link DefaultLogicalViewEvaluatorFactory} is replaced with one that shares
+         * this mapper's {@code FunctionRegistry} so programmatically registered functions
+         * participate in join-key evaluation consistently with term generation.
          */
         private List<LogicalViewEvaluatorFactory> resolveLogicalViewEvaluatorFactories(
                 FunctionRegistry functionRegistry) {
-            if (!logicalViewEvaluatorFactories.isEmpty()) {
-                return List.copyOf(logicalViewEvaluatorFactories);
+            if (!logicalViewEvaluatorFactories.isEmpty() || joinExecutorFactory != null) {
+                var resolved = new ArrayList<LogicalViewEvaluatorFactory>(logicalViewEvaluatorFactories);
+                if (joinExecutorFactory != null) {
+                    var hasExplicitDefault =
+                            resolved.stream().anyMatch(DefaultLogicalViewEvaluatorFactory.class::isInstance);
+                    if (hasExplicitDefault) {
+                        LOG.warn("joinExecutorFactory(...) was supplied but the explicit factory list already contains "
+                                + "a DefaultLogicalViewEvaluatorFactory; the explicit factory wins and the "
+                                + "supplied JoinExecutorFactory is ignored. To use it, drop the explicit "
+                                + "DefaultLogicalViewEvaluatorFactory registration.");
+                    } else {
+                        resolved.add(new DefaultLogicalViewEvaluatorFactory(joinExecutorFactory, functionRegistry));
+                    }
+                }
+                return List.copyOf(resolved);
             }
             return ServiceLoader.load(LogicalViewEvaluatorFactory.class).stream()
                     .map(ServiceLoader.Provider::get)
