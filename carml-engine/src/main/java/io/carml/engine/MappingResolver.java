@@ -82,27 +82,36 @@ public final class MappingResolver {
      * @throws RmlMapperException if a cycle is detected between TriplesMaps
      */
     public static List<ResolvedMapping> resolve(Set<TriplesMap> triplesMaps, Long limit) {
+        return resolve(triplesMaps, limit, DedupMode.AUTO);
+    }
+
+    public static List<ResolvedMapping> resolve(Set<TriplesMap> triplesMaps, Long limit, DedupMode dedupMode) {
         var dependencies = buildDependencyGraph(triplesMaps);
         validateTriplesMapNoCycles(dependencies);
         var sorted = topologicalSort(dependencies);
         return sorted.stream()
-                .map(tm -> resolveOne(tm, limit, dependencies.getOrDefault(tm, Set.of())))
+                .map(tm -> resolveOne(tm, limit, dedupMode, dependencies.getOrDefault(tm, Set.of())))
                 .flatMap(List::stream)
                 .toList();
     }
 
-    private static List<ResolvedMapping> resolveOne(TriplesMap triplesMap, Long limit, Set<TriplesMap> dependencies) {
+    private static List<ResolvedMapping> resolveOne(
+            TriplesMap triplesMap, Long limit, DedupMode dedupMode, Set<TriplesMap> dependencies) {
         var logicalSource = triplesMap.getLogicalSource();
 
         if (logicalSource instanceof LogicalView logicalView) {
-            return resolveExplicit(triplesMap, logicalView, limit, dependencies);
+            return resolveExplicit(triplesMap, logicalView, limit, dedupMode, dependencies);
         }
 
-        return List.of(resolveImplicit(triplesMap, limit, dependencies));
+        return List.of(resolveImplicit(triplesMap, limit, dedupMode, dependencies));
     }
 
     private static List<ResolvedMapping> resolveExplicit(
-            TriplesMap triplesMap, LogicalView logicalView, Long limit, Set<TriplesMap> dependencies) {
+            TriplesMap triplesMap,
+            LogicalView logicalView,
+            Long limit,
+            DedupMode dedupMode,
+            Set<TriplesMap> dependencies) {
         validateViewAndFieldNoCycles(logicalView);
         validateNoNameCollisions(logicalView);
         var optimizedView = eliminateSelfJoins(logicalView);
@@ -111,7 +120,7 @@ public final class MappingResolver {
         var decomposition = ViewDecomposer.decompose(triplesMap, optimizedView);
         if (!decomposition.isDecomposed()) {
             var projectedFields = triplesMap.getReferenceExpressionSet();
-            var dedupStrategy = selectDedupStrategy(optimizedView, projectedFields);
+            var dedupStrategy = selectDedupStrategy(optimizedView, projectedFields, dedupMode);
             var evaluationContext = EvaluationContext.of(projectedFields, dedupStrategy, limit);
             return List.of(ResolvedMapping.of(
                     triplesMap, optimizedView, false, fieldOrigins, evaluationContext, dependencies));
@@ -120,7 +129,7 @@ public final class MappingResolver {
         var result = new ArrayList<ResolvedMapping>();
         for (var group : decomposition.groups()) {
             var projectedFields = group.projectedFields();
-            var dedupStrategy = selectDedupStrategy(optimizedView, projectedFields);
+            var dedupStrategy = selectDedupStrategy(optimizedView, projectedFields, dedupMode);
             var evaluationContext = EvaluationContext.of(projectedFields, dedupStrategy, limit);
             result.add(ResolvedMapping.of(
                     triplesMap,
@@ -134,15 +143,34 @@ public final class MappingResolver {
         return List.copyOf(result);
     }
 
-    private static ResolvedMapping resolveImplicit(TriplesMap triplesMap, Long limit, Set<TriplesMap> dependencies) {
+    private static ResolvedMapping resolveImplicit(
+            TriplesMap triplesMap, Long limit, DedupMode dedupMode, Set<TriplesMap> dependencies) {
         var wrapResult = ImplicitViewFactory.wrap(triplesMap);
         var syntheticView = wrapResult.view();
         var refObjectMapPrefixes = wrapResult.refObjectMapPrefixes();
         var expressionToTermMap = buildExpressionToTermMap(triplesMap);
         var fieldOrigins = buildFieldOrigins(triplesMap, syntheticView, expressionToTermMap);
-        var evaluationContext = EvaluationContext.forImplicitView(limit, wrapResult.aggregatingJoins());
+        var dedupStrategy = implicitViewDedupStrategy(dedupMode);
+        var evaluationContext = EvaluationContext.forImplicitView(limit, wrapResult.aggregatingJoins(), dedupStrategy);
         return ResolvedMapping.of(
                 triplesMap, syntheticView, true, fieldOrigins, evaluationContext, dependencies, refObjectMapPrefixes);
+    }
+
+    /**
+     * Resolves the dedup strategy for an implicit (bare LogicalSource) view per the user's
+     * {@link DedupMode}. Implicit views carry no structural annotations, so:
+     *
+     * <ul>
+     *   <li>{@code AUTO} / {@code NONE} — {@link DedupStrategy#none()} (current default).
+     *   <li>{@code VIEW} / {@code FULL} — {@link DedupStrategy#exact()} since there is nothing to
+     *       prove uniqueness from.
+     * </ul>
+     */
+    private static DedupStrategy implicitViewDedupStrategy(DedupMode dedupMode) {
+        return switch (dedupMode) {
+            case AUTO, NONE -> DedupStrategy.none();
+            case VIEW, FULL -> DedupStrategy.exact();
+        };
     }
 
     /**
@@ -273,22 +301,52 @@ public final class MappingResolver {
 
     /**
      * Selects the appropriate {@link DedupStrategy} based on the structural annotations of a
-     * {@link LogicalView} and the set of projected fields.
+     * {@link LogicalView} and the set of projected fields. Equivalent to
+     * {@code selectDedupStrategy(view, projectedFields, DedupMode.AUTO)}.
+     */
+    static DedupStrategy selectDedupStrategy(LogicalView logicalView, Set<String> projectedFields) {
+        return selectDedupStrategy(logicalView, projectedFields, DedupMode.AUTO);
+    }
+
+    /**
+     * Selects the {@link DedupStrategy} for a {@link LogicalView} subject to a user-supplied
+     * {@link DedupMode} override.
      *
-     * <p>Returns {@link DedupStrategy#none()} (no dedup needed) when:
+     * <p>Annotation-driven baseline (the {@code AUTO} default) returns {@link DedupStrategy#none()}
+     * (no dedup needed) when:
      * <ul>
      *   <li>No structural annotations exist</li>
      *   <li>A {@link PrimaryKeyAnnotation} covers the projected fields</li>
      *   <li>A {@link UniqueAnnotation} covers the projected fields and all its fields are also
      *       covered by a {@link NotNullAnnotation}</li>
      * </ul>
+     * NotNull on all projected fields → {@link DedupStrategy#simpleEquality()}; otherwise →
+     * {@link DedupStrategy#exact()}.
      *
-     * <p>Otherwise returns {@link DedupStrategy#exact()}.
+     * <p>{@code DedupMode} application:
+     * <ul>
+     *   <li>{@link DedupMode#AUTO} — annotation-driven (the baseline above).
+     *   <li>{@link DedupMode#NONE} — always {@link DedupStrategy#none()}.
+     *   <li>{@link DedupMode#VIEW} / {@link DedupMode#FULL} — keep the annotation-derived
+     *       {@code none()} when uniqueness is provably covered by PK / Unique+NotNull (dedup is
+     *       still a no-op then), but escalate the "no annotations" case from {@code none()} to
+     *       {@link DedupStrategy#exact()}.
+     * </ul>
+     * The {@code FULL} mode applies the same view-level escalation as {@code VIEW}; its additional
+     * statement-level {@code .distinct()} on the assembled output flux is wired separately in the
+     * mapper.
      */
-    static DedupStrategy selectDedupStrategy(LogicalView logicalView, Set<String> projectedFields) {
+    static DedupStrategy selectDedupStrategy(
+            LogicalView logicalView, Set<String> projectedFields, DedupMode dedupMode) {
+        if (dedupMode == DedupMode.NONE) {
+            return DedupStrategy.none();
+        }
+
         var annotations = logicalView.getStructuralAnnotations();
         if (annotations == null || annotations.isEmpty()) {
-            return DedupStrategy.none();
+            // No annotations → AUTO leaves it none(); VIEW/FULL escalate so duplicate source rows
+            // are deduplicated.
+            return dedupMode == DedupMode.AUTO ? DedupStrategy.none() : DedupStrategy.exact();
         }
 
         var notNullFields = annotations.stream()

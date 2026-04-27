@@ -96,6 +96,12 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
     // Reactor subscription barrier (same pattern as resolvedMapping).
     private MappingExecutionObserver observer = NoOpObserver.getInstance();
 
+    // Set once during build() when the mapper is configured for DedupMode.FULL: per-iteration
+    // observer-firing wrapping is suppressed so that statement-level dedup at the public flux can
+    // fire the observer once per distinct statement instead. Mapping-start and error events still
+    // route through the configured observer.
+    private boolean suppressStatementInstrumentation = false;
+
     private RdfTriplesMapper(
             @NonNull TriplesMap triplesMap,
             Set<RdfSubjectMapper> subjectMappers,
@@ -313,6 +319,16 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
         this.observer = observer;
     }
 
+    /**
+     * Suppresses per-iteration observer-firing wrapping when set to {@code true}. Used when the
+     * outer mapper applies statement-level dedup at the assembled output — the observer fires
+     * once per distinct statement at the post-dedup stage instead of once per emitted statement
+     * inside {@link #instrumentWithObserver}.
+     */
+    void setSuppressStatementInstrumentation(boolean suppress) {
+        this.suppressStatementInstrumentation = suppress;
+    }
+
     @Override
     @SuppressWarnings("unchecked")
     public Flux<MappingResult<Statement>> map(LogicalSourceRecord<?> logicalSourceRecord) {
@@ -369,7 +385,7 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
      * {@link MergeableMappingResult} bypass branch. Not part of the public engine API.
      */
     MappingResult<Statement> instrumentWithObserver(MappingResult<Statement> mappingResult, ViewIteration source) {
-        if (resolvedMapping == null || observer == NoOpObserver.getInstance()) {
+        if (resolvedMapping == null || observer == NoOpObserver.getInstance() || suppressStatementInstrumentation) {
             return mappingResult;
         }
         if (mappingResult instanceof MergeableMappingResult<?, ?>) {

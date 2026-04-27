@@ -142,12 +142,30 @@ public interface EvaluationContext {
      * @throws IllegalArgumentException if limit is non-null and not positive
      */
     static EvaluationContext forImplicitView(Long limit, Set<LogicalViewJoin> aggregatingJoins) {
+        return forImplicitView(limit, aggregatingJoins, DedupStrategy.none());
+    }
+
+    /**
+     * Creates an evaluation context for an implicit (synthetic) view with a caller-supplied
+     * {@link DedupStrategy}. Used by {@code MappingResolver} to honor a user-specified
+     * {@code DedupMode} override on bare LogicalSource mappings (which otherwise default to
+     * {@link DedupStrategy#none()}).
+     *
+     * @param limit the maximum number of iterations to produce, or {@code null} for no limit
+     * @param aggregatingJoins the set of joins that should use aggregating semantics
+     * @param dedupStrategy the dedup strategy to apply to the iteration stream
+     * @return a new evaluation context for an implicit view
+     * @throws IllegalArgumentException if limit is non-null and not positive
+     */
+    static EvaluationContext forImplicitView(
+            Long limit, Set<LogicalViewJoin> aggregatingJoins, DedupStrategy dedupStrategy) {
         if (limit != null && limit <= 0) {
             throw new IllegalArgumentException(LIMIT_MUST_BE_POSITIVE.formatted(limit));
         }
         return DefaultEvaluationContext.builder()
                 .retainSourceEvaluation(true)
                 .aggregatingJoins(Set.copyOf(aggregatingJoins))
+                .dedupStrategy(dedupStrategy)
                 .limit(limit)
                 .build();
     }

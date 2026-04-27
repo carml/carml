@@ -6,6 +6,7 @@ import static org.eclipse.rdf4j.model.util.Values.iri;
 
 import io.carml.engine.CompositeObserver;
 import io.carml.engine.DecompositionAwareObserver;
+import io.carml.engine.DedupMode;
 import io.carml.engine.MappedValue;
 import io.carml.engine.MappingExecution;
 import io.carml.engine.MappingExecutionObserver;
@@ -40,6 +41,7 @@ import io.carml.logicalview.LogicalViewEvaluatorFactory;
 import io.carml.model.Field;
 import io.carml.model.IriSafeAnnotation;
 import io.carml.model.LogicalSource;
+import io.carml.model.LogicalTarget;
 import io.carml.model.Mapping;
 import io.carml.model.RefObjectMap;
 import io.carml.model.TriplesMap;
@@ -87,6 +89,8 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
     @Getter
     private final MappingExecutionObserver observer;
 
+    private final DedupMode dedupMode;
+
     private RdfRmlMapper(
             Set<TriplesMap> triplesMaps,
             MappingPipeline<Statement> mappingPipeline,
@@ -94,7 +98,8 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
             List<ResolvedMapping> resolvedMappings,
             MappingExecutionObserver observer,
             Map<ResolvedMapping, TriplesMapper<Statement>> lvTriplesMappers,
-            LogicalViewEvaluator logicalViewEvaluator) {
+            LogicalViewEvaluator logicalViewEvaluator,
+            DedupMode dedupMode) {
         super(
                 triplesMaps,
                 mappingPipeline,
@@ -104,6 +109,7 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
                 logicalViewEvaluator,
                 observer);
         this.observer = observer;
+        this.dedupMode = dedupMode;
     }
 
     /**
@@ -124,11 +130,54 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
      */
     @Override
     protected MappingResult<Statement> wrapMergedForObserver(MappingResult<Statement> merged) {
-        if (observer == NoOpObserver.getInstance()) {
+        if (observer == NoOpObserver.getInstance() || dedupMode == DedupMode.FULL) {
+            // FULL mode fires the observer once per distinct statement at assembleOutput; the
+            // post-merge wrap would double-fire.
             return merged;
         }
         return new ObserverFiringMappingResult<>(merged, null, null, observer);
     }
+
+    /**
+     * In {@link DedupMode#FULL}, deduplicates the assembled output flux at statement granularity
+     * and fires the observer once per distinct statement. Per-iteration and post-merge observer
+     * wrappers are suppressed in this mode so the observer sees the deduplicated stream — both
+     * routed targets (via {@link TargetRouter}) and the public flux see the same post-dedup
+     * statements.
+     *
+     * <p>Outside FULL mode, defers to {@link RmlMapper#assembleOutput}.
+     */
+    @Override
+    protected Flux<Statement> assembleOutput(Flux<MappingResult<Statement>> mappingResults) {
+        if (dedupMode != DedupMode.FULL) {
+            return super.assembleOutput(mappingResults);
+        }
+        return mappingResults
+                .concatMap(mr -> {
+                    Set<LogicalTarget> targets = mr.getLogicalTargets();
+                    return Flux.from(mr.getResults()).map(stmt -> new StatementEnvelope(stmt, targets));
+                })
+                .distinct(StatementEnvelope::statement)
+                .doOnNext(env -> {
+                    if (observer != NoOpObserver.getInstance()) {
+                        observer.onStatementGenerated(null, null, env.statement(), env.targets());
+                    }
+                })
+                .map(StatementEnvelope::statement);
+    }
+
+    @Override
+    protected Flux<byte[]> assembleBytes(Flux<byte[]> bytes) {
+        return dedupMode == DedupMode.FULL ? bytes.distinct(java.nio.ByteBuffer::wrap) : bytes;
+    }
+
+    /**
+     * Pairs an emitted {@link Statement} with the {@link LogicalTarget}s carried by its source
+     * {@link MappingResult}. Only used by {@link #assembleOutput} in {@link DedupMode#FULL} to
+     * preserve target attribution across the {@code .distinct()} boundary so the observer can fire
+     * per distinct statement with the correct routing targets.
+     */
+    private record StatementEnvelope(Statement statement, Set<LogicalTarget> targets) {}
 
     public static Builder builder() {
         return new Builder();
@@ -176,6 +225,8 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
         private final List<LogicalViewEvaluatorFactory> logicalViewEvaluatorFactories = new ArrayList<>();
 
         private JoinExecutorFactory joinExecutorFactory;
+
+        private DedupMode dedupMode = DedupMode.AUTO;
 
         private TargetRouter targetRouter;
 
@@ -490,6 +541,18 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
             return this;
         }
 
+        /**
+         * Sets the user-facing deduplication mode for this mapper. Defaults to {@link DedupMode#AUTO}
+         * (annotation-driven, current behavior). See {@link DedupMode} for the per-mode semantics.
+         *
+         * @param dedupMode the mode to apply across the mapping pipeline
+         * @return {@link Builder}
+         */
+        public Builder dedupMode(DedupMode dedupMode) {
+            this.dedupMode = dedupMode;
+            return this;
+        }
+
         public RdfRmlMapper build() {
             var resolverFactories = loadResolverFactories();
 
@@ -502,7 +565,7 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
 
             var mappableTriplesMaps = Mappings.filterMappable(triplesMaps);
 
-            var resolvedMappings = MappingResolver.resolve(mappableTriplesMaps, limit);
+            var resolvedMappings = MappingResolver.resolve(mappableTriplesMaps, limit, dedupMode);
 
             if (targetRouter != null) {
                 observers.add(targetRouter);
@@ -534,7 +597,8 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
                     resolvedMappings,
                     observer,
                     lvResult.mappers(),
-                    lvResult.evaluator());
+                    lvResult.evaluator(),
+                    dedupMode);
         }
 
         private record LvPipelineResult(
@@ -633,7 +697,7 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
             }
 
             var effectiveObserver = DecompositionAwareObserver.wrap(observer, resolvedMappings);
-            wireLvMappers(lvMappers, effectiveObserver);
+            wireLvMappers(lvMappers, effectiveObserver, dedupMode == DedupMode.FULL);
             return new LvPipelineResult(Map.copyOf(lvMappers), evaluator);
         }
 
@@ -641,12 +705,14 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
                 Iterable<? extends TriplesMapper<Statement>> mappers,
                 List<ResolvedMapping> resolvedMappings,
                 MappingExecutionObserver observer) {
+            var suppress = dedupMode == DedupMode.FULL;
             for (var resolvedMapping : resolvedMappings) {
                 for (var mapper : mappers) {
                     if (mapper instanceof RdfTriplesMapper<?> rtm
                             && rtm.getTriplesMap().equals(resolvedMapping.getOriginalTriplesMap())) {
                         rtm.setResolvedMapping(resolvedMapping);
                         rtm.setObserver(observer);
+                        rtm.setSuppressStatementInstrumentation(suppress);
                         break;
                     }
                 }
@@ -654,13 +720,16 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
         }
 
         private static void wireLvMappers(
-                Map<ResolvedMapping, TriplesMapper<Statement>> lvMappers, MappingExecutionObserver observer) {
+                Map<ResolvedMapping, TriplesMapper<Statement>> lvMappers,
+                MappingExecutionObserver observer,
+                boolean suppressStatementInstrumentation) {
             for (var entry : lvMappers.entrySet()) {
                 var rm = entry.getKey();
                 var mapper = entry.getValue();
                 if (mapper instanceof RdfTriplesMapper<?> rtm) {
                     rtm.setResolvedMapping(rm);
                     rtm.setObserver(observer);
+                    rtm.setSuppressStatementInstrumentation(suppressStatementInstrumentation);
                 }
             }
         }
@@ -692,7 +761,7 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
         private List<LogicalViewEvaluatorFactory> resolveLogicalViewEvaluatorFactories(
                 FunctionRegistry functionRegistry) {
             if (!logicalViewEvaluatorFactories.isEmpty() || joinExecutorFactory != null) {
-                var resolved = new ArrayList<LogicalViewEvaluatorFactory>(logicalViewEvaluatorFactories);
+                var resolved = new ArrayList<>(logicalViewEvaluatorFactories);
                 if (joinExecutorFactory != null) {
                     var hasExplicitDefault =
                             resolved.stream().anyMatch(DefaultLogicalViewEvaluatorFactory.class::isInstance);

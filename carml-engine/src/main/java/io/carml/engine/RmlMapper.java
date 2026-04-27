@@ -106,7 +106,7 @@ public abstract class RmlMapper<T, K> {
 
     public <R> Flux<T> mapRecord(R providedRecord, Class<R> providedRecordClass, Set<TriplesMap> triplesMapFilter) {
         var typeRef = TypeRef.forClass(providedRecordClass);
-        return map(null, providedRecord, typeRef, triplesMapFilter).flatMap(MappingResult::getResults);
+        return assembleOutput(map(null, providedRecord, typeRef, triplesMapFilter));
     }
 
     public <R> Flux<T> mapRecord(R providedRecord, TypeRef<R> providedRecordTypeRef) {
@@ -114,8 +114,7 @@ public abstract class RmlMapper<T, K> {
     }
 
     public <R> Flux<T> mapRecord(R providedRecord, TypeRef<R> providedRecordTypeRef, Set<TriplesMap> triplesMapFilter) {
-        return map(null, providedRecord, providedRecordTypeRef, triplesMapFilter)
-                .flatMap(MappingResult::getResults);
+        return assembleOutput(map(null, providedRecord, providedRecordTypeRef, triplesMapFilter));
     }
 
     public Flux<T> map() {
@@ -139,7 +138,22 @@ public abstract class RmlMapper<T, K> {
     }
 
     public Flux<T> map(Map<String, InputStream> namedInputStreams, Set<TriplesMap> triplesMapFilter) {
-        return map(namedInputStreams, null, null, triplesMapFilter).flatMap(MappingResult::getResults);
+        return assembleOutput(map(namedInputStreams, null, null, triplesMapFilter));
+    }
+
+    /**
+     * Hook for assembling the final {@link Flux} of mapping outputs from the upstream
+     * {@link MappingResult} flux. The default implementation flattens via
+     * {@link MappingResult#getResults()}; subclasses override this to wrap the assembly with
+     * statement-level transformations such as deduplication.
+     *
+     * <p>Both the {@code map(...)} and {@code mapRecord(...)} entry points route through this hook,
+     * so a single override covers all output paths. Per-iteration and post-merge observer
+     * instrumentation runs upstream of this method via the existing
+     * {@link #wrapMergedForObserver(MappingResult)} hook and per-iteration wrappers.
+     */
+    protected Flux<T> assembleOutput(Flux<MappingResult<T>> mappingResults) {
+        return mappingResults.flatMap(MappingResult::getResults);
     }
 
     private <V> Flux<MappingResult<T>> map(
@@ -303,7 +317,7 @@ public abstract class RmlMapper<T, K> {
             return Flux.empty();
         }
 
-        return Flux.fromIterable(prepared.mappings())
+        var bytes = Flux.fromIterable(prepared.mappings())
                 .flatMap(rm -> {
                     var mapper = lvTriplesMappers.get(rm);
                     var counters = PipelineCounters.create();
@@ -320,6 +334,16 @@ public abstract class RmlMapper<T, K> {
                     return withCompletionCallbacks(mapped, rm, counters);
                 })
                 .concatWith(encodeMergeables(encoder, includeGraph));
+        return assembleBytes(bytes);
+    }
+
+    /**
+     * Hook for the byte-streaming output pipeline, mirroring {@link #assembleOutput}. The default
+     * implementation returns the flux unchanged; subclasses override to apply statement-level
+     * transformations such as byte-level deduplication for {@code --dedup full}.
+     */
+    protected Flux<byte[]> assembleBytes(Flux<byte[]> bytes) {
+        return bytes;
     }
 
     /**
