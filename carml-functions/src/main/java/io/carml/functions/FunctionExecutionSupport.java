@@ -225,14 +225,14 @@ public final class FunctionExecutionSupport {
             throw new FunctionEvaluationException(
                     "FunctionExecution has no FunctionMap (rml:functionMap/rml:function is required)");
         }
-        IRI functionIri = resolveIri(functionMap, Rdf.Rml.FunctionMap, evaluator, expressionEvaluation, datatypeMapper);
+        var functionIri = resolveIri(functionMap, Rdf.Rml.FunctionMap, evaluator, expressionEvaluation, datatypeMapper);
 
-        FunctionDescriptor descriptor = functionRegistry
+        var descriptor = functionRegistry
                 .getFunction(functionIri)
                 .orElseThrow(() -> new FunctionEvaluationException(
                         "no function registered for function IRI [%s]".formatted(functionIri)));
 
-        Map<IRI, Object> parameterValues = resolveInputBindings(
+        var parameterValues = resolveInputBindings(
                 fnExecution.getInputs(), descriptor, evaluator, expressionEvaluation, datatypeMapper);
 
         Object result = descriptor.execute(parameterValues);

@@ -122,7 +122,20 @@ public final class DefaultExpressionMapEvaluator implements ExpressionMapEvaluat
             LOG.warn("Function execution produced no result: {}", exception.getMessage());
             return List.of();
         } catch (IllegalStateException exception) {
-            LOG.warn("Function execution failed: {}", exception.getMessage());
+            // ReflectiveFunctionDescriptor wraps invocation errors in IllegalStateException with
+            // the underlying cause attached. Surface the cause class+message so users can
+            // diagnose the failure without enabling DEBUG.
+            var cause = exception.getCause();
+            if (cause != null) {
+                LOG.warn(
+                        "Function execution failed: {}: {}: {}",
+                        exception.getMessage(),
+                        cause.getClass().getName(),
+                        cause.getMessage());
+                LOG.debug("Function execution failure stack trace", exception);
+            } else {
+                LOG.warn("Function execution failed: {}", exception.getMessage());
+            }
             return List.of();
         }
     }

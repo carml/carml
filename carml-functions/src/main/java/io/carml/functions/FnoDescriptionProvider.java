@@ -81,10 +81,12 @@ public class FnoDescriptionProvider implements FunctionProvider {
                 var descriptor = createDescriptor(model, functionIri, binding.get());
                 result.add(descriptor);
             } catch (FnoDescriptionException exception) {
-                throw exception;
+                LOG.warn(
+                        "Skipping function '{}': could not resolve descriptor: {}",
+                        functionIri,
+                        exception.getMessage());
             } catch (Exception exception) {
-                throw new FnoDescriptionException(
-                        "Failed to create descriptor for function '%s'".formatted(functionIri), exception);
+                LOG.warn("Skipping function '{}': failed to create descriptor", functionIri, exception);
             }
         });
 

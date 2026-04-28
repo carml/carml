@@ -6,9 +6,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import io.carml.functions.FnoDescriptionProvider.FnoDescriptionException;
 import io.carml.vocab.Rdf.Fno;
 import io.carml.vocab.Rdf.Fnoi;
 import io.carml.vocab.Rdf.Fnom;
@@ -127,17 +125,25 @@ class FnoDescriptionProviderTest {
     }
 
     @Test
-    void getFunctions_throwsException_givenMissingClass() {
+    void getFunctions_skipsFunction_givenMissingClass() {
+        // Per FnoDescriptionProvider's "leniency for unknown functions" policy, a function whose
+        // implementation class is not on the classpath is logged and skipped rather than failing
+        // the whole load — so other functions in the same model continue to register.
         var model = createModelWithMissingClass();
 
-        assertThrows(FnoDescriptionException.class, () -> new FnoDescriptionProvider(model));
+        var provider = new FnoDescriptionProvider(model);
+
+        assertThat(provider.getFunctions(), is(empty()));
     }
 
     @Test
-    void getFunctions_throwsException_givenMissingMethod() {
+    void getFunctions_skipsFunction_givenMissingMethod() {
+        // Same leniency rationale as getFunctions_skipsFunction_givenMissingClass.
         var model = createModelWithMissingMethod();
 
-        assertThrows(FnoDescriptionException.class, () -> new FnoDescriptionProvider(model));
+        var provider = new FnoDescriptionProvider(model);
+
+        assertThat(provider.getFunctions(), is(empty()));
     }
 
     @Test
@@ -249,10 +255,14 @@ class FnoDescriptionProviderTest {
     }
 
     @Test
-    void getFunctions_throwsException_givenClassWithNoDefaultConstructor() {
+    void getFunctions_skipsFunction_givenClassWithNoDefaultConstructor() {
+        // Same leniency rationale as getFunctions_skipsFunction_givenMissingClass: an
+        // un-instantiable class is logged and skipped rather than aborting the whole load.
         var model = createModelWithNoDefaultConstructorClass();
 
-        assertThrows(FnoDescriptionException.class, () -> new FnoDescriptionProvider(model));
+        var provider = new FnoDescriptionProvider(model);
+
+        assertThat(provider.getFunctions(), is(empty()));
     }
 
     @Test

@@ -276,8 +276,19 @@ public class RdfExpressionMapEvaluation {
             // Graceful degradation: function invocation failures (e.g. null parameter due to
             // unknown parameter binding, type mismatch, NPE inside the function) produce
             // empty output. ReflectiveFunctionDescriptor wraps invocation errors in
-            // IllegalStateException.
-            LOG.warn("Function execution failed: {}", exception.getMessage());
+            // IllegalStateException with the underlying cause attached. Surface the cause so
+            // users can diagnose the failure without enabling DEBUG.
+            var cause = exception.getCause();
+            if (cause != null) {
+                LOG.warn(
+                        "Function execution failed: {}: {}: {}",
+                        exception.getMessage(),
+                        cause.getClass().getName(),
+                        cause.getMessage());
+                LOG.debug("Function execution failure stack trace", exception);
+            } else {
+                LOG.warn("Function execution failed: {}", exception.getMessage());
+            }
             return List.of();
         }
     }
