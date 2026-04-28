@@ -105,6 +105,8 @@
 		<vertx.version>4.5.12</vertx.version>
 		<duckdb.version>1.5.1.0</duckdb.version>
 		<testcontainers.version>1.21.4</testcontainers.version>
+		<grel-functions-java.version>v0.10.1</grel-functions-java.version>
+		<idlab-functions-java.version>1.4.0</idlab-functions-java.version>
 		<spotless.version>3.2.1</spotless.version>
 		<palantir.version>2.89.0</palantir.version>
 		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
@@ -535,6 +537,20 @@
 				<groupId>org.postgresql</groupId>
 				<artifactId>postgresql</artifactId>
 				<version>42.7.6</version>
+				<scope>test</scope>
+			</dependency>
+
+			<dependency>
+				<groupId>com.github.fnoio</groupId>
+				<artifactId>grel-functions-java</artifactId>
+				<version>${grel-functions-java.version}</version>
+				<scope>test</scope>
+			</dependency>
+
+			<dependency>
+				<groupId>be.ugent.idlab.knows</groupId>
+				<artifactId>idlab-functions-java</artifactId>
+				<version>${idlab-functions-java.version}</version>
 				<scope>test</scope>
 			</dependency>
 
