@@ -6,7 +6,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.auto.service.AutoService;
-import com.google.common.io.CharStreams;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.InvalidPathException;
 import com.jayway.jsonpath.JsonPath;
@@ -139,9 +138,9 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
 
     private Flux<LogicalSourceRecord<JsonNode>> getObjectFlux(
             InputStream inputStream, Charset charset, Set<LogicalSource> logicalSources) {
-        try {
-            var tmp = CharStreams.toString(new InputStreamReader(inputStream, charset));
-            return Flux.fromIterable(logicalSources).flatMap(logicalSource -> readIterator(tmp, logicalSource));
+        try (var reader = new InputStreamReader(inputStream, charset)) {
+            var jsonNode = OBJECT_MAPPER.readTree(reader);
+            return Flux.fromIterable(logicalSources).flatMap(logicalSource -> readIterator(jsonNode, logicalSource));
         } catch (IOException e) {
             throw new LogicalSourceResolverException("Error reading input stream.", e);
         }
