@@ -1,6 +1,7 @@
 package io.carml.logicalview.duckdb;
 
 import io.carml.model.ExpressionField;
+import io.carml.model.ExpressionMap;
 import java.util.Optional;
 import java.util.Set;
 import org.jooq.Field;
@@ -18,6 +19,7 @@ import org.jooq.Table;
  *       DuckDB JSON functions</li>
  * </ul>
  */
+@SuppressWarnings("java:S1452")
 sealed interface DuckDbSourceStrategy permits ColumnSourceStrategy, JsonIteratorSourceStrategy {
 
     /**
@@ -105,12 +107,15 @@ sealed interface DuckDbSourceStrategy permits ColumnSourceStrategy, JsonIterator
     SelectField<?> compileNestedFieldTypeReference(String unnestAlias, String reference, Name typeAlias);
 
     /**
-     * Resolves a child-side join reference into a field expression.
+     * Resolves a child-side join {@link ExpressionMap} into a field expression. The expression map
+     * may use any of the RML 2 expression-map shapes: a reference, a template, or a constant.
      *
-     * @param childRef the child reference from a join condition
+     * @param childMap the child expression map from a join condition
      * @return the jOOQ field expression for the child side of a join condition
+     * @throws UnsupportedOperationException if the expression map shape cannot be compiled to SQL
+     *     (e.g., a function-valued expression map)
      */
-    Field<Object> resolveJoinChildReference(String childRef);
+    Field<?> resolveJoinChildExpression(ExpressionMap childMap);
 
     /**
      * Returns the set of DuckDB type strings that indicate a non-scalar value for this source type.

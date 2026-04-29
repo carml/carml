@@ -158,14 +158,6 @@ public final class DuckDbDatabaseAttacher {
         }
     }
 
-    /**
-     * Generates a deterministic catalog alias from the JDBC DSN. Uses a sanitized form of the DSN's
-     * host, port, and database name to produce a human-readable alias.
-     */
-    static String generateAlias(String jdbcDsn) {
-        return generateAlias(parseJdbcDsn(jdbcDsn));
-    }
-
     static String generateAlias(ParsedDsn parsed) {
         var raw = "%s_%d_%s".formatted(parsed.host(), parsed.port(), parsed.database());
         var sanitized = raw.replaceAll("\\W", "_");

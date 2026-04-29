@@ -8,9 +8,17 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 
+import io.carml.model.ChildMap;
 import io.carml.model.ExpressionField;
+import io.carml.model.ExpressionMap;
 import io.carml.model.Field;
+import io.carml.model.Template;
+import io.carml.model.impl.CarmlTemplate;
+import java.util.List;
 import java.util.Set;
+import org.eclipse.rdf4j.model.impl.LinkedHashModel;
+import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
+import org.eclipse.rdf4j.model.util.Values;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
 import org.junit.jupiter.api.Nested;
@@ -27,7 +35,36 @@ class DuckDbSourceStrategyTest {
 
     private static final String ITER_COLUMN = "__iter";
 
+    @SuppressWarnings("UnstableApiUsage")
     private static final org.jooq.DSLContext CTX = DSL.using(SQLDialect.DUCKDB);
+
+    private static <T extends ExpressionMap> T stubAsRdf(T exprMap) {
+        lenient().when(exprMap.asRdf()).thenReturn(new LinkedHashModel());
+        lenient().when(exprMap.getAsResource()).thenReturn(Values.bnode());
+        return exprMap;
+    }
+
+    private static ChildMap referenceChildMap(String reference) {
+        var childMap = mock(ChildMap.class);
+        lenient().when(childMap.getReference()).thenReturn(reference);
+        return childMap;
+    }
+
+    private static ChildMap templateChildMap(CarmlTemplate.Segment... segments) {
+        var template = mock(Template.class);
+        lenient().when(template.getSegments()).thenReturn(List.of(segments));
+        var childMap = mock(ChildMap.class);
+        lenient().when(childMap.getTemplate()).thenReturn(template);
+        return childMap;
+    }
+
+    private static ChildMap constantChildMap(String value) {
+        var childMap = mock(ChildMap.class);
+        lenient()
+                .when(childMap.getConstant())
+                .thenReturn(SimpleValueFactory.getInstance().createLiteral(value));
+        return childMap;
+    }
 
     @Nested
     class ColumnStrategyTests {
@@ -84,10 +121,34 @@ class DuckDbSourceStrategyTest {
         }
 
         @Test
-        void resolveJoinChildReference_producesQualifiedColumnRef() {
-            var result = strategy.resolveJoinChildReference("dept_id");
+        void resolveJoinChildExpression_referenceChildMap_producesQualifiedColumnRef() {
+            var result = strategy.resolveJoinChildExpression(referenceChildMap("dept_id"));
             var sql = CTX.select(result).getSQL();
             assertThat(sql, containsString("\"view_source\".\"dept_id\""));
+        }
+
+        @Test
+        void resolveJoinChildExpression_constantChildMap_producesStringLiteral() {
+            var result = strategy.resolveJoinChildExpression(constantChildMap("human"));
+            var sql = CTX.select(result).getSQL();
+            assertThat(sql, containsString("'human'"));
+        }
+
+        @Test
+        void resolveJoinChildExpression_templateChildMap_producesConcat() {
+            var template = templateChildMap(
+                    new CarmlTemplate.TextSegment("prefix-"), new CarmlTemplate.ExpressionSegment(0, "id"));
+            var result = strategy.resolveJoinChildExpression(template);
+            var sql = CTX.select(result).getSQL();
+            assertThat(sql, containsString("'prefix-'"));
+            assertThat(sql, containsString("\"view_source\".\"id\""));
+            assertThat(sql, containsString("||"));
+        }
+
+        @Test
+        void resolveJoinChildExpression_unsupportedExpressionMap_throws() {
+            var emptyMap = stubAsRdf(mock(ExpressionMap.class));
+            assertThrows(UnsupportedOperationException.class, () -> strategy.resolveJoinChildExpression(emptyMap));
         }
 
         @Test
@@ -233,9 +294,10 @@ class DuckDbSourceStrategyTest {
         @Test
         void compileFieldReference_withInvalidRelativeReference_throwsIllegalArgument() {
             var strategy = createStrategy(Set.of());
+            var name = DSL.name("field");
             assertThrows(
                     IllegalArgumentException.class,
-                    () -> strategy.compileFieldReference("Dhkef;esfkdleshfjdls;fk", DSL.name("field")));
+                    () -> strategy.compileFieldReference("Dhkef;esfkdleshfjdls;fk", name));
         }
 
         @Test
@@ -508,28 +570,55 @@ class DuckDbSourceStrategyTest {
         }
 
         @Test
-        void resolveJoinChildReference_withMapping_producesJsonExtractString() {
+        void resolveJoinChildExpression_withMapping_producesJsonExtractString() {
             var strategy = createStrategy(Set.of(expressionField("dept_id", "department_id")));
-            var result = strategy.resolveJoinChildReference("dept_id");
+            var result = strategy.resolveJoinChildExpression(referenceChildMap("dept_id"));
             var sql = CTX.select(result).getSQL();
             assertThat(sql, containsString("json_extract_string(\"view_source\".\"__iter\", 'department_id')"));
         }
 
         @Test
-        void resolveJoinChildReference_withoutMapping_producesDirectColumnRef() {
+        void resolveJoinChildExpression_withoutMapping_producesDirectColumnRef() {
             var strategy = createStrategy(Set.of(expressionField("other_field", "other_ref")));
-            var result = strategy.resolveJoinChildReference("dept_id");
+            var result = strategy.resolveJoinChildExpression(referenceChildMap("dept_id"));
             var sql = CTX.select(result).getSQL();
             assertThat(sql, containsString("\"view_source\".\"dept_id\""));
         }
 
         @Test
-        void resolveJoinChildReference_withBracketNotation_normalizes() {
+        void resolveJoinChildExpression_withBracketNotation_normalizes() {
             var strategy = createStrategy(Set.of(expressionField("code", "$['Country Code']")));
-            var result = strategy.resolveJoinChildReference("code");
+            var result = strategy.resolveJoinChildExpression(referenceChildMap("code"));
             var sql = CTX.select(result).getSQL();
             assertThat(sql, containsString("$.\"Country Code\""));
             assertThat(sql, not(containsString("$['Country Code']")));
+        }
+
+        @Test
+        void resolveJoinChildExpression_constantChildMap_producesStringLiteral() {
+            var strategy = createStrategy(Set.of());
+            var result = strategy.resolveJoinChildExpression(constantChildMap("human"));
+            var sql = CTX.select(result).getSQL();
+            assertThat(sql, containsString("'human'"));
+        }
+
+        @Test
+        void resolveJoinChildExpression_templateChildMap_producesConcat() {
+            var strategy = createStrategy(Set.of(expressionField("id", "$.id")));
+            var template = templateChildMap(
+                    new CarmlTemplate.TextSegment("prefix-"), new CarmlTemplate.ExpressionSegment(0, "$.id"));
+            var result = strategy.resolveJoinChildExpression(template);
+            var sql = CTX.select(result).getSQL();
+            assertThat(sql, containsString("'prefix-'"));
+            assertThat(sql, containsString("json_extract_string(\"view_source\".\"__iter\", '$.id')"));
+            assertThat(sql, containsString("||"));
+        }
+
+        @Test
+        void resolveJoinChildExpression_unsupportedExpressionMap_throws() {
+            var strategy = createStrategy(Set.of());
+            var emptyMap = stubAsRdf(mock(ExpressionMap.class));
+            assertThrows(UnsupportedOperationException.class, () -> strategy.resolveJoinChildExpression(emptyMap));
         }
 
         @Test

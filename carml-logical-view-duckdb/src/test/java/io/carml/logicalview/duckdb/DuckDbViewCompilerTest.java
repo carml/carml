@@ -727,21 +727,6 @@ class DuckDbViewCompilerTest {
 
             assertThrows(IllegalArgumentException.class, () -> DuckDbViewCompiler.compile(view, context));
         }
-
-        @Test
-        void compile_joinProjectedFieldWithNoReference_throwsUnsupportedOperationException() {
-            var parentView = createJsonView("departments.json", null, Set.of(expressionField("dept_id", "id")));
-            var brokenField = mock(ExpressionField.class);
-            when(brokenField.getFieldName()).thenReturn("dept_name");
-            when(brokenField.getReference()).thenReturn(null);
-            var viewJoin =
-                    logicalViewJoin(parentView, Set.of(joinCondition("dept_id", "dept_id")), Set.of(brokenField));
-            var view = createJsonViewWithJoins(
-                    "employees.json", null, Set.of(expressionField("name", "name")), Set.of(viewJoin), Set.of());
-            var context = EvaluationContext.defaults();
-
-            assertThrows(UnsupportedOperationException.class, () -> DuckDbViewCompiler.compile(view, context));
-        }
     }
 
     // --- FilePath source tests ---
@@ -1447,6 +1432,309 @@ class DuckDbViewCompilerTest {
             assertThat(sql, containsString("\"item\".\"__ord\" \"item.#\""));
             assertThat(sql, containsString("\"parent_0\".\"dept_name\" \"department_name\""));
         }
+
+        @Test
+        void compile_joinConditionParentTemplateChildReference_producesConcatOnParentSide() {
+            var parentView = createJsonView(
+                    "departments.json",
+                    null,
+                    Set.of(expressionField("dept_id", "id"), expressionField("dept_name", "name")));
+
+            var joinField = expressionField("department_name", "dept_name");
+            var join = joinConditionWithMaps(
+                    referenceMap(ChildMap.class, "dept_id"),
+                    templateMap(
+                            ParentMap.class,
+                            new CarmlTemplate.TextSegment("dept-"),
+                            new CarmlTemplate.ExpressionSegment(0, "dept_id")));
+            var viewJoin = logicalViewJoin(parentView, Set.of(join), Set.of(joinField));
+
+            var view = createJsonViewWithJoins(
+                    "employees.json",
+                    "$.employees[*]",
+                    Set.of(expressionField("dept_id", "$.dept_id")),
+                    Set.of(viewJoin),
+                    Set.of());
+
+            var sql = DuckDbViewCompiler.compile(view, EvaluationContext.defaults())
+                    .sql();
+
+            assertThat(sql, containsString("json_extract_string(\"view_source\".\"__iter\", '$.dept_id')"));
+            assertThat(sql, containsString("'dept-'"));
+            assertThat(sql, containsString("\"parent_0\".\"dept_id\""));
+            assertThat(sql, containsString("||"));
+        }
+
+        @Test
+        void compile_joinConditionParentReferenceChildTemplate_producesConcatOnChildSide() {
+            var parentView = createJsonView(
+                    "departments.json",
+                    null,
+                    Set.of(expressionField("dept_id", "id"), expressionField("dept_name", "name")));
+
+            var joinField = expressionField("department_name", "dept_name");
+            var join = joinConditionWithMaps(
+                    templateMap(
+                            ChildMap.class,
+                            new CarmlTemplate.TextSegment("dept-"),
+                            new CarmlTemplate.ExpressionSegment(0, "$.dept_id")),
+                    referenceMap(ParentMap.class, "dept_id"));
+            var viewJoin = logicalViewJoin(parentView, Set.of(join), Set.of(joinField));
+
+            var view = createJsonViewWithJoins(
+                    "employees.json",
+                    "$.employees[*]",
+                    Set.of(expressionField("dept_id", "$.dept_id")),
+                    Set.of(viewJoin),
+                    Set.of());
+
+            var sql = DuckDbViewCompiler.compile(view, EvaluationContext.defaults())
+                    .sql();
+
+            assertThat(sql, containsString("'dept-'"));
+            assertThat(sql, containsString("json_extract_string(\"view_source\".\"__iter\", '$.dept_id')"));
+            assertThat(sql, containsString("\"parent_0\".\"dept_id\""));
+            assertThat(sql, containsString("||"));
+        }
+
+        @Test
+        void compile_joinConditionParentConstantChildReference_producesStringLiteralOnParentSide() {
+            var parentView = createJsonView(
+                    "departments.json",
+                    null,
+                    Set.of(expressionField("dept_id", "id"), expressionField("dept_name", "name")));
+
+            var joinField = expressionField("department_name", "dept_name");
+            var join = joinConditionWithMaps(
+                    referenceMap(ChildMap.class, "$.kind"), constantMap(ParentMap.class, "human"));
+            var viewJoin = logicalViewJoin(parentView, Set.of(join), Set.of(joinField));
+
+            var view = createJsonViewWithJoins(
+                    "employees.json",
+                    "$.employees[*]",
+                    Set.of(expressionField("kind", "$.kind")),
+                    Set.of(viewJoin),
+                    Set.of());
+
+            var sql = DuckDbViewCompiler.compile(view, EvaluationContext.defaults())
+                    .sql();
+
+            assertThat(sql, containsString("json_extract_string(\"view_source\".\"__iter\", '$.kind')"));
+            assertThat(sql, containsString("'human'"));
+        }
+
+        @Test
+        void compile_joinConditionParentReferenceChildConstant_producesStringLiteralOnChildSide() {
+            var parentView = createJsonView(
+                    "departments.json",
+                    null,
+                    Set.of(expressionField("dept_id", "id"), expressionField("dept_name", "name")));
+
+            var joinField = expressionField("department_name", "dept_name");
+            var join =
+                    joinConditionWithMaps(constantMap(ChildMap.class, "human"), referenceMap(ParentMap.class, "kind"));
+            var viewJoin = logicalViewJoin(parentView, Set.of(join), Set.of(joinField));
+
+            var view = createJsonViewWithJoins(
+                    "employees.json",
+                    "$.employees[*]",
+                    Set.of(expressionField("name", "$.name")),
+                    Set.of(viewJoin),
+                    Set.of());
+
+            var sql = DuckDbViewCompiler.compile(view, EvaluationContext.defaults())
+                    .sql();
+
+            assertThat(sql, containsString("'human'"));
+            assertThat(sql, containsString("\"parent_0\".\"kind\""));
+        }
+
+        @Test
+        void compile_joinConditionParentTemplateChildConstant_producesNonTrivialBothSides() {
+            var parentView = createJsonView(
+                    "departments.json",
+                    null,
+                    Set.of(expressionField("dept_id", "id"), expressionField("dept_name", "name")));
+
+            var joinField = expressionField("department_name", "dept_name");
+            var join = joinConditionWithMaps(
+                    constantMap(ChildMap.class, "fixed"),
+                    templateMap(
+                            ParentMap.class,
+                            new CarmlTemplate.TextSegment("X-"),
+                            new CarmlTemplate.ExpressionSegment(0, "dept_id")));
+            var viewJoin = logicalViewJoin(parentView, Set.of(join), Set.of(joinField));
+
+            var view = createJsonViewWithJoins(
+                    "employees.json",
+                    "$.employees[*]",
+                    Set.of(expressionField("name", "$.name")),
+                    Set.of(viewJoin),
+                    Set.of());
+
+            var sql = DuckDbViewCompiler.compile(view, EvaluationContext.defaults())
+                    .sql();
+
+            assertThat(sql, containsString("'fixed'"));
+            assertThat(sql, containsString("'X-'"));
+            assertThat(sql, containsString("\"parent_0\".\"dept_id\""));
+        }
+
+        @Test
+        void compile_joinConditionParentConstantChildTemplate_producesNonTrivialBothSides() {
+            var parentView = createJsonView(
+                    "departments.json",
+                    null,
+                    Set.of(expressionField("dept_id", "id"), expressionField("dept_name", "name")));
+
+            var joinField = expressionField("department_name", "dept_name");
+            var join = joinConditionWithMaps(
+                    templateMap(
+                            ChildMap.class,
+                            new CarmlTemplate.TextSegment("X-"),
+                            new CarmlTemplate.ExpressionSegment(0, "$.dept_id")),
+                    constantMap(ParentMap.class, "fixed"));
+            var viewJoin = logicalViewJoin(parentView, Set.of(join), Set.of(joinField));
+
+            var view = createJsonViewWithJoins(
+                    "employees.json",
+                    "$.employees[*]",
+                    Set.of(expressionField("dept_id", "$.dept_id")),
+                    Set.of(viewJoin),
+                    Set.of());
+
+            var sql = DuckDbViewCompiler.compile(view, EvaluationContext.defaults())
+                    .sql();
+
+            assertThat(sql, containsString("'X-'"));
+            assertThat(sql, containsString("json_extract_string(\"view_source\".\"__iter\", '$.dept_id')"));
+            assertThat(sql, containsString("'fixed'"));
+        }
+
+        @Test
+        void compile_joinConditionConstantParentColumnSourceStrategy_producesStringLiteralOnParentSide() {
+            // ColumnSourceStrategy is used for view-on-view sources; here we exercise it by
+            // creating a CSV view (which uses ColumnSourceStrategy) and asserting the constant
+            // parent side is emitted as a SQL string literal.
+            var parentView = createCsvView(
+                    "departments.csv", Set.of(expressionField("dept_id", "id"), expressionField("dept_name", "name")));
+
+            var joinField = expressionField("department_name", "dept_name");
+            var join =
+                    joinConditionWithMaps(referenceMap(ChildMap.class, "kind"), constantMap(ParentMap.class, "human"));
+            var viewJoin = logicalViewJoin(parentView, Set.of(join), Set.of(joinField));
+
+            var view = createCsvViewWithJoins(
+                    "employees.csv", Set.of(expressionField("kind", "kind")), Set.of(viewJoin), Set.of());
+
+            var sql = DuckDbViewCompiler.compile(view, EvaluationContext.defaults())
+                    .sql();
+
+            assertThat(sql, containsString("\"view_source\".\"kind\""));
+            assertThat(sql, containsString("'human'"));
+        }
+
+        @Test
+        void compile_joinConditionParentTemplateChildTemplate_producesConcatOnBothSides() {
+            var parentView = createJsonView(
+                    "departments.json",
+                    null,
+                    Set.of(expressionField("dept_id", "id"), expressionField("dept_name", "name")));
+
+            var joinField = expressionField("department_name", "dept_name");
+            var join = joinConditionWithMaps(
+                    templateMap(
+                            ChildMap.class,
+                            new CarmlTemplate.TextSegment("dept-"),
+                            new CarmlTemplate.ExpressionSegment(0, "$.dept_id")),
+                    templateMap(
+                            ParentMap.class,
+                            new CarmlTemplate.TextSegment("dept-"),
+                            new CarmlTemplate.ExpressionSegment(0, "dept_id")));
+            var viewJoin = logicalViewJoin(parentView, Set.of(join), Set.of(joinField));
+
+            var view = createJsonViewWithJoins(
+                    "employees.json",
+                    "$.employees[*]",
+                    Set.of(expressionField("dept_id", "$.dept_id")),
+                    Set.of(viewJoin),
+                    Set.of());
+
+            var sql = DuckDbViewCompiler.compile(view, EvaluationContext.defaults())
+                    .sql();
+
+            assertThat(sql, containsString("'dept-'"));
+            assertThat(sql, containsString("json_extract_string(\"view_source\".\"__iter\", '$.dept_id')"));
+            assertThat(sql, containsString("\"parent_0\".\"dept_id\""));
+            assertThat(sql, containsString("||"));
+        }
+
+        @Test
+        void compile_joinProjectedFieldTemplate_producesConcatExpression() {
+            // Mirrors RMLLVTC0010d: a leftJoin projects a parent field whose value is
+            // a template referencing two parent fieldNames (json_first_name, json_last_name).
+            var parentView = createJsonView(
+                    "people.json",
+                    "$.people[*]",
+                    Set.of(
+                            expressionField("json_first_name", "$.firstName"),
+                            expressionField("json_last_name", "$.lastName")));
+
+            var joinField = templateExpressionField(
+                    "json_full_name",
+                    new CarmlTemplate.ExpressionSegment(0, "json_first_name"),
+                    new CarmlTemplate.TextSegment(" "),
+                    new CarmlTemplate.ExpressionSegment(1, "json_last_name"));
+
+            var joinCond = joinCondition("csv_name", "json_first_name");
+            var viewJoin = logicalViewJoin(parentView, Set.of(joinCond), Set.of(joinField));
+
+            var view = createCsvViewWithJoins(
+                    "people.csv", Set.of(expressionField("csv_name", "name")), Set.of(viewJoin), Set.of());
+
+            var sql = DuckDbViewCompiler.compile(view, EvaluationContext.defaults())
+                    .sql();
+
+            // Template variables resolve to parent-alias-qualified columns of the compiled parent
+            // subquery. The parent view exposes each fieldName as a column.
+            assertThat(sql, containsString("\"parent_0\".\"json_first_name\""));
+            assertThat(sql, containsString("\"parent_0\".\"json_last_name\""));
+            // Literal segment between the two variables.
+            assertThat(sql, containsString("' '"));
+            // DuckDB uses || for string concatenation.
+            assertThat(sql, containsString("||"));
+            // The whole concatenation is aliased to the projection field name.
+            assertThat(sql, containsString("\"json_full_name\""));
+            // No reference-style ordinal/type companion columns are emitted for template projections.
+            assertThat(sql, not(containsString("\"json_full_name.#\"")));
+            assertThat(sql, not(containsString("\"json_full_name.__type\"")));
+        }
+
+        @Test
+        void compile_joinProjectedFieldConstant_producesInlineLiteral() {
+            // Mirrors RMLLVTC0010e: an innerJoin projects a constant-valued field "status".
+            var parentView =
+                    createJsonView("people.json", "$.people[*]", Set.of(expressionField("json_name", "$.name")));
+
+            var joinField = constantExpressionField("status", "student");
+            var joinCond = joinCondition("csv_name", "json_name");
+            var viewJoin = logicalViewJoin(parentView, Set.of(joinCond), Set.of(joinField));
+
+            var view = createCsvViewWithJoins(
+                    "people.csv", Set.of(expressionField("csv_name", "name")), Set.of(), Set.of(viewJoin));
+
+            var sql = DuckDbViewCompiler.compile(view, EvaluationContext.defaults())
+                    .sql();
+
+            // The constant becomes a SQL string literal aliased to the projection field name.
+            assertThat(sql, containsString("'student'"));
+            assertThat(sql, containsString("\"status\""));
+            // INNER JOIN, not LEFT.
+            assertThat(sql, not(containsString("left outer join")));
+            // No reference-style ordinal/type companion columns are emitted for constant projections.
+            assertThat(sql, not(containsString("\"status.#\"")));
+            assertThat(sql, not(containsString("\"status.__type\"")));
+        }
     }
 
     // --- Mixed-formulation iterable field tests ---
@@ -1669,6 +1957,27 @@ class DuckDbViewCompilerTest {
         return field;
     }
 
+    private static ExpressionField templateExpressionField(String fieldName, CarmlTemplate.Segment... segments) {
+        var template = mock(Template.class);
+        lenient().when(template.getSegments()).thenReturn(List.of(segments));
+
+        var field = mock(ExpressionField.class);
+        lenient().when(field.getFieldName()).thenReturn(fieldName);
+        lenient().when(field.getReference()).thenReturn(null);
+        lenient().when(field.getTemplate()).thenReturn(template);
+        return field;
+    }
+
+    private static ExpressionField constantExpressionField(String fieldName, String constantValue) {
+        var field = mock(ExpressionField.class);
+        lenient().when(field.getFieldName()).thenReturn(fieldName);
+        lenient().when(field.getReference()).thenReturn(null);
+        lenient()
+                .when(field.getConstant())
+                .thenReturn(SimpleValueFactory.getInstance().createLiteral(constantValue));
+        return field;
+    }
+
     /**
      * Creates an ExpressionField mock that has child fields, used for mixed-formulation scenarios
      * where a parent expression field contains embedded data in a different format.
@@ -1727,6 +2036,37 @@ class DuckDbViewCompilerTest {
         return join;
     }
 
+    private static Join joinConditionWithMaps(ChildMap childMap, ParentMap parentMap) {
+        var join = mock(Join.class);
+        lenient().when(join.getChildMap()).thenReturn(childMap);
+        lenient().when(join.getParentMap()).thenReturn(parentMap);
+        return join;
+    }
+
+    private static <T extends io.carml.model.ExpressionMap> T referenceMap(Class<T> type, String reference) {
+        var map = mock(type);
+        lenient().when(map.getReference()).thenReturn(reference);
+        return map;
+    }
+
+    private static <T extends io.carml.model.ExpressionMap> T templateMap(
+            Class<T> type, CarmlTemplate.Segment... segments) {
+        var template = mock(Template.class);
+        lenient().when(template.getSegments()).thenReturn(List.of(segments));
+
+        var map = mock(type);
+        lenient().when(map.getTemplate()).thenReturn(template);
+        return map;
+    }
+
+    private static <T extends io.carml.model.ExpressionMap> T constantMap(Class<T> type, String value) {
+        var map = mock(type);
+        lenient()
+                .when(map.getConstant())
+                .thenReturn(SimpleValueFactory.getInstance().createLiteral(value));
+        return map;
+    }
+
     private static LogicalViewJoin logicalViewJoin(
             LogicalView parentView, Set<Join> joinConditions, Set<ExpressionField> fields) {
         var viewJoin = mock(LogicalViewJoin.class);
@@ -1774,6 +2114,17 @@ class DuckDbViewCompilerTest {
 
     private static LogicalView createCsvViewWithMixedFields(String fileName, Set<Field> fields) {
         return createViewWithRefFormulationAndIteratorMixed(Rdf.Ql.Csv, fileName, null, fields);
+    }
+
+    private static LogicalView createCsvViewWithJoins(
+            String fileName,
+            Set<ExpressionField> fields,
+            Set<LogicalViewJoin> leftJoins,
+            Set<LogicalViewJoin> innerJoins) {
+        var view = createViewWithRefFormulationAndIterator(Rdf.Ql.Csv, fileName, null, fields);
+        lenient().when(view.getLeftJoins()).thenReturn(leftJoins);
+        lenient().when(view.getInnerJoins()).thenReturn(innerJoins);
+        return view;
     }
 
     private static LogicalView createViewWithRefFormulation(

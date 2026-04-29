@@ -9,6 +9,7 @@ import io.carml.jsonpath.JsonPathNormalizer;
 import io.carml.jsonpath.JsonPathValidationException;
 import io.carml.jsonpath.JsonPathValidator;
 import io.carml.model.ExpressionField;
+import io.carml.model.ExpressionMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +46,7 @@ final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
 
     private static final String JSON_EXTRACT_STRING = "json_extract_string({0}, {1})";
 
+    @SuppressWarnings("UnstableApiUsage")
     private static final DSLContext CTX = DSL.using(SQLDialect.DUCKDB);
 
     static final String UNNEST_FIELD = "unnest";
@@ -279,7 +281,12 @@ final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
     }
 
     @Override
-    public Field<Object> resolveJoinChildReference(String childRef) {
+    public Field<?> resolveJoinChildExpression(ExpressionMap childMap) {
+        return DuckDbViewCompiler.compileJoinExpressionMap(
+                childMap, this::resolveChildReferenceField, this::compileTemplateReference);
+    }
+
+    private Field<?> resolveChildReferenceField(String childRef) {
         var sourceRef = fieldNameToRefMap.get(childRef);
         if (sourceRef != null) {
             var normalized = normalizeBracketNotation(sourceRef);

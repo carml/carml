@@ -2,6 +2,7 @@ package io.carml.logicalview.duckdb;
 
 import static io.carml.logicalview.duckdb.DuckDbSourceStrategy.ORDINAL_FIELD;
 import static io.carml.logicalview.duckdb.DuckDbSourceStrategy.TYPE_SUFFIX;
+import static io.carml.util.LogUtil.exception;
 import static org.jooq.impl.DSL.asterisk;
 import static org.jooq.impl.DSL.field;
 import static org.jooq.impl.DSL.inline;
@@ -14,6 +15,7 @@ import static org.jooq.impl.DSL.table;
 import io.carml.logicalview.DedupStrategy;
 import io.carml.logicalview.EvaluationContext;
 import io.carml.model.ExpressionField;
+import io.carml.model.ExpressionMap;
 import io.carml.model.Field;
 import io.carml.model.ForeignKeyAnnotation;
 import io.carml.model.IterableField;
@@ -32,6 +34,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -67,6 +70,7 @@ import org.jooq.impl.DSL;
  * support is added to the DuckDB evaluator (e.g., via a UDF), IriSafe annotations should be used
  * to skip that encoding step for annotated fields.
  */
+@SuppressWarnings("UnstableApiUsage")
 @Slf4j
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class DuckDbViewCompiler {
@@ -231,7 +235,8 @@ public final class DuckDbViewCompiler {
             // ColumnSourceStrategy is used because the inner view exposes named columns.
             var innerCompiledView = compile(innerView, EvaluationContext.defaults());
             sourceTable = "(%s)".formatted(innerCompiledView.sql());
-            strategy = new ColumnSourceStrategy(CTE_ALIAS, ColumnSourceStrategy.TypeCompanionMode.INNER_VIEW);
+            strategy = ColumnSourceStrategy.create(
+                    view.getFields(), CTE_ALIAS, ColumnSourceStrategy.TypeCompanionMode.INNER_VIEW);
         } else if (viewOn instanceof LogicalSource logicalSource) {
             var compiledSource = compileSourceClause(logicalSource, view);
             strategy = compiledSource.strategy();
@@ -1103,36 +1108,126 @@ public final class DuckDbViewCompiler {
     }
 
     /**
-     * Builds a compound ON condition from a set of {@link Join} conditions. Each join condition maps
-     * a child reference to a parent reference. The child side is resolved via the source strategy.
+     * Builds a compound ON condition from a set of {@link Join} conditions. Each join condition has
+     * an {@link io.carml.model.ChildMap} and an {@link io.carml.model.ParentMap}, both of which are
+     * full {@link ExpressionMap}s supporting reference, template, and constant shapes. The child
+     * side is resolved via the source strategy; the parent side resolves directly against the
+     * parent view's materialized columns (each parent reference is exposed as a column with that
+     * name, see {@code ImplicitViewFactory#wrap}).
      */
     private static Condition buildJoinCondition(
             Set<Join> joinConditions, String parentAlias, DuckDbSourceStrategy strategy) {
         return joinConditions.stream()
                 .map(join -> {
-                    var childRef = join.getChildMap().getReference();
-                    var parentRef = join.getParentMap().getReference();
-                    var childField = strategy.resolveJoinChildReference(childRef);
-                    return childField.eq(field(quotedName(parentAlias, parentRef)));
+                    var childField = strategy.resolveJoinChildExpression(join.getChildMap());
+                    var parentField = compileJoinExpressionMap(
+                            join.getParentMap(),
+                            reference -> field(quotedName(parentAlias, reference)),
+                            templateVariable -> field(quotedName(parentAlias, templateVariable)));
+                    return joinKeyEq(childField, parentField);
                 })
                 .reduce(Condition::and)
                 .orElseThrow(() -> new IllegalArgumentException("LogicalViewJoin has no join conditions"));
     }
 
-    /**
-     * Compiles a projected {@link ExpressionField} from a joined parent view, qualifying the
-     * reference with the parent alias.
-     */
-    private static SelectField<?> compileJoinFieldExpression(String parentAlias, ExpressionField joinField) {
-        var fieldName = joinField.getFieldName();
-        var reference = joinField.getReference();
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static Condition joinKeyEq(org.jooq.Field<?> left, org.jooq.Field<?> right) {
+        return ((org.jooq.Field) left).eq(right);
+    }
 
+    /**
+     * Compiles a join-path {@link ExpressionMap} into a jOOQ {@link org.jooq.Field}. Used for both
+     * sides of a {@link io.carml.model.Join} condition (child / parent maps) and for parent-view
+     * projection fields exposed through a {@link LogicalViewJoin}. Supports the three RML 2
+     * expression-map shapes:
+     *
+     * <ul>
+     *   <li>reference — resolved via {@code referenceResolver}
+     *   <li>template — concatenation of literal segments and template-variable lookups via
+     *       {@code templateVariableResolver}
+     *   <li>constant — a SQL string literal produced via {@link DSL#inline(Object)}
+     * </ul>
+     *
+     * <p>The following shapes are not supported on the join path and result in an
+     * {@link UnsupportedOperationException}, allowing the engine to fall back to the reactive
+     * evaluator:
+     *
+     * <ul>
+     *   <li>function-valued expression maps ({@code rml:functionValue} or
+     *       {@code rml:functionExecution})
+     *   <li>expression maps carrying {@code rml:condition} — gating conditions are not yet
+     *       compilable to SQL on the join path
+     *   <li>empty expression maps (none of reference, template, constant set)
+     * </ul>
+     *
+     * @param exprMap the expression map to compile
+     * @param referenceResolver maps a reference string to its compiled field
+     * @param templateVariableResolver maps a template variable string to its compiled field
+     */
+    @SuppressWarnings("java:S1452")
+    static org.jooq.Field<?> compileJoinExpressionMap(
+            ExpressionMap exprMap,
+            Function<String, org.jooq.Field<?>> referenceResolver,
+            Function<String, org.jooq.Field<?>> templateVariableResolver) {
+        if (exprMap.getFunctionValue() != null || exprMap.getFunctionExecution() != null) {
+            throw new UnsupportedOperationException(
+                    ("Join expression map cannot be compiled to SQL: function-valued expression maps are not supported"
+                                    + " on the join path: %s")
+                            .formatted(exception(exprMap)));
+        }
+
+        if (!exprMap.getConditions().isEmpty()) {
+            throw new UnsupportedOperationException(
+                    ("Join expression map cannot be compiled to SQL: rml:condition is not yet supported on join"
+                                    + " expression maps: %s")
+                            .formatted(exception(exprMap)));
+        }
+
+        var reference = exprMap.getReference();
         if (reference != null) {
-            return field(quotedName(parentAlias, reference)).as(fieldAlias(fieldName));
+            return referenceResolver.apply(reference);
+        }
+
+        var template = exprMap.getTemplate();
+        if (template != null) {
+            var parts = template.getSegments().stream()
+                    .map(segment -> segment instanceof CarmlTemplate.ExpressionSegment
+                            ? templateVariableResolver.apply(segment.getValue())
+                            : inline(segment.getValue()))
+                    .toList();
+            if (parts.size() == 1) {
+                return parts.get(0);
+            }
+            return DSL.concat(parts.toArray(org.jooq.Field[]::new));
+        }
+
+        var constant = exprMap.getConstant();
+        if (constant != null) {
+            return inline(constant.stringValue());
         }
 
         throw new UnsupportedOperationException(
-                "Join projected field [%s] must have a reference expression".formatted(fieldName));
+                ("Join expression map cannot be compiled to SQL: no reference, template, constant, or function"
+                                + " expression is set: %s")
+                        .formatted(exception(exprMap)));
+    }
+
+    /**
+     * Compiles a projected {@link ExpressionField} from a joined parent view. Reuses
+     * {@link #compileJoinExpressionMap} with parent-alias-qualified column resolvers, so the
+     * projection field supports the same reference / template / constant shapes as the join
+     * condition. The compiled jOOQ field is wrapped with the projection field's alias.
+     *
+     * <p>Template variables resolve to columns of the compiled parent subquery — every parent view
+     * field is materialized as a column named after its {@code fieldName}, so a template variable
+     * naming a parent field becomes a direct column reference qualified with {@code parentAlias}.
+     */
+    private static SelectField<?> compileJoinFieldExpression(String parentAlias, ExpressionField joinField) {
+        var compiled = compileJoinExpressionMap(
+                joinField,
+                reference -> field(quotedName(parentAlias, reference)),
+                templateVariable -> field(quotedName(parentAlias, templateVariable)));
+        return compiled.as(fieldAlias(joinField.getFieldName()));
     }
 
     private static List<SelectField<?>> compileFieldSelects(

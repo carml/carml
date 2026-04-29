@@ -9,12 +9,19 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 
 import io.carml.logicalsourceresolver.MatchedLogicalSourceResolverFactory.MatchScore;
+import io.carml.model.ChildMap;
+import io.carml.model.Condition;
+import io.carml.model.ExpressionMap;
 import io.carml.model.FileSource;
+import io.carml.model.FunctionExecution;
+import io.carml.model.Join;
 import io.carml.model.LogicalSource;
 import io.carml.model.LogicalView;
 import io.carml.model.LogicalViewJoin;
 import io.carml.model.NameableStream;
+import io.carml.model.ParentMap;
 import io.carml.model.ReferenceFormulation;
+import io.carml.model.TriplesMap;
 import io.carml.vocab.Rdf;
 import java.nio.file.Files;
 import java.sql.Connection;
@@ -22,6 +29,8 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Set;
 import org.eclipse.rdf4j.model.Resource;
+import org.eclipse.rdf4j.model.impl.LinkedHashModel;
+import org.eclipse.rdf4j.model.util.Values;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
@@ -95,7 +104,7 @@ class DuckDbLogicalViewEvaluatorFactoryTest {
 
         @Test
         void match_rdbSource_returnsStrongMatch() {
-            var view = createViewWithRefFormulation(Rdf.Ql.Rdb);
+            var view = createSqlViewWithTable(Rdf.Ql.Rdb, "people");
             var factory = new DuckDbLogicalViewEvaluatorFactory(connection);
 
             var result = factory.match(view);
@@ -106,7 +115,7 @@ class DuckDbLogicalViewEvaluatorFactoryTest {
 
         @Test
         void match_sql2008TableSource_returnsStrongMatch() {
-            var view = createViewWithRefFormulation(Rdf.Rml.SQL2008Table);
+            var view = createSqlViewWithTable(Rdf.Rml.SQL2008Table, "people");
             var factory = new DuckDbLogicalViewEvaluatorFactory(connection);
 
             var result = factory.match(view);
@@ -117,7 +126,7 @@ class DuckDbLogicalViewEvaluatorFactoryTest {
 
         @Test
         void match_sql2008QuerySource_returnsStrongMatch() {
-            var view = createViewWithRefFormulation(Rdf.Rml.SQL2008Query);
+            var view = createSqlViewWithQuery(Rdf.Rml.SQL2008Query, "select * from people");
             var factory = new DuckDbLogicalViewEvaluatorFactory(connection);
 
             var result = factory.match(view);
@@ -315,7 +324,7 @@ class DuckDbLogicalViewEvaluatorFactoryTest {
 
         @Test
         void match_innerJoinParentView_compatible_returnsStrongMatch() {
-            var parentView = createViewWithRefFormulation(Rdf.Ql.Rdb);
+            var parentView = createSqlViewWithTable(Rdf.Ql.Rdb, "people");
             var join = mockJoin(parentView);
 
             var view = createViewWithRefFormulationAndJoins(Rdf.Ql.JsonPath, Set.of(), Set.of(join));
@@ -356,7 +365,7 @@ class DuckDbLogicalViewEvaluatorFactoryTest {
         @Test
         void match_multipleJoins_allCompatible_returnsStrongMatch() {
             var parentView1 = createViewWithRefFormulation(Rdf.Ql.Csv);
-            var parentView2 = createViewWithRefFormulation(Rdf.Ql.Rdb);
+            var parentView2 = createSqlViewWithTable(Rdf.Ql.Rdb, "departments");
             var join1 = mockJoin(parentView1);
             var join2 = mockJoin(parentView2);
 
@@ -370,7 +379,7 @@ class DuckDbLogicalViewEvaluatorFactoryTest {
         }
 
         @Test
-        void match_cyclicViewGraph_doesNotStackOverflow() {
+        void match_cyclicViewGraph_sourceCompatTraversalDoesNotStackOverflow() {
             var cyclicView = mock(LogicalView.class);
             var selfJoin = mockJoin(cyclicView);
 
@@ -384,15 +393,21 @@ class DuckDbLogicalViewEvaluatorFactoryTest {
             lenient().when(logicalSource.getSource()).thenReturn(fileSource);
 
             lenient().when(cyclicView.getViewOn()).thenReturn(logicalSource);
+            lenient().when(cyclicView.getFields()).thenReturn(Set.of());
             lenient().when(cyclicView.getLeftJoins()).thenReturn(Set.of(selfJoin));
             lenient().when(cyclicView.getInnerJoins()).thenReturn(Set.of());
+            lenient().when(cyclicView.getStructuralAnnotations()).thenReturn(Set.of());
             lenient().when(cyclicView.getResourceName()).thenReturn("cyclicView");
 
             var factory = new DuckDbLogicalViewEvaluatorFactory(connection);
 
-            var result = factory.match(cyclicView);
-
-            assertThat(result.isPresent(), is(true));
+            // The source-compatibility traversal must not stack overflow on cyclic graphs (it
+            // tracks visited views). Compilation does reject the cycle as an invalid view, raising
+            // IllegalArgumentException — which is the right behavior because such cycles cannot
+            // be evaluated. We only assert the source-compat walk terminated and propagated the
+            // compile-time validation error rather than stack-overflowing.
+            org.junit.jupiter.api.Assertions.assertThrows(
+                    IllegalArgumentException.class, () -> factory.match(cyclicView));
         }
 
         @Test
@@ -618,6 +633,283 @@ class DuckDbLogicalViewEvaluatorFactoryTest {
         }
     }
 
+    // --- Trial-compile gating: views the SQL compiler cannot handle should decline gracefully ---
+
+    @Nested
+    class TrialCompileGating {
+
+        @Test
+        void match_viewWithStandardJoinCondition_returnsPresentMatch() {
+            var parentView = createViewWithRefFormulation(Rdf.Ql.JsonPath);
+            var childMap = referenceChildMap("child_id");
+            var parentMap = referenceParentMap("parent_id");
+            var join = mock(Join.class);
+            lenient().when(join.getChildMap()).thenReturn(childMap);
+            lenient().when(join.getParentMap()).thenReturn(parentMap);
+
+            var viewJoin = mock(LogicalViewJoin.class);
+            lenient().when(viewJoin.getParentLogicalView()).thenReturn(parentView);
+            lenient().when(viewJoin.getJoinConditions()).thenReturn(Set.of(join));
+            lenient().when(viewJoin.getFields()).thenReturn(Set.of());
+
+            var view = createViewWithRefFormulationAndJoins(Rdf.Ql.JsonPath, Set.of(viewJoin), Set.of());
+            var factory = new DuckDbLogicalViewEvaluatorFactory(connection);
+
+            var result = factory.match(view);
+
+            assertThat(result.isPresent(), is(true));
+            assertThat(result.get().getMatchScore().getScore(), is(strongScore()));
+        }
+
+        @Test
+        void match_viewWithFunctionValuedJoinChildMap_returnsEmpty() {
+            var triplesMap = mock(TriplesMap.class);
+            var childMap = stubAsRdf(mock(ChildMap.class));
+            lenient().when(childMap.getFunctionValue()).thenReturn(triplesMap);
+
+            var parentMap = referenceParentMap("parent_id");
+            var join = mock(Join.class);
+            lenient().when(join.getChildMap()).thenReturn(childMap);
+            lenient().when(join.getParentMap()).thenReturn(parentMap);
+
+            var viewJoin = viewJoinWithCondition(join);
+            var view = createViewWithRefFormulationAndJoins(Rdf.Ql.JsonPath, Set.of(viewJoin), Set.of());
+            var factory = new DuckDbLogicalViewEvaluatorFactory(connection);
+
+            var result = factory.match(view);
+
+            assertThat(result.isEmpty(), is(true));
+        }
+
+        @Test
+        void match_viewWithFunctionValuedJoinParentMap_returnsEmpty() {
+            var triplesMap = mock(TriplesMap.class);
+            var parentMap = stubAsRdf(mock(ParentMap.class));
+            lenient().when(parentMap.getFunctionValue()).thenReturn(triplesMap);
+
+            var childMap = referenceChildMap("child_id");
+            var join = mock(Join.class);
+            lenient().when(join.getChildMap()).thenReturn(childMap);
+            lenient().when(join.getParentMap()).thenReturn(parentMap);
+
+            var viewJoin = viewJoinWithCondition(join);
+            var view = createViewWithRefFormulationAndJoins(Rdf.Ql.JsonPath, Set.of(viewJoin), Set.of());
+            var factory = new DuckDbLogicalViewEvaluatorFactory(connection);
+
+            var result = factory.match(view);
+
+            assertThat(result.isEmpty(), is(true));
+        }
+
+        @Test
+        void match_viewWithFunctionExecutionJoinChildMap_returnsEmpty() {
+            var functionExecution = mock(FunctionExecution.class);
+            var childMap = stubAsRdf(mock(ChildMap.class));
+            lenient().when(childMap.getFunctionExecution()).thenReturn(functionExecution);
+
+            var parentMap = referenceParentMap("parent_id");
+            var join = mock(Join.class);
+            lenient().when(join.getChildMap()).thenReturn(childMap);
+            lenient().when(join.getParentMap()).thenReturn(parentMap);
+
+            var viewJoin = viewJoinWithCondition(join);
+            var view = createViewWithRefFormulationAndJoins(Rdf.Ql.JsonPath, Set.of(viewJoin), Set.of());
+            var factory = new DuckDbLogicalViewEvaluatorFactory(connection);
+
+            var result = factory.match(view);
+
+            assertThat(result.isEmpty(), is(true));
+        }
+
+        @Test
+        void match_viewWithConditionedJoinChildMap_returnsEmpty() {
+            var condition = mock(Condition.class);
+            var childMap = stubAsRdf(mock(ChildMap.class));
+            lenient().when(childMap.getReference()).thenReturn("child_id");
+            lenient().when(childMap.getConditions()).thenReturn(Set.of(condition));
+
+            var parentMap = referenceParentMap("parent_id");
+            var join = mock(Join.class);
+            lenient().when(join.getChildMap()).thenReturn(childMap);
+            lenient().when(join.getParentMap()).thenReturn(parentMap);
+
+            var viewJoin = viewJoinWithCondition(join);
+            var view = createViewWithRefFormulationAndJoins(Rdf.Ql.JsonPath, Set.of(viewJoin), Set.of());
+            var factory = new DuckDbLogicalViewEvaluatorFactory(connection);
+
+            var result = factory.match(view);
+
+            assertThat(result.isEmpty(), is(true));
+        }
+
+        @Test
+        void match_viewWithConditionedJoinParentMap_returnsEmpty() {
+            var condition = mock(Condition.class);
+            var parentMap = stubAsRdf(mock(ParentMap.class));
+            lenient().when(parentMap.getReference()).thenReturn("parent_id");
+            lenient().when(parentMap.getConditions()).thenReturn(Set.of(condition));
+
+            var childMap = referenceChildMap("child_id");
+            var join = mock(Join.class);
+            lenient().when(join.getChildMap()).thenReturn(childMap);
+            lenient().when(join.getParentMap()).thenReturn(parentMap);
+
+            var viewJoin = viewJoinWithCondition(join);
+            var view = createViewWithRefFormulationAndJoins(Rdf.Ql.JsonPath, Set.of(viewJoin), Set.of());
+            var factory = new DuckDbLogicalViewEvaluatorFactory(connection);
+
+            var result = factory.match(view);
+
+            assertThat(result.isEmpty(), is(true));
+        }
+
+        private LogicalViewJoin viewJoinWithCondition(Join join) {
+            var parentView = createViewWithRefFormulation(Rdf.Ql.JsonPath);
+            var viewJoin = mock(LogicalViewJoin.class);
+            lenient().when(viewJoin.getParentLogicalView()).thenReturn(parentView);
+            lenient().when(viewJoin.getJoinConditions()).thenReturn(Set.of(join));
+            lenient().when(viewJoin.getFields()).thenReturn(Set.of());
+            return viewJoin;
+        }
+
+        private ChildMap referenceChildMap(String reference) {
+            var childMap = mock(ChildMap.class);
+            lenient().when(childMap.getReference()).thenReturn(reference);
+            return childMap;
+        }
+
+        private ParentMap referenceParentMap(String reference) {
+            var parentMap = mock(ParentMap.class);
+            lenient().when(parentMap.getReference()).thenReturn(reference);
+            return parentMap;
+        }
+    }
+
+    // --- Integration: routing between DuckDB and the reactive default factory ---
+
+    /**
+     * End-to-end routing contract: when the DuckDB factory declines a view containing structures it
+     * cannot compile (function-valued or conditioned join keys), the reactive
+     * {@link io.carml.logicalview.DefaultLogicalViewEvaluatorFactory} still matches it (with a weak
+     * score) so the view is evaluated by the fallback rather than failing the run. This mirrors the
+     * selection logic in {@code FactoryDelegatingEvaluator} without dragging in the full engine
+     * pipeline.
+     */
+    @Nested
+    class EvaluatorRoutingIntegration {
+
+        @Test
+        void match_functionValuedJoinChildMap_duckDbDeclinesAndDefaultMatches() {
+            var triplesMap = mock(TriplesMap.class);
+            var childMap = stubAsRdf(mock(ChildMap.class));
+            lenient().when(childMap.getFunctionValue()).thenReturn(triplesMap);
+
+            var parentMap = mock(ParentMap.class);
+            lenient().when(parentMap.getReference()).thenReturn("parent_id");
+
+            var join = mock(Join.class);
+            lenient().when(join.getChildMap()).thenReturn(childMap);
+            lenient().when(join.getParentMap()).thenReturn(parentMap);
+
+            var view = viewWithSingleJoinCondition(join);
+
+            var duckDbFactory = new DuckDbLogicalViewEvaluatorFactory(connection);
+            var defaultFactory = new io.carml.logicalview.DefaultLogicalViewEvaluatorFactory();
+
+            var duckDbResult = duckDbFactory.match(view);
+            var defaultResult = defaultFactory.match(view);
+
+            assertThat(duckDbResult.isEmpty(), is(true));
+            assertThat(defaultResult.isPresent(), is(true));
+            // The default factory always matches with a weak score; the DuckDB factory's strong
+            // match would normally win, but it has declined here. Mirror the selection logic the
+            // engine uses to confirm the reactive evaluator is the one that gets picked.
+            var matches = java.util.stream.Stream.of(duckDbResult, defaultResult)
+                    .flatMap(java.util.Optional::stream)
+                    .toList();
+            var selected = io.carml.logicalview.MatchedLogicalViewEvaluator.select(matches);
+
+            assertThat(selected.isPresent(), is(true));
+            assertThat(selected.get(), instanceOf(io.carml.logicalview.DefaultLogicalViewEvaluator.class));
+        }
+
+        @Test
+        void match_conditionedJoinChildMap_duckDbDeclinesAndDefaultMatches() {
+            var condition = mock(Condition.class);
+            var childMap = stubAsRdf(mock(ChildMap.class));
+            lenient().when(childMap.getReference()).thenReturn("child_id");
+            lenient().when(childMap.getConditions()).thenReturn(Set.of(condition));
+
+            var parentMap = mock(ParentMap.class);
+            lenient().when(parentMap.getReference()).thenReturn("parent_id");
+
+            var join = mock(Join.class);
+            lenient().when(join.getChildMap()).thenReturn(childMap);
+            lenient().when(join.getParentMap()).thenReturn(parentMap);
+
+            var view = viewWithSingleJoinCondition(join);
+
+            var duckDbFactory = new DuckDbLogicalViewEvaluatorFactory(connection);
+            var defaultFactory = new io.carml.logicalview.DefaultLogicalViewEvaluatorFactory();
+
+            var duckDbResult = duckDbFactory.match(view);
+            var defaultResult = defaultFactory.match(view);
+
+            assertThat(duckDbResult.isEmpty(), is(true));
+            assertThat(defaultResult.isPresent(), is(true));
+
+            var matches = java.util.stream.Stream.of(duckDbResult, defaultResult)
+                    .flatMap(java.util.Optional::stream)
+                    .toList();
+            var selected = io.carml.logicalview.MatchedLogicalViewEvaluator.select(matches);
+
+            assertThat(selected.isPresent(), is(true));
+            assertThat(selected.get(), instanceOf(io.carml.logicalview.DefaultLogicalViewEvaluator.class));
+        }
+
+        @Test
+        void match_compatibleView_duckDbWinsOverDefault() {
+            var childMap = mock(ChildMap.class);
+            lenient().when(childMap.getReference()).thenReturn("child_id");
+
+            var parentMap = mock(ParentMap.class);
+            lenient().when(parentMap.getReference()).thenReturn("parent_id");
+
+            var join = mock(Join.class);
+            lenient().when(join.getChildMap()).thenReturn(childMap);
+            lenient().when(join.getParentMap()).thenReturn(parentMap);
+
+            var view = viewWithSingleJoinCondition(join);
+
+            var duckDbFactory = new DuckDbLogicalViewEvaluatorFactory(connection);
+            var defaultFactory = new io.carml.logicalview.DefaultLogicalViewEvaluatorFactory();
+
+            var duckDbResult = duckDbFactory.match(view);
+            var defaultResult = defaultFactory.match(view);
+
+            assertThat(duckDbResult.isPresent(), is(true));
+            assertThat(defaultResult.isPresent(), is(true));
+
+            var matches = java.util.stream.Stream.of(duckDbResult, defaultResult)
+                    .flatMap(java.util.Optional::stream)
+                    .toList();
+            var selected = io.carml.logicalview.MatchedLogicalViewEvaluator.select(matches);
+
+            assertThat(selected.isPresent(), is(true));
+            assertThat(selected.get(), instanceOf(DuckDbLogicalViewEvaluator.class));
+        }
+
+        private LogicalView viewWithSingleJoinCondition(Join join) {
+            var parentView = createViewWithRefFormulation(Rdf.Ql.JsonPath);
+            var viewJoin = mock(LogicalViewJoin.class);
+            lenient().when(viewJoin.getParentLogicalView()).thenReturn(parentView);
+            lenient().when(viewJoin.getJoinConditions()).thenReturn(Set.of(join));
+            lenient().when(viewJoin.getFields()).thenReturn(Set.of());
+
+            return createViewWithRefFormulationAndJoins(Rdf.Ql.JsonPath, Set.of(viewJoin), Set.of());
+        }
+    }
+
     // --- Helper methods ---
 
     private static int strongScore() {
@@ -682,10 +974,56 @@ class DuckDbLogicalViewEvaluatorFactoryTest {
     }
 
     private static LogicalViewJoin mockJoin(LogicalView parentView) {
+        // A LogicalViewJoin must carry at least one join condition for the SQL compiler to be able
+        // to render an ON-clause. Tests that don't care about the specific fields still need a
+        // valid condition shape so the trial compile in match() succeeds.
+        var condition = joinCondition("id", "id");
         var join = mock(LogicalViewJoin.class);
         lenient().when(join.getParentLogicalView()).thenReturn(parentView);
-        lenient().when(join.getJoinConditions()).thenReturn(Set.of());
+        lenient().when(join.getJoinConditions()).thenReturn(Set.of(condition));
         lenient().when(join.getFields()).thenReturn(Set.of());
         return join;
+    }
+
+    private static <T extends ExpressionMap> T stubAsRdf(T exprMap) {
+        lenient().when(exprMap.asRdf()).thenReturn(new LinkedHashModel());
+        lenient().when(exprMap.getAsResource()).thenReturn(Values.bnode());
+        return exprMap;
+    }
+
+    private static Join joinCondition(String childRef, String parentRef) {
+        var childMap = mock(ChildMap.class);
+        lenient().when(childMap.getReference()).thenReturn(childRef);
+
+        var parentMap = mock(ParentMap.class);
+        lenient().when(parentMap.getReference()).thenReturn(parentRef);
+
+        var join = mock(Join.class);
+        lenient().when(join.getChildMap()).thenReturn(childMap);
+        lenient().when(join.getParentMap()).thenReturn(parentMap);
+
+        return join;
+    }
+
+    private static LogicalView createSqlViewWithTable(Resource refIri, String tableName) {
+        var refFormulation = mock(ReferenceFormulation.class);
+        lenient().when(refFormulation.getAsResource()).thenReturn(refIri);
+
+        var logicalSource = mock(LogicalSource.class);
+        lenient().when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
+        lenient().when(logicalSource.getTableName()).thenReturn(tableName);
+
+        return createViewWithLogicalSource(logicalSource);
+    }
+
+    private static LogicalView createSqlViewWithQuery(Resource refIri, String query) {
+        var refFormulation = mock(ReferenceFormulation.class);
+        lenient().when(refFormulation.getAsResource()).thenReturn(refIri);
+
+        var logicalSource = mock(LogicalSource.class);
+        lenient().when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
+        lenient().when(logicalSource.getQuery()).thenReturn(query);
+
+        return createViewWithLogicalSource(logicalSource);
     }
 }

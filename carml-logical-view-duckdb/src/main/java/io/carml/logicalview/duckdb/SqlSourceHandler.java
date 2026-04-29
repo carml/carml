@@ -44,6 +44,7 @@ import org.jooq.impl.DSL;
  *
  * <p>All fields are accessed via {@link ColumnSourceStrategy} (direct column references).
  */
+@SuppressWarnings("UnstableApiUsage")
 @Slf4j
 final class SqlSourceHandler implements DuckDbSourceHandler {
 
@@ -84,13 +85,13 @@ final class SqlSourceHandler implements DuckDbSourceHandler {
                     ? quotedName(catalogSchema.catalog(), catalogSchema.schema(), tableName)
                             .toString()
                     : quotedName(tableName).toString();
-            return columnSource(qualifiedName, cteAlias);
+            return columnSource(qualifiedName, cteAlias, viewFields);
         }
 
         var query = logicalSource.getQuery();
         if (query != null && !query.isBlank()) {
             var translated = translateQuery(query, sourceDialect, catalogSchema);
-            return columnSource("(%s)".formatted(translated), cteAlias);
+            return columnSource("(%s)".formatted(translated), cteAlias, viewFields);
         }
 
         var source = logicalSource.getSource();
@@ -98,7 +99,7 @@ final class SqlSourceHandler implements DuckDbSourceHandler {
                 && dbSource.getQuery() != null
                 && !dbSource.getQuery().isBlank()) {
             var translated = translateQuery(dbSource.getQuery(), sourceDialect, catalogSchema);
-            return columnSource("(%s)".formatted(translated), cteAlias);
+            return columnSource("(%s)".formatted(translated), cteAlias, viewFields);
         }
 
         throw new IllegalArgumentException("SQL logical source has no query or table name defined");
@@ -204,8 +205,9 @@ final class SqlSourceHandler implements DuckDbSourceHandler {
         return SQLDialect.DUCKDB;
     }
 
-    private static CompiledSource columnSource(String sourceSql, String cteAlias) {
+    private static CompiledSource columnSource(String sourceSql, String cteAlias, Set<Field> viewFields) {
         return new CompiledSource(
-                sourceSql, new ColumnSourceStrategy(cteAlias, ColumnSourceStrategy.TypeCompanionMode.SQL_TYPEOF));
+                sourceSql,
+                ColumnSourceStrategy.create(viewFields, cteAlias, ColumnSourceStrategy.TypeCompanionMode.SQL_TYPEOF));
     }
 }

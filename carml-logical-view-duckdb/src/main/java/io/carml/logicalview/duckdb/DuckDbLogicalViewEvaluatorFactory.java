@@ -2,6 +2,7 @@ package io.carml.logicalview.duckdb;
 
 import com.google.auto.service.AutoService;
 import io.carml.logicalsourceresolver.MatchedLogicalSourceResolverFactory.MatchScore;
+import io.carml.logicalview.EvaluationContext;
 import io.carml.logicalview.FileBasePathConfigurable;
 import io.carml.logicalview.LogicalViewEvaluatorFactory;
 import io.carml.logicalview.MatchedLogicalViewEvaluator;
@@ -459,6 +460,22 @@ public class DuckDbLogicalViewEvaluatorFactory
         var visited = new HashSet<LogicalView>();
         if (!allSourcesCompatible(view, visited)) {
             LOG.debug("View [{}] contains incompatible sources for DuckDB evaluator", view.getResourceName());
+            return Optional.empty();
+        }
+
+        // Trial compile the view to detect structural shapes the SQL compiler does not yet support
+        // (e.g. function-valued or conditioned join-key expression maps). When the compiler raises
+        // UnsupportedOperationException, we decline the match so the reactive evaluator can take
+        // over instead of failing the entire run. Compilation is pure and inexpensive relative to
+        // query execution, so the double-compile cost is negligible. Other exception types are real
+        // bugs and propagate.
+        try {
+            DuckDbViewCompiler.compile(view, EvaluationContext.defaults());
+        } catch (UnsupportedOperationException e) {
+            LOG.debug(
+                    "View [{}] declined by DuckDB evaluator (routing to next evaluator): {}",
+                    view.getResourceName(),
+                    e.getMessage());
             return Optional.empty();
         }
 

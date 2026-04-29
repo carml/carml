@@ -38,6 +38,7 @@ final class JsonPathSourceHandler implements DuckDbSourceHandler {
 
     private static final Set<Resource> SUPPORTED = Set.of(Rdf.Ql.JsonPath, Rdf.Rml.JsonPath);
 
+    @SuppressWarnings("UnstableApiUsage")
     private static final org.jooq.DSLContext CTX = DSL.using(SQLDialect.DUCKDB);
 
     @Override
@@ -64,7 +65,7 @@ final class JsonPathSourceHandler implements DuckDbSourceHandler {
         var filePath = DuckDbFileSourceUtils.resolveFilePath(logicalSource.getSource());
 
         if (DuckDbFileSourceUtils.isParquetFile(filePath)) {
-            return columnSource("read_parquet(%s)".formatted(inline(filePath)), cteAlias);
+            return columnSource("read_parquet(%s)".formatted(inline(filePath)), cteAlias, viewFields);
         }
 
         var iterator = logicalSource.getIterator();
@@ -91,7 +92,7 @@ final class JsonPathSourceHandler implements DuckDbSourceHandler {
                     sourceSql, JsonIteratorSourceStrategy.create(viewFields, cteAlias, JSON_ITER_COLUMN));
         }
 
-        return columnSource("read_json_auto(%s)".formatted(inline(filePath)), cteAlias);
+        return columnSource("read_json_auto(%s)".formatted(inline(filePath)), cteAlias, viewFields);
     }
 
     /**
@@ -195,8 +196,9 @@ final class JsonPathSourceHandler implements DuckDbSourceHandler {
         return path.replace(".*", "[*]");
     }
 
-    private static CompiledSource columnSource(String sourceSql, String cteAlias) {
+    private static CompiledSource columnSource(String sourceSql, String cteAlias, Set<Field> viewFields) {
         return new CompiledSource(
-                sourceSql, new ColumnSourceStrategy(cteAlias, ColumnSourceStrategy.TypeCompanionMode.NONE));
+                sourceSql,
+                ColumnSourceStrategy.create(viewFields, cteAlias, ColumnSourceStrategy.TypeCompanionMode.NONE));
     }
 }

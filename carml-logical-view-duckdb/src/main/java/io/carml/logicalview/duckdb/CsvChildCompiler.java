@@ -30,6 +30,7 @@ final class CsvChildCompiler implements MixedFormulationCompiler {
 
     static final String ROW_VAL_FIELD = "row_val";
 
+    @SuppressWarnings("UnstableApiUsage")
     private static final DSLContext CTX = DSL.using(SQLDialect.DUCKDB);
 
     private final String renderedParentValue;

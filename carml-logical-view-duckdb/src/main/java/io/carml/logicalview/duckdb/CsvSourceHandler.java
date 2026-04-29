@@ -44,6 +44,7 @@ final class CsvSourceHandler implements DuckDbSourceHandler {
 
     private static final Set<Resource> SUPPORTED = Set.of(Rdf.Ql.Csv, Rdf.Rml.Csv);
 
+    @SuppressWarnings("UnstableApiUsage")
     private static final org.jooq.DSLContext CTX = DSL.using(SQLDialect.DUCKDB);
 
     @Override
@@ -112,7 +113,7 @@ final class CsvSourceHandler implements DuckDbSourceHandler {
         var filePath = DuckDbFileSourceUtils.resolveFilePath(source);
 
         if (DuckDbFileSourceUtils.isParquetFile(filePath)) {
-            return columnSource("read_parquet(%s)".formatted(inline(filePath)), cteAlias);
+            return columnSource("read_parquet(%s)".formatted(inline(filePath)), cteAlias, viewFields);
         }
 
         if (source instanceof CsvwTable csvwTable) {
@@ -120,11 +121,11 @@ final class CsvSourceHandler implements DuckDbSourceHandler {
             if (dialect != null) {
                 var dialectConfig = CsvwDialectProcessor.process(dialect);
                 var nullValues = CsvNullValueHandler.resolveNullValues(csvwTable);
-                return compileCsvwSource(filePath, dialectConfig, nullValues, cteAlias);
+                return compileCsvwSource(filePath, dialectConfig, nullValues, cteAlias, viewFields);
             }
         }
 
-        return columnSource("read_csv_auto(%s)".formatted(inline(filePath)), cteAlias);
+        return columnSource("read_csv_auto(%s)".formatted(inline(filePath)), cteAlias, viewFields);
     }
 
     /**
@@ -144,7 +145,7 @@ final class CsvSourceHandler implements DuckDbSourceHandler {
      * </ul>
      */
     private static CompiledSource compileCsvwSource(
-            String filePath, CsvDialectConfig config, Set<Object> nullValues, String cteAlias) {
+            String filePath, CsvDialectConfig config, Set<Object> nullValues, String cteAlias, Set<Field> viewFields) {
         var params = new ArrayList<String>();
         params.add(CTX.render(inline(filePath)));
 
@@ -199,7 +200,7 @@ final class CsvSourceHandler implements DuckDbSourceHandler {
             sourceSql = compileTrimWrapper(sourceSql);
         }
 
-        return columnSource(sourceSql, cteAlias);
+        return columnSource(sourceSql, cteAlias, viewFields);
     }
 
     /**
@@ -210,9 +211,10 @@ final class CsvSourceHandler implements DuckDbSourceHandler {
         return "(select columns(c -> true)::VARCHAR from (select trim(columns(*)) from %s))".formatted(sourceSql);
     }
 
-    private static CompiledSource columnSource(String sourceSql, String cteAlias) {
+    private static CompiledSource columnSource(String sourceSql, String cteAlias, Set<Field> viewFields) {
         return new CompiledSource(
-                sourceSql, new ColumnSourceStrategy(cteAlias, ColumnSourceStrategy.TypeCompanionMode.NONE));
+                sourceSql,
+                ColumnSourceStrategy.create(viewFields, cteAlias, ColumnSourceStrategy.TypeCompanionMode.NONE));
     }
 
     /**

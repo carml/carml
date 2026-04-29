@@ -6,8 +6,11 @@ import static org.jooq.impl.DSL.quotedName;
 import static org.jooq.impl.DSL.table;
 
 import io.carml.model.ExpressionField;
+import io.carml.model.ExpressionMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.jooq.Field;
 import org.jooq.Name;
 import org.jooq.SelectField;
@@ -19,18 +22,13 @@ import org.jooq.impl.DSL;
  *
  * <p>All field references are compiled as direct column references qualified by the CTE alias.
  *
- * @param cteAlias the alias of the CTE containing the source data
- * @param typeCompanionMode controls how type companion columns are compiled:
- *     <ul>
- *       <li>{@link TypeCompanionMode#NONE} — CSV and {@code read_json_auto}: no type info, compiles
- *           as {@code CAST(NULL AS VARCHAR)}
- *       <li>{@link TypeCompanionMode#SQL_TYPEOF} — SQL sources: compiles as {@code typeof("cte"."column")}
- *           to capture the static column type
- *       <li>{@link TypeCompanionMode#INNER_VIEW} — view-on-view: projects the inner view's
- *           {@code .__type} companion column
- *     </ul>
+ * <p>For join-condition resolution, references in the join's {@link io.carml.model.ChildMap} may
+ * be either underlying-source column names or view field names (when the view is an explicit
+ * {@code rml:LogicalView} where {@code fieldName} differs from {@code reference}). The strategy
+ * uses {@link #fieldNameToRefMap} to translate field names back to the underlying column name
+ * before emitting the SQL reference.
  */
-record ColumnSourceStrategy(String cteAlias, TypeCompanionMode typeCompanionMode) implements DuckDbSourceStrategy {
+final class ColumnSourceStrategy implements DuckDbSourceStrategy {
 
     /**
      * Controls how type companion columns are compiled for column-based sources.
@@ -42,6 +40,33 @@ record ColumnSourceStrategy(String cteAlias, TypeCompanionMode typeCompanionMode
         SQL_TYPEOF,
         /** View-on-view: project the inner view's existing {@code .__type} companion column. */
         INNER_VIEW
+    }
+
+    private final String cteAlias;
+
+    private final TypeCompanionMode typeCompanionMode;
+
+    private final Map<String, String> fieldNameToRefMap;
+
+    ColumnSourceStrategy(String cteAlias, TypeCompanionMode typeCompanionMode) {
+        this(cteAlias, typeCompanionMode, Map.of());
+    }
+
+    private ColumnSourceStrategy(
+            String cteAlias, TypeCompanionMode typeCompanionMode, Map<String, String> fieldNameToRefMap) {
+        this.cteAlias = cteAlias;
+        this.typeCompanionMode = typeCompanionMode;
+        this.fieldNameToRefMap = fieldNameToRefMap;
+    }
+
+    static ColumnSourceStrategy create(
+            Set<io.carml.model.Field> viewFields, String cteAlias, TypeCompanionMode typeCompanionMode) {
+        var fieldNameToRefMap = viewFields.stream()
+                .filter(ExpressionField.class::isInstance)
+                .map(ExpressionField.class::cast)
+                .filter(f -> f.getReference() != null)
+                .collect(Collectors.toUnmodifiableMap(ExpressionField::getFieldName, ExpressionField::getReference));
+        return new ColumnSourceStrategy(cteAlias, typeCompanionMode, fieldNameToRefMap);
     }
 
     @Override
@@ -102,8 +127,23 @@ record ColumnSourceStrategy(String cteAlias, TypeCompanionMode typeCompanionMode
     }
 
     @Override
-    public Field<Object> resolveJoinChildReference(String childRef) {
-        return field(quotedName(cteAlias, childRef));
+    public Field<?> resolveJoinChildExpression(ExpressionMap childMap) {
+        return DuckDbViewCompiler.compileJoinExpressionMap(
+                childMap,
+                reference -> field(quotedName(cteAlias, resolveColumnRef(reference))),
+                templateVariable -> field(quotedName(cteAlias, resolveColumnRef(templateVariable))));
+    }
+
+    /**
+     * Resolves a join-condition reference or template variable to the underlying column name. When
+     * the reference is a view field name (the view is an explicit {@code rml:LogicalView} where
+     * {@code fieldName} differs from {@code reference}), it is rewritten to the underlying source
+     * reference. Otherwise the reference is returned as-is so that direct underlying-column names
+     * still resolve.
+     */
+    private String resolveColumnRef(String reference) {
+        var sourceRef = fieldNameToRefMap.get(reference);
+        return sourceRef != null ? sourceRef : reference;
     }
 
     @Override
