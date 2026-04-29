@@ -1032,6 +1032,19 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                                     .ifPresent(iri -> joinNaturalDatatypes.put(fieldName, iri));
                         }
 
+                        if (values.isEmpty()) {
+                            // Field evaluates to no values for this parent — still contribute a
+                            // single entry with the field key mapped to null and the index key
+                            // set to 0, so the Cartesian product does not collapse the entire
+                            // join match. Mirrors the standalone-view branch in evaluateFields.
+                            // Use LinkedHashMap because Map.of() does not support null values.
+                            // Do NOT advance runningIndex — no values were emitted.
+                            var nullValues = new LinkedHashMap<String, Object>();
+                            nullValues.put(fieldName, null);
+                            nullValues.put(indexKey, 0);
+                            return List.of(new EvaluatedValues(nullValues, Map.of(), joinNaturalDatatypes));
+                        }
+
                         var baseIdx = runningIndex.get(fieldName);
                         var evList = IntStream.range(0, values.size())
                                 .mapToObj(i -> new EvaluatedValues(

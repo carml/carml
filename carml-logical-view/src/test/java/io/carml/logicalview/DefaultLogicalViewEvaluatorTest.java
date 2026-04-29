@@ -2437,6 +2437,76 @@ class DefaultLogicalViewEvaluatorTest {
     }
 
     @Test
+    void
+            givenInnerJoinWithMultiValuedJoinFieldEmptyForOneParent_whenEvaluated_thenMatchedChildPreservedWithNullJoinField() {
+        // Two child records (alice id=1, tobias id=3). Both match a parent row on the join
+        // condition. The parent rows each carry a multi-valued projection field "items":
+        //   - alice's parent row has items = ["sword", "shield"] (two values)
+        //   - tobias's parent row has no "items" key, so the field evaluates to an empty list
+        // The matched parent for tobias must still contribute one iteration with items = null,
+        // so triples that depend only on child fields (e.g., alice/tobias birth-year style
+        // mappings) survive even when the multi-valued join field is empty for that parent.
+        var idField = mockExpressionField("id");
+        when(idField.getReference()).thenReturn("id");
+        when(logicalView.getFields()).thenReturn(Set.of(idField));
+
+        var aliceRec = createRecord("alice-rec");
+        var tobiasRec = createRecord("tobias-rec");
+        setupChildViewPerRecord(Flux.just(aliceRec, tobiasRec), sourceRecord -> expression -> {
+            if ("id".equals(expression)) {
+                if (sourceRecord == aliceRec.getSourceRecord()) {
+                    return Optional.of("1");
+                }
+                if (sourceRecord == tobiasRec.getSourceRecord()) {
+                    return Optional.of("3");
+                }
+            }
+            return Optional.empty();
+        });
+
+        // Alice's row carries the items list; Tobias's row omits the items key entirely so the
+        // parent expression evaluator returns Optional.empty() for it (translated downstream
+        // into an empty value list by evaluateReference).
+        var parentView =
+                setupParentView(List.of(Map.of("pid", "1", "items", List.of("sword", "shield")), Map.of("pid", "3")));
+        buildJoinEvaluator();
+
+        var itemsJoinField = mockExpressionField("items");
+        when(itemsJoinField.getReference()).thenReturn("items");
+
+        var joinCondition = mockJoinCondition("id", "pid");
+        var lvJoin = mockLogicalViewJoin(parentView, Set.of(joinCondition), Set.of(itemsJoinField));
+        when(logicalView.getInnerJoins()).thenReturn(Set.of(lvJoin));
+
+        var iterations = evaluator
+                .evaluate(logicalView, sourceResolver, EvaluationContext.defaults())
+                .collectList()
+                .block();
+
+        // Alice contributes 2 iterations (one per item), Tobias contributes 1 iteration with
+        // items = null. Without the empty-preservation guard in matchAndExtendRegular, Tobias's
+        // matched join would collapse via the empty Cartesian factor and the iteration list
+        // size would be 2.
+        assertThat(iterations, hasSize(3));
+
+        var aliceItems = iterations.stream()
+                .filter(it -> "1".equals(it.getValue("id").orElseThrow()))
+                .map(it -> it.getValue("items").orElseThrow().toString())
+                .toList();
+        assertThat(aliceItems, containsInAnyOrder("sword", "shield"));
+
+        var tobiasIterations = iterations.stream()
+                .filter(it -> "3".equals(it.getValue("id").orElseThrow()))
+                .toList();
+        assertThat(tobiasIterations, hasSize(1));
+        // The empty-multi-valued join field surfaces as Optional.empty() on retrieval (a
+        // null-valued key is reported as empty), confirming the row was preserved without a
+        // value for items.
+        assertThat(tobiasIterations.get(0).getValue("items"), is(Optional.empty()));
+        assertThat(tobiasIterations.get(0).getValue("id"), is(Optional.of("3")));
+    }
+
+    @Test
     void givenMultipleParentMatches_whenEvaluated_thenMultipleOutputIterations() {
         var idField = mockExpressionField("id");
         when(idField.getReference()).thenReturn("id");

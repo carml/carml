@@ -1056,6 +1056,63 @@ class DuckDbViewCompilerTest {
             assertThat(sql, containsString("json_extract_string(\"item\".\"unnest\", '$') \"item\""));
             assertThat(sql, containsString("\"item\".\"__ord\" \"item.#\""));
         }
+
+        @Test
+        void compile_multiValuedExpressionField_wrapsLateralWithEmptyPreservingFallback() {
+            // When the multi-valued reference resolves to an empty array for a given parent row,
+            // the comma-cross-joined LATERAL would otherwise drop the parent row entirely. The
+            // compiler emits a UNION ALL fallback that injects a single (NULL, 0) sentinel row
+            // when NOT EXISTS detects an empty inner result, preserving the parent row so
+            // triples that depend only on other fields (or on join projections) survive.
+            var view = createJsonView("data.json", "$.people[*]", Set.of(expressionField("item", "$.items[*]")));
+            var context = EvaluationContext.defaults();
+
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
+
+            // Standard array unnest body is still emitted (unchanged correlation to view_source).
+            assertThat(sql, containsString("unnest(json_extract(\"view_source\".\"__iter\", '$.items[*]'))"));
+            // Empty-preservation fallback: UNION ALL emits a NULL sentinel row, gated by NOT
+            // EXISTS so it only fires when the inner unnest produces zero rows.
+            assertThat(sql, containsString("UNION ALL"));
+            assertThat(sql, containsString("SELECT NULL AS \"unnest\", 0 AS \"__ord\""));
+            assertThat(sql, containsString("WHERE NOT EXISTS"));
+            assertThat(sql, containsString("\"_empty_check\""));
+        }
+
+        @Test
+        void compile_multiValuedExpressionFieldWithFilter_wrapsLateralWithEmptyPreservingFallback() {
+            // Filter expressions can produce zero surviving rows even from a non-empty parent
+            // array; the empty-preserving wrap covers this case too.
+            var view = createJsonView(
+                    "data.json", "$.people[*]", Set.of(expressionField("item", "$.items[?(@.active==true)]")));
+            var context = EvaluationContext.defaults();
+
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
+
+            assertThat(sql, containsString("UNION ALL"));
+            assertThat(sql, containsString("SELECT NULL AS \"unnest\", 0 AS \"__ord\""));
+            assertThat(sql, containsString("WHERE NOT EXISTS"));
+            assertThat(sql, containsString("\"_empty_check\""));
+        }
+
+        @Test
+        void compile_multiValuedExpressionFieldWithBracketKey_skipsEmptyPreservingFallback() {
+            // JSON bracket-quoted single-key references (e.g., $['Country Code']) are analysed
+            // as a name-union with one name. Because name unions emit a fixed positive number
+            // of rows per parent, the inner LATERAL never produces zero rows and the
+            // empty-preservation fallback would only introduce optimizer-driven row reordering
+            // without changing semantics. The compiler therefore skips the wrap.
+            var view =
+                    createJsonView("data.json", "$.countries[*]", Set.of(expressionField("code", "$['Country Code']")));
+            var context = EvaluationContext.defaults();
+
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
+
+            // The plain LATERAL with list_value(...) emission is preserved unchanged — no
+            // UNION ALL fallback is added for this always-non-empty path.
+            assertThat(sql, containsString("LATERAL"));
+            assertThat(sql, not(containsString("\"_empty_check\"")));
+        }
     }
 
     // --- IterableField / UNNEST compilation tests ---

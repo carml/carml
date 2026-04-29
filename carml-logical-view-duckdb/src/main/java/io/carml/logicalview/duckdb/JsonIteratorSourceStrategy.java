@@ -88,7 +88,7 @@ final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
             var parsed = JsonPathAnalyzer.analyze(reference);
             return parsed.basePath().contains("[*]") || parsed.basePath().contains(".*") || parsed.hasDeepScan();
         } catch (IllegalArgumentException e) {
-            // Invalid JSONPath syntax cannot be multi-valued. The error will surface
+            // Invalid JSONPath syntax cannot be multivalued. The error will surface
             // later during field compilation with a descriptive message.
             return false;
         }
@@ -312,32 +312,15 @@ final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
 
         var parsed = JsonPathAnalyzer.analyze(reference);
 
-        Table<?> unnestTable;
-        if (parsed.filters().isEmpty()) {
-            unnestTable = compileUnnestTable(reference, cteAlias, true, fieldName);
-        } else {
-            // Build a filtered LATERAL: unnest all elements using the basePath, then apply a WHERE
-            // clause for the filter conditions and recompute ordinals as sequential 0-based indices.
-            //
-            // The inner unnest expands all array elements. The outer LATERAL wraps it with a WHERE
-            // clause to apply the filter, and row_number() to produce sequential ordinals.
-            var innerUnnest = compileUnnestTable(parsed.basePath(), cteAlias, true, fieldName + "_inner");
-
-            var filterCondition = parsed.filters().stream()
-                    .map(f -> JsonPathSourceHandler.compileFilterCondition(f, UNNEST_FIELD))
-                    .reduce(Condition::and)
-                    .orElseThrow();
-
-            // Render the inner unnest as a subquery in a SELECT to capture its full SQL,
-            // then wrap with WHERE and ordinal recomputation. row_number() over() has no ORDER BY
-            // because DuckDB's UNNEST preserves array element order, and the LATERAL boundary
-            // resets numbering per parent row.
-            var innerQuery = CTX.renderInlined(CTX.selectFrom(innerUnnest));
-
-            unnestTable = table("LATERAL (SELECT \"unnest\", (row_number() over() - 1) AS \"%s\" FROM (%s) WHERE %s)"
-                            .formatted(ORDINAL_FIELD, innerQuery, CTX.renderInlined(filterCondition)))
-                    .as(quotedName(fieldName));
-        }
+        // Multivalued ExpressionFields contribute join-projected values. When the reference
+        // produces zero elements for a given parent row, the parent must still survive (with
+        // the field key projected as NULL) so triples that depend only on other fields are
+        // preserved. This mirrors the standalone-view evaluation in
+        // DefaultLogicalViewEvaluator (see the values.isEmpty() branch in evaluateFields and
+        // the equivalent guard in matchAndExtendRegular). The empty-preserving LATERAL wraps
+        // the inner unnest body with a NOT EXISTS fallback that emits a (NULL, 0) sentinel
+        // row when the inner result is empty.
+        var unnestTable = compileEmptyPreservingMultiValuedUnnest(parsed, reference, cteAlias, fieldName);
 
         var nestedSelects = new ArrayList<SelectField<?>>();
 
@@ -353,6 +336,134 @@ final class JsonIteratorSourceStrategy implements DuckDbSourceStrategy {
         nestedSelects.add(field(quotedName(fieldName, ORDINAL_FIELD)).as(quotedName(indexColumnName)));
 
         return new UnnestDescriptor(unnestTable, List.copyOf(nestedSelects));
+    }
+
+    /**
+     * Builds a {@code LATERAL} subquery for a multivalued {@link ExpressionField} that preserves
+     * the parent row when the unnest result is empty. When the inner unnest emits zero rows
+     * (empty array, all elements filtered out, slice/index union with no matches), a single
+     * sentinel row with {@code unnest = NULL} and {@code __ord = 0} is emitted instead, so the
+     * surrounding comma-cross-join in {@code DuckDbViewCompiler.buildFromClause} does not drop
+     * the parent.
+     *
+     * <p>This semantic is specific to multivalued ExpressionFields used in join projections
+     * and must NOT be applied to {@code IterableField} unnest tables, where empty iterables
+     * are intended to drop the parent row (mirroring {@code evaluateIterableField} in
+     * {@code DefaultLogicalViewEvaluator}). The {@link #compileUnnestTable} strategy method
+     * therefore retains its original drop-on-empty behavior and is used unchanged for
+     * {@code IterableField}.
+     */
+    private Table<?> compileEmptyPreservingMultiValuedUnnest(
+            JsonPathAnalyzer.ParsedJsonPath parsed, String reference, String cteAlias, String fieldName) {
+        // Skip the empty-preservation wrapping when the inner body provably emits at least one
+        // row regardless of input — name unions (e.g., $.['a','b']) always emit N >= 1 rows,
+        // and the single-value path (non-array selectors) always emits exactly one row via
+        // list_value(...). Wrapping these would introduce an unnecessary UNION ALL whose
+        // optimizer-driven row reordering disturbs source order for downstream tests that
+        // rely on natural iteration order.
+        if (alwaysEmitsRow(parsed)) {
+            return compileUnnestTable(reference, cteAlias, true, fieldName);
+        }
+
+        var innerBody = buildMultiValuedInnerBody(parsed, reference, cteAlias, fieldName);
+        var sql = """
+                LATERAL (\
+                %1$s \
+                UNION ALL \
+                SELECT NULL AS "%2$s", 0 AS "%3$s" \
+                WHERE NOT EXISTS (SELECT 1 FROM (%1$s) "_empty_check")\
+                )""".formatted(innerBody, UNNEST_FIELD, ORDINAL_FIELD);
+        return table(sql).as(quotedName(fieldName));
+    }
+
+    /**
+     * Returns {@code true} when the inner unnest body for the given parsed JSONPath provably
+     * emits at least one row regardless of the parent JSON value:
+     * <ul>
+     *   <li>Single-value paths (no array result, no filters) — wrapped in {@code list_value(...)}
+     *       and always emit exactly one row.</li>
+     *   <li>Name unions (e.g., {@code $.['a','b']}) — always emit one row per name in the union
+     *       (range count is fixed at compile time).</li>
+     * </ul>
+     * Other paths (standard array, slice, index union, filter) may emit zero rows and therefore
+     * need the empty-preservation wrapping.
+     */
+    private static boolean alwaysEmitsRow(JsonPathAnalyzer.ParsedJsonPath parsed) {
+        if (!parsed.filters().isEmpty()) {
+            return false;
+        }
+        if (!isArrayResult(parsed)) {
+            return true;
+        }
+        if (parsed.unions().isEmpty()) {
+            return false;
+        }
+        var union = parsed.unions().get(parsed.unions().size() - 1);
+        return union instanceof JsonPathAnalyzer.NameUnion;
+    }
+
+    /**
+     * Builds the inner SELECT body (without the surrounding {@code LATERAL (...)}) for a
+     * multivalued reference. The returned SQL fragment correlates to the parent row via the
+     * outer LATERAL boundary, so it must be embedded inside a {@code LATERAL (...)} subquery
+     * by the caller. The body emits two columns named {@code "unnest"} and {@code "__ord"}.
+     */
+    private String buildMultiValuedInnerBody(
+            JsonPathAnalyzer.ParsedJsonPath parsed, String reference, String cteAlias, String fieldName) {
+        if (parsed.filters().isEmpty()) {
+            // No filter expression — body shape depends on selector (slice / index union /
+            // name union / standard array / single value). Render the existing LATERAL table
+            // and strip the outer "LATERAL (...)" wrapping so we can re-wrap with the
+            // empty-preserving variant. The inner LATERAL body is fully self-contained
+            // (correlations are resolved against the outer LATERAL boundary established by
+            // the caller).
+            var lateralTable = compileUnnestTable(reference, cteAlias, true, fieldName);
+            return stripLateralWrapper(CTX.renderInlined(CTX.selectFrom(lateralTable)));
+        }
+
+        // Filter expression path: unnest the basePath, then apply a WHERE on the filter
+        // condition, recomputing ordinals via row_number() over the surviving rows.
+        var innerUnnest = compileUnnestTable(parsed.basePath(), cteAlias, true, fieldName + "_inner");
+        var filterCondition = parsed.filters().stream()
+                .map(f -> JsonPathSourceHandler.compileFilterCondition(f, UNNEST_FIELD))
+                .reduce(Condition::and)
+                .orElseThrow();
+        var innerQuery = CTX.renderInlined(CTX.selectFrom(innerUnnest));
+        return "SELECT \"%s\", (row_number() over() - 1) AS \"%s\" FROM (%s) WHERE %s"
+                .formatted(UNNEST_FIELD, ORDINAL_FIELD, innerQuery, CTX.renderInlined(filterCondition));
+    }
+
+    /**
+     * Strips the outer {@code SELECT * FROM LATERAL (<body>) "alias"} wrapper produced by
+     * rendering a LATERAL table via {@code CTX.selectFrom(...)}. Returns just the inner body
+     * so it can be embedded inside a different LATERAL.
+     *
+     * <p>The rendered form for a LATERAL table is approximately:
+     * {@code select * from LATERAL (<body>) "alias"}. The body is everything between the
+     * first {@code LATERAL (} and the matching closing {@code )}. The leading
+     * {@code select * from } and the trailing {@code "alias"} (or unquoted alias) are
+     * discarded.
+     */
+    private static String stripLateralWrapper(String renderedSelect) {
+        var lateralMarker = "LATERAL (";
+        var start = renderedSelect.indexOf(lateralMarker);
+        if (start < 0) {
+            throw new IllegalStateException("Expected rendered LATERAL table, but got: %s".formatted(renderedSelect));
+        }
+        var bodyStart = start + lateralMarker.length();
+        var depth = 1;
+        for (var i = bodyStart; i < renderedSelect.length(); i++) {
+            var c = renderedSelect.charAt(i);
+            if (c == '(') {
+                depth++;
+            } else if (c == ')') {
+                depth--;
+                if (depth == 0) {
+                    return renderedSelect.substring(bodyStart, i);
+                }
+            }
+        }
+        throw new IllegalStateException("Unbalanced parentheses in rendered LATERAL: %s".formatted(renderedSelect));
     }
 
     /**
