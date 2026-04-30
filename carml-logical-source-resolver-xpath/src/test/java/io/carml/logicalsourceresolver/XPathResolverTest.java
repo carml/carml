@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.google.common.collect.Iterables;
@@ -109,7 +110,7 @@ class XPathResolverTest {
     private LogicalSourceResolverFactory<XdmItem> xpathResolverFactory;
 
     @BeforeEach
-    public void init() {
+    void init() {
         processor = new Processor(false);
         var compiler = processor.newXPathCompiler();
         compiler.setCaching(true);
@@ -208,9 +209,9 @@ class XPathResolverTest {
     void givenXmlRecord_whenRecordResolverApplied_thenReturnFluxOfAllRecords() throws SaxonApiException {
         // Given
         DocumentBuilder docBuilder = processor.newDocumentBuilder();
-        var record = docBuilder.build(new StreamSource(new StringReader(SOURCE)));
+        var rec = docBuilder.build(new StreamSource(new StringReader(SOURCE)));
 
-        var resolvedSource = ResolvedSource.of(record, new TypeRef<>() {});
+        var resolvedSource = ResolvedSource.of(rec, new TypeRef<>() {});
         var xpathResolver = xpathResolverFactory.apply(LSOURCE.getSource());
         var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(LSOURCE, LSOURCE2));
 
@@ -219,6 +220,29 @@ class XPathResolverTest {
 
         // Then
         StepVerifier.create(recordFlux).expectNextCount(4).verifyComplete();
+    }
+
+    @Test
+    void givenLogicalSourceWithoutIterator_whenRecordResolverApplied_thenDefaultsToDocumentRoot()
+            throws SaxonApiException {
+        // Given — per the rml-io spec, an XML source with no rml:iterator defaults to the
+        // document root ("/" in XPath), yielding one iteration over the whole document.
+        DocumentBuilder docBuilder = processor.newDocumentBuilder();
+
+        var noIterator =
+                CarmlLogicalSource.builder().referenceFormulation(XPATH).build();
+
+        var rec = docBuilder.build(new StreamSource(new StringReader(BOOK_ONE)));
+
+        var resolvedSource = ResolvedSource.of(rec, new TypeRef<>() {});
+        var xpathResolver = xpathResolverFactory.apply(noIterator.getSource());
+        var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(noIterator));
+
+        // When
+        var records = recordResolver.apply(resolvedSource);
+
+        // Then — exactly one iteration over the document root
+        StepVerifier.create(records).expectNextCount(1).verifyComplete();
     }
 
     @Test
@@ -232,9 +256,9 @@ class XPathResolverTest {
                 .referenceFormulation(XPATH)
                 .build();
 
-        var record = docBuilder.build(new StreamSource(new StringReader(BOOK_ONE)));
+        var rec = docBuilder.build(new StreamSource(new StringReader(BOOK_ONE)));
 
-        var resolvedSource = ResolvedSource.of(record, new TypeRef<>() {});
+        var resolvedSource = ResolvedSource.of(rec, new TypeRef<>() {});
         var xpathResolver = xpathResolverFactory.apply(unresolvable.getSource());
         var recordResolver = xpathResolver.getLogicalSourceRecords(Set.of(unresolvable));
 
@@ -340,6 +364,7 @@ class XPathResolverTest {
 
         var recordFlux = recordResolver.apply(resolvedSource);
         var item = recordFlux.blockFirst();
+        assertNotNull(item);
 
         var expression = "./author";
         var evaluationFactory = xpathResolver.getExpressionEvaluationFactory();
@@ -365,6 +390,7 @@ class XPathResolverTest {
 
         recordFlux = recordResolver.apply(resolvedSource);
         item = recordFlux.blockFirst();
+        assertNotNull(item);
 
         evaluationFactory = xpathResolver.getExpressionEvaluationFactory();
         expressionEvaluation = evaluationFactory.apply(item.getSourceRecord());
@@ -393,6 +419,7 @@ class XPathResolverTest {
 
         var recordFlux = recordResolver.apply(resolvedSource);
         var item = recordFlux.blockFirst();
+        assertNotNull(item);
 
         var expression = "./ex:author/lower-case(.)";
         var evaluationFactory = xpathResolver.getExpressionEvaluationFactory();
@@ -422,6 +449,7 @@ class XPathResolverTest {
 
         var recordFlux = recordResolver.apply(resolvedSource);
         var item = recordFlux.blockFirst();
+        assertNotNull(item);
 
         var expression = "./ex:author/lower-case(.)";
         var evaluationFactory = xpathResolver.getExpressionEvaluationFactory();

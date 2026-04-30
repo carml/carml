@@ -1,6 +1,7 @@
 package io.carml.logicalsourceresolver;
 
 import static io.carml.util.LogUtil.exception;
+import static java.util.stream.Collectors.toUnmodifiableMap;
 
 import com.google.auto.service.AutoService;
 import io.carml.model.LogicalSource;
@@ -156,31 +157,45 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
                 .orElseThrow(
                         () -> new LogicalSourceResolverException(NO_SOURCE_MSG.formatted(exception(logicalSources))));
 
+        var iteratorByLogicalSource = resolveIterators(logicalSources);
+
         if (resolved instanceof InputStream resolvedInputStream) {
-            return getXpathResultFlux(resolvedInputStream, logicalSources, expressionsPerLogicalSource);
+            return getXpathResultFlux(resolvedInputStream, iteratorByLogicalSource, expressionsPerLogicalSource);
         } else if (resolved instanceof Mono<?> mono) {
             return mono.flatMapMany(resolvedMono -> {
                 if (resolvedMono instanceof InputStream resolvedInputStreamMono) {
-                    return getXpathResultFlux(resolvedInputStreamMono, logicalSources, expressionsPerLogicalSource);
+                    return getXpathResultFlux(
+                            resolvedInputStreamMono, iteratorByLogicalSource, expressionsPerLogicalSource);
                 } else {
                     throw new LogicalSourceResolverException(
                             UNSUPPORTED_SOURCE_MSG.formatted(exception(logicalSources)));
                 }
             });
         } else if (resolved instanceof XdmItem resolvedXdmItem) {
-            return getXpathResultFlux(resolvedXdmItem, logicalSources);
+            return getXpathResultFlux(resolvedXdmItem, iteratorByLogicalSource);
         } else {
             throw new LogicalSourceResolverException(UNSUPPORTED_SOURCE_MSG.formatted(exception(logicalSources)));
         }
     }
 
+    private static Map<LogicalSource, String> resolveIterators(Set<LogicalSource> logicalSources) {
+        return logicalSources.stream()
+                .collect(toUnmodifiableMap(
+                        Function.identity(),
+                        logicalSource -> logicalSource
+                                .resolveIteratorAsString()
+                                .orElseThrow(() -> new LogicalSourceResolverException(
+                                        "No iterator resolved for XML logical source: %s"
+                                                .formatted(logicalSource.getResourceName())))));
+    }
+
     private Flux<LogicalSourceRecord<XdmItem>> getXpathResultFlux(
             InputStream inputStream,
-            Set<LogicalSource> logicalSources,
+            Map<LogicalSource, String> iteratorByLogicalSource,
             Map<LogicalSource, Set<String>> expressionsPerLogicalSource) {
-        if (requiresParentAxisNavigation(logicalSources, expressionsPerLogicalSource)) {
+        if (requiresParentAxisNavigation(iteratorByLogicalSource.keySet(), expressionsPerLogicalSource)) {
             LOG.warn(PARENT_AXIS_WARN);
-            return parseFullDocumentAndResolve(inputStream, logicalSources);
+            return parseFullDocumentAndResolve(inputStream, iteratorByLogicalSource);
         }
 
         return PausableFluxBridge.<LogicalSourceRecord<XdmItem>>builder()
@@ -188,7 +203,7 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
                     var pausableReader = new PausableStaxXmlReader();
 
                     Map<String, LogicalSource> logicalSourceByExpression = new HashMap<>();
-                    XMLDog xmlDog = prepareXmlDog(emitter, logicalSources, logicalSourceByExpression);
+                    XMLDog xmlDog = prepareXmlDog(emitter, iteratorByLogicalSource, logicalSourceByExpression);
                     var event = xmlDog.createEvent();
                     bridgeAndListen(logicalSourceByExpression, event, emitter);
 
@@ -204,16 +219,17 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
                 .flux();
     }
 
-    private Flux<LogicalSourceRecord<XdmItem>> getXpathResultFlux(XdmItem xdmItem, Set<LogicalSource> logicalSources) {
-        return Flux.fromIterable(logicalSources)
-                .flatMap(logicalSource -> getXpathResultFluxForLogicalSource(xdmItem, logicalSource));
+    private Flux<LogicalSourceRecord<XdmItem>> getXpathResultFlux(
+            XdmItem xdmItem, Map<LogicalSource, String> iteratorByLogicalSource) {
+        return Flux.fromIterable(iteratorByLogicalSource.entrySet())
+                .flatMap(entry -> getXpathResultFluxForLogicalSource(xdmItem, entry.getKey(), entry.getValue()));
     }
 
     private Flux<LogicalSourceRecord<XdmItem>> parseFullDocumentAndResolve(
-            InputStream inputStream, Set<LogicalSource> logicalSources) {
+            InputStream inputStream, Map<LogicalSource, String> iteratorByLogicalSource) {
         try (inputStream) {
             var document = xpathProcessor.newDocumentBuilder().build(new StreamSource(inputStream));
-            return getXpathResultFlux(document, logicalSources);
+            return getXpathResultFlux(document, iteratorByLogicalSource);
         } catch (SaxonApiException e) {
             throw new LogicalSourceResolverException(
                     "Error parsing XML document for full-document XPath evaluation", e);
@@ -259,25 +275,24 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
 
     private XMLDog prepareXmlDog(
             PausableFluxBridge.Emitter<LogicalSourceRecord<XdmItem>> emitter,
-            Set<LogicalSource> logicalSources,
+            Map<LogicalSource, String> iteratorByLogicalSource,
             Map<String, LogicalSource> logicalSourceByExpression) {
+        var logicalSources = iteratorByLogicalSource.keySet();
         XMLDog xmlDog;
         if (xmlDogCache.containsKey(logicalSources)) {
             xmlDog = xmlDogCache.get(logicalSources);
-            logicalSources.forEach(
-                    logicalSource -> logicalSourceByExpression.put(logicalSource.getIterator(), logicalSource));
+            iteratorByLogicalSource.forEach(
+                    (logicalSource, expression) -> logicalSourceByExpression.put(expression, logicalSource));
         } else {
             xmlDog = new XMLDog(nsContext);
-            logicalSources.forEach(logicalSource -> {
+            iteratorByLogicalSource.forEach((logicalSource, expression) -> {
                 setNamespaces(logicalSource);
                 try {
-                    var expression = logicalSource.getIterator();
                     xmlDog.addXPath(expression);
                     logicalSourceByExpression.put(expression, logicalSource);
                 } catch (SAXPathException saxPathException) {
                     emitter.error(new LogicalSourceResolverException(
-                            "Error parsing XPath expression: %s".formatted(logicalSource.getIterator()),
-                            saxPathException));
+                            "Error parsing XPath expression: %s".formatted(expression), saxPathException));
                 }
             });
 
@@ -322,9 +337,9 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
     }
 
     private Flux<LogicalSourceRecord<XdmItem>> getXpathResultFluxForLogicalSource(
-            XdmItem xdmItem, LogicalSource logicalSource) {
+            XdmItem xdmItem, LogicalSource logicalSource, String iterator) {
         try {
-            var selector = xpathCompiler.compile(logicalSource.getIterator()).load();
+            var selector = xpathCompiler.compile(iterator).load();
             selector.setContextItem(xdmItem);
             var value = selector.evaluate();
 
@@ -335,9 +350,7 @@ public class XPathResolver implements LogicalSourceResolver<XdmItem> {
             return Flux.fromIterable(value).map(item -> LogicalSourceRecord.of(logicalSource, item));
         } catch (SaxonApiException e) {
             throw new LogicalSourceResolverException(
-                    "Error applying XPath expression [%s] to entry [%s]"
-                            .formatted(logicalSource.getIterator(), xdmItem),
-                    e);
+                    "Error applying XPath expression [%s] to entry [%s]".formatted(iterator, xdmItem), e);
         }
     }
 

@@ -71,6 +71,10 @@ class DuckDbLogicalViewEvaluatorTest {
                         {"name": "Bob", "age": 25}
                     ]""");
 
+            // Per RML I/O spec, JSONPath sources without an explicit rml:iterator default to "$".
+            // The default-iterator path returns values as strings via json_extract_string with the
+            // datatype carried on the __type companion column, eliminating the structural-fragility
+            // surface of the legacy read_json_auto path's Java-type inference.
             var view = createJsonView(
                     jsonFile.toString(), null, Set.of(expressionField("name", "name"), expressionField("age", "age")));
             var evaluator = new DuckDbLogicalViewEvaluator(connection);
@@ -83,14 +87,14 @@ class DuckDbLogicalViewEvaluatorTest {
 
                         var first = iterations.get(0);
                         assertThat(first.getValue("name"), is(Optional.of("Alice")));
-                        assertThat(first.getValue("age"), is(Optional.of(30L)));
+                        assertThat(first.getValue("age"), is(Optional.of("30")));
                         assertThat(first.getKeys(), containsInAnyOrder("#", "name", "name.#", "age", "age.#"));
                         assertThat(first.getKeys(), not(containsInAnyOrder(DuckDbViewCompiler.INDEX_COLUMN)));
                         assertThat(first.getValue("#"), is(Optional.of(0)));
 
                         var second = iterations.get(1);
                         assertThat(second.getValue("name"), is(Optional.of("Bob")));
-                        assertThat(second.getValue("age"), is(Optional.of(25L)));
+                        assertThat(second.getValue("age"), is(Optional.of("25")));
                     })
                     .verifyComplete();
         }
@@ -115,7 +119,7 @@ class DuckDbLogicalViewEvaluatorTest {
                         assertThat(iterations, hasSize(2));
 
                         var second = iterations.get(1);
-                        assertThat(second.getValue("id"), is(Optional.of(2L)));
+                        assertThat(second.getValue("id"), is(Optional.of("2")));
                         assertThat(second.getValue("name"), is(Optional.empty()));
                     })
                     .verifyComplete();
@@ -148,12 +152,12 @@ class DuckDbLogicalViewEvaluatorTest {
                         var first = iterations.get(0);
                         assertThat(first.getValue("id"), is(Optional.of("x1")));
                         assertThat(first.getValue("value"), is(Optional.of("hello")));
-                        assertThat(first.getValue("count"), is(Optional.of(10L)));
+                        assertThat(first.getValue("count"), is(Optional.of("10")));
 
                         var second = iterations.get(1);
                         assertThat(second.getValue("id"), is(Optional.of("x2")));
                         assertThat(second.getValue("value"), is(Optional.of("world")));
-                        assertThat(second.getValue("count"), is(Optional.of(20L)));
+                        assertThat(second.getValue("count"), is(Optional.of("20")));
                     })
                     .verifyComplete();
         }
@@ -271,11 +275,11 @@ class DuckDbLogicalViewEvaluatorTest {
 
                         var first = iterations.get(0);
                         assertThat(first.getValue("name"), is(Optional.of("Alice")));
-                        assertThat(first.getValue("age"), is(Optional.of(30L)));
+                        assertThat(first.getValue("age"), is(Optional.of("30")));
 
                         var second = iterations.get(1);
                         assertThat(second.getValue("name"), is(Optional.of("Bob")));
-                        assertThat(second.getValue("age"), is(Optional.of(25L)));
+                        assertThat(second.getValue("age"), is(Optional.of("25")));
                     })
                     .verifyComplete();
         }
@@ -789,7 +793,8 @@ class DuckDbLogicalViewEvaluatorTest {
             StepVerifier.create(evaluator.evaluate(view, source -> null, context))
                     .assertNext(iteration -> {
                         assertThat(iteration.getFieldReferenceFormulation("name"), is(Optional.empty()));
-                        // read_json_auto source: string fields have no natural datatype
+                        // JSON iterator path: string fields have no natural datatype
+                        // (json_type returns 'VARCHAR' which has no XSD mapping)
                         assertThat(iteration.getNaturalDatatype("name"), is(Optional.empty()));
                         // Index key always has xsd:integer
                         assertThat(iteration.getNaturalDatatype("#"), is(Optional.of(XSD.INTEGER)));
@@ -989,7 +994,7 @@ class DuckDbLogicalViewEvaluatorTest {
 
             // Verify the flux completes successfully when subscribed on bounded elastic
             StepVerifier.create(evaluator.evaluate(view, source -> null, context))
-                    .assertNext(iteration -> assertThat(iteration.getValue("id"), is(Optional.of(1L))))
+                    .assertNext(iteration -> assertThat(iteration.getValue("id"), is(Optional.of("1"))))
                     .verifyComplete();
         }
 
@@ -2065,6 +2070,38 @@ class DuckDbLogicalViewEvaluatorTest {
 
     // --- Helper methods ---
 
+    /**
+     * Creates a {@link LogicalSource} mock with a lenient stub on
+     * {@link LogicalSource#resolveIteratorAsString()} that mirrors the production default-method
+     * semantics. Mockito does not execute default interface methods on mocks, so the stub
+     * reproduces the lookup chain: declared iterator first, then the formulation's default
+     * (derived from its IRI for {@code rml:JSONPath} → {@code "$"} and {@code rml:XPath} →
+     * {@code "/"} since mock formulations don't execute their own default methods either).
+     * Tests can override either layer with explicit stubs.
+     */
+    private static LogicalSource newLogicalSourceMock() {
+        var logicalSource = mock(LogicalSource.class);
+        lenient().when(logicalSource.resolveIteratorAsString()).thenAnswer(invocation -> {
+            var declared = logicalSource.getIterator();
+            if (declared != null && !declared.isBlank()) {
+                return Optional.of(declared);
+            }
+            var formulation = logicalSource.getReferenceFormulation();
+            if (formulation == null) {
+                return Optional.empty();
+            }
+            var iri = formulation.getAsResource();
+            if (Rdf.Rml.JsonPath.equals(iri) || Rdf.Ql.JsonPath.equals(iri)) {
+                return Optional.of("$");
+            }
+            if (Rdf.Rml.XPath.equals(iri) || Rdf.Ql.XPath.equals(iri)) {
+                return Optional.of("/");
+            }
+            return Optional.empty();
+        });
+        return logicalSource;
+    }
+
     private static ExpressionField expressionField(String fieldName, String reference) {
         var field = mock(ExpressionField.class);
         lenient().when(field.getFieldName()).thenReturn(fieldName);
@@ -2092,7 +2129,7 @@ class DuckDbLogicalViewEvaluatorTest {
         var refFormulation = mock(ReferenceFormulation.class);
         lenient().when(refFormulation.getAsResource()).thenReturn(Rdf.Ql.JsonPath);
 
-        var logicalSource = mock(LogicalSource.class);
+        var logicalSource = newLogicalSourceMock();
         lenient().when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
         lenient().when(logicalSource.getSource()).thenReturn(fileSource);
         lenient().when(logicalSource.getIterator()).thenReturn(iterator);
@@ -2121,7 +2158,7 @@ class DuckDbLogicalViewEvaluatorTest {
         var refFormulation = mock(ReferenceFormulation.class);
         lenient().when(refFormulation.getAsResource()).thenReturn(Rdf.Ql.Csv);
 
-        var logicalSource = mock(LogicalSource.class);
+        var logicalSource = newLogicalSourceMock();
         lenient().when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
         lenient().when(logicalSource.getSource()).thenReturn(csvwTable);
 
@@ -2144,7 +2181,7 @@ class DuckDbLogicalViewEvaluatorTest {
         var refFormulation = mock(ReferenceFormulation.class);
         lenient().when(refFormulation.getAsResource()).thenReturn(Rdf.Ql.Csv);
 
-        var logicalSource = mock(LogicalSource.class);
+        var logicalSource = newLogicalSourceMock();
         lenient().when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
         lenient().when(logicalSource.getSource()).thenReturn(csvwTable);
 
@@ -2177,7 +2214,7 @@ class DuckDbLogicalViewEvaluatorTest {
         var refFormulation = mock(ReferenceFormulation.class);
         lenient().when(refFormulation.getAsResource()).thenReturn(Rdf.Ql.Rdb);
 
-        var logicalSource = mock(LogicalSource.class);
+        var logicalSource = newLogicalSourceMock();
         lenient().when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
         lenient().when(logicalSource.getQuery()).thenReturn(query);
 
@@ -2199,7 +2236,7 @@ class DuckDbLogicalViewEvaluatorTest {
         var refFormulation = mock(ReferenceFormulation.class);
         lenient().when(refFormulation.getAsResource()).thenReturn(refIri);
 
-        var logicalSource = mock(LogicalSource.class);
+        var logicalSource = newLogicalSourceMock();
         lenient().when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
         lenient().when(logicalSource.getSource()).thenReturn(fileSource);
         lenient().when(logicalSource.getIterator()).thenReturn(iterator);

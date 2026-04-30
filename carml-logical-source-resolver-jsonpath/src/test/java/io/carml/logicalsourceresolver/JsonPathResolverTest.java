@@ -322,6 +322,33 @@ class JsonPathResolverTest {
     }
 
     @Test
+    void givenLogicalSourceWithoutIterator_whenGetRecordResolver_thenReturnsSingleRootNodeRecord() {
+        // Per RML I/O spec, JSONPath sources without an explicit rml:iterator default to "$"
+        // (the root JSON node) — equivalent to an explicit iterator("$").
+        var rootSource = CarmlLogicalSource.builder()
+                .source(CarmlFilePath.of("food.json"))
+                .referenceFormulation(JSON_PATH)
+                .build();
+
+        Map<String, Object> waffles = Map.of("name", "Belgian Waffles", "countryOfOrigin", "Belgium");
+
+        var rec = new ObjectMapper().valueToTree(waffles);
+        var resolvedSource = ResolvedSource.of(rec, new TypeRef<>() {});
+
+        var jsonPathResolver = jsonPathResolverFactory.apply(rootSource.getSource());
+
+        // When
+        var recordResolver = jsonPathResolver.getLogicalSourceRecords(Set.of(rootSource));
+        var records = recordResolver.apply(resolvedSource);
+
+        // Then
+        StepVerifier.create(records)
+                .expectNextMatches(logicalSourceRecord ->
+                        logicalSourceRecord.getSourceRecord().equals(rec))
+                .verifyComplete();
+    }
+
+    @Test
     void givenRecordResolverWithProvidedRecord_whenGetRecordResolver_thenReturnSourceFluxWithRecord() {
         // Given
         var foodSource = CarmlLogicalSource.builder()

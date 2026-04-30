@@ -5,6 +5,7 @@ import io.carml.rdfmapper.annotations.RdfProperty;
 import io.carml.rdfmapper.annotations.RdfType;
 import io.carml.vocab.Rdf;
 import io.carml.vocab.Rml;
+import java.util.Optional;
 import java.util.Set;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -23,6 +24,18 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 public class XPathReferenceFormulation extends CarmlResource implements ReferenceFormulation {
 
     public static final Set<org.eclipse.rdf4j.model.Resource> IRIS = Set.of(Rdf.Rml.XPath, Rdf.Ql.XPath);
+
+    /**
+     * The XPath spec default iterator: {@code /} (the document root). Per
+     * {@code rml-io/spec/section/source-vocabulary.md}, an XML source whose iterator is omitted
+     * defaults to the document root.
+     */
+    private static final Object DEFAULT_ITERATOR = "/";
+
+    @Override
+    public Optional<Object> getDefaultIterator() {
+        return Optional.of(DEFAULT_ITERATOR);
+    }
 
     @Singular
     private Set<XmlNamespace> namespaces;

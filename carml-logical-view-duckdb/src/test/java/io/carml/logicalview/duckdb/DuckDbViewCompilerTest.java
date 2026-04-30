@@ -37,6 +37,7 @@ import io.carml.model.impl.CarmlTemplate;
 import io.carml.vocab.Rdf;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.UnaryOperator;
 import org.eclipse.rdf4j.model.Resource;
@@ -55,19 +56,24 @@ class DuckDbViewCompilerTest {
     class JsonSource {
 
         @Test
-        void compile_jsonSourceWithFields_producesReadJsonAuto() {
+        void compile_jsonSourceWithFields_producesIteratorPath() {
+            // Per RML I/O spec, JSON sources without an explicit rml:iterator default to "$"
+            // (the root JSON node). The default-iterator path uses json_extract + unnest with a
+            // CASE for array vs. object roots.
             var view = createJsonView(
                     "people.json", null, Set.of(expressionField("name", "name"), expressionField("age", "age")));
             var context = EvaluationContext.defaults();
 
             var sql = DuckDbViewCompiler.compile(view, context).sql();
 
-            assertThat(sql, containsString("read_json_auto('people.json')"));
-            assertThat(sql, containsString("\"name\" \"name\""));
-            assertThat(sql, containsString("\"age\" \"age\""));
+            assertThat(sql, containsString("read_text('people.json')"));
+            assertThat(sql, containsString("json_extract(content, '$')"));
+            assertThat(sql, containsString("json_extract_string(\"view_source\".\"__iter\", 'name') \"name\""));
+            assertThat(sql, containsString("json_extract_string(\"view_source\".\"__iter\", 'age') \"age\""));
             assertThat(sql, containsString("row_number() over () \"" + DuckDbViewCompiler.INDEX_COLUMN + "\""));
             assertThat(sql, containsString("with \"view_source\" as ("));
             assertThat(sql, containsString("from \"view_source\""));
+            assertThat(sql, not(containsString("read_json_auto")));
         }
 
         @Test
@@ -95,37 +101,41 @@ class DuckDbViewCompilerTest {
         }
 
         @Test
-        void compile_jsonSourceWithoutIterator_producesCastNullTypeCompanion() {
+        void compile_jsonSourceWithoutIterator_producesJsonTypeCompanion() {
+            // Per RML I/O spec, the JSONPath default iterator is "$" (root). The iterator path
+            // produces structurally typed companion columns via json_type, not the legacy
+            // CAST(NULL AS VARCHAR) of the removed read_json_auto fallback.
             var view = createJsonView("data.json", null, Set.of(expressionField("name", "name")));
             var context = EvaluationContext.defaults();
 
             var sql = DuckDbViewCompiler.compile(view, context).sql();
 
-            // Without iterator, read_json_auto is used (column strategy) => CAST(NULL AS VARCHAR)
-            assertThat(sql, containsString("cast(null as varchar) \"name.__type\""));
-            assertThat(sql, not(containsString("json_type")));
+            assertThat(sql, containsString("json_type(\"view_source\".\"__iter\", 'name') \"name.__type\""));
+            assertThat(sql, not(containsString("cast(null as varchar)")));
         }
 
         @Test
-        void compile_jsonSourceWithBlankIterator_omitsJsonPath() {
+        void compile_jsonSourceWithBlankIterator_defaultsToRootPath() {
+            // Per RML I/O spec, blank iterators default to "$" the same as null iterators.
             var view = createJsonView("data.json", "   ", Set.of(expressionField("id", "id")));
             var context = EvaluationContext.defaults();
 
             var sql = DuckDbViewCompiler.compile(view, context).sql();
 
-            assertThat(sql, containsString("read_json_auto('data.json')"));
-            assertThat(sql, not(containsString("json_path")));
+            assertThat(sql, containsString("json_extract(content, '$')"));
+            assertThat(sql, not(containsString("read_json_auto")));
         }
 
         @Test
-        void compile_jsonSourceWithoutIterator_omitsJsonPath() {
+        void compile_jsonSourceWithoutIterator_defaultsToRootPath() {
+            // Per RML I/O spec, JSONPath sources without an explicit rml:iterator default to "$".
             var view = createJsonView("data.json", null, Set.of(expressionField("id", "id")));
             var context = EvaluationContext.defaults();
 
             var sql = DuckDbViewCompiler.compile(view, context).sql();
 
-            assertThat(sql, containsString("read_json_auto('data.json')"));
-            assertThat(sql, not(containsString("json_path")));
+            assertThat(sql, containsString("json_extract(content, '$')"));
+            assertThat(sql, not(containsString("read_json_auto")));
         }
 
         @Test
@@ -362,9 +372,9 @@ class DuckDbViewCompilerTest {
 
             var sql = DuckDbViewCompiler.compile(view, context).sql();
 
-            assertThat(sql, containsString("\"name\" \"name\""));
-            assertThat(sql, not(containsString("\"age\" \"age\"")));
-            assertThat(sql, not(containsString("\"email\" \"email\"")));
+            assertThat(sql, containsString("json_extract_string(\"view_source\".\"__iter\", 'name') \"name\""));
+            assertThat(sql, not(containsString("json_extract_string(\"view_source\".\"__iter\", 'age') \"age\"")));
+            assertThat(sql, not(containsString("json_extract_string(\"view_source\".\"__iter\", 'email') \"email\"")));
         }
 
         @Test
@@ -375,8 +385,8 @@ class DuckDbViewCompilerTest {
 
             var sql = DuckDbViewCompiler.compile(view, context).sql();
 
-            assertThat(sql, containsString("\"name\" \"name\""));
-            assertThat(sql, containsString("\"age\" \"age\""));
+            assertThat(sql, containsString("json_extract_string(\"view_source\".\"__iter\", 'name') \"name\""));
+            assertThat(sql, containsString("json_extract_string(\"view_source\".\"__iter\", 'age') \"age\""));
         }
     }
 
@@ -482,7 +492,9 @@ class DuckDbViewCompilerTest {
             var sql = DuckDbViewCompiler.compile(view, EvaluationContext.defaults())
                     .sql();
 
-            assertThat(sql, containsString("\"id\" \"identifier\""));
+            // Default-iterator JSONPath: template segment is extracted via json_extract_string.
+            assertThat(sql, containsString("json_extract_string(\"view_source\".\"__iter\", 'id')"));
+            assertThat(sql, containsString("\"identifier\""));
             assertThat(sql, not(containsString("||")));
         }
 
@@ -504,7 +516,7 @@ class DuckDbViewCompilerTest {
 
             assertThat(sql, containsString("'http://example.org/'"));
             assertThat(sql, containsString("||"));
-            assertThat(sql, containsString("\"id\""));
+            assertThat(sql, containsString("json_extract_string(\"view_source\".\"__iter\", 'id')"));
             assertThat(sql, containsString("\"uri\""));
         }
     }
@@ -540,7 +552,7 @@ class DuckDbViewCompilerTest {
 
         @Test
         void compile_noReferenceFormulation_throwsIllegalArgumentException() {
-            var logicalSource = mock(LogicalSource.class);
+            var logicalSource = newLogicalSourceMock();
             when(logicalSource.getReferenceFormulation()).thenReturn(null);
 
             var view = mock(LogicalView.class);
@@ -556,7 +568,7 @@ class DuckDbViewCompilerTest {
             var refFormulation = mock(ReferenceFormulation.class);
             when(refFormulation.getAsResource()).thenReturn(Rdf.Ql.XPath);
 
-            var logicalSource = mock(LogicalSource.class);
+            var logicalSource = newLogicalSourceMock();
             when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
 
             var view = mock(LogicalView.class);
@@ -575,7 +587,7 @@ class DuckDbViewCompilerTest {
             var refFormulation = mock(ReferenceFormulation.class);
             when(refFormulation.getAsResource()).thenReturn(Rdf.Ql.JsonPath);
 
-            var logicalSource = mock(LogicalSource.class);
+            var logicalSource = newLogicalSourceMock();
             when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
             when(logicalSource.getSource()).thenReturn(fileSource);
 
@@ -592,7 +604,7 @@ class DuckDbViewCompilerTest {
             var refFormulation = mock(ReferenceFormulation.class);
             when(refFormulation.getAsResource()).thenReturn(Rdf.Ql.JsonPath);
 
-            var logicalSource = mock(LogicalSource.class);
+            var logicalSource = newLogicalSourceMock();
             when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
             when(logicalSource.getSource()).thenReturn(null);
 
@@ -620,7 +632,7 @@ class DuckDbViewCompilerTest {
             var refFormulation = mock(ReferenceFormulation.class);
             when(refFormulation.getAsResource()).thenReturn(unknownIri);
 
-            var logicalSource = mock(LogicalSource.class);
+            var logicalSource = newLogicalSourceMock();
             when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
 
             var view = mock(LogicalView.class);
@@ -631,7 +643,10 @@ class DuckDbViewCompilerTest {
         }
 
         @Test
-        void compile_fieldWithFunctionValue_throwsUnsupportedOperationException() {
+        void compile_fieldWithFunctionValue_skipsFieldForSourceFallback() {
+            // The default-iterator JSONPath strategy supports per-row source-evaluation fallback
+            // (sourceEvaluationColumn() is non-empty), so function-based fields are skipped
+            // during SQL compilation rather than failing the entire view.
             var field = mock(ExpressionField.class);
             when(field.getFieldName()).thenReturn("computed");
             when(field.getReference()).thenReturn(null);
@@ -642,11 +657,15 @@ class DuckDbViewCompilerTest {
             var view = createJsonView("data.json", null, Set.of(field));
             var context = EvaluationContext.defaults();
 
-            assertThrows(UnsupportedOperationException.class, () -> DuckDbViewCompiler.compile(view, context));
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
+
+            // Field is omitted from the projection — no "computed" alias appears.
+            assertThat(sql, not(containsString("\"computed\"")));
         }
 
         @Test
-        void compile_fieldWithFunctionExecution_throwsUnsupportedOperationException() {
+        void compile_fieldWithFunctionExecution_skipsFieldForSourceFallback() {
+            // Same source-fallback path as compile_fieldWithFunctionValue_skipsFieldForSourceFallback.
             var field = mock(ExpressionField.class);
             when(field.getFieldName()).thenReturn("computed");
             when(field.getReference()).thenReturn(null);
@@ -658,7 +677,9 @@ class DuckDbViewCompilerTest {
             var view = createJsonView("data.json", null, Set.of(field));
             var context = EvaluationContext.defaults();
 
-            assertThrows(UnsupportedOperationException.class, () -> DuckDbViewCompiler.compile(view, context));
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
+
+            assertThat(sql, not(containsString("\"computed\"")));
         }
 
         @Test
@@ -682,7 +703,7 @@ class DuckDbViewCompilerTest {
             var refFormulation = mock(ReferenceFormulation.class);
             when(refFormulation.getAsResource()).thenReturn(Rdf.Ql.Rdb);
 
-            var logicalSource = mock(LogicalSource.class);
+            var logicalSource = newLogicalSourceMock();
             when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
             when(logicalSource.getQuery()).thenReturn(null);
             when(logicalSource.getTableName()).thenReturn(null);
@@ -711,7 +732,7 @@ class DuckDbViewCompilerTest {
             var nestedField = mock(ExpressionField.class);
             when(nestedField.getFieldName()).thenReturn("item_type");
             when(nestedField.getReference()).thenReturn(null);
-            var iterableField = iterableField("items", "items", Set.of(nestedField));
+            var iterableField = iterableField("items", "$.items[*]", Set.of(nestedField));
             var view = createJsonViewWithFields("data.json", null, Set.of(iterableField));
             var context = EvaluationContext.defaults();
 
@@ -745,7 +766,7 @@ class DuckDbViewCompilerTest {
             var refFormulation = mock(ReferenceFormulation.class);
             when(refFormulation.getAsResource()).thenReturn(Rdf.Ql.JsonPath);
 
-            var logicalSource = mock(LogicalSource.class);
+            var logicalSource = newLogicalSourceMock();
             when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
             when(logicalSource.getSource()).thenReturn(filePath);
             when(logicalSource.getIterator()).thenReturn(null);
@@ -759,7 +780,8 @@ class DuckDbViewCompilerTest {
 
             var sql = DuckDbViewCompiler.compile(view, context).sql();
 
-            assertThat(sql, containsString("read_json_auto('data/people.json')"));
+            assertThat(sql, containsString("read_text('data/people.json')"));
+            assertThat(sql, containsString("json_extract(content, '$')"));
         }
     }
 
@@ -770,12 +792,12 @@ class DuckDbViewCompilerTest {
 
         @Test
         void compile_fieldReferenceWithSpecialChars_escapesDoubleQuotes() {
+            // Field references containing double quotes: rejected by the JSONPath validator since
+            // the syntax is invalid (quoted identifiers are not legal in bare references).
             var view = createJsonView("data.json", null, Set.of(expressionField("col", "my\"column")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context).sql();
-
-            assertThat(sql, containsString("\"my\"\"column\" \"col\""));
+            assertThrows(IllegalArgumentException.class, () -> DuckDbViewCompiler.compile(view, context));
         }
 
         @Test
@@ -785,7 +807,7 @@ class DuckDbViewCompilerTest {
 
             var sql = DuckDbViewCompiler.compile(view, context).sql();
 
-            assertThat(sql, containsString("read_json_auto('data''s.json')"));
+            assertThat(sql, containsString("read_text('data''s.json')"));
         }
 
         @Test
@@ -795,7 +817,7 @@ class DuckDbViewCompilerTest {
 
             var sql = DuckDbViewCompiler.compile(view, context).sql();
 
-            assertThat(sql, containsString("\"ref\" \"my-field\""));
+            assertThat(sql, containsString("'ref') \"my-field\""));
         }
 
         @Test
@@ -805,8 +827,8 @@ class DuckDbViewCompilerTest {
 
             var sql = DuckDbViewCompiler.compile(view, context).sql();
 
-            // jOOQ may quote unquoted names depending on dialect; verify the alias is present
-            assertThat(sql, containsString("\"ref\""));
+            // The reference is now extracted via json_extract_string with the bare key name.
+            assertThat(sql, containsString("'ref'"));
             assertThat(sql, containsString("myField_1"));
         }
     }
@@ -843,9 +865,9 @@ class DuckDbViewCompilerTest {
 
             var sql = DuckDbViewCompiler.compile(view, context).sql();
 
-            assertThat(sql, containsString("\"name\" \"name\""));
-            assertThat(sql, containsString("\"email\" \"email\""));
-            assertThat(sql, not(containsString("\"age\" \"age\"")));
+            assertThat(sql, containsString("json_extract_string(\"view_source\".\"__iter\", 'name') \"name\""));
+            assertThat(sql, containsString("json_extract_string(\"view_source\".\"__iter\", 'email') \"email\""));
+            assertThat(sql, not(containsString("'age') \"age\"")));
             assertThat(sql, containsString("limit 50"));
         }
     }
@@ -856,13 +878,17 @@ class DuckDbViewCompilerTest {
     class RmlVocabularyVariants {
 
         @Test
-        void compile_rmlJsonPathFormulation_producesReadJsonAuto() {
+        void compile_rmlJsonPathFormulation_producesIteratorPath() {
+            // JSON sources without an explicit iterator default to "$" per the RML I/O spec,
+            // applied uniformly to both the `ql:JSONPath` and `rml:JSONPath` formulations.
             var view = createViewWithRefFormulation(Rdf.Rml.JsonPath, "data.json", Set.of(expressionField("id", "id")));
             var context = EvaluationContext.defaults();
 
             var sql = DuckDbViewCompiler.compile(view, context).sql();
 
-            assertThat(sql, containsString("read_json_auto('data.json')"));
+            assertThat(sql, containsString("json_extract(content, '$')"));
+            assertThat(sql, containsString("read_text('data.json')"));
+            assertThat(sql, not(containsString("read_json_auto")));
         }
 
         @Test
@@ -892,7 +918,7 @@ class DuckDbViewCompilerTest {
             var refFormulation = mock(ReferenceFormulation.class);
             when(refFormulation.getAsResource()).thenReturn(Rdf.Rml.XPath);
 
-            var logicalSource = mock(LogicalSource.class);
+            var logicalSource = newLogicalSourceMock();
             when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
 
             var view = mock(LogicalView.class);
@@ -921,18 +947,30 @@ class DuckDbViewCompilerTest {
 
         @Test
         void compile_producesWellFormedCte() {
+            // The default-iterator path (root path "$") produces an UNNEST over a CASE that
+            // handles both array-rooted documents (expand into one row per element) and
+            // object-rooted documents (single row), matching the reactive resolver's behavior.
             var view = createJsonView("people.json", null, Set.of(expressionField("name", "name")));
             var context = EvaluationContext.defaults();
 
             var sql = DuckDbViewCompiler.compile(view, context).sql();
 
-            var expected = "with \"view_source\" as ("
-                    + "select *, row_number() over () \"__idx\" from read_json_auto('people.json')"
-                    + ") select \"view_source\".\"name\" \"name\", "
-                    + "cast(0 as bigint) \"name.#\", "
-                    + "cast(null as varchar) \"name.__type\", "
-                    + "\"view_source\".\"__idx\" "
-                    + "from \"view_source\"";
+            var rootIteratorSource = """
+                    (select unnest(case when json_type(content, '$') = 'ARRAY'\
+                     then cast(json_extract(content, '$') as JSON[])\
+                     else list_value(json_extract(content, '$')) end)\
+                     as "__iter" from read_text('people.json'))\
+                    """;
+            var expected = """
+                    with "view_source" as (\
+                    select *, row_number() over () "__idx" from %s\
+                    ) select json_extract_string("view_source"."__iter", 'name') "name", \
+                    cast(0 as bigint) "name.#", \
+                    json_type("view_source"."__iter", 'name') "name.__type", \
+                    "view_source"."__idx", \
+                    "view_source"."__iter" "__iter" \
+                    from "view_source"\
+                    """.formatted(rootIteratorSource);
 
             assertThat(sql, is(expected));
         }
@@ -944,12 +982,16 @@ class DuckDbViewCompilerTest {
 
             var sql = DuckDbViewCompiler.compile(view, context).sql();
 
+            var rootIteratorSource = "(select unnest(case when json_type(content, '$') = 'ARRAY'"
+                    + " then cast(json_extract(content, '$') as JSON[])"
+                    + " else list_value(json_extract(content, '$')) end)"
+                    + " as \"__iter\" from read_text('people.json'))";
             var expected = "with \"view_source\" as ("
-                    + "select *, row_number() over () \"__idx\" from read_json_auto('people.json')"
+                    + "select *, row_number() over () \"__idx\" from " + rootIteratorSource
                     + "), \"deduped\" as ("
-                    + "select distinct \"view_source\".\"name\" \"name\", "
+                    + "select distinct json_extract_string(\"view_source\".\"__iter\", 'name') \"name\", "
                     + "cast(0 as bigint) \"name.#\", "
-                    + "cast(null as varchar) \"name.__type\" "
+                    + "json_type(\"view_source\".\"__iter\", 'name') \"name.__type\" "
                     + "from \"view_source\""
                     + ") select *, "
                     + "row_number() over () \"__idx\" "
@@ -1142,8 +1184,8 @@ class DuckDbViewCompilerTest {
 
         @Test
         void compile_iterableFieldWithNestedExpressionFields_producesUnnest() {
-            var nestedField = expressionField("item_type", "type");
-            var iterableField = iterableField("item", "items", Set.of(nestedField));
+            var nestedField = expressionField("item_type", "$.type");
+            var iterableField = iterableField("item", "$.items[*]", Set.of(nestedField));
 
             var view = createJsonViewWithFields("data.json", null, Set.of(iterableField));
             var context = EvaluationContext.defaults();
@@ -1151,18 +1193,16 @@ class DuckDbViewCompilerTest {
             var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("LATERAL"));
-            assertThat(sql, containsString("unnest(\"view_source\".\"items\")"));
-            assertThat(sql, containsString("\"item\""));
-            assertThat(sql, containsString("\"item\".\"type\" \"item.item_type\""));
-            // Ordinal column for iterable field index
+            assertThat(sql, containsString("unnest(json_extract(\"view_source\".\"__iter\", '$.items[*]'))"));
+            assertThat(sql, containsString("json_extract_string(\"item\".\"unnest\", '$.type') \"item.item_type\""));
             assertThat(sql, containsString("\"item\".\"__ord\" \"item.#\""));
         }
 
         @Test
         void compile_iterableFieldWithMultipleNestedFields_producesUnnest() {
-            var nestedType = expressionField("item_type", "type");
-            var nestedName = expressionField("item_name", "name");
-            var iterableField = iterableField("item", "items", Set.of(nestedType, nestedName));
+            var nestedType = expressionField("item_type", "$.type");
+            var nestedName = expressionField("item_name", "$.name");
+            var iterableField = iterableField("item", "$.items[*]", Set.of(nestedType, nestedName));
 
             var view = createJsonViewWithFields("data.json", null, Set.of(iterableField));
             var context = EvaluationContext.defaults();
@@ -1170,17 +1210,17 @@ class DuckDbViewCompilerTest {
             var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("LATERAL"));
-            assertThat(sql, containsString("unnest(\"view_source\".\"items\")"));
-            assertThat(sql, containsString("\"item\".\"type\" \"item.item_type\""));
-            assertThat(sql, containsString("\"item\".\"name\" \"item.item_name\""));
+            assertThat(sql, containsString("unnest(json_extract(\"view_source\".\"__iter\", '$.items[*]'))"));
+            assertThat(sql, containsString("json_extract_string(\"item\".\"unnest\", '$.type') \"item.item_type\""));
+            assertThat(sql, containsString("json_extract_string(\"item\".\"unnest\", '$.name') \"item.item_name\""));
             assertThat(sql, containsString("\"item\".\"__ord\" \"item.#\""));
         }
 
         @Test
         void compile_mixedExpressionAndIterableFields_producesCorrectSql() {
-            var topLevelField = expressionField("person_name", "name");
-            var nestedField = expressionField("item_type", "type");
-            var iterableField = iterableField("item", "items", Set.of(nestedField));
+            var topLevelField = expressionField("person_name", "$.name");
+            var nestedField = expressionField("item_type", "$.type");
+            var iterableField = iterableField("item", "$.items[*]", Set.of(nestedField));
 
             // Use LinkedHashSet to preserve order for deterministic assertion
             var fields = new LinkedHashSet<Field>();
@@ -1192,13 +1232,14 @@ class DuckDbViewCompilerTest {
 
             var sql = DuckDbViewCompiler.compile(view, context).sql();
 
-            // Top-level expression field
-            assertThat(sql, containsString("\"name\" \"person_name\""));
+            // Top-level expression field on the default-iterator path
+            assertThat(
+                    sql, containsString("json_extract_string(\"view_source\".\"__iter\", '$.name') \"person_name\""));
             // UNNEST for iterable field via LATERAL subquery
             assertThat(sql, containsString("LATERAL"));
-            assertThat(sql, containsString("unnest(\"view_source\".\"items\")"));
+            assertThat(sql, containsString("unnest(json_extract(\"view_source\".\"__iter\", '$.items[*]'))"));
             // Nested field qualified by unnest alias
-            assertThat(sql, containsString("\"item\".\"type\" \"item.item_type\""));
+            assertThat(sql, containsString("json_extract_string(\"item\".\"unnest\", '$.type') \"item.item_type\""));
             // Ordinal column
             assertThat(sql, containsString("\"item\".\"__ord\" \"item.#\""));
             // FROM clause has both view_source and LATERAL
@@ -1207,24 +1248,24 @@ class DuckDbViewCompilerTest {
 
         @Test
         void compile_iterableFieldWithProjection_selectsOnlyProjectedNestedFields() {
-            var nested1 = expressionField("item_type", "type");
-            var nested2 = expressionField("item_name", "name");
-            var iterableField = iterableField("item", "items", Set.of(nested1, nested2));
+            var nested1 = expressionField("item_type", "$.type");
+            var nested2 = expressionField("item_name", "$.name");
+            var iterableField = iterableField("item", "$.items[*]", Set.of(nested1, nested2));
 
             var view = createJsonViewWithFields("data.json", null, Set.of(iterableField));
             var context = EvaluationContext.withProjectedFields(Set.of("item.item_type"));
 
             var sql = DuckDbViewCompiler.compile(view, context).sql();
 
-            assertThat(sql, containsString("\"item\".\"type\" \"item.item_type\""));
+            assertThat(sql, containsString("json_extract_string(\"item\".\"unnest\", '$.type') \"item.item_type\""));
             assertThat(sql, containsString("\"item\".\"__ord\" \"item.#\""));
-            assertThat(sql, not(containsString("\"item\".\"name\" \"item.item_name\"")));
+            assertThat(sql, not(containsString("'$.name') \"item.item_name\"")));
         }
 
         @Test
         void compile_iterableFieldWithDedup_producesUnnestInDistinctCte() {
-            var nestedField = expressionField("item_type", "type");
-            var iterableField = iterableField("item", "items", Set.of(nestedField));
+            var nestedField = expressionField("item_type", "$.type");
+            var iterableField = iterableField("item", "$.items[*]", Set.of(nestedField));
 
             var view = createJsonViewWithFields("data.json", null, Set.of(iterableField));
             var context = EvaluationContext.of(Set.of(), DedupStrategy.exact(), null);
@@ -1234,8 +1275,8 @@ class DuckDbViewCompilerTest {
             assertThat(sql, containsString("\"deduped\" as ("));
             assertThat(sql, containsString("select distinct"));
             assertThat(sql, containsString("LATERAL"));
-            assertThat(sql, containsString("unnest(\"view_source\".\"items\")"));
-            assertThat(sql, containsString("\"item\".\"type\" \"item.item_type\""));
+            assertThat(sql, containsString("unnest(json_extract(\"view_source\".\"__iter\", '$.items[*]'))"));
+            assertThat(sql, containsString("json_extract_string(\"item\".\"unnest\", '$.type') \"item.item_type\""));
             assertThat(sql, containsString("\"item\".\"__ord\" \"item.#\""));
         }
 
@@ -1466,17 +1507,17 @@ class DuckDbViewCompilerTest {
             var parentView = createJsonView(
                     "departments.json",
                     null,
-                    Set.of(expressionField("dept_id", "id"), expressionField("dept_name", "name")));
+                    Set.of(expressionField("dept_id", "$.id"), expressionField("dept_name", "$.name")));
 
             var joinField = expressionField("department_name", "dept_name");
             var joinCond = joinCondition("dept_id", "dept_id");
             var viewJoin = logicalViewJoin(parentView, Set.of(joinCond), Set.of(joinField));
 
-            var nestedField = expressionField("item_type", "type");
-            var iterableField = iterableField("item", "items", Set.of(nestedField));
+            var nestedField = expressionField("item_type", "$.type");
+            var iterableField = iterableField("item", "$.items[*]", Set.of(nestedField));
 
             var fields = new LinkedHashSet<Field>();
-            fields.add(expressionField("emp_name", "name"));
+            fields.add(expressionField("emp_name", "$.name"));
             fields.add(iterableField);
 
             var view = createJsonViewWithFieldsAndJoins("employees.json", null, fields, Set.of(viewJoin), Set.of());
@@ -1485,9 +1526,9 @@ class DuckDbViewCompilerTest {
             var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("LATERAL"));
-            assertThat(sql, containsString("unnest(\"view_source\".\"items\")"));
+            assertThat(sql, containsString("unnest(json_extract(\"view_source\".\"__iter\", '$.items[*]'))"));
             assertThat(sql, containsString("left outer join"));
-            assertThat(sql, containsString("\"item\".\"type\" \"item.item_type\""));
+            assertThat(sql, containsString("json_extract_string(\"item\".\"unnest\", '$.type') \"item.item_type\""));
             assertThat(sql, containsString("\"item\".\"__ord\" \"item.#\""));
             assertThat(sql, containsString("\"parent_0\".\"dept_name\" \"department_name\""));
         }
@@ -2010,6 +2051,38 @@ class DuckDbViewCompilerTest {
 
     // --- Helper methods ---
 
+    /**
+     * Creates a {@link LogicalSource} mock with a lenient stub on
+     * {@link LogicalSource#resolveIteratorAsString()} that mirrors the production default-method
+     * semantics. Mockito does not execute default interface methods on mocks, so the stub
+     * reproduces the lookup chain: declared iterator first, then the formulation's default
+     * (derived from its IRI for {@code rml:JSONPath} → {@code "$"} and {@code rml:XPath} →
+     * {@code "/"} since mock formulations don't execute their own default methods either).
+     * Tests can override either layer with explicit stubs.
+     */
+    private static LogicalSource newLogicalSourceMock() {
+        var logicalSource = mock(LogicalSource.class);
+        lenient().when(logicalSource.resolveIteratorAsString()).thenAnswer(invocation -> {
+            var declared = logicalSource.getIterator();
+            if (declared != null && !declared.isBlank()) {
+                return Optional.of(declared);
+            }
+            var formulation = logicalSource.getReferenceFormulation();
+            if (formulation == null) {
+                return Optional.empty();
+            }
+            var iri = formulation.getAsResource();
+            if (Rdf.Rml.JsonPath.equals(iri) || Rdf.Ql.JsonPath.equals(iri)) {
+                return Optional.of("$");
+            }
+            if (Rdf.Rml.XPath.equals(iri) || Rdf.Ql.XPath.equals(iri)) {
+                return Optional.of("/");
+            }
+            return Optional.empty();
+        });
+        return logicalSource;
+    }
+
     private static ExpressionField expressionField(String fieldName, String reference) {
         var field = mock(ExpressionField.class);
         lenient().when(field.getFieldName()).thenReturn(fieldName);
@@ -2201,7 +2274,7 @@ class DuckDbViewCompilerTest {
         var refFormulation = mock(ReferenceFormulation.class);
         lenient().when(refFormulation.getAsResource()).thenReturn(refIri);
 
-        var logicalSource = mock(LogicalSource.class);
+        var logicalSource = newLogicalSourceMock();
         lenient().when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
         lenient().when(logicalSource.getSource()).thenReturn(fileSource);
         lenient().when(logicalSource.getIterator()).thenReturn(iterator);
@@ -2224,7 +2297,7 @@ class DuckDbViewCompilerTest {
         var refFormulation = mock(ReferenceFormulation.class);
         lenient().when(refFormulation.getAsResource()).thenReturn(refIri);
 
-        var logicalSource = mock(LogicalSource.class);
+        var logicalSource = newLogicalSourceMock();
         lenient().when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
         lenient().when(logicalSource.getSource()).thenReturn(fileSource);
         lenient().when(logicalSource.getIterator()).thenReturn(iterator);
@@ -2242,7 +2315,7 @@ class DuckDbViewCompilerTest {
         var refFormulation = mock(ReferenceFormulation.class);
         when(refFormulation.getAsResource()).thenReturn(Rdf.Ql.Rdb);
 
-        var logicalSource = mock(LogicalSource.class);
+        var logicalSource = newLogicalSourceMock();
         when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
         when(logicalSource.getQuery()).thenReturn(query);
 
@@ -2259,7 +2332,7 @@ class DuckDbViewCompilerTest {
         var refFormulation = mock(ReferenceFormulation.class);
         when(refFormulation.getAsResource()).thenReturn(Rdf.Ql.Rdb);
 
-        var logicalSource = mock(LogicalSource.class);
+        var logicalSource = newLogicalSourceMock();
         when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
         lenient().when(logicalSource.getQuery()).thenReturn(null);
         when(logicalSource.getTableName()).thenReturn(tableName);
@@ -2277,7 +2350,7 @@ class DuckDbViewCompilerTest {
         var refFormulation = mock(ReferenceFormulation.class);
         when(refFormulation.getAsResource()).thenReturn(Rdf.Ql.Rdb);
 
-        var logicalSource = mock(LogicalSource.class);
+        var logicalSource = newLogicalSourceMock();
         when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
         when(logicalSource.getQuery()).thenReturn(null);
         when(logicalSource.getTableName()).thenReturn(null);
@@ -2297,7 +2370,7 @@ class DuckDbViewCompilerTest {
         var refFormulation = mock(ReferenceFormulation.class);
         when(refFormulation.getAsResource()).thenReturn(refIri);
 
-        var logicalSource = mock(LogicalSource.class);
+        var logicalSource = newLogicalSourceMock();
         when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
         lenient().when(logicalSource.getQuery()).thenReturn(query);
         lenient().when(logicalSource.getTableName()).thenReturn(tableName);
@@ -2404,18 +2477,21 @@ class DuckDbViewCompilerTest {
 
         @Test
         void compile_viewOnView_usesColumnStrategyForOuterFields() {
-            // Inner view: JSON source with field "age" from JSON
+            // Inner view: JSON source with field "age" from JSON (default-iterator path).
             var innerView = createJsonView("data.json", null, Set.of(expressionField("age", "age")));
 
-            // Outer view: references inner view's "age" column
+            // Outer view: references inner view's "age" column.
             var outerView = createViewOnView(innerView, Set.of(expressionField("person_age", "age")));
             var context = EvaluationContext.defaults();
 
             var sql = DuckDbViewCompiler.compile(outerView, context).sql();
 
-            // ColumnSourceStrategy produces direct column references, not json_extract_string
+            // The outer view uses ColumnSourceStrategy: direct column reference, no
+            // json_extract_string at the outer level. The inner CTE still uses the iterator
+            // path's json_extract_string to extract the "age" column from JSON.
             assertThat(sql, containsString("\"view_source\".\"age\" \"person_age\""));
-            assertThat(sql, not(containsString("json_extract_string")));
+            // Inner json_extract_string is for the inner view's CTE, not the outer projection
+            assertThat(sql, containsString("json_extract_string(\"view_source\".\"__iter\", 'age') \"age\""));
         }
 
         @Test
@@ -2467,8 +2543,9 @@ class DuckDbViewCompilerTest {
             var sql = DuckDbViewCompiler.compile(outer, EvaluationContext.defaults())
                     .sql();
 
-            // Two levels of subquery nesting
-            assertThat(sql, containsString("read_json_auto('data.json')"));
+            // Two levels of subquery nesting on top of the default-iterator JSON path.
+            assertThat(sql, containsString("read_text('data.json')"));
+            assertThat(sql, containsString("json_extract(content, '$')"));
             assertThat(sql, containsString("\"view_source\".\"mid_id\" \"out_id\""));
         }
     }
@@ -2782,13 +2859,17 @@ class DuckDbViewCompilerTest {
         }
 
         @Test
-        void compile_forImplicitViewWithoutIterator_doesNotIncludeIterColumn() {
+        void compile_forImplicitViewWithoutIterator_includesIterColumn() {
+            // Per RML I/O spec, JSONPath sources without an explicit rml:iterator default to "$"
+            // and therefore go through the same iterator-path strategy as explicit iterators.
+            // The __iter column is projected so per-row source-evaluation fallback works for
+            // expressions that cannot be compiled to SQL.
             var view = createJsonView("data.json", null, Set.of(expressionField("id", "id")));
             var context = EvaluationContext.forImplicitView(null);
 
             var sql = DuckDbViewCompiler.compile(view, context).sql();
 
-            assertThat(sql, not(containsString("\"__iter\"")));
+            assertThat(sql, containsString("\"__iter\""));
         }
 
         @Test

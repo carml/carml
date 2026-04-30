@@ -17,16 +17,13 @@ import org.jooq.impl.DSL;
 /**
  * Handles JSON data sources with JsonPath reference formulations.
  *
- * <p>Supports two modes:
- * <ul>
- *   <li><b>Iterator mode</b>: uses {@code read_text} + {@code json_extract} + {@code UNNEST} to
- *       expand an iterator path into rows, with {@link JsonIteratorSourceStrategy} for field
- *       extraction via {@code json_extract_string}.</li>
- *   <li><b>Auto mode</b>: uses {@code read_json_auto} for sources without an iterator, with
- *       {@link ColumnSourceStrategy} for direct column access.</li>
- * </ul>
+ * <p>Compiles JSON sources via {@code read_text} + {@code json_extract} + {@code UNNEST} to expand
+ * the iterator path into rows, with {@link JsonIteratorSourceStrategy} for field extraction via
+ * {@code json_extract_string}. JSONPath sources without an explicit {@code rml:iterator} default
+ * to the root path {@code $} per the RML I/O spec, treating the entire document as a single
+ * iteration.
  *
- * <p>Parquet files are detected by extension and read via {@code read_parquet} regardless of mode.
+ * <p>Parquet files are detected by extension and read via {@code read_parquet}.
  *
  * <p>JSONPath filter expressions in iterators are translated to SQL WHERE clauses via
  * {@link JsonPathAnalyzer}.
@@ -68,31 +65,67 @@ final class JsonPathSourceHandler implements DuckDbSourceHandler {
             return columnSource("read_parquet(%s)".formatted(inline(filePath)), cteAlias, viewFields);
         }
 
-        var iterator = logicalSource.getIterator();
-        if (iterator != null && !iterator.isBlank()) {
-            var parsed = JsonPathAnalyzer.analyze(iterator);
-            // DuckDB's json_extract treats ".*" as object-property-only wildcard and does not
-            // match array elements. JSONPath semantics treat ".*" and "[*]" equivalently (both
-            // match all children). Normalize ".*" → "[*]" so DuckDB iterates arrays correctly.
-            var basePath = normalizeChildWildcard(parsed.basePath());
+        var iterator = logicalSource
+                .resolveIteratorAsString()
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "No iterator resolved for JSON logical source: %s".formatted(logicalSource.getResourceName())));
+        var parsed = JsonPathAnalyzer.analyze(iterator);
+        // DuckDB's json_extract treats ".*" as object-property-only wildcard and does not
+        // match array elements. JSONPath semantics treat ".*" and "[*]" equivalently (both
+        // match all children). Normalize ".*" → "[*]" so DuckDB iterates arrays correctly.
+        var basePath = normalizeChildWildcard(parsed.basePath());
 
-            var sourceSql = "(select unnest(json_extract(content, %s)) as \"%s\" from read_text(%s))"
-                    .formatted(inline(basePath), JSON_ITER_COLUMN, inline(filePath));
+        var sourceSql = compileIteratorSql(filePath, basePath);
 
-            if (!parsed.filters().isEmpty()) {
-                var filterCondition = parsed.filters().stream()
-                        .map(f -> compileFilterCondition(f, JSON_ITER_COLUMN))
-                        .reduce(Condition::and)
-                        .orElseThrow();
-                sourceSql = "(select \"%s\" from %s where %s)"
-                        .formatted(JSON_ITER_COLUMN, sourceSql, CTX.renderInlined(filterCondition));
-            }
-
-            return new CompiledSource(
-                    sourceSql, JsonIteratorSourceStrategy.create(viewFields, cteAlias, JSON_ITER_COLUMN));
+        if (!parsed.filters().isEmpty()) {
+            var filterCondition = parsed.filters().stream()
+                    .map(f -> compileFilterCondition(f, JSON_ITER_COLUMN))
+                    .reduce(Condition::and)
+                    .orElseThrow();
+            sourceSql = "(select \"%s\" from %s where %s)"
+                    .formatted(JSON_ITER_COLUMN, sourceSql, CTX.renderInlined(filterCondition));
         }
 
-        return columnSource("read_json_auto(%s)".formatted(inline(filePath)), cteAlias, viewFields);
+        return new CompiledSource(sourceSql, JsonIteratorSourceStrategy.create(viewFields, cteAlias, JSON_ITER_COLUMN));
+    }
+
+    /**
+     * Builds the inner {@code SELECT unnest(...) FROM read_text(...)} SQL fragment that produces
+     * one row per iteration of the JSON document.
+     *
+     * <p>For paths that DuckDB's {@code json_extract} returns as a JSON list (those containing
+     * {@code [*]}, {@code .*}, or recursive descent), the standard form is used:
+     * {@code unnest(json_extract(content, '<path>'))}.
+     *
+     * <p>For scalar paths (single-value extraction such as the spec default {@code $}), the
+     * extracted JSON value may be either a JSON array (which DuckDB's {@code unnest} cannot
+     * unnest directly because it is typed as {@code JSON}, not {@code JSON[]}) or any other
+     * single value. A {@code CASE} expression handles both: array-typed extractions are cast to
+     * {@code JSON[]} and unnested across their elements (matching the reactive resolver, which
+     * expands array-rooted documents into one record per element); object/scalar extractions are
+     * wrapped in a single-element list so that exactly one row is emitted.
+     */
+    private static String compileIteratorSql(String filePath, String basePath) {
+        if (isListReturningPath(basePath)) {
+            return "(select unnest(json_extract(content, %s)) as \"%s\" from read_text(%s))"
+                    .formatted(inline(basePath), JSON_ITER_COLUMN, inline(filePath));
+        }
+
+        return ("(select unnest(case when json_type(content, %1$s) = 'ARRAY'"
+                        + " then cast(json_extract(content, %1$s) as JSON[])"
+                        + " else list_value(json_extract(content, %1$s)) end)"
+                        + " as \"%2$s\" from read_text(%3$s))")
+                .formatted(inline(basePath), JSON_ITER_COLUMN, inline(filePath));
+    }
+
+    /**
+     * Returns {@code true} when the given JSONPath base path is one for which DuckDB's
+     * {@code json_extract} produces a JSON list directly: paths containing {@code [*]} (array
+     * wildcard) or {@code ..} (recursive descent). All other paths produce a single JSON value
+     * and must be wrapped accordingly before {@code unnest}.
+     */
+    private static boolean isListReturningPath(String basePath) {
+        return basePath.contains("[*]") || basePath.contains("..");
     }
 
     /**

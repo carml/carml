@@ -22,6 +22,7 @@ import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Optional;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
@@ -359,7 +360,7 @@ class DuckDbSourceIntrospectorTest {
             var refFormulation = mock(ReferenceFormulation.class);
             lenient().when(refFormulation.getAsResource()).thenReturn(Rdf.Ql.JsonPath);
 
-            var logicalSource = mock(LogicalSource.class);
+            var logicalSource = newLogicalSourceMock();
             lenient().when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
             lenient().when(logicalSource.getSource()).thenReturn(filePath);
 
@@ -381,7 +382,7 @@ class DuckDbSourceIntrospectorTest {
             var refFormulation = mock(ReferenceFormulation.class);
             lenient().when(refFormulation.getAsResource()).thenReturn(Rdf.Ql.JsonPath);
 
-            var logicalSource = mock(LogicalSource.class);
+            var logicalSource = newLogicalSourceMock();
             lenient().when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
             lenient().when(logicalSource.getSource()).thenReturn(fileSource);
 
@@ -398,7 +399,7 @@ class DuckDbSourceIntrospectorTest {
             var refFormulation = mock(ReferenceFormulation.class);
             lenient().when(refFormulation.getAsResource()).thenReturn(Rdf.Ql.JsonPath);
 
-            var logicalSource = mock(LogicalSource.class);
+            var logicalSource = newLogicalSourceMock();
             lenient().when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
             lenient().when(logicalSource.getSource()).thenReturn(null);
 
@@ -732,7 +733,7 @@ class DuckDbSourceIntrospectorTest {
 
         @Test
         void introspect_noReferenceFormulation_emitsError() {
-            var logicalSource = mock(LogicalSource.class);
+            var logicalSource = newLogicalSourceMock();
             lenient().when(logicalSource.getReferenceFormulation()).thenReturn(null);
 
             var introspector = new DuckDbSourceIntrospector(connection);
@@ -748,7 +749,7 @@ class DuckDbSourceIntrospectorTest {
             var refFormulation = mock(ReferenceFormulation.class);
             lenient().when(refFormulation.getAsResource()).thenReturn(Rdf.Ql.XPath);
 
-            var logicalSource = mock(LogicalSource.class);
+            var logicalSource = newLogicalSourceMock();
             lenient().when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
 
             var introspector = new DuckDbSourceIntrospector(connection);
@@ -774,7 +775,7 @@ class DuckDbSourceIntrospectorTest {
             var refFormulation = mock(ReferenceFormulation.class);
             lenient().when(refFormulation.getAsResource()).thenReturn(Rdf.Ql.Rdb);
 
-            var logicalSource = mock(LogicalSource.class);
+            var logicalSource = newLogicalSourceMock();
             lenient().when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
             lenient().when(logicalSource.getTableName()).thenReturn(null);
             lenient().when(logicalSource.getSource()).thenReturn(null);
@@ -828,7 +829,7 @@ class DuckDbSourceIntrospectorTest {
             var refFormulation = mock(ReferenceFormulation.class);
             lenient().when(refFormulation.getAsResource()).thenReturn(Rdf.Rml.JsonPath);
 
-            var logicalSource = mock(LogicalSource.class);
+            var logicalSource = newLogicalSourceMock();
             lenient().when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
 
             var factory = new DuckDbSourceIntrospectorFactory(connection);
@@ -840,7 +841,7 @@ class DuckDbSourceIntrospectorTest {
             var refFormulation = mock(ReferenceFormulation.class);
             lenient().when(refFormulation.getAsResource()).thenReturn(Rdf.Rml.SQL2008Table);
 
-            var logicalSource = mock(LogicalSource.class);
+            var logicalSource = newLogicalSourceMock();
             lenient().when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
 
             var factory = new DuckDbSourceIntrospectorFactory(connection);
@@ -852,7 +853,7 @@ class DuckDbSourceIntrospectorTest {
             var refFormulation = mock(ReferenceFormulation.class);
             lenient().when(refFormulation.getAsResource()).thenReturn(Rdf.Ql.XPath);
 
-            var logicalSource = mock(LogicalSource.class);
+            var logicalSource = newLogicalSourceMock();
             lenient().when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
 
             var factory = new DuckDbSourceIntrospectorFactory(connection);
@@ -863,7 +864,7 @@ class DuckDbSourceIntrospectorTest {
 
         @Test
         void match_noRefFormulation_returnsEmpty() {
-            var logicalSource = mock(LogicalSource.class);
+            var logicalSource = newLogicalSourceMock();
             lenient().when(logicalSource.getReferenceFormulation()).thenReturn(null);
 
             var factory = new DuckDbSourceIntrospectorFactory(connection);
@@ -908,6 +909,38 @@ class DuckDbSourceIntrospectorTest {
 
     // --- Helper methods ---
 
+    /**
+     * Creates a {@link LogicalSource} mock with a lenient stub on
+     * {@link LogicalSource#resolveIteratorAsString()} that mirrors the production default-method
+     * semantics. Mockito does not execute default interface methods on mocks, so the stub
+     * reproduces the lookup chain: declared iterator first, then the formulation's default
+     * (derived from its IRI for {@code rml:JSONPath} → {@code "$"} and {@code rml:XPath} →
+     * {@code "/"} since mock formulations don't execute their own default methods either).
+     * Tests can override either layer with explicit stubs.
+     */
+    private static LogicalSource newLogicalSourceMock() {
+        var logicalSource = mock(LogicalSource.class);
+        lenient().when(logicalSource.resolveIteratorAsString()).thenAnswer(invocation -> {
+            var declared = logicalSource.getIterator();
+            if (declared != null && !declared.isBlank()) {
+                return Optional.of(declared);
+            }
+            var formulation = logicalSource.getReferenceFormulation();
+            if (formulation == null) {
+                return Optional.empty();
+            }
+            var iri = formulation.getAsResource();
+            if (Rdf.Rml.JsonPath.equals(iri) || Rdf.Ql.JsonPath.equals(iri)) {
+                return Optional.of("$");
+            }
+            if (Rdf.Rml.XPath.equals(iri) || Rdf.Ql.XPath.equals(iri)) {
+                return Optional.of("/");
+            }
+            return Optional.empty();
+        });
+        return logicalSource;
+    }
+
     private static FieldDescriptor findField(SourceSchema schema, String name) {
         return schema.fields().stream()
                 .filter(f -> f.name().equals(name))
@@ -922,7 +955,7 @@ class DuckDbSourceIntrospectorTest {
         var refFormulation = mock(ReferenceFormulation.class);
         lenient().when(refFormulation.getAsResource()).thenReturn(Rdf.Ql.JsonPath);
 
-        var logicalSource = mock(LogicalSource.class);
+        var logicalSource = newLogicalSourceMock();
         lenient().when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
         lenient().when(logicalSource.getSource()).thenReturn(fileSource);
         lenient().when(logicalSource.getIterator()).thenReturn(iterator);
@@ -937,7 +970,7 @@ class DuckDbSourceIntrospectorTest {
         var refFormulation = mock(ReferenceFormulation.class);
         lenient().when(refFormulation.getAsResource()).thenReturn(Rdf.Ql.Csv);
 
-        var logicalSource = mock(LogicalSource.class);
+        var logicalSource = newLogicalSourceMock();
         lenient().when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
         lenient().when(logicalSource.getSource()).thenReturn(fileSource);
 
@@ -948,7 +981,7 @@ class DuckDbSourceIntrospectorTest {
         var refFormulation = mock(ReferenceFormulation.class);
         lenient().when(refFormulation.getAsResource()).thenReturn(Rdf.Ql.Rdb);
 
-        var logicalSource = mock(LogicalSource.class);
+        var logicalSource = newLogicalSourceMock();
         lenient().when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
         lenient().when(logicalSource.getTableName()).thenReturn(tableName);
 

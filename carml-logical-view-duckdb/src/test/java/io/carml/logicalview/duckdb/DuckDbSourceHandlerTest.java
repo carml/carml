@@ -4,7 +4,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -13,6 +15,7 @@ import io.carml.model.ExpressionField;
 import io.carml.model.Field;
 import io.carml.model.FileSource;
 import io.carml.model.LogicalSource;
+import io.carml.model.ReferenceFormulation;
 import io.carml.model.Source;
 import io.carml.model.source.csvw.CsvwDialect;
 import io.carml.model.source.csvw.CsvwTable;
@@ -29,6 +32,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+@SuppressWarnings("UnstableApiUsage")
 class DuckDbSourceHandlerTest {
 
     private static final String CTE_ALIAS = "view_source";
@@ -131,7 +135,7 @@ class DuckDbSourceHandlerTest {
         @Test
         void streamSource_returnsFalse() {
             var source = mock(Source.class);
-            var logicalSource = mock(LogicalSource.class);
+            var logicalSource = newLogicalSourceMock();
             when(logicalSource.getSource()).thenReturn(source);
 
             assertThat(handler.isCompatible(logicalSource), is(false));
@@ -164,7 +168,7 @@ class DuckDbSourceHandlerTest {
         void csvwTableSource_returnsTrue() {
             var csvwTable = mock(CsvwTable.class);
             when(csvwTable.getUrl()).thenReturn("data.csv");
-            var logicalSource = mock(LogicalSource.class);
+            var logicalSource = newLogicalSourceMock();
             when(logicalSource.getSource()).thenReturn(csvwTable);
 
             assertThat(handler.isCompatible(logicalSource), is(true));
@@ -173,7 +177,7 @@ class DuckDbSourceHandlerTest {
         @Test
         void streamSource_returnsFalse() {
             var source = mock(Source.class);
-            var logicalSource = mock(LogicalSource.class);
+            var logicalSource = newLogicalSourceMock();
             when(logicalSource.getSource()).thenReturn(source);
 
             assertThat(handler.isCompatible(logicalSource), is(false));
@@ -187,7 +191,7 @@ class DuckDbSourceHandlerTest {
 
         @Test
         void alwaysReturnsTrue() {
-            var logicalSource = mock(LogicalSource.class);
+            var logicalSource = newLogicalSourceMock();
 
             assertThat(handler.isCompatible(logicalSource), is(true));
         }
@@ -212,16 +216,41 @@ class DuckDbSourceHandlerTest {
             assertThat(result.strategy(), instanceOf(JsonIteratorSourceStrategy.class));
         }
 
-        @Test
-        void nonIteratorSource_producesReadJsonAuto() {
+        @ParameterizedTest
+        @NullSource
+        @ValueSource(strings = {"", "   "})
+        void missingIterator_defaultsToRootPath(String iterator) {
+            // Per RML I/O spec, JSONPath sources without an explicit rml:iterator default to "$"
+            // (the root JSON node), treating the entire document as a single iteration.
             var logicalSource = mockLogicalSourceWithFileSource("data.json");
-            when(logicalSource.getIterator()).thenReturn(null);
+            when(logicalSource.getIterator()).thenReturn(iterator);
+            var refFormulation = mock(ReferenceFormulation.class);
+            when(refFormulation.getAsResource()).thenReturn(Rdf.Ql.JsonPath);
+            when(logicalSource.getReferenceFormulation()).thenReturn(refFormulation);
             var fields = Set.<Field>of(expressionField("name", "name"));
 
             var result = handler.compileSource(logicalSource, fields, CTE_ALIAS, null);
 
-            assertThat(result.sourceSql(), containsString("read_json_auto"));
-            assertThat(result.strategy(), instanceOf(ColumnSourceStrategy.class));
+            assertThat(result.sourceSql(), containsString("json_extract"));
+            assertThat(result.sourceSql(), containsString("unnest"));
+            assertThat(result.sourceSql(), containsString("read_text"));
+            assertThat(result.sourceSql(), containsString("'$'"));
+            assertThat(result.sourceSql(), not(containsString("read_json_auto")));
+            assertThat(result.strategy(), instanceOf(JsonIteratorSourceStrategy.class));
+        }
+
+        @Test
+        void explicitIterator_stillUsesIteratorPath() {
+            // Regression sentinel: the default-iterator change must not shadow explicit iterators.
+            var logicalSource = mockLogicalSourceWithFileSource("data.json");
+            when(logicalSource.getIterator()).thenReturn("$.people[*]");
+            var fields = Set.<Field>of(expressionField("name", "name"));
+
+            var result = handler.compileSource(logicalSource, fields, CTE_ALIAS, null);
+
+            assertThat(result.sourceSql(), containsString("'$.people[*]'"));
+            assertThat(result.sourceSql(), not(containsString("read_json_auto")));
+            assertThat(result.strategy(), instanceOf(JsonIteratorSourceStrategy.class));
         }
 
         @Test
@@ -331,7 +360,7 @@ class DuckDbSourceHandlerTest {
             var csvwTable = mock(CsvwTable.class);
             when(csvwTable.getUrl()).thenReturn("data.csv");
             when(csvwTable.getDialect()).thenReturn(null);
-            var logicalSource = mock(LogicalSource.class);
+            var logicalSource = newLogicalSourceMock();
             when(logicalSource.getSource()).thenReturn(csvwTable);
             var fields = Set.<Field>of(expressionField("name", "name"));
 
@@ -430,7 +459,7 @@ class DuckDbSourceHandlerTest {
 
         @Test
         void querySource_wrapsAsSubquery() {
-            var logicalSource = mock(LogicalSource.class);
+            var logicalSource = newLogicalSourceMock();
             when(logicalSource.getQuery()).thenReturn("SELECT * FROM people");
             var fields = Set.<Field>of(expressionField("name", "name"));
 
@@ -442,7 +471,7 @@ class DuckDbSourceHandlerTest {
 
         @Test
         void tableNameSource_producesQuotedName() {
-            var logicalSource = mock(LogicalSource.class);
+            var logicalSource = newLogicalSourceMock();
             when(logicalSource.getQuery()).thenReturn(null);
             when(logicalSource.getTableName()).thenReturn("employees");
             var fields = Set.<Field>of(expressionField("name", "name"));
@@ -457,7 +486,7 @@ class DuckDbSourceHandlerTest {
         void databaseSource_wrapsAsSubquery() {
             var dbSource = mock(DatabaseSource.class);
             when(dbSource.getQuery()).thenReturn("SELECT id, name FROM departments");
-            var logicalSource = mock(LogicalSource.class);
+            var logicalSource = newLogicalSourceMock();
             when(logicalSource.getQuery()).thenReturn(null);
             when(logicalSource.getTableName()).thenReturn(null);
             when(logicalSource.getSource()).thenReturn(dbSource);
@@ -471,7 +500,7 @@ class DuckDbSourceHandlerTest {
 
         @Test
         void blankQuery_fallsThroughToTableName() {
-            var logicalSource = mock(LogicalSource.class);
+            var logicalSource = newLogicalSourceMock();
             when(logicalSource.getQuery()).thenReturn("   ");
             when(logicalSource.getTableName()).thenReturn("employees");
             var fields = Set.<Field>of(expressionField("name", "name"));
@@ -485,7 +514,7 @@ class DuckDbSourceHandlerTest {
         void blankTableName_fallsThroughToDatabaseSource() {
             var dbSource = mock(DatabaseSource.class);
             when(dbSource.getQuery()).thenReturn("SELECT 1");
-            var logicalSource = mock(LogicalSource.class);
+            var logicalSource = newLogicalSourceMock();
             when(logicalSource.getQuery()).thenReturn(null);
             when(logicalSource.getTableName()).thenReturn("  ");
             when(logicalSource.getSource()).thenReturn(dbSource);
@@ -498,7 +527,7 @@ class DuckDbSourceHandlerTest {
 
         @Test
         void noQueryOrTableName_throws() {
-            var logicalSource = mock(LogicalSource.class);
+            var logicalSource = newLogicalSourceMock();
             when(logicalSource.getQuery()).thenReturn(null);
             when(logicalSource.getTableName()).thenReturn(null);
             when(logicalSource.getSource()).thenReturn(null);
@@ -513,7 +542,7 @@ class DuckDbSourceHandlerTest {
         void databaseSourceWithNullQuery_throws() {
             var dbSource = mock(DatabaseSource.class);
             when(dbSource.getQuery()).thenReturn(null);
-            var logicalSource = mock(LogicalSource.class);
+            var logicalSource = newLogicalSourceMock();
             when(logicalSource.getQuery()).thenReturn(null);
             when(logicalSource.getTableName()).thenReturn(null);
             when(logicalSource.getSource()).thenReturn(dbSource);
@@ -607,7 +636,7 @@ class DuckDbSourceHandlerTest {
     private static LogicalSource mockLogicalSourceWithFileSource(String url) {
         var fileSource = mock(FileSource.class);
         when(fileSource.getUrl()).thenReturn(url);
-        var logicalSource = mock(LogicalSource.class);
+        var logicalSource = newLogicalSourceMock();
         when(logicalSource.getSource()).thenReturn(fileSource);
         return logicalSource;
     }
@@ -618,8 +647,40 @@ class DuckDbSourceHandlerTest {
         when(csvwTable.getUrl()).thenReturn(url);
         when(csvwTable.getDialect()).thenReturn(dialect);
         when(csvwTable.getCsvwNulls()).thenReturn(nullValues);
-        var logicalSource = mock(LogicalSource.class);
+        var logicalSource = newLogicalSourceMock();
         when(logicalSource.getSource()).thenReturn(csvwTable);
+        return logicalSource;
+    }
+
+    /**
+     * Creates a {@link LogicalSource} mock with a lenient stub on
+     * {@link LogicalSource#resolveIteratorAsString()} that mirrors the production default-method
+     * semantics. Mockito does not execute default interface methods on mocks, so the stub
+     * reproduces the lookup chain: declared iterator first, then the formulation's default
+     * (derived from its IRI for {@code rml:JSONPath} → {@code "$"} and {@code rml:XPath} →
+     * {@code "/"} since mock formulations don't execute their own default methods either).
+     * Tests can override either layer with explicit stubs.
+     */
+    private static LogicalSource newLogicalSourceMock() {
+        var logicalSource = mock(LogicalSource.class);
+        lenient().when(logicalSource.resolveIteratorAsString()).thenAnswer(invocation -> {
+            var declared = logicalSource.getIterator();
+            if (declared != null && !declared.isBlank()) {
+                return Optional.of(declared);
+            }
+            var formulation = logicalSource.getReferenceFormulation();
+            if (formulation == null) {
+                return Optional.empty();
+            }
+            var iri = formulation.getAsResource();
+            if (Rdf.Rml.JsonPath.equals(iri) || Rdf.Ql.JsonPath.equals(iri)) {
+                return Optional.of("$");
+            }
+            if (Rdf.Rml.XPath.equals(iri) || Rdf.Ql.XPath.equals(iri)) {
+                return Optional.of("/");
+            }
+            return Optional.empty();
+        });
         return logicalSource;
     }
 

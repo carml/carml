@@ -2,6 +2,7 @@ package io.carml.logicalsourceresolver;
 
 import static io.carml.util.LogUtil.exception;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.stream.Collectors.toUnmodifiableMap;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,6 +27,7 @@ import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.Charset;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -105,54 +107,69 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
                 .orElseThrow(() -> new LogicalSourceResolverException(
                         "No source provided for logical sources:%n%s".formatted(exception(logicalSources))));
 
+        var iteratorByLogicalSource = resolveIterators(logicalSources);
+
         if (resolved instanceof InputStream resolvedInputStream) {
-            return resolveInputStream(resolvedInputStream, logicalSources);
+            return resolveInputStream(resolvedInputStream, iteratorByLogicalSource);
         } else if (resolved instanceof Mono<?> mono) {
-            return resolveMono(mono, logicalSources);
+            return resolveMono(mono, iteratorByLogicalSource);
         } else if (resolved instanceof JsonNode resolvedJsonNode) {
-            return getObjectFlux(resolvedJsonNode, logicalSources);
+            return getObjectFlux(resolvedJsonNode, iteratorByLogicalSource);
         }
         throw new LogicalSourceResolverException(
                 "Unsupported source object provided for logical sources:%n%s".formatted(exception(logicalSources)));
     }
 
-    private Flux<LogicalSourceRecord<JsonNode>> resolveInputStream(
-            InputStream inputStream, Set<LogicalSource> logicalSources) {
-        var charset = Encodings.resolveCharset(source.getEncoding()).orElse(UTF_8);
-        if (charset == UTF_8) {
-            return getObjectFlux(inputStream, logicalSources);
-        }
-        return getObjectFlux(inputStream, charset, logicalSources);
+    private static Map<LogicalSource, String> resolveIterators(Set<LogicalSource> logicalSources) {
+        return logicalSources.stream()
+                .collect(toUnmodifiableMap(
+                        Function.identity(),
+                        logicalSource -> logicalSource
+                                .resolveIteratorAsString()
+                                .orElseThrow(() -> new LogicalSourceResolverException(
+                                        "No iterator resolved for JSON logical source: %s"
+                                                .formatted(logicalSource.getResourceName())))));
     }
 
-    private Flux<LogicalSourceRecord<JsonNode>> resolveMono(Mono<?> mono, Set<LogicalSource> logicalSources) {
+    private Flux<LogicalSourceRecord<JsonNode>> resolveInputStream(
+            InputStream inputStream, Map<LogicalSource, String> iteratorByLogicalSource) {
+        var charset = Encodings.resolveCharset(source.getEncoding()).orElse(UTF_8);
+        if (charset == UTF_8) {
+            return getObjectFlux(inputStream, iteratorByLogicalSource);
+        }
+        return getObjectFlux(inputStream, charset, iteratorByLogicalSource);
+    }
+
+    private Flux<LogicalSourceRecord<JsonNode>> resolveMono(
+            Mono<?> mono, Map<LogicalSource, String> iteratorByLogicalSource) {
         return mono.flatMapMany(resolvedMono -> {
             if (resolvedMono instanceof InputStream resolvedInputStreamMono) {
-                return resolveInputStream(resolvedInputStreamMono, logicalSources);
+                return resolveInputStream(resolvedInputStreamMono, iteratorByLogicalSource);
             }
             return Flux.error(
                     new LogicalSourceResolverException("Unsupported source object provided for logical sources:%n%s"
-                            .formatted(exception(logicalSources))));
+                            .formatted(exception(iteratorByLogicalSource.keySet()))));
         });
     }
 
     private Flux<LogicalSourceRecord<JsonNode>> getObjectFlux(
-            InputStream inputStream, Charset charset, Set<LogicalSource> logicalSources) {
+            InputStream inputStream, Charset charset, Map<LogicalSource, String> iteratorByLogicalSource) {
         try (var reader = new InputStreamReader(inputStream, charset)) {
             var jsonNode = OBJECT_MAPPER.readTree(reader);
-            return Flux.fromIterable(logicalSources).flatMap(logicalSource -> readIterator(jsonNode, logicalSource));
+            return Flux.fromIterable(iteratorByLogicalSource.entrySet())
+                    .flatMap(entry -> readIterator(jsonNode, entry.getKey(), entry.getValue()));
         } catch (IOException e) {
             throw new LogicalSourceResolverException("Error reading input stream.", e);
         }
     }
 
     private Flux<LogicalSourceRecord<JsonNode>> getObjectFlux(
-            InputStream inputStream, Set<LogicalSource> logicalSources) {
+            InputStream inputStream, Map<LogicalSource, String> iteratorByLogicalSource) {
         return PausableFluxBridge.<LogicalSourceRecord<JsonNode>>builder()
                 .sourceFactory(emitter -> {
                     var configBuilder = jsonSurfer.configBuilder();
 
-                    bridgeAndListen(logicalSources, configBuilder, emitter);
+                    bridgeAndListen(iteratorByLogicalSource, configBuilder, emitter);
 
                     var config = configBuilder.build();
                     var parser = jsonSurfer.createNonBlockingParser(config);
@@ -169,20 +186,22 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
                 .flux();
     }
 
-    private Flux<LogicalSourceRecord<JsonNode>> getObjectFlux(JsonNode jsonNode, Set<LogicalSource> logicalSources) {
-        return Flux.fromIterable(logicalSources).flatMap(logicalSource -> readIterator(jsonNode, logicalSource));
+    private Flux<LogicalSourceRecord<JsonNode>> getObjectFlux(
+            JsonNode jsonNode, Map<LogicalSource, String> iteratorByLogicalSource) {
+        return Flux.fromIterable(iteratorByLogicalSource.entrySet())
+                .flatMap(entry -> readIterator(jsonNode, entry.getKey(), entry.getValue()));
     }
 
-    private static Flux<LogicalSourceRecord<JsonNode>> readIterator(Object input, LogicalSource logicalSource) {
+    private static Flux<LogicalSourceRecord<JsonNode>> readIterator(
+            Object input, LogicalSource logicalSource, String iterator) {
         try {
-            var resultNode =
-                    JsonPath.using(JSONPATH_CONF).parse(input).read(logicalSource.getIterator(), JsonNode.class);
+            var resultNode = JsonPath.using(JSONPATH_CONF).parse(input).read(iterator, JsonNode.class);
             return toLogicalSourceRecordFlux(resultNode, logicalSource);
         } catch (PathNotFoundException pathNotFoundException) {
             return Flux.empty();
         } catch (InvalidPathException invalidPathException) {
             return Flux.error(new LogicalSourceResolverException(
-                    "Invalid JSONPath expression in iterator: " + logicalSource.getIterator(), invalidPathException));
+                    "Invalid JSONPath expression in iterator: " + iterator, invalidPathException));
         }
     }
 
@@ -203,12 +222,12 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
     }
 
     private void bridgeAndListen(
-            Set<LogicalSource> logicalSources,
+            Map<LogicalSource, String> iteratorByLogicalSource,
             SurfingConfiguration.Builder configBuilder,
             PausableFluxBridge.Emitter<LogicalSourceRecord<JsonNode>> emitter) {
-        logicalSources.forEach(logicalSource -> {
+        iteratorByLogicalSource.forEach((logicalSource, iterator) -> {
             try {
-                configBuilder.bind(logicalSource.getIterator(), (value, context) -> {
+                configBuilder.bind(iterator, (value, context) -> {
                     if (!(value instanceof JsonNode)) {
                         throw new LogicalSourceResolverException("Encountered non-JsonNode value: %s".formatted(value));
                     }
@@ -216,7 +235,7 @@ public class JsonPathResolver implements LogicalSourceResolver<JsonNode> {
                 });
             } catch (RuntimeException parsingException) {
                 emitter.error(new LogicalSourceResolverException(
-                        "An exception occurred while parsing expression: %s".formatted(logicalSource.getIterator())));
+                        "An exception occurred while parsing expression: %s".formatted(iterator)));
             }
         });
     }
