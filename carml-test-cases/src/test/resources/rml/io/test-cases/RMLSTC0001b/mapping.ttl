@@ -7,6 +7,7 @@
   rml:logicalSource [ a rml:LogicalSource;
     rml:source [ a rml:FilePath;
       rml:root rml:MappingDirectory;
+      rml:encoding rml:UTF-16;
       rml:path "Friends-UTF16.json"
     ];
     rml:referenceFormulation rml:JSONPath;

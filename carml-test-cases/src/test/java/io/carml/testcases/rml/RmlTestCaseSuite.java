@@ -92,7 +92,13 @@ public abstract class RmlTestCaseSuite {
     }
 
     private boolean isSupported(TestCase testCase) {
+        // Manifests since rml-lv 2026-03 carry directory-style Input nodes alongside file-style
+        // ones (e.g. <.../input/> with empty inputFormat plus <.../input/people.json> with a
+        // mediatype). The directory entries don't represent real input streams; ignore them in
+        // the supported-format check.
         return testCase.getInputs().stream()
+                .filter(input -> input.getInputFormat() != null
+                        && !input.getInputFormat().isEmpty())
                 .allMatch(input -> SUPPORTED_INPUT_FORMATS.contains(input.getInputFormat()));
     }
 
@@ -113,7 +119,11 @@ public abstract class RmlTestCaseSuite {
         } else {
             var result = executeMapping(testCase, testCaseIdentifier);
 
+            // Manifests since rml-lv 2026-03 carry directory-style Output nodes (e.g.
+            // <.../output/>) alongside file-style ones; the IriFilenamePropertyHandler reduces
+            // both to local names, leaving an empty string for the directory entry. Skip those.
             Model expected = testCase.getOutputs().stream()
+                    .filter(output -> output != null && !output.isEmpty())
                     .flatMap(output -> parseExpectedOutput(
                             getTestCaseFileInputStream(getBasePath(), testCaseIdentifier, output),
                             output,

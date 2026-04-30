@@ -1,8 +1,8 @@
 ## RMLLVTC0001c
 
-**Title**: Expression Field: Constant
+**Title**: Expression Field: Template
 
-**Description**: Test a constant expression in an expression field
+**Description**: Test a template-valued expression field
 
 **Error expected?** No
 
@@ -63,7 +63,7 @@
   rml:field [
     a rml:ExpressionField ;
     rml:fieldName "fullName" ;
-    rml:template "{name} {lastName}" ;
+    rml:template "{$.name} {$.lastName}" ;
   ] .
 
 :triplesMapPerson a rml:TriplesMap ;

@@ -4,7 +4,7 @@
 
 **Description**: Tests that nothing is generated if a function is defined using a return not defined in the FnO description
 
-**Error expected?** No
+**Error expected?** Yes
 
 **Input**
 ```
@@ -52,11 +52,6 @@ Id,Name,Comment,Class,url
                 rml:reference "Name" ;
             ]
         ] .
-
-```
-
-**Output**
-```
 
 ```
 

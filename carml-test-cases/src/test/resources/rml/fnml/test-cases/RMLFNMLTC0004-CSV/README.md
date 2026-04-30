@@ -45,7 +45,7 @@ Id,Name,Comment,Class,url
     ] .
 
 <#Execution>
-    rml:function grel:length ;
+    rml:function grel:string_length ;
     rml:input
         [
             rml:parameter grel:valueParam ;

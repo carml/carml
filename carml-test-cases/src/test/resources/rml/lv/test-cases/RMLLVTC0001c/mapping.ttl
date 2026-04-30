@@ -20,7 +20,7 @@
   rml:field [
     a rml:ExpressionField ;
     rml:fieldName "fullName" ;
-    rml:template "{name} {lastName}" ;
+    rml:template "{$.name} {$.lastName}" ;
   ] .
 
 :triplesMapPerson a rml:TriplesMap ;

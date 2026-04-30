@@ -10,103 +10,98 @@ class TestRmlIoTestCases extends RmlTestCaseSuite {
         return "/rml/io/test-cases";
     }
 
+    /**
+     * Skip list for the rml-io conformance suite, audited fresh against the upstream test cases as
+     * of the 2026-04-20 sync. Every entry has been verified to still fail in the current state and
+     * the rationale below reflects what CARML actually emits vs. what the test fixture expects.
+     *
+     * <p>Tests are grouped by the underlying root cause. Within each group, each ID is a separate
+     * conformance fixture that exhibits the same failure mode for the same reason.
+     */
     @Override
     protected List<String> getSkipTests() {
         return List.of(
-                // UTF-16 LE BOM JSON source without rml:encoding declared; JSurfer streaming parser
-                // does not auto-detect BOM or handle UTF-16, causing a JSON parse failure
-                "RMLSTC0001b",
+                // ====================================================================
+                // Engine gaps — the test exercises a feature CARML does not implement.
+                // ====================================================================
 
-                // Test case bug: expected output has xsd:integer for age values, but CSV has no
-                // natural datatypes — all values are plain strings per the RML-IO spec. Additionally,
-                // 0004a expects empty CSV fields to be omitted, but the spec says empty strings are
-                // valid values, not NULL.
-                "RMLSTC0004a",
-                "RMLSTC0004b",
-                "RMLSTC0004c",
-
-                // Test case bug: D2RQ SQL source test provides only Friends.csv but no resource.sql to
-                // create/populate the database table. Unlike the ioregistry SQL test cases
-                // (RMLIOREGTC0004-0006) which include resource.sql files, this test case has no SQL
-                // schema or data loading mechanism.
+                // D2RQ-database source. The mapping declares
+                // `rml:referenceFormulation rml:SQL2008Table` over a `d2rq:Database` source with
+                // a placeholder DSN (`$CONNECTIONDSN`/`$USERNAME`/`$PASSWORD`). CARML's
+                // {@code CarmlLogicalSource.getReferenceFormulation()} contains a legacy
+                // R2RML compatibility shim that overrides the declared formulation to
+                // {@code ql:Rdb} whenever the source is a {@code DatabaseSource}. The plain
+                // rml-io suite registers only the default (non-SQL) evaluator — no Vert.x
+                // SQL client and no Testcontainers database — so no resolver matches
+                // {@code ql:Rdb} and the run fails with:
+                //   LogicalSourceResolverException: No logical source resolver found for
+                //   reference formulation ...ql#Rdb. Resolvers available: CsvResolver,
+                //   JsonPathResolver, XPathResolver
+                // SQL test fixtures live in the rml-io-registry suite which spins up real
+                // databases; this rml-io fixture cannot pass without one.
                 "RMLSTC0006a",
 
-                // rml:CurrentWorkingDirectory resolves against JVM working dir, not classpath; Friends.csv
-                // is only on the classpath. Also affected by test case bug: xsd:integer for CSV values.
-                "RMLSTC0006b",
+                // ====================================================================
+                // Upstream test fixture bug: 0004a's mapping declares no rml:null, but its
+                // expected default.nq excludes id=5 (the empty-cells row) — same as 0004b/c
+                // which DO declare rml:null "". Per the RML-IO CSV reference-formulation spec
+                // (https://w3id.org/rml/io/spec/#csv-reference-formulation), empty CSV cells
+                // are values, not null, by default. Either 0004a's mapping needs rml:null ""
+                // added, or its expected output needs the empty-string triples.
+                // ====================================================================
+                // "RMLSTC0004a",  // re-check after upstream fix
 
-                // Test case bug: expected output has xsd:integer for CSV values (same as 0004a/b/c)
-                "RMLSTC0007b",
+                // ====================================================================
+                // Upstream test fixture bug — incomplete natural-typing fix coverage.
+                //
+                // Per `rml-io-registry/json-path/section/natural-rdf-mapping.md`, JSON
+                // `number` without fraction maps to `xsd:integer`. CARML emits the
+                // spec-correct `"33"^^xsd:integer` for the JSON `"age": 33` field in
+                // `Friends.json`. Upstream commit d35ce9a ("fix: Add natural datatype
+                // integer in the expected output", 2026-04-29) updated many TTC fixtures
+                // but missed the sibling variants below. These are the same mapping in
+                // alternative output formats / encodings / compressions — fixed nq sibling
+                // listed for each.
+                //
+                // Pattern: missing plain `"33"`, unexpected `"33"^^xsd:integer`.
+                // ====================================================================
+                "RMLTTC0004a", // .jsonld variant of 0004d.dump1.nq (fixed)
+                "RMLTTC0004c", // .nt variant of 0004d
+                "RMLTTC0004f", // .rdfxml variant of 0004d
+                "RMLTTC0004g", // .ttl variant of 0004d
+                "RMLTTC0005b", // UTF-16 variant of 0005a (fixed)
+                "RMLTTC0006b", // gzip variant of 0006a (fixed)
+                "RMLTTC0006c", // zip variant of 0006a
+                "RMLTTC0006d", // tar.xz variant of 0006a
+                "RMLTTC0006e", // tar.gz variant of 0006a
 
-                // Test case bug: default.nq expects xsd:integer but spec prescribes no type inference
-                // for unvalidated XML (xs:untypedAtomic). README correctly shows plain literals.
-                // See Epic 0 Task 0.17 and Epic N1 Task N1.1 for details.
-                "RMLSTC0007c",
-                "RMLSTC0007d",
-
-                // Test case bug: expected output has xsd:integer for CSV values (same as 0004a/b/c)
-                "RMLSTC0008b",
-
-                // Probable test case bug: expects an error for quoted CSV headers ("id","name","age"),
-                // but quoting header fields is valid per RFC 4180. The manifest also contradicts itself
-                // by declaring hasError=true while providing an output.nq with valid expected output.
-                "RMLSTC0009a",
-
-                // Test case bug: Multi-item XPath reference: skills/skill selects multiple nodes; RML spec requires
-                // scalar reference values. Nested data should use rml:LogicalView instead.
-                "RMLSTC0012e",
-
-                // RMLTTC test-case bug family (same as RMLSTC0004/0007*): expected output has
-                // plain string literals "NN" for JSON integer ages, but per RML-IO natural type
-                // inference CARML emits "NN"^^xsd:integer (the RMLSTC0001a passing baseline
-                // encodes the correct behavior).
-                "RMLTTC0001a",
-                "RMLTTC0001d",
-                "RMLTTC0002a",
-                "RMLTTC0002b",
-                "RMLTTC0002c",
-                "RMLTTC0002d",
-                "RMLTTC0002e",
-                "RMLTTC0002f",
-                "RMLTTC0002g",
-                "RMLTTC0002h",
-                "RMLTTC0002i",
-                "RMLTTC0002j",
-                "RMLTTC0002m",
-                "RMLTTC0002n",
-                "RMLTTC0002o",
-                "RMLTTC0002r",
-                "RMLTTC0003a",
-                "RMLTTC0004a",
-                "RMLTTC0004b",
-                "RMLTTC0004c",
-                "RMLTTC0004d",
+                // RMLTTC0004e: RDF/JSON variant of 0004d. Upstream commit 35eb678 added
+                // the required `"type": "literal"` so RDF4J's RDF/JSON parser no longer
+                // rejects the file, but two issues remain: each value is still a JSON
+                // number (`"value": 33`) instead of a string (`"value": "33"`), and no
+                // `"datatype"` field is present. Once parsed the literals are plain
+                // strings, so the same `xsd:integer` mismatch applies.
                 "RMLTTC0004e",
-                "RMLTTC0004f",
-                "RMLTTC0004g",
-                "RMLTTC0005a",
-                "RMLTTC0005b",
-                "RMLTTC0006a",
-                "RMLTTC0006b",
-                "RMLTTC0006c",
-                "RMLTTC0006e",
-                "RMLTTC0007a",
 
-                // RMLTTC0002k test-case bug: mapping declares no rml:languageMap on the name
-                // object map, but default.nq expects "..."@en language-tagged literals. CARML
-                // correctly emits plain literals per the mapping.
-                "RMLTTC0002k",
+                // ====================================================================
+                // Test-case bugs — individual fixture issues, each with a distinct cause.
+                // ====================================================================
 
-                // RMLTTC0002q test-case bug: expected dump2.nq contains xsd:double literals in
-                // non-canonical lexical form ("33"^^xsd:double). CARML's ValidatingValueFactory
-                // normalizes to the W3C XSD canonical form ("3.3E1"^^xsd:double), which is the
-                // spec-correct representation. Fixing this would require either a per-datatype
-                // lexical-preservation mode in the value factory or amending the test fixtures.
-                "RMLTTC0002q",
-
-                // RMLTTC0006d test-fixture bug: file is named dump1.nq.tar.xz but the actual bytes
-                // are gzip-compressed tar (magic 1f 8b …), not xz. Decompression chokes on the
-                // declared xz format.
-                "RMLTTC0006d");
+                // RMLSTC0009a: fixture declares `hasError=true` for a CSV with quoted header
+                // fields (`"id","name","age"`) and a mapping that references the columns
+                // unquoted (`id`, `name`, `age`). RFC 4180 §2.5 — which the rml-io-registry
+                // CSV spec cites as `[[CSV]]` — leaves "quoted vs unquoted field value
+                // equivalence" implied but not explicit (its ABNF has
+                // `field = (escaped / non-escaped)` with the DQUOTEs wrapping the content of
+                // an `escaped` field). The W3C CSVW tabular-data-model spec §4.5 makes it
+                // explicit: "presence or absence of quotes around a value within a CSV file is
+                // a syntactic detail that is not reflected in the tabular data model." Under
+                // both interpretations the parsed column names are `id`, `name`, `age`, so the
+                // unquoted mapping references match. CARML's CSV reader (FastCSV) does this,
+                // triples are produced correctly, and the `hasError=true` expectation
+                // contradicts the conventional CSV interpretation. Failure:
+                // AssertionFailedError ("Expected RuntimeException to be thrown, but nothing
+                // was thrown").
+                "RMLSTC0009a");
     }
 }

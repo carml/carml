@@ -49,6 +49,7 @@
   rml:logicalSource [ a rml:LogicalSource;
     rml:source [ a rml:FilePath;
       rml:root rml:MappingDirectory;
+      rml:encoding rml:UTF-16;
       rml:path "Friends-UTF16.json"
     ];
     rml:referenceFormulation rml:JSONPath;
@@ -79,15 +80,15 @@
 
 **Output**
 ```
-<http://example.org/0> <http://xmlns.com/foaf/0.1/age> "33" .
+<http://example.org/0> <http://xmlns.com/foaf/0.1/age> "33"^^<http://www.w3.org/2001/XMLSchema#integer> .
 <http://example.org/0> <http://xmlns.com/foaf/0.1/name> "Monica Geller" .
-<http://example.org/1> <http://xmlns.com/foaf/0.1/age> "34" .
+<http://example.org/1> <http://xmlns.com/foaf/0.1/age> "34"^^<http://www.w3.org/2001/XMLSchema#integer> .
 <http://example.org/1> <http://xmlns.com/foaf/0.1/name> "Rachel Green" .
-<http://example.org/2> <http://xmlns.com/foaf/0.1/age> "35" .
+<http://example.org/2> <http://xmlns.com/foaf/0.1/age> "35"^^<http://www.w3.org/2001/XMLSchema#integer> .
 <http://example.org/2> <http://xmlns.com/foaf/0.1/name> "Joey Tribbiani" .
-<http://example.org/3> <http://xmlns.com/foaf/0.1/age> "36" .
+<http://example.org/3> <http://xmlns.com/foaf/0.1/age> "36"^^<http://www.w3.org/2001/XMLSchema#integer> .
 <http://example.org/3> <http://xmlns.com/foaf/0.1/name> "Chandler Bing" .
-<http://example.org/4> <http://xmlns.com/foaf/0.1/age> "37" .
+<http://example.org/4> <http://xmlns.com/foaf/0.1/age> "37"^^<http://www.w3.org/2001/XMLSchema#integer> .
 <http://example.org/4> <http://xmlns.com/foaf/0.1/name> "Ross Geller" .
 
 ```

@@ -35,7 +35,7 @@
     ];
     rml:predicateObjectMap [
       rml:predicate s:givenName ;
-      rml:objectMap [ rml:reference "name" ] ;
+      rml:objectMap [ rml:reference "$.name" ] ;
       rml:graph rml:defaultGraph ;
     ].
 

@@ -64,85 +64,177 @@ class TestRmlIoRegistryTestCasesWithDuckDb extends DuckDbTestCaseSuite {
         return "/rml/ioregistry/test-cases";
     }
 
+    /**
+     * Skip list for the rml-io-registry conformance suite running through the DuckDB evaluator,
+     * audited fresh against the upstream test cases as of the 2026-04-20 sync. The set differs from
+     * {@link TestRmlIoRegistryTestCases} (the reactive variant) primarily because:
+     *
+     * <ul>
+     *   <li>DuckDB has no XML / XPath support, so XML test cases that pass on the reactive
+     *       evaluator fail here with "No evaluator matched logical view".
+     *   <li>DuckDB's dialect differs from MySQL/PostgreSQL — some `rml:iterator` SQL strings that
+     *       run on the reactive Vert.x clients fail in DuckDB's scanner-extension dialect.
+     *   <li>DuckDB returns DATE/TIMESTAMP and BLOB Java values that don't slot directly into
+     *       RDF4J's literal factory the way the Vert.x clients' typed values do.
+     * </ul>
+     */
     @Override
     protected List<String> getSkipTests() {
         return List.of(
-                // --- Test case bugs ---
+                // ====================================================================
+                // SQL Server tests — DuckDB has no SQL Server scanner extension, and
+                // {@link #executeMapping} only routes mappings whose `d2rq:jdbcDriver`
+                // is MySQL or PostgreSQL. Mappings with
+                // `com.microsoft.sqlserver.jdbc.SQLServerDriver` raise:
+                //   IllegalStateException: resource.sql found but mapping does not
+                //   reference a known JDBC driver for test case <id>
+                // ====================================================================
+                "RMLIOREGTC0006a",
+                "RMLIOREGTC0006c",
+                "RMLIOREGTC0006f",
+                "RMLIOREGTC0006k",
+                "RMLIOREGTC0006l",
+                "RMLIOREGTC0006n",
+                "RMLIOREGTC0006p",
+                "RMLIOREGTC0006q",
+                "RMLIOREGTC0006r",
+                "RMLIOREGTC0006s",
+                "RMLIOREGTC0006t",
+                "RMLIOREGTC0006u",
+                "RMLIOREGTC0006v",
+                "RMLIOREGTC0006w",
+                "RMLIOREGTC0006x",
+                "RMLIOREGTC0006y",
+                "RMLIOREGTC0006z",
 
-                // JSON: $.THIS_VALUE_DOES_NOT_EXIST -> NULL, not error. The JSONPath IO-Registry spec
-                // (section "Generation of null values") states that selectors referring to non-existent
-                // JSON names result in NULL.
-                "RMLIOREGTC0002b",
+                // ====================================================================
+                // XML / XPath sources are not handled by the DuckDB evaluator (no
+                // native XML scanner). The evaluator factory returns no match and
+                // dispatch fails with:
+                //   RmlMapperException: No evaluator matched logical view ...
+                // The {@link RmlTestCaseSuite} single-evaluator harness has no
+                // fallback to the reactive evaluator.
+                // ====================================================================
+                "RMLIOREGTC0003a", // XML basic
+                "RMLIOREGTC0003d", // XML namespace
+                "RMLIOREGTC0003e", // XML namespace + XPath functions
 
-                // --- DuckDB limitations ---
-
-                // XML/XPath sources: DuckDB has no native XML support
-                "RMLIOREGTC0003",
-
-                // SQL Server: no SQL Server container configured
-                "RMLIOREGTC0006",
-
-                // Test case bug: expected output has plain "33" for JSON integer; engine produces
-                // "33"^^xsd:integer
+                // ====================================================================
+                // DCAT-only HTTP source — the DuckDB evaluator factory does not
+                // recognise `dcat:Distribution` + `rml:JSONPath` as a source it can
+                // handle (no DCAT->scanner translation). Same RmlMapperException as
+                // the XML cases above. (For the CSVW HTTP variant 0012a, DuckDB's
+                // httpfs extension covers the fetch and the test passes.)
+                // ====================================================================
                 "RMLIOREGTC0007a",
 
-                // --- Unsupported source types ---
+                // ====================================================================
+                // Source vocabularies CARML's RDF mapper does not bind to a Java
+                // type — same as the reactive suite:
+                //   CarmlMapperException: could not find a java type corresponding
+                //   to rdf type [<source-iri>]
+                // ====================================================================
+                "RMLIOREGTC0008a", // td:Thing (Web of Things)
+                "RMLIOREGTC0011a", // sd:Service (SPARQL endpoint)
 
-                // WoT (td:Thing) source descriptions
-                "RMLIOREGTC0008a", // HTTP JSON API
-                "RMLIOREGTC0009a", // Kafka stream
-                "RMLIOREGTC0010a", // MQTT stream
+                // ====================================================================
+                // Test-fixture bugs — invalid Turtle (`@prefix` lines terminated
+                // with `;` instead of `.`):
+                //   RDFParseException: Expected '.', found ';' [line 3]
+                // ====================================================================
+                "RMLIOREGTC0009a", // Kafka source via WoT
+                "RMLIOREGTC0010a", // MQTT source via WoT
 
-                // SPARQL endpoint (sd:Service)
-                "RMLIOREGTC0011a",
+                // ====================================================================
+                // Test-fixture bug — `assertThrows` expectation that does not match
+                // RML semantics. Missing JSON values produce no triple per spec, not
+                // an error; CARML behaves correctly so the assertion fails:
+                //   AssertionFailedError: Expected RuntimeException to be thrown,
+                //   but nothing was thrown
+                // (Note: the equivalent XML / PostgreSQL fixtures 0003b and 0005d
+                // happen to error out earlier in the DuckDB code path, accidentally
+                // satisfying assertThrows there — so they are NOT in this skip list
+                // even though they are in the reactive one.)
+                // ====================================================================
+                "RMLIOREGTC0002b",
 
-                // --- CSVW issues ---
+                // ====================================================================
+                // DuckDB SQL-dialect incompatibilities. DuckDB's scanner extensions
+                // pass the `rml:iterator` query through to the underlying engine,
+                // but the source-table cache materialisation step also runs the
+                // query against DuckDB itself, where MySQL/PostgreSQL syntax or
+                // schema references that work on Vert.x fail. Surfaces as:
+                //   DuckDbQueryException: Failed to execute DuckDB query for view ...
+                // with a fallback warning from {@code DuckDbSourceTableCache}.
+                // ====================================================================
+                "RMLIOREGTC0004l", // SELECT references a non-existent column
+                "RMLIOREGTC0004n", // multi-column concatenation query
+                "RMLIOREGTC0005l", // SELECT references a non-existent column
 
-                // CSVW with HTTP URL source: triggers reactor-netty HTTP fetch which fails due to
-                // Netty 4.2 MultiThreadIoEventLoopGroup not on classpath
-                "RMLIOREGTC0012a",
+                // ====================================================================
+                // DATE / TIMESTAMP literal generation. DuckDB returns these as Java
+                // `java.time.LocalDate` / `Timestamp` values that CARML's term
+                // generator passes verbatim to {@code ValidatingValueFactory}, which
+                // rejects them:
+                //   IllegalArgumentException: Not a valid literal value
+                // (RdfTermGeneratorFactory.lambda$generateDatatypedLiterals$16)
+                // Needs an explicit DuckDB date/timestamp -> xsd:date/xsd:dateTime
+                // converter in the source handler.
+                // ====================================================================
+                "RMLIOREGTC0004x",
+                "RMLIOREGTC0005x",
 
-                // UTF-16 encoding not supported by DuckDB's read_csv
-                "RMLIOREGTC0012f",
-
-                // Case-sensitive column name mismatch: CSV has lowercase headers, mapping references
-                // uppercase. DuckDB column names are case-sensitive.
-                "RMLIOREGTC0012i",
-
-                // --- MySQL DuckDB scanner issues ---
-
-                // DuckDB natural type inference: produces typed literals where tests expect plain
+                // ====================================================================
+                // Test-fixture bug — typed-vs-plain integer in expected output.
+                // Integer columns map to xsd:integer per RML-IO; CARML emits
+                // `"10"^^xsd:integer`. The fixtures expect a plain literal `"10"`.
+                // ====================================================================
                 "RMLIOREGTC0004k",
+                "RMLIOREGTC0005k",
+
+                // ====================================================================
+                // xsd:double canonical-form mismatch. CARML's
+                // {@code ValidatingValueFactory} normalises xsd:double to its W3C
+                // XSD canonical form (`"3.0E1"`); fixtures expect the non-canonical
+                // form (`"30.0"`).
+                // ====================================================================
                 "RMLIOREGTC0004o",
                 "RMLIOREGTC0004t",
                 "RMLIOREGTC0004w",
-                "RMLIOREGTC0004z",
-
-                // SQL2008Query references non-existent column; DuckDB rejects
-                "RMLIOREGTC0004l",
-
-                // CONCAT with backtick identifiers: jOOQ quotes column refs case-sensitively but
-                // DuckDB scanner exposes MySQL columns with lowercased names
-                "RMLIOREGTC0004n",
-
-                // DuckDB BLOB handling: binary literal value not supported
-                "RMLIOREGTC0004x",
-
-                // --- PostgreSQL DuckDB scanner issues ---
-
-                // DuckDB natural type inference: produces typed literals where tests expect plain
-                "RMLIOREGTC0005d",
-                "RMLIOREGTC0005k",
                 "RMLIOREGTC0005o",
                 "RMLIOREGTC0005t",
                 "RMLIOREGTC0005w",
+
+                // ====================================================================
+                // BLOB encoding — DuckDB returns BLOB columns as a Java `byte[]`.
+                // CARML's term generator stringifies the array via Java's default
+                // {@code Object.toString()}, producing
+                //   data:image/png;hex,%5BB%40<hashcode>
+                // (URL-encoded `[B@<hash>`) instead of the expected hex-encoded
+                // bytes:
+                //   data:image/png;hex,89504E47...
+                // Needs a binary-aware path that hex-encodes byte arrays.
+                // ====================================================================
+                "RMLIOREGTC0004z",
                 "RMLIOREGTC0005z",
 
-                // SQL2008Query references non-existent column; DuckDB rejects
-                "RMLIOREGTC0005l",
+                // ====================================================================
+                // CSVW UTF-16 encoding — DuckDB's `read_csv` does not accept
+                // `encoding='utf-16'` (only utf-8, latin-1, and a few CJK codepages
+                // are supported in the bundled CSV reader). Surfaces as:
+                //   DuckDbQueryException: Failed to execute DuckDB query for view ...
+                // ====================================================================
+                "RMLIOREGTC0012f",
 
-                // DuckDB BLOB handling: binary literal value not supported
-                "RMLIOREGTC0005x");
+                // ====================================================================
+                // CSV column reference case-sensitivity. The fixture's CSV header
+                // is `id,name,age` but the mapping references `"ID"`. The DuckDB
+                // CSV source handler validates column references case-sensitively:
+                //   IllegalArgumentException: CSV column reference 'ID' does not
+                //   match any column header case-sensitively. Available columns:
+                //   [id, name, age]
+                // ====================================================================
+                "RMLIOREGTC0012i");
     }
 
     @Override

@@ -2,7 +2,7 @@
 
 **Title**: Expression Field: Reference
 
-**Description**: Test a reference in an expression field
+**Description**: Test a reference-valued expression field
 
 **Error expected?** No
 

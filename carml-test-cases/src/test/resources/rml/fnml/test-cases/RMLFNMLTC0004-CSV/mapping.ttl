@@ -23,12 +23,12 @@
         rml:predicate foaf:name;
         rml:objectMap [
             rml:functionExecution <#Execution> ;
-            rml:return grel:stringOut
+            rml:return grel:output_number
         ]
     ] .
 
 <#Execution>
-    rml:function grel:length ;
+    rml:function grel:string_length ;
     rml:input
         [
             rml:parameter grel:valueParam ;

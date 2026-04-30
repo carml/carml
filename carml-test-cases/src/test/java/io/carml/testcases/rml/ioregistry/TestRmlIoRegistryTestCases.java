@@ -89,88 +89,170 @@ class TestRmlIoRegistryTestCases extends RmlTestCaseSuite {
         return "/rml/ioregistry/test-cases";
     }
 
+    /**
+     * Skip list for the rml-io-registry conformance suite running through the reactive SQL
+     * evaluator (Vert.x MySQL / PostgreSQL clients), audited fresh against the upstream test cases
+     * as of the 2026-04-20 sync. Tests are grouped by the underlying root cause; within each group,
+     * each ID is a separate fixture exhibiting the same failure mode for the same reason.
+     */
     @Override
     protected List<String> getSkipTests() {
         return List.of(
-                // --- Test case bugs (same as baseline) ---
+                // ====================================================================
+                // SQL Server tests — CARML's reactive SQL evaluator registers only
+                // MySQL and PostgreSQL Vert.x client providers; the mapping declares
+                // `d2rq:jdbcDriver "com.microsoft.sqlserver.jdbc.SQLServerDriver"`,
+                // which {@link #executeMapping} cannot route, so it raises:
+                //   IllegalStateException: resource.sql found but mapping does not
+                //   reference a known JDBC driver for test case <id>
+                // Unblocking these requires a SQL Server reactive client provider
+                // (no Vert.x SQL Server client at present) plus a Testcontainers
+                // mssql-server image in the suite setup.
+                // ====================================================================
+                "RMLIOREGTC0006a",
+                "RMLIOREGTC0006c",
+                "RMLIOREGTC0006f",
+                "RMLIOREGTC0006k",
+                "RMLIOREGTC0006l",
+                "RMLIOREGTC0006n",
+                "RMLIOREGTC0006p",
+                "RMLIOREGTC0006q",
+                "RMLIOREGTC0006r",
+                "RMLIOREGTC0006s",
+                "RMLIOREGTC0006t",
+                "RMLIOREGTC0006u",
+                "RMLIOREGTC0006v",
+                "RMLIOREGTC0006w",
+                "RMLIOREGTC0006x",
+                "RMLIOREGTC0006y",
+                "RMLIOREGTC0006z",
 
-                // JSON: $.THIS_VALUE_DOES_NOT_EXIST -> NULL, not error. The JSONPath IO-Registry spec
-                // (section "Generation of null values") states that selectors referring to non-existent
-                // JSON names result in NULL.
-                "RMLIOREGTC0002b",
+                // ====================================================================
+                // HTTP-fetching sources require Netty's
+                // `io.netty.channel.MultiThreadIoEventLoopGroup`, introduced in
+                // Netty 4.2; the project pins an older Netty on the classpath, so
+                // the HTTP source handler trips a NoClassDefFoundError before any
+                // bytes are fetched. Affects DCAT and CSVW HTTP source variants.
+                // ====================================================================
+                "RMLIOREGTC0007a", // DCAT (dcat:Distribution + dcat:downloadURL)
+                "RMLIOREGTC0012a", // CSVW (csvw:Table + csvw:url)
 
-                // XML: NON_EXISTING -> NULL, not error. The XPath IO-Registry spec (section "Handling
-                // absence of values") states that non-existent XPath evaluates to NULL.
-                "RMLIOREGTC0003b",
+                // ====================================================================
+                // Source vocabularies CARML's RDF mapper does not bind to a Java
+                // type. The annotation-driven mapper raises:
+                //   CarmlMapperException: could not find a java type corresponding
+                //   to rdf type [<source-iri>]
+                // ====================================================================
+                "RMLIOREGTC0008a", // Web of Things — td:Thing
+                "RMLIOREGTC0011a", // SPARQL endpoint — sd:Service
 
-                // Test case bug: namespace URL mismatch ("http://example.org" vs XML's
-                // "http://example.org/") and unprefixed names in iterator/references for elements in
-                // the default namespace.
+                // ====================================================================
+                // Test-fixture bugs — invalid Turtle syntax. The mapping uses `;`
+                // instead of `.` to terminate `@prefix` directives (lines 3-5),
+                // which is not legal Turtle. The mapping never parses:
+                //   RDFParseException: Expected '.', found ';' [line 3]
+                // ====================================================================
+                "RMLIOREGTC0009a", // Kafka source via WoT
+                "RMLIOREGTC0010a", // MQTT source via WoT
+
+                // ====================================================================
+                // Test-fixture bugs — `assertThrows` expectations that do not match
+                // RML semantics. The fixture declares "Error expected? Yes" for a
+                // missing reference / null value, but the RML spec says missing
+                // values produce no triple, not an error. CARML behaves correctly,
+                // so the assertion fails:
+                //   AssertionFailedError: Expected RuntimeException to be thrown,
+                //   but nothing was thrown
+                // ====================================================================
+                "RMLIOREGTC0002b", // Missing JSON value
+                "RMLIOREGTC0003b", // Missing XML value
+                "RMLIOREGTC0005d", // PostgreSQL row with NULL DateOfBirth
+
+                // ====================================================================
+                // Test-fixture bug — namespace URI mismatch. The XML document
+                // declares `xmlns="http://example.org/"` (trailing slash), but the
+                // mapping's `rml:namespaceURL` is `"http://example.org"` (no
+                // slash). XPath does not match any elements; the expected
+                // `<http://example.com/Venus>` triple is missing.
+                // ====================================================================
                 "RMLIOREGTC0003d",
 
-                // Test case bug: expected output has plain "33" for JSON integer; engine produces
-                // "33"^^xsd:integer
-                "RMLIOREGTC0007a",
-
-                // --- Unsupported source types ---
-
-                // WoT (td:Thing) source descriptions
-                "RMLIOREGTC0008a", // HTTP JSON API
-                "RMLIOREGTC0009a", // Kafka stream
-                "RMLIOREGTC0010a", // MQTT stream
-
-                // SPARQL endpoint (sd:Service)
-                "RMLIOREGTC0011a",
-
-                // CSVW with HTTP URL source: triggers reactor-netty HTTP fetch which fails due to
-                // Netty 4.2 MultiThreadIoEventLoopGroup not on classpath
-                "RMLIOREGTC0012a",
-
-                // CSVW quoteChar: case-sensitive column name mismatch (CSV has lowercase headers,
-                // mapping references uppercase)
-                "RMLIOREGTC0012i",
-
-                // --- SQL Server: no reactive SQL Server provider ---
-                "RMLIOREGTC0006",
-
-                // --- MySQL reactive issues ---
-
-                // Natural type inference: produces xsd:integer where W3C test expects plain literal
-                "RMLIOREGTC0004k",
-
-                // hasError=false but query references non-existent column, causing query failure
+                // ====================================================================
+                // Test-fixture bug — references a non-existent column in the SQL
+                // SELECT list. The mapping's `rml:iterator` is
+                // `SELECT NoColumnName, ID, Name FROM student`, but the schema only
+                // has `ID` and `Name`; MySQL rejects with "Unknown column", which
+                // surfaces as:
+                //   RuntimeException: Failed to execute reactive SQL query
+                // ====================================================================
                 "RMLIOREGTC0004l",
 
-                // FLOAT values: Java Float.toString() produces scientific notation (3.0E1 vs 30.0)
+                // ====================================================================
+                // Test-fixture bugs — PostgreSQL column-name case-sensitivity.
+                // Schemas declare double-quoted identifiers `"ID"`, `"Name"`, which
+                // PostgreSQL stores case-sensitively, but the mappings' `rml:iterator`
+                // uses unquoted `SELECT ID, Name FROM student`, which PostgreSQL
+                // folds to lower case → "column id does not exist". Surfaces as:
+                //   RuntimeException: Failed to execute reactive SQL query
+                // ====================================================================
+                "RMLIOREGTC0005k",
+                "RMLIOREGTC0005l",
+
+                // ====================================================================
+                // Test-fixture bug — typed-vs-plain integer in expected output. The
+                // SQL column is `INTEGER`, which RML-IO maps to `xsd:integer`, and
+                // CARML correctly emits `"10"^^xsd:integer`. The fixture's
+                // expected output writes a plain literal `"10"`.
+                // ====================================================================
+                "RMLIOREGTC0004k",
+
+                // ====================================================================
+                // xsd:double canonical-form mismatch. CARML's
+                // {@code ValidatingValueFactory} normalises xsd:double to its W3C
+                // XSD canonical form (`"3.0E1"`), which is the spec-correct
+                // representation. The fixtures expect the non-canonical lexical
+                // form (`"30.0"`).
+                // ====================================================================
                 "RMLIOREGTC0004o",
                 "RMLIOREGTC0004t",
                 "RMLIOREGTC0004w",
-
-                // MySQL BOOLEAN column: wire protocol reports BOOLEAN as TINYINT without (1) precision,
-                // so the driver can't distinguish it from a regular TINYINT
-                "RMLIOREGTC0004y",
-
-                // VARBINARY: Vert.x Buffer to hex string encoding not supported
-                "RMLIOREGTC0004z",
-
-                // --- PostgreSQL reactive issues ---
-
-                // Error test: expected error not thrown (mapping succeeds with empty result)
-                "RMLIOREGTC0005d",
-
-                // Natural type inference: produces xsd:integer where W3C test expects plain literal
-                "RMLIOREGTC0005k",
-
-                // hasError=false but query references non-existent column, causing query failure
-                "RMLIOREGTC0005l",
-
-                // FLOAT values: Java Float.toString() produces scientific notation (3.0E1 vs 30.0)
                 "RMLIOREGTC0005o",
                 "RMLIOREGTC0005t",
                 "RMLIOREGTC0005w",
 
-                // BYTEA: Vert.x Buffer to hex string encoding not supported
-                "RMLIOREGTC0005z");
+                // ====================================================================
+                // MySQL BOOLEAN wire-protocol — MySQL stores `BOOLEAN` as
+                // `TINYINT(1)`, and the Vert.x MySQL client surfaces it as `Byte`.
+                // CARML emits `"0"^^xsd:byte` / `"1"^^xsd:byte` instead of the
+                // expected `"false"^^xsd:boolean` / `"true"^^xsd:boolean`. Fixing
+                // requires explicit boolean detection in the MySQL client provider.
+                // ====================================================================
+                "RMLIOREGTC0004y",
+
+                // ====================================================================
+                // Binary-column encoding — MySQL VARBINARY / PostgreSQL BYTEA
+                // values arrive as Vert.x `Buffer` objects; CARML's term generator
+                // currently URL-encodes raw bytes into the data: IRI rather than
+                // hex-encoding them, producing
+                //   data:image/png;hex,%FFFD...
+                // when the fixture expects
+                //   data:image/png;hex,89504E47...
+                // (the 8-byte PNG signature). Needs a dedicated binary→hex path.
+                // ====================================================================
+                "RMLIOREGTC0004z",
+                "RMLIOREGTC0005z",
+
+                // ====================================================================
+                // CSV column reference case-sensitivity. The fixture's `Friends.csv`
+                // header is `id,name,age` but the mapping references `"ID"`. CARML's
+                // CSV resolver treats column names case-sensitively, so the lookup
+                // fails:
+                //   NoSuchElementException: Header does not contain a field 'ID'.
+                //   Valid names are: [id, name, age]
+                // RML-IO doesn't mandate case-insensitive matching for CSV columns;
+                // the fixture appears to assume it.
+                // ====================================================================
+                "RMLIOREGTC0012i");
     }
 
     @Override

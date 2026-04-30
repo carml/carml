@@ -1,970 +1,968 @@
-@prefix dcterms: <http://purl.org/dc/terms/> .
-@prefix rml: <http://w3id.org/rml/> .
-@prefix rmltest: <http://w3id.org/rml/test/> .
-@prefix test: <http://www.w3.org/2006/03/test-description#> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-
-<http://w3id.org/rml/core/test/RMLTC0000-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0000-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0000-JSON/input/student.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0000-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0000-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0000-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0001a-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0001a-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0001a-JSON/input/student.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0001a-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0001a-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0001a-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0001b-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0001b-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0001b-JSON/input/student.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0001b-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0001b-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0001b-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0002a-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0002a-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0002a-JSON/input/student.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0002a-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0002a-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0002a-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0002b-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0002b-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0002b-JSON/input/student.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0002b-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0002b-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0002b-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0002e-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0002e-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError true;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0002e-JSON/input/student.json>;
-  rmltest:mappingDocument "mapping.ttl" .
-
-<http://w3id.org/rml/core/test/RMLTC0002e-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0002g-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0002g-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError true;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0002g-JSON/input/student.json>;
-  rmltest:mappingDocument "mapping.ttl" .
-
-<http://w3id.org/rml/core/test/RMLTC0002g-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0003c-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0003c-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0003c-JSON/input/student.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0003c-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0003c-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0003c-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0004a-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0004a-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0004a-JSON/input/student_sport.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0004a-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0004a-JSON/input/student_sport.json> a rmltest:Input;
-  rmltest:input "student_sport.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0004a-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0004b-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0004b-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError true;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0004b-JSON/input/student.json>;
-  rmltest:mappingDocument "mapping.ttl" .
-
-<http://w3id.org/rml/core/test/RMLTC0004b-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0005a-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0005a-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0005a-JSON/input/ious.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0005a-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0005a-JSON/input/ious.json> a rmltest:Input;
-  rmltest:input "ious.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0005a-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0006a-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0006a-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0006a-JSON/input/student.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0006a-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0006a-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0006a-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0007a-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0007a-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0007a-JSON/input/student.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0007a-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0007a-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0007a-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0007b-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0007b-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0007b-JSON/input/student.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0007b-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0007b-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0007b-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0007c-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0007c-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0007c-JSON/input/student.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0007c-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0007c-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0007c-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0007d-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0007d-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0007d-JSON/input/student.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0007d-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0007d-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0007d-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0007e-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0007e-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0007e-JSON/input/student.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0007e-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0007e-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0007e-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0007f-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0007f-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0007f-JSON/input/student.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0007f-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0007f-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0007f-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0007g-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0007g-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0007g-JSON/input/student.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0007g-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0007g-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0007g-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0007h-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0007h-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError true;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0007h-JSON/input/student.json>;
-  rmltest:mappingDocument "mapping.ttl" .
-
-<http://w3id.org/rml/core/test/RMLTC0007h-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0008a-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0008a-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0008a-JSON/input/student.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0008a-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0008a-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0008a-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0008b-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0008b-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0008b-JSON/input/student.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0008b-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0008b-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0008b-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0008c-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0008c-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0008c-JSON/input/student.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0008c-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0008c-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0008c-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0009a-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0009a-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0009a-JSON/input/sport.json>, <http://w3id.org/rml/core/test/RMLTC0009a-JSON/input/student.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0009a-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0009a-JSON/input/sport.json> a rmltest:Input;
-  rmltest:input "sport.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0009a-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0009a-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0009b-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0009b-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0009b-JSON/input/sport.json>, <http://w3id.org/rml/core/test/RMLTC0009b-JSON/input/student.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0009b-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0009b-JSON/input/sport.json> a rmltest:Input;
-  rmltest:input "sport.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0009b-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0009b-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0010a-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0010a-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0010a-JSON/input/country_info.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0010a-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0010a-JSON/input/country_info.json> a rmltest:Input;
-  rmltest:input "country_info.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0010a-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0010b-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0010b-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0010b-JSON/input/country_info.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0010b-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0010b-JSON/input/country_info.json> a rmltest:Input;
-  rmltest:input "country_info.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0010b-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0010c-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0010c-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0010c-JSON/input/country_info.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0010c-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0010c-JSON/input/country_info.json> a rmltest:Input;
-  rmltest:input "country_info.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0010c-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0011b-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0011b-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0011b-JSON/input/sport.json>, <http://w3id.org/rml/core/test/RMLTC0011b-JSON/input/student.json>,
-    <http://w3id.org/rml/core/test/RMLTC0011b-JSON/input/student_sport.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0011b-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0011b-JSON/input/sport.json> a rmltest:Input;
-  rmltest:input "sport.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0011b-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0011b-JSON/input/student_sport.json> a rmltest:Input;
-  rmltest:input "student_sport.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0011b-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0012a-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0012a-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0012a-JSON/input/persons.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0012a-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0012a-JSON/input/persons.json> a rmltest:Input;
-  rmltest:input "persons.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0012a-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0012b-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0012b-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0012b-JSON/input/lives.json>, <http://w3id.org/rml/core/test/RMLTC0012b-JSON/input/persons.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0012b-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0012b-JSON/input/lives.json> a rmltest:Input;
-  rmltest:input "lives.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0012b-JSON/input/persons.json> a rmltest:Input;
-  rmltest:input "persons.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0012b-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0012c-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0012c-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError true;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0012c-JSON/input/persons.json>;
-  rmltest:mappingDocument "mapping.ttl" .
-
-<http://w3id.org/rml/core/test/RMLTC0012c-JSON/input/persons.json> a rmltest:Input;
-  rmltest:input "persons.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0012d-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0012d-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError true;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0012d-JSON/input/persons.json>;
-  rmltest:mappingDocument "mapping.ttl" .
-
-<http://w3id.org/rml/core/test/RMLTC0012d-JSON/input/persons.json> a rmltest:Input;
-  rmltest:input "persons.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0012e-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0012e-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0012e-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0012e-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0013a-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0013a-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0013a-JSON/input/persons.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0013a-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0013a-JSON/input/persons.json> a rmltest:Input;
-  rmltest:input "persons.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0013a-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0015a-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0015a-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0015a-JSON/input/country_es.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0015a-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0015a-JSON/input/country_es.json> a rmltest:Input;
-  rmltest:input "country_es.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0015a-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0015b-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0015b-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError true;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0015b-JSON/input/country_es.json>;
-  rmltest:mappingDocument "mapping.ttl" .
-
-<http://w3id.org/rml/core/test/RMLTC0015b-JSON/input/country_es.json> a rmltest:Input;
-  rmltest:input "country_es.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0019a-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0019a-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0019a-JSON/input/persons.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0019a-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0019a-JSON/input/persons.json> a rmltest:Input;
-  rmltest:input "persons.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0019a-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0019b-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0019b-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError true;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0019b-JSON/input/persons.json>;
-  rmltest:mappingDocument "mapping.ttl" .
-
-<http://w3id.org/rml/core/test/RMLTC0019b-JSON/input/persons.json> a rmltest:Input;
-  rmltest:input "persons.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0020a-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0020a-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0020a-JSON/input/student.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0020a-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0020a-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0020a-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0021a-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0021a-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0021a-JSON/input/student.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0021a-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0021a-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0021a-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0022a-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0022a-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0022a-JSON/input/student.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0022a-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0022a-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0022a-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0022b-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0022b-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0022b-JSON/input/data.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0022b-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0022b-JSON/input/data.json> a rmltest:Input;
-  rmltest:input "data.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0022b-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0022c-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0022c-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0022c-JSON/input/data.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0022c-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0022c-JSON/input/data.json> a rmltest:Input;
-  rmltest:input "data.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0022c-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0023a-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0023a-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError true;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0023a-JSON/input/student.json>;
-  rmltest:mappingDocument "mapping.ttl" .
-
-<http://w3id.org/rml/core/test/RMLTC0023a-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0023b-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0023b-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError true;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0023b-JSON/input/student.json>;
-  rmltest:mappingDocument "mapping.ttl" .
-
-<http://w3id.org/rml/core/test/RMLTC0023b-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0023c-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0023c-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError true;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0023c-JSON/input/student.json>;
-  rmltest:mappingDocument "mapping.ttl" .
-
-<http://w3id.org/rml/core/test/RMLTC0023c-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0023d-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0023d-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError true;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0023d-JSON/input/student.json>;
-  rmltest:mappingDocument "mapping.ttl" .
-
-<http://w3id.org/rml/core/test/RMLTC0023d-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0023e-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0023e-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError true;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0023e-JSON/input/student.json>;
-  rmltest:mappingDocument "mapping.ttl" .
-
-<http://w3id.org/rml/core/test/RMLTC0023e-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0023f-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0023f-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0023f-JSON/input/student.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0023f-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0023f-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0023f-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0024a-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0024a-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError true;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0024a-JSON/input/student.json>;
-  rmltest:mappingDocument "mapping.ttl" .
-
-<http://w3id.org/rml/core/test/RMLTC0024a-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0025a-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0025a-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0025a-JSON/input/persons.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0025a-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0025a-JSON/input/persons.json> a rmltest:Input;
-  rmltest:input "persons.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0025a-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0025b-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0025b-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError true;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0025b-JSON/input/persons.json>;
-  rmltest:mappingDocument "mapping.ttl" .
-
-<http://w3id.org/rml/core/test/RMLTC0025b-JSON/input/persons.json> a rmltest:Input;
-  rmltest:input "persons.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0025c-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0025c-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0025c-JSON/input/persons.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0025c-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0025c-JSON/input/persons.json> a rmltest:Input;
-  rmltest:input "persons.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0025c-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0026a-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0026a-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0026a-JSON/input/persons.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0026a-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0026a-JSON/input/persons.json> a rmltest:Input;
-  rmltest:input "persons.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0026a-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0026b-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0026b-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0026b-JSON/input/persons.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0026b-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0026b-JSON/input/persons.json> a rmltest:Input;
-  rmltest:input "persons.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0026b-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0026c-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0026c-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0026c-JSON/input/persons.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0026c-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0026c-JSON/input/persons.json> a rmltest:Input;
-  rmltest:input "persons.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0026c-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0026d-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0026d-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0026d-JSON/input/persons.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0026d-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0026d-JSON/input/persons.json> a rmltest:Input;
-  rmltest:input "persons.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0026d-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0027a-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0027a-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0027a-JSON/input/student.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0027a-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0027a-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0027a-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0027b-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0027b-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0027b-JSON/input/student.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0027b-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0027b-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0027b-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0027c-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0027c-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0027c-JSON/input/student.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0027c-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0027c-JSON/input/student.json> a rmltest:Input;
-  rmltest:input "student.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0027c-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0028a-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0028a-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0028a-JSON/input/data.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0028a-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0028a-JSON/input/data.json> a rmltest:Input;
-  rmltest:input "data.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0028a-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0028b-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0028b-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0028b-JSON/input/data.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0028b-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0028b-JSON/input/data.json> a rmltest:Input;
-  rmltest:input "data.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0028b-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
-
-<http://w3id.org/rml/core/test/RMLTC0028c-JSON> a test:TestCase;
-  dcterms:identifier "RMLTC0028c-JSON";
-  rmltest:defaultBaseIRI <http://example.com/>;
-  rmltest:hasError false;
-  rmltest:input <http://w3id.org/rml/core/test/RMLTC0028c-JSON/input/data.json>;
-  rmltest:mappingDocument "mapping.ttl";
-  rmltest:output <http://w3id.org/rml/core/test/RMLTC0028c-JSON/output/output.nq> .
-
-<http://w3id.org/rml/core/test/RMLTC0028c-JSON/input/data.json> a rmltest:Input;
-  rmltest:input "data.json";
-  rmltest:inputFormat "application/json" .
-
-<http://w3id.org/rml/core/test/RMLTC0028c-JSON/output/output.nq> a rmltest:Output;
-  rmltest:output "output.nq";
-  rmltest:outputFormat "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0011b-JSON/input/student_sport.json> <http://w3id.org/rml/test/input> "student_sport.json" .
+<http://w3id.org/rml/core/test/RMLTC0011b-JSON/input/student_sport.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0011b-JSON/input/student_sport.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0031b-JSON/input/data.json> <http://w3id.org/rml/test/input> "data.json" .
+<http://w3id.org/rml/core/test/RMLTC0031b-JSON/input/data.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0031b-JSON/input/data.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0011b-JSON/input/sport.json> <http://w3id.org/rml/test/input> "sport.json" .
+<http://w3id.org/rml/core/test/RMLTC0011b-JSON/input/sport.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0011b-JSON/input/sport.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0022c-JSON/input/data.json> <http://w3id.org/rml/test/input> "data.json" .
+<http://w3id.org/rml/core/test/RMLTC0022c-JSON/input/data.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0022c-JSON/input/data.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0005a-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0005a-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0005a-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0026a-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0026a-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0026a-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0026a-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0026a-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0026a-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0026a-JSON/input/persons.json> .
+<http://w3id.org/rml/core/test/RMLTC0026a-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0026a-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0026a-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0012b-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0012b-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0012b-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0030a-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0030a-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0030a-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0026d-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0026d-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0026d-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0026d-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0026d-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0026d-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0026d-JSON/input/persons.json> .
+<http://w3id.org/rml/core/test/RMLTC0026d-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0026d-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0026d-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0030a-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0030a-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0030a-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0028c-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0028c-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0028c-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0028c-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0028c-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0028c-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0028c-JSON/input/data.json> .
+<http://w3id.org/rml/core/test/RMLTC0028c-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0028c-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0028c-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0004b-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0004b-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0004b-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0024a-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0024a-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0024a-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0013a-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0013a-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0013a-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0013a-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0013a-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0013a-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0013a-JSON/input/persons.json> .
+<http://w3id.org/rml/core/test/RMLTC0013a-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0013a-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0013a-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0026b-JSON/input/persons.json> <http://w3id.org/rml/test/input> "persons.json" .
+<http://w3id.org/rml/core/test/RMLTC0026b-JSON/input/persons.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0026b-JSON/input/persons.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0028b-JSON/input/data.json> <http://w3id.org/rml/test/input> "data.json" .
+<http://w3id.org/rml/core/test/RMLTC0028b-JSON/input/data.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0028b-JSON/input/data.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0002g-JSON> <http://w3id.org/rml/test/hasError> "true"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0002g-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0002g-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0002g-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0002g-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0002g-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0002g-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0002g-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0020a-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0020a-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0020a-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0028b-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0028b-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0028b-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0028b-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0028b-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0028b-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0028b-JSON/input/data.json> .
+<http://w3id.org/rml/core/test/RMLTC0028b-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0028b-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0028b-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0030c-JSON/input/sport.json> <http://w3id.org/rml/test/input> "sport.json" .
+<http://w3id.org/rml/core/test/RMLTC0030c-JSON/input/sport.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0030c-JSON/input/sport.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0004b-JSON> <http://w3id.org/rml/test/hasError> "true"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0004b-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0004b-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0004b-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0004b-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0004b-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0004b-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0004b-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0008a-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0008a-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0008a-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0015b-JSON> <http://w3id.org/rml/test/hasError> "true"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0015b-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0015b-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0015b-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0015b-JSON/input/country_es.json> .
+<http://w3id.org/rml/core/test/RMLTC0015b-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0015b-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0015b-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0002b-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0002b-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0002b-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0020a-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0020a-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0020a-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0030d-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0030d-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0030d-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0030d-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0030d-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0030d-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0030d-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0030d-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0030d-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0030d-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0030d-JSON/input/sport.json> .
+<http://w3id.org/rml/core/test/RMLTC0030d-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0007d-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0007d-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0007d-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0025c-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0025c-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0025c-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0031c-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0031c-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0031c-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0026a-JSON/input/persons.json> <http://w3id.org/rml/test/input> "persons.json" .
+<http://w3id.org/rml/core/test/RMLTC0026a-JSON/input/persons.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0026a-JSON/input/persons.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0004a-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0004a-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0004a-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0004a-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0004a-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0004a-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0004a-JSON/input/student_sport.json> .
+<http://w3id.org/rml/core/test/RMLTC0004a-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0004a-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0004a-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0030f-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0030f-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0030f-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0019b-JSON> <http://w3id.org/rml/test/hasError> "true"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0019b-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0019b-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0019b-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0019b-JSON/input/persons.json> .
+<http://w3id.org/rml/core/test/RMLTC0019b-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0019b-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0019b-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0030c-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0030c-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0030c-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0030c-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0030c-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0030c-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0030c-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0030c-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0030c-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0030c-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0030c-JSON/input/sport.json> .
+<http://w3id.org/rml/core/test/RMLTC0030c-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0000-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0000-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0000-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0000-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0000-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0000-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0000-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0000-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0000-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0000-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0030f-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0030f-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0030f-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0005a-JSON/input/ious.json> <http://w3id.org/rml/test/input> "ious.json" .
+<http://w3id.org/rml/core/test/RMLTC0005a-JSON/input/ious.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0005a-JSON/input/ious.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0011b-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0011b-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0011b-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0004a-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0004a-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0004a-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0008a-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0008a-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0008a-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0008a-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0008a-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0008a-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0008a-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0008a-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0008a-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0008a-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0027b-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0027b-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0027b-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0011b-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0011b-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0011b-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0023f-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0023f-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0023f-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0023f-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0023f-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0023f-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0023f-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0023f-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0023f-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0023f-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0001b-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0001b-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0001b-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0021a-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0021a-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0021a-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0028c-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0028c-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0028c-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0030e-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0030e-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0030e-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0022d-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0022d-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0022d-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0023b-JSON> <http://w3id.org/rml/test/hasError> "true"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0023b-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0023b-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0023b-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0023b-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0023b-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0023b-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0023b-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0023e-JSON> <http://w3id.org/rml/test/hasError> "true"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0023e-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0023e-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0023e-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0023e-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0023e-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0023e-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0023e-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0031c-JSON/input/data.json> <http://w3id.org/rml/test/input> "data.json" .
+<http://w3id.org/rml/core/test/RMLTC0031c-JSON/input/data.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0031c-JSON/input/data.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0022d-JSON/input/data.json> <http://w3id.org/rml/test/input> "data.json" .
+<http://w3id.org/rml/core/test/RMLTC0022d-JSON/input/data.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0022d-JSON/input/data.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0010b-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0010b-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0010b-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0010b-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0010b-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0010b-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0010b-JSON/input/country_info.json> .
+<http://w3id.org/rml/core/test/RMLTC0010b-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0010b-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0010b-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0023a-JSON> <http://w3id.org/rml/test/hasError> "true"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0023a-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0023a-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0023a-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0023a-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0023a-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0023a-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0023a-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0012d-JSON> <http://w3id.org/rml/test/hasError> "true"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0012d-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0012d-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0012d-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0012d-JSON/input/persons.json> .
+<http://w3id.org/rml/core/test/RMLTC0012d-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0012d-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0012d-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0007a-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0007a-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0007a-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0007e-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0007e-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0007e-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0013a-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0013a-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0013a-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0025c-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0025c-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0025c-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0025c-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0025c-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0025c-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0025c-JSON/input/persons.json> .
+<http://w3id.org/rml/core/test/RMLTC0025c-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0025c-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0025c-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0001b-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0001b-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0001b-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0030d-JSON/input/sport.json> <http://w3id.org/rml/test/input> "sport.json" .
+<http://w3id.org/rml/core/test/RMLTC0030d-JSON/input/sport.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0030d-JSON/input/sport.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0001a-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0001a-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0001a-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0010a-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0010a-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0010a-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0010a-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0010a-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0010a-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0010a-JSON/input/country_info.json> .
+<http://w3id.org/rml/core/test/RMLTC0010a-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0010a-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0010a-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0030d-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0030d-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0030d-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0030c-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0030c-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0030c-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0012c-JSON> <http://w3id.org/rml/test/hasError> "true"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0012c-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0012c-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0012c-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0012c-JSON/input/persons.json> .
+<http://w3id.org/rml/core/test/RMLTC0012c-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0012c-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0012c-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0010b-JSON/input/country_info.json> <http://w3id.org/rml/test/input> "country_info.json" .
+<http://w3id.org/rml/core/test/RMLTC0010b-JSON/input/country_info.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0010b-JSON/input/country_info.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0025b-JSON> <http://w3id.org/rml/test/hasError> "true"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0025b-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0025b-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0025b-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0025b-JSON/input/persons.json> .
+<http://w3id.org/rml/core/test/RMLTC0025b-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0025b-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0025b-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0027a-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0027a-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0027a-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0027a-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0027a-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0027a-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0027a-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0027a-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0027a-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0027a-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0023f-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0023f-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0023f-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0001b-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0001b-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0001b-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0001b-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0001b-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0001b-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0001b-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0001b-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0001b-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0001b-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0031a-JSON/input/data.json> <http://w3id.org/rml/test/input> "data.json" .
+<http://w3id.org/rml/core/test/RMLTC0031a-JSON/input/data.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0031a-JSON/input/data.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0007d-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0007d-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0007d-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0027c-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0027c-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0027c-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0002b-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0002b-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0002b-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0007h-JSON> <http://w3id.org/rml/test/hasError> "true"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0007h-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0007h-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0007h-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0007h-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0007h-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0007h-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0007h-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0022a-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0022a-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0022a-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0008c-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0008c-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0008c-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0022a-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0022a-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0022a-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0001a-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0001a-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0001a-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0001a-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0001a-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0001a-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0001a-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0001a-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0001a-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0001a-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0010b-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0010b-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0010b-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0026b-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0026b-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0026b-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0003c-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0003c-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0003c-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0003c-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0003c-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0003c-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0003c-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0003c-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0003c-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0003c-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0027c-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0027c-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0027c-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0007f-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0007f-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0007f-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0007g-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0007g-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0007g-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0007g-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0007g-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0007g-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0007g-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0007g-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0007g-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0007g-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0026d-JSON/input/persons.json> <http://w3id.org/rml/test/input> "persons.json" .
+<http://w3id.org/rml/core/test/RMLTC0026d-JSON/input/persons.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0026d-JSON/input/persons.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0009b-JSON/input/sport.json> <http://w3id.org/rml/test/input> "sport.json" .
+<http://w3id.org/rml/core/test/RMLTC0009b-JSON/input/sport.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0009b-JSON/input/sport.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0005a-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0005a-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0005a-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0005a-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0005a-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0005a-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0005a-JSON/input/ious.json> .
+<http://w3id.org/rml/core/test/RMLTC0005a-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0005a-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0005a-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0006a-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0006a-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0006a-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0007c-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0007c-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0007c-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0027b-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0027b-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0027b-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0007c-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0007c-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0007c-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0007c-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0007c-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0007c-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0007c-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0007c-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0007c-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0007c-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0002a-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0002a-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0002a-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0031c-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0031c-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0031c-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0031c-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0031c-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0031c-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0031c-JSON/input/data.json> .
+<http://w3id.org/rml/core/test/RMLTC0031c-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0031c-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0031c-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0006a-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0006a-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0006a-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0012a-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0012a-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0012a-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0012d-JSON/input/persons.json> <http://w3id.org/rml/test/input> "persons.json" .
+<http://w3id.org/rml/core/test/RMLTC0012d-JSON/input/persons.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0012d-JSON/input/persons.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0007b-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0007b-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0007b-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0007b-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0007b-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0007b-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0007b-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0007b-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0007b-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0007b-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0015b-JSON/input/country_es.json> <http://w3id.org/rml/test/input> "country_es.json" .
+<http://w3id.org/rml/core/test/RMLTC0015b-JSON/input/country_es.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0015b-JSON/input/country_es.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0009a-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0009a-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0009a-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0009a-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0009a-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0009a-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0009a-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0009a-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0009a-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0009a-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0009a-JSON/input/sport.json> .
+<http://w3id.org/rml/core/test/RMLTC0009a-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0022d-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0022d-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0022d-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0022d-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0022d-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0022d-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0022d-JSON/input/data.json> .
+<http://w3id.org/rml/core/test/RMLTC0022d-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0022d-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0022d-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0002g-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0002g-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0002g-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0029a-JSON/input/data.json> <http://w3id.org/rml/test/input> "data.json" .
+<http://w3id.org/rml/core/test/RMLTC0029a-JSON/input/data.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0029a-JSON/input/data.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0007b-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0007b-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0007b-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0027a-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0027a-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0027a-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0020a-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0020a-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0020a-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0020a-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0020a-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0020a-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0020a-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0020a-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0020a-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0020a-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0030b-JSON/input/sport.json> <http://w3id.org/rml/test/input> "sport.json" .
+<http://w3id.org/rml/core/test/RMLTC0030b-JSON/input/sport.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0030b-JSON/input/sport.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0023a-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0023a-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0023a-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0022c-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0022c-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0022c-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0022c-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0022c-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0022c-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0022c-JSON/input/data.json> .
+<http://w3id.org/rml/core/test/RMLTC0022c-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0022c-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0022c-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0002a-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0002a-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0002a-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0012c-JSON/input/persons.json> <http://w3id.org/rml/test/input> "persons.json" .
+<http://w3id.org/rml/core/test/RMLTC0012c-JSON/input/persons.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0012c-JSON/input/persons.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0007c-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0007c-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0007c-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0021a-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0021a-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0021a-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0007h-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0007h-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0007h-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0031b-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0031b-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0031b-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0011b-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0011b-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0011b-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0011b-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0011b-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0011b-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0011b-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0011b-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0011b-JSON/input/student_sport.json> .
+<http://w3id.org/rml/core/test/RMLTC0011b-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0011b-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0011b-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0011b-JSON/input/sport.json> .
+<http://w3id.org/rml/core/test/RMLTC0011b-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0030f-JSON/input/sport.json> <http://w3id.org/rml/test/input> "sport.json" .
+<http://w3id.org/rml/core/test/RMLTC0030f-JSON/input/sport.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0030f-JSON/input/sport.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0024a-JSON> <http://w3id.org/rml/test/hasError> "true"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0024a-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0024a-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0024a-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0024a-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0024a-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0024a-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0024a-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0026c-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0026c-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0026c-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0026c-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0026c-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0026c-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0026c-JSON/input/persons.json> .
+<http://w3id.org/rml/core/test/RMLTC0026c-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0026c-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0026c-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0008c-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0008c-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0008c-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0030e-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0030e-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0030e-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0007a-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0007a-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0007a-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0026b-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0026b-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0026b-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0026b-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0026b-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0026b-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0026b-JSON/input/persons.json> .
+<http://w3id.org/rml/core/test/RMLTC0026b-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0026b-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0026b-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0012b-JSON/input/persons.json> <http://w3id.org/rml/test/input> "persons.json" .
+<http://w3id.org/rml/core/test/RMLTC0012b-JSON/input/persons.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0012b-JSON/input/persons.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0028a-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0028a-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0028a-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0028a-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0028a-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0028a-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0028a-JSON/input/data.json> .
+<http://w3id.org/rml/core/test/RMLTC0028a-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0028a-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0028a-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0009b-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0009b-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0009b-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0027a-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0027a-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0027a-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0007g-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0007g-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0007g-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0003c-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0003c-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0003c-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0019a-JSON/input/persons.json> <http://w3id.org/rml/test/input> "persons.json" .
+<http://w3id.org/rml/core/test/RMLTC0019a-JSON/input/persons.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0019a-JSON/input/persons.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0002b-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0002b-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0002b-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0002b-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0002b-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0002b-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0002b-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0002b-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0002b-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0002b-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0002e-JSON> <http://w3id.org/rml/test/hasError> "true"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0002e-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0002e-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0002e-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0002e-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0002e-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0002e-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0002e-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0015a-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0015a-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0015a-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0015a-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0015a-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0015a-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0015a-JSON/input/country_es.json> .
+<http://w3id.org/rml/core/test/RMLTC0015a-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0015a-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0015a-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0002e-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0002e-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0002e-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0028b-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0028b-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0028b-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0023f-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0023f-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0023f-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0022c-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0022c-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0022c-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0026d-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0026d-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0026d-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0008b-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0008b-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0008b-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0015a-JSON/input/country_es.json> <http://w3id.org/rml/test/input> "country_es.json" .
+<http://w3id.org/rml/core/test/RMLTC0015a-JSON/input/country_es.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0015a-JSON/input/country_es.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0030f-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0030f-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0030f-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0030f-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0030f-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0030f-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0030f-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0030f-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0030f-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0030f-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0030f-JSON/input/sport.json> .
+<http://w3id.org/rml/core/test/RMLTC0030f-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0002a-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0002a-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0002a-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0002a-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0002a-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0002a-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0002a-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0002a-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0002a-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0002a-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0012a-JSON/input/persons.json> <http://w3id.org/rml/test/input> "persons.json" .
+<http://w3id.org/rml/core/test/RMLTC0012a-JSON/input/persons.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0012a-JSON/input/persons.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0019a-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0019a-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0019a-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0019a-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0019a-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0019a-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0019a-JSON/input/persons.json> .
+<http://w3id.org/rml/core/test/RMLTC0019a-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0019a-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0019a-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0030b-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0030b-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0030b-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0030b-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0030b-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0030b-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0030b-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0030b-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0030b-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0030b-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0030b-JSON/input/sport.json> .
+<http://w3id.org/rml/core/test/RMLTC0030b-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0030e-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0030e-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0030e-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0030e-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0030e-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0030e-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0030e-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0030e-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0030e-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0030e-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0030e-JSON/input/sport.json> .
+<http://w3id.org/rml/core/test/RMLTC0030e-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0007f-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0007f-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0007f-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0001a-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0001a-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0001a-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0023e-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0023e-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0023e-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0006a-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0006a-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0006a-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0006a-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0006a-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0006a-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0006a-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0006a-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0006a-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0006a-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0012b-JSON/input/lives.json> <http://w3id.org/rml/test/input> "lives.json" .
+<http://w3id.org/rml/core/test/RMLTC0012b-JSON/input/lives.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0012b-JSON/input/lives.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0030b-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0030b-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0030b-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0030a-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0030a-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0030a-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0030a-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0030a-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0030a-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0030a-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0030a-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0030a-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0030a-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0030a-JSON/input/sport.json> .
+<http://w3id.org/rml/core/test/RMLTC0030a-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0008c-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0008c-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0008c-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0008c-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0008c-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0008c-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0008c-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0008c-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0008c-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0008c-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0008a-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0008a-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0008a-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0008b-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0008b-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0008b-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0008b-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0008b-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0008b-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0008b-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0008b-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0008b-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0008b-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0010c-JSON/input/country_info.json> <http://w3id.org/rml/test/input> "country_info.json" .
+<http://w3id.org/rml/core/test/RMLTC0010c-JSON/input/country_info.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0010c-JSON/input/country_info.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0023d-JSON> <http://w3id.org/rml/test/hasError> "true"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0023d-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0023d-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0023d-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0023d-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0023d-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0023d-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0023d-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0023d-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0023d-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0023d-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0008b-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0008b-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0008b-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0026a-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0026a-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0026a-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0010a-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0010a-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0010a-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0009b-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0009b-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0009b-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0021a-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0021a-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0021a-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0021a-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0021a-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0021a-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0021a-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0021a-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0021a-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0021a-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0023c-JSON> <http://w3id.org/rml/test/hasError> "true"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0023c-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0023c-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0023c-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0023c-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0023c-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0023c-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0023c-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0000-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0000-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0000-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0007e-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0007e-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0007e-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0028c-JSON/input/data.json> <http://w3id.org/rml/test/input> "data.json" .
+<http://w3id.org/rml/core/test/RMLTC0028c-JSON/input/data.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0028c-JSON/input/data.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0009a-JSON/input/sport.json> <http://w3id.org/rml/test/input> "sport.json" .
+<http://w3id.org/rml/core/test/RMLTC0009a-JSON/input/sport.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0009a-JSON/input/sport.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0013a-JSON/input/persons.json> <http://w3id.org/rml/test/input> "persons.json" .
+<http://w3id.org/rml/core/test/RMLTC0013a-JSON/input/persons.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0013a-JSON/input/persons.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0010c-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0010c-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0010c-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0010c-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0010c-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0010c-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0010c-JSON/input/country_info.json> .
+<http://w3id.org/rml/core/test/RMLTC0010c-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0010c-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0010c-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0012b-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0012b-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0012b-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0012b-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0012b-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0012b-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0012b-JSON/input/lives.json> .
+<http://w3id.org/rml/core/test/RMLTC0012b-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0012b-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0012b-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0012b-JSON/input/persons.json> .
+<http://w3id.org/rml/core/test/RMLTC0012b-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0004a-JSON/input/student_sport.json> <http://w3id.org/rml/test/input> "student_sport.json" .
+<http://w3id.org/rml/core/test/RMLTC0004a-JSON/input/student_sport.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0004a-JSON/input/student_sport.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0012e-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0012e-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0012e-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0012e-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0012e-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0012e-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0012e-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0012e-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0025a-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0025a-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0025a-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0025a-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0025a-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0025a-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0025a-JSON/input/persons.json> .
+<http://w3id.org/rml/core/test/RMLTC0025a-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0025a-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0025a-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0022b-JSON/input/data.json> <http://w3id.org/rml/test/input> "data.json" .
+<http://w3id.org/rml/core/test/RMLTC0022b-JSON/input/data.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0022b-JSON/input/data.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0027c-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0027c-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0027c-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0027c-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0027c-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0027c-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0027c-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0027c-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0027c-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0027c-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0023c-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0023c-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0023c-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0009a-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0009a-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0009a-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0012a-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0012a-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0012a-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0012a-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0012a-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0012a-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0012a-JSON/input/persons.json> .
+<http://w3id.org/rml/core/test/RMLTC0012a-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0012a-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0012a-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0000-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0000-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0000-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0029a-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0029a-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0029a-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0027b-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0027b-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0027b-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0027b-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0027b-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0027b-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0027b-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0027b-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0027b-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0027b-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0029a-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0029a-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0029a-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0029a-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0029a-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0029a-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0029a-JSON/input/data.json> .
+<http://w3id.org/rml/core/test/RMLTC0029a-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0029a-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0029a-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0028a-JSON/input/data.json> <http://w3id.org/rml/test/input> "data.json" .
+<http://w3id.org/rml/core/test/RMLTC0028a-JSON/input/data.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0028a-JSON/input/data.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0022e-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0022e-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0022e-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0030a-JSON/input/sport.json> <http://w3id.org/rml/test/input> "sport.json" .
+<http://w3id.org/rml/core/test/RMLTC0030a-JSON/input/sport.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0030a-JSON/input/sport.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0007f-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0007f-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0007f-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0007f-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0007f-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0007f-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0007f-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0007f-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0007f-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0007f-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0003c-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0003c-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0003c-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0023b-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0023b-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0023b-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0025c-JSON/input/persons.json> <http://w3id.org/rml/test/input> "persons.json" .
+<http://w3id.org/rml/core/test/RMLTC0025c-JSON/input/persons.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0025c-JSON/input/persons.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0019a-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0019a-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0019a-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0007b-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0007b-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0007b-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0025a-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0025a-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0025a-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0010a-JSON/input/country_info.json> <http://w3id.org/rml/test/input> "country_info.json" .
+<http://w3id.org/rml/core/test/RMLTC0010a-JSON/input/country_info.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0010a-JSON/input/country_info.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0031a-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0031a-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0031a-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0007e-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0007e-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0007e-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0007e-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0007e-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0007e-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0007e-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0007e-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0007e-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0007e-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0031b-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0031b-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0031b-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0031b-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0031b-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0031b-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0031b-JSON/input/data.json> .
+<http://w3id.org/rml/core/test/RMLTC0031b-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0031b-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0031b-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0030e-JSON/input/sport.json> <http://w3id.org/rml/test/input> "sport.json" .
+<http://w3id.org/rml/core/test/RMLTC0030e-JSON/input/sport.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0030e-JSON/input/sport.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0030c-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0030c-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0030c-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0012e-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0012e-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0012e-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0030d-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0030d-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0030d-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0007a-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0007a-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0007a-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0007a-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0007a-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0007a-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0007a-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0007a-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0007a-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0007a-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0007d-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0007d-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0007d-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0007d-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0007d-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0007d-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0007d-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0007d-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0007d-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0007d-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0031a-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0031a-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0031a-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0031a-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0031a-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0031a-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0031a-JSON/input/data.json> .
+<http://w3id.org/rml/core/test/RMLTC0031a-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0031a-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0031a-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0022e-JSON/input/data.json> <http://w3id.org/rml/test/input> "data.json" .
+<http://w3id.org/rml/core/test/RMLTC0022e-JSON/input/data.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0022e-JSON/input/data.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0025b-JSON/input/persons.json> <http://w3id.org/rml/test/input> "persons.json" .
+<http://w3id.org/rml/core/test/RMLTC0025b-JSON/input/persons.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0025b-JSON/input/persons.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0009a-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0009a-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0009a-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0015a-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0015a-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0015a-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0019b-JSON/input/persons.json> <http://w3id.org/rml/test/input> "persons.json" .
+<http://w3id.org/rml/core/test/RMLTC0019b-JSON/input/persons.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0019b-JSON/input/persons.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0009b-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0009b-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0009b-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0009b-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0009b-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0009b-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0009b-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0009b-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0009b-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0009b-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0009b-JSON/input/sport.json> .
+<http://w3id.org/rml/core/test/RMLTC0009b-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0022b-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0022b-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0022b-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0022b-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0022b-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0022b-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0022b-JSON/input/data.json> .
+<http://w3id.org/rml/core/test/RMLTC0022b-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0022b-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0022b-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0028a-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0028a-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0028a-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0022e-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0022e-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0022e-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0022e-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0022e-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0022e-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0022e-JSON/input/data.json> .
+<http://w3id.org/rml/core/test/RMLTC0022e-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0022e-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0022e-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0030b-JSON/input/student.json> <http://w3id.org/rml/test/input> "student.json" .
+<http://w3id.org/rml/core/test/RMLTC0030b-JSON/input/student.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0030b-JSON/input/student.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0022b-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0022b-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0022b-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0010c-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0010c-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0010c-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0026c-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0026c-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0026c-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0007g-JSON/output/output.nq> <http://w3id.org/rml/test/output> "output.nq" .
+<http://w3id.org/rml/core/test/RMLTC0007g-JSON/output/output.nq> <http://w3id.org/rml/test/outputFormat> "application/n-quads" .
+<http://w3id.org/rml/core/test/RMLTC0007g-JSON/output/output.nq> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Output> .
+<http://w3id.org/rml/core/test/RMLTC0022a-JSON> <http://w3id.org/rml/test/output> <http://w3id.org/rml/core/test/RMLTC0022a-JSON/output/output.nq> .
+<http://w3id.org/rml/core/test/RMLTC0022a-JSON> <http://w3id.org/rml/test/hasError> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+<http://w3id.org/rml/core/test/RMLTC0022a-JSON> <http://w3id.org/rml/test/mappingDocument> "mapping.ttl" .
+<http://w3id.org/rml/core/test/RMLTC0022a-JSON> <http://w3id.org/rml/test/defaultBaseIRI> <http://example.com/> .
+<http://w3id.org/rml/core/test/RMLTC0022a-JSON> <http://w3id.org/rml/test/input> <http://w3id.org/rml/core/test/RMLTC0022a-JSON/input/student.json> .
+<http://w3id.org/rml/core/test/RMLTC0022a-JSON> <http://purl.org/dc/terms/identifier> "RMLTC0022a-JSON" .
+<http://w3id.org/rml/core/test/RMLTC0022a-JSON> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2006/03/test-description#TestCase> .
+<http://w3id.org/rml/core/test/RMLTC0026c-JSON/input/persons.json> <http://w3id.org/rml/test/input> "persons.json" .
+<http://w3id.org/rml/core/test/RMLTC0026c-JSON/input/persons.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0026c-JSON/input/persons.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .
+<http://w3id.org/rml/core/test/RMLTC0025a-JSON/input/persons.json> <http://w3id.org/rml/test/input> "persons.json" .
+<http://w3id.org/rml/core/test/RMLTC0025a-JSON/input/persons.json> <http://w3id.org/rml/test/inputFormat> "application/json" .
+<http://w3id.org/rml/core/test/RMLTC0025a-JSON/input/persons.json> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/rml/test/Input> .

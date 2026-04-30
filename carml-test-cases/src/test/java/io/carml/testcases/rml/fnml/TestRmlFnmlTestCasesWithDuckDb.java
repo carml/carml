@@ -30,22 +30,63 @@ class TestRmlFnmlTestCasesWithDuckDb extends DuckDbTestCaseSuite {
         return Optional.of(iri("http://example.com/base/"));
     }
 
+    /**
+     * Skip list for the rml-fnml conformance suite when running through the DuckDB evaluator,
+     * audited fresh against the upstream test cases as of the 2026-04-20 sync. The DuckDB evaluator
+     * routes the CSV source through DuckDB's CSV scanner but reuses the same FnO function-execution
+     * path as the reactive evaluator, so failures stem from the same function-descriptor and
+     * Java-binding gaps documented in {@link TestRmlFnmlTestCases}. The set of failing tests is
+     * identical between the two suites.
+     */
     @Override
     protected List<String> getSkipTests() {
         return List.of(
-                // Test case bug: idlab-fn:random
-                "RMLFNMLTC0001",
-                // Test case bugs: contradictory IRI scheme normalization expectations
-                "RMLFNMLTC0011",
-                "RMLFNMLTC0031",
-                // Test case bug: parameter resource IRI mismatch
-                "RMLFNMLTC0003",
-                "RMLFNMLTC0061",
-                // Test case bug: missing GREL function descriptions
-                "RMLFNMLTC0004",
-                "RMLFNMLTC0007",
-                "RMLFNMLTC0021",
-                "RMLFNMLTC0081");
+                // ====================================================================
+                // Test-helper function with no descriptor anywhere on the classpath.
+                // `idlab-fn:alwaysReturnsABC` is a synthetic helper used to exercise
+                // FnO plumbing; it is NOT defined in `functions_idlab.ttl` or in
+                // carml-test-cases' `functions.ttl`.
+                //   WARN ... no function registered for function IRI
+                //   [https://w3id.org/imec/idlab/function#alwaysReturnsABC]
+                // ====================================================================
+                "RMLFNMLTC0001-CSV",
+
+                // ====================================================================
+                // grel functions whose FnO signatures (`fno:Function` declarations)
+                // are not on the classpath. `grel_java_mapping.ttl` only contains
+                // `fno:Mapping` rows; the matching function descriptors are absent.
+                // carml-test-cases' `functions.ttl` declares only `grel:toUpperCase`
+                // and `grel:string_replace`.
+                //   WARN ... no function registered for function IRI [...grel.ttl#<name>]
+                // ====================================================================
+                "RMLFNMLTC0004-CSV", // grel:string_length
+                "RMLFNMLTC0007-CSV", // grel:string_substring
+                "RMLFNMLTC0021-CSV", // grel:escape
+                "RMLFNMLTC0081-CSV", // grel:string_substring (with language tag)
+
+                // ====================================================================
+                // `idlab-fn:toUpperCaseURL` — descriptor and method mapping are both
+                // present (idlab-functions-java 1.4.0), but invocation fails:
+                //   WARN ... Function execution failed: Failed to invoke function
+                //   'https://w3id.org/imec/idlab/function#toUpperCaseURL'
+                // Likely a parameter-binding / method-resolution mismatch with
+                // CARML's FnO invoker.
+                // ====================================================================
+                "RMLFNMLTC0003-CSV",
+                "RMLFNMLTC0011-CSV",
+                "RMLFNMLTC0031-CSV",
+                "RMLFNMLTC0061-CSV",
+
+                // ====================================================================
+                // Upstream fixture inconsistency — same as the reactive suite. Manifest
+                // says `hasError=false` and references `output.nq`, but the upstream
+                // 2026-04 sync deleted the file. {@link RmlTestCaseSuite#runTestCase}
+                // NPEs in {@code BOMInputStream.builder().setInputStream(null)} when
+                // it tries to read the missing expected output.
+                // ====================================================================
+                "RMLFNMLTC0102-CSV",
+                "RMLFNMLTC0103-CSV",
+                "RMLFNMLTC0104-CSV");
     }
 
     @Override

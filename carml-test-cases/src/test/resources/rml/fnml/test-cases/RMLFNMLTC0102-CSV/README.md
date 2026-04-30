@@ -4,7 +4,7 @@
 
 **Description**: Tests that nothing is generated if a function is used where no implementation is made available to the mapping engine
 
-**Error expected?** No
+**Error expected?** Yes
 
 **Input**
 ```
@@ -52,11 +52,6 @@ Id,Name,Comment,Class
                 rml:reference "Name" ;
             ]
         ] .
-
-```
-
-**Output**
-```
 
 ```
 

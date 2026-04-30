@@ -10,74 +10,95 @@ class TestRmlIoTestCasesWithDuckDb extends DuckDbTestCaseSuite {
         return "/rml/io/test-cases";
     }
 
+    /**
+     * Skip list for the rml-io conformance suite when running through the DuckDB evaluator,
+     * audited fresh against the upstream test cases as of the 2026-04-20 sync. Differs from the
+     * baseline {@link TestRmlIoTestCases} skip list in two ways:
+     *
+     * <ul>
+     *   <li>DuckDB's CSV reader auto-infers column types, so a number of CSV test cases whose
+     *       fixtures expect {@code "33"^^xsd:integer} pass through DuckDB even though the
+     *       fixtures' expectations are spec-incorrect. Those tests are NOT in this skip list.
+     *   <li>DuckDB has no XML support, so XML/XPath test cases fail with a different error
+     *       (no evaluator matched the logical view) and stay skipped here even though some
+     *       pass on the baseline reactive evaluator.
+     * </ul>
+     */
     @Override
     protected List<String> getSkipTests() {
         return List.of(
-                // UTF-16 LE BOM JSON source without rml:encoding declared
+                // ====================================================================
+                // DuckDB-specific engine gaps.
+                // ====================================================================
+
+                // UTF-16 LE BOM JSON source. DuckDB's read_text helper called by the source
+                // table cache fails on non-UTF-8 bytes; the source materialisation falls
+                // back to a direct read which itself errors. Failure: DuckDbQueryException
+                // ("Failed to execute DuckDB query for view ...").
                 "RMLSTC0001b",
-                // Test case bugs: xsd:integer for CSV values, empty CSV field handling
-                "RMLSTC0004a",
-                "RMLSTC0004b",
-                "RMLSTC0004c",
-                // Test case bug: D2RQ SQL source with no resource.sql
+
+                // D2RQ-database source. The mapping declares
+                // `rml:referenceFormulation rml:SQL2008Table` over a `d2rq:Database` source
+                // but does NOT declare `d2rq:jdbcDriver` (and the DSN is the placeholder
+                // `$CONNECTIONDSN`). The DuckDB attacher needs a driver to pick a scanner
+                // extension; with `dbSource.getJdbcDriver()` returning null the lookup in
+                // its driver→extension map blows up:
+                //   NullPointerException at DuckDbDatabaseAttacher.doAttach
+                // Even with a driver declared, the rml-io suite has no live database for
+                // the placeholder DSN — SQL test fixtures live in the rml-io-registry suite
+                // which spins up real databases.
                 "RMLSTC0006a",
-                // rml:CurrentWorkingDirectory + CSV xsd:integer bug
-                "RMLSTC0006b",
-                // Test case bug: xsd:integer for CSV values
-                "RMLSTC0007b",
-                // Test case bug: xsd:integer for unvalidated XML
+
+                // XML / XPath sources are not handled by the DuckDB evaluator (no native XML
+                // scanner, no SQL-shaped translation). The evaluator factory returns no match
+                // and the dispatch fails with "No evaluator matched logical view". Note: in the
+                // RmlTestCaseSuite single-evaluator harness this is the only registered factory,
+                // so there is no fallback to the reactive evaluator the way carml-jar gets in
+                // `auto` mode.
                 "RMLSTC0007c",
                 "RMLSTC0007d",
-                // Test case bug: xsd:integer for CSV values
-                "RMLSTC0008b",
-                // Test case bug: quoted CSV headers
-                "RMLSTC0009a",
-                // XML/XPath sources: DuckDB has no native XML support
                 "RMLSTC0012a",
                 "RMLSTC0012b",
                 "RMLSTC0012c",
                 "RMLSTC0012d",
                 "RMLSTC0012e",
-                // RMLTTC: same per-test skip list as TestRmlIoTestCases — see that class for
-                // rationale. The subset carries over unchanged because none of the skipped
-                // behaviors are evaluator-specific (they are either test-case bugs on plain-
-                // string JSON ages, or the harness-level parse-as-NQUADS constraint).
-                "RMLTTC0001a",
-                "RMLTTC0001d",
-                "RMLTTC0002a",
-                "RMLTTC0002b",
-                "RMLTTC0002c",
-                "RMLTTC0002d",
-                "RMLTTC0002e",
-                "RMLTTC0002f",
-                "RMLTTC0002g",
-                "RMLTTC0002h",
-                "RMLTTC0002i",
-                "RMLTTC0002j",
-                "RMLTTC0002m",
-                "RMLTTC0002n",
-                "RMLTTC0002o",
-                "RMLTTC0002r",
-                "RMLTTC0003a",
-                "RMLTTC0004a",
-                "RMLTTC0004b",
-                "RMLTTC0004c",
-                "RMLTTC0004d",
+
+                // ====================================================================
+                // Upstream test fixture bug — incomplete natural-typing fix coverage.
+                //
+                // Mirrors the same skip block in {@link TestRmlIoTestCases}. Both
+                // evaluators produce identical {@code "33"^^xsd:integer} output for these
+                // fixtures (per the rml-io-registry json-path natural-rdf-mapping spec),
+                // so the divergence is on the fixture side. Upstream commit d35ce9a
+                // ("fix: Add natural datatype integer in the expected output", 2026-04-29)
+                // updated many TTC fixtures but missed the format / encoding / compression
+                // sibling variants below — the fixed canonical {@code .nq} sibling is
+                // listed for each.
+                //
+                // Pattern: missing plain `"33"`, unexpected `"33"^^xsd:integer`.
+                // ====================================================================
+                "RMLTTC0004a", // .jsonld variant of 0004d.dump1.nq (fixed)
+                "RMLTTC0004c", // .nt variant of 0004d
+                "RMLTTC0004f", // .rdfxml variant of 0004d
+                "RMLTTC0004g", // .ttl variant of 0004d
+                "RMLTTC0005b", // UTF-16 variant of 0005a (fixed)
+                "RMLTTC0006b", // gzip variant of 0006a (fixed)
+                "RMLTTC0006c", // zip variant of 0006a
+                "RMLTTC0006d", // tar.xz variant of 0006a
+                "RMLTTC0006e", // tar.gz variant of 0006a
+
+                // RMLTTC0004e: RDF/JSON variant of 0004d. Upstream commit 35eb678 added
+                // the required `"type": "literal"` so RDF4J's RDF/JSON parser no longer
+                // rejects the file, but two issues remain: each value is still a JSON
+                // number (`"value": 33`) instead of a string (`"value": "33"`), and no
+                // `"datatype"` field is present. Once parsed the literals are plain
+                // strings, so the same `xsd:integer` mismatch applies.
                 "RMLTTC0004e",
-                "RMLTTC0004f",
-                "RMLTTC0004g",
-                "RMLTTC0005a",
-                "RMLTTC0005b",
-                "RMLTTC0006a",
-                "RMLTTC0006b",
-                "RMLTTC0006c",
-                "RMLTTC0006e",
-                "RMLTTC0007a",
-                // RMLTTC0002k: expected @en language tag on names not declared in mapping.
-                "RMLTTC0002k",
-                // RMLTTC0002q: xsd:double canonical form ("3.3E1" vs "33") mismatch.
-                "RMLTTC0002q",
-                // RMLTTC0006d test-fixture bug: file named .tar.xz but bytes are gzip-tar.
-                "RMLTTC0006d");
+
+                // ====================================================================
+                // Test-case bugs — individual fixture issues; same root causes as the
+                // baseline IO suite. See TestRmlIoTestCases for the per-test rationale.
+                // ====================================================================
+                "RMLSTC0009a");
     }
 }

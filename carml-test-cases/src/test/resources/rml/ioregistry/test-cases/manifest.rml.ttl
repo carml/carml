@@ -1,0 +1,267 @@
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix rml: <http://w3id.org/rml/> .
+@prefix rmltest: <http://w3id.org/rml/test/> .
+@prefix test: <http://www.w3.org/2006/03/test-description#> .
+@base <http://w3id.org/rml/io-registry/test/> .
+
+# java -jar .\burp.jar -m manifest.rml.ttl -o manifest.ttl -b http://w3id.org/rml/io-registry/test/
+
+_:source 
+    rml:source [
+      a rml:RelativePathSource ;
+      rml:path "metadata.csv" ;
+      rml:null "";
+    ];
+    rml:referenceFormulation rml:CSV;
+.
+
+<#TriplesMapTestcase>
+  a rml:TriplesMap;
+    
+  rml:logicalSource _:source;
+
+  rml:subjectMap [ 
+    rml:reference "ID";
+    rml:class test:TestCase;
+  ]; 
+	
+  rml:predicateObjectMap [ 
+    rml:predicate dcterms:identifier; 
+    rml:objectMap [
+      rml:reference "ID";
+    ];
+  ];
+
+  rml:predicateObjectMap [ 
+    rml:predicate rmltest:hasError; 
+    rml:objectMap [
+	rml:reference "error";
+	rml:datatype xsd:boolean;
+    ];
+  ];
+
+  rml:predicateObjectMap [ 
+    rml:predicate rmltest:mappingDocument; 
+    rml:objectMap [
+      rml:reference "mapping";
+    ];
+  ];
+
+  rml:predicateObjectMap [
+    rml:predicate rmltest:input;
+    rml:objectMap [ a rml:RefObjectMap;
+      rml:parentTriplesMap <#TriplesMapInput1>;
+      rml:joinCondition [
+        rml:child "ID";
+        rml:parent "ID";
+      ];
+    ];
+  ];
+
+  rml:predicateObjectMap [
+    rml:predicate rmltest:input;
+    rml:objectMap [ a rml:RefObjectMap;
+      rml:parentTriplesMap <#TriplesMapInput2>;
+      rml:joinCondition [
+        rml:child "ID";
+        rml:parent "ID";
+      ];
+    ];
+  ];
+
+  rml:predicateObjectMap [
+    rml:predicate rmltest:input;
+    rml:objectMap [ a rml:RefObjectMap;
+      rml:parentTriplesMap <#TriplesMapInput3>;
+      rml:joinCondition [
+        rml:child "ID";
+        rml:parent "ID";
+      ];
+    ];
+  ];
+
+  rml:predicateObjectMap [
+    rml:predicate rmltest:output;
+    rml:objectMap [ a rml:RefObjectMap;
+      rml:parentTriplesMap <#TriplesMapOutput1>;
+      rml:joinCondition [
+        rml:child "ID";
+        rml:parent "ID";
+      ];
+    ];
+  ];
+
+  rml:predicateObjectMap [
+    rml:predicate rmltest:output;
+    rml:objectMap [ a rml:RefObjectMap;
+      rml:parentTriplesMap <#TriplesMapOutput2>;
+      rml:joinCondition [
+        rml:child "ID";
+        rml:parent "ID";
+      ];
+    ];
+  ];
+
+  rml:predicateObjectMap [
+    rml:predicate rmltest:output;
+    rml:objectMap [ a rml:RefObjectMap;
+      rml:parentTriplesMap <#TriplesMapOutput3>;
+      rml:joinCondition [
+        rml:child "ID";
+        rml:parent "ID";
+      ];
+    ];
+  ];
+.
+
+<#TriplesMapInput1>
+  a rml:TriplesMap;
+
+  rml:logicalSource _:source ;
+
+  rml:subjectMap [ 
+    rml:template "{ID}/input/{input1}";
+    rml:class rmltest:Input;
+  ];
+
+  rml:predicateObjectMap [ 
+    rml:predicate rmltest:input; 
+    rml:objectMap [
+      rml:reference "input1";
+    ];
+  ];
+
+  rml:predicateObjectMap [ 
+    rml:predicate rmltest:inputFormat; 
+    rml:objectMap [
+      rml:reference "input_format1";
+    ];
+  ];
+.
+
+<#TriplesMapInput2>
+  a rml:TriplesMap;
+
+  rml:logicalSource _:source;
+
+  rml:subjectMap [ 
+    rml:template "{ID}/input/{input2}";
+    rml:class rmltest:Input;
+  ];
+
+  rml:predicateObjectMap [ 
+    rml:predicate rmltest:input; 
+    rml:objectMap [
+      rml:reference "input2";
+    ];
+  ];
+
+  rml:predicateObjectMap [ 
+    rml:predicate rmltest:inputFormat; 
+    rml:objectMap [
+      rml:reference "input_format2";
+    ];
+  ];
+.
+
+<#TriplesMapInput3>
+  a rml:TriplesMap;
+
+  rml:logicalSource _:source;
+
+  rml:subjectMap [ 
+    rml:template "{ID}/input/{input3}";
+    rml:class rmltest:Input;
+  ];
+
+  rml:predicateObjectMap [ 
+    rml:predicate rmltest:input; 
+    rml:objectMap [
+      rml:reference "input3";
+    ];
+  ];
+
+  rml:predicateObjectMap [ 
+    rml:predicate rmltest:inputFormat; 
+    rml:objectMap [
+      rml:reference "input_format3";
+    ];
+  ];
+.
+
+<#TriplesMapOutput1>
+  a rml:TriplesMap;
+
+  rml:logicalSource _:source;
+
+  rml:subjectMap [ 
+    rml:template "{ID}/output/{output1}";
+    rml:class rmltest:Output;
+  ];
+
+  rml:predicateObjectMap [ 
+    rml:predicate rmltest:output; 
+    rml:objectMap [
+      rml:reference "output1";
+    ];
+  ];
+
+  rml:predicateObjectMap [ 
+    rml:predicate rmltest:outputFormat; 
+    rml:objectMap [
+      rml:reference "output_format1";
+    ];
+  ];
+.
+
+<#TriplesMapOutput2>
+  a rml:TriplesMap;
+
+  rml:logicalSource _:source;
+
+  rml:subjectMap [ 
+    rml:template "{ID}/output/{output2}";
+    rml:class rmltest:Output;
+  ];
+
+  rml:predicateObjectMap [ 
+    rml:predicate rmltest:output; 
+    rml:objectMap [
+      rml:reference "output2";
+    ];
+  ];
+
+  rml:predicateObjectMap [ 
+    rml:predicate rmltest:outputFormat; 
+    rml:objectMap [
+      rml:reference "output_format2";
+    ];
+  ];
+.
+
+<#TriplesMapOutput3>
+  a rml:TriplesMap;
+
+  rml:logicalSource _:source;
+
+  rml:subjectMap [ 
+    rml:template "{ID}/output/{output3}";
+    rml:class rmltest:Output;
+  ];
+
+  rml:predicateObjectMap [ 
+    rml:predicate rmltest:output; 
+    rml:objectMap [
+      rml:reference "output3";
+    ];
+  ];
+
+  rml:predicateObjectMap [ 
+    rml:predicate rmltest:outputFormat; 
+    rml:objectMap [
+      rml:reference "output_format3";
+    ];
+  ];
+.
+

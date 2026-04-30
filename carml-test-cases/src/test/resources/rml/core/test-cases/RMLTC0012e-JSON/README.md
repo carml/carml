@@ -30,13 +30,13 @@
   rml:predicateObjectMap [
     rml:predicate :firstName ;
     rml:objectMap [
-      rml:reference "firstName" ;
+      rml:reference "$.firstName" ;
     ] ;
   ];   
 rml:predicateObjectMap [
     rml:predicate :lastName ;
     rml:objectMap [
-      rml:reference "lastName" ;
+      rml:reference "$.lastName" ;
    ] ;
  ] . 
 ```

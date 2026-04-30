@@ -27,4 +27,4 @@
     ] .
 
 <#Execution>
-    rml:function idlab-fn:random .
+    rml:function idlab-fn:alwaysReturnsABC .

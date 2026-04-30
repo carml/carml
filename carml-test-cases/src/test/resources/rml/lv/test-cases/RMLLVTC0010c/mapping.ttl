@@ -1,0 +1,79 @@
+@prefix rml: <http://w3id.org/rml/>.
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
+@prefix : <http://example.org/>.
+
+:jsonSource a rml:LogicalSource;
+  rml:source [
+    a rml:RelativePathSource, rml:Source;
+    rml:root rml:MappingDirectory;
+    rml:path "people.json";
+  ];
+  rml:referenceFormulation rml:JSONPath;
+  rml:iterator "$.people[*]".
+
+:jsonView a rml:LogicalView;
+  rml:viewOn :jsonSource;
+  rml:field [
+    a rml:ExpressionField;
+    rml:fieldName "json_first_name";
+    rml:reference "$.firstName";
+  ];
+  rml:field [
+    a rml:ExpressionField;
+    rml:fieldName "json_last_name";
+    rml:reference "$.lastName";
+  ];
+  rml:field [
+    a rml:ExpressionField;
+    rml:fieldName "json_item";
+    rml:reference "$.items[*]";
+  ].
+
+:csvSource a rml:LogicalSource;
+  rml:source [
+    a rml:RelativePathSource, rml:Source;
+    rml:root rml:MappingDirectory;
+    rml:path "people.csv";
+  ];
+  rml:referenceFormulation rml:CSV.
+
+:csvView a rml:LogicalView;
+  rml:viewOn :csvSource;
+  rml:field [
+    a rml:ExpressionField;
+    rml:fieldName "csv_name";
+    rml:reference "name";
+  ];
+  rml:field [
+    a rml:ExpressionField;
+    rml:fieldName "csv_birthyear";
+    rml:reference "birthyear";
+  ];
+  rml:leftJoin [
+    rml:parentLogicalView :jsonView;
+    rml:joinCondition [
+      rml:parentMap [ rml:template "{json_first_name} {json_last_name}" ];
+      rml:childMap [ rml:reference "csv_name" ];
+    ];
+    rml:field [
+      a rml:ExpressionField;
+      rml:fieldName "json_item";
+      rml:reference "json_item";
+    ];
+  ].
+
+:triplesMapPerson a rml:TriplesMap;
+  rml:logicalSource :csvView;
+  rml:subjectMap [ rml:template "http://example.org/person/{csv_name}" ];
+  rml:predicateObjectMap [
+    rml:predicate :hasBirthYear;
+    rml:objectMap [
+      rml:reference "csv_birthyear";
+      rml:datatype xsd:gYear;
+    ];
+  ];
+  rml:predicateObjectMap [
+    rml:predicate :hasItem;
+    rml:objectMap [ rml:template "http://example.org/person/{csv_name}/item/{json_item}" ];
+  ].
+

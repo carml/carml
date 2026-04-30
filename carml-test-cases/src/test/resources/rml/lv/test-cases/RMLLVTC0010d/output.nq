@@ -1,0 +1,2 @@
+<http://example.org/person/bob%20jones> <http://example.org/hasBirthYear> "1999"^^<http://www.w3.org/2001/XMLSchema#gYear> .
+<http://example.org/person/alice%20smith> <http://example.org/hasBirthYear> "1995"^^<http://www.w3.org/2001/XMLSchema#gYear> .

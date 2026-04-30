@@ -47,13 +47,11 @@ Id,Name,Comment,Class
     ] .
 
 <#Execution>
-    rml:function idlab-fn:random .
-
+    rml:function idlab-fn:alwaysReturnsABC .
 ```
 
 **Output**
 ```
-<http://example.com/Venus> <http://xmlns.com/foaf/0.1/name> "e4dcc7ee-8e2a-4012-92cc-9a74dd545e89" .
-
+<http://example.com/Venus> <http://xmlns.com/foaf/0.1/name> "ABC" .
 ```
 
