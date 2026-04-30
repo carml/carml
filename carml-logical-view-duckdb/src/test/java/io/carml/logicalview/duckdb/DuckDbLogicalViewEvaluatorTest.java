@@ -419,14 +419,17 @@ class DuckDbLogicalViewEvaluatorTest {
                     .assertNext(iterations -> {
                         assertThat(iterations, hasSize(3));
 
+                        // Per the RML I/O spec, CSV has no native typing — every CSV value is a
+                        // string. The DuckDB CSV handler reads with all_varchar = true, so
+                        // numeric-looking columns surface as String values rather than Long.
                         assertThat(iterations.get(0).getValue("name"), is(Optional.of("Alice")));
-                        assertThat(iterations.get(0).getValue("score"), is(Optional.of(95L)));
+                        assertThat(iterations.get(0).getValue("score"), is(Optional.of("95")));
 
                         assertThat(iterations.get(1).getValue("name"), is(Optional.of("Bob")));
-                        assertThat(iterations.get(1).getValue("score"), is(Optional.of(88L)));
+                        assertThat(iterations.get(1).getValue("score"), is(Optional.of("88")));
 
                         assertThat(iterations.get(2).getValue("name"), is(Optional.of("Charlie")));
-                        assertThat(iterations.get(2).getValue("score"), is(Optional.of(72L)));
+                        assertThat(iterations.get(2).getValue("score"), is(Optional.of("72")));
                     })
                     .verifyComplete();
         }

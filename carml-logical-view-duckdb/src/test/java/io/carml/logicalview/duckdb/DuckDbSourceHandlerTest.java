@@ -254,13 +254,14 @@ class DuckDbSourceHandlerTest {
         private final CsvSourceHandler handler = new CsvSourceHandler();
 
         @Test
-        void csvFile_producesReadCsvAuto() {
+        void csvFile_producesReadCsvAllVarchar() {
             var logicalSource = mockLogicalSourceWithFileSource("data.csv");
             var fields = Set.<Field>of(expressionField("name", "name"));
 
             var result = handler.compileSource(logicalSource, fields, CTE_ALIAS, null);
 
-            assertThat(result.sourceSql(), containsString("read_csv_auto"));
+            assertThat(result.sourceSql(), containsString("read_csv("));
+            assertThat(result.sourceSql(), containsString("all_varchar = true"));
             assertThat(result.strategy(), instanceOf(ColumnSourceStrategy.class));
         }
 
@@ -326,7 +327,7 @@ class DuckDbSourceHandlerTest {
         }
 
         @Test
-        void csvwTableWithoutDialect_producesReadCsvAuto() {
+        void csvwTableWithoutDialect_producesReadCsvAllVarchar() {
             var csvwTable = mock(CsvwTable.class);
             when(csvwTable.getUrl()).thenReturn("data.csv");
             when(csvwTable.getDialect()).thenReturn(null);
@@ -336,7 +337,8 @@ class DuckDbSourceHandlerTest {
 
             var result = handler.compileSource(logicalSource, fields, CTE_ALIAS, null);
 
-            assertThat(result.sourceSql(), containsString("read_csv_auto"));
+            assertThat(result.sourceSql(), containsString("read_csv("));
+            assertThat(result.sourceSql(), containsString("all_varchar = true"));
         }
 
         @Test

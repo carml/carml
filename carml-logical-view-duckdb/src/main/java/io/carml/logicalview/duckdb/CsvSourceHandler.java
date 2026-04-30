@@ -125,7 +125,51 @@ final class CsvSourceHandler implements DuckDbSourceHandler {
             }
         }
 
-        return columnSource("read_csv_auto(%s)".formatted(inline(filePath)), cteAlias, viewFields);
+        // Per the RML I/O spec, CSV has no native typing — every CSV value is a string. Use
+        // read_csv with all_varchar = true so DuckDB does not auto-detect column types (which
+        // would surface downstream as XSD datatypes, e.g. "33"^^xsd:integer for an integer-looking
+        // column). The nullstr handling mirrors the CSVW path: honor rml:null when declared, fall
+        // back to a sentinel that prevents DuckDB from treating empty cells as SQL NULL.
+        var nullValues = CsvNullValueHandler.resolveNullValues(source);
+        return columnSource(compilePlainCsvSourceSql(filePath, nullValues), cteAlias, viewFields);
+    }
+
+    /**
+     * Compiles a {@code read_csv()} call for plain (non-CSVW) CSV sources, forcing all columns to
+     * VARCHAR and routing {@code rml:null} declarations through DuckDB's {@code nullstr} parameter.
+     */
+    private static String compilePlainCsvSourceSql(String filePath, Set<Object> nullValues) {
+        var params = new ArrayList<String>();
+        params.add(CTX.render(inline(filePath)));
+        params.add("all_varchar = true");
+        appendNullstrParam(params, nullValues);
+
+        return "read_csv(%s)".formatted(String.join(", ", params));
+    }
+
+    /**
+     * Appends a {@code nullstr} parameter to {@code params} that mirrors the supplied null-value
+     * set: a single inline literal for one entry, a bracketed list for multiple, or
+     * {@link #NO_NULL_SENTINEL} when the set is empty. The sentinel suppresses DuckDB's default
+     * empty-string-as-NULL behavior so that empty CSV cells survive as empty-string values —
+     * matching the RML I/O spec's "no default NULL token for CSV" rule.
+     */
+    private static void appendNullstrParam(List<String> params, Set<Object> nullValues) {
+        if (nullValues != null && !nullValues.isEmpty()) {
+            if (nullValues.size() == 1) {
+                params.add("nullstr = %s"
+                        .formatted(
+                                CTX.render(inline(nullValues.iterator().next().toString()))));
+            } else {
+                var nullList = nullValues.stream()
+                        .sorted(Comparator.comparing(Object::toString))
+                        .map(v -> CTX.render(inline(v.toString())))
+                        .collect(Collectors.joining(", "));
+                params.add("nullstr = [%s]".formatted(nullList));
+            }
+        } else {
+            params.add("nullstr = %s".formatted(CTX.render(inline(NO_NULL_SENTINEL))));
+        }
     }
 
     /**
@@ -171,25 +215,7 @@ final class CsvSourceHandler implements DuckDbSourceHandler {
             params.add("escape = %s".formatted(CTX.render(inline("\\"))));
         }
 
-        if (nullValues != null && !nullValues.isEmpty()) {
-            if (nullValues.size() == 1) {
-                params.add("nullstr = %s"
-                        .formatted(
-                                CTX.render(inline(nullValues.iterator().next().toString()))));
-            } else {
-                var nullList = nullValues.stream()
-                        .sorted(Comparator.comparing(Object::toString))
-                        .map(v -> CTX.render(inline(v.toString())))
-                        .collect(Collectors.joining(", "));
-                params.add("nullstr = [%s]".formatted(nullList));
-            }
-        } else {
-            // When no csvw:null values are specified, set a sentinel nullstr to prevent DuckDB
-            // from treating empty quoted strings as NULL. This preserves empty strings as
-            // empty string values, matching RML's expectation that only explicit null values
-            // (from csvw:null) should produce NULL.
-            params.add("nullstr = %s".formatted(CTX.render(inline(NO_NULL_SENTINEL))));
-        }
+        appendNullstrParam(params, nullValues);
 
         // Force all columns to VARCHAR to match RML's string-based processing model
         params.add("all_varchar = true");

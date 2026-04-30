@@ -250,13 +250,14 @@ class DuckDbViewCompilerTest {
     class CsvSource {
 
         @Test
-        void compile_csvSource_producesReadCsvAuto() {
+        void compile_csvSource_producesReadCsvAllVarchar() {
             var view = createCsvView("data.csv", Set.of(expressionField("col1", "column1")));
             var context = EvaluationContext.defaults();
 
             var sql = DuckDbViewCompiler.compile(view, context).sql();
 
-            assertThat(sql, containsString("read_csv_auto('data.csv')"));
+            assertThat(sql, containsString("read_csv('data.csv'"));
+            assertThat(sql, containsString("all_varchar = true"));
             assertThat(sql, containsString("\"column1\" \"col1\""));
         }
     }
@@ -285,7 +286,7 @@ class DuckDbViewCompilerTest {
             var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             assertThat(sql, containsString("read_parquet('data.parq')"));
-            assertThat(sql, not(containsString("read_csv_auto")));
+            assertThat(sql, not(containsString("read_csv(")));
         }
     }
 
@@ -902,13 +903,14 @@ class DuckDbViewCompilerTest {
         }
 
         @Test
-        void compile_rmlCsvFormulation_producesReadCsvAuto() {
+        void compile_rmlCsvFormulation_producesReadCsvAllVarchar() {
             var view = createViewWithRefFormulation(Rdf.Rml.Csv, "data.csv", Set.of(expressionField("id", "id")));
             var context = EvaluationContext.defaults();
 
             var sql = DuckDbViewCompiler.compile(view, context).sql();
 
-            assertThat(sql, containsString("read_csv_auto('data.csv')"));
+            assertThat(sql, containsString("read_csv('data.csv'"));
+            assertThat(sql, containsString("all_varchar = true"));
         }
     }
 
@@ -1821,7 +1823,8 @@ class DuckDbViewCompilerTest {
             var sql = DuckDbViewCompiler.compile(view, context).sql();
 
             // CSV source read
-            assertThat(sql, containsString("read_csv_auto('data.csv')"));
+            assertThat(sql, containsString("read_csv('data.csv'"));
+            assertThat(sql, containsString("all_varchar = true"));
             // Parent CSV column projected
             assertThat(sql, containsString("\"items\" \"items\""));
             // JSON array extraction and unnest from parent column
