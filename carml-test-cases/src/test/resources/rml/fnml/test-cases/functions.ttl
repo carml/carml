@@ -51,6 +51,50 @@ grel:param_replace
     fno:predicate grel:p_string_replace ;
     fno:type      xsd:string ;
     fno:required  "true"^^xsd:boolean .
+
+grel:string_length
+    a                   fno:Function ;
+    fno:name            "length" ;
+    dcterms:description "Returns the length of the input string." ;
+    fno:expects         ( grel:valueParam ) ;
+    fno:returns         ( grel:output_number ) .
+
+grel:output_number
+    a             fno:Output ;
+    fno:name      "output number" ;
+    rdfs:label    "output number" ;
+    fno:predicate grel:o_int ;
+    fno:type      xsd:integer .
+
+grel:string_substring
+    a                   fno:Function ;
+    fno:name            "substring" ;
+    dcterms:description "Returns a substring of the input string starting at the given index." ;
+    fno:expects         ( grel:valueParam grel:p_int_i_from ) ;
+    fno:returns         ( grel:stringOut ) .
+
+grel:p_int_i_from
+    a             fno:Parameter ;
+    fno:name      "from index" ;
+    rdfs:label    "from index" ;
+    fno:predicate grel:p_int_i_from ;
+    fno:type      xsd:integer ;
+    fno:required  "true"^^xsd:boolean .
+
+grel:escape
+    a                   fno:Function ;
+    fno:name            "escape" ;
+    dcterms:description "Escapes the input string according to the given mode (html, xml, csv, url, javascript)." ;
+    fno:expects         ( grel:valueParam grel:modeParam ) ;
+    fno:returns         ( grel:stringOut ) .
+
+grel:modeParam
+    a             fno:Parameter ;
+    fno:name      "escape mode" ;
+    rdfs:label    "escape mode" ;
+    fno:predicate grel:modeParameter ;
+    fno:type      xsd:string ;
+    fno:required  "true"^^xsd:boolean .
    
 fns:helloworld
    a                   fno:Function ;

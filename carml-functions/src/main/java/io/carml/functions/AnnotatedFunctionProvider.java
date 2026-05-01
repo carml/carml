@@ -53,12 +53,14 @@ public class AnnotatedFunctionProvider implements FunctionProvider {
                 .map(AnnotatedFunctionProvider::createParameterDescriptor)
                 .toList();
 
-        var paramIris =
-                parameters.stream().map(ParameterDescriptor::parameterIri).toList();
+        var argSlots = new int[parameters.size()];
+        for (int i = 0; i < argSlots.length; i++) {
+            argSlots[i] = i;
+        }
 
         var returns = List.of(new ReturnDescriptor(null, method.getReturnType()));
 
-        return new ReflectiveFunctionDescriptor(functionIri, parameters, returns, target, method, paramIris);
+        return new ReflectiveFunctionDescriptor(functionIri, parameters, returns, target, method, argSlots);
     }
 
     private static ParameterDescriptor createParameterDescriptor(Parameter parameter) {

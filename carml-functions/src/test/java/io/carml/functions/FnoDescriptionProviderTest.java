@@ -66,6 +66,24 @@ class FnoDescriptionProviderTest {
         }
     }
 
+    /** A utility class with static methods only (no instance state). */
+    @SuppressWarnings("unused") // methods are discovered reflectively by FnoDescriptionProvider
+    public static class StaticUtilityFunctions {
+
+        private StaticUtilityFunctions() {
+            // intentional: should not be instantiated
+            throw new UnsupportedOperationException("static utility class");
+        }
+
+        public static String shout(String input) {
+            return input.toUpperCase() + "!";
+        }
+
+        public static String join(String left, String right) {
+            return left + "-" + right;
+        }
+    }
+
     // -- Tests --
 
     @Test
@@ -276,6 +294,193 @@ class FnoDescriptionProviderTest {
         assertThat(descriptor.getReturns(), hasSize(1));
         assertThat(descriptor.getReturns().get(0).outputIri(), is(nullValue()));
         assertThat(descriptor.getReturns().get(0).type(), is(Object.class));
+    }
+
+    @Test
+    void getFunctions_setsParameterPredicateIri_givenFnoPredicate() {
+        var predicateIri = VF.createIRI(GREL + "valuePredicate");
+        var model = createSingleFunctionModelWithPredicate(predicateIri);
+
+        var provider = new FnoDescriptionProvider(model);
+        var descriptor = provider.getFunctions().iterator().next();
+
+        var paramDesc = descriptor.getParameters().get(0);
+        assertThat(paramDesc.parameterIri(), is(VALUE_PARAM_IRI));
+        assertThat(paramDesc.predicateIri(), is(predicateIri));
+        assertThat(paramDesc.matches(predicateIri), is(true));
+        assertThat(paramDesc.matches(VALUE_PARAM_IRI), is(true));
+    }
+
+    @Test
+    void execute_invokesMethodWithReorderedArgs_givenPositionParameterMapping() {
+        // Function declares (left, right) but Position mapping says left → slot 1 and right → slot 0,
+        // so calling concat with leftValue="A", rightValue="B" should produce "BA".
+        var model = createConcatModelWithSwappedPositions();
+
+        var provider = new FnoDescriptionProvider(model);
+        var descriptor = provider.getFunctions().iterator().next();
+
+        var result = descriptor.execute(Map.of(LEFT_PARAM_IRI, "A", RIGHT_PARAM_IRI, "B"));
+
+        assertThat(result, is("BA"));
+    }
+
+    @Test
+    void getFunctions_supportsStaticMethod_givenClassWithoutDefaultConstructor() {
+        var model = createStaticMethodModel();
+
+        var provider = new FnoDescriptionProvider(model);
+        var descriptor = provider.getFunctions().iterator().next();
+
+        var result = descriptor.execute(Map.of(VALUE_PARAM_IRI, "hello"));
+
+        assertThat(result, is("HELLO!"));
+    }
+
+    @Test
+    void getFunctions_derivesDescriptorFromMethodReflection_givenMappingWithoutFnoFunction() {
+        var model = createMappingOnlyModel();
+
+        var provider = new FnoDescriptionProvider(model);
+        var descriptor = provider.getFunctions().iterator().next();
+
+        // No fno:Function declaration: parameters are synthesized from the Java method signature.
+        assertThat(descriptor.getParameters(), hasSize(1));
+        var paramDesc = descriptor.getParameters().get(0);
+        assertThat(paramDesc.type(), is(String.class));
+        assertThat(paramDesc.parameterIri().stringValue(), is(TO_UPPER_IRI.stringValue() + "#param-0"));
+        assertThat(descriptor.getReturns(), hasSize(1));
+        assertThat(descriptor.getReturns().get(0).type(), is(String.class));
+
+        var result = descriptor.execute(Map.of(paramDesc.parameterIri(), "hi"));
+
+        assertThat(result, is("HI"));
+    }
+
+    @Test
+    void getFunctions_setsReturnOutputIri_givenDefaultReturnMapping() {
+        var stringOutputIri = VF.createIRI(GREL + "stringOutput");
+        var model = createMappingWithDefaultReturnMapping(stringOutputIri);
+
+        var provider = new FnoDescriptionProvider(model);
+        var descriptor = provider.getFunctions().iterator().next();
+
+        assertThat(descriptor.getReturns(), hasSize(1));
+        assertThat(descriptor.getReturns().get(0).outputIri(), is(stringOutputIri));
+    }
+
+    // -- Negative-path tests for fno:Mapping validation --
+
+    @Test
+    void getFunctions_skipsFunction_givenDuplicatePosition() {
+        // Two parameters mapped to the same position 0.
+        var model = createConcatModelWithPositions(0, 0);
+
+        var provider = new FnoDescriptionProvider(model);
+
+        assertThat(provider.getFunctions(), is(empty()));
+    }
+
+    @Test
+    void getFunctions_skipsFunction_givenOutOfRangePosition() {
+        // 2-parameter function but a position references slot 5.
+        var model = createConcatModelWithPositions(0, 5);
+
+        var provider = new FnoDescriptionProvider(model);
+
+        assertThat(provider.getFunctions(), is(empty()));
+    }
+
+    @Test
+    void getFunctions_skipsFunction_givenMissingPositionForOneParameter() {
+        // Position is given for left only; right is unbound.
+        var model = createMultiParamFunctionModel();
+        var mapping = VF.createIRI(EX + "concatMapping");
+        var leftPm = VF.createBNode();
+        model.add(leftPm, RDF.TYPE, Fnom.PositionParameterMapping);
+        model.add(leftPm, Fnom.functionParameter, LEFT_PARAM_IRI);
+        model.add(leftPm, Fnom.implementationParameterPosition, VF.createLiteral(0));
+        model.add(mapping, Fno.parameterMapping, leftPm);
+
+        var provider = new FnoDescriptionProvider(model);
+
+        // Only position 0 is given for a 2-arg method; contiguity check rejects (n=1, slot 0 only)
+        // and the upstream method-arity filter then can't match — descriptor skipped.
+        assertThat(provider.getFunctions(), is(empty()));
+    }
+
+    @Test
+    void getFunctions_skipsFunction_givenNonIntegerPositionLiteral() {
+        var model = createMultiParamFunctionModel();
+        var mapping = VF.createIRI(EX + "concatMapping");
+        var pm = VF.createBNode();
+        model.add(pm, RDF.TYPE, Fnom.PositionParameterMapping);
+        model.add(pm, Fnom.functionParameter, LEFT_PARAM_IRI);
+        model.add(pm, Fnom.implementationParameterPosition, VF.createLiteral("not-a-number"));
+        model.add(mapping, Fno.parameterMapping, pm);
+
+        var provider = new FnoDescriptionProvider(model);
+
+        assertThat(provider.getFunctions(), is(empty()));
+    }
+
+    @Test
+    void getFunctions_skipsFunction_givenMissingFunctionParameterOnPositionMapping() {
+        var model = createMultiParamFunctionModel();
+        var mapping = VF.createIRI(EX + "concatMapping");
+        var pm = VF.createBNode();
+        model.add(pm, RDF.TYPE, Fnom.PositionParameterMapping);
+        model.add(pm, Fnom.implementationParameterPosition, VF.createLiteral(0));
+        // fnom:functionParameter intentionally omitted.
+        model.add(mapping, Fno.parameterMapping, pm);
+
+        var provider = new FnoDescriptionProvider(model);
+
+        assertThat(provider.getFunctions(), is(empty()));
+    }
+
+    @Test
+    void getFunctions_skipsFunction_givenDuplicateFunctionParameterMapping() {
+        // Same fno:Parameter referenced by two PositionParameterMappings — fnom:toMap merge fires.
+        var model = createMultiParamFunctionModel();
+        var mapping = VF.createIRI(EX + "concatMapping");
+        var pm1 = VF.createBNode();
+        model.add(pm1, RDF.TYPE, Fnom.PositionParameterMapping);
+        model.add(pm1, Fnom.functionParameter, LEFT_PARAM_IRI);
+        model.add(pm1, Fnom.implementationParameterPosition, VF.createLiteral(0));
+        model.add(mapping, Fno.parameterMapping, pm1);
+
+        var pm2 = VF.createBNode();
+        model.add(pm2, RDF.TYPE, Fnom.PositionParameterMapping);
+        model.add(pm2, Fnom.functionParameter, LEFT_PARAM_IRI);
+        model.add(pm2, Fnom.implementationParameterPosition, VF.createLiteral(1));
+        model.add(mapping, Fno.parameterMapping, pm2);
+
+        var provider = new FnoDescriptionProvider(model);
+
+        assertThat(provider.getFunctions(), is(empty()));
+    }
+
+    @Test
+    void getFunctions_supportsCombinedStaticPositionAndReturnMapping() {
+        // The three new features stacked: static method on a class with no public no-arg
+        // constructor + position swap + DefaultReturnMapping bound to a specific output IRI.
+        var leftParam = LEFT_PARAM_IRI;
+        var rightParam = RIGHT_PARAM_IRI;
+        var stringOutputIri = VF.createIRI(GREL + "joinOutput");
+        var model = createCombinedStaticPositionReturnModel(leftParam, rightParam, stringOutputIri);
+
+        var provider = new FnoDescriptionProvider(model);
+        var descriptor = provider.getFunctions().iterator().next();
+
+        assertThat(descriptor.getReturns(), hasSize(1));
+        assertThat(descriptor.getReturns().get(0).outputIri(), is(stringOutputIri));
+
+        // Position map says left -> slot 1, right -> slot 0; static join concatenates with a dash:
+        // join(slot0, slot1) = join(rightValue, leftValue) -> "B-A".
+        var result = descriptor.execute(Map.of(leftParam, "A", rightParam, "B"));
+
+        assertThat(result, is("B-A"));
     }
 
     // -- Model builders --
@@ -653,6 +858,200 @@ class FnoDescriptionProviderTest {
         model.add(mapping, Fno.function, TO_UPPER_IRI);
         model.add(mapping, Fno.implementation, javaClass);
         model.add(mapping, Fno.methodMapping, methodMapping);
+
+        return model;
+    }
+
+    /**
+     * Like {@link #createSingleFunctionModel()} but the parameter resource carries an
+     * {@code fno:predicate} so the provider should populate {@code predicateIri}.
+     */
+    private Model createSingleFunctionModelWithPredicate(IRI predicateIri) {
+        var model = createSingleFunctionModel();
+        model.add(VALUE_PARAM_IRI, Fno.predicate, predicateIri);
+        return model;
+    }
+
+    /**
+     * concat(left, right) but the Mapping has explicit Position bindings that swap the
+     * conceptual order (left → slot 1, right → slot 0).
+     */
+    private Model createConcatModelWithSwappedPositions() {
+        var model = createMultiParamFunctionModel();
+
+        var mapping = VF.createIRI(EX + "concatMapping");
+
+        var leftPm = VF.createBNode();
+        model.add(leftPm, RDF.TYPE, Fnom.PositionParameterMapping);
+        model.add(leftPm, Fnom.functionParameter, LEFT_PARAM_IRI);
+        model.add(leftPm, Fnom.implementationParameterPosition, VF.createLiteral(1));
+        model.add(mapping, Fno.parameterMapping, leftPm);
+
+        var rightPm = VF.createBNode();
+        model.add(rightPm, RDF.TYPE, Fnom.PositionParameterMapping);
+        model.add(rightPm, Fnom.functionParameter, RIGHT_PARAM_IRI);
+        model.add(rightPm, Fnom.implementationParameterPosition, VF.createLiteral(0));
+        model.add(mapping, Fno.parameterMapping, rightPm);
+
+        return model;
+    }
+
+    /**
+     * Mapping bound to {@code StaticUtilityFunctions.shout} — a static method on a class with
+     * a private constructor that throws on instantiation.
+     */
+    private Model createStaticMethodModel() {
+        var model = new TreeModel();
+
+        var valueParam = VF.createIRI(GREL + "valueParam");
+        model.add(valueParam, RDF.TYPE, Fno.Parameter);
+        model.add(valueParam, Fno.type, XSD.STRING);
+
+        var expectsList = buildRdfList(model, valueParam);
+
+        model.add(TO_UPPER_IRI, RDF.TYPE, Fno.Function);
+        model.add(TO_UPPER_IRI, Fno.expects, expectsList);
+
+        var javaClass = VF.createIRI(EX + "javaClass");
+        model.add(javaClass, RDF.TYPE, Fnoi.JavaClass);
+        model.add(
+                javaClass,
+                Fnoi.class_name,
+                VF.createLiteral("io.carml.functions.FnoDescriptionProviderTest$StaticUtilityFunctions"));
+
+        var methodMapping = VF.createBNode();
+        model.add(methodMapping, RDF.TYPE, Fnom.StringMethodMapping);
+        model.add(methodMapping, Fnom.method_name, VF.createLiteral("shout"));
+
+        var mapping = VF.createIRI(EX + "mapping");
+        model.add(mapping, RDF.TYPE, Fno.Mapping);
+        model.add(mapping, Fno.function, TO_UPPER_IRI);
+        model.add(mapping, Fno.implementation, javaClass);
+        model.add(mapping, Fno.methodMapping, methodMapping);
+
+        return model;
+    }
+
+    /**
+     * Mapping with no {@code fno:Function} declaration — descriptors must be derived from the
+     * resolved Java method's reflected signature.
+     */
+    private Model createMappingOnlyModel() {
+        var model = new TreeModel();
+
+        var javaClass = VF.createIRI(EX + "javaClass");
+        model.add(javaClass, RDF.TYPE, Fnoi.JavaClass);
+        model.add(
+                javaClass,
+                Fnoi.class_name,
+                VF.createLiteral("io.carml.functions.FnoDescriptionProviderTest$TestFunctions"));
+
+        var methodMapping = VF.createBNode();
+        model.add(methodMapping, RDF.TYPE, Fnom.StringMethodMapping);
+        model.add(methodMapping, Fnom.method_name, VF.createLiteral("toUpperCase"));
+
+        var mapping = VF.createIRI(EX + "mapping");
+        model.add(mapping, RDF.TYPE, Fno.Mapping);
+        model.add(mapping, Fno.function, TO_UPPER_IRI);
+        model.add(mapping, Fno.implementation, javaClass);
+        model.add(mapping, Fno.methodMapping, methodMapping);
+
+        return model;
+    }
+
+    /**
+     * Multi-param concat mapping with explicit positions for both parameters. Used by negative
+     * tests for duplicate / out-of-range position values.
+     */
+    private Model createConcatModelWithPositions(int leftPosition, int rightPosition) {
+        var model = createMultiParamFunctionModel();
+        var mapping = VF.createIRI(EX + "concatMapping");
+
+        var leftPm = VF.createBNode();
+        model.add(leftPm, RDF.TYPE, Fnom.PositionParameterMapping);
+        model.add(leftPm, Fnom.functionParameter, LEFT_PARAM_IRI);
+        model.add(leftPm, Fnom.implementationParameterPosition, VF.createLiteral(leftPosition));
+        model.add(mapping, Fno.parameterMapping, leftPm);
+
+        var rightPm = VF.createBNode();
+        model.add(rightPm, RDF.TYPE, Fnom.PositionParameterMapping);
+        model.add(rightPm, Fnom.functionParameter, RIGHT_PARAM_IRI);
+        model.add(rightPm, Fnom.implementationParameterPosition, VF.createLiteral(rightPosition));
+        model.add(mapping, Fno.parameterMapping, rightPm);
+
+        return model;
+    }
+
+    /**
+     * Mapping that exercises three features at once: static method on a no-default-ctor class,
+     * {@code fnom:PositionParameterMapping} reordering, and {@code fnom:DefaultReturnMapping}.
+     */
+    private Model createCombinedStaticPositionReturnModel(IRI leftParam, IRI rightParam, IRI outputIri) {
+        var model = new TreeModel();
+
+        model.add(leftParam, RDF.TYPE, Fno.Parameter);
+        model.add(leftParam, Fno.type, XSD.STRING);
+        model.add(rightParam, RDF.TYPE, Fno.Parameter);
+        model.add(rightParam, Fno.type, XSD.STRING);
+
+        var expectsList = buildRdfList(model, leftParam, rightParam);
+
+        model.add(CONCAT_IRI, RDF.TYPE, Fno.Function);
+        model.add(CONCAT_IRI, Fno.expects, expectsList);
+
+        var javaClass = VF.createIRI(EX + "staticJoinClass");
+        model.add(javaClass, RDF.TYPE, Fnoi.JavaClass);
+        model.add(
+                javaClass,
+                Fnoi.class_name,
+                VF.createLiteral("io.carml.functions.FnoDescriptionProviderTest$StaticUtilityFunctions"));
+
+        var methodMapping = VF.createBNode();
+        model.add(methodMapping, RDF.TYPE, Fnom.StringMethodMapping);
+        model.add(methodMapping, Fnom.method_name, VF.createLiteral("join"));
+
+        var mapping = VF.createIRI(EX + "joinMapping");
+        model.add(mapping, RDF.TYPE, Fno.Mapping);
+        model.add(mapping, Fno.function, CONCAT_IRI);
+        model.add(mapping, Fno.implementation, javaClass);
+        model.add(mapping, Fno.methodMapping, methodMapping);
+
+        // left -> slot 1, right -> slot 0
+        var leftPm = VF.createBNode();
+        model.add(leftPm, RDF.TYPE, Fnom.PositionParameterMapping);
+        model.add(leftPm, Fnom.functionParameter, leftParam);
+        model.add(leftPm, Fnom.implementationParameterPosition, VF.createLiteral(1));
+        model.add(mapping, Fno.parameterMapping, leftPm);
+
+        var rightPm = VF.createBNode();
+        model.add(rightPm, RDF.TYPE, Fnom.PositionParameterMapping);
+        model.add(rightPm, Fnom.functionParameter, rightParam);
+        model.add(rightPm, Fnom.implementationParameterPosition, VF.createLiteral(0));
+        model.add(mapping, Fno.parameterMapping, rightPm);
+
+        // DefaultReturnMapping binding the function output to a specific IRI
+        model.add(outputIri, RDF.TYPE, Fno.Output);
+        model.add(outputIri, Fno.type, XSD.STRING);
+        var returnMapping = VF.createBNode();
+        model.add(returnMapping, RDF.TYPE, Fnom.DefaultReturnMapping);
+        model.add(returnMapping, Fnom.functionOutput, outputIri);
+        model.add(mapping, Fno.returnMapping, returnMapping);
+
+        return model;
+    }
+
+    private Model createMappingWithDefaultReturnMapping(IRI outputIri) {
+        var model = createSingleFunctionModel();
+
+        var mapping = VF.createIRI(EX + "mapping");
+
+        model.add(outputIri, RDF.TYPE, Fno.Output);
+        model.add(outputIri, Fno.type, XSD.STRING);
+
+        var returnMapping = VF.createBNode();
+        model.add(returnMapping, RDF.TYPE, Fnom.DefaultReturnMapping);
+        model.add(returnMapping, Fnom.functionOutput, outputIri);
+        model.add(mapping, Fno.returnMapping, returnMapping);
 
         return model;
     }

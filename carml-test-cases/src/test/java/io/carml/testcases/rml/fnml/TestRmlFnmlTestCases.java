@@ -30,74 +30,34 @@ class TestRmlFnmlTestCases extends RmlTestCaseSuite {
     }
 
     /**
-     * Skip list for the rml-fnml conformance suite, audited fresh against the upstream test cases as
-     * of the 2026-04-20 sync. All 9 skipped tests fail because the function library available on the
-     * classpath does not provide a working binding for the function IRI used in the mapping. Each
-     * group below corresponds to a distinct gap in the function-descriptor / Java-mapping
-     * combination that {@link #executeMapping} loads (carml-test-cases functions.ttl,
-     * idlab-functions-java functions_idlab.ttl, grel-functions-java grel_java_mapping.ttl, and
-     * functions_idlab_classes_java_mapping.ttl).
+     * Skip list for the rml-fnml conformance suite. The remaining failures are:
+     *
+     * <ul>
+     *   <li>{@code RMLFNMLTC0001-CSV} — invokes a synthetic helper function
+     *       ({@code idlab-fn:alwaysReturnsABC}) that has no descriptor in any TTL on the
+     *       classpath. Out of scope for engine work.
+     *   <li>{@code RMLFNMLTC0011-CSV} / {@code RMLFNMLTC0031-CSV} — pending investigation. CARML
+     *       executes {@code idlab-fn:toUpperCaseURL} and produces {@code <HTTP://VENUS>} /
+     *       {@code <HTTP://WWW.EXAMPLE.COM>} in predicate / subject position respectively;
+     *       upstream expects {@code <http://VENUS>} / {@code <http://WWW.EXAMPLE.COM>} —
+     *       lowercase scheme but uppercase host. TC0003/TC0061 use the same function in the
+     *       <em>object</em> position and pass with the all-uppercase output, so the divergence
+     *       is between <em>function output passthrough</em> (object position) and
+     *       <em>scheme normalization</em> (predicate / subject position). May reflect a real
+     *       engine gap or an upstream fixture inconsistency; not addressed in the current
+     *       fno:Mapping support change.
+     *   <li>{@code RMLFNMLTC0102/0103/0104} — upstream fixture inconsistency: the manifest
+     *       declares {@code hasError=false} with an {@code output.nq} that the upstream sync
+     *       deleted. Suite NPEs in {@code BOMInputStream.builder().setInputStream(null)};
+     *       needs a manifest fix or suite-level missing-file handling, not an engine change.
+     * </ul>
      */
     @Override
     protected List<String> getSkipTests() {
         return List.of(
-                // ====================================================================
-                // Test-helper function with no descriptor anywhere on the classpath.
-                // The fixture invokes `idlab-fn:alwaysReturnsABC`, a synthetic helper
-                // used purely to exercise the FnO plumbing. It is NOT defined in
-                // `functions_idlab.ttl` (idlab-functions-java jar) or in the
-                // carml-test-cases `functions.ttl`. The engine logs:
-                //   WARN ... no function registered for function IRI
-                //   [https://w3id.org/imec/idlab/function#alwaysReturnsABC]
-                // and the expected `"ABC"` literal is missing from the result.
-                // ====================================================================
                 "RMLFNMLTC0001-CSV",
-
-                // ====================================================================
-                // grel functions whose FnO signatures (`fno:Function` declarations)
-                // are not on the classpath. `grel_java_mapping.ttl` contains
-                // `fno:Mapping` rows that bind these IRIs to Java methods, but the
-                // matching `fno:Function` descriptors are not loaded — the
-                // carml-test-cases `functions.ttl` only declares `grel:toUpperCase`
-                // and `grel:string_replace`. Without a function descriptor, CARML's
-                // FnO resolver cannot match the IRI and logs:
-                //   WARN ... no function registered for function IRI [...grel.ttl#<name>]
-                // ====================================================================
-                "RMLFNMLTC0004-CSV", // grel:string_length
-                "RMLFNMLTC0007-CSV", // grel:string_substring
-                "RMLFNMLTC0021-CSV", // grel:escape
-                "RMLFNMLTC0081-CSV", // grel:string_substring (with language tag)
-
-                // ====================================================================
-                // `idlab-fn:toUpperCaseURL` — descriptor IS present in the
-                // idlab-functions-java `functions_idlab.ttl` and there is a
-                // method mapping in `functions_idlab_classes_java_mapping.ttl`,
-                // but invocation fails at runtime. The engine logs:
-                //   WARN ... Function execution failed: Failed to invoke function
-                //   'https://w3id.org/imec/idlab/function#toUpperCaseURL'
-                // The fixture expects URL-uppercased values
-                // (`<HTTP://EXAMPLE.COM/VENUS>`, etc.) and they are missing from the
-                // result. Likely a parameter-binding or method-resolution mismatch
-                // between CARML's FnO invoker and the idlab-functions-java 1.4.0
-                // implementation.
-                // ====================================================================
-                "RMLFNMLTC0003-CSV",
                 "RMLFNMLTC0011-CSV",
                 "RMLFNMLTC0031-CSV",
-                "RMLFNMLTC0061-CSV",
-
-                // ====================================================================
-                // Upstream fixture inconsistency. The manifest declares
-                // `rml:test/output "output.nq"` and `rml:test/hasError false` for these
-                // three cases, but the upstream 2026-04 sync deleted the `output.nq`
-                // files (presumably they were empty — each README says
-                // "Tests that nothing is generated ..." and "Error expected? Yes").
-                // {@link RmlTestCaseSuite#runTestCase} follows the manifest's
-                // `hasError=false`, then opens the missing output file and NPEs in
-                // {@code BOMInputStream.builder().setInputStream(null)}. Either the
-                // manifest needs to flip `hasError` to true (and remove the output
-                // entry) or the suite needs to handle a missing-file as empty-expected.
-                // ====================================================================
                 "RMLFNMLTC0102-CSV",
                 "RMLFNMLTC0103-CSV",
                 "RMLFNMLTC0104-CSV");

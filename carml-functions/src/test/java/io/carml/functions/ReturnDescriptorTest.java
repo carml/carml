@@ -55,4 +55,28 @@ class ReturnDescriptorTest {
 
         assertThat(descriptor.matches(iri("http://example.org/other")), is(false));
     }
+
+    @Test
+    void matches_returnsTrue_givenPredicateIri() {
+        var predicateIri = iri("http://example.org/outputPredicate");
+        var descriptor = new ReturnDescriptor(OUTPUT_IRI, predicateIri, String.class);
+
+        assertThat(descriptor.matches(predicateIri), is(true));
+        assertThat(descriptor.matches(OUTPUT_IRI), is(true));
+    }
+
+    @Test
+    void matches_returnsFalse_givenNullCandidate() {
+        var descriptor = new ReturnDescriptor(OUTPUT_IRI, String.class);
+
+        assertThat(descriptor.matches(null), is(false));
+    }
+
+    @Test
+    void accessors_returnPredicateIri_whenPresent() {
+        var predicateIri = iri("http://example.org/outputPredicate");
+        var descriptor = new ReturnDescriptor(OUTPUT_IRI, predicateIri, String.class);
+
+        assertThat(descriptor.predicateIri(), is(predicateIri));
+    }
 }

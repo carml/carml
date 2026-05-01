@@ -39,6 +39,10 @@ public class Fno {
 
     public static final String methodMapping = NAMESPACE + "methodMapping";
 
+    public static final String parameterMapping = NAMESPACE + "parameterMapping";
+
+    public static final String returnMapping = NAMESPACE + "returnMapping";
+
     public static final String OLD_NAMESPACE = "http://semweb.datasciencelab.be/ns/function#";
 
     public static final String OLD_Execution = OLD_NAMESPACE + "Execution";

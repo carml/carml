@@ -496,6 +496,10 @@ public class Rdf {
 
         public static final IRI methodMapping = iri("methodMapping");
 
+        public static final IRI parameterMapping = iri("parameterMapping");
+
+        public static final IRI returnMapping = iri("returnMapping");
+
         public static final IRI old_executes = f.createIRI(io.carml.vocab.Fno.OLD_executes);
     }
 
@@ -614,6 +618,8 @@ public class Rdf {
             return f.createIRI(io.carml.vocab.Fnoi.NAMESPACE + suffix);
         }
 
+        public static final IRI JavaImplementation = iri("JavaImplementation");
+
         public static final IRI JavaClass = iri("JavaClass");
 
         public static final IRI class_name = iri("class-name");
@@ -628,6 +634,16 @@ public class Rdf {
 
         public static final IRI StringMethodMapping = iri("StringMethodMapping");
 
+        public static final IRI PositionParameterMapping = iri("PositionParameterMapping");
+
+        public static final IRI DefaultReturnMapping = iri("DefaultReturnMapping");
+
         public static final IRI method_name = iri("method-name");
+
+        public static final IRI functionParameter = iri("functionParameter");
+
+        public static final IRI implementationParameterPosition = iri("implementationParameterPosition");
+
+        public static final IRI functionOutput = iri("functionOutput");
     }
 }

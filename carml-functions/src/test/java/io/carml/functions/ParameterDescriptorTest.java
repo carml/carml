@@ -40,7 +40,7 @@ class ParameterDescriptorTest {
     }
 
     @Test
-    void matches_returnsTrue_givenPredicateIri() {
+    void matches_returnsTrue_givenResourceIri() {
         var descriptor = new ParameterDescriptor(PARAM_IRI, String.class, true);
 
         assertThat(descriptor.matches(PARAM_IRI), is(true));
@@ -51,5 +51,29 @@ class ParameterDescriptorTest {
         var descriptor = new ParameterDescriptor(PARAM_IRI, String.class, true);
 
         assertThat(descriptor.matches(iri("http://example.org/other")), is(false));
+    }
+
+    @Test
+    void matches_returnsTrue_givenPredicateIri() {
+        var predicateIri = iri("http://example.org/predicate1");
+        var descriptor = new ParameterDescriptor(PARAM_IRI, predicateIri, String.class, true);
+
+        assertThat(descriptor.matches(predicateIri), is(true));
+        assertThat(descriptor.matches(PARAM_IRI), is(true));
+    }
+
+    @Test
+    void matches_returnsFalse_givenNullCandidate() {
+        var descriptor = new ParameterDescriptor(PARAM_IRI, String.class, true);
+
+        assertThat(descriptor.matches(null), is(false));
+    }
+
+    @Test
+    void accessors_returnPredicateIri_whenPresent() {
+        var predicateIri = iri("http://example.org/predicate1");
+        var descriptor = new ParameterDescriptor(PARAM_IRI, predicateIri, String.class, true);
+
+        assertThat(descriptor.predicateIri(), is(predicateIri));
     }
 }
