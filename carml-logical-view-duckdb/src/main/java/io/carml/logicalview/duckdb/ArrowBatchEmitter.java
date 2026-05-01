@@ -1,9 +1,9 @@
 package io.carml.logicalview.duckdb;
 
-import io.carml.logicalsourceresolver.PausableFluxBridge;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,18 +19,23 @@ import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.vocabulary.XSD;
 
 /**
- * Emits {@link DuckDbViewIteration}s from a DuckDB {@link java.sql.ResultSet} using Apache Arrow
- * batch transfer instead of JDBC row-by-row iteration.
+ * Materializes {@link DuckDbViewIteration}s from a DuckDB {@link java.sql.ResultSet} using Apache
+ * Arrow batch transfer instead of JDBC row-by-row iteration.
  *
  * <p>DuckDB's JDBC driver provides {@link DuckDBResultSet#arrowExportStream(Object, long)} which
  * exports query results as Arrow IPC batches via the C Data Interface. This transfers data in
  * columnar batches (typically 2048 rows) with zero copy from native DuckDB memory, eliminating the
  * per-cell JNI overhead of {@code ResultSet.getObject()}.
  *
- * <p>Arrow vectors return Java objects whose types may differ from JDBC's. This emitter normalizes
+ * <p>Arrow vectors return Java objects whose types may differ from JDBC's. This class normalizes
  * all values to match the types produced by the JDBC path, ensuring that downstream consumers
- * (including {@link DuckDbViewIteration}) see identical data regardless of which transfer method was
- * used.
+ * (including {@link DuckDbViewIteration}) see identical data regardless of which transfer method
+ * was used.
+ *
+ * <p>Use {@link #tryOpen} to construct a {@link DuckDbViewIterator.BatchLoader} that loads one
+ * Arrow batch per {@code loadInto} call. This pull-based pattern (consumed by
+ * {@link DuckDbViewIterator}) gives natural backpressure: items are produced only when the
+ * downstream Reactor subscriber requests more.
  */
 @Slf4j
 final class ArrowBatchEmitter {
@@ -48,49 +53,29 @@ final class ArrowBatchEmitter {
     private ArrowBatchEmitter() {}
 
     /**
-     * Attempts to emit rows from the given {@link DuckDBResultSet} using Arrow batch transfer.
+     * Attempts to open an Arrow-backed {@link DuckDbViewIterator.BatchLoader} for the given result
+     * set. Returns {@code null} if Arrow transfer is unavailable (e.g. classpath missing
+     * arrow-memory-netty), in which case the caller should fall back to JDBC row-by-row reading.
      *
-     * @return {@code true} if Arrow emission succeeded, {@code false} if Arrow is not available
-     *     and the caller should fall back to JDBC
-     * @throws RuntimeException if Arrow started transferring but failed mid-stream — fallback
-     *     would produce corrupt output since the ResultSet is consumed
+     * <p>If this method returns a non-null loader, the result set has been consumed by the Arrow
+     * reader and JDBC fallback is no longer safe. The returned loader takes ownership of an
+     * allocator and the underlying {@link ArrowReader}; both are released by
+     * {@link DuckDbViewIterator.BatchLoader#close()}.
      */
-    static boolean tryEmitArrowBatches(
-            PausableFluxBridge.Emitter<? super DuckDbViewIteration> emitter,
-            DuckDbPausableSource source,
+    static DuckDbViewIterator.BatchLoader tryOpen(
             DuckDBResultSet duckDbResultSet,
             DuckDbLogicalViewEvaluator.ColumnDescriptor columns,
             CompiledView compiledView,
             Set<String> referenceableKeys,
             boolean retainSourceEvaluation) {
-        try (var allocator = new RootAllocator()) {
-            return emitArrowBatches(
-                    emitter,
-                    source,
-                    duckDbResultSet,
-                    allocator,
-                    columns,
-                    compiledView,
-                    referenceableKeys,
-                    retainSourceEvaluation);
+        BufferAllocator allocator;
+        try {
+            allocator = new RootAllocator();
         } catch (NoClassDefFoundError | UnsupportedOperationException e) {
-            LOG.debug("Arrow transfer not available, falling back to JDBC: {}", e.getMessage());
-            return false;
+            logArrowUnavailable(e);
+            return null;
         }
-    }
 
-    @SuppressWarnings("java:S107") // Parameter count justified: allocator is lifecycle-managed by caller
-    private static boolean emitArrowBatches(
-            PausableFluxBridge.Emitter<? super DuckDbViewIteration> emitter,
-            DuckDbPausableSource source,
-            DuckDBResultSet duckDbResultSet,
-            BufferAllocator allocator,
-            DuckDbLogicalViewEvaluator.ColumnDescriptor columns,
-            CompiledView compiledView,
-            Set<String> referenceableKeys,
-            boolean retainSourceEvaluation) {
-        // Phase 1: Try to obtain the Arrow reader. If this fails, JDBC fallback is safe
-        // because no data has been consumed from the ResultSet yet.
         ArrowReader arrowReader;
         try {
             var arrowReaderObj = duckDbResultSet.arrowExportStream(allocator, ARROW_BATCH_SIZE);
@@ -98,62 +83,78 @@ final class ArrowBatchEmitter {
                 LOG.debug(
                         "arrowExportStream returned unexpected type: {}",
                         arrowReaderObj.getClass().getName());
-                return false;
+                allocator.close();
+                return null;
             }
             arrowReader = reader;
         } catch (SQLException e) {
             LOG.debug("Arrow export failed, falling back to JDBC: {}", e.getMessage());
-            return false;
+            allocator.close();
+            return null;
+        } catch (NoClassDefFoundError | UnsupportedOperationException e) {
+            logArrowUnavailable(e);
+            allocator.close();
+            return null;
         }
 
-        // Phase 2: Read batches. Once we start reading, the ResultSet is consumed and
-        // JDBC fallback would produce corrupt output. Any exception here must propagate.
-        try (arrowReader) {
-            emitFromReader(
-                    emitter, source, arrowReader, columns, compiledView, referenceableKeys, retainSourceEvaluation);
-        } catch (IOException e) {
-            throw new ArrowTransferException("Arrow batch reading failed after data transfer started", e);
-        }
-
-        LOG.debug("Arrow batch transfer completed successfully");
-        return true;
+        return new ArrowBatchLoader(
+                allocator, arrowReader, columns, compiledView, referenceableKeys, retainSourceEvaluation);
     }
 
-    private static void emitFromReader(
-            PausableFluxBridge.Emitter<? super DuckDbViewIteration> emitter,
-            DuckDbPausableSource source,
+    private static void logArrowUnavailable(Throwable cause) {
+        LOG.debug("Arrow transfer not available, falling back to JDBC: {}", cause.getMessage());
+    }
+
+    private record ArrowBatchLoader(
+            BufferAllocator allocator,
             ArrowReader arrowReader,
             DuckDbLogicalViewEvaluator.ColumnDescriptor columns,
             CompiledView compiledView,
             Set<String> referenceableKeys,
             boolean retainSourceEvaluation)
-            throws IOException {
-        while (arrowReader.loadNextBatch()) {
-            var root = arrowReader.getVectorSchemaRoot();
-            var rowCount = root.getRowCount();
-            if (rowCount == 0) {
-                continue;
-            }
+            implements DuckDbViewIterator.BatchLoader {
 
-            // Build column name-to-vector map once per batch for O(1) column lookup
-            var columnIndex = buildColumnIndex(root);
-
-            for (var row = 0; row < rowCount; row++) {
-                if (source.isCancelled()) {
-                    return;
+        @Override
+        public boolean loadInto(Deque<DuckDbViewIteration> buffer) {
+            try {
+                if (!arrowReader.loadNextBatch()) {
+                    return false;
+                }
+                var root = arrowReader.getVectorSchemaRoot();
+                var rowCount = root.getRowCount();
+                if (rowCount == 0) {
+                    // Empty batch — caller's loop retries via DuckDbViewIterator.hasNext.
+                    return true;
                 }
 
-                var zeroBasedIndex = readZeroBasedIndex(columnIndex, columns, row);
-                var values = readColumnValues(columnIndex, columns, zeroBasedIndex, row);
+                var columnIndex = buildColumnIndex(root);
+                for (var row = 0; row < rowCount; row++) {
+                    var zeroBasedIndex = readZeroBasedIndex(columnIndex, columns, row);
+                    var values = readColumnValues(columnIndex, columns, zeroBasedIndex, row);
+                    validateNoNonScalarTypes(columnIndex, columns, compiledView, row);
+                    var naturalDatatypes = resolveNaturalDatatypes(columnIndex, columns, values, row);
+                    var sourceEvaluation = resolveSourceEvaluation(columnIndex, columns, retainSourceEvaluation, row);
 
-                validateNoNonScalarTypes(columnIndex, columns, compiledView, row);
+                    buffer.offer(DuckDbViewIteration.ofOwnedMaps(
+                            zeroBasedIndex, values, naturalDatatypes, sourceEvaluation, referenceableKeys));
+                }
+                return true;
+            } catch (IOException e) {
+                throw new ArrowTransferException("Arrow batch reading failed after data transfer started", e);
+            }
+        }
 
-                var naturalDatatypes = resolveNaturalDatatypes(columnIndex, columns, values, row);
-                var sourceEvaluation = resolveSourceEvaluation(columnIndex, columns, retainSourceEvaluation, row);
-
-                emitter.next(DuckDbViewIteration.ofOwnedMaps(
-                        zeroBasedIndex, values, naturalDatatypes, sourceEvaluation, referenceableKeys));
-                source.awaitDemand();
+        @Override
+        public void close() {
+            try {
+                arrowReader.close();
+            } catch (Exception e) {
+                LOG.debug("Error closing Arrow reader", e);
+            }
+            try {
+                allocator.close();
+            } catch (Exception e) {
+                LOG.debug("Error closing Arrow allocator", e);
             }
         }
     }
