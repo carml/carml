@@ -384,26 +384,22 @@ public class RdfPredicateObjectMapper {
 
         var subjectsAndAllGraphs = addPomGraphsToSubjectsAndSubjectGraphs(subjectsAndSubjectGraphs, pomGraphs);
 
-        // Separate mergeable collection objects from regular objects -- same logic as map()
+        // Mirror map(): mergeables-with-graphs go through the cross-iteration accumulator path.
+        // Everything else (including non-mergeable RdfList/RdfContainer instances) flows through
+        // the cartesian-product step so the linking triple {@code <subject, predicate, head>} is
+        // emitted, plus the collection-results stream below for the structural triples.
         var mergeableObjects = objects.stream()
                 .filter(obj -> isMergeableCollection(obj) && !pomGraphs.isEmpty())
                 .toList();
 
-        var regularAndCollectionObjects =
+        var regularObjects =
                 objects.stream().filter(obj -> !mergeableObjects.contains(obj)).toList();
-
-        // Separate non-mergeable collection objects from truly regular objects
-        var collectionObjects = regularAndCollectionObjects.stream()
-                .filter(obj -> obj instanceof RdfList || obj instanceof RdfContainer)
-                .toList();
-
-        var regularObjects = regularAndCollectionObjects.stream()
-                .filter(obj -> !(obj instanceof RdfList) && !(obj instanceof RdfContainer))
-                .toList();
 
         var result = new ArrayList<byte[]>();
 
-        // Encode regular objects via cartesian product bytes
+        // Encode regular objects via cartesian product bytes. This is also where non-mergeable
+        // RdfList/RdfContainer linking triples are emitted: their getValue() returns the head/
+        // container BNode, so the cartesian product yields {@code <s, p, head>} naturally.
         if (!regularObjects.isEmpty()) {
             subjectsAndAllGraphs.forEach((subjects, graphs) -> streamCartesianProductBytes(
                             subjects,
@@ -416,20 +412,11 @@ public class RdfPredicateObjectMapper {
                     .forEach(result::add));
         }
 
-        // Encode non-mergeable collection objects by getting their Statements and encoding.
-        // toStream() is safe: RdfList/RdfContainer build statements lazily on demand via a
-        // synchronous Stream (no scheduler-crossing); Flux.toStream() drains it non-blocking.
-        for (var collectionObj : collectionObjects) {
-            var collectionResult = getCollectionResults(collectionObj, pomGraphs);
-            if (collectionResult != null) {
-                Flux.from(collectionResult.getResults())
-                        .toStream()
-                        .map(stmt -> encodeStatement(stmt, encoder, includeGraph))
-                        .forEach(result::add);
-            }
-        }
-
-        // Encode collection results from predicates and pomGraphs (same as Statement path)
+        // Encode collection results discovered in any of (predicates, regularObjects, pomGraphs).
+        // For RdfList/RdfContainer objects in regularObjects this yields the structural triples
+        // (rdf:type + rdf:_<n> members for containers, or the rdf:first/rdf:rest cons cells for
+        // lists). toStream() is safe: getResults() builds statements lazily via a synchronous
+        // Stream (no scheduler-crossing); Flux.toStream() drains it non-blocking.
         Stream.<Collection<? extends MappedValue<? extends Value>>>of(predicates, regularObjects, pomGraphs)
                 .flatMap(Collection::stream)
                 .map(mappedValue -> getCollectionResults(mappedValue, pomGraphs))

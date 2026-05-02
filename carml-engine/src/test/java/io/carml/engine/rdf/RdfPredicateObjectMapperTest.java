@@ -5,6 +5,8 @@ import static org.eclipse.rdf4j.model.util.Values.bnode;
 import static org.eclipse.rdf4j.model.util.Values.iri;
 import static org.eclipse.rdf4j.model.util.Values.literal;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -18,6 +20,7 @@ import io.carml.engine.MappedValue;
 import io.carml.engine.MappingResult;
 import io.carml.engine.TermGenerator;
 import io.carml.engine.TriplesMapperException;
+import io.carml.engine.rdf.cc.RdfContainer;
 import io.carml.model.GraphMap;
 import io.carml.model.LogicalSource;
 import io.carml.model.ObjectMap;
@@ -26,7 +29,10 @@ import io.carml.model.PredicateObjectMap;
 import io.carml.model.RefObjectMap;
 import io.carml.model.SubjectMap;
 import io.carml.model.TriplesMap;
+import io.carml.output.NTriplesTermEncoder;
 import io.carml.vocab.Rdf.Rml;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -371,5 +377,62 @@ class RdfPredicateObjectMapperTest {
                 Mono.from(mappedTriple.getResults()).block());
 
         StepVerifier.create(pomStatements).expectNextMatches(expectedStatement).verifyComplete();
+    }
+
+    @Test
+    void givenNonMergeableRdfContainer_whenMapToBytes_thenEmitsLinkingAndStructuralTriples() {
+        IRI subject1 = iri("http://foo.bar/subject1");
+        subjects = Set.of(RdfMappedValue.of(subject1));
+
+        when(pom.getPredicateMaps()).thenReturn(Set.of(predicateMap1));
+        when(rdfTermGeneratorFactory.getPredicateGenerator(predicateMap1)).thenReturn(predicateGenerator1);
+        IRI predicate1 = iri("http://foo.bar/predicate1");
+        when(predicateGenerator1.apply(any(), any())).thenReturn(List.of(RdfMappedValue.of(predicate1)));
+
+        when(pom.getObjectMaps()).thenReturn(Set.of(objectMap1));
+        when(rdfTermGeneratorFactory.getObjectGenerator(objectMap1)).thenReturn(objectGenerator1);
+
+        var bagBNode = bnode("bag1");
+        var bag = RdfContainer.<Value>builder()
+                .type(org.eclipse.rdf4j.model.vocabulary.RDF.BAG)
+                .container(bagBNode)
+                .elements(new ArrayList<>(List.of(literal("v1"), literal("v2"))))
+                .build();
+        when(objectGenerator1.apply(any(), any())).thenReturn(List.of(bag));
+
+        RdfMapperConfig rdfMappingConfig = RdfMapperConfig.builder()
+                .rdfTermGeneratorConfig(mock(RdfTermGeneratorConfig.class))
+                .valueFactorySupplier(Values::getValueFactory)
+                .termGeneratorFactory(rdfTermGeneratorFactory)
+                .build();
+
+        RdfPredicateObjectMapper rdfPredicateObjectMapper =
+                RdfPredicateObjectMapper.of(pom, triplesMap, rdfMappingConfig);
+
+        var subjectsAndSubjectGraphs = Map.of(subjects, Set.<MappedValue<Resource>>of());
+        var encoder = NTriplesTermEncoder.withDefaults();
+        var mergeableAccumulator = new ArrayList<MappingResult<Statement>>();
+
+        // When
+        var bytes = rdfPredicateObjectMapper.mapToBytes(
+                null, null, subjectsAndSubjectGraphs, encoder, mergeableAccumulator, false);
+
+        // Then — decode and inspect emitted triple lines
+        var lines = bytes.stream()
+                .map(b -> new String(b, StandardCharsets.UTF_8).trim())
+                .toList();
+
+        // Linking triple: <subject, predicate, _:bag>
+        assertThat(lines, hasItem(containsString("<http://foo.bar/subject1> <http://foo.bar/predicate1> _:bag1")));
+
+        // Structural triple: <_:bag, rdf:type, rdf:Bag>
+        assertThat(
+                lines,
+                hasItem(containsString("_:bag1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>"
+                        + " <http://www.w3.org/1999/02/22-rdf-syntax-ns#Bag>")));
+
+        // Member triples: <_:bag, rdf:_1, "v1"> and <_:bag, rdf:_2, "v2">
+        assertThat(lines, hasItem(containsString("_:bag1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#_1> \"v1\"")));
+        assertThat(lines, hasItem(containsString("_:bag1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#_2> \"v2\"")));
     }
 }
