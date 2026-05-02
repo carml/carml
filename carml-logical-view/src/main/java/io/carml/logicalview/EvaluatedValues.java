@@ -37,6 +37,23 @@ public record EvaluatedValues(
     @Serial
     private static final long serialVersionUID = 1L;
 
+    /**
+     * Key for the source-record index entry in the {@link #values()} map. Always carries an
+     * {@link Integer} value (the 0-based index of the source record that produced this row).
+     * Mirrored by {@code DefaultLogicalViewEvaluator.INDEX_KEY} for in-package use; externalized
+     * here so out-of-module consumers (e.g., spillable join executors that round-trip values
+     * through a wire format) can preserve the integer typing on decode without duplicating the
+     * constant.
+     */
+    public static final String INDEX_KEY = "#";
+
+    /**
+     * Suffix for nested iterable-record index entries in the {@link #values()} map (e.g.
+     * {@code "fieldName.#"}). Always carries an {@link Integer} value (the 0-based index within
+     * the nested iterator).
+     */
+    public static final String INDEX_KEY_SUFFIX = ".#";
+
     public EvaluatedValues(
             Map<String, Object> values,
             Map<String, ReferenceFormulation> referenceFormulations,

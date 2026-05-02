@@ -4573,4 +4573,47 @@ class DefaultLogicalViewEvaluatorTest {
         // Resolver was called only once (for the first evaluate)
         verify(resolver, times(1)).getLogicalSourceRecords(anySet(), anyMap());
     }
+
+    // --- resolveIndexValue tests (defensive backstop for INDEX_KEY type discipline) ---
+
+    @Test
+    void resolveIndexValue_integer_returnsIntValue() {
+        // The contract: INDEX_KEY normally holds an Integer assigned via #withIndex.
+        assertThat(DefaultLogicalViewEvaluator.resolveIndexValue(42), is(42));
+    }
+
+    @Test
+    void resolveIndexValue_long_returnsTruncatedIntValue() {
+        // Number subclasses (Long, Short, Byte) coerce via Number#intValue.
+        assertThat(DefaultLogicalViewEvaluator.resolveIndexValue(99L), is(99));
+    }
+
+    @Test
+    void resolveIndexValue_numericString_isParsedAsInt() {
+        // Spillable join executors round-trip the values map through Arrow IPC, which stores
+        // every cell as Utf8 — the codec re-coerces INDEX_KEY back to Integer on decode, but
+        // this evaluator-side backstop is the second line of defence so a future code path that
+        // forgets to round-trip cannot crash the (int) cast on this hot path.
+        assertThat(DefaultLogicalViewEvaluator.resolveIndexValue("17"), is(17));
+    }
+
+    @Test
+    void resolveIndexValue_nonNumericString_returnsZeroFallback() {
+        // The fallback is benign — the index value is purely a positional ordinal used for
+        // downstream dedup; 0 is the safe "first row" default when the value is unparseable.
+        assertThat(DefaultLogicalViewEvaluator.resolveIndexValue("not-a-number"), is(0));
+    }
+
+    @Test
+    void resolveIndexValue_null_returnsZeroFallback() {
+        assertThat(DefaultLogicalViewEvaluator.resolveIndexValue(null), is(0));
+    }
+
+    @Test
+    void resolveIndexValue_otherObject_returnsZeroFallback() {
+        // Anything else (Boolean, custom type) hits the fallback rather than throwing
+        // ClassCastException on the hot path.
+        assertThat(DefaultLogicalViewEvaluator.resolveIndexValue(Boolean.TRUE), is(0));
+        assertThat(DefaultLogicalViewEvaluator.resolveIndexValue(new Object()), is(0));
+    }
 }

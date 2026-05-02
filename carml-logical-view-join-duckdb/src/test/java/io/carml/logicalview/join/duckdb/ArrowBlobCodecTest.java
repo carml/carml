@@ -276,4 +276,56 @@ class ArrowBlobCodecTest {
 
         assertThat(decoded.sourceEvaluation(), is(nullValue()));
     }
+
+    @Test
+    void encodeDecodeChild_indexKey_roundtripsAsInteger() {
+        // INDEX_KEY ("#") carries the source-record index as an Integer in EvaluatedValues. The
+        // wire format stores all values as Utf8 — the codec must re-coerce the string back to
+        // Integer on decode so DefaultLogicalViewEvaluator's `(int) ev.values().get(INDEX_KEY)`
+        // unbox does not ClassCastException.
+        var values = new LinkedHashMap<String, Object>();
+        values.put(EvaluatedValues.INDEX_KEY, 42);
+        values.put("name", "child");
+
+        var child = new EvaluatedValues(values, Map.of(), Map.of());
+        var decoded = ArrowBlobCodec.decodeChild(ArrowBlobCodec.encodeChild(child));
+
+        // INDEX_KEY recovers as Integer (not String); plain field stays String per the
+        // RDF-output-equivalent encoding contract.
+        assertThat(decoded.values().get(EvaluatedValues.INDEX_KEY), is(Integer.valueOf(42)));
+        assertThat(decoded.values().get("name").toString(), is("child"));
+    }
+
+    @Test
+    void encodeDecodeChild_nestedIndexKeySuffix_roundtripsAsInteger() {
+        // Nested iterable record indexes (e.g. "items.#") follow the same Integer contract as
+        // INDEX_KEY. They are produced by withIndex on a primitive int and must survive the
+        // Arrow round-trip with their integer typing intact.
+        var values = new LinkedHashMap<String, Object>();
+        values.put("items.#", 7);
+        values.put("items.value", "hello");
+
+        var child = new EvaluatedValues(values, Map.of(), Map.of());
+        var decoded = ArrowBlobCodec.decodeChild(ArrowBlobCodec.encodeChild(child));
+
+        assertThat(decoded.values().get("items.#"), is(Integer.valueOf(7)));
+        assertThat(decoded.values().get("items.value").toString(), is("hello"));
+    }
+
+    @Test
+    void encodeDecodeParent_indexKeyInValues_roundtripsAsInteger() {
+        // Parents carry INDEX_KEY in two places: the dedicated PARENT_SCHEMA `index` int column
+        // (used for ViewIteration#getIndex) and inside the values map (used when expressions
+        // reference "#" as a referenceable key on a parent view). Both must come back integer-typed.
+        var values = new LinkedHashMap<String, Object>();
+        values.put(EvaluatedValues.INDEX_KEY, 5);
+        values.put("col", "v");
+
+        var parent = ViewIteration.of(5, values, Map.of(), Map.of());
+        var decoded = ArrowBlobCodec.decodeParent(ArrowBlobCodec.encodeParent(parent));
+
+        assertThat(decoded.getIndex(), is(5));
+        assertThat(decoded.getValue(EvaluatedValues.INDEX_KEY).orElseThrow(), is(Integer.valueOf(5)));
+        assertThat(decoded.getValue("col").orElseThrow().toString(), is("v"));
+    }
 }

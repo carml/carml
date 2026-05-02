@@ -56,9 +56,12 @@ import reactor.core.publisher.Flux;
 @Slf4j
 public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
 
-    static final String INDEX_KEY = "#";
+    // Mirrors of the public constants on EvaluatedValues so existing intra-package call sites
+    // need not change. Single source of truth lives on EvaluatedValues — out-of-module consumers
+    // (e.g. spillable join executors that round-trip values through Arrow IPC) reference those.
+    static final String INDEX_KEY = EvaluatedValues.INDEX_KEY;
 
-    static final String INDEX_KEY_SUFFIX = ".#";
+    static final String INDEX_KEY_SUFFIX = EvaluatedValues.INDEX_KEY_SUFFIX;
 
     private final Set<MatchingLogicalSourceResolverFactory> resolverFactories;
 
@@ -199,9 +202,14 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                         pipeline.logicalSourcesPerSource(),
                         pipeline.expressionsPerLogicalSource()));
 
-        // Convert to ViewIteration — root # already assigned before joins
+        // Convert to ViewIteration — root # already assigned before joins. INDEX_KEY normally
+        // holds an Integer (assigned via #withIndex on a primitive int), but defensive parsing
+        // via #resolveIndexValue mirrors the same-source projection backstop so any future code
+        // path that round-trips the values map through a wire format (e.g. spillable join
+        // executors that serialize values as strings) cannot crash this hot path with a
+        // ClassCastException.
         Flux<ViewIteration> viewIterations = evaluatedFlux.map(ev -> new DefaultViewIteration(
-                (int) ev.values().get(INDEX_KEY),
+                resolveIndexValue(ev.values().get(INDEX_KEY)),
                 ev.values(),
                 ev.referenceFormulations(),
                 ev.naturalDatatypes(),
@@ -450,10 +458,41 @@ public class DefaultLogicalViewEvaluator implements LogicalViewEvaluator {
                 projectedRefFormulations.put(key, ev.referenceFormulations().get(key));
             }
         }
-        var indexValue = ev.values().get(INDEX_KEY);
-        var index = indexValue instanceof Number number ? number.intValue() : 0;
+        var index = resolveIndexValue(ev.values().get(INDEX_KEY));
         projectedValues.put(INDEX_KEY, index);
         return new DefaultViewIteration(index, projectedValues, projectedRefFormulations, projectedDatatypes);
+    }
+
+    /**
+     * Coerces an INDEX_KEY value back to a primitive int. The value normally arrives as an
+     * {@link Integer} (assigned via {@link #withIndex} on a primitive int), but spillable join
+     * executors round-trip values through a wire format that may store everything as String —
+     * in that case the recoverable wire form is parsed back to an int. Anything else (an
+     * unexpected non-numeric or null value) defaults to 0 rather than throwing, so a stray
+     * value cannot crash the pipeline mid-stream; the value is purely a positional index used
+     * for downstream dedup ordering, and 0 is a benign fallback.
+     *
+     * <p>Package-private for direct unit testing — see {@code DefaultLogicalViewEvaluatorTest}.
+     */
+    static int resolveIndexValue(Object indexValue) {
+        if (indexValue instanceof Number number) {
+            return number.intValue();
+        }
+        if (indexValue instanceof String stringValue) {
+            try {
+                return Integer.parseInt(stringValue);
+            } catch (NumberFormatException nfe) {
+                LOG.warn(
+                        "Unparseable INDEX_KEY value [{}] — falling back to 0; downstream dedup ordering may shift.",
+                        stringValue);
+                return 0;
+            }
+        }
+        LOG.warn(
+                "Unexpected INDEX_KEY value type [{}] (value=[{}]) — falling back to 0; downstream dedup ordering may shift.",
+                indexValue == null ? "null" : indexValue.getClass().getName(),
+                indexValue);
+        return 0;
     }
 
     private Flux<EvaluatedValues> applyJoinSet(

@@ -15,7 +15,7 @@ import java.time.temporal.TemporalAccessor;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.IntVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
@@ -267,19 +267,43 @@ final class ArrowBlobCodec {
     }
 
     private static Map<String, Object> readValueMap(VectorSchemaRoot root) {
-        return readMap(root, VALUES_FIELD, Function.identity());
+        // Index keys ("#" and "*.#") carry the source-record index as an Integer in EvaluatedValues;
+        // the wire format stores all values as Utf8. Parse the string form back to Integer for those
+        // keys so downstream consumers (DefaultLogicalViewEvaluator's `(int) ev.values().get("#")`
+        // unbox at line 204) see the original type. Other values stay as String — downstream RDF
+        // lexical-form generation is datatype-driven, not Java-runtime-type-driven.
+        return readMap(root, VALUES_FIELD, ArrowBlobCodec::reinterpretValueByKey);
+    }
+
+    private static Object reinterpretValueByKey(String key, Object rawValue) {
+        if (rawValue instanceof String stringValue && isIndexKey(key)) {
+            try {
+                return Integer.valueOf(stringValue);
+            } catch (NumberFormatException nfe) {
+                // Should not happen — only writeValueMap on the encode side feeds these keys, and
+                // writeValueMap takes Integer index values from EvaluatedValues#withIndex. Fall
+                // back to the raw string instead of throwing so a stray non-numeric value in a
+                // future caller path does not abort the whole join.
+                return stringValue;
+            }
+        }
+        return rawValue;
+    }
+
+    private static boolean isIndexKey(String key) {
+        return EvaluatedValues.INDEX_KEY.equals(key) || key.endsWith(EvaluatedValues.INDEX_KEY_SUFFIX);
     }
 
     private static Map<String, IRI> readIriMap(VectorSchemaRoot root) {
-        return readMap(root, NATURAL_DATATYPES_FIELD, raw -> Values.iri((String) raw));
+        return readMap(root, NATURAL_DATATYPES_FIELD, (key, raw) -> Values.iri((String) raw));
     }
 
     private static Map<String, String> readReferenceFormulationIris(VectorSchemaRoot root) {
-        return readMap(root, REFERENCE_FORMULATIONS_FIELD, String.class::cast);
+        return readMap(root, REFERENCE_FORMULATIONS_FIELD, (key, raw) -> (String) raw);
     }
 
     private static <V> LinkedHashMap<String, V> readMap(
-            VectorSchemaRoot root, String fieldName, Function<Object, V> valueMapper) {
+            VectorSchemaRoot root, String fieldName, BiFunction<String, Object, V> valueMapper) {
         var mapVector = (MapVector) root.getVector(fieldName);
         var result = new LinkedHashMap<String, V>();
         if (mapVector.isNull(0)) {
@@ -302,7 +326,7 @@ final class ArrowBlobCodec {
             } else {
                 var rawValue = valueVector.getObject(i);
                 var stringValue = rawValue instanceof Text text ? text.toString() : rawValue;
-                result.put(key, valueMapper.apply(stringValue));
+                result.put(key, valueMapper.apply(key, stringValue));
             }
         }
         return result;
