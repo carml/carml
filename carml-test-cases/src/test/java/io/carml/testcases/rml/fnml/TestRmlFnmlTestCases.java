@@ -33,9 +33,6 @@ class TestRmlFnmlTestCases extends RmlTestCaseSuite {
      * Skip list for the rml-fnml conformance suite. The remaining failures are:
      *
      * <ul>
-     *   <li>{@code RMLFNMLTC0001-CSV} — invokes a synthetic helper function
-     *       ({@code idlab-fn:alwaysReturnsABC}) that has no descriptor in any TTL on the
-     *       classpath. Out of scope for engine work.
      *   <li>{@code RMLFNMLTC0011-CSV} / {@code RMLFNMLTC0031-CSV} — pending investigation. CARML
      *       executes {@code idlab-fn:toUpperCaseURL} and produces {@code <HTTP://VENUS>} /
      *       {@code <HTTP://WWW.EXAMPLE.COM>} in predicate / subject position respectively;
@@ -55,7 +52,6 @@ class TestRmlFnmlTestCases extends RmlTestCaseSuite {
     @Override
     protected List<String> getSkipTests() {
         return List.of(
-                "RMLFNMLTC0001-CSV",
                 "RMLFNMLTC0011-CSV",
                 "RMLFNMLTC0031-CSV",
                 "RMLFNMLTC0102-CSV",
@@ -72,7 +68,12 @@ class TestRmlFnmlTestCases extends RmlTestCaseSuite {
                 .addFunctionDescriptions(requireResource("/rml/fnml/test-cases/functions.ttl"), RDFFormat.TURTLE)
                 .addFunctionDescriptions(requireResource("/fno/functions_idlab.ttl"), RDFFormat.TURTLE)
                 .addFunctionDescriptions(
-                        requireResource("/fno/functions_idlab_classes_java_mapping.ttl"), RDFFormat.TURTLE);
+                        requireResource("/fno/functions_idlab_classes_java_mapping.ttl"), RDFFormat.TURTLE)
+                // RMLFNMLTC0001-CSV references idlab-fn:alwaysReturnsABC, a synthetic helper that
+                // has no descriptor in any classpath TTL — register it programmatically.
+                .function("https://w3id.org/imec/idlab/function#alwaysReturnsABC")
+                .returns("https://w3id.org/imec/idlab/function#_stringOut", String.class)
+                .execute(params -> "ABC");
         Optional.ofNullable(testCase.getDefaultBaseIri()).or(this::getBaseIri).ifPresent(mapperBuilder::baseIri);
 
         var mappingStream =

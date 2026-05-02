@@ -42,16 +42,6 @@ class TestRmlFnmlTestCasesWithDuckDb extends DuckDbTestCaseSuite {
     protected List<String> getSkipTests() {
         return List.of(
                 // ====================================================================
-                // Test-helper function with no descriptor anywhere on the classpath.
-                // `idlab-fn:alwaysReturnsABC` is a synthetic helper used to exercise
-                // FnO plumbing; it is NOT defined in `functions_idlab.ttl` or in
-                // carml-test-cases' `functions.ttl`.
-                //   WARN ... no function registered for function IRI
-                //   [https://w3id.org/imec/idlab/function#alwaysReturnsABC]
-                // ====================================================================
-                "RMLFNMLTC0001-CSV",
-
-                // ====================================================================
                 // grel functions whose FnO signatures (`fno:Function` declarations)
                 // are not on the classpath. `grel_java_mapping.ttl` only contains
                 // `fno:Mapping` rows; the matching function descriptors are absent.
@@ -100,7 +90,12 @@ class TestRmlFnmlTestCasesWithDuckDb extends DuckDbTestCaseSuite {
                 .addFunctionDescriptions(requireResource("/rml/fnml/test-cases/functions.ttl"), RDFFormat.TURTLE)
                 .addFunctionDescriptions(requireResource("/fno/functions_idlab.ttl"), RDFFormat.TURTLE)
                 .addFunctionDescriptions(
-                        requireResource("/fno/functions_idlab_classes_java_mapping.ttl"), RDFFormat.TURTLE);
+                        requireResource("/fno/functions_idlab_classes_java_mapping.ttl"), RDFFormat.TURTLE)
+                // RMLFNMLTC0001-CSV references idlab-fn:alwaysReturnsABC, a synthetic helper that
+                // has no descriptor in any classpath TTL — register it programmatically.
+                .function("https://w3id.org/imec/idlab/function#alwaysReturnsABC")
+                .returns("https://w3id.org/imec/idlab/function#_stringOut", String.class)
+                .execute(params -> "ABC");
         Optional.ofNullable(testCase.getDefaultBaseIri()).or(this::getBaseIri).ifPresent(mapperBuilder::baseIri);
 
         var mappingStream =

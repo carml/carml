@@ -927,6 +927,21 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
         }
 
         /**
+         * Sets the return type of this function and the IRI of the {@code fno:Output} resource it
+         * declares. Required when mappings select this function's result via {@code rml:return},
+         * since {@link io.carml.functions.FunctionExecutionSupport#applyReturnMap} validates the
+         * requested return IRI against the descriptor's declared output IRIs.
+         *
+         * @param outputIri the {@code fno:Output} resource IRI
+         * @param type the return Java type
+         * @return this {@link FunctionBuilder}
+         */
+        public FunctionBuilder returns(String outputIri, Class<?> type) {
+            returnDesc = new ReturnDescriptor(VF.createIRI(outputIri), type);
+            return this;
+        }
+
+        /**
          * Completes the function registration with the given executor.
          *
          * @param executor the function implementation

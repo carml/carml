@@ -20,6 +20,7 @@ import io.carml.engine.MappingExecutionObserver;
 import io.carml.engine.MappingResult;
 import io.carml.engine.NoOpObserver;
 import io.carml.engine.RmlMapperException;
+import io.carml.functions.FunctionRegistry;
 import io.carml.logicalsourceresolver.sourceresolver.ClassPathResolver;
 import io.carml.logicalsourceresolver.sourceresolver.SourceResolverException;
 import io.carml.model.LogicalTarget;
@@ -28,6 +29,7 @@ import io.carml.model.TriplesMap;
 import io.carml.rdfmapper.impl.CarmlMapperException;
 import io.carml.util.RmlMappingLoader;
 import io.carml.util.TypeRef;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.Normalizer;
@@ -434,6 +436,100 @@ class RdfRmlMapperTest {
                 .build();
 
         assertThat(rmlMapper, is(notNullValue()));
+    }
+
+    @Test
+    void functionBuilder_registersOutputIri_whenReturnsCalledWithIri() {
+        var mapping = loadMapping("mapping.rml.ttl");
+        var registry = FunctionRegistry.create();
+        var vf = SimpleValueFactory.getInstance();
+        var fnIri = "http://example.org/fn";
+        var outputIri = "http://example.org/fn-output";
+
+        RdfRmlMapper.builder()
+                .triplesMaps(mapping)
+                .allowMultipleSubjectMaps(true)
+                .functionRegistry(registry)
+                .function(fnIri)
+                .returns(outputIri, String.class)
+                .execute(params -> "ok")
+                .build();
+
+        var descriptor = registry.getFunction(vf.createIRI(fnIri)).orElseThrow();
+        var declaredReturns = descriptor.getReturns();
+        assertThat(declaredReturns.size(), is(1));
+        assertThat(declaredReturns.get(0).matches(vf.createIRI(outputIri)), is(true));
+    }
+
+    @Test
+    void functionBuilder_descriptorMatchesNoOutputIri_whenReturnsCalledWithoutIri() {
+        var mapping = loadMapping("mapping.rml.ttl");
+        var registry = FunctionRegistry.create();
+        var vf = SimpleValueFactory.getInstance();
+        var fnIri = "http://example.org/fn";
+
+        RdfRmlMapper.builder()
+                .triplesMaps(mapping)
+                .allowMultipleSubjectMaps(true)
+                .functionRegistry(registry)
+                .function(fnIri)
+                .returns(String.class)
+                .execute(params -> "ok")
+                .build();
+
+        var descriptor = registry.getFunction(vf.createIRI(fnIri)).orElseThrow();
+        var declaredReturns = descriptor.getReturns();
+        assertThat(declaredReturns.size(), is(1));
+        assertThat(declaredReturns.get(0).matches(vf.createIRI("http://example.org/any-output")), is(false));
+    }
+
+    @Test
+    void functionExecution_producesEmptyResult_whenDescriptorHasNoOutputIriAndMappingUsesRmlReturn() {
+        var turtle = String.join(
+                "\n",
+                "@prefix rml: <http://w3id.org/rml/> .",
+                "@prefix ql: <http://semweb.mmlab.be/ns/ql#> .",
+                "@prefix carml: <http://carml.taxonic.com/carml/> .",
+                "@prefix ex: <http://example.com/> .",
+                "",
+                "ex:LS a rml:LogicalSource ;",
+                "  rml:source [ a carml:Stream ; carml:streamName \"data\" ] ;",
+                "  rml:referenceFormulation ql:CSV .",
+                "",
+                "ex:TM a rml:TriplesMap ;",
+                "  rml:logicalSource ex:LS ;",
+                "  rml:subjectMap [ rml:template \"http://example.com/{Id}\" ; rml:class ex:Thing ] ;",
+                "  rml:predicateObjectMap [",
+                "    rml:predicate ex:value ;",
+                "    rml:objectMap [",
+                "      rml:functionExecution ex:Exec ;",
+                "      rml:return ex:undeclaredOutput",
+                "    ]",
+                "  ] .",
+                "",
+                "ex:Exec rml:function ex:fn .");
+        var mapping = RmlMappingLoader.build()
+                .load(RDFFormat.TURTLE, new java.io.ByteArrayInputStream(turtle.getBytes(StandardCharsets.UTF_8)));
+
+        var rmlMapper = RdfRmlMapper.builder()
+                .triplesMaps(mapping)
+                .function("http://example.com/fn")
+                .returns(String.class)
+                .execute(params -> "ignored")
+                .build();
+
+        var csv = new java.io.ByteArrayInputStream("Id,Name\n1,Alice\n".getBytes(StandardCharsets.UTF_8));
+        var model = rmlMapper.mapToModel(Map.of("data", csv));
+
+        var rdfType = SimpleValueFactory.getInstance().createIRI(RDF.TYPE.stringValue());
+        var exValue = SimpleValueFactory.getInstance().createIRI("http://example.com/value");
+        // The class assertion still fires (rdf:type triple from rml:class), but the
+        // function-driven object emits zero triples because rml:return references an IRI
+        // that the descriptor does not declare as an output — graceful-degradation path
+        // in FunctionExecutionSupport.applyReturnMap.
+        assertThat(model.size(), is(1));
+        assertThat(model.contains(null, rdfType, null), is(true));
+        assertThat(model.contains(null, exValue, null), is(false));
     }
 
     private Set<TriplesMap> loadMapping(String resourceName) {
