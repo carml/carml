@@ -417,7 +417,8 @@ public class RdfPredicateObjectMapper {
         }
 
         // Encode non-mergeable collection objects by getting their Statements and encoding.
-        // toStream() is safe: RdfList/RdfContainer results are synchronous (in-memory Model).
+        // toStream() is safe: RdfList/RdfContainer build statements lazily on demand via a
+        // synchronous Stream (no scheduler-crossing); Flux.toStream() drains it non-blocking.
         for (var collectionObj : collectionObjects) {
             var collectionResult = getCollectionResults(collectionObj, pomGraphs);
             if (collectionResult != null) {

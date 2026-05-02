@@ -1,41 +1,39 @@
 package io.carml.engine.rdf.cc;
 
 import io.carml.engine.MergeableMappingResult;
-import io.carml.util.Models;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
-import org.eclipse.rdf4j.model.BNode;
 import org.eclipse.rdf4j.model.IRI;
-import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.Value;
-import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
-import org.eclipse.rdf4j.model.util.RDFContainers;
 import org.reactivestreams.Publisher;
-import reactor.core.publisher.Flux;
 
+/**
+ * Mergeable variant of {@link RdfContainer}. Multiple pieces produced by per-iteration evaluation
+ * are combined via {@link #merge} into a single accumulated container. Merging mutates the
+ * {@code elements} and {@code nestedResults} accumulators of {@code this} in place; the returned
+ * builder-built instance shares those mutable references, so subsequent merges in the same
+ * {@link java.util.stream.Stream#reduce} chain continue to grow the same accumulator. Total cost
+ * over N pieces of size k is O(N·k) rather than the O(N²·k) of the previous Model-rebuild design.
+ *
+ * <p><b>Mutation contract:</b> {@link #merge} mutates {@code this}'s {@code elements} and
+ * {@code nestedResults} lists. Callers of {@code merge} must not retain a reference to either
+ * input after merging — the post-merge accumulator subsumes both.
+ *
+ * <p>The streaming/merge logic shared with {@link MergeableRdfList} lives in
+ * {@link MergeableCollectionStreams}.
+ */
 @SuperBuilder(toBuilder = true)
 @EqualsAndHashCode(callSuper = true)
 @ToString
 @Getter
 public class MergeableRdfContainer<T extends Value> extends RdfContainer<T>
         implements MergeableMappingResult<Value, Statement> {
-
-    /**
-     * The set of graph resources this container is scoped to. Empty means default graph.
-     */
-    @Builder.Default
-    private final Set<Resource> graphs = Set.of();
 
     /**
      * Subjects for generating linking triples ({@code subject predicate container graph}).
@@ -51,94 +49,36 @@ public class MergeableRdfContainer<T extends Value> extends RdfContainer<T>
 
     @Override
     public Value getKey() {
-        if (graphs.isEmpty()) {
-            return getContainer();
-        }
-        return new GraphScopedMergeKey(getContainer(), graphs);
+        return MergeableCollectionStreams.computeKey(this);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public MergeableMappingResult<Value, Statement> merge(MergeableMappingResult<Value, Statement> other) {
-        var otherContainer = (MergeableRdfContainer<T>) other;
+        var otherContainer = MergeableCollectionStreams.requireSameType(this, other);
 
-        var mergedLinkingSubjects = new HashSet<>(linkingSubjects);
-        mergedLinkingSubjects.addAll(otherContainer.getLinkingSubjects());
+        // Mutate the shared accumulator lists in place. Cost: O(other.size()).
+        MergeableCollectionStreams.mergeAccumulators(this, otherContainer);
 
-        var mergedLinkingPredicates = new HashSet<>(linkingPredicates);
-        mergedLinkingPredicates.addAll(otherContainer.getLinkingPredicates());
-
-        // Propagate logicalTargets union: toBuilder() pre-fills with this instance's targets;
-        // .logicalTargets(Iterable) adds (not replaces) under @Singular, so the resulting builder
-        // holds the union of both sides. The observer-firing wrap at RmlMapper.mergeMergeables()
-        // relies on this union being surfaced to onStatementGenerated.
+        // The returned builder pre-fills with this instance's mutable element/nested lists, so
+        // subsequent merges in the reduce chain continue to grow the same accumulator. The
+        // .logicalTargets(...) call adds (under @Singular semantics) the other side's targets to
+        // the pre-filled this-side targets, producing the union.
         return toBuilder()
-                .model(concatenateContainer((T) GraphScopedMergeKey.unwrap(other.getKey()), otherContainer.getModel()))
                 .logicalTargets(otherContainer.getLogicalTargets())
-                .linkingSubjects(Set.copyOf(mergedLinkingSubjects))
-                .linkingPredicates(Set.copyOf(mergedLinkingPredicates))
+                .linkingSubjects(MergeableCollectionStreams.union(linkingSubjects, otherContainer.getLinkingSubjects()))
+                .linkingPredicates(
+                        MergeableCollectionStreams.union(linkingPredicates, otherContainer.getLinkingPredicates()))
                 .build();
     }
 
     @Override
     public Publisher<Statement> getResults() {
-        if (graphs.isEmpty()) {
-            return Flux.fromIterable(getModel());
-        }
-
-        return Flux.fromIterable(buildGraphScopedStatements());
-    }
-
-    private List<Statement> buildGraphScopedStatements() {
-        var valueFactory = SimpleValueFactory.getInstance();
-
-        return graphs.stream()
-                .flatMap(graph -> {
-                    var remapResult = Models.remapBlanksForGraph(getModel(), graph, valueFactory);
-                    var bnodeMap = remapResult.getKey();
-                    var graphModel = remapResult.getValue();
-
-                    var graphStatements = graphModel.stream();
-
-                    if (!linkingSubjects.isEmpty() && !linkingPredicates.isEmpty()) {
-                        var remappedContainer = getContainer() instanceof BNode containerBNode
-                                ? bnodeMap.getOrDefault(containerBNode, containerBNode)
-                                : getContainer();
-
-                        var linkingTriples = linkingSubjects.stream()
-                                .flatMap(subject -> linkingPredicates.stream()
-                                        .map(predicate -> valueFactory.createStatement(
-                                                subject, predicate, remappedContainer, graph)));
-
-                        return Stream.concat(graphStatements, linkingTriples);
-                    }
-
-                    return graphStatements;
-                })
-                .toList();
-    }
-
-    private Model concatenateContainer(T otherContainerValue, Model other) {
-        var thisList = containerToValueList((Resource) getContainer(), getModel());
-        var otherList = containerToValueList((Resource) otherContainerValue, other);
-
-        thisList.addAll(otherList);
-
-        return RdfCollectionsAndContainers.toRdfContainerModel(
-                getType(), thisList, (Resource) getContainer(), SimpleValueFactory.getInstance());
-    }
-
-    private List<Value> containerToValueList(Resource container, Model model) {
-        var list = new ArrayList<Statement>();
-        RDFContainers.extract(getType(), model, container, list::add);
-
-        return list.stream().map(Statement::getObject).collect(Collectors.toCollection(ArrayList::new));
+        return MergeableCollectionStreams.buildResults(this, linkingSubjects, linkingPredicates);
     }
 
     /**
      * Creates a new {@link MergeableRdfContainer} scoped to the given graphs with linking triple info.
-     * The model is kept in the default graph context; graph scoping with fresh blank nodes is applied
-     * when {@link #getResults()} is called (after merging).
+     * Graph scoping with fresh blank nodes is applied when {@link #getResults()} is called.
      */
     public MergeableRdfContainer<T> withGraphScope(
             Set<Resource> targetGraphs, Set<Resource> subjects, Set<IRI> predicates) {

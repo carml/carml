@@ -1,12 +1,15 @@
 package io.carml.engine.rdf.cc;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
 import io.carml.model.LogicalTarget;
@@ -32,8 +35,10 @@ class MergeableRdfListTest {
     void getKey_withoutGraphs_returnsHead() {
         // Given
         var head = VF.createBNode("head");
-        var model = RdfCollectionsAndContainers.toRdfListModel(List.of(VF.createLiteral("1")), head, VF);
-        var list = MergeableRdfList.<Value>builder().head(head).model(model).build();
+        var list = MergeableRdfList.<Value>builder()
+                .head(head)
+                .elements(new ArrayList<>(List.of(VF.createLiteral("1"))))
+                .build();
 
         // When
         var key = list.getKey();
@@ -47,10 +52,9 @@ class MergeableRdfListTest {
         // Given
         var head = VF.createBNode("head");
         var graph = Values.iri("http://example.com/g/1");
-        var model = RdfCollectionsAndContainers.toRdfListModel(List.of(VF.createLiteral("1")), head, VF);
         var list = MergeableRdfList.<Value>builder()
                 .head(head)
-                .model(model)
+                .elements(new ArrayList<>(List.of(VF.createLiteral("1"))))
                 .graphs(Set.of(graph))
                 .build();
 
@@ -67,17 +71,16 @@ class MergeableRdfListTest {
         var head = VF.createBNode("head");
         var graph1 = Values.iri("http://example.com/g/1");
         var graph2 = Values.iri("http://example.com/g/2");
-        var model = RdfCollectionsAndContainers.toRdfListModel(List.of(VF.createLiteral("1")), head, VF);
 
         var list1 = MergeableRdfList.<Value>builder()
                 .head(head)
-                .model(model)
+                .elements(new ArrayList<>(List.of(VF.createLiteral("1"))))
                 .graphs(Set.of(graph1))
                 .build();
 
         var list2 = MergeableRdfList.<Value>builder()
                 .head(head)
-                .model(model)
+                .elements(new ArrayList<>(List.of(VF.createLiteral("1"))))
                 .graphs(Set.of(graph2))
                 .build();
 
@@ -90,18 +93,16 @@ class MergeableRdfListTest {
         // Given
         var head = VF.createBNode("head");
         var graph = Values.iri("http://example.com/g/1");
-        var model1 = RdfCollectionsAndContainers.toRdfListModel(List.of(VF.createLiteral("1")), head, VF);
-        var model2 = RdfCollectionsAndContainers.toRdfListModel(List.of(VF.createLiteral("2")), head, VF);
 
         var list1 = MergeableRdfList.<Value>builder()
                 .head(head)
-                .model(model1)
+                .elements(new ArrayList<>(List.of(VF.createLiteral("1"))))
                 .graphs(Set.of(graph))
                 .build();
 
         var list2 = MergeableRdfList.<Value>builder()
                 .head(head)
-                .model(model2)
+                .elements(new ArrayList<>(List.of(VF.createLiteral("2"))))
                 .graphs(Set.of(graph))
                 .build();
 
@@ -117,12 +118,9 @@ class MergeableRdfListTest {
         var subject = Values.iri("http://example.com/e/a");
         var predicate = Values.iri("http://example.com/ns#with");
 
-        var model1 = RdfCollectionsAndContainers.toRdfListModel(List.of(VF.createLiteral("1")), head, VF);
-        var model2 = RdfCollectionsAndContainers.toRdfListModel(List.of(VF.createLiteral("3")), head, VF);
-
         var list1 = MergeableRdfList.<Value>builder()
                 .head(head)
-                .model(model1)
+                .elements(new ArrayList<>(List.of(VF.createLiteral("1"))))
                 .graphs(Set.of(graph))
                 .linkingSubjects(Set.of(subject))
                 .linkingPredicates(Set.of(predicate))
@@ -130,7 +128,7 @@ class MergeableRdfListTest {
 
         var list2 = MergeableRdfList.<Value>builder()
                 .head(head)
-                .model(model2)
+                .elements(new ArrayList<>(List.of(VF.createLiteral("3"))))
                 .graphs(Set.of(graph))
                 .linkingSubjects(Set.of(subject))
                 .linkingPredicates(Set.of(predicate))
@@ -170,18 +168,15 @@ class MergeableRdfListTest {
         var targetA = mock(LogicalTarget.class);
         var targetB = mock(LogicalTarget.class);
 
-        var model1 = RdfCollectionsAndContainers.toRdfListModel(List.of(VF.createLiteral("1")), head, VF);
-        var model2 = RdfCollectionsAndContainers.toRdfListModel(List.of(VF.createLiteral("2")), head, VF);
-
         var list1 = MergeableRdfList.<Value>builder()
                 .head(head)
-                .model(model1)
+                .elements(new ArrayList<>(List.of(VF.createLiteral("1"))))
                 .logicalTarget(targetA)
                 .build();
 
         var list2 = MergeableRdfList.<Value>builder()
                 .head(head)
-                .model(model2)
+                .elements(new ArrayList<>(List.of(VF.createLiteral("2"))))
                 .logicalTarget(targetB)
                 .build();
 
@@ -201,12 +196,9 @@ class MergeableRdfListTest {
         var subject = Values.iri("http://example.com/e/a");
         var predicate = Values.iri("http://example.com/ns#with");
 
-        var model = RdfCollectionsAndContainers.toRdfListModel(
-                List.of(VF.createLiteral("1"), VF.createLiteral("2")), head, VF);
-
         var list = MergeableRdfList.<Value>builder()
                 .head(head)
-                .model(model)
+                .elements(new ArrayList<>(List.of(VF.createLiteral("1"), VF.createLiteral("2"))))
                 .graphs(Set.of(graph1, graph2))
                 .linkingSubjects(Set.of(subject))
                 .linkingPredicates(Set.of(predicate))
@@ -239,9 +231,10 @@ class MergeableRdfListTest {
     void getResults_withoutGraphs_returnsDefaultGraphStatements() {
         // Given
         var head = VF.createBNode("head");
-        var model = RdfCollectionsAndContainers.toRdfListModel(List.of(VF.createLiteral("1")), head, VF);
-
-        var list = MergeableRdfList.<Value>builder().head(head).model(model).build();
+        var list = MergeableRdfList.<Value>builder()
+                .head(head)
+                .elements(new ArrayList<>(List.of(VF.createLiteral("1"))))
+                .build();
 
         // When
         var statements = Flux.from(list.getResults()).collectList().block();
@@ -258,9 +251,11 @@ class MergeableRdfListTest {
         var graph = Values.iri("http://example.com/g/1");
         var subject = Values.iri("http://example.com/e/a");
         var predicate = Values.iri("http://example.com/ns#with");
-        var model = RdfCollectionsAndContainers.toRdfListModel(List.of(VF.createLiteral("1")), head, VF);
 
-        var list = MergeableRdfList.<Value>builder().head(head).model(model).build();
+        var list = MergeableRdfList.<Value>builder()
+                .head(head)
+                .elements(new ArrayList<>(List.of(VF.createLiteral("1"))))
+                .build();
 
         // When
         var scoped = list.withGraphScope(Set.of(graph), Set.of(subject), Set.of(predicate));
@@ -270,6 +265,78 @@ class MergeableRdfListTest {
         assertThat(scoped.getLinkingSubjects(), is(Set.of(subject)));
         assertThat(scoped.getLinkingPredicates(), is(Set.of(predicate)));
         assertThat(scoped.getHead(), is(head));
+    }
+
+    @Test
+    void merge_accumulatorIsShared_betweenThisAndReturnedInstance() {
+        // Given — the load-bearing assumption for O(N) total merge cost is that toBuilder().build()
+        // does NOT deep-copy the elements/nestedResults lists. Asserts the mechanism directly so a
+        // future builder-copy regression fails here loudly rather than slowly.
+        var head = VF.createBNode("head");
+        var l1 = MergeableRdfList.<Value>builder()
+                .head(head)
+                .elements(new ArrayList<>(List.of(VF.createLiteral("a"))))
+                .build();
+        var l2 = MergeableRdfList.<Value>builder()
+                .head(head)
+                .elements(new ArrayList<>(List.of(VF.createLiteral("b"))))
+                .build();
+
+        // When
+        @SuppressWarnings("unchecked")
+        var merged = (MergeableRdfList<Value>) l1.merge(l2);
+
+        // Then — the merged instance shares the elements list with l1 (in-place mutation)
+        assertThat(merged.getElements(), sameInstance(l1.getElements()));
+        assertThat(merged.getElements(), hasSize(2));
+        assertThat(merged.getNestedResults(), sameInstance(l1.getNestedResults()));
+    }
+
+    @Test
+    void merge_preservesElementOrder_acrossPieces() {
+        // List semantics require positional order: piece1 elements come first (in their internal
+        // order), then piece2 elements (in theirs). Existing merge tests use containsInAnyOrder
+        // which would silently pass under any order-losing accumulator type — this test guards
+        // explicitly against a regression to e.g. HashSet/LinkedHashSet semantics on elements.
+        var head = VF.createBNode("head");
+        var p1 = MergeableRdfList.<Value>builder()
+                .head(head)
+                .elements(new ArrayList<>(List.of(VF.createLiteral("1"), VF.createLiteral("2"))))
+                .build();
+        var p2 = MergeableRdfList.<Value>builder()
+                .head(head)
+                .elements(new ArrayList<>(List.of(VF.createLiteral("3"), VF.createLiteral("4"))))
+                .build();
+
+        var merged = p1.merge(p2);
+        var statements = Flux.from(merged.getResults()).collectList().block();
+        assertNotNull(statements);
+
+        var firstObjects = statements.stream()
+                .filter(s -> s.getPredicate().equals(RDF.FIRST))
+                .map(Statement::getObject)
+                .toList();
+
+        assertThat(
+                firstObjects,
+                contains(VF.createLiteral("1"), VF.createLiteral("2"), VF.createLiteral("3"), VF.createLiteral("4")));
+    }
+
+    @Test
+    void merge_withIncompatibleType_throwsIllegalStateException() {
+        // Given
+        var list = MergeableRdfList.<Value>builder()
+                .head(VF.createBNode("head"))
+                .elements(new ArrayList<>(List.of(VF.createLiteral("a"))))
+                .build();
+        var container = MergeableRdfContainer.<Value>builder()
+                .type(RDF.BAG)
+                .container(VF.createBNode("container"))
+                .elements(new ArrayList<>(List.of(VF.createLiteral("b"))))
+                .build();
+
+        // When / Then
+        assertThrows(IllegalStateException.class, () -> list.merge(container));
     }
 
     private List<BNode> extractBlanks(List<Statement> statements) {

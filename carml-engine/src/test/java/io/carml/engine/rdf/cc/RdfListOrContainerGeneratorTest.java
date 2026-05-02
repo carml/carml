@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
@@ -33,6 +34,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Flux;
 
 @ExtendWith(MockitoExtension.class)
 class RdfListOrContainerGeneratorTest {
@@ -106,9 +108,16 @@ class RdfListOrContainerGeneratorTest {
 
         var container = (RdfContainer<Value>) mappedValue;
         assertThat(container.getType(), is(RDF.BAG));
-        assertThat(container.getModel().contains((Resource) container.getContainer(), RDF.TYPE, RDF.BAG), is(true));
+        var statements = Flux.from(container.getResults()).collectList().block();
+        assertNotNull(statements);
+        assertThat(
+                statements.stream()
+                        .anyMatch(s -> s.getSubject().equals(container.getContainer())
+                                && s.getPredicate().equals(RDF.TYPE)
+                                && s.getObject().equals(RDF.BAG)),
+                is(true));
         // Empty container should have only the type triple
-        assertThat(container.getModel().size(), is(1));
+        assertThat(statements, hasSize(1));
     }
 
     @Test
@@ -133,8 +142,15 @@ class RdfListOrContainerGeneratorTest {
 
         var container = (RdfContainer<Value>) mappedValue;
         assertThat(container.getType(), is(RDF.SEQ));
-        assertThat(container.getModel().contains((Resource) container.getContainer(), RDF.TYPE, RDF.SEQ), is(true));
-        assertThat(container.getModel().size(), is(1));
+        var statements = Flux.from(container.getResults()).collectList().block();
+        assertNotNull(statements);
+        assertThat(
+                statements.stream()
+                        .anyMatch(s -> s.getSubject().equals(container.getContainer())
+                                && s.getPredicate().equals(RDF.TYPE)
+                                && s.getObject().equals(RDF.SEQ)),
+                is(true));
+        assertThat(statements, hasSize(1));
     }
 
     @Test
@@ -159,8 +175,15 @@ class RdfListOrContainerGeneratorTest {
 
         var container = (RdfContainer<Value>) mappedValue;
         assertThat(container.getType(), is(RDF.ALT));
-        assertThat(container.getModel().contains((Resource) container.getContainer(), RDF.TYPE, RDF.ALT), is(true));
-        assertThat(container.getModel().size(), is(1));
+        var statements = Flux.from(container.getResults()).collectList().block();
+        assertNotNull(statements);
+        assertThat(
+                statements.stream()
+                        .anyMatch(s -> s.getSubject().equals(container.getContainer())
+                                && s.getPredicate().equals(RDF.TYPE)
+                                && s.getObject().equals(RDF.ALT)),
+                is(true));
+        assertThat(statements, hasSize(1));
     }
 
     @Test

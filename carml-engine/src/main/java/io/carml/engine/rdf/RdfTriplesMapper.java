@@ -561,8 +561,9 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
                         .toList());
 
                 // Handle collection subjects (RdfList/RdfContainer) -- encode their Statements.
-                // toStream() is safe here: RdfList/RdfContainer results are synchronous
-                // (backed by Flux.fromIterable over an in-memory Model).
+                // toStream() is safe here: RdfList/RdfContainer build statements lazily on demand
+                // via a synchronous Stream (no scheduler-crossing); Flux.toStream() drains it
+                // non-blocking.
                 resultSubjects.stream()
                         .filter(s -> s instanceof RdfList || s instanceof RdfContainer)
                         .forEach(collSubject -> {

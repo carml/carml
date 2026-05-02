@@ -1,11 +1,12 @@
 package io.carml.engine.rdf.cc;
 
 import static io.carml.util.CartesianProduct.listCartesianProduct;
+import static java.util.stream.Collectors.toCollection;
 
 import io.carml.engine.MappedValue;
+import io.carml.engine.MappingResult;
 import io.carml.engine.TermGenerator;
 import io.carml.engine.TermGeneratorFactoryException;
-import io.carml.engine.rdf.ModelBearing;
 import io.carml.engine.rdf.RdfMappedValue;
 import io.carml.engine.rdf.RdfTermGeneratorFactory;
 import io.carml.engine.rdf.cc.RdfContainer.RdfContainerBuilder;
@@ -25,11 +26,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
-import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.Resource;
+import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.ValueFactory;
-import org.eclipse.rdf4j.model.util.ModelCollector;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 
 public class RdfListOrContainerGenerator
@@ -230,18 +230,16 @@ public class RdfListOrContainerGenerator
             MappedValue<Resource> head,
             Collection<MappedValue<Value>> gatheredTerms,
             Supplier<RdfListBuilder<Value, ?, ?>> builderSupplier) {
-        var headResource = head.getValue();
 
-        var gatheredResources = gatheredTerms.stream() //
-                .map(MappedValue::getValue)
-                .toList();
+        var elements = collectElements(gatheredTerms);
+        var nestedResults = collectNestedResults(gatheredTerms);
 
-        var mappedValueModel = getNestedMappedValueModel(gatheredTerms);
-
-        var model = RdfCollectionsAndContainers.toRdfListModel(
-                gatheredResources, headResource, mappedValueModel, valueFactory);
-
-        return builderSupplier.get().head(head.getValue()).model(model).build();
+        return builderSupplier
+                .get()
+                .head(head.getValue())
+                .elements(elements)
+                .nestedResults(nestedResults)
+                .build();
     }
 
     private MappedValue<Value> createRdfContainer(
@@ -257,31 +255,30 @@ public class RdfListOrContainerGenerator
             MappedValue<Resource> container,
             Collection<MappedValue<Value>> gatheredTerms,
             Supplier<RdfContainerBuilder<Value, ?, ?>> builderSupplier) {
-        var containerResource = container.getValue();
 
-        var gatheredResources = gatheredTerms.stream() //
-                .map(MappedValue::getValue)
-                .toList();
-
-        var mappedValueModel = getNestedMappedValueModel(gatheredTerms);
-
-        var model = RdfCollectionsAndContainers.toRdfContainerModel(
-                gatherMap.getGatherAs(), gatheredResources, containerResource, mappedValueModel, valueFactory);
+        var elements = collectElements(gatheredTerms);
+        var nestedResults = collectNestedResults(gatheredTerms);
 
         return builderSupplier
                 .get()
                 .type(gatherMap.getGatherAs())
-                .container(containerResource)
-                .model(model)
+                .container(container.getValue())
+                .elements(elements)
+                .nestedResults(nestedResults)
                 .build();
     }
 
-    private Model getNestedMappedValueModel(Collection<MappedValue<Value>> gatheredTerms) {
+    private static List<Value> collectElements(Collection<MappedValue<Value>> gatheredTerms) {
+        return gatheredTerms.stream() //
+                .map(MappedValue::getValue)
+                .collect(toCollection(ArrayList::new));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<MappingResult<Statement>> collectNestedResults(Collection<MappedValue<Value>> gatheredTerms) {
         return gatheredTerms.stream()
-                .filter(ModelBearing.class::isInstance)
-                .map(ModelBearing.class::cast)
-                .map(ModelBearing::getModel)
-                .flatMap(Model::stream)
-                .collect(ModelCollector.toModel());
+                .filter(MappingResult.class::isInstance)
+                .map(t -> (MappingResult<Statement>) t)
+                .collect(toCollection(ArrayList::new));
     }
 }
