@@ -1,6 +1,6 @@
 package io.carml.engine.rdf.cc;
 
-import static io.carml.util.CartesianProduct.listCartesianProduct;
+import static io.carml.util.CartesianProduct.cartesianProductStream;
 import static java.util.stream.Collectors.toCollection;
 
 import io.carml.engine.MappedValue;
@@ -26,6 +26,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 import org.eclipse.rdf4j.model.Resource;
 import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.Value;
@@ -67,8 +68,31 @@ public class RdfListOrContainerGenerator
         return new RdfListOrContainerGenerator(gatherMap, valueFactory, rdfTermGeneratorFactory, refObjectMapPrefixes);
     }
 
+    /**
+     * Returns whether this generator's gather map carries expression bindings that promote it to a
+     * mergeable collection. When true, every emitted value is a {@link MergeableRdfList} or
+     * {@link MergeableRdfContainer} that participates in cross-iteration merging — the streaming
+     * consumer in the predicate-object mapper must NOT subscribe to such generators eagerly without
+     * routing through the merge path.
+     */
+    public boolean isMergeable() {
+        return !gatherMap.getExpressionMapExpressionSet().isEmpty();
+    }
+
     @Override
     public List<MappedValue<Value>> apply(ExpressionEvaluation expressionEvaluation, DatatypeMapper datatypeMapper) {
+        try (var stream = applyAsStream(expressionEvaluation, datatypeMapper)) {
+            return stream.toList();
+        }
+    }
+
+    /**
+     * Lazy entry point that emits each rdf:List / rdf:Container instance one at a time. For the
+     * cartesian-product strategy this avoids materializing the {@code product(|inputs|)} tuple
+     * cartesian product before any element is consumed.
+     */
+    public Stream<MappedValue<Value>> applyAsStream(
+            ExpressionEvaluation expressionEvaluation, DatatypeMapper datatypeMapper) {
         var headGenerator = rdfTermGeneratorFactory.getSubjectGenerator(gatherMap.asSubjectMap());
         var strategy = gatherMap.getStrategy();
 
@@ -83,13 +107,12 @@ public class RdfListOrContainerGenerator
                     .toList();
 
             if (appendedGatheredTerms.isEmpty()) {
-                return handleEmpty();
+                return handleEmpty().stream();
             }
 
             return headGenerator.apply(expressionEvaluation, datatypeMapper).stream()
                     .map(head -> createRdfListOrContainer(head, appendedGatheredTerms))
-                    .filter(Objects::nonNull)
-                    .toList();
+                    .filter(Objects::nonNull);
         }
 
         var gatheredTerms = gatherTermGenerators.stream()
@@ -97,13 +120,12 @@ public class RdfListOrContainerGenerator
                 .toList();
 
         if (gatheredTerms.isEmpty()) {
-            return handleEmpty();
+            return handleEmpty().stream();
         }
 
-        return listCartesianProduct(gatheredTerms).stream()
+        return cartesianProductStream(gatheredTerms)
                 .flatMap(cartesianProductItem -> headGenerator.apply(expressionEvaluation, datatypeMapper).stream()
-                        .map(head -> createRdfListOrContainer(head, cartesianProductItem)))
-                .toList();
+                        .map(head -> createRdfListOrContainer(head, cartesianProductItem)));
     }
 
     @SuppressWarnings("unchecked")

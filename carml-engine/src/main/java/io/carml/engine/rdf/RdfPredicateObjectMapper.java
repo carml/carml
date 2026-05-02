@@ -8,6 +8,7 @@ import static java.util.stream.Collectors.toUnmodifiableSet;
 
 import io.carml.engine.MappedValue;
 import io.carml.engine.MappingResult;
+import io.carml.engine.StreamingTermGenerator;
 import io.carml.engine.TermGenerator;
 import io.carml.engine.TriplesMapperException;
 import io.carml.engine.rdf.cc.MergeableRdfContainer;
@@ -264,49 +265,20 @@ public class RdfPredicateObjectMapper {
             ExpressionEvaluation expressionEvaluation,
             DatatypeMapper datatypeMapper,
             Map<Set<MappedValue<Resource>>, Set<MappedValue<Resource>>> subjectsAndSubjectGraphs) {
-        Set<MappedValue<IRI>> predicates = predicateGenerators.stream()
-                .map(g -> g.apply(expressionEvaluation, datatypeMapper))
-                .flatMap(List::stream)
-                .collect(toUnmodifiableSet());
-
-        if (predicates.isEmpty()) {
+        var pom = evaluatePom(expressionEvaluation, datatypeMapper, subjectsAndSubjectGraphs);
+        if (pom == null) {
             return Flux.empty();
         }
-
-        var objects = objectGenerators.stream()
-                .map(g -> g.apply(expressionEvaluation, datatypeMapper))
-                .<MappedValue<? extends Value>>flatMap(List::stream)
-                .toList();
-
-        Set<MappedValue<Resource>> pomGraphs = graphGenerators.stream()
-                .flatMap(graphGenerator -> graphGenerator.apply(expressionEvaluation, datatypeMapper).stream())
-                .collect(toUnmodifiableSet());
-
-        var subjectsAndAllGraphs = addPomGraphsToSubjectsAndSubjectGraphs(subjectsAndSubjectGraphs, pomGraphs);
-
-        if (objects.isEmpty()) {
-            return Flux.empty();
-        }
-
-        // Separate mergeable collection objects from regular objects.
-        // Mergeables with graphs need special handling: they must not participate in the
-        // cartesian product because each graph requires independent blank nodes and linking triples.
-        var mergeableObjects = objects.stream()
-                .filter(obj -> isMergeableCollection(obj) && !pomGraphs.isEmpty())
-                .toList();
-
-        var regularObjects =
-                objects.stream().filter(obj -> !mergeableObjects.contains(obj)).toList();
 
         Set<Flux<MappingResult<Statement>>> statementsPerGraphSet = new HashSet<>();
 
-        if (!regularObjects.isEmpty()) {
-            subjectsAndAllGraphs.entrySet().stream()
-                    .map(subjectsAndAllGraphsEntry -> Flux.fromStream(streamCartesianProductMappedStatements(
-                            subjectsAndAllGraphsEntry.getKey(),
-                            predicates,
-                            regularObjects,
-                            subjectsAndAllGraphsEntry.getValue(),
+        if (!pom.regularObjects().isEmpty()) {
+            pom.subjectsAndAllGraphs().entrySet().stream()
+                    .map(entry -> Flux.fromStream(streamCartesianProductMappedStatements(
+                            entry.getKey(),
+                            pom.predicates(),
+                            pom.regularObjects(),
+                            entry.getValue(),
                             RdfTriplesMapper.defaultGraphModifier,
                             valueFactory,
                             RdfTriplesMapper.logAddStatements)))
@@ -316,22 +288,155 @@ public class RdfPredicateObjectMapper {
         // For mergeable collection objects with graphs, create graph-scoped instances
         // that carry linking triple info (subjects, predicates) and will generate per-graph
         // structures with fresh blank nodes after merging.
-        if (!mergeableObjects.isEmpty()) {
-            var mergeableCollectionResults = Flux.fromStream(mergeableObjects.stream()
-                    .flatMap(obj -> scopeMergeableForGraphs(obj, subjectsAndAllGraphs, predicates)));
+        if (!pom.mergeableObjects().isEmpty()) {
+            var mergeableCollectionResults = Flux.fromStream(pom.mergeableObjects().stream()
+                    .flatMap(obj -> scopeMergeableForGraphs(obj, pom.subjectsAndAllGraphs(), pom.predicates())));
 
             statementsPerGraphSet.add(mergeableCollectionResults);
         }
 
-        var collectionResults = Flux.fromStream(
-                Stream.<Collection<? extends MappedValue<? extends Value>>>of(predicates, regularObjects, pomGraphs)
-                        .flatMap(Collection::stream)
-                        .map(mappedValue -> getCollectionResults(mappedValue, pomGraphs))
-                        .filter(Objects::nonNull));
+        var collectionResults = Flux.fromStream(Stream.<Collection<? extends MappedValue<? extends Value>>>of(
+                        pom.predicates(), pom.regularObjects(), pom.pomGraphs())
+                .flatMap(Collection::stream)
+                .map(mappedValue -> getCollectionResults(mappedValue, pom.pomGraphs()))
+                .filter(Objects::nonNull));
 
         statementsPerGraphSet.add(collectionResults);
 
+        // Streaming generators: build a per-generator flux that emits link triples + per-object
+        // collection results lazily. Subscribing only allocates a working-set window of one rdf:List /
+        // rdf:Container at a time, regardless of total cartesian-product cardinality.
+        for (var streamingGen : pom.streamingGenerators()) {
+            var streamingFlux = streamingObjectsFlux(
+                    streamingGen,
+                    expressionEvaluation,
+                    datatypeMapper,
+                    pom.subjectsAndAllGraphs(),
+                    pom.predicates(),
+                    pom.pomGraphs());
+            statementsPerGraphSet.add(streamingFlux);
+        }
+
         return Flux.merge(statementsPerGraphSet);
+    }
+
+    /**
+     * Evaluates the per-iteration generators and partitions object generators into the eager and
+     * streaming buckets shared by {@link #map} and {@link #mapToBytes}. Returns {@code null} when
+     * the POM produces no output for this iteration (no predicates, or no objects from either
+     * bucket) — callers translate that into {@code Flux.empty()}.
+     */
+    private EvaluatedPom evaluatePom(
+            ExpressionEvaluation expressionEvaluation,
+            DatatypeMapper datatypeMapper,
+            Map<Set<MappedValue<Resource>>, Set<MappedValue<Resource>>> subjectsAndSubjectGraphs) {
+        Set<MappedValue<IRI>> predicates = predicateGenerators.stream()
+                .map(g -> g.apply(expressionEvaluation, datatypeMapper))
+                .flatMap(List::stream)
+                .collect(toUnmodifiableSet());
+
+        if (predicates.isEmpty()) {
+            return null;
+        }
+
+        // Partition object generators: streaming generators emit values lazily on subscription so the
+        // per-row cartesian-product cardinality is bounded by the working-set size, not the full
+        // product. Eager generators continue to materialize their results once per row.
+        List<StreamingTermGenerator<? extends Value>> streamingGenerators = objectGenerators.stream()
+                .filter(StreamingTermGenerator.class::isInstance)
+                .<StreamingTermGenerator<? extends Value>>map(g -> (StreamingTermGenerator<? extends Value>) g)
+                .toList();
+
+        var eagerObjects = objectGenerators.stream()
+                .filter(g -> !(g instanceof StreamingTermGenerator))
+                .map(g -> g.apply(expressionEvaluation, datatypeMapper))
+                .<MappedValue<? extends Value>>flatMap(List::stream)
+                .toList();
+
+        if (eagerObjects.isEmpty() && streamingGenerators.isEmpty()) {
+            return null;
+        }
+
+        Set<MappedValue<Resource>> pomGraphs = graphGenerators.stream()
+                .flatMap(graphGenerator -> graphGenerator.apply(expressionEvaluation, datatypeMapper).stream())
+                .collect(toUnmodifiableSet());
+
+        var subjectsAndAllGraphs = addPomGraphsToSubjectsAndSubjectGraphs(subjectsAndSubjectGraphs, pomGraphs);
+
+        // Mergeables-with-graphs go through the cross-iteration accumulator path. Everything else
+        // (including non-mergeable RdfList/RdfContainer instances) flows through the cartesian-product
+        // step so the linking triple <subject, predicate, head> is emitted alongside the structural
+        // triples emitted from the collection-results stream.
+        var mergeableObjects = eagerObjects.stream()
+                .filter(obj -> isMergeableCollection(obj) && !pomGraphs.isEmpty())
+                .toList();
+
+        var regularObjects = eagerObjects.stream()
+                .filter(obj -> !mergeableObjects.contains(obj))
+                .toList();
+
+        return new EvaluatedPom(
+                predicates, streamingGenerators, regularObjects, mergeableObjects, pomGraphs, subjectsAndAllGraphs);
+    }
+
+    /**
+     * Per-iteration POM evaluation snapshot shared by the statement and byte emission paths.
+     * {@code regularObjects} are the eager objects that flow through the cartesian-product step;
+     * {@code mergeableObjects} are eager mergeable collections with graphs that need cross-iteration
+     * accumulation; {@code streamingGenerators} hold their per-row output until subscription.
+     */
+    private record EvaluatedPom(
+            Set<MappedValue<IRI>> predicates,
+            List<StreamingTermGenerator<? extends Value>> streamingGenerators,
+            List<MappedValue<? extends Value>> regularObjects,
+            List<MappedValue<? extends Value>> mergeableObjects,
+            Set<MappedValue<Resource>> pomGraphs,
+            Map<Set<MappedValue<Resource>>, Set<MappedValue<Resource>>> subjectsAndAllGraphs) {}
+
+    /**
+     * Builds a backpressure-aware {@link Flux} for a single streaming object generator. Each emitted
+     * object is fanned out into its own link-triple stream (subject × predicate × object × graph) and
+     * the collection-results stream for the object's structural triples; the generator stream is
+     * consumed lazily so peak working-set is one collection at a time.
+     */
+    private Flux<MappingResult<Statement>> streamingObjectsFlux(
+            StreamingTermGenerator<? extends Value> streamingGen,
+            ExpressionEvaluation expressionEvaluation,
+            DatatypeMapper datatypeMapper,
+            Map<Set<MappedValue<Resource>>, Set<MappedValue<Resource>>> subjectsAndAllGraphs,
+            Set<MappedValue<IRI>> predicates,
+            Set<MappedValue<Resource>> pomGraphs) {
+        return Flux.<MappedValue<? extends Value>>fromStream(
+                        () -> streamingGen.applyAsStream(expressionEvaluation, datatypeMapper))
+                .concatMap(obj -> {
+                    if (isMergeableCollection(obj) && !pomGraphs.isEmpty()) {
+                        // Mergeable streaming objects are not produced by the cartesian-product gather
+                        // strategy in scope here. If a future generator violates this assumption, the
+                        // streaming path would be unsafe (mergeables require cross-iteration accumulation
+                        // and graph-scoped instance creation, neither of which is wired up here).
+                        return Flux.error(new IllegalStateException(
+                                "Streaming term generator emitted a mergeable collection object with graphs. "
+                                        + "Mergeable collections must be handled via the eager accumulator path."));
+                    }
+                    var perObjectFluxes = subjectsAndAllGraphs.entrySet().stream()
+                            .map(entry -> Flux.fromStream(() -> streamCartesianProductMappedStatements(
+                                    entry.getKey(),
+                                    predicates,
+                                    List.of(obj),
+                                    entry.getValue(),
+                                    RdfTriplesMapper.defaultGraphModifier,
+                                    valueFactory,
+                                    RdfTriplesMapper.logAddStatements)))
+                            .toList();
+
+                    var linkTriples = Flux.concat(perObjectFluxes);
+
+                    var collResult = getCollectionResults(obj, pomGraphs);
+                    if (collResult == null) {
+                        return linkTriples;
+                    }
+                    return linkTriples.concatWith(Flux.just(collResult));
+                });
     }
 
     /**
@@ -343,6 +448,10 @@ public class RdfPredicateObjectMapper {
      * <p>Mergeable collection objects are returned separately via the provided accumulator list so
      * the caller can handle cross-iteration merging.
      *
+     * <p>Returns a {@link Flux} of byte arrays. Streaming object generators (e.g. cartesian-product
+     * gather maps) emit their outputs lazily — the caller subscribes once and the per-object link
+     * triples and structural triples flow through without materializing the full cartesian product.
+     *
      * @param expressionEvaluation the expression evaluation for the current iteration
      * @param datatypeMapper the datatype mapper for the current iteration
      * @param subjectsAndSubjectGraphs subjects mapped to their associated graphs
@@ -350,90 +459,129 @@ public class RdfPredicateObjectMapper {
      * @param mergeableAccumulator accumulator for mergeable results that must be handled by the caller
      * @param includeGraph whether to include the graph field in encoded output (true for N-Quads,
      *     false for N-Triples)
-     * @return a list of encoded byte arrays
+     * @return a {@link Flux} of encoded byte arrays
      */
-    List<byte[]> mapToBytes(
+    Flux<byte[]> mapToBytes(
             ExpressionEvaluation expressionEvaluation,
             DatatypeMapper datatypeMapper,
             Map<Set<MappedValue<Resource>>, Set<MappedValue<Resource>>> subjectsAndSubjectGraphs,
             NTriplesTermEncoder encoder,
             List<MappingResult<Statement>> mergeableAccumulator,
             boolean includeGraph) {
-
-        Set<MappedValue<IRI>> predicates = predicateGenerators.stream()
-                .map(g -> g.apply(expressionEvaluation, datatypeMapper))
-                .flatMap(List::stream)
-                .collect(toUnmodifiableSet());
-
-        if (predicates.isEmpty()) {
-            return List.of();
+        var pom = evaluatePom(expressionEvaluation, datatypeMapper, subjectsAndSubjectGraphs);
+        if (pom == null) {
+            return Flux.empty();
         }
 
-        var objects = objectGenerators.stream()
-                .map(g -> g.apply(expressionEvaluation, datatypeMapper))
-                .<MappedValue<? extends Value>>flatMap(List::stream)
-                .toList();
+        var fluxes = new ArrayList<Flux<byte[]>>();
 
-        if (objects.isEmpty()) {
-            return List.of();
-        }
-
-        Set<MappedValue<Resource>> pomGraphs = graphGenerators.stream()
-                .flatMap(graphGenerator -> graphGenerator.apply(expressionEvaluation, datatypeMapper).stream())
-                .collect(toUnmodifiableSet());
-
-        var subjectsAndAllGraphs = addPomGraphsToSubjectsAndSubjectGraphs(subjectsAndSubjectGraphs, pomGraphs);
-
-        // Mirror map(): mergeables-with-graphs go through the cross-iteration accumulator path.
-        // Everything else (including non-mergeable RdfList/RdfContainer instances) flows through
-        // the cartesian-product step so the linking triple {@code <subject, predicate, head>} is
-        // emitted, plus the collection-results stream below for the structural triples.
-        var mergeableObjects = objects.stream()
-                .filter(obj -> isMergeableCollection(obj) && !pomGraphs.isEmpty())
-                .toList();
-
-        var regularObjects =
-                objects.stream().filter(obj -> !mergeableObjects.contains(obj)).toList();
-
-        var result = new ArrayList<byte[]>();
-
-        // Encode regular objects via cartesian product bytes. This is also where non-mergeable
-        // RdfList/RdfContainer linking triples are emitted: their getValue() returns the head/
-        // container BNode, so the cartesian product yields {@code <s, p, head>} naturally.
-        if (!regularObjects.isEmpty()) {
-            subjectsAndAllGraphs.forEach((subjects, graphs) -> streamCartesianProductBytes(
-                            subjects,
-                            predicates,
-                            regularObjects,
-                            graphs,
-                            RdfTriplesMapper.defaultGraphModifier,
-                            encoder,
-                            includeGraph)
-                    .forEach(result::add));
+        if (!pom.regularObjects().isEmpty()) {
+            // Encode regular objects via cartesian product bytes. This is also where non-mergeable
+            // RdfList/RdfContainer linking triples are emitted: their getValue() returns the head/
+            // container BNode, so the cartesian product yields <s, p, head> naturally.
+            for (var entry : pom.subjectsAndAllGraphs().entrySet()) {
+                var subjects = entry.getKey();
+                var graphs = entry.getValue();
+                fluxes.add(Flux.fromStream(() -> streamCartesianProductBytes(
+                        subjects,
+                        pom.predicates(),
+                        pom.regularObjects(),
+                        graphs,
+                        RdfTriplesMapper.defaultGraphModifier,
+                        encoder,
+                        includeGraph)));
+            }
         }
 
         // Encode collection results discovered in any of (predicates, regularObjects, pomGraphs).
         // For RdfList/RdfContainer objects in regularObjects this yields the structural triples
         // (rdf:type + rdf:_<n> members for containers, or the rdf:first/rdf:rest cons cells for
-        // lists). toStream() is safe: getResults() builds statements lazily via a synchronous
-        // Stream (no scheduler-crossing); Flux.toStream() drains it non-blocking.
-        Stream.<Collection<? extends MappedValue<? extends Value>>>of(predicates, regularObjects, pomGraphs)
+        // lists). Flux.from(coll.getResults()) is safe: getResults() builds statements lazily via a
+        // synchronous Stream (no scheduler-crossing).
+        var collectionFluxes = Stream.<Collection<? extends MappedValue<? extends Value>>>of(
+                        pom.predicates(), pom.regularObjects(), pom.pomGraphs())
                 .flatMap(Collection::stream)
-                .map(mappedValue -> getCollectionResults(mappedValue, pomGraphs))
+                .map(mappedValue -> getCollectionResults(mappedValue, pom.pomGraphs()))
                 .filter(Objects::nonNull)
-                .forEach(collResult -> Flux.from(collResult.getResults())
-                        .toStream()
-                        .map(stmt -> encodeStatement(stmt, encoder, includeGraph))
-                        .forEach(result::add));
+                .map(collResult ->
+                        Flux.from(collResult.getResults()).map(stmt -> encodeStatement(stmt, encoder, includeGraph)))
+                .toList();
+        fluxes.addAll(collectionFluxes);
 
-        // Handle mergeable objects -- collect them for cross-iteration merging by the caller
-        if (!mergeableObjects.isEmpty()) {
-            mergeableObjects.stream()
-                    .flatMap(obj -> scopeMergeableForGraphs(obj, subjectsAndAllGraphs, predicates))
+        // Handle mergeable objects -- collect them for cross-iteration merging by the caller.
+        // Mergeables resolve to byte output later when the merged tail is emitted; the caller writes
+        // them into mergeableAccumulator synchronously before subscribing to the returned flux so the
+        // accumulator is populated by the time downstream observers inspect it.
+        if (!pom.mergeableObjects().isEmpty()) {
+            pom.mergeableObjects().stream()
+                    .flatMap(obj -> scopeMergeableForGraphs(obj, pom.subjectsAndAllGraphs(), pom.predicates()))
                     .forEach(mergeableAccumulator::add);
         }
 
-        return result;
+        // Streaming generators: build a per-generator flux that emits link triples + per-object
+        // structural triples directly as bytes, with no intermediate List<byte[]>.
+        for (var streamingGen : pom.streamingGenerators()) {
+            fluxes.add(streamingObjectsBytesFlux(
+                    streamingGen,
+                    expressionEvaluation,
+                    datatypeMapper,
+                    pom.subjectsAndAllGraphs(),
+                    pom.predicates(),
+                    pom.pomGraphs(),
+                    encoder,
+                    includeGraph));
+        }
+
+        if (fluxes.isEmpty()) {
+            return Flux.empty();
+        }
+
+        return Flux.concat(fluxes);
+    }
+
+    /**
+     * Builds a {@link Flux} of encoded bytes for one streaming object generator. Per-object link
+     * triples and structural triples are emitted lazily via {@code concatMap} so peak working-set
+     * stays bounded in the per-record cartesian-product cardinality.
+     */
+    private Flux<byte[]> streamingObjectsBytesFlux(
+            StreamingTermGenerator<? extends Value> streamingGen,
+            ExpressionEvaluation expressionEvaluation,
+            DatatypeMapper datatypeMapper,
+            Map<Set<MappedValue<Resource>>, Set<MappedValue<Resource>>> subjectsAndAllGraphs,
+            Set<MappedValue<IRI>> predicates,
+            Set<MappedValue<Resource>> pomGraphs,
+            NTriplesTermEncoder encoder,
+            boolean includeGraph) {
+        return Flux.<MappedValue<? extends Value>>fromStream(
+                        () -> streamingGen.applyAsStream(expressionEvaluation, datatypeMapper))
+                .concatMap(obj -> {
+                    if (isMergeableCollection(obj) && !pomGraphs.isEmpty()) {
+                        return Flux.error(new IllegalStateException(
+                                "Streaming term generator emitted a mergeable collection object with graphs. "
+                                        + "Mergeable collections must be handled via the eager accumulator path."));
+                    }
+                    var perObjectByteFluxes = subjectsAndAllGraphs.entrySet().stream()
+                            .map(entry -> Flux.fromStream(() -> streamCartesianProductBytes(
+                                    entry.getKey(),
+                                    predicates,
+                                    List.of(obj),
+                                    entry.getValue(),
+                                    RdfTriplesMapper.defaultGraphModifier,
+                                    encoder,
+                                    includeGraph)))
+                            .toList();
+
+                    var linkBytes = Flux.concat(perObjectByteFluxes);
+
+                    var collResult = getCollectionResults(obj, pomGraphs);
+                    if (collResult == null) {
+                        return linkBytes;
+                    }
+                    var collBytes = Flux.from(collResult.getResults())
+                            .map(stmt -> encodeStatement(stmt, encoder, includeGraph));
+                    return linkBytes.concatWith(collBytes);
+                });
     }
 
     private static byte[] encodeStatement(Statement stmt, NTriplesTermEncoder encoder, boolean includeGraph) {

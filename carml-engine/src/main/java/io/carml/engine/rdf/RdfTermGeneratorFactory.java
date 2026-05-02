@@ -5,6 +5,7 @@ import static io.carml.model.TermType.LITERAL;
 import static io.carml.util.LogUtil.exception;
 
 import io.carml.engine.MappedValue;
+import io.carml.engine.StreamingTermGenerator;
 import io.carml.engine.TermGenerator;
 import io.carml.engine.TermGeneratorFactory;
 import io.carml.engine.TermGeneratorFactoryException;
@@ -157,7 +158,7 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
             TermGenerator<? extends Value> generateOverrideDatatypes,
             LanguageMap languageMap) {
         if (termMap instanceof GatherMap gatherMap && !gatherMap.getGathers().isEmpty()) {
-            return getGatherMapGenerater(gatherMap);
+            return getGatherMapGenerator(gatherMap);
         } else if (termMap.getConstant() != null) {
             return getConstantGenerator(termMap, allowedConstantTypes);
         } else if (termMap.getReference() != null) {
@@ -174,10 +175,16 @@ public class RdfTermGeneratorFactory implements TermGeneratorFactory<Value> {
         }
     }
 
-    private TermGenerator<? extends Value> getGatherMapGenerater(GatherMap gatherMap) {
-        return (expressionEvaluation, datatypeMapper) -> RdfListOrContainerGenerator.of(
-                        gatherMap, valueFactory, this, refObjectMapPrefixes)
-                .apply(expressionEvaluation, datatypeMapper);
+    private TermGenerator<? extends Value> getGatherMapGenerator(GatherMap gatherMap) {
+        // Build the underlying generator once at factory time so per-row evaluations only carry the
+        // ExpressionEvaluation / DatatypeMapper closure args.
+        var generator = RdfListOrContainerGenerator.of(gatherMap, valueFactory, this, refObjectMapPrefixes);
+        // Mergeable gather maps participate in cross-iteration accumulation and require the eager
+        // path; only non-mergeable cartesian-product gather maps benefit from streaming emission.
+        if (generator.isMergeable()) {
+            return generator::apply;
+        }
+        return (StreamingTermGenerator<Value>) generator::applyAsStream;
     }
 
     private TermGenerator<? extends Value> getConstantGenerator(

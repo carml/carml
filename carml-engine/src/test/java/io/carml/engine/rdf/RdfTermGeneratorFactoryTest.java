@@ -11,10 +11,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
+import io.carml.engine.StreamingTermGenerator;
 import io.carml.engine.TermGenerator;
 import io.carml.logicalsourceresolver.DatatypeMapper;
 import io.carml.logicalsourceresolver.ExpressionEvaluation;
@@ -30,6 +33,7 @@ import io.carml.model.impl.CarmlObjectMap;
 import io.carml.model.impl.CarmlPredicateMap;
 import io.carml.model.impl.CarmlSubjectMap;
 import io.carml.model.impl.template.TemplateParser;
+import io.carml.vocab.Rdf;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,6 +43,7 @@ import java.util.stream.Stream;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
+import org.eclipse.rdf4j.model.vocabulary.RDF;
 import org.eclipse.rdf4j.model.vocabulary.XSD;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -568,5 +573,46 @@ class RdfTermGeneratorFactoryTest {
         var result2 = generator.apply(expressionEvaluation, datatypeMapper);
 
         assertThat(result1, is(org.hamcrest.Matchers.sameInstance(result2)));
+    }
+
+    @Test
+    void givenMergeableGatherMap_whenGetObjectGenerator_thenReturnsNonStreamingGenerator() {
+        // Given — a gather map with its own reference produces a non-empty
+        // expressionMapExpressionSet, which marks it mergeable. Mergeable gather maps must NOT be
+        // wrapped in a StreamingTermGenerator: the streaming path in RdfPredicateObjectMapper rejects
+        // mergeable-with-graphs at runtime, so eager wrapping is the only safe choice here.
+        var gathered = CarmlObjectMap.builder().reference("$.items.*").build();
+        var mergeableGather = CarmlObjectMap.builder()
+                .reference("$.head")
+                .gatherAs(RDF.LIST)
+                .strategy(Rdf.Rml.cartesianProduct)
+                .gathers(List.of(gathered))
+                .build();
+
+        // When
+        var generator = rdfTermGeneratorFactory.getObjectGenerator(mergeableGather);
+
+        // Then
+        assertThat(generator, not(instanceOf(StreamingTermGenerator.class)));
+    }
+
+    @Test
+    void givenNonMergeableGatherMap_whenGetObjectGenerator_thenReturnsStreamingGenerator() {
+        // Given — a gather map with no expression-yielding fields of its own (no reference,
+        // template, function) has an empty expressionMapExpressionSet, so it is non-mergeable.
+        // Such gather maps benefit from streaming emission: the cartesian-product cardinality
+        // can dwarf available heap when materialized eagerly.
+        var gathered = CarmlObjectMap.builder().reference("$.items.*").build();
+        var nonMergeableGather = CarmlObjectMap.builder()
+                .gatherAs(RDF.LIST)
+                .strategy(Rdf.Rml.cartesianProduct)
+                .gathers(List.of(gathered))
+                .build();
+
+        // When
+        var generator = rdfTermGeneratorFactory.getObjectGenerator(nonMergeableGather);
+
+        // Then
+        assertThat(generator, instanceOf(StreamingTermGenerator.class));
     }
 }

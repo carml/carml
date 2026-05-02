@@ -516,12 +516,19 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
             ViewIteration viewIteration, NTriplesTermEncoder encoder, boolean includeGraph) {
         LOG.trace("Byte-mapping triples for view iteration {}", viewIteration.getIndex());
         var expressionEvaluation = prepareViewIterationEvaluation(viewIteration);
+        ByteMappingResult<Statement> result;
         try {
-            return mapEvaluationToBytes(expressionEvaluation, viewIteration::getNaturalDatatype, encoder, includeGraph);
+            result = mapEvaluationToBytes(
+                    expressionEvaluation, viewIteration::getNaturalDatatype, encoder, includeGraph);
         } catch (RuntimeException ex) {
             fireError(viewIteration, ex);
             throw ex;
         }
+        // Streaming-generator errors surface only on subscription, after this method returns. Wire
+        // a flux-level error hook so observer notifications (fireError) still fire — matches the
+        // semantics of the synchronous catch above.
+        var instrumentedBytes = result.bytes().doOnError(ex -> fireError(viewIteration, ex));
+        return new ByteMappingResult<>(instrumentedBytes, result.mergeables());
     }
 
     private ByteMappingResult<Statement> mapEvaluationToBytes(
@@ -540,11 +547,11 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
                 .collect(toUnmodifiableSet());
 
         if (subjects.isEmpty()) {
-            return new ByteMappingResult<>(List.of(), List.of());
+            return new ByteMappingResult<>(Flux.empty(), List.of());
         }
 
         Map<Set<MappedValue<Resource>>, Set<MappedValue<Resource>>> subjectsAndSubjectGraphs = new HashMap<>();
-        var allBytes = new ArrayList<byte[]>();
+        var subjectByteFluxes = new ArrayList<Flux<byte[]>>();
         var allMergeables = new ArrayList<MappingResult<Statement>>();
 
         for (RdfSubjectMapper.Result subjectMapperResult : subjectMapperResults) {
@@ -552,34 +559,37 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
             if (!resultSubjects.isEmpty()) {
                 subjectsAndSubjectGraphs.put(resultSubjects, subjectMapperResult.getGraphs());
 
-                // Encode type statements to bytes
-                allBytes.addAll(subjectMappers.stream()
+                // Encode type statements to bytes (small bounded set per iteration)
+                var typeBytes = subjectMappers.stream()
                         .flatMap(sm -> sm
                                 .encodeTypeStatements(
                                         resultSubjects, subjectMapperResult.getGraphs(), encoder, includeGraph)
                                 .stream())
-                        .toList());
+                        .toList();
+                if (!typeBytes.isEmpty()) {
+                    subjectByteFluxes.add(Flux.fromIterable(typeBytes));
+                }
 
                 // Handle collection subjects (RdfList/RdfContainer) -- encode their Statements.
-                // toStream() is safe here: RdfList/RdfContainer build statements lazily on demand
-                // via a synchronous Stream (no scheduler-crossing); Flux.toStream() drains it
-                // non-blocking.
+                // Flux.from(collResult.getResults()) is safe: RdfList/RdfContainer build statements
+                // lazily on demand via a synchronous Stream (no scheduler-crossing).
                 resultSubjects.stream()
                         .filter(s -> s instanceof RdfList || s instanceof RdfContainer)
                         .forEach(collSubject -> {
                             var collResult =
                                     collSubject instanceof RdfList<?> rdfList ? rdfList : (RdfContainer<?>) collSubject;
-                            Flux.from(collResult.getResults())
-                                    .toStream()
-                                    .map(stmt -> encodeStatement(stmt, encoder, includeGraph))
-                                    .forEach(allBytes::add);
+                            subjectByteFluxes.add(Flux.from(collResult.getResults())
+                                    .map(stmt -> encodeStatement(stmt, encoder, includeGraph)));
                         });
             }
         }
 
-        // Encode POM results to bytes
+        // Encode POM results to bytes — each POM contributes a flux that emits lazily; mergeables
+        // are populated synchronously during the call (the caller subscribes to the returned bytes
+        // flux later, after collecting mergeables from the accumulator).
+        var pomFluxes = new ArrayList<Flux<byte[]>>();
         for (var pomMapper : predicateObjectMappers) {
-            allBytes.addAll(pomMapper.mapToBytes(
+            pomFluxes.add(pomMapper.mapToBytes(
                     expressionEvaluation,
                     datatypeMapper,
                     subjectsAndSubjectGraphs,
@@ -588,7 +598,8 @@ public class RdfTriplesMapper<R> implements TriplesMapper<Statement> {
                     includeGraph));
         }
 
-        return new ByteMappingResult<>(allBytes, allMergeables);
+        var combined = Flux.concat(Flux.concat(subjectByteFluxes), Flux.concat(pomFluxes));
+        return new ByteMappingResult<>(combined, allMergeables);
     }
 
     /**

@@ -317,19 +317,19 @@ public abstract class RmlMapper<T, K> {
             return Flux.empty();
         }
 
-        var bytes = Flux.fromIterable(prepared.mappings())
+        Flux<byte[]> bytes = Flux.fromIterable(prepared.mappings())
                 .flatMap(rm -> {
                     var mapper = lvTriplesMappers.get(rm);
                     var counters = PipelineCounters.create();
 
-                    var mapped = evaluateWithObservation(rm, prepared, counters).flatMapIterable(iteration -> {
-                        var result = mapper.mapToBytes(iteration, encoder, includeGraph);
-                        counters.statementCount.addAndGet(result.bytes().size());
-                        for (var mergeable : result.mergeables()) {
-                            handleCompletable(mergeable);
-                        }
-                        return result.bytes();
-                    });
+                    Flux<byte[]> mapped = evaluateWithObservation(rm, prepared, counters)
+                            .concatMap(iteration -> {
+                                var result = mapper.mapToBytes(iteration, encoder, includeGraph);
+                                for (var mergeable : result.mergeables()) {
+                                    handleCompletable(mergeable);
+                                }
+                                return result.bytes().doOnNext(b -> counters.statementCount.incrementAndGet());
+                            });
 
                     return withCompletionCallbacks(mapped, rm, counters);
                 })

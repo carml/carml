@@ -7,8 +7,11 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.carml.engine.TermGenerator;
@@ -378,5 +381,99 @@ class RdfListOrContainerGeneratorTest {
 
         // Then
         assertThat(result, hasSize(0));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void applyAsStream_cartesianProduct_isLazy() {
+        // Given — two 1000-element gather slots producing 1_000_000 cartesian-product tuples.
+        // We consume only 10 of them and assert the head generator was invoked exactly 10 times,
+        // proving the stream is lazy (no eager materialization of the full product).
+        var objectMap2 = mock(ObjectMap.class);
+        TermGenerator<Value> objectGenerator2 = mock(TermGenerator.class);
+
+        when(gatherMap.getStrategy()).thenReturn(Rml.cartesianProduct);
+        when(gatherMap.getGathers()).thenReturn(List.of(objectMap, objectMap2));
+        when(rdfTermGeneratorFactory.getObjectGenerator(objectMap)).thenReturn(objectGenerator);
+        when(rdfTermGeneratorFactory.getObjectGenerator(objectMap2)).thenReturn(objectGenerator2);
+
+        var slot1 = java.util.stream.IntStream.range(0, 1_000)
+                .mapToObj(i -> RdfMappedValue.<Value>of(valueFactory.createLiteral("a" + i)))
+                .toList();
+        var slot2 = java.util.stream.IntStream.range(0, 1_000)
+                .mapToObj(i -> RdfMappedValue.<Value>of(valueFactory.createLiteral("b" + i)))
+                .toList();
+
+        when(objectGenerator.apply(any(), any())).thenReturn(slot1);
+        when(objectGenerator2.apply(any(), any())).thenReturn(slot2);
+
+        var headValue = RdfMappedValue.<Resource>of(valueFactory.createBNode("head1"));
+        when(subjectGenerator.apply(any(), any())).thenReturn(List.of(headValue));
+
+        when(gatherMap.getGatherAs()).thenReturn(RDF.LIST);
+        when(gatherMap.getExpressionMapExpressionSet()).thenReturn(Set.of());
+
+        var generator = RdfListOrContainerGenerator.of(gatherMap, valueFactory, rdfTermGeneratorFactory);
+
+        // When — limit to 10 emissions
+        try (var stream = generator.applyAsStream(null, null)) {
+            var first10 = stream.limit(10).toList();
+            assertThat(first10, hasSize(10));
+        }
+
+        // Then — head generator must have been called once per emitted tuple
+        verify(subjectGenerator, times(10)).apply(any(), any());
+        // Sanity: gather generators are evaluated once up-front (per applyAsStream call), not per tuple
+        verify(objectGenerator, atLeast(1)).apply(any(), any());
+        verify(objectGenerator2, atLeast(1)).apply(any(), any());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void applyAsStream_andApply_produceEqualResults() {
+        // Given — small 3x3 cartesian product
+        var objectMap2 = mock(ObjectMap.class);
+        TermGenerator<Value> objectGenerator2 = mock(TermGenerator.class);
+
+        when(gatherMap.getStrategy()).thenReturn(Rml.cartesianProduct);
+        when(gatherMap.getGathers()).thenReturn(List.of(objectMap, objectMap2));
+        when(rdfTermGeneratorFactory.getObjectGenerator(objectMap)).thenReturn(objectGenerator);
+        when(rdfTermGeneratorFactory.getObjectGenerator(objectMap2)).thenReturn(objectGenerator2);
+
+        var slot1 = List.of(
+                RdfMappedValue.<Value>of(valueFactory.createLiteral("a")),
+                RdfMappedValue.<Value>of(valueFactory.createLiteral("b")),
+                RdfMappedValue.<Value>of(valueFactory.createLiteral("c")));
+        var slot2 = List.of(
+                RdfMappedValue.<Value>of(valueFactory.createLiteral("1")),
+                RdfMappedValue.<Value>of(valueFactory.createLiteral("2")),
+                RdfMappedValue.<Value>of(valueFactory.createLiteral("3")));
+
+        when(objectGenerator.apply(any(), any())).thenReturn(slot1);
+        when(objectGenerator2.apply(any(), any())).thenReturn(slot2);
+
+        var headValue = RdfMappedValue.<Resource>of(valueFactory.createBNode("head1"));
+        when(subjectGenerator.apply(any(), any())).thenReturn(List.of(headValue));
+
+        when(gatherMap.getGatherAs()).thenReturn(RDF.LIST);
+        when(gatherMap.getExpressionMapExpressionSet()).thenReturn(Set.of());
+
+        var generator = RdfListOrContainerGenerator.of(gatherMap, valueFactory, rdfTermGeneratorFactory);
+
+        // When
+        var fromApply = generator.apply(null, null);
+        List<? extends Object> fromStream;
+        try (var stream = generator.applyAsStream(null, null)) {
+            fromStream = stream.toList();
+        }
+
+        // Then — both produce 9 RdfList instances with equal element values per position
+        assertThat(fromApply, hasSize(9));
+        assertThat(fromStream, hasSize(9));
+        for (int i = 0; i < fromApply.size(); i++) {
+            var a = (RdfList<Value>) fromApply.get(i);
+            var b = (RdfList<Value>) fromStream.get(i);
+            assertThat(a.getElements(), is(b.getElements()));
+        }
     }
 }
