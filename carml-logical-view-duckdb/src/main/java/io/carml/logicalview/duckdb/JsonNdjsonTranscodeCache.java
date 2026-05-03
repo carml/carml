@@ -28,9 +28,12 @@ import org.jsfr.json.SurfingConfiguration;
  *
  * <p>Eligibility for transcoding is intentionally narrow: the source must be a local regular file
  * larger than the threshold, and the iterator base path must be a stream-friendly walker that
- * targets a top-level or sub-array (no recursive descent, no slice/union selectors). Anything
- * outside that envelope falls back to the existing {@code read_text} compilation, preserving exact
- * behaviour for the small-file conformance suite.
+ * targets a top-level array, a top-level object's property values (when iterator is {@code $[*]}
+ * or {@code $.*} over a {@code {}}-rooted file), or a named sub-array (no recursive descent, no
+ * slice/union selectors). The transcode listener additionally aborts when any emitted record is
+ * not a JSON object, since DuckDB's {@code read_ndjson_objects} requires object-shaped lines —
+ * arrays of scalars and object maps with mixed values therefore fall back to {@code read_text}.
+ * Anything outside that envelope preserves exact behavior for the small-file conformance suite.
  *
  * <p>Transcoded NDJSON files live under the cache directory configured at construction time (the
  * same {@code /carml-spill} or sibling-of-database location used by DuckDB's {@code temp_directory})
@@ -150,7 +153,7 @@ final class JsonNdjsonTranscodeCache implements AutoCloseable {
 
     /**
      * Validates and resolves the cache key for the given file/base-path pair, or returns {@code null}
-     * if transcoding is not applicable. Centralising the eligibility checks here keeps
+     * if transcoding is not applicable. Centralizing the eligibility checks here keeps
      * {@link #tryGetSourceSql} readable and below the cyclomatic complexity budget.
      */
     private CacheKey buildCacheKey(String filePath, String basePath) {
@@ -204,10 +207,12 @@ final class JsonNdjsonTranscodeCache implements AutoCloseable {
 
     /**
      * Converts the DuckDB iterator base path into a JSurfer-compatible streaming path. Returns
-     * {@code null} when the path uses recursive descent or is {@code $} over a non-array-rooted
-     * file. Slice and union selectors are filtered out by the caller (via the flags on
-     * {@link #tryGetSourceSql}), since the analyzer rewrites them to a plain {@code [*]} walker
-     * by the time the path reaches this method.
+     * {@code null} when the path uses recursive descent or the file root does not match the
+     * iterator shape (e.g. {@code $} over a non-array-rooted file). For {@code $[*]} the streaming
+     * path adapts to the file root: {@code $[*]} for array-rooted files, {@code $.*} for
+     * object-rooted files (so JSurfer iterates property values). Slice and union selectors are
+     * filtered out by the caller (via the flags on {@link #tryGetSourceSql}), since the analyzer
+     * rewrites them to a plain {@code [*]} walker by the time the path reaches this method.
      */
     private static String toStreamingPath(String basePath, Path file) {
         var normalized = JsonPathSourceHandler.normalizeChildWildcard(basePath.strip());
@@ -215,8 +220,22 @@ final class JsonNdjsonTranscodeCache implements AutoCloseable {
             return null;
         }
 
-        if ("$".equals(normalized) || "$[*]".equals(normalized)) {
-            return isArrayRooted(file) ? "$[*]" : null;
+        if ("$".equals(normalized)) {
+            // Iterator $ only iterates multiple records when the document is a top-level array;
+            // a top-level object yields a single record and gains nothing from transcoding.
+            return peekFirstStructuralByte(file) == '[' ? "$[*]" : null;
+        }
+        if ("$[*]".equals(normalized)) {
+            var first = peekFirstStructuralByte(file);
+            if (first == '[') {
+                return "$[*]";
+            }
+            if (first == '{') {
+                // Iterator $[*] over a top-level object iterates property values; JSurfer expresses
+                // that as $.* (the JSONPath child wildcard) rather than $[*].
+                return "$.*";
+            }
+            return null;
         }
 
         // Eligible walker: $.<segment>(.<segment>)*[*]
@@ -229,7 +248,7 @@ final class JsonNdjsonTranscodeCache implements AutoCloseable {
             return null;
         }
         // Each segment must be a plain identifier (no further [*] in the middle, no other selectors).
-        // We bail on anything more elaborate to keep transcode behaviour predictable.
+        // We bail on anything more elaborate to keep transcode behavior predictable.
         var segmentsValid =
                 java.util.Arrays.stream(inner.split("\\.", -1)).allMatch(JsonNdjsonTranscodeCache::isPlainSegment);
         return segmentsValid ? normalized : null;
@@ -243,11 +262,11 @@ final class JsonNdjsonTranscodeCache implements AutoCloseable {
     }
 
     /**
-     * Peeks the file to confirm the first non-whitespace byte is {@code [}. Skips a leading UTF-8
-     * BOM ({@code 0xEF 0xBB 0xBF}) before scanning so BOM-prefixed JSON files are not misclassified
-     * as object-rooted.
+     * Peeks the file and returns the first non-whitespace byte, or {@code -1} when the file is
+     * empty / unreadable. Skips a leading UTF-8 BOM ({@code 0xEF 0xBB 0xBF}) so BOM-prefixed JSON
+     * files are not misclassified.
      */
-    private static boolean isArrayRooted(Path file) {
+    private static int peekFirstStructuralByte(Path file) {
         try (var in = new BufferedInputStream(Files.newInputStream(file))) {
             in.mark(UTF8_BOM.length);
             var bom = new byte[UTF8_BOM.length];
@@ -259,17 +278,17 @@ final class JsonNdjsonTranscodeCache implements AutoCloseable {
             for (var i = 0; i < PEEK_BYTES; i++) {
                 var nextByte = in.read();
                 if (nextByte < 0) {
-                    return false;
+                    return -1;
                 }
                 if (Character.isWhitespace((char) nextByte)) {
                     continue;
                 }
-                return nextByte == '[';
+                return nextByte;
             }
         } catch (IOException e) {
-            LOG.debug("Could not peek file [{}] for array-rooted check", file, e);
+            LOG.debug("Could not peek file [{}] for structural-byte check", file, e);
         }
-        return false;
+        return -1;
     }
 
     private Path nextOutputPath() {
@@ -292,6 +311,14 @@ final class JsonNdjsonTranscodeCache implements AutoCloseable {
                 if (!(value instanceof JsonNode node)) {
                     throw new TranscodeAborted(
                             new IOException("JSurfer produced non-JsonNode value: %s".formatted(value)));
+                }
+                if (!node.isObject()) {
+                    // DuckDB's read_ndjson_objects requires every line to be a JSON object; abort
+                    // and let the caller fall back to the read_text path rather than emit
+                    // NDJSON that DuckDB would reject mid-query.
+                    throw new TranscodeAborted(
+                            new IOException("Non-object record encountered while transcoding [%s]: %s"
+                                    .formatted(jsurferPath, node.getNodeType())));
                 }
                 try {
                     out.write(OBJECT_MAPPER.writeValueAsBytes(node));

@@ -243,6 +243,52 @@ class JsonNdjsonTranscodeCacheTest {
     }
 
     @Test
+    void tryGetSourceSql_objectRootAllObjects_transcodes() throws IOException {
+        var sourceFile = tempDir.resolve("data.json");
+        var recordCount = writeJsonObjectFile(sourceFile, 200, "obj");
+
+        var result = cache.tryGetSourceSql(sourceFile.toString(), "$[*]", false, false);
+
+        assertThat(result.isPresent(), is(true));
+        assertThat(result.get(), containsString("read_ndjson_objects"));
+        var ndjsonPath = onlyNdjsonFileInCacheDir();
+        assertThat(countLines(ndjsonPath), is(recordCount));
+    }
+
+    @Test
+    void tryGetSourceSql_objectRootMixedTypes_fallsBackToReadText() throws IOException {
+        var sourceFile = tempDir.resolve("data.json");
+        writeJsonObjectFileMixedTypes(sourceFile, 200);
+
+        var result = cache.tryGetSourceSql(sourceFile.toString(), "$[*]", false, false);
+
+        assertThat(result.isPresent(), is(false));
+        assertThat(listNdjsonFiles(), is(empty()));
+    }
+
+    @Test
+    void tryGetSourceSql_objectRootScalarValues_fallsBackToReadText() throws IOException {
+        var sourceFile = tempDir.resolve("data.json");
+        writeJsonObjectFileScalarValues(sourceFile, 200);
+
+        var result = cache.tryGetSourceSql(sourceFile.toString(), "$[*]", false, false);
+
+        assertThat(result.isPresent(), is(false));
+        assertThat(listNdjsonFiles(), is(empty()));
+    }
+
+    @Test
+    void tryGetSourceSql_arrayOfScalars_fallsBackToReadText() throws IOException {
+        var sourceFile = tempDir.resolve("data.json");
+        writeJsonArrayOfScalars(sourceFile, 200);
+
+        var result = cache.tryGetSourceSql(sourceFile.toString(), "$[*]", false, false);
+
+        assertThat(result.isPresent(), is(false));
+        assertThat(listNdjsonFiles(), is(empty()));
+    }
+
+    @Test
     void constructor_nullCacheDir_throws() {
         assertThrows(IllegalArgumentException.class, () -> {
             try (var cacheUnderTest = new JsonNdjsonTranscodeCache(null)) {
@@ -292,6 +338,93 @@ class JsonNdjsonTranscodeCacheTest {
         }
         ensureAboveThreshold(path);
         return recordCount;
+    }
+
+    /**
+     * Writes a top-level JSON object {@code {"key0": {...}, "key1": {...}, ...}} containing
+     * {@code recordCount} object-valued entries so the path {@code $[*]} (which the cache routes
+     * to JSurfer's {@code $.*} for object roots) can stream them.
+     */
+    private int writeJsonObjectFile(Path path, int recordCount, String prefix) throws IOException {
+        var padding = "x".repeat(50);
+        try (var out = Files.newOutputStream(path)) {
+            out.write('{');
+            for (var i = 0; i < recordCount; i++) {
+                if (i > 0) {
+                    out.write(',');
+                }
+                out.write("\"key%d\":".formatted(i).getBytes(StandardCharsets.UTF_8));
+                writeRecord(out, i, prefix, padding);
+            }
+            out.write('}');
+        }
+        ensureAboveThreshold(path);
+        return recordCount;
+    }
+
+    /**
+     * Writes a top-level JSON object whose values alternate between objects, integers and strings.
+     * The cache must abort transcoding the first time JSurfer emits a non-object value.
+     */
+    private void writeJsonObjectFileMixedTypes(Path path, int recordCount) throws IOException {
+        var padding = "x".repeat(50);
+        try (var out = Files.newOutputStream(path)) {
+            out.write('{');
+            for (var i = 0; i < recordCount; i++) {
+                if (i > 0) {
+                    out.write(',');
+                }
+                out.write("\"key%d\":".formatted(i).getBytes(StandardCharsets.UTF_8));
+                if (i % 3 == 0) {
+                    writeRecord(out, i, "rec", padding);
+                } else if (i % 3 == 1) {
+                    out.write(Integer.toString(i).getBytes(StandardCharsets.UTF_8));
+                } else {
+                    out.write("\"%s_%d\"".formatted(padding, i).getBytes(StandardCharsets.UTF_8));
+                }
+            }
+            out.write('}');
+        }
+        ensureAboveThreshold(path);
+    }
+
+    /**
+     * Writes a top-level JSON object whose values are all integers. The cache must decline because
+     * {@code read_ndjson_objects} requires object-shaped lines.
+     */
+    private void writeJsonObjectFileScalarValues(Path path, int recordCount) throws IOException {
+        var padding = "x".repeat(50);
+        try (var out = Files.newOutputStream(path)) {
+            out.write('{');
+            for (var i = 0; i < recordCount; i++) {
+                if (i > 0) {
+                    out.write(',');
+                }
+                // Use long string scalars so the file exceeds the test threshold without thousands of entries.
+                out.write("\"key%d\":\"%s_%d\"".formatted(i, padding, i).getBytes(StandardCharsets.UTF_8));
+            }
+            out.write('}');
+        }
+        ensureAboveThreshold(path);
+    }
+
+    /**
+     * Writes a top-level JSON array of scalar (non-object) values. Mirrors the object-of-scalars
+     * case for the array-rooted shape.
+     */
+    private void writeJsonArrayOfScalars(Path path, int recordCount) throws IOException {
+        var padding = "x".repeat(50);
+        try (var out = Files.newOutputStream(path)) {
+            out.write('[');
+            for (var i = 0; i < recordCount; i++) {
+                if (i > 0) {
+                    out.write(',');
+                }
+                out.write("\"%s_%d\"".formatted(padding, i).getBytes(StandardCharsets.UTF_8));
+            }
+            out.write(']');
+        }
+        ensureAboveThreshold(path);
     }
 
     /**
