@@ -93,6 +93,29 @@ public class DuckDbLogicalViewEvaluatorFactory
     @Getter
     private final DuckDbDatabaseAttacher databaseAttacher;
 
+    /**
+     * Stream-transcodes large JSON-array source files into NDJSON so DuckDB can iterate them via
+     * {@code read_ndjson_objects}. Materialised lazily on first eligible request and torn down with
+     * the factory.
+     */
+    private final JsonNdjsonTranscodeCache ndjsonTranscodeCache;
+
+    /**
+     * Path of the directory backing {@link #ndjsonTranscodeCache}. Tracked so the in-memory factory
+     * can {@link Files#deleteIfExists(Path) delete} it on close (the factory owns it). On-disk
+     * factories share {@code /carml-spill} or {@code <dbPath>/../carml-spill} with DuckDB itself,
+     * so they must not delete the directory.
+     */
+    private final Path ndjsonCacheDir;
+
+    /**
+     * {@code true} when this factory created the {@link #ndjsonCacheDir} via
+     * {@link Files#createTempDirectory(String, java.nio.file.attribute.FileAttribute...)} and is
+     * therefore responsible for deleting it on {@link #close()}. {@code false} when the directory
+     * is shared with the DuckDB temp/spill directory (on-disk factories) and must not be deleted.
+     */
+    private final boolean ownsNdjsonCacheDir;
+
     private final Scheduler scheduler;
 
     private final boolean ownsScheduler;
@@ -142,6 +165,9 @@ public class DuckDbLogicalViewEvaluatorFactory
         this.shutdownHook = null;
         this.sourceTableCache = new DuckDbSourceTableCache(connection);
         this.databaseAttacher = new DuckDbDatabaseAttacher(connection);
+        this.ndjsonCacheDir = createInMemoryNdjsonCacheDir();
+        this.ownsNdjsonCacheDir = true;
+        this.ndjsonTranscodeCache = new JsonNdjsonTranscodeCache(ndjsonCacheDir);
 
         this.scheduler = Schedulers.boundedElastic();
         this.ownsScheduler = false;
@@ -164,6 +190,9 @@ public class DuckDbLogicalViewEvaluatorFactory
         this.shutdownHook = null;
         this.sourceTableCache = new DuckDbSourceTableCache(connection);
         this.databaseAttacher = new DuckDbDatabaseAttacher(connection);
+        this.ndjsonCacheDir = createInMemoryNdjsonCacheDir();
+        this.ownsNdjsonCacheDir = true;
+        this.ndjsonTranscodeCache = new JsonNdjsonTranscodeCache(ndjsonCacheDir);
 
         this.scheduler = scheduler;
         this.ownsScheduler = true;
@@ -199,12 +228,22 @@ public class DuckDbLogicalViewEvaluatorFactory
     }
 
     private DuckDbLogicalViewEvaluatorFactory(
-            Connection connection, Path databasePath, Thread shutdownHook, Scheduler scheduler, boolean ownsScheduler) {
+            Connection connection,
+            Path databasePath,
+            Thread shutdownHook,
+            Scheduler scheduler,
+            boolean ownsScheduler,
+            Path ndjsonCacheDir) {
         this.connection = connection;
         this.databasePath = databasePath;
         this.shutdownHook = shutdownHook;
         this.sourceTableCache = new DuckDbSourceTableCache(connection);
         this.databaseAttacher = new DuckDbDatabaseAttacher(connection);
+        this.ndjsonCacheDir = ndjsonCacheDir;
+        // On-disk factories share /carml-spill or <dbPath>/../carml-spill with DuckDB itself; the
+        // directory is persistent and must not be deleted on close.
+        this.ownsNdjsonCacheDir = false;
+        this.ndjsonTranscodeCache = new JsonNdjsonTranscodeCache(ndjsonCacheDir);
 
         this.scheduler = scheduler;
         this.ownsScheduler = ownsScheduler;
@@ -260,7 +299,7 @@ public class DuckDbLogicalViewEvaluatorFactory
             LOG.info("Creating on-disk DuckDB database at: {}", dbPath);
             var conn = DriverManager.getConnection("jdbc:duckdb:" + dbPath);
 
-            applyOnDiskSettings(conn, dbPath, memoryLimit);
+            var spillDir = applyOnDiskSettings(conn, dbPath, memoryLimit);
 
             var factoryHolder = new DuckDbLogicalViewEvaluatorFactory[1];
             // Lambda required: method reference would capture null (factoryHolder[0] is set after hook creation).
@@ -275,7 +314,9 @@ public class DuckDbLogicalViewEvaluatorFactory
                     "carml-duckdb-cleanup");
             Runtime.getRuntime().addShutdownHook(hook);
 
-            var factory = new DuckDbLogicalViewEvaluatorFactory(conn, dbPath, hook, scheduler, ownsScheduler);
+            var ndjsonCacheDir = spillDir != null ? spillDir : dbPath.getParent();
+            var factory =
+                    new DuckDbLogicalViewEvaluatorFactory(conn, dbPath, hook, scheduler, ownsScheduler, ndjsonCacheDir);
             factoryHolder[0] = factory;
             return factory;
         } catch (SQLException e) {
@@ -329,7 +370,7 @@ public class DuckDbLogicalViewEvaluatorFactory
         "java:S2077", // SET commands use validated/computed values, not arbitrary user input
         "java:S3649" // temp_directory is a controlled Path; memoryLimitOverride is regex-validated
     })
-    private static void applyOnDiskSettings(Connection conn, Path databasePath, String memoryLimitOverride) {
+    private static Path applyOnDiskSettings(Connection conn, Path databasePath, String memoryLimitOverride) {
         // Validate memoryLimitOverride before interpolating into SQL
         if (memoryLimitOverride != null
                 && !memoryLimitOverride.isBlank()
@@ -339,6 +380,7 @@ public class DuckDbLogicalViewEvaluatorFactory
                             .formatted(memoryLimitOverride));
         }
 
+        Path tempDir = null;
         try (var stmt = conn.createStatement()) {
             var totalAvailable = resolveAvailableMemory();
 
@@ -374,7 +416,7 @@ public class DuckDbLogicalViewEvaluatorFactory
             stmt.execute("SET preserve_insertion_order = false");
 
             // 4. Set temp_directory for spilling intermediate query results
-            var tempDir = Path.of("/carml-spill");
+            tempDir = Path.of("/carml-spill");
             if (!Files.isDirectory(tempDir)) {
                 tempDir = databasePath.resolveSibling("carml-spill");
                 Files.createDirectories(tempDir);
@@ -386,6 +428,21 @@ public class DuckDbLogicalViewEvaluatorFactory
             LOG.warn("Failed to configure DuckDB on-disk settings: {}", e.getMessage());
         } catch (IOException e) {
             LOG.warn("Failed to create DuckDB temp directory: {}", e.getMessage());
+        }
+        return tempDir;
+    }
+
+    /**
+     * Creates a fresh temporary directory under which the in-memory factories store transcoded
+     * NDJSON files. Falls back to the JVM temp directory if the OS-specific temp directory cannot
+     * be created.
+     */
+    private static Path createInMemoryNdjsonCacheDir() {
+        try {
+            return Files.createTempDirectory("carml-ndjson-");
+        } catch (IOException e) {
+            LOG.warn("Failed to create temp directory for NDJSON cache, using java.io.tmpdir", e);
+            return Path.of(System.getProperty("java.io.tmpdir"));
         }
     }
 
@@ -509,7 +566,13 @@ public class DuckDbLogicalViewEvaluatorFactory
         }
 
         var evaluator = new DuckDbLogicalViewEvaluator(
-                evalConnection, ownsConnection, sourceTableCache, databaseAttacher, concurrencyLimit, scheduler);
+                evalConnection,
+                ownsConnection,
+                sourceTableCache,
+                databaseAttacher,
+                ndjsonTranscodeCache,
+                concurrencyLimit,
+                scheduler);
         return Optional.of(MatchedLogicalViewEvaluator.of(STRONG_MATCH, evaluator));
     }
 
@@ -525,20 +588,9 @@ public class DuckDbLogicalViewEvaluatorFactory
             return;
         }
 
-        try {
-            databaseAttacher.detachAll();
-        } catch (Exception e) {
-            LOG.warn("Failed to detach databases during close", e);
-        }
-
-        try {
-            if (connection != null && !connection.isClosed()) {
-                sourceTableCache.clear(connection);
-                connection.close();
-            }
-        } catch (SQLException e) {
-            LOG.warn("Failed to close DuckDB connection", e);
-        }
+        detachQuietly();
+        closeConnectionQuietly();
+        closeNdjsonCacheQuietly();
 
         if (ownsScheduler) {
             scheduler.dispose();
@@ -548,12 +600,51 @@ public class DuckDbLogicalViewEvaluatorFactory
             deleteDatabaseFiles();
         }
 
-        if (shutdownHook != null) {
-            try {
-                Runtime.getRuntime().removeShutdownHook(shutdownHook);
-            } catch (IllegalStateException e) {
-                // JVM is already shutting down — hook removal not possible, which is fine
+        removeShutdownHookQuietly();
+    }
+
+    private void detachQuietly() {
+        try {
+            databaseAttacher.detachAll();
+        } catch (Exception e) {
+            LOG.warn("Failed to detach databases during close", e);
+        }
+    }
+
+    private void closeConnectionQuietly() {
+        try {
+            if (connection != null && !connection.isClosed()) {
+                sourceTableCache.clear(connection);
+                connection.close();
             }
+        } catch (SQLException e) {
+            LOG.warn("Failed to close DuckDB connection", e);
+        }
+    }
+
+    private void closeNdjsonCacheQuietly() {
+        try {
+            ndjsonTranscodeCache.close();
+        } catch (Exception e) {
+            LOG.warn("Failed to close NDJSON transcode cache", e);
+        }
+        if (ownsNdjsonCacheDir && ndjsonCacheDir != null) {
+            try {
+                Files.deleteIfExists(ndjsonCacheDir);
+            } catch (IOException e) {
+                LOG.warn("Failed to delete owned NDJSON cache directory [{}]", ndjsonCacheDir, e);
+            }
+        }
+    }
+
+    private void removeShutdownHookQuietly() {
+        if (shutdownHook == null) {
+            return;
+        }
+        try {
+            Runtime.getRuntime().removeShutdownHook(shutdownHook);
+        } catch (IllegalStateException e) {
+            // JVM is already shutting down — hook removal not possible, which is fine
         }
     }
 

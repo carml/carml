@@ -117,6 +117,16 @@ public final class DuckDbViewCompiler {
     private static final ThreadLocal<DuckDbDatabaseAttacher> DATABASE_ATTACHER = new ThreadLocal<>();
 
     /**
+     * The NDJSON transcode cache for the current compilation. When set, the JSON source handler
+     * substitutes the default {@code read_text} + {@code json_extract} clause with a stream-friendly
+     * {@code read_ndjson_objects} clause for large JSON-array files.
+     *
+     * <p>Set by the outermost {@link #compile(LogicalView, EvaluationContext, UnaryOperator,
+     * DuckDbDatabaseAttacher, JsonNdjsonTranscodeCache)} call and inherited by recursive calls.
+     */
+    private static final ThreadLocal<JsonNdjsonTranscodeCache> NDJSON_CACHE = new ThreadLocal<>();
+
+    /**
      * Cached class reference for the none dedup strategy, used to detect whether deduplication
      * should be applied. The concrete class is package-private in {@code io.carml.logicalview},
      * so we resolve it once via the public factory method.
@@ -184,14 +194,42 @@ public final class DuckDbViewCompiler {
             EvaluationContext context,
             UnaryOperator<String> sourceTableResolver,
             DuckDbDatabaseAttacher databaseAttacher) {
+        return compile(view, context, sourceTableResolver, databaseAttacher, null);
+    }
+
+    /**
+     * Compiles a {@link LogicalView} with a source table resolver, database attacher, and NDJSON
+     * transcode cache. All three are set as ThreadLocals so recursive parent view compilations
+     * inherit them. Each ThreadLocal is cleared by the outermost caller in a {@code try/finally}
+     * block.
+     *
+     * @param view the logical view defining fields and the underlying data source
+     * @param context the evaluation context controlling projection, dedup, and limits
+     * @param sourceTableResolver resolves source SQL to a cached source table name, or {@code null}
+     *     to use source SQL directly
+     * @param databaseAttacher the attacher for SQL database sources, or {@code null} if not available
+     * @param ndjsonTranscodeCache the cache used by the JSON source handler to stream-transcode
+     *     large JSON-array files into NDJSON, or {@code null} when transcoding is not enabled
+     * @return the compiled view containing the SQL query and validation metadata
+     */
+    static CompiledView compile(
+            LogicalView view,
+            EvaluationContext context,
+            UnaryOperator<String> sourceTableResolver,
+            DuckDbDatabaseAttacher databaseAttacher,
+            JsonNdjsonTranscodeCache ndjsonTranscodeCache) {
         var isOutermostResolverCall = sourceTableResolver != null && SOURCE_TABLE_RESOLVER.get() == null;
         var isOutermostAttacherCall = databaseAttacher != null && DATABASE_ATTACHER.get() == null;
+        var isOutermostNdjsonCall = ndjsonTranscodeCache != null && NDJSON_CACHE.get() == null;
 
         if (isOutermostResolverCall) {
             SOURCE_TABLE_RESOLVER.set(sourceTableResolver);
         }
         if (isOutermostAttacherCall) {
             DATABASE_ATTACHER.set(databaseAttacher);
+        }
+        if (isOutermostNdjsonCall) {
+            NDJSON_CACHE.set(ndjsonTranscodeCache);
         }
         try {
             return compile(view, context);
@@ -201,6 +239,9 @@ public final class DuckDbViewCompiler {
             }
             if (isOutermostAttacherCall) {
                 DATABASE_ATTACHER.remove();
+            }
+            if (isOutermostNdjsonCall) {
+                NDJSON_CACHE.remove();
             }
         }
     }
@@ -644,6 +685,17 @@ public final class DuckDbViewCompiler {
                 .orElseThrow(
                         () -> new IllegalArgumentException("Unsupported reference formulation: %s".formatted(refIri)))
                 .compileSource(logicalSource, view.getFields(), CTE_ALIAS, DATABASE_ATTACHER.get());
+    }
+
+    /**
+     * Returns the NDJSON transcode cache active on the current compilation thread, or {@code null}
+     * when no cache is bound. Read by {@link JsonPathSourceHandler} so that the JSON-specific cache
+     * does not need to leak through the {@link DuckDbSourceHandler} SPI. The returned reference is
+     * borrowed from the owning factory; callers must not close it.
+     */
+    @SuppressWarnings("resource")
+    static JsonNdjsonTranscodeCache currentNdjsonTranscodeCache() {
+        return NDJSON_CACHE.get();
     }
 
     /**

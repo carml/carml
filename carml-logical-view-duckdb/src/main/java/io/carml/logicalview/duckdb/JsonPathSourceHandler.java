@@ -75,7 +75,18 @@ final class JsonPathSourceHandler implements DuckDbSourceHandler {
         // match all children). Normalize ".*" → "[*]" so DuckDB iterates arrays correctly.
         var basePath = normalizeChildWildcard(parsed.basePath());
 
-        var sourceSql = compileIteratorSql(filePath, basePath);
+        // Borrowed reference; the factory owns and closes the cache.
+        @SuppressWarnings("resource")
+        var ndjsonCache = DuckDbViewCompiler.currentNdjsonTranscodeCache();
+        var sourceSql = ndjsonCache != null
+                ? ndjsonCache
+                        .tryGetSourceSql(
+                                filePath,
+                                basePath,
+                                !parsed.slices().isEmpty(),
+                                !parsed.unions().isEmpty())
+                        .orElseGet(() -> compileIteratorSql(filePath, basePath))
+                : compileIteratorSql(filePath, basePath);
 
         if (!parsed.filters().isEmpty()) {
             var filterCondition = parsed.filters().stream()

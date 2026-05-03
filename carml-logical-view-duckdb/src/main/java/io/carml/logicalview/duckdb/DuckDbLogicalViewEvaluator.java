@@ -105,6 +105,8 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
 
     private final DuckDbDatabaseAttacher databaseAttacher;
 
+    private final JsonNdjsonTranscodeCache ndjsonTranscodeCache;
+
     private final Semaphore concurrencyLimit;
 
     private final Scheduler scheduler;
@@ -112,7 +114,7 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
     private volatile boolean permitAcquired;
 
     public DuckDbLogicalViewEvaluator(Connection connection) {
-        this(connection, false, true, null, null, null, Schedulers.boundedElastic());
+        this(connection, false, true, null, null, null, null, Schedulers.boundedElastic());
     }
 
     DuckDbLogicalViewEvaluator(
@@ -120,7 +122,15 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
             boolean ownsConnection,
             DuckDbSourceTableCache sourceTableCache,
             Semaphore concurrencyLimit) {
-        this(connection, ownsConnection, true, sourceTableCache, null, concurrencyLimit, Schedulers.boundedElastic());
+        this(
+                connection,
+                ownsConnection,
+                true,
+                sourceTableCache,
+                null,
+                null,
+                concurrencyLimit,
+                Schedulers.boundedElastic());
     }
 
     DuckDbLogicalViewEvaluator(
@@ -130,12 +140,31 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
             DuckDbDatabaseAttacher databaseAttacher,
             Semaphore concurrencyLimit,
             Scheduler scheduler) {
-        this(connection, ownsConnection, true, sourceTableCache, databaseAttacher, concurrencyLimit, scheduler);
+        this(connection, ownsConnection, true, sourceTableCache, databaseAttacher, null, concurrencyLimit, scheduler);
+    }
+
+    DuckDbLogicalViewEvaluator(
+            Connection connection,
+            boolean ownsConnection,
+            DuckDbSourceTableCache sourceTableCache,
+            DuckDbDatabaseAttacher databaseAttacher,
+            JsonNdjsonTranscodeCache ndjsonTranscodeCache,
+            Semaphore concurrencyLimit,
+            Scheduler scheduler) {
+        this(
+                connection,
+                ownsConnection,
+                true,
+                sourceTableCache,
+                databaseAttacher,
+                ndjsonTranscodeCache,
+                concurrencyLimit,
+                scheduler);
     }
 
     /** Package-private constructor for testing JDBC fallback path. */
     DuckDbLogicalViewEvaluator(Connection connection, boolean useArrow) {
-        this(connection, false, useArrow, null, null, null, Schedulers.boundedElastic());
+        this(connection, false, useArrow, null, null, null, null, Schedulers.boundedElastic());
     }
 
     DuckDbLogicalViewEvaluator(
@@ -150,6 +179,7 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
                 useArrow,
                 sourceTableCache,
                 null,
+                null,
                 concurrencyLimit,
                 Schedulers.boundedElastic());
     }
@@ -160,6 +190,7 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
             boolean useArrow,
             DuckDbSourceTableCache sourceTableCache,
             DuckDbDatabaseAttacher databaseAttacher,
+            JsonNdjsonTranscodeCache ndjsonTranscodeCache,
             Semaphore concurrencyLimit,
             Scheduler scheduler) {
         this.connection = connection;
@@ -167,6 +198,7 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
         this.useArrow = useArrow;
         this.sourceTableCache = sourceTableCache;
         this.databaseAttacher = databaseAttacher;
+        this.ndjsonTranscodeCache = ndjsonTranscodeCache;
         this.concurrencyLimit = concurrencyLimit;
         this.scheduler = scheduler;
     }
@@ -198,7 +230,8 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
             validateSourceFiles(view);
             validateSourceHandler(view);
             UnaryOperator<String> sourceTableResolver = sourceTableCache != null ? this::resolveSourceTable : null;
-            var compiledView = DuckDbViewCompiler.compile(view, context, sourceTableResolver, databaseAttacher);
+            var compiledView = DuckDbViewCompiler.compile(
+                    view, context, sourceTableResolver, databaseAttacher, ndjsonTranscodeCache);
             LOG.debug("Executing DuckDB query for view [{}]", view.getResourceName());
 
             statement = connection.createStatement();
