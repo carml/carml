@@ -46,21 +46,17 @@ sealed interface DuckDbSourceHandler permits JsonPathSourceHandler, CsvSourceHan
 
     /**
      * Compiles the logical source into a DuckDB SQL source expression and selects the appropriate
-     * field access strategy.
+     * field access strategy. Implementations that need handler-specific compilation context (e.g.
+     * the SQL handler's database attacher, the JSON handler's NDJSON transcode cache) read it via
+     * package-private accessors on {@link DuckDbViewCompiler}, so this signature stays focused on
+     * the source itself rather than accumulating cross-cutting parameters.
      *
      * @param logicalSource the logical source to compile
      * @param viewFields the fields declared on the logical view (used for JSON field mapping)
      * @param cteAlias the alias for the CTE that wraps the source expression
-     * @param databaseAttacher the attacher for resolving SQL database sources to fully qualified
-     *     table references, or {@code null} if no attacher is available (non-SQL sources ignore
-     *     this parameter)
      * @return the compiled source SQL and strategy
      */
-    CompiledSource compileSource(
-            LogicalSource logicalSource,
-            Set<Field> viewFields,
-            String cteAlias,
-            DuckDbDatabaseAttacher databaseAttacher);
+    CompiledSource compileSource(LogicalSource logicalSource, Set<Field> viewFields, String cteAlias);
 
     /**
      * Validates the view's source data against the view's field references. Implementations may

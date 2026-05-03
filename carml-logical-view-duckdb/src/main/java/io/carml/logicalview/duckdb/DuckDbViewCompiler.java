@@ -684,7 +684,7 @@ public final class DuckDbViewCompiler {
         return DuckDbSourceHandler.forFormulation(refIri)
                 .orElseThrow(
                         () -> new IllegalArgumentException("Unsupported reference formulation: %s".formatted(refIri)))
-                .compileSource(logicalSource, view.getFields(), CTE_ALIAS, DATABASE_ATTACHER.get());
+                .compileSource(logicalSource, view.getFields(), CTE_ALIAS);
     }
 
     /**
@@ -696,6 +696,15 @@ public final class DuckDbViewCompiler {
     @SuppressWarnings("resource")
     static JsonNdjsonTranscodeCache currentNdjsonTranscodeCache() {
         return NDJSON_CACHE.get();
+    }
+
+    /**
+     * Returns the database attacher active on the current compilation thread, or {@code null} when
+     * no attacher is bound. Read by {@link SqlSourceHandler} so that the SQL-specific attacher does
+     * not need to leak through the {@link DuckDbSourceHandler} SPI.
+     */
+    static DuckDbDatabaseAttacher currentDatabaseAttacher() {
+        return DATABASE_ATTACHER.get();
     }
 
     /**

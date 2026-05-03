@@ -68,13 +68,9 @@ final class SqlSourceHandler implements DuckDbSourceHandler {
     }
 
     @Override
-    public CompiledSource compileSource(
-            LogicalSource logicalSource,
-            Set<Field> viewFields,
-            String cteAlias,
-            DuckDbDatabaseAttacher databaseAttacher) {
+    public CompiledSource compileSource(LogicalSource logicalSource, Set<Field> viewFields, String cteAlias) {
         var sourceDialect = resolveSourceDialect(logicalSource);
-        var catalogSchema = resolveCatalogSchema(logicalSource, databaseAttacher);
+        var catalogSchema = resolveCatalogSchema(logicalSource, DuckDbViewCompiler.currentDatabaseAttacher());
 
         // Check tableName first so SQL2008Table sources use direct table references instead of
         // the auto-generated "SELECT * FROM <table>" query. This allows clean qualification
