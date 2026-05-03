@@ -390,7 +390,7 @@ class DuckDbSourceIntrospectorTest {
 
             StepVerifier.create(introspector.introspect(logicalSource, null))
                     .expectErrorMatches(e -> e instanceof IllegalArgumentException
-                            && e.getMessage().contains("FileSource URL is not defined"))
+                            && e.getMessage().contains("FileSource has no URL defined"))
                     .verify();
         }
 

@@ -4,6 +4,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
@@ -3118,6 +3120,49 @@ class DuckDbViewCompilerTest {
             assertThat(sql, containsString("\"__iter\" \"__iter\""));
             // Index column is still present
             assertThat(sql, containsString("\"" + DuckDbViewCompiler.INDEX_COLUMN + "\""));
+        }
+    }
+
+    @Nested
+    class WithMapping {
+
+        @Test
+        void withMapping_setsAndRemovesThreadLocal() {
+            var mapping = mock(io.carml.model.Mapping.class);
+            assertThat(DuckDbViewCompiler.currentMapping(), is(nullValue()));
+
+            DuckDbViewCompiler.withMapping(mapping, () -> assertThat(DuckDbViewCompiler.currentMapping(), is(mapping)));
+
+            assertThat(DuckDbViewCompiler.currentMapping(), is(nullValue()));
+        }
+
+        @Test
+        void withMapping_nullMapping_runsActionWithoutBinding() {
+            assertThat(DuckDbViewCompiler.currentMapping(), is(nullValue()));
+
+            DuckDbViewCompiler.withMapping(
+                    null, () -> assertThat(DuckDbViewCompiler.currentMapping(), is(nullValue())));
+
+            assertThat(DuckDbViewCompiler.currentMapping(), is(nullValue()));
+        }
+
+        @Test
+        void withMapping_reentrant_outerWins() {
+            var outer = mock(io.carml.model.Mapping.class);
+            var inner = mock(io.carml.model.Mapping.class);
+
+            DuckDbViewCompiler.withMapping(outer, () -> {
+                assertThat(DuckDbViewCompiler.currentMapping(), is(sameInstance(outer)));
+                DuckDbViewCompiler.withMapping(inner, () -> {
+                    // Re-entrant call must preserve the outer binding so nesting compile / validate
+                    // steps inside the action see a stable mapping.
+                    assertThat(DuckDbViewCompiler.currentMapping(), is(sameInstance(outer)));
+                });
+                // Inner call must not have leaked or restored a different binding.
+                assertThat(DuckDbViewCompiler.currentMapping(), is(sameInstance(outer)));
+            });
+
+            assertThat(DuckDbViewCompiler.currentMapping(), is(nullValue()));
         }
     }
 }

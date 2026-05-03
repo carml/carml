@@ -1,6 +1,7 @@
 package io.carml.logicalview.duckdb;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
@@ -23,7 +24,7 @@ class DuckDbFileSourceUtilsTest {
             var fileSource = mock(FileSource.class);
             when(fileSource.getUrl()).thenReturn("data.json");
 
-            assertThat(DuckDbFileSourceUtils.resolveFilePath(fileSource), is("data.json"));
+            assertThat(DuckDbFileSourceUtils.resolveFilePath(fileSource, null), is("data.json"));
         }
 
         @Test
@@ -31,7 +32,7 @@ class DuckDbFileSourceUtilsTest {
             var filePath = mock(FilePath.class);
             when(filePath.getPath()).thenReturn("/tmp/data.csv");
 
-            assertThat(DuckDbFileSourceUtils.resolveFilePath(filePath), is("/tmp/data.csv"));
+            assertThat(DuckDbFileSourceUtils.resolveFilePath(filePath, null), is("/tmp/data.csv"));
         }
 
         @Test
@@ -39,7 +40,7 @@ class DuckDbFileSourceUtilsTest {
             var fileSource = mock(FileSource.class);
             when(fileSource.getUrl()).thenReturn(null);
 
-            assertThrows(IllegalArgumentException.class, () -> DuckDbFileSourceUtils.resolveFilePath(fileSource));
+            assertThrows(IllegalArgumentException.class, () -> DuckDbFileSourceUtils.resolveFilePath(fileSource, null));
         }
 
         @Test
@@ -47,7 +48,7 @@ class DuckDbFileSourceUtilsTest {
             var fileSource = mock(FileSource.class);
             when(fileSource.getUrl()).thenReturn("  ");
 
-            assertThrows(IllegalArgumentException.class, () -> DuckDbFileSourceUtils.resolveFilePath(fileSource));
+            assertThrows(IllegalArgumentException.class, () -> DuckDbFileSourceUtils.resolveFilePath(fileSource, null));
         }
 
         @Test
@@ -55,7 +56,7 @@ class DuckDbFileSourceUtilsTest {
             var filePath = mock(FilePath.class);
             when(filePath.getPath()).thenReturn(null);
 
-            assertThrows(IllegalArgumentException.class, () -> DuckDbFileSourceUtils.resolveFilePath(filePath));
+            assertThrows(IllegalArgumentException.class, () -> DuckDbFileSourceUtils.resolveFilePath(filePath, null));
         }
 
         @Test
@@ -63,43 +64,31 @@ class DuckDbFileSourceUtilsTest {
             var filePath = mock(FilePath.class);
             when(filePath.getPath()).thenReturn("   ");
 
-            assertThrows(IllegalArgumentException.class, () -> DuckDbFileSourceUtils.resolveFilePath(filePath));
+            assertThrows(IllegalArgumentException.class, () -> DuckDbFileSourceUtils.resolveFilePath(filePath, null));
         }
 
         @Test
         void nullSource_throws() {
-            assertThrows(IllegalArgumentException.class, () -> DuckDbFileSourceUtils.resolveFilePath(null));
+            assertThrows(IllegalArgumentException.class, () -> DuckDbFileSourceUtils.resolveFilePath(null, null));
         }
 
         @Test
         void unsupportedSourceType_throws() {
             var source = mock(Source.class);
 
-            assertThrows(IllegalArgumentException.class, () -> DuckDbFileSourceUtils.resolveFilePath(source));
+            assertThrows(IllegalArgumentException.class, () -> DuckDbFileSourceUtils.resolveFilePath(source, null));
         }
 
         @Test
-        void csvwTable_returnsUrl() {
+        void csvwTable_throws() {
+            // The util only handles formulation-agnostic file shapes. CsvwTable carries CSVW
+            // semantics that belong to the CSV source handler; passing it here signals a layering
+            // bug, so the util refuses loudly instead of silently doing the wrong thing.
             var csvwTable = mock(CsvwTable.class);
-            when(csvwTable.getUrl()).thenReturn("data.csv");
 
-            assertThat(DuckDbFileSourceUtils.resolveFilePath(csvwTable), is("data.csv"));
-        }
-
-        @Test
-        void csvwTableWithNullUrl_throws() {
-            var csvwTable = mock(CsvwTable.class);
-            when(csvwTable.getUrl()).thenReturn(null);
-
-            assertThrows(IllegalArgumentException.class, () -> DuckDbFileSourceUtils.resolveFilePath(csvwTable));
-        }
-
-        @Test
-        void csvwTableWithBlankUrl_throws() {
-            var csvwTable = mock(CsvwTable.class);
-            when(csvwTable.getUrl()).thenReturn("  ");
-
-            assertThrows(IllegalArgumentException.class, () -> DuckDbFileSourceUtils.resolveFilePath(csvwTable));
+            var exception = assertThrows(
+                    IllegalArgumentException.class, () -> DuckDbFileSourceUtils.resolveFilePath(csvwTable, null));
+            assertThat(exception.getMessage(), containsString("Unsupported source type"));
         }
     }
 
@@ -129,44 +118,6 @@ class DuckDbFileSourceUtilsTest {
         @Test
         void jsonExtension_returnsFalse() {
             assertThat(DuckDbFileSourceUtils.isParquetFile("data.json"), is(false));
-        }
-    }
-
-    @Nested
-    class IsFileBasedSource {
-
-        @Test
-        void filePath_returnsTrue() {
-            var filePath = mock(FilePath.class);
-
-            assertThat(DuckDbFileSourceUtils.isFileBasedSource(filePath), is(true));
-        }
-
-        @Test
-        void fileSource_returnsTrue() {
-            var fileSource = mock(FileSource.class);
-
-            assertThat(DuckDbFileSourceUtils.isFileBasedSource(fileSource), is(true));
-        }
-
-        @Test
-        void csvwTable_returnsTrue() {
-            var csvwTable = mock(CsvwTable.class);
-
-            assertThat(DuckDbFileSourceUtils.isFileBasedSource(csvwTable), is(true));
-        }
-
-        @Test
-        void otherSource_returnsFalse() {
-            var source = mock(Source.class);
-
-            assertThat(DuckDbFileSourceUtils.isFileBasedSource(source), is(false));
-        }
-
-        @Test
-        @SuppressWarnings("ConstantValue")
-        void nullSource_returnsFalse() {
-            assertThat(DuckDbFileSourceUtils.isFileBasedSource(null), is(false));
         }
     }
 }

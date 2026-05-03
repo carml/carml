@@ -8,10 +8,7 @@ import io.carml.logicalview.FieldDescriptor;
 import io.carml.logicalview.SourceIntrospector;
 import io.carml.logicalview.SourceSchema;
 import io.carml.model.DatabaseSource;
-import io.carml.model.FilePath;
-import io.carml.model.FileSource;
 import io.carml.model.LogicalSource;
-import io.carml.model.Source;
 import io.carml.vocab.Rdf;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -119,7 +116,14 @@ public class DuckDbSourceIntrospector implements SourceIntrospector {
      */
     @SuppressWarnings("java:S2077") // SQL is constructed programmatically from jOOQ inline(), not from user input
     private SourceSchema introspectFileSource(LogicalSource logicalSource, Resource refIri) throws SQLException {
-        var filePath = resolveFilePath(logicalSource.getSource());
+        // Schema introspection runs at view-match time, before mapping context is normally bound.
+        // The introspector passes a null mapping because rml:MappingDirectory anchoring is not
+        // expected for typical introspection sources. The matching source handler falls back to
+        // the raw declared path when a mapping-anchored source is encountered without a mapping
+        // reference, so DuckDB's file_search_path can take over.
+        var filePath = DuckDbSourceHandler.resolveFilePathFor(logicalSource, null)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "No file-based source handler matches reference formulation: %s".formatted(refIri)));
         // The iterator is not used for schema introspection — we discover the full source schema.
         // The iterator path is applied during evaluation, not during introspection.
         var readFunction = buildReadFunction(refIri, filePath);
@@ -425,30 +429,6 @@ public class DuckDbSourceIntrospector implements SourceIntrospector {
         }
 
         throw new IllegalArgumentException("Unsupported file reference formulation: %s".formatted(refIri));
-    }
-
-    private static String resolveFilePath(Source source) {
-        if (source == null) {
-            throw new IllegalArgumentException("LogicalSource has no source defined");
-        }
-
-        String path;
-        String sourceLabel;
-        if (source instanceof FileSource fileSource) {
-            path = fileSource.getUrl();
-            sourceLabel = "FileSource URL";
-        } else if (source instanceof FilePath filePath) {
-            path = filePath.getPath();
-            sourceLabel = "FilePath path";
-        } else {
-            throw new IllegalArgumentException("Unsupported source type for file-based introspection: %s"
-                    .formatted(source.getClass().getName()));
-        }
-
-        if (path == null || path.isBlank()) {
-            throw new IllegalArgumentException("%s is not defined".formatted(sourceLabel));
-        }
-        return path;
     }
 
     private static String resolveTableName(LogicalSource logicalSource) {

@@ -8,6 +8,7 @@ import io.carml.logicalview.LogicalViewEvaluator;
 import io.carml.logicalview.ViewIteration;
 import io.carml.model.LogicalSource;
 import io.carml.model.LogicalView;
+import io.carml.model.Mapping;
 import io.carml.model.Source;
 import java.nio.file.Path;
 import java.sql.Connection;
@@ -111,10 +112,12 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
 
     private final Scheduler scheduler;
 
+    private final Mapping mapping;
+
     private volatile boolean permitAcquired;
 
     public DuckDbLogicalViewEvaluator(Connection connection) {
-        this(connection, false, true, null, null, null, null, Schedulers.boundedElastic());
+        this(connection, false, true, null, null, null, null, Schedulers.boundedElastic(), null);
     }
 
     DuckDbLogicalViewEvaluator(
@@ -130,7 +133,8 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
                 null,
                 null,
                 concurrencyLimit,
-                Schedulers.boundedElastic());
+                Schedulers.boundedElastic(),
+                null);
     }
 
     DuckDbLogicalViewEvaluator(
@@ -140,7 +144,16 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
             DuckDbDatabaseAttacher databaseAttacher,
             Semaphore concurrencyLimit,
             Scheduler scheduler) {
-        this(connection, ownsConnection, true, sourceTableCache, databaseAttacher, null, concurrencyLimit, scheduler);
+        this(
+                connection,
+                ownsConnection,
+                true,
+                sourceTableCache,
+                databaseAttacher,
+                null,
+                concurrencyLimit,
+                scheduler,
+                null);
     }
 
     DuckDbLogicalViewEvaluator(
@@ -159,12 +172,37 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
                 databaseAttacher,
                 ndjsonTranscodeCache,
                 concurrencyLimit,
-                scheduler);
+                scheduler,
+                null);
+    }
+
+    @SuppressWarnings(
+            "java:S107") // forwards to the canonical 9-arg ctor; reduced surfaces are exposed via the convenience
+    // overloads above and DuckDbLogicalViewEvaluatorFactory
+    DuckDbLogicalViewEvaluator(
+            Connection connection,
+            boolean ownsConnection,
+            DuckDbSourceTableCache sourceTableCache,
+            DuckDbDatabaseAttacher databaseAttacher,
+            JsonNdjsonTranscodeCache ndjsonTranscodeCache,
+            Semaphore concurrencyLimit,
+            Scheduler scheduler,
+            Mapping mapping) {
+        this(
+                connection,
+                ownsConnection,
+                true,
+                sourceTableCache,
+                databaseAttacher,
+                ndjsonTranscodeCache,
+                concurrencyLimit,
+                scheduler,
+                mapping);
     }
 
     /** Package-private constructor for testing JDBC fallback path. */
     DuckDbLogicalViewEvaluator(Connection connection, boolean useArrow) {
-        this(connection, false, useArrow, null, null, null, null, Schedulers.boundedElastic());
+        this(connection, false, useArrow, null, null, null, null, Schedulers.boundedElastic(), null);
     }
 
     DuckDbLogicalViewEvaluator(
@@ -181,9 +219,13 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
                 null,
                 null,
                 concurrencyLimit,
-                Schedulers.boundedElastic());
+                Schedulers.boundedElastic(),
+                null);
     }
 
+    @SuppressWarnings(
+            "java:S107") // canonical constructor; nine-field state is irreducible without bundling unrelated concerns
+    // into a parameter object
     DuckDbLogicalViewEvaluator(
             Connection connection,
             boolean ownsConnection,
@@ -192,7 +234,8 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
             DuckDbDatabaseAttacher databaseAttacher,
             JsonNdjsonTranscodeCache ndjsonTranscodeCache,
             Semaphore concurrencyLimit,
-            Scheduler scheduler) {
+            Scheduler scheduler,
+            Mapping mapping) {
         this.connection = connection;
         this.ownsConnection = ownsConnection;
         this.useArrow = useArrow;
@@ -201,6 +244,7 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
         this.ndjsonTranscodeCache = ndjsonTranscodeCache;
         this.concurrencyLimit = concurrencyLimit;
         this.scheduler = scheduler;
+        this.mapping = mapping;
     }
 
     @Override
@@ -228,10 +272,15 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
         java.sql.Statement statement = null;
         try {
             validateSourceFiles(view);
-            validateSourceHandler(view);
+            // Source-handler validators (e.g. CsvSourceHandler.validate) consult the same
+            // DuckDbViewCompiler.currentMapping() accessor as the SQL compile path does, so the
+            // mapping must be bound on the validator thread too. Reusing the compile thread-local
+            // would interleave with the compile step below; instead we forward the call through
+            // DuckDbViewCompiler.withMapping so the binding lifecycle is confined to validation.
+            DuckDbViewCompiler.withMapping(mapping, () -> validateSourceHandler(view));
             UnaryOperator<String> sourceTableResolver = sourceTableCache != null ? this::resolveSourceTable : null;
             var compiledView = DuckDbViewCompiler.compile(
-                    view, context, sourceTableResolver, databaseAttacher, ndjsonTranscodeCache);
+                    view, context, sourceTableResolver, databaseAttacher, ndjsonTranscodeCache, mapping);
             LOG.debug("Executing DuckDB query for view [{}]", view.getResourceName());
 
             statement = connection.createStatement();
@@ -370,14 +419,16 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
 
     /**
      * Validates that all file-based sources referenced by the view exist on the filesystem. Walks
-     * the view tree recursively, resolving file paths against the DuckDB connection's
-     * {@code file_search_path}. If any source file is missing, throws an
-     * {@link IllegalArgumentException} that propagates as a Flux error signal.
+     * the view tree recursively, resolving each {@code rml:path} through {@link
+     * DuckDbFileSourceUtils#resolveFilePath(Source, Mapping)} so anchor semantics ({@code rml:root
+     * rml:MappingDirectory}, {@code rml:CurrentWorkingDirectory}) match the rest of the engine. If
+     * any source file is missing, throws an {@link IllegalArgumentException} that propagates as a
+     * Flux error signal.
      *
      * <p>This validation is necessary because DuckDB may silently return empty results for missing
      * files (e.g. when {@code read_text} + {@code json_extract} + {@code UNNEST} produces zero rows
-     * instead of an error), which would cause the mapping to complete with an empty model instead of
-     * signaling the error to the caller.
+     * instead of an error), which would cause the mapping to complete with an empty model instead
+     * of signaling the error to the caller.
      */
     private void validateSourceFiles(LogicalView view) {
         var fileSearchPath = queryFileSearchPath();
@@ -390,11 +441,10 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
         }
         var viewOn = view.getViewOn();
         if (viewOn instanceof LogicalSource logicalSource) {
-            var source = logicalSource.getSource();
-            if (DuckDbFileSourceUtils.isFileBasedSource(source)) {
-                var filePath = DuckDbFileSourceUtils.resolveFilePath(source);
-                validateFileExists(filePath, fileSearchPath, view);
-            }
+            // The matching handler decides what "the file path" means for its formulation; the
+            // helper returns empty for non-file-based formulations (e.g. SQL).
+            DuckDbSourceHandler.resolveFilePathFor(logicalSource, mapping)
+                    .ifPresent(filePath -> validateFileExists(filePath, fileSearchPath, view));
         } else if (viewOn instanceof LogicalView nestedView) {
             validateSourceFilesRecursive(nestedView, fileSearchPath, visited);
         }
@@ -416,7 +466,7 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
 
         var path = Path.of(filePath);
 
-        // Absolute paths can be checked directly
+        // Absolute paths and mapping-anchor-resolved paths can be checked directly.
         if (path.isAbsolute()) {
             if (!path.toFile().exists()) {
                 throw new IllegalArgumentException(
@@ -425,7 +475,11 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
             return;
         }
 
-        // Relative paths: resolve against file_search_path
+        // Relative path: prefer the engine-supplied file_search_path (used by test harnesses and
+        // the CLI's --base option to override the JVM CWD), falling back to plain CWD when the
+        // setting is unset. This mirrors what DuckDB itself does at read_csv / read_text time, so
+        // a path that DuckDB will accept passes validation and a path it will reject is rejected
+        // here too.
         if (fileSearchPath != null && !fileSearchPath.isBlank()) {
             var resolved = Path.of(fileSearchPath).resolve(filePath);
             if (!resolved.toFile().exists()) {
@@ -435,7 +489,6 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
             return;
         }
 
-        // No file_search_path: check relative to CWD
         if (!path.toFile().exists()) {
             throw new IllegalArgumentException(
                     "Source file not found for view [%s]: %s".formatted(view.getResourceName(), filePath));

@@ -2,6 +2,7 @@ package io.carml.logicalsourceresolver.sourceresolver;
 
 import static io.carml.util.LogUtil.exception;
 
+import io.carml.model.FilePath;
 import io.carml.model.Mapping;
 import io.carml.model.Source;
 import java.io.IOException;
@@ -51,41 +52,50 @@ class InternalFileResolver {
     }
 
     private Mono<InputStream> handlePathString(Source source, Mapping mapping) {
-        Path path;
         if (basePath != null) {
-            var relativePath = handleAsRelativePath(pathString);
-            path = basePath.resolve(relativePath);
-        } else if (classPathBase != null) {
-            String sourceName = classPathBase.isEmpty()
-                    ? pathString
-                    : String.format(getClassPathBaseTemplate(classPathBase), classPathBase, pathString);
+            return resolvePath(source, basePath.resolve(handleAsRelativePath(pathString)));
+        }
+        if (classPathBase != null) {
+            return loadFromClasspath(source);
+        }
+        if (pathRelativeTo != null) {
+            return resolvePath(source, resolveByAnchor(source, mapping));
+        }
+        return resolvePath(source, Paths.get(handleAsRelativePath(pathString)));
+    }
 
-            var inputStream = loadingClass == null
-                    ? InternalFileResolver.class.getClassLoader().getResourceAsStream(sourceName)
-                    : loadingClass.getResourceAsStream(sourceName);
+    private Mono<InputStream> loadFromClasspath(Source source) {
+        var sourceName = classPathBase.isEmpty()
+                ? pathString
+                : String.format(getClassPathBaseTemplate(classPathBase), classPathBase, pathString);
 
-            if (inputStream == null) {
-                throw new SourceResolverException(String.format(
-                        "Could not resolve classpath resource %s for source%n%s.", sourceName, exception(source)));
-            }
+        var inputStream = loadingClass == null
+                ? InternalFileResolver.class.getClassLoader().getResourceAsStream(sourceName)
+                : loadingClass.getResourceAsStream(sourceName);
 
-            return Mono.just(inputStream);
-        } else if (pathRelativeTo != null) {
-            var relativePath = handleAsRelativePath(pathString);
-
-            if (pathRelativeTo == PathRelativeTo.MAPPING_DIRECTORY) {
-                var mappingDirPath = getMappingDirPath(source, mapping);
-                path = mappingDirPath.resolve(relativePath);
-            } else {
-                // Current working directory
-                path = Paths.get("").resolve(relativePath);
-            }
-        } else {
-            var relativePath = handleAsRelativePath(pathString);
-            path = Paths.get(relativePath);
+        if (inputStream == null) {
+            throw new SourceResolverException(String.format(
+                    "Could not resolve classpath resource %s for source%n%s.", sourceName, exception(source)));
         }
 
-        return resolvePath(source, path);
+        return Mono.just(inputStream);
+    }
+
+    private Path resolveByAnchor(Source source, Mapping mapping) {
+        // FilePath has rml:root semantics including absolute-path detection plus the dedup-WARN
+        // for absolute-path-with-root. SourcePathResolver owns that logic so every caller honors
+        // rml:root identically.
+        if (source instanceof FilePath) {
+            return SourcePathResolver.resolveAnchoredPath(source, mapping);
+        }
+        // Generic anchor resolution for any other aspect-providing source. Aspects decide WHERE to
+        // anchor (PathRelativeTo); the resolver just applies it. Reference formulations such as
+        // CsvwTable land here.
+        var relativePath = handleAsRelativePath(pathString);
+        if (pathRelativeTo == PathRelativeTo.MAPPING_DIRECTORY) {
+            return SourcePathResolver.resolveMappingDirectory(source, mapping).resolve(relativePath);
+        }
+        return Paths.get("").resolve(relativePath);
     }
 
     private String handleAsRelativePath(String pathString) {
@@ -94,30 +104,6 @@ class InternalFileResolver {
 
     private String getClassPathBaseTemplate(String classPathBase) {
         return classPathBase.endsWith("/") ? "%s%s" : "%s/%s";
-    }
-
-    private Path getMappingDirPath(Source source, Mapping mapping) {
-        if (mapping.getMappingFilePaths().isEmpty()) {
-            throw new SourceResolverException(
-                    String.format("No mapping file paths provided for source %s.", exception(source)));
-        }
-
-        var mappingDirs = mapping
-                .getMappingFilePaths() //
-                .stream()
-                .map(Path::getParent)
-                .toList();
-
-        if (mappingDirs.size() > 1) {
-            throw new SourceResolverException(String.format(
-                    "Multiple mapping directories found, where only one was expected, for source %s.",
-                    exception(source)));
-        } else if (mappingDirs.isEmpty()) {
-            // This means that mappings are in the root of the file system
-            return Paths.get("/");
-        } else {
-            return mappingDirs.get(0);
-        }
     }
 
     private Mono<InputStream> resolvePath(Source source, Path path) {

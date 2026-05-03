@@ -38,6 +38,7 @@ import io.carml.logicalview.FileBasePathConfigurable;
 import io.carml.logicalview.JoinExecutorFactory;
 import io.carml.logicalview.LogicalViewEvaluator;
 import io.carml.logicalview.LogicalViewEvaluatorFactory;
+import io.carml.logicalview.MappingConfigurable;
 import io.carml.model.Field;
 import io.carml.model.IriSafeAnnotation;
 import io.carml.model.LogicalSource;
@@ -667,6 +668,7 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
             var effectiveFactories = resolveLogicalViewEvaluatorFactories(functionRegistry);
 
             configureFileBasePath(effectiveFactories);
+            configureMapping(effectiveFactories);
 
             var evaluator = new FactoryDelegatingEvaluator(effectiveFactories);
 
@@ -792,6 +794,20 @@ public class RdfRmlMapper extends RmlMapper<Statement, MappedValue<Value>> {
                     }
                 }
             });
+        }
+
+        /**
+         * Hands the active {@link Mapping} to every factory that implements
+         * {@link MappingConfigurable}, so source-resolution paths inside those evaluators (notably
+         * the DuckDB pipeline) can honor {@code rml:root} anchor semantics the same way the
+         * reactive file resolver does.
+         */
+        private void configureMapping(List<LogicalViewEvaluatorFactory> factories) {
+            for (var factory : factories) {
+                if (factory instanceof MappingConfigurable configurable) {
+                    configurable.setMapping(mapping);
+                }
+            }
         }
 
         private void registerSourceResolvers() {

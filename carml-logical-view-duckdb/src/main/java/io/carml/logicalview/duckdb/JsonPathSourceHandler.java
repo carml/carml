@@ -5,7 +5,10 @@ import static org.jooq.impl.DSL.inline;
 import static org.jooq.impl.DSL.quotedName;
 
 import io.carml.model.Field;
+import io.carml.model.FilePath;
+import io.carml.model.FileSource;
 import io.carml.model.LogicalSource;
+import io.carml.model.Source;
 import io.carml.vocab.Rdf;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
@@ -44,18 +47,28 @@ final class JsonPathSourceHandler implements DuckDbSourceHandler {
     }
 
     @Override
+    public boolean isFileBased() {
+        return true;
+    }
+
+    @Override
     public boolean isCompatible(LogicalSource logicalSource) {
-        if (!DuckDbFileSourceUtils.isFileBasedSource(logicalSource.getSource())) {
-            LOG.debug("LogicalSource has file-based reference formulation but source is not file-based");
+        if (isUnsupportedSource(logicalSource.getSource())) {
+            LOG.debug("LogicalSource has JSON reference formulation but source shape is not supported");
             return false;
         }
 
         return true;
     }
 
+    private static boolean isUnsupportedSource(Source source) {
+        return !(source instanceof FilePath || source instanceof FileSource);
+    }
+
     @Override
     public CompiledSource compileSource(LogicalSource logicalSource, Set<Field> viewFields, String cteAlias) {
-        var filePath = DuckDbFileSourceUtils.resolveFilePath(logicalSource.getSource());
+        var filePath =
+                DuckDbFileSourceUtils.resolveFilePath(logicalSource.getSource(), DuckDbViewCompiler.currentMapping());
 
         if (DuckDbFileSourceUtils.isParquetFile(filePath)) {
             return columnSource("read_parquet(%s)".formatted(inline(filePath)), cteAlias, viewFields);

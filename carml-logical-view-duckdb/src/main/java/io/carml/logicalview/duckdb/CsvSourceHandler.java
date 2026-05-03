@@ -8,9 +8,13 @@ import io.carml.csv.CsvwDialectProcessor;
 import io.carml.model.ExpressionField;
 import io.carml.model.ExpressionMap;
 import io.carml.model.Field;
+import io.carml.model.FilePath;
+import io.carml.model.FileSource;
 import io.carml.model.IterableField;
 import io.carml.model.LogicalSource;
 import io.carml.model.LogicalView;
+import io.carml.model.Mapping;
+import io.carml.model.Source;
 import io.carml.model.source.csvw.CsvwTable;
 import io.carml.vocab.Rdf;
 import java.sql.Connection;
@@ -53,12 +57,36 @@ final class CsvSourceHandler implements DuckDbSourceHandler {
     }
 
     @Override
+    public boolean isFileBased() {
+        return true;
+    }
+
+    @Override
     public boolean isCompatible(LogicalSource logicalSource) {
-        if (!DuckDbFileSourceUtils.isFileBasedSource(logicalSource.getSource())) {
-            LOG.debug("LogicalSource has file-based reference formulation but source is not file-based");
+        if (isUnsupportedSource(logicalSource.getSource())) {
+            LOG.debug("LogicalSource has CSV reference formulation but source shape is not supported");
             return false;
         }
         return true;
+    }
+
+    /**
+     * Returns the effective file path for a CSV-formulation source. Handles {@link CsvwTable} via
+     * {@link CsvwUrlResolver} (CSVW-specific URL semantics live in this package, next to the CSV
+     * source handler that owns CSVW knowledge); delegates {@link FilePath} and {@link FileSource}
+     * to {@link DuckDbFileSourceUtils}.
+     */
+    @Override
+    public String resolveFilePath(LogicalSource logicalSource, Mapping mapping) {
+        var source = logicalSource.getSource();
+        if (source instanceof CsvwTable csvwTable) {
+            return CsvwUrlResolver.resolveCsvwUrl(csvwTable, mapping);
+        }
+        return DuckDbFileSourceUtils.resolveFilePath(source, mapping);
+    }
+
+    private static boolean isUnsupportedSource(Source source) {
+        return !(source instanceof FilePath || source instanceof FileSource || source instanceof CsvwTable);
     }
 
     /**
@@ -76,11 +104,12 @@ final class CsvSourceHandler implements DuckDbSourceHandler {
             return;
         }
 
-        if (!DuckDbFileSourceUtils.isFileBasedSource(logicalSource.getSource())) {
+        var source = logicalSource.getSource();
+        if (isUnsupportedSource(source)) {
             return;
         }
 
-        var filePath = DuckDbFileSourceUtils.resolveFilePath(logicalSource.getSource());
+        var filePath = resolveFilePath(logicalSource, DuckDbViewCompiler.currentMapping());
         if (DuckDbFileSourceUtils.isParquetFile(filePath)) {
             return;
         }
@@ -106,7 +135,7 @@ final class CsvSourceHandler implements DuckDbSourceHandler {
     @Override
     public CompiledSource compileSource(LogicalSource logicalSource, Set<Field> viewFields, String cteAlias) {
         var source = logicalSource.getSource();
-        var filePath = DuckDbFileSourceUtils.resolveFilePath(source);
+        var filePath = resolveFilePath(logicalSource, DuckDbViewCompiler.currentMapping());
 
         if (DuckDbFileSourceUtils.isParquetFile(filePath)) {
             return columnSource("read_parquet(%s)".formatted(inline(filePath)), cteAlias, viewFields);

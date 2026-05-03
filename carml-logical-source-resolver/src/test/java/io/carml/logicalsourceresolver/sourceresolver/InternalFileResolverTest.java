@@ -188,7 +188,10 @@ class InternalFileResolverTest {
     void givenPathStringAndPathRelativeToMappingDir_whenResolve_thenReturnExpected(@TempDir Path tempDir) {
         // Given
         createTestFile(tempDir, "input.csv");
-        var source = CarmlFilePath.builder().root(Rml.MappingDirectory).build();
+        var source = CarmlFilePath.builder()
+                .path("input.csv")
+                .root(Rml.MappingDirectory)
+                .build();
         var mapping = Mapping.builder()
                 .mappingFilePath(tempDir.resolve("mapping.ttl"))
                 .build();
@@ -219,7 +222,10 @@ class InternalFileResolverTest {
     void givenPathStringAndPathRelativeToMappingDirButNoMappingPath_whenResolve_thenThrowException(
             @TempDir Path tempDir, @TempDir Path tempDir2) {
         // Given
-        var source = CarmlFilePath.builder().root(Rml.MappingDirectory).build();
+        var source = CarmlFilePath.builder()
+                .path("input.csv")
+                .root(Rml.MappingDirectory)
+                .build();
         var mapping = Mapping.builder()
                 .mappingFilePath(tempDir.resolve("mapping.ttl"))
                 .mappingFilePath(tempDir2.resolve("mapping.ttl"))
@@ -242,7 +248,10 @@ class InternalFileResolverTest {
     @SuppressWarnings("ReactiveStreamsUnusedPublisher")
     void givenPathStringAndPathRelativeToMappingDirWithMultipleMappingPath_whenResolve_thenThrowException() {
         // Given
-        var source = CarmlFilePath.builder().root(Rml.MappingDirectory).build();
+        var source = CarmlFilePath.builder()
+                .path("input.csv")
+                .root(Rml.MappingDirectory)
+                .build();
         var mapping = Mapping.builder().build();
         var resolver = InternalFileResolver.builder()
                 .pathString("input.csv")
@@ -259,7 +268,10 @@ class InternalFileResolverTest {
     @Test
     void givenPathStringAndPathRelativeToWorkingDir_whenResolve_thenReturnExpected() {
         // Given
-        var source = CarmlFilePath.builder().root(Rml.CurrentWorkingDirectory).build();
+        var source = CarmlFilePath.builder()
+                .path("src/test/resources/emptyBaseInput.csv")
+                .root(Rml.CurrentWorkingDirectory)
+                .build();
         var mapping = Mapping.builder().build();
         var resolver = InternalFileResolver.builder()
                 .pathString("src/test/resources/emptyBaseInput.csv")
@@ -284,30 +296,27 @@ class InternalFileResolverTest {
     }
 
     @Test
-    void givenAbsolutePathStringAndPathRelativeToWorkingDir_whenResolve_thenReturnExpected() {
-        // Given
-        var source = CarmlFilePath.builder().root(Rml.CurrentWorkingDirectory).build();
+    @SuppressWarnings("ReactiveStreamsUnusedPublisher")
+    void givenAbsolutePathStringAndPathRelativeToWorkingDir_whenResolve_thenTreatAsAbsoluteAndThrowIfMissing() {
+        // Absolute rml:path values bypass rml:root resolution. The legacy behaviour of stripping
+        // a leading slash and re-anchoring against the working directory is incorrect; the
+        // resolver now hands the absolute path through verbatim so the caller observes a normal
+        // file-not-found error when the path does not exist on disk.
+        var source = CarmlFilePath.builder()
+                .path("/does/not/exist/emptyBaseInput.csv")
+                .root(Rml.CurrentWorkingDirectory)
+                .build();
         var mapping = Mapping.builder().build();
         var resolver = InternalFileResolver.builder()
-                .pathString("/src/test/resources/emptyBaseInput.csv")
+                .pathString("/does/not/exist/emptyBaseInput.csv")
                 .pathRelativeTo(PathRelativeTo.WORKING_DIRECTORY)
                 .build();
 
         // When
-        var inputStreamMono = resolver.resolve(source, mapping);
+        var exception = assertThrows(SourceResolverException.class, () -> resolver.resolve(source, mapping));
 
         // Then
-        StepVerifier.create(inputStreamMono)
-                .expectNextMatches(inputStream -> {
-                    try {
-                        var actual = IOUtils.toString(inputStream, UTF_8);
-                        assertThat(actual, startsWith("baz,bar,foo"));
-                        return true;
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                })
-                .verifyComplete();
+        assertThat(exception.getMessage(), startsWith("File does not exist at path"));
     }
 
     @Test

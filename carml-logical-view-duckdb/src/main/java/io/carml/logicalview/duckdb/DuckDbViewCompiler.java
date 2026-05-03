@@ -23,6 +23,7 @@ import io.carml.model.Join;
 import io.carml.model.LogicalSource;
 import io.carml.model.LogicalView;
 import io.carml.model.LogicalViewJoin;
+import io.carml.model.Mapping;
 import io.carml.model.NotNullAnnotation;
 import io.carml.model.PrimaryKeyAnnotation;
 import io.carml.model.StructuralAnnotation;
@@ -127,6 +128,14 @@ public final class DuckDbViewCompiler {
     private static final ThreadLocal<JsonNdjsonTranscodeCache> NDJSON_CACHE = new ThreadLocal<>();
 
     /**
+     * The active {@link Mapping} for the current compilation. Source handlers read
+     * it via {@link #currentMapping()} when they need to apply {@code rml:root} anchor semantics
+     * (e.g. {@code rml:MappingDirectory}). Bound by the outermost {@link #compile} call so that
+     * recursive parent-view compilations see the same mapping context.
+     */
+    private static final ThreadLocal<Mapping> MAPPING = new ThreadLocal<>();
+
+    /**
      * Cached class reference for the none dedup strategy, used to detect whether deduplication
      * should be applied. The concrete class is package-private in {@code io.carml.logicalview},
      * so we resolve it once via the public factory method.
@@ -218,9 +227,38 @@ public final class DuckDbViewCompiler {
             UnaryOperator<String> sourceTableResolver,
             DuckDbDatabaseAttacher databaseAttacher,
             JsonNdjsonTranscodeCache ndjsonTranscodeCache) {
+        return compile(view, context, sourceTableResolver, databaseAttacher, ndjsonTranscodeCache, null);
+    }
+
+    /**
+     * Compiles a {@link LogicalView} with a source table resolver, database attacher, NDJSON
+     * transcode cache, and {@link io.carml.model.Mapping} context. All four are set as
+     * ThreadLocals so recursive parent view compilations inherit them. Each ThreadLocal is cleared
+     * by the outermost caller in a {@code try/finally} block.
+     *
+     * @param view the logical view defining fields and the underlying data source
+     * @param context the evaluation context controlling projection, dedup, and limits
+     * @param sourceTableResolver resolves source SQL to a cached source table name, or {@code null}
+     *     to use source SQL directly
+     * @param databaseAttacher the attacher for SQL database sources, or {@code null} if not available
+     * @param ndjsonTranscodeCache the cache used by the JSON source handler to stream-transcode
+     *     large JSON-array files into NDJSON, or {@code null} when transcoding is not enabled
+     * @param mapping the active mapping, used by source handlers to apply {@code rml:root}
+     *     anchor semantics; {@code null} when no mapping context is available
+     * @return the compiled view containing the SQL query and validation metadata
+     */
+    @SuppressWarnings("checkstyle:CyclomaticComplexity")
+    static CompiledView compile(
+            LogicalView view,
+            EvaluationContext context,
+            UnaryOperator<String> sourceTableResolver,
+            DuckDbDatabaseAttacher databaseAttacher,
+            JsonNdjsonTranscodeCache ndjsonTranscodeCache,
+            Mapping mapping) {
         var isOutermostResolverCall = sourceTableResolver != null && SOURCE_TABLE_RESOLVER.get() == null;
         var isOutermostAttacherCall = databaseAttacher != null && DATABASE_ATTACHER.get() == null;
         var isOutermostNdjsonCall = ndjsonTranscodeCache != null && NDJSON_CACHE.get() == null;
+        var isOutermostMappingCall = mapping != null && MAPPING.get() == null;
 
         if (isOutermostResolverCall) {
             SOURCE_TABLE_RESOLVER.set(sourceTableResolver);
@@ -230,6 +268,9 @@ public final class DuckDbViewCompiler {
         }
         if (isOutermostNdjsonCall) {
             NDJSON_CACHE.set(ndjsonTranscodeCache);
+        }
+        if (isOutermostMappingCall) {
+            MAPPING.set(mapping);
         }
         try {
             return compile(view, context);
@@ -242,6 +283,9 @@ public final class DuckDbViewCompiler {
             }
             if (isOutermostNdjsonCall) {
                 NDJSON_CACHE.remove();
+            }
+            if (isOutermostMappingCall) {
+                MAPPING.remove();
             }
         }
     }
@@ -705,6 +749,40 @@ public final class DuckDbViewCompiler {
      */
     static DuckDbDatabaseAttacher currentDatabaseAttacher() {
         return DATABASE_ATTACHER.get();
+    }
+
+    /**
+     * Returns the {@link Mapping} active on the current compilation thread, or
+     * {@code null} when no mapping context is bound. Read by file-source handlers so they can
+     * apply {@code rml:root} anchor semantics (notably {@code rml:MappingDirectory}) without the
+     * mapping reference leaking through the {@link DuckDbSourceHandler} SPI.
+     */
+    static Mapping currentMapping() {
+        return MAPPING.get();
+    }
+
+    /**
+     * Binds {@code mapping} as the active compilation mapping for the duration of {@code action},
+     * restoring the previous binding (or removing the thread-local) on exit. Used by callers that
+     * need source-handler context to honour {@code rml:root} anchors outside the compile path —
+     * e.g. pre-compile validators that go through {@link DuckDbSourceHandler#validate} and read
+     * {@link #currentMapping()} via {@link DuckDbFileSourceUtils#resolveFilePath}.
+     *
+     * <p>Re-entrant calls preserve the outer binding: only the outermost call clears the
+     * thread-local on exit, so nesting compile or validate steps inside {@code action} see the
+     * mapping as expected.
+     */
+    static void withMapping(Mapping mapping, Runnable action) {
+        if (mapping == null || MAPPING.get() != null) {
+            action.run();
+            return;
+        }
+        MAPPING.set(mapping);
+        try {
+            action.run();
+        } finally {
+            MAPPING.remove();
+        }
     }
 
     /**

@@ -1,35 +1,59 @@
 package io.carml.logicalview.duckdb;
 
+import io.carml.logicalsourceresolver.sourceresolver.SourcePathResolver;
+import io.carml.logicalsourceresolver.sourceresolver.SourceResolverException;
 import io.carml.model.FilePath;
 import io.carml.model.FileSource;
+import io.carml.model.Mapping;
 import io.carml.model.Source;
-import io.carml.model.source.csvw.CsvwTable;
 import java.util.Locale;
 import java.util.Set;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
- * Shared file-source utilities for DuckDB source handlers.
- *
- * <p>Extracts common file-resolution and format-detection logic used by
- * {@link JsonPathSourceHandler} and {@link CsvSourceHandler}.
+ * Resolves the formulation-agnostic file-source shapes ({@link FilePath} and {@link FileSource})
+ * to their effective DuckDB path or URL. Reference-formulation-specific source types (e.g.
+ * {@code csvw:Table}) are handled by the matching {@link DuckDbSourceHandler} via
+ * {@link DuckDbSourceHandler#resolveFilePath(io.carml.model.LogicalSource, Mapping)} so this util
+ * stays free of formulation-specific knowledge.
  */
+@Slf4j
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 final class DuckDbFileSourceUtils {
 
     private static final Set<String> PARQUET_EXTENSIONS = Set.of(".parquet", ".parq");
 
     /**
-     * Resolves the file path from a {@link Source}, supporting {@link FileSource} (URL-based),
-     * {@link FilePath} (path-based), and {@link CsvwTable} (CSVW URL-based) source types.
+     * Resolves the file path or URL string for {@code source}, delegating anchor-resolution
+     * semantics to {@link SourcePathResolver#resolveAnchored} for {@link FilePath} sources so the
+     * DuckDB and reactive evaluators reach identical effective paths for the same mapping
+     * declaration. {@link FileSource} URLs are returned verbatim.
      *
-     * @param source the source to resolve
-     * @return the resolved file path string
-     * @throws IllegalArgumentException if the source is null, unsupported, or has no path/URL
+     * <p>When a {@link FilePath} anchors against the mapping directory but no {@link Mapping} is
+     * bound — for instance because the caller is the introspector or a test harness that wired
+     * the DuckDB factory without a mapping reference — the resolver falls back to the raw
+     * declared path and emits a one-time DEBUG line per source. DuckDB's {@code file_search_path}
+     * or the JVM working directory then takes over, matching the legacy DuckDB behavior where
+     * the string was passed through verbatim; test fixtures and CLI invocations that rely on
+     * {@code file_search_path} resolution keep working.
+     *
+     * @param source the source to resolve; must be a {@link FilePath} or {@link FileSource}
+     * @param mapping the active mapping context, used when {@code source} anchors against
+     *     {@code rml:MappingDirectory}; may be {@code null}
+     * @return absolute filesystem path string for {@link FilePath} whose anchor could be applied,
+     *     the raw declared path when the anchor could not be applied, or the verbatim URL string
+     *     for {@link FileSource}
+     * @throws IllegalArgumentException if {@code source} is {@code null}, has no path / URL, or
+     *     is of any unsupported type. Reference-formulation-specific sources (e.g. {@code
+     *     csvw:Table}) are unsupported here; route them through the matching
+     *     {@link DuckDbSourceHandler}.
      */
-    @SuppressWarnings("checkstyle:CyclomaticComplexity")
-    static String resolveFilePath(Source source) {
+    static String resolveFilePath(Source source, Mapping mapping) {
+        if (source == null) {
+            throw new IllegalArgumentException("LogicalSource has no source defined");
+        }
         if (source instanceof FileSource fileSource) {
             var url = fileSource.getUrl();
             if (url == null || url.isBlank()) {
@@ -37,29 +61,28 @@ final class DuckDbFileSourceUtils {
             }
             return url;
         }
-
-        if (source instanceof FilePath filePath) {
-            var path = filePath.getPath();
-            if (path == null || path.isBlank()) {
-                throw new IllegalArgumentException("FilePath has no path defined");
+        if (!(source instanceof FilePath filePath)) {
+            throw new IllegalArgumentException("Unsupported source type for formulation-agnostic file resolution: %s"
+                    .formatted(source.getClass().getName()));
+        }
+        try {
+            return SourcePathResolver.resolveAnchored(filePath, mapping);
+        } catch (SourceResolverException e) {
+            // Anchor resolution requires a Mapping context that is not available here. Fall back
+            // to the raw declared path so DuckDB's file_search_path (or CWD) decides where to
+            // look — the historical DuckDB behavior pre-dating anchored resolution. The DEBUG
+            // line keeps the missing-mapping case observable without spamming production logs.
+            var pathString = filePath.getPath();
+            if (pathString != null && !pathString.isBlank()) {
+                LOG.debug(
+                        "FilePath source <{}> declares rml:root rml:MappingDirectory but no mapping context"
+                                + " was supplied; falling back to raw rml:path \"{}\" for DuckDB to resolve.",
+                        filePath.getResourceName(),
+                        pathString);
+                return pathString;
             }
-            return path;
+            throw e;
         }
-
-        if (source instanceof CsvwTable csvwTable) {
-            var url = csvwTable.getUrl();
-            if (url == null || url.isBlank()) {
-                throw new IllegalArgumentException("CsvwTable has no URL defined");
-            }
-            return url;
-        }
-
-        if (source == null) {
-            throw new IllegalArgumentException("LogicalSource has no source defined");
-        }
-
-        throw new IllegalArgumentException("Unsupported source type for file-based access: %s"
-                .formatted(source.getClass().getName()));
     }
 
     /**
@@ -71,16 +94,5 @@ final class DuckDbFileSourceUtils {
     static boolean isParquetFile(String filePath) {
         var lowerPath = filePath.toLowerCase(Locale.ROOT);
         return PARQUET_EXTENSIONS.stream().anyMatch(lowerPath::endsWith);
-    }
-
-    /**
-     * Checks whether the given source is a file-based source ({@link FilePath}, {@link FileSource},
-     * or {@link CsvwTable}).
-     *
-     * @param source the source to check
-     * @return {@code true} if the source is file-based
-     */
-    static boolean isFileBasedSource(Source source) {
-        return source instanceof FilePath || source instanceof FileSource || source instanceof CsvwTable;
     }
 }

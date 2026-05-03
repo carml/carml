@@ -5,11 +5,13 @@ import io.carml.logicalsourceresolver.MatchedLogicalSourceResolverFactory.MatchS
 import io.carml.logicalview.EvaluationContext;
 import io.carml.logicalview.FileBasePathConfigurable;
 import io.carml.logicalview.LogicalViewEvaluatorFactory;
+import io.carml.logicalview.MappingConfigurable;
 import io.carml.logicalview.MatchedLogicalViewEvaluator;
 import io.carml.model.AbstractLogicalSource;
 import io.carml.model.LogicalSource;
 import io.carml.model.LogicalView;
 import io.carml.model.LogicalViewJoin;
+import io.carml.model.Mapping;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.lang.management.ManagementFactory;
@@ -70,7 +72,7 @@ import reactor.core.scheduler.Schedulers;
 @Slf4j
 @AutoService(LogicalViewEvaluatorFactory.class)
 public class DuckDbLogicalViewEvaluatorFactory
-        implements LogicalViewEvaluatorFactory, FileBasePathConfigurable, AutoCloseable {
+        implements LogicalViewEvaluatorFactory, FileBasePathConfigurable, MappingConfigurable, AutoCloseable {
 
     private static final MatchScore STRONG_MATCH =
             MatchScore.builder().strongMatch().build();
@@ -122,6 +124,17 @@ public class DuckDbLogicalViewEvaluatorFactory
 
     @SuppressWarnings("java:S3077") // Path is immutable, so volatile is sufficient
     private volatile Path fileBasePath;
+
+    /**
+     * Active {@link Mapping} reference, supplied by the engine builder via
+     * {@link #setMapping(Mapping)}. Threaded into each produced evaluator so DuckDB-side path
+     * resolution can honor {@code rml:root rml:MappingDirectory} the same way the reactive file
+     * resolver does. {@code null} when no mapping context is bound (e.g. unit tests that exercise
+     * the factory directly).
+     */
+    @SuppressWarnings(
+            "java:S3077") // Mapping has only final fields with no mutation methods, so volatile reference suffices
+    private volatile Mapping mapping;
 
     /**
      * Limits the number of concurrent DuckDB query executions to the number of available CPU cores.
@@ -483,6 +496,11 @@ public class DuckDbLogicalViewEvaluatorFactory
         applyFileSearchPath(connection, basePath);
     }
 
+    @Override
+    public void setMapping(Mapping mapping) {
+        this.mapping = mapping;
+    }
+
     // SET does not support parameterized queries, so single quotes must be escaped manually.
     private static void applyFileSearchPath(Connection conn, Path basePath) {
         try (var statement = conn.createStatement()) {
@@ -526,8 +544,12 @@ public class DuckDbLogicalViewEvaluatorFactory
         // over instead of failing the entire run. Compilation is pure and inexpensive relative to
         // query execution, so the double-compile cost is negligible. Other exception types are real
         // bugs and propagate.
+        //
+        // The mapping is threaded through so source handlers can resolve rml:MappingDirectory
+        // anchors during compile; without it the trial compile would NPE for any view whose source
+        // declares rml:RelativePathSource + rml:root rml:MappingDirectory.
         try {
-            DuckDbViewCompiler.compile(view, EvaluationContext.defaults());
+            DuckDbViewCompiler.compile(view, EvaluationContext.defaults(), null, null, null, mapping);
         } catch (UnsupportedOperationException e) {
             LOG.debug(
                     "View [{}] declined by DuckDB evaluator (routing to next evaluator): {}",
@@ -572,7 +594,8 @@ public class DuckDbLogicalViewEvaluatorFactory
                 databaseAttacher,
                 ndjsonTranscodeCache,
                 concurrencyLimit,
-                scheduler);
+                scheduler,
+                mapping);
         return Optional.of(MatchedLogicalViewEvaluator.of(STRONG_MATCH, evaluator));
     }
 

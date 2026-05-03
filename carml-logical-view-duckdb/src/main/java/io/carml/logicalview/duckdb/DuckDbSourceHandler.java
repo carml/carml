@@ -3,6 +3,7 @@ package io.carml.logicalview.duckdb;
 import io.carml.model.Field;
 import io.carml.model.LogicalSource;
 import io.carml.model.LogicalView;
+import io.carml.model.Mapping;
 import java.sql.Connection;
 import java.util.List;
 import java.util.Optional;
@@ -33,6 +34,14 @@ sealed interface DuckDbSourceHandler permits JsonPathSourceHandler, CsvSourceHan
      * Returns the set of reference formulation IRIs that this handler supports.
      */
     Set<Resource> supportedFormulations();
+
+    /**
+     * Indicates whether this handler reads from file-based sources (so the file-existence validator
+     * and the introspector should treat its sources as files). Default: {@code false}.
+     */
+    default boolean isFileBased() {
+        return false;
+    }
 
     /**
      * Checks whether the given logical source is compatible with this handler. This goes beyond
@@ -71,6 +80,41 @@ sealed interface DuckDbSourceHandler permits JsonPathSourceHandler, CsvSourceHan
      */
     default void validate(LogicalView view, Connection connection) {
         // No-op by default
+    }
+
+    /**
+     * Resolves the effective file path or URL string for {@code logicalSource}. Returns the
+     * path that DuckDB will read from for file-based sources. The default implementation handles
+     * the formulation-agnostic source shapes ({@link io.carml.model.FilePath},
+     * {@link io.carml.model.FileSource}); handlers whose formulation introduces additional source
+     * types (e.g. CSV with {@code csvw:Table}) override this method to resolve the formulation-
+     * specific shapes themselves and fall through to the default for the rest.
+     *
+     * @param logicalSource the logical source whose source path to resolve
+     * @param mapping the active mapping context for {@code rml:MappingDirectory} anchoring; may be
+     *     {@code null} when no mapping is bound (test harness, introspector)
+     * @return the effective file path or URL string
+     * @throws IllegalArgumentException if the source is not file-based or is otherwise unsupported
+     *     by this handler
+     */
+    default String resolveFilePath(LogicalSource logicalSource, Mapping mapping) {
+        return DuckDbFileSourceUtils.resolveFilePath(logicalSource.getSource(), mapping);
+    }
+
+    /**
+     * Convenience that resolves the file path for the matching file-based handler (if any). Used
+     * by callers that walk source trees without knowing the reference formulation up-front (e.g.
+     * the file-existence validator, the introspector). Returns empty when no handler supports the
+     * formulation, or when the matched handler is not file-based.
+     */
+    static Optional<String> resolveFilePathFor(LogicalSource logicalSource, Mapping mapping) {
+        var refFormulation = logicalSource.getReferenceFormulation();
+        if (refFormulation == null) {
+            return Optional.empty();
+        }
+        return forFormulation(refFormulation.getAsResource())
+                .filter(DuckDbSourceHandler::isFileBased)
+                .map(handler -> handler.resolveFilePath(logicalSource, mapping));
     }
 
     /**
