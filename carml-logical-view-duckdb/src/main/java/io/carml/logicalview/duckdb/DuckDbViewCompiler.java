@@ -37,12 +37,14 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
+import org.jooq.QueryPart;
 import org.jooq.SQLDialect;
 import org.jooq.SelectField;
 import org.jooq.Table;
@@ -123,15 +125,32 @@ public final class DuckDbViewCompiler {
             DedupStrategy.none().getClass();
 
     /**
-     * Describes a SQL JOIN derived from a {@link LogicalViewJoin}.
+     * Describes one logical-view join in compiled form. {@code inline=true} marks descriptors whose
+     * {@code fields} are computed as window-function projections on {@code view_source} directly,
+     * with no JOIN clause emitted ({@code table} and {@code condition} are unused). Used for
+     * aggregating self-joins to avoid HASH_JOIN materialization of list-typed columns.
      *
-     * @param table the jOOQ subquery table for the parent view
-     * @param condition the ON condition for the join
-     * @param fields the SELECT fields projected from the parent
-     * @param isLeftJoin {@code true} for LEFT JOIN, {@code false} for INNER JOIN
+     * @param table the jOOQ subquery table for the parent view; {@code null} when {@code inline=true}
+     * @param condition the ON condition for the join; {@code null} when {@code inline=true}
+     * @param fields the SELECT fields projected from the parent (or window-function expressions
+     *     when {@code inline=true})
+     * @param isLeftJoin {@code true} for LEFT JOIN, {@code false} for INNER JOIN; ignored when
+     *     {@code inline=true}
+     * @param inline {@code true} to emit the {@code fields} as inline window-function expressions
+     *     over {@code view_source}, with no JOIN clause
      */
     private record JoinDescriptor(
-            Table<?> table, Condition condition, List<SelectField<?>> fields, boolean isLeftJoin) {}
+            Table<?> table, Condition condition, List<SelectField<?>> fields, boolean isLeftJoin, boolean inline) {
+
+        static JoinDescriptor join(
+                Table<?> table, Condition condition, List<SelectField<?>> fields, boolean isLeftJoin) {
+            return new JoinDescriptor(table, condition, fields, isLeftJoin, false);
+        }
+
+        static JoinDescriptor inline(List<SelectField<?>> fields) {
+            return new JoinDescriptor(null, null, fields, false, true);
+        }
+    }
 
     /**
      * Compiles a {@link LogicalView} with a source table resolver that caches source SQL as temp
@@ -574,12 +593,17 @@ public final class DuckDbViewCompiler {
     }
 
     /**
-     * Applies JOIN clauses (left or inner) to a select-join step.
+     * Applies JOIN clauses (left or inner) to a select-join step. Inline descriptors are skipped:
+     * their projections are emitted as window-function expressions over {@code view_source}, with
+     * no JOIN clause needed.
      */
     private static <T extends org.jooq.Record> org.jooq.SelectJoinStep<T> applyJoins(
             org.jooq.SelectJoinStep<T> fromStep, List<JoinDescriptor> joinDescriptors) {
         var current = fromStep;
         for (var joinDesc : joinDescriptors) {
+            if (joinDesc.inline()) {
+                continue;
+            }
             if (joinDesc.isLeftJoin()) {
                 current = current.leftJoin(joinDesc.table()).on(joinDesc.condition());
             } else {
@@ -970,7 +994,12 @@ public final class DuckDbViewCompiler {
                 // Check if LEFT JOIN can be upgraded to INNER JOIN
                 var effectivelyLeftJoin = !canUpgradeToInnerJoin(viewJoin, notNullFieldNames);
                 joinDescriptors.add(compileJoinDescriptor(
-                        viewJoin, parentIndex++, effectivelyLeftJoin, aggregatingJoins.contains(viewJoin), strategy));
+                        viewJoin,
+                        view,
+                        parentIndex++,
+                        effectivelyLeftJoin,
+                        aggregatingJoins.contains(viewJoin),
+                        strategy));
             }
         }
 
@@ -982,7 +1011,7 @@ public final class DuckDbViewCompiler {
                 }
 
                 joinDescriptors.add(compileJoinDescriptor(
-                        viewJoin, parentIndex++, false, aggregatingJoins.contains(viewJoin), strategy));
+                        viewJoin, view, parentIndex++, false, aggregatingJoins.contains(viewJoin), strategy));
             }
         }
 
@@ -1003,6 +1032,7 @@ public final class DuckDbViewCompiler {
      */
     private static JoinDescriptor compileJoinDescriptor(
             LogicalViewJoin viewJoin,
+            LogicalView childView,
             int parentIndex,
             boolean isLeftJoin,
             boolean isAggregating,
@@ -1010,7 +1040,16 @@ public final class DuckDbViewCompiler {
         var parentView = viewJoin.getParentLogicalView();
         var parentAlias = PARENT_ALIAS_PREFIX + parentIndex;
 
-        // Recursively compile the parent view
+        if (isAggregating && isSelfJoinSameColumn(viewJoin, childView)) {
+            // Self-join + same-column join condition: rewrite to inline window-function projections
+            // on view_source. Avoids the HASH_JOIN that would materialize a list-typed column per
+            // matched row — that materialization OOMs DuckDB at high group cardinality even with
+            // spill enabled (the projection isn't shared across matched rows).
+            return compileSelfJoinAggregatingViaWindow(viewJoin);
+        }
+
+        // Recursively compile the parent view (for non-self-join aggregating cases and all
+        // non-aggregating joins, the parent SQL is needed as a subquery table).
         var parentCompiledView = compile(parentView, EvaluationContext.defaults());
         var parentSql = parentCompiledView.sql();
 
@@ -1039,7 +1078,109 @@ public final class DuckDbViewCompiler {
             }
         }
 
-        return new JoinDescriptor(parentTable, onCondition, joinFields, isLeftJoin);
+        return JoinDescriptor.join(parentTable, onCondition, joinFields, isLeftJoin);
+    }
+
+    /**
+     * Returns true when {@code viewJoin} is a self-join whose conditions all bind the same column on
+     * both sides (e.g. {@code child.Sport = parent.Sport}) AND the child view's FROM clause is
+     * row-stable (no UNNEST cross-joins). For these joins the aggregating projection collapses into
+     * a window function over {@code view_source} — the parent is structurally identical to the
+     * child, so {@code list(col ORDER BY __idx) OVER (PARTITION BY …)} yields the same per-group
+     * lists that the equivalent {@code SELECT … GROUP BY … LEFT JOIN} would produce, without DuckDB
+     * materializing the list-typed projection per matched row.
+     *
+     * <p>The row-stability check excludes views with {@link IterableField} children: UNNEST would
+     * multiply {@code view_source} rows post-FROM, and the window's {@code PARTITION BY join_col}
+     * would aggregate over UNNEST-multiplied rows rather than over the source rows the equivalent
+     * GROUP-BY subquery sees pre-UNNEST. The aggregating-LEFT-JOIN path handles those cases
+     * correctly because it aggregates the parent subquery before any child-side UNNEST applies.
+     */
+    private static boolean isSelfJoinSameColumn(LogicalViewJoin viewJoin, LogicalView childView) {
+        if (childView == null) {
+            return false;
+        }
+        var parentSource = viewJoin.getParentLogicalView() != null
+                ? viewJoin.getParentLogicalView().getViewOn()
+                : null;
+        if (parentSource == null || !parentSource.equals(childView.getViewOn())) {
+            return false;
+        }
+        var conditions = viewJoin.getJoinConditions();
+        if (conditions == null || conditions.isEmpty()) {
+            return false;
+        }
+        if (hasUnnestField(childView.getFields())) {
+            return false;
+        }
+        return conditions.stream().allMatch(join -> {
+            var childRef = join.getChildMap().getReference();
+            var parentRef = join.getParentMap().getReference();
+            return childRef != null && childRef.equals(parentRef);
+        });
+    }
+
+    private static boolean hasUnnestField(java.util.Collection<? extends Field> fields) {
+        if (fields == null) {
+            return false;
+        }
+        return fields.stream().anyMatch(DuckDbViewCompiler::fieldHasUnnest);
+    }
+
+    private static boolean fieldHasUnnest(Field field) {
+        if (field instanceof IterableField) {
+            return true;
+        }
+        return hasUnnestField(field.getFields());
+    }
+
+    /**
+     * Builds an inline {@link JoinDescriptor} that emits the join's projected fields as window
+     * aggregates over {@code view_source}. Equivalent to the aggregating {@code GROUP BY} subquery
+     * + {@code LEFT JOIN} but without DuckDB's HASH_JOIN duplicating the list-typed projection
+     * across matched rows.
+     */
+    private static JoinDescriptor compileSelfJoinAggregatingViaWindow(LogicalViewJoin viewJoin) {
+        var partitionRefs = viewJoin.getJoinConditions().stream()
+                .map(join -> join.getChildMap().getReference())
+                .filter(Objects::nonNull)
+                .sorted()
+                .distinct()
+                .toList();
+
+        if (partitionRefs.isEmpty()) {
+            throw new IllegalStateException(
+                    "Self-join aggregating join %s has no partition columns".formatted(exception(viewJoin)));
+        }
+
+        var orderByField = field(quotedName(CTE_ALIAS, INDEX_COLUMN));
+        var partitionFields = partitionRefs.stream()
+                .map(ref -> (QueryPart) field(quotedName(CTE_ALIAS, ref)))
+                .toList();
+
+        // Build placeholder positions {2}, {3}, ... for partition fields, prefixed by {0} and {1}
+        // for the projected column and the ORDER BY column respectively. jOOQ's
+        // DSL.field(String, QueryPart...) substitutes positional placeholders safely.
+        var partitionPlaceholder = IntStream.range(0, partitionFields.size())
+                .mapToObj(i -> "{" + (i + 2) + "}")
+                .collect(Collectors.joining(", "));
+        var windowSql = "list({0} order by {1}) over (partition by " + partitionPlaceholder + ")";
+
+        var windowFields = new ArrayList<SelectField<?>>();
+        for (var f : viewJoin.getFields()) {
+            if (f.getReference() == null) {
+                continue;
+            }
+            var col = field(quotedName(CTE_ALIAS, f.getReference()));
+            var args = new ArrayList<QueryPart>();
+            args.add(col);
+            args.add(orderByField);
+            args.addAll(partitionFields);
+            var windowExpr = DSL.field(windowSql, args.toArray(new QueryPart[0]));
+            windowFields.add(windowExpr.as(quotedName(f.getFieldName())));
+        }
+
+        return JoinDescriptor.inline(windowFields);
     }
 
     /**
@@ -1104,7 +1245,7 @@ public final class DuckDbViewCompiler {
             joinFields.add(compileJoinFieldExpression(parentAlias, f));
         }
 
-        return new JoinDescriptor(parentTable, onCondition, joinFields, isLeftJoin);
+        return JoinDescriptor.join(parentTable, onCondition, joinFields, isLeftJoin);
     }
 
     /**

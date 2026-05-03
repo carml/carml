@@ -2897,6 +2897,160 @@ class DuckDbViewCompilerTest {
     }
 
     @Nested
+    class AggregatingJoinCompilation {
+
+        @Test
+        void compile_aggregatingSelfJoinSameColumn_producesInlineWindowFunction() {
+            // Self-join: parent and child share the same LogicalSource instance, with a
+            // same-column join condition. Expected: window-function projection on view_source,
+            // no LEFT JOIN clause.
+            var childField = expressionField("Sport", "Sport");
+            var idField = expressionField("ID", "ID");
+            var view = createCsvView("students.csv", Set.of(childField, idField));
+
+            // Parent view shares the same logicalSource (self-join). Extract to a local first so
+            // the nested stubbing chain doesn't trip Mockito's UnfinishedStubbingException.
+            var sharedSource = view.getViewOn();
+            var parentView = mock(LogicalView.class);
+            lenient().when(parentView.getViewOn()).thenReturn(sharedSource);
+            lenient().when(parentView.getFields()).thenReturn(Set.of(idField));
+            lenient().when(parentView.getStructuralAnnotations()).thenReturn(Set.of());
+
+            var joinField = expressionField("_ref0.ID", "ID");
+            var sameSportCondition = joinCondition("Sport", "Sport");
+            var viewJoin = logicalViewJoin(parentView, Set.of(sameSportCondition), Set.of(joinField));
+
+            lenient().when(view.getLeftJoins()).thenReturn(Set.of(viewJoin));
+            lenient().when(view.getInnerJoins()).thenReturn(Set.of());
+
+            var context = EvaluationContext.forImplicitView(null, Set.of(viewJoin));
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
+
+            assertThat(sql, containsString("list(\"view_source\".\"ID\""));
+            assertThat(sql, containsString("over (partition by \"view_source\".\"Sport\")"));
+            assertThat(sql, containsString("\"_ref0.ID\""));
+            // No JOIN clause emitted; no aggregating GROUP BY subquery.
+            assertThat(sql, not(containsString("left outer join")));
+            assertThat(sql, not(containsString("group by")));
+            assertThat(sql, not(containsString("\"parent_0\"")));
+        }
+
+        @Test
+        void compile_aggregatingSelfJoinMultipleSameColumnConditions_producesMultiPartitionWindow() {
+            // Two same-column conditions → PARTITION BY both columns (sorted alphabetically).
+            var view = createCsvView(
+                    "students.csv", Set.of(expressionField("Sport", "Sport"), expressionField("Region", "Region")));
+
+            var sharedSource = view.getViewOn();
+            // Construct mocks for parent fields BEFORE the parentView stubbing chain, otherwise
+            // expressionField()'s own internal Mockito stubbing trips UnfinishedStubbingException.
+            Set<Field> parentFields = Set.of(expressionField("ID", "ID"));
+            var parentView = mock(LogicalView.class);
+            lenient().when(parentView.getViewOn()).thenReturn(sharedSource);
+            lenient().when(parentView.getFields()).thenReturn(parentFields);
+            lenient().when(parentView.getStructuralAnnotations()).thenReturn(Set.of());
+
+            var joinField = expressionField("_ref0.ID", "ID");
+            var sportCondition = joinCondition("Sport", "Sport");
+            var regionCondition = joinCondition("Region", "Region");
+            var viewJoin = logicalViewJoin(parentView, Set.of(sportCondition, regionCondition), Set.of(joinField));
+
+            lenient().when(view.getLeftJoins()).thenReturn(Set.of(viewJoin));
+            lenient().when(view.getInnerJoins()).thenReturn(Set.of());
+
+            var context = EvaluationContext.forImplicitView(null, Set.of(viewJoin));
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
+
+            assertThat(sql, containsString("partition by \"view_source\".\"Region\", \"view_source\".\"Sport\""));
+            assertThat(sql, not(containsString("left outer join")));
+        }
+
+        @Test
+        void compile_aggregatingSelfJoinSameColumnWithIterableField_fallsBackToLeftJoin() {
+            // Self-join + same-column condition, but child view contains an IterableField. The
+            // window's PARTITION BY would aggregate over UNNEST-multiplied rows — the guard in
+            // isSelfJoinSameColumn must fall back to the aggregating-LEFT-JOIN path.
+            var nestedField = expressionField("nested", "nested");
+            var iterField = iterableField("items", "$.items[*]", Set.of(nestedField));
+            var sportField = expressionField("Sport", "Sport");
+            var view = createCsvViewWithMixedFields("students.csv", Set.of(sportField, iterField));
+
+            var sharedSource = view.getViewOn();
+            Set<Field> parentFields = Set.of(expressionField("ID", "ID"));
+            var parentView = mock(LogicalView.class);
+            lenient().when(parentView.getViewOn()).thenReturn(sharedSource);
+            lenient().when(parentView.getFields()).thenReturn(parentFields);
+            lenient().when(parentView.getStructuralAnnotations()).thenReturn(Set.of());
+
+            var joinField = expressionField("_ref0.ID", "ID");
+            var viewJoin = logicalViewJoin(parentView, Set.of(joinCondition("Sport", "Sport")), Set.of(joinField));
+
+            lenient().when(view.getLeftJoins()).thenReturn(Set.of(viewJoin));
+            lenient().when(view.getInnerJoins()).thenReturn(Set.of());
+
+            var context = EvaluationContext.forImplicitView(null, Set.of(viewJoin));
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
+
+            assertThat(sql, containsString("left outer join"));
+            assertThat(sql, containsString("group by"));
+            assertThat(sql, not(containsString("over (partition by")));
+        }
+
+        @Test
+        void compile_aggregatingSelfJoinCrossColumn_fallsBackToLeftJoin() {
+            // Same source, but join condition references different columns on each side
+            // (child.ID = parent.Sport). The inline window-function rewrite is unsound for
+            // cross-column conditions; must fall back to the aggregating-LEFT-JOIN path.
+            var view = createCsvView(
+                    "students.csv", Set.of(expressionField("Sport", "Sport"), expressionField("ID", "ID")));
+
+            var sharedSource = view.getViewOn();
+            Set<Field> parentFields = Set.of(expressionField("Sport", "Sport"));
+            var parentView = mock(LogicalView.class);
+            lenient().when(parentView.getViewOn()).thenReturn(sharedSource);
+            lenient().when(parentView.getFields()).thenReturn(parentFields);
+            lenient().when(parentView.getStructuralAnnotations()).thenReturn(Set.of());
+
+            var joinField = expressionField("_ref0.Sport", "Sport");
+            var viewJoin = logicalViewJoin(parentView, Set.of(joinCondition("ID", "Sport")), Set.of(joinField));
+
+            lenient().when(view.getLeftJoins()).thenReturn(Set.of(viewJoin));
+            lenient().when(view.getInnerJoins()).thenReturn(Set.of());
+
+            var context = EvaluationContext.forImplicitView(null, Set.of(viewJoin));
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
+
+            assertThat(sql, containsString("left outer join"));
+            assertThat(sql, containsString("group by"));
+            assertThat(sql, not(containsString("over (partition by")));
+        }
+
+        @Test
+        void compile_aggregatingCrossSourceJoin_producesAggregatingLeftJoin() {
+            // Parent view's source is a different CSV file. Self-join detection fails; the
+            // aggregating-LEFT-JOIN path runs.
+            var childField = expressionField("Sport", "Sport");
+            var view = createCsvView("students.csv", Set.of(childField));
+
+            var parentView =
+                    createCsvView("teams.csv", Set.of(expressionField("Sport", "Sport"), expressionField("ID", "ID")));
+
+            var joinField = expressionField("_ref0.ID", "ID");
+            var viewJoin = logicalViewJoin(parentView, Set.of(joinCondition("Sport", "Sport")), Set.of(joinField));
+
+            lenient().when(view.getLeftJoins()).thenReturn(Set.of(viewJoin));
+            lenient().when(view.getInnerJoins()).thenReturn(Set.of());
+
+            var context = EvaluationContext.forImplicitView(null, Set.of(viewJoin));
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
+
+            assertThat(sql, containsString("left outer join"));
+            assertThat(sql, containsString("group by"));
+            assertThat(sql, not(containsString("over (partition by")));
+        }
+    }
+
+    @Nested
     class SourceEvaluationFallback {
 
         @Test
