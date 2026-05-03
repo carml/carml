@@ -130,7 +130,7 @@ final class ArrowBatchEmitter {
                 var columnIndex = buildColumnIndex(root);
                 for (var row = 0; row < rowCount; row++) {
                     var zeroBasedIndex = readZeroBasedIndex(columnIndex, columns, row);
-                    var values = readColumnValues(columnIndex, columns, zeroBasedIndex, row);
+                    var values = readColumnValues(columnIndex, columns, compiledView, zeroBasedIndex, row);
                     validateNoNonScalarTypes(columnIndex, columns, compiledView, row);
                     var naturalDatatypes = resolveNaturalDatatypes(columnIndex, columns, values, row);
                     var sourceEvaluation = resolveSourceEvaluation(columnIndex, columns, retainSourceEvaluation, row);
@@ -187,12 +187,20 @@ final class ArrowBatchEmitter {
     private static LinkedHashMap<String, Object> readColumnValues(
             Map<String, FieldVector> columnIndex,
             DuckDbLogicalViewEvaluator.ColumnDescriptor columns,
+            CompiledView compiledView,
             int zeroBasedIndex,
             int row) {
-        var values = new LinkedHashMap<String, Object>(columns.valueNames().size() + 1);
+        var syntheticOrdinals = compiledView.syntheticScalarOrdinalFields();
+        var values = new LinkedHashMap<String, Object>(columns.valueNames().size() + syntheticOrdinals.size() + 1);
         values.put(INDEX_KEY, zeroBasedIndex);
         for (var colName : columns.valueNames()) {
             values.put(colName, readColumnValue(columnIndex, colName, columns, row));
+        }
+        // Synthesise the ".#" ordinal companion for top-level scalar reference fields whose
+        // constant-zero projection was suppressed at compile time. Mirrors the JDBC path and the
+        // reactive DefaultLogicalViewEvaluator so iteration.getValue("<f>.#") -> Optional.of(0L).
+        for (var fieldName : syntheticOrdinals) {
+            values.put(fieldName + ORDINAL_SUFFIX, 0L);
         }
         return values;
     }

@@ -4,6 +4,7 @@ import static io.carml.logicalview.duckdb.DuckDbSourceStrategy.ORDINAL_FIELD;
 import static io.carml.logicalview.duckdb.DuckDbSourceStrategy.TYPE_SUFFIX;
 import static io.carml.util.LogUtil.exception;
 import static org.jooq.impl.DSL.asterisk;
+import static org.jooq.impl.DSL.castNull;
 import static org.jooq.impl.DSL.field;
 import static org.jooq.impl.DSL.inline;
 import static org.jooq.impl.DSL.name;
@@ -337,10 +338,16 @@ public final class DuckDbViewCompiler {
             // The inner view produces a complete CTE query (WITH ... SELECT ...),
             // so it must be parenthesized to be used as a derived table in FROM.
             // ColumnSourceStrategy is used because the inner view exposes named columns.
+            // The inner view's syntheticScalarTypeFields are passed to the outer strategy so the
+            // outer projection can synthesise CAST(NULL AS VARCHAR) for any reference whose
+            // ".__type" column the inner view did not actually project.
             var innerCompiledView = compile(innerView, EvaluationContext.defaults());
             sourceTable = "(%s)".formatted(innerCompiledView.sql());
             strategy = ColumnSourceStrategy.create(
-                    view.getFields(), CTE_ALIAS, ColumnSourceStrategy.TypeCompanionMode.INNER_VIEW);
+                    view.getFields(),
+                    CTE_ALIAS,
+                    ColumnSourceStrategy.TypeCompanionMode.INNER_VIEW,
+                    innerCompiledView.syntheticScalarTypeFields());
         } else if (viewOn instanceof LogicalSource logicalSource) {
             var compiledSource = compileSourceClause(logicalSource, view);
             strategy = compiledSource.strategy();
@@ -394,7 +401,8 @@ public final class DuckDbViewCompiler {
                         .from(sql(sourceTable)));
 
         String sql;
-        var allFieldSelects = collectAllFieldSelects(expressionFields, unnestDescriptors, joinDescriptors, strategy);
+        var collected = collectAllFieldSelects(expressionFields, unnestDescriptors, joinDescriptors, strategy);
+        var allFieldSelects = collected.selects();
 
         if (useDistinct) {
             var dedupFrom = buildFromClause(
@@ -450,7 +458,12 @@ public final class DuckDbViewCompiler {
                 .map(Field::getFieldName)
                 .collect(Collectors.toUnmodifiableSet());
 
-        return new CompiledView(sql, multiValuedFieldNames, strategy.nonScalarTypeValues());
+        return new CompiledView(
+                sql,
+                multiValuedFieldNames,
+                strategy.nonScalarTypeValues(),
+                collected.syntheticScalarOrdinalFields(),
+                collected.syntheticScalarTypeFields());
     }
 
     // --- Structural annotation optimization helpers ---
@@ -699,22 +712,38 @@ public final class DuckDbViewCompiler {
     }
 
     /**
-     * Collects all SELECT field expressions from expression fields, unnest descriptors, and join
-     * descriptors into a single mutable list.
+     * Bundles the SELECT fields produced by {@link #collectAllFieldSelects} with the sets of
+     * top-level scalar reference field names whose {@code .#} ordinal and / or {@code .__type}
+     * companion columns were suppressed from the projection. The evaluator synthesises
+     * {@code <fieldName>.#} = {@code 0L} entries Java-side for the ordinal-suppressed set; the
+     * type-suppressed set is consumed by recursive parent-view compilation when emitting join
+     * projections, so the join path does not select a non-existent column.
      */
-    private static List<SelectField<?>> collectAllFieldSelects(
+    private record CollectedFieldSelects(
+            List<SelectField<?>> selects,
+            Set<String> syntheticScalarOrdinalFields,
+            Set<String> syntheticScalarTypeFields) {}
+
+    /**
+     * Collects all SELECT field expressions from expression fields, unnest descriptors, and join
+     * descriptors into a single mutable list. Returns the merged list together with the names of
+     * top-level scalar reference fields whose ordinal and / or type companion were suppressed.
+     */
+    private static CollectedFieldSelects collectAllFieldSelects(
             List<ExpressionField> expressionFields,
             List<UnnestDescriptor> unnestDescriptors,
             List<JoinDescriptor> joinDescriptors,
             DuckDbSourceStrategy strategy) {
-        var allSelects = new ArrayList<>(compileFieldSelects(expressionFields, strategy));
+        var compiledFields = compileFieldSelects(expressionFields, strategy);
+        var allSelects = new ArrayList<>(compiledFields.selects());
         for (var unnest : unnestDescriptors) {
             allSelects.addAll(unnest.nestedSelects());
         }
         for (var joinDesc : joinDescriptors) {
             allSelects.addAll(joinDesc.fields());
         }
-        return allSelects;
+        return new CollectedFieldSelects(
+                allSelects, compiledFields.syntheticScalarOrdinalFields(), compiledFields.syntheticScalarTypeFields());
     }
 
     private static DuckDbSourceHandler.CompiledSource compileSourceClause(
@@ -1203,17 +1232,31 @@ public final class DuckDbViewCompiler {
         var joinConditions = viewJoin.getJoinConditions();
         var onCondition = buildJoinCondition(joinConditions, parentAlias, strategy);
 
-        // Build SELECT fields from the join's projected fields (including ordinal and type companions)
+        // Build SELECT fields from the join's projected fields (including ordinal and type
+        // companions). When the parent compilation suppressed a companion column (because it would
+        // be a constant zero or constant null), we synthesise the equivalent value here instead of
+        // selecting a non-existent column from the parent subquery.
+        var parentSuppressedOrdinals = parentCompiledView.syntheticScalarOrdinalFields();
+        var parentSuppressedTypes = parentCompiledView.syntheticScalarTypeFields();
         var joinFields = new ArrayList<SelectField<?>>();
         for (var f : viewJoin.getFields()) {
             joinFields.add(compileJoinFieldExpression(parentAlias, f));
             // Project ordinal from parent view: "parent_N"."reference.#" AS "fieldName.#"
             if (f.getReference() != null) {
-                joinFields.add(field(quotedName(parentAlias, f.getReference() + ".#"))
-                        .as(quotedName(f.getFieldName() + ".#")));
+                if (parentSuppressedOrdinals.contains(f.getReference())) {
+                    joinFields.add(inline(0).cast(Long.class).as(quotedName(f.getFieldName() + ".#")));
+                } else {
+                    joinFields.add(field(quotedName(parentAlias, f.getReference() + ".#"))
+                            .as(quotedName(f.getFieldName() + ".#")));
+                }
                 // Project type from parent view: "parent_N"."reference.__type" AS "fieldName.__type"
-                joinFields.add(field(quotedName(parentAlias, f.getReference() + DuckDbSourceStrategy.TYPE_SUFFIX))
-                        .as(quotedName(f.getFieldName() + DuckDbSourceStrategy.TYPE_SUFFIX)));
+                if (parentSuppressedTypes.contains(f.getReference())) {
+                    joinFields.add(
+                            castNull(String.class).as(quotedName(f.getFieldName() + DuckDbSourceStrategy.TYPE_SUFFIX)));
+                } else {
+                    joinFields.add(field(quotedName(parentAlias, f.getReference() + DuckDbSourceStrategy.TYPE_SUFFIX))
+                            .as(quotedName(f.getFieldName() + DuckDbSourceStrategy.TYPE_SUFFIX)));
+                }
             }
         }
 
@@ -1510,9 +1553,12 @@ public final class DuckDbViewCompiler {
         return compiled.as(fieldAlias(joinField.getFieldName()));
     }
 
-    private static List<SelectField<?>> compileFieldSelects(
+    private static CollectedFieldSelects compileFieldSelects(
             List<ExpressionField> fields, DuckDbSourceStrategy strategy) {
         var selects = new ArrayList<SelectField<?>>();
+        var syntheticOrdinalFields = new HashSet<String>();
+        var syntheticTypeFields = new HashSet<String>();
+        var providesNaturalTypeInfo = strategy.providesNaturalTypeInfo();
         var hasSourceFallback = strategy.sourceEvaluationColumn().isPresent();
         for (var field : fields) {
             SelectField<?> compiled;
@@ -1533,16 +1579,23 @@ public final class DuckDbViewCompiler {
                 throw e;
             }
             selects.add(compiled);
-            // Add ordinal companion for reference-based expression fields.
-            // Single-valued fields always have ordinal 0, cast to BIGINT to match range() type.
+            // Reference-based expression fields:
+            //   - The "<field>.#" ordinal is structurally always 0 for top-level scalar refs, so we
+            //     omit the constant projection and synthesise the value Java-side in the iteration.
+            //   - The "<field>.__type" type companion is omitted only when the strategy reports that
+            //     it would carry no information (e.g. CSV's CAST(NULL AS VARCHAR)). Strategies that
+            //     emit json_type/typeof/inner-view type columns still project those.
             if (field.getReference() != null) {
-                selects.add(inline(0).cast(Long.class).as(quotedName(field.getFieldName() + ".#")));
-                // Add type companion for reference-based expression fields.
-                var typeAlias = quotedName(field.getFieldName() + DuckDbSourceStrategy.TYPE_SUFFIX);
-                selects.add(strategy.compileFieldTypeReference(field.getReference(), typeAlias));
+                syntheticOrdinalFields.add(field.getFieldName());
+                if (providesNaturalTypeInfo) {
+                    var typeAlias = quotedName(field.getFieldName() + DuckDbSourceStrategy.TYPE_SUFFIX);
+                    selects.add(strategy.compileFieldTypeReference(field.getReference(), typeAlias));
+                } else {
+                    syntheticTypeFields.add(field.getFieldName());
+                }
             }
         }
-        return selects;
+        return new CollectedFieldSelects(selects, Set.copyOf(syntheticOrdinalFields), Set.copyOf(syntheticTypeFields));
     }
 
     private static SelectField<?> compileFieldExpression(ExpressionField exprField, DuckDbSourceStrategy strategy) {

@@ -634,10 +634,18 @@ public class DuckDbLogicalViewEvaluator implements LogicalViewEvaluator {
         }
 
         private LinkedHashMap<String, Object> readColumnValues(int zeroBasedIndex) throws SQLException {
-            var values = new LinkedHashMap<String, Object>(columns.valueNames.size() + 1);
+            var syntheticOrdinals = compiledView.syntheticScalarOrdinalFields();
+            var values = new LinkedHashMap<String, Object>(columns.valueNames.size() + syntheticOrdinals.size() + 1);
             values.put(INDEX_KEY, zeroBasedIndex);
             for (var colName : columns.valueNames) {
                 values.put(colName, readColumnValue(colName));
+            }
+            // Synthesise the ".#" ordinal companion for top-level scalar reference fields whose
+            // constant-zero projection was suppressed at compile time. Mirrors what the reactive
+            // DefaultLogicalViewEvaluator emits for the same fields and keeps the downstream
+            // contract (iteration.getValue("<f>.#") -> Optional.of(0L)) bit-for-bit identical.
+            for (var fieldName : syntheticOrdinals) {
+                values.put(fieldName + INDEX_KEY_SUFFIX, 0L);
             }
             return values;
         }

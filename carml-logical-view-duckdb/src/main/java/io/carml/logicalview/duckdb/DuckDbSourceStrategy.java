@@ -161,4 +161,20 @@ sealed interface DuckDbSourceStrategy permits ColumnSourceStrategy, JsonIterator
      * @throws UnsupportedOperationException if the source type does not support multi-valued fields
      */
     UnnestDescriptor compileMultiValuedUnnestDescriptor(ExpressionField field, String cteAlias);
+
+    /**
+     * Indicates whether this strategy emits a meaningful per-row type companion. When {@code true},
+     * top-level scalar reference fields project a {@code .__type} column whose value carries useful
+     * type information (e.g., DuckDB's {@code json_type()} or {@code typeof()} output). When
+     * {@code false}, the type companion would be a constant — typically {@code CAST(NULL AS
+     * VARCHAR)} — and the compiler can suppress the projection entirely without losing information.
+     *
+     * <p>Defaults to {@code true} because most strategies do provide type information; column-based
+     * sources without type metadata override this to opt out.
+     *
+     * @return {@code true} when the strategy emits a type companion that carries information
+     */
+    default boolean providesNaturalTypeInfo() {
+        return true;
+    }
 }

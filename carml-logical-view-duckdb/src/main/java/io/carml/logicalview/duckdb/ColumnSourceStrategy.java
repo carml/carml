@@ -48,25 +48,47 @@ final class ColumnSourceStrategy implements DuckDbSourceStrategy {
 
     private final Map<String, String> fieldNameToRefMap;
 
+    /**
+     * Inner-view references whose {@code .__type} companion was suppressed during the inner view's
+     * own compilation (because the inner strategy reported no natural type info). Used only in
+     * {@link TypeCompanionMode#INNER_VIEW} mode: if a reference appears in this set, the strategy
+     * falls back to a constant {@code CAST(NULL AS VARCHAR)} type companion instead of selecting a
+     * non-existent {@code <reference>.__type} column from the inner subquery. Empty for the
+     * non-INNER_VIEW modes.
+     */
+    private final Set<String> innerSuppressedTypeReferences;
+
     ColumnSourceStrategy(String cteAlias, TypeCompanionMode typeCompanionMode) {
-        this(cteAlias, typeCompanionMode, Map.of());
+        this(cteAlias, typeCompanionMode, Map.of(), Set.of());
     }
 
     private ColumnSourceStrategy(
-            String cteAlias, TypeCompanionMode typeCompanionMode, Map<String, String> fieldNameToRefMap) {
+            String cteAlias,
+            TypeCompanionMode typeCompanionMode,
+            Map<String, String> fieldNameToRefMap,
+            Set<String> innerSuppressedTypeReferences) {
         this.cteAlias = cteAlias;
         this.typeCompanionMode = typeCompanionMode;
         this.fieldNameToRefMap = fieldNameToRefMap;
+        this.innerSuppressedTypeReferences = innerSuppressedTypeReferences;
     }
 
     static ColumnSourceStrategy create(
             Set<io.carml.model.Field> viewFields, String cteAlias, TypeCompanionMode typeCompanionMode) {
+        return create(viewFields, cteAlias, typeCompanionMode, Set.of());
+    }
+
+    static ColumnSourceStrategy create(
+            Set<io.carml.model.Field> viewFields,
+            String cteAlias,
+            TypeCompanionMode typeCompanionMode,
+            Set<String> innerSuppressedTypeReferences) {
         var fieldNameToRefMap = viewFields.stream()
                 .filter(ExpressionField.class::isInstance)
                 .map(ExpressionField.class::cast)
                 .filter(f -> f.getReference() != null)
                 .collect(Collectors.toUnmodifiableMap(ExpressionField::getFieldName, ExpressionField::getReference));
-        return new ColumnSourceStrategy(cteAlias, typeCompanionMode, fieldNameToRefMap);
+        return new ColumnSourceStrategy(cteAlias, typeCompanionMode, fieldNameToRefMap, innerSuppressedTypeReferences);
     }
 
     @Override
@@ -117,8 +139,15 @@ final class ColumnSourceStrategy implements DuckDbSourceStrategy {
 
     private SelectField<?> compileTypeReference(String tableAlias, String reference, Name typeAlias) {
         return switch (typeCompanionMode) {
-            case INNER_VIEW ->
-                field(quotedName(tableAlias, reference + TYPE_SUFFIX)).as(typeAlias);
+            case INNER_VIEW -> {
+                if (innerSuppressedTypeReferences.contains(reference)) {
+                    // Inner view did not project "<reference>.__type" because its own strategy
+                    // reported no natural type info. Emit the equivalent constant null so the
+                    // outer query stays well-formed.
+                    yield castNull(String.class).as(typeAlias);
+                }
+                yield field(quotedName(tableAlias, reference + TYPE_SUFFIX)).as(typeAlias);
+            }
             case SQL_TYPEOF ->
                 DSL.field("typeof({0})", field(quotedName(tableAlias, reference)))
                         .as(typeAlias);
@@ -159,5 +188,12 @@ final class ColumnSourceStrategy implements DuckDbSourceStrategy {
     @Override
     public UnnestDescriptor compileMultiValuedUnnestDescriptor(ExpressionField field, String cteAlias) {
         throw new UnsupportedOperationException("Column-based sources do not support multi-valued expression fields");
+    }
+
+    @Override
+    public boolean providesNaturalTypeInfo() {
+        // NONE produces a constant CAST(NULL AS VARCHAR) — no information, safe to suppress.
+        // SQL_TYPEOF and INNER_VIEW carry meaningful per-row type data.
+        return typeCompanionMode != TypeCompanionMode.NONE;
     }
 }

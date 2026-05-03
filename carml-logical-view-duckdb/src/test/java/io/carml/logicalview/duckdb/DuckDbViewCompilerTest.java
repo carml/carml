@@ -2,6 +2,7 @@ package io.carml.logicalview.duckdb;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -952,6 +953,8 @@ class DuckDbViewCompilerTest {
             // The default-iterator path (root path "$") produces an UNNEST over a CASE that
             // handles both array-rooted documents (expand into one row per element) and
             // object-rooted documents (single row), matching the reactive resolver's behavior.
+            // The "name.#" ordinal companion is suppressed from SQL because for top-level scalar
+            // references it is structurally always 0 — the evaluator synthesises it Java-side.
             var view = createJsonView("people.json", null, Set.of(expressionField("name", "name")));
             var context = EvaluationContext.defaults();
 
@@ -967,7 +970,6 @@ class DuckDbViewCompilerTest {
                     with "view_source" as (\
                     select *, row_number() over () "__idx" from %s\
                     ) select json_extract_string("view_source"."__iter", 'name') "name", \
-                    cast(0 as bigint) "name.#", \
                     json_type("view_source"."__iter", 'name') "name.__type", \
                     "view_source"."__idx", \
                     "view_source"."__iter" "__iter" \
@@ -979,6 +981,8 @@ class DuckDbViewCompilerTest {
 
         @Test
         void compile_withDistinctAndLimit_producesCorrectStructure() {
+            // The "name.#" ordinal companion is suppressed from SQL (synthesised Java-side); the
+            // type companion is retained because JSON's json_type() carries information.
             var view = createJsonView("people.json", null, Set.of(expressionField("name", "name")));
             var context = EvaluationContext.of(Set.of(), DedupStrategy.exact(), 10L);
 
@@ -992,7 +996,6 @@ class DuckDbViewCompilerTest {
                     + "select *, row_number() over () \"__idx\" from " + rootIteratorSource
                     + "), \"deduped\" as ("
                     + "select distinct json_extract_string(\"view_source\".\"__iter\", 'name') \"name\", "
-                    + "cast(0 as bigint) \"name.#\", "
                     + "json_type(\"view_source\".\"__iter\", 'name') \"name.__type\" "
                     + "from \"view_source\""
                     + ") select *, "
@@ -1030,11 +1033,17 @@ class DuckDbViewCompilerTest {
             var view = createJsonView("data.json", "$.people[*]", Set.of(expressionField("name", "$.name")));
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context).sql();
+            var compiled = DuckDbViewCompiler.compile(view, context);
 
-            // Single-valued field should have ordinal companion of 0 (BIGINT)
-            assertThat(sql, containsString("json_extract_string(\"view_source\".\"__iter\", '$.name') \"name\""));
-            assertThat(sql, containsString("cast(0 as bigint) \"name.#\""));
+            // The single-valued reference field's value column is in SQL as usual.
+            assertThat(
+                    compiled.sql(),
+                    containsString("json_extract_string(\"view_source\".\"__iter\", '$.name') \"name\""));
+            // The ".#" ordinal companion is not projected — it is structurally always 0 and the
+            // evaluator synthesises it Java-side. The compiled view exposes the field name so the
+            // evaluator knows to populate values.put("name.#", 0L).
+            assertThat(compiled.sql(), not(containsString("cast(0 as bigint) \"name.#\"")));
+            assertThat(compiled.syntheticScalarOrdinalFields(), is(Set.of("name")));
         }
 
         @Test
@@ -1049,15 +1058,19 @@ class DuckDbViewCompilerTest {
             var view = createJsonViewWithFields("data.json", "$.people[*]", fields);
             var context = EvaluationContext.defaults();
 
-            var sql = DuckDbViewCompiler.compile(view, context).sql();
+            var compiled = DuckDbViewCompiler.compile(view, context);
 
-            // Single-valued field with ordinal companion (BIGINT)
-            assertThat(sql, containsString("json_extract_string(\"view_source\".\"__iter\", '$.name') \"name\""));
-            assertThat(sql, containsString("cast(0 as bigint) \"name.#\""));
-            // Multi-valued field with UNNEST
-            assertThat(sql, containsString("LATERAL"));
-            assertThat(sql, containsString("json_extract_string(\"item\".\"unnest\", '$') \"item\""));
-            assertThat(sql, containsString("\"item\".\"__ord\" \"item.#\""));
+            // Single-valued field's value column is projected; its ".#" ordinal is suppressed
+            // (synthesised Java-side via syntheticScalarOrdinalFields).
+            assertThat(
+                    compiled.sql(),
+                    containsString("json_extract_string(\"view_source\".\"__iter\", '$.name') \"name\""));
+            assertThat(compiled.sql(), not(containsString("cast(0 as bigint) \"name.#\"")));
+            assertThat(compiled.syntheticScalarOrdinalFields(), is(Set.of("name")));
+            // Multi-valued field still uses real UNNEST ordinals; those are NOT synthesised.
+            assertThat(compiled.sql(), containsString("LATERAL"));
+            assertThat(compiled.sql(), containsString("json_extract_string(\"item\".\"unnest\", '$') \"item\""));
+            assertThat(compiled.sql(), containsString("\"item\".\"__ord\" \"item.#\""));
         }
 
         @Test
@@ -1075,11 +1088,15 @@ class DuckDbViewCompilerTest {
 
             var sql = DuckDbViewCompiler.compile(view, context).sql();
 
-            // Join projected field
+            // Join projected field's value column is selected from the parent subquery as usual.
             assertThat(sql, containsString("\"parent_0\".\"value\" \"parent_value\""));
-            // Join projected field ordinal
-            assertThat(sql, containsString("\"parent_0\".\"value.#\" \"parent_value.#\""));
-            // Join projected field type companion
+            // The parent's "value.#" ordinal column was suppressed at parent-compile time, so the
+            // join synthesises the equivalent constant zero inline rather than selecting a missing
+            // column. The ".#" ordinal alias on the child side stays the same.
+            assertThat(sql, containsString("cast(0 as bigint) \"parent_value.#\""));
+            assertThat(sql, not(containsString("\"parent_0\".\"value.#\"")));
+            // The parent's JSON strategy DOES project a meaningful "value.__type" column, so the
+            // join still selects it as before.
             assertThat(sql, containsString("\"parent_0\".\"value.__type\" \"parent_value.__type\""));
         }
 
@@ -1158,6 +1175,69 @@ class DuckDbViewCompilerTest {
             // UNION ALL fallback is added for this always-non-empty path.
             assertThat(sql, containsString("LATERAL"));
             assertThat(sql, not(containsString("\"_empty_check\"")));
+        }
+    }
+
+    // --- Scaffolding-column trimming tests ---
+
+    @Nested
+    class ScaffoldingTrim {
+
+        @Test
+        void compile_csvScalarReference_doesNotEmitOrdinalScaffolding() {
+            // CSV is a column-based source with TypeCompanionMode.NONE, so both the constant
+            // ordinal column and the constant-NULL type column carry no information and are
+            // suppressed. The "name" value column is still projected as usual.
+            var view = createCsvView("data.csv", Set.of(expressionField("name", "name")));
+            var context = EvaluationContext.defaults();
+
+            var sql = DuckDbViewCompiler.compile(view, context).sql();
+
+            assertThat(sql, containsString("\"name\" \"name\""));
+            assertThat(sql, not(containsString("cast(0 as bigint) \"name.#\"")));
+            assertThat(sql, not(containsString("cast(null as varchar) \"name.__type\"")));
+        }
+
+        @Test
+        void compile_csvScalarReference_compiledViewExposesSyntheticOrdinal() {
+            var view = createCsvView("data.csv", Set.of(expressionField("name", "name")));
+            var context = EvaluationContext.defaults();
+
+            var compiled = DuckDbViewCompiler.compile(view, context);
+
+            // The evaluator uses this set to synthesise values.put("name.#", 0L) per iteration.
+            assertThat(compiled.syntheticScalarOrdinalFields(), is(Set.of("name")));
+        }
+
+        @Test
+        void compile_jsonScalarReference_emitsTypeCompanion() {
+            // JSON sources provide natural type info via json_type(), so the type companion is
+            // retained even though the constant ordinal column is suppressed.
+            var view = createJsonView("data.json", "$.items[*]", Set.of(expressionField("id", "id")));
+            var context = EvaluationContext.defaults();
+
+            var compiled = DuckDbViewCompiler.compile(view, context);
+
+            assertThat(compiled.sql(), containsString("json_type(\"view_source\".\"__iter\", 'id') \"id.__type\""));
+            assertThat(compiled.sql(), not(containsString("cast(0 as bigint) \"id.#\"")));
+            assertThat(compiled.syntheticScalarOrdinalFields(), is(Set.of("id")));
+        }
+
+        @Test
+        void compile_iterableField_emitsRealOrdinal() {
+            // IterableField ordinals come from UNNEST and are NOT structurally constant, so the
+            // suppression must not apply to them. The "item.#" projection from the LATERAL
+            // subquery's __ord column is preserved, and the field is NOT added to the synthesised
+            // set.
+            var nestedField = expressionField("name", "$.name");
+            var iterableField = iterableField("item", "$.items[*]", Set.of(nestedField));
+            var view = createJsonViewWithFields("data.json", null, Set.of(iterableField));
+            var context = EvaluationContext.defaults();
+
+            var compiled = DuckDbViewCompiler.compile(view, context);
+
+            assertThat(compiled.sql(), containsString("\"item\".\"__ord\" \"item.#\""));
+            assertThat(compiled.syntheticScalarOrdinalFields(), not(hasItem("item")));
         }
     }
 
