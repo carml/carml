@@ -71,18 +71,15 @@ final class JsonPathSourceHandler implements DuckDbSourceHandler {
         // match all children). Normalize ".*" → "[*]" so DuckDB iterates arrays correctly.
         var basePath = normalizeChildWildcard(parsed.basePath());
 
-        // Borrowed reference; the factory owns and closes the cache.
-        @SuppressWarnings("resource")
-        var ndjsonCache = DuckDbViewCompiler.currentNdjsonTranscodeCache();
-        var sourceSql = ndjsonCache != null
-                ? ndjsonCache
-                        .tryGetSourceSql(
-                                filePath,
-                                basePath,
-                                !parsed.slices().isEmpty(),
-                                !parsed.unions().isEmpty())
-                        .orElseGet(() -> compileIteratorSql(filePath, basePath))
-                : compileIteratorSql(filePath, basePath);
+        var hasSlice = !parsed.slices().isEmpty();
+        var hasUnion = !parsed.unions().isEmpty();
+
+        // Direct-NDJSON detection runs before the transcode cache: a {-rooted NDJSON file would
+        // otherwise be misclassified as a single object root and stream-transcoded incorrectly.
+        var directNdjsonSql =
+                JsonNdjsonTranscodeCache.tryGetDirectNdjsonSourceSql(filePath, basePath, hasSlice, hasUnion);
+        var sourceSql =
+                directNdjsonSql.orElseGet(() -> resolveTranscodedOrReadTextSql(filePath, basePath, hasSlice, hasUnion));
 
         if (!parsed.filters().isEmpty()) {
             var filterCondition = parsed.filters().stream()
@@ -94,6 +91,25 @@ final class JsonPathSourceHandler implements DuckDbSourceHandler {
         }
 
         return new CompiledSource(sourceSql, JsonIteratorSourceStrategy.create(viewFields, cteAlias, JSON_ITER_COLUMN));
+    }
+
+    /**
+     * Falls through to the transcode cache (when bound) and then to the {@code read_text} path. The
+     * direct-NDJSON branch in {@link #compileSource} runs first; this helper covers the remaining
+     * source shapes: large JSON-array files (transcoded) and everything else (small files, sub-array
+     * iterators, recursive descent, etc.).
+     */
+    private static String resolveTranscodedOrReadTextSql(
+            String filePath, String basePath, boolean hasSlice, boolean hasUnion) {
+        // Borrowed reference; the factory owns and closes the cache.
+        @SuppressWarnings("resource")
+        var ndjsonCache = DuckDbViewCompiler.currentNdjsonTranscodeCache();
+        if (ndjsonCache == null) {
+            return compileIteratorSql(filePath, basePath);
+        }
+        return ndjsonCache
+                .tryGetSourceSql(filePath, basePath, hasSlice, hasUnion)
+                .orElseGet(() -> compileIteratorSql(filePath, basePath));
     }
 
     /**

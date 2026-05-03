@@ -23,6 +23,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class JsonNdjsonTranscodeCacheTest {
 
@@ -289,6 +292,115 @@ class JsonNdjsonTranscodeCacheTest {
     }
 
     @Test
+    void tryGetDirectNdjsonSourceSql_ndjsonFile_returnsDirectSqlOverSource() throws IOException {
+        var sourceFile = tempDir.resolve("data.ndjson");
+        writeNdjsonFile(sourceFile, 50, "ndj");
+
+        var result = JsonNdjsonTranscodeCache.tryGetDirectNdjsonSourceSql(sourceFile.toString(), "$[*]", false, false);
+
+        assertThat(result.isPresent(), is(true));
+        assertThat(result.get(), containsString("read_ndjson_objects"));
+        assertThat(result.get(), containsString(sourceFile.toAbsolutePath().toString()));
+    }
+
+    @Test
+    void tryGetDirectNdjsonSourceSql_dollarIterator_returnsDirectSql() throws IOException {
+        var sourceFile = tempDir.resolve("data.ndjson");
+        writeNdjsonFile(sourceFile, 50, "ndj");
+
+        var result = JsonNdjsonTranscodeCache.tryGetDirectNdjsonSourceSql(sourceFile.toString(), "$", false, false);
+
+        assertThat(result.isPresent(), is(true));
+        assertThat(result.get(), containsString("read_ndjson_objects"));
+    }
+
+    /**
+     * Parameter source for {@link #tryGetDirectNdjsonSourceSql_nonNdjsonShape_returnsEmpty}: the
+     * file shape is incompatible with NDJSON regardless of iterator. Files with a comment-style
+     * preamble are included to confirm the detector rejects garbage prefixes.
+     */
+    static Stream<Arguments> nonNdjsonShapes() {
+        return Stream.of(
+                Arguments.of("single object", "{\"foo\":\"bar\",\"baz\":42}"),
+                Arguments.of("JSON array", "[{\"id\":1},{\"id\":2}]"),
+                Arguments.of("empty file", ""),
+                Arguments.of("garbage prefix", "// preamble\n{\"id\":0}\n{\"id\":1}\n"));
+    }
+
+    @ParameterizedTest(name = "[{index}] {0}")
+    @MethodSource("nonNdjsonShapes")
+    void tryGetDirectNdjsonSourceSql_nonNdjsonShape_returnsEmpty(String label, String content) throws IOException {
+        var sourceFile = tempDir.resolve("data.json");
+        Files.writeString(sourceFile, content);
+
+        var result = JsonNdjsonTranscodeCache.tryGetDirectNdjsonSourceSql(sourceFile.toString(), "$[*]", false, false);
+
+        assertThat(label, result.isPresent(), is(false));
+    }
+
+    /**
+     * Parameter source for {@link #tryGetDirectNdjsonSourceSql_ineligibleIterator_returnsEmpty}:
+     * the source IS a valid NDJSON file but the iterator shape (or selector flags) means the
+     * direct read isn't applicable.
+     */
+    static Stream<Arguments> ineligibleIteratorParams() {
+        return Stream.of(
+                Arguments.of("sub-path iterator", "$.records[*]", false, false),
+                Arguments.of("slice selector", "$[*]", true, false),
+                Arguments.of("union selector", "$[*]", false, true));
+    }
+
+    @ParameterizedTest(name = "[{index}] {0}")
+    @MethodSource("ineligibleIteratorParams")
+    void tryGetDirectNdjsonSourceSql_ineligibleIterator_returnsEmpty(
+            String label, String basePath, boolean hasSlice, boolean hasUnion) throws IOException {
+        var sourceFile = tempDir.resolve("data.ndjson");
+        writeNdjsonFile(sourceFile, 50, "ndj");
+
+        var result = JsonNdjsonTranscodeCache.tryGetDirectNdjsonSourceSql(
+                sourceFile.toString(), basePath, hasSlice, hasUnion);
+
+        assertThat(label, result.isPresent(), is(false));
+    }
+
+    @Test
+    void tryGetDirectNdjsonSourceSql_remoteUrl_returnsEmpty() {
+        var result = JsonNdjsonTranscodeCache.tryGetDirectNdjsonSourceSql(
+                "https://example.com/data.ndjson", "$[*]", false, false);
+
+        assertThat(result.isPresent(), is(false));
+    }
+
+    @Test
+    void tryGetDirectNdjsonSourceSql_bomPrefixedNdjson_returnsDirectSql() throws IOException {
+        var sourceFile = tempDir.resolve("data.ndjson");
+        writeNdjsonFileWithBom(sourceFile, 20);
+
+        var result = JsonNdjsonTranscodeCache.tryGetDirectNdjsonSourceSql(sourceFile.toString(), "$[*]", false, false);
+
+        assertThat(result.isPresent(), is(true));
+        assertThat(result.get(), containsString("read_ndjson_objects"));
+    }
+
+    @Test
+    void tryGetDirectNdjsonSourceSql_firstRecordExceedsPeekBudget_returnsEmpty() throws IOException {
+        // Single record padded past the 4 KB peek budget so its closing brace lands outside the
+        // window. The detector conservatively reports "not NDJSON" rather than guessing.
+        var sourceFile = tempDir.resolve("wide.ndjson");
+        var bigPad = "x".repeat(8192);
+        try (var out = Files.newOutputStream(sourceFile)) {
+            out.write("{\"id\":0,\"pad\":\"%s\"}".formatted(bigPad).getBytes(StandardCharsets.UTF_8));
+            out.write('\n');
+            out.write("{\"id\":1}".getBytes(StandardCharsets.UTF_8));
+            out.write('\n');
+        }
+
+        var result = JsonNdjsonTranscodeCache.tryGetDirectNdjsonSourceSql(sourceFile.toString(), "$[*]", false, false);
+
+        assertThat(result.isPresent(), is(false));
+    }
+
+    @Test
     void constructor_nullCacheDir_throws() {
         assertThrows(IllegalArgumentException.class, () -> {
             try (var cacheUnderTest = new JsonNdjsonTranscodeCache(null)) {
@@ -445,6 +557,37 @@ class JsonNdjsonTranscodeCacheTest {
         }
         ensureAboveThreshold(path);
         return recordCount;
+    }
+
+    /**
+     * Writes a genuine NDJSON file (one JSON object per line, no surrounding array). The size is
+     * not pinned to {@link #TEST_THRESHOLD} since direct-NDJSON detection has no size threshold —
+     * any well-formed NDJSON shape qualifies.
+     */
+    private static void writeNdjsonFile(Path path, int recordCount, String prefix) throws IOException {
+        var padding = "x".repeat(20);
+        try (var out = Files.newOutputStream(path)) {
+            for (var i = 0; i < recordCount; i++) {
+                writeRecord(out, i, prefix, padding);
+                out.write('\n');
+            }
+        }
+    }
+
+    /**
+     * Writes an NDJSON file prefixed with the UTF-8 BOM ({@code 0xEF 0xBB 0xBF}). The shape detector
+     * must skip the BOM before scanning, otherwise BOM-prefixed NDJSON would not match the
+     * {@code '{'} prefix check.
+     */
+    private static void writeNdjsonFileWithBom(Path path, int recordCount) throws IOException {
+        var padding = "x".repeat(20);
+        try (var out = Files.newOutputStream(path)) {
+            out.write(new byte[] {(byte) 0xEF, (byte) 0xBB, (byte) 0xBF});
+            for (var i = 0; i < recordCount; i++) {
+                writeRecord(out, i, "ndj", padding);
+                out.write('\n');
+            }
+        }
     }
 
     private static void writeRecord(OutputStream out, int id, String prefix, String padding) throws IOException {

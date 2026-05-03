@@ -53,7 +53,21 @@ final class JsonNdjsonTranscodeCache implements AutoCloseable {
 
     private static final String TRANSCODE_PREFIX = "__carml_ndjson_";
 
+    /**
+     * Byte budget for the structural-byte peek used by {@link #peekFirstStructuralByte} to decide
+     * whether the file root is {@code [} or {@code {}}. Distinct from {@link #NDJSON_PEEK_BYTES},
+     * which is the wider budget used by {@link #isNdjsonShape} (and the helpers it dispatches to)
+     * when looking for two consecutive top-level objects.
+     */
     private static final int PEEK_BYTES = 32;
+
+    /**
+     * Byte budget for the NDJSON-shape peek. Wide enough to fit several typical records back-to-back
+     * but small enough that the I/O is negligible. If the first record exceeds this budget the peek
+     * conservatively returns "not NDJSON" and the caller falls back; the optimization is missed but
+     * correctness is preserved.
+     */
+    private static final int NDJSON_PEEK_BYTES = 4096;
 
     private static final byte[] UTF8_BOM = {(byte) 0xEF, (byte) 0xBB, (byte) 0xBF};
 
@@ -119,6 +133,11 @@ final class JsonNdjsonTranscodeCache implements AutoCloseable {
      * downstream {@link JsonIteratorSourceStrategy} can keep using the {@code __iter} column
      * unchanged.
      *
+     * <p>See {@link #tryGetDirectNdjsonSourceSql} for the sibling check that handles files which
+     * are <em>already</em> NDJSON-shaped — that branch should run before this one so a real NDJSON
+     * file is read directly via {@code read_ndjson_objects} rather than being misclassified as an
+     * object root and JSurfer-streamed.
+     *
      * @param filePath absolute path of the source JSON file
      * @param basePath the analyzer-normalized streaming base path (e.g. {@code $.records[*]})
      * @param hasSlice {@code true} if the iterator includes a slice selector ({@code [s:e:step]})
@@ -149,6 +168,55 @@ final class JsonNdjsonTranscodeCache implements AutoCloseable {
             return Optional.empty();
         }
         return Optional.of(buildSourceSql(resolved));
+    }
+
+    /**
+     * Returns the SQL fragment that reads the source as NDJSON directly via DuckDB's
+     * {@code read_ndjson_objects} when the file is genuinely NDJSON-shaped, or
+     * {@link Optional#empty()} otherwise. Unlike {@link #tryGetSourceSql} this is a static check
+     * with no transcoding or caching: the source file IS the NDJSON, so we just point DuckDB at it.
+     *
+     * <p>Eligibility:
+     * <ul>
+     *   <li>{@code filePath} resolves to a local regular file (no remote URLs).</li>
+     *   <li>{@code basePath} (after analyzer normalization) is {@code $} or {@code $[*]} — anything
+     *       deeper assumes structure inside a single root document and is incompatible with the
+     *       record-per-line NDJSON shape.</li>
+     *   <li>No slice or union selectors in the iterator (those would constrain the rows after
+     *       reading; the read itself is full-file).</li>
+     *   <li>A {@value #NDJSON_PEEK_BYTES}-byte file peek confirms NDJSON shape: first non-whitespace
+     *       byte is {@code '{'}, the first complete top-level object closes, and another {@code '{'}
+     *       follows after intervening whitespace. A single-object file or a file whose first record
+     *       exceeds the peek budget conservatively falls back to {@link Optional#empty()}.</li>
+     * </ul>
+     *
+     * <p>This branch must run BEFORE {@link #tryGetSourceSql} on the caller's side: a {@code {}}-rooted
+     * NDJSON file would otherwise look "object-rooted" to {@link #toStreamingPath} and the transcode
+     * would try to JSurfer-stream it as a single root object, producing wrong output.
+     */
+    static Optional<String> tryGetDirectNdjsonSourceSql(
+            String filePath, String basePath, boolean hasSlice, boolean hasUnion) {
+        if (hasSlice || hasUnion) {
+            return Optional.empty();
+        }
+        if (filePath == null || filePath.isBlank() || basePath == null || basePath.isBlank()) {
+            return Optional.empty();
+        }
+        if (filePath.contains("://")) {
+            return Optional.empty();
+        }
+        var normalized = JsonPathSourceHandler.normalizeChildWildcard(basePath.strip());
+        if (!"$".equals(normalized) && !"$[*]".equals(normalized)) {
+            return Optional.empty();
+        }
+        var path = Path.of(filePath);
+        if (!Files.isRegularFile(path)) {
+            return Optional.empty();
+        }
+        if (!isNdjsonShape(path)) {
+            return Optional.empty();
+        }
+        return Optional.of(buildSourceSql(path));
     }
 
     /**
@@ -221,8 +289,8 @@ final class JsonNdjsonTranscodeCache implements AutoCloseable {
         }
 
         if ("$".equals(normalized)) {
-            // Iterator $ only iterates multiple records when the document is a top-level array;
-            // a top-level object yields a single record and gains nothing from transcoding.
+            // Iterator $ only iterates multiple records when the document is a top-level array.
+            // A top-level object yields a single record and gains nothing from transcoding.
             return peekFirstStructuralByte(file) == '[' ? "$[*]" : null;
         }
         if ("$[*]".equals(normalized)) {
@@ -268,27 +336,154 @@ final class JsonNdjsonTranscodeCache implements AutoCloseable {
      */
     private static int peekFirstStructuralByte(Path file) {
         try (var in = new BufferedInputStream(Files.newInputStream(file))) {
-            in.mark(UTF8_BOM.length);
-            var bom = new byte[UTF8_BOM.length];
-            var bomRead = in.readNBytes(bom, 0, UTF8_BOM.length);
-            if (bomRead != UTF8_BOM.length || !java.util.Arrays.equals(bom, UTF8_BOM)) {
-                in.reset();
-            }
-
+            skipBom(in);
             for (var i = 0; i < PEEK_BYTES; i++) {
                 var nextByte = in.read();
                 if (nextByte < 0) {
                     return -1;
                 }
-                if (Character.isWhitespace((char) nextByte)) {
-                    continue;
+                if (!Character.isWhitespace((char) nextByte)) {
+                    return nextByte;
                 }
-                return nextByte;
             }
         } catch (IOException e) {
             LOG.debug("Could not peek file [{}] for structural-byte check", file, e);
         }
         return -1;
+    }
+
+    /**
+     * Peeks the first {@value #NDJSON_PEEK_BYTES} bytes (after any UTF-8 BOM) and returns
+     * {@code true} when the file shape is consistent with NDJSON: first non-whitespace byte is
+     * {@code '{'}, the first complete top-level object closes within the budget, and another
+     * {@code '{'} follows (after intervening whitespace). The scan runs in three phases — locate
+     * the opening brace, consume the first object (with string-aware brace depth), confirm the
+     * next non-whitespace byte is another opening brace — each phase isolated in a small helper
+     * to keep cognitive complexity low.
+     */
+    private static boolean isNdjsonShape(Path file) {
+        try (var in = new BufferedInputStream(Files.newInputStream(file))) {
+            skipBom(in);
+            var afterOpen = findFirstOpeningBrace(in, NDJSON_PEEK_BYTES);
+            if (afterOpen < 0) {
+                return false;
+            }
+            var afterClose = consumeFirstObject(in, afterOpen);
+            if (afterClose < 0) {
+                return false;
+            }
+            return nextNonWhitespaceIsOpeningBrace(in, afterClose);
+        } catch (IOException e) {
+            LOG.debug("Could not peek file [{}] for NDJSON shape", file, e);
+            return false;
+        }
+    }
+
+    /**
+     * Skips a leading UTF-8 BOM ({@code 0xEF 0xBB 0xBF}) on the given mark-supporting stream so
+     * the next byte read by callers is the first content byte. If no BOM is present the stream is
+     * reset to its original position. Callers must not rely on {@code mark}/{@code reset} after
+     * this method returns.
+     */
+    private static void skipBom(BufferedInputStream in) throws IOException {
+        in.mark(UTF8_BOM.length);
+        var bom = new byte[UTF8_BOM.length];
+        var bomRead = in.readNBytes(bom, 0, UTF8_BOM.length);
+        if (bomRead != UTF8_BOM.length || !java.util.Arrays.equals(bom, UTF8_BOM)) {
+            in.reset();
+        }
+    }
+
+    /**
+     * Skips whitespace until the first non-whitespace byte. Returns the remaining peek budget
+     * after consuming the {@code '{'} when the first non-whitespace byte is an opening brace,
+     * otherwise {@code -1}.
+     */
+    private static int findFirstOpeningBrace(BufferedInputStream in, int budget) throws IOException {
+        while (budget > 0) {
+            var b = in.read();
+            budget--;
+            if (b < 0) {
+                return -1;
+            }
+            if (!Character.isWhitespace((char) b)) {
+                return b == '{' ? budget : -1;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Walks bytes from inside the first object (one {@code '{'} already consumed) until its
+     * matching {@code '}'} closes the depth-1 frame. Strings are skipped via {@link #consumeString}
+     * so embedded {@code {} braces inside string values do not confuse the depth counter. Returns
+     * the remaining peek budget on success, {@code -1} if the object did not close within the
+     * budget or the file ended mid-object.
+     */
+    private static int consumeFirstObject(BufferedInputStream in, int budget) throws IOException {
+        var depth = 1;
+        while (budget > 0) {
+            var b = in.read();
+            budget--;
+            if (b < 0) {
+                return -1;
+            }
+            if (b == '"') {
+                budget = consumeString(in, budget);
+                if (budget < 0) {
+                    return -1;
+                }
+            } else if (b == '{') {
+                depth++;
+            } else if (b == '}' && --depth == 0) {
+                return budget;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Consumes bytes from inside a JSON string (one opening {@code '"'} already consumed) until the
+     * matching close quote. Skips the byte after a backslash so escaped quotes do not terminate the
+     * string prematurely. Returns the remaining peek budget after consuming the closing {@code '"'},
+     * or {@code -1} if the string did not close within the budget.
+     */
+    private static int consumeString(BufferedInputStream in, int budget) throws IOException {
+        while (budget > 0) {
+            var b = in.read();
+            budget--;
+            if (b < 0) {
+                return -1;
+            }
+            if (b == '\\') {
+                if (in.read() < 0) {
+                    return -1;
+                }
+                budget--;
+            } else if (b == '"') {
+                return budget;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Skips whitespace and returns {@code true} when the next non-whitespace byte within the
+     * remaining budget is {@code '{'}, otherwise {@code false} (including when the file ends or
+     * the budget is exhausted before a non-whitespace byte appears).
+     */
+    private static boolean nextNonWhitespaceIsOpeningBrace(BufferedInputStream in, int budget) throws IOException {
+        while (budget > 0) {
+            var b = in.read();
+            budget--;
+            if (b < 0) {
+                return false;
+            }
+            if (!Character.isWhitespace((char) b)) {
+                return b == '{';
+            }
+        }
+        return false;
     }
 
     private Path nextOutputPath() {
@@ -297,36 +492,13 @@ final class JsonNdjsonTranscodeCache implements AutoCloseable {
     }
 
     private static boolean transcode(Path source, String jsurferPath, Path target) {
-        try {
-            Files.createDirectories(target.getParent() == null ? target : target.getParent());
-        } catch (IOException e) {
-            LOG.warn("Failed to ensure NDJSON cache directory exists for [{}]", target, e);
+        if (!ensureCacheDirectory(target)) {
             return false;
         }
-
         try (var in = new BufferedInputStream(Files.newInputStream(source));
                 var out = new BufferedOutputStream(Files.newOutputStream(target))) {
             var configBuilder = JSON_SURFER.configBuilder();
-            configBuilder.bind(jsurferPath, (value, context) -> {
-                if (!(value instanceof JsonNode node)) {
-                    throw new TranscodeAborted(
-                            new IOException("JSurfer produced non-JsonNode value: %s".formatted(value)));
-                }
-                if (!node.isObject()) {
-                    // DuckDB's read_ndjson_objects requires every line to be a JSON object; abort
-                    // and let the caller fall back to the read_text path rather than emit
-                    // NDJSON that DuckDB would reject mid-query.
-                    throw new TranscodeAborted(
-                            new IOException("Non-object record encountered while transcoding [%s]: %s"
-                                    .formatted(jsurferPath, node.getNodeType())));
-                }
-                try {
-                    out.write(OBJECT_MAPPER.writeValueAsBytes(node));
-                    out.write('\n');
-                } catch (IOException ioe) {
-                    throw new TranscodeAborted(ioe);
-                }
-            });
+            configBuilder.bind(jsurferPath, (value, context) -> writeRecord(value, jsurferPath, out));
             surf(in, configBuilder.build());
             return true;
         } catch (IOException | RuntimeException e) {
@@ -337,12 +509,47 @@ final class JsonNdjsonTranscodeCache implements AutoCloseable {
                     target,
                     e.getMessage(),
                     e);
-            try {
-                Files.deleteIfExists(target);
-            } catch (IOException ioe) {
-                LOG.warn("Failed to delete partial NDJSON file [{}] after transcode error", target, ioe);
-            }
+            deletePartialOutput(target);
             return false;
+        }
+    }
+
+    private static boolean ensureCacheDirectory(Path target) {
+        try {
+            Files.createDirectories(target.getParent() == null ? target : target.getParent());
+            return true;
+        } catch (IOException e) {
+            LOG.warn("Failed to ensure NDJSON cache directory exists for [{}]", target, e);
+            return false;
+        }
+    }
+
+    /**
+     * Writes one transcoded record as a single NDJSON line. Aborts the surf via
+     * {@link TranscodeAborted} when the value isn't a {@link JsonNode}, isn't an object (DuckDB's
+     * {@code read_ndjson_objects} requires object-shaped lines), or the underlying write fails.
+     */
+    private static void writeRecord(Object value, String jsurferPath, BufferedOutputStream out) {
+        if (!(value instanceof JsonNode node)) {
+            throw new TranscodeAborted(new IOException("JSurfer produced non-JsonNode value: %s".formatted(value)));
+        }
+        if (!node.isObject()) {
+            throw new TranscodeAborted(new IOException("Non-object record encountered while transcoding [%s]: %s"
+                    .formatted(jsurferPath, node.getNodeType())));
+        }
+        try {
+            out.write(OBJECT_MAPPER.writeValueAsBytes(node));
+            out.write('\n');
+        } catch (IOException ioe) {
+            throw new TranscodeAborted(ioe);
+        }
+    }
+
+    private static void deletePartialOutput(Path target) {
+        try {
+            Files.deleteIfExists(target);
+        } catch (IOException e) {
+            LOG.warn("Failed to delete partial NDJSON file [{}] after transcode error", target, e);
         }
     }
 
