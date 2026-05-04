@@ -493,11 +493,12 @@ class DefaultLogicalViewEvaluatorTest {
     }
 
     @Test
-    void givenFieldWithUnresolvableFunctionExecution_whenEvaluated_thenIterationEmittedWithNullValue() {
+    void givenFieldWithUnresolvableFunctionExecution_whenEvaluated_thenErrorPropagated() {
         // The default evaluator resolves function executions against a FunctionRegistry. A
-        // FunctionExecution whose function cannot be resolved (no registry descriptor, empty
-        // inputs) degrades to an empty value list rather than throwing, so the view iteration
-        // is still emitted with the field contributing a null entry.
+        // FunctionExecution whose FunctionMap is missing is a malformed mapping; the underlying
+        // FunctionEvaluationException propagates through the reactive flux rather than being
+        // swallowed, so the surrounding pipeline fails with a diagnosable cause -- matching the
+        // rml-fnml suite's hasError=true expectation for unresolvable function references.
         var funcField = mockExpressionField("greeting");
         when(funcField.getFunctionExecution()).thenReturn(mock(FunctionExecution.class));
         when(logicalView.getFields()).thenReturn(Set.of(funcField));
@@ -507,11 +508,8 @@ class DefaultLogicalViewEvaluatorTest {
         setupMocks(Flux.just(rec), exprEval);
 
         StepVerifier.create(evaluator.evaluate(logicalView, sourceResolver, EvaluationContext.defaults()))
-                .assertNext(iteration -> {
-                    assertThat(iteration.getValue("greeting"), is(Optional.empty()));
-                    assertThat(iteration.getKeys(), hasItem("greeting"));
-                })
-                .verifyComplete();
+                .verifyErrorMatches(error -> error instanceof io.carml.functions.FunctionEvaluationException
+                        && error.getMessage().contains("FunctionMap"));
     }
 
     @Test
@@ -4592,7 +4590,7 @@ class DefaultLogicalViewEvaluatorTest {
     void resolveIndexValue_numericString_isParsedAsInt() {
         // Spillable join executors round-trip the values map through Arrow IPC, which stores
         // every cell as Utf8 — the codec re-coerces INDEX_KEY back to Integer on decode, but
-        // this evaluator-side backstop is the second line of defence so a future code path that
+        // this evaluator-side backstop is the second line of defense so a future code path that
         // forgets to round-trip cannot crash the (int) cast on this hot path.
         assertThat(DefaultLogicalViewEvaluator.resolveIndexValue("17"), is(17));
     }

@@ -154,12 +154,17 @@ public final class FunctionExecutionSupport {
     /**
      * Applies the {@code rml:returnMap} (if present) of the given expression map to the
      * function result. For multi-return functions (result is a {@code Map<IRI, Object>}) the
-     * requested return value is selected by IRI. For single-return functions the return IRI is
-     * validated against the declared {@code fno:Output} resources; an unknown IRI yields a
-     * {@code null} return (graceful degradation).
+     * requested return value is selected by IRI; if the function did not produce a value for that
+     * IRI the result is {@code null} (legitimate "no value for this row"). For single-return
+     * functions the return IRI is validated against the descriptor's declared {@code fno:Output}
+     * resources; an undeclared IRI is a mapping-level mismatch and raises
+     * {@link FunctionEvaluationException}.
      *
-     * @return the possibly reshaped result, or {@code null} if the return IRI cannot be
-     *     resolved
+     * @return the possibly reshaped result, or {@code null} when a multi-return function omitted
+     *     the requested key for this row
+     * @throws FunctionEvaluationException when the {@code rml:returnMap} of a single-return
+     *     function references an IRI that the descriptor does not declare as an
+     *     {@code fno:Output}
      */
     public static Object applyReturnMap(
             ExpressionMap expressionMap,
@@ -184,15 +189,12 @@ public final class FunctionExecutionSupport {
             return selected;
         }
 
-        // Single-return function: verify the return IRI matches a declared fno:Output
-        // resource. An IRI not declared as an output produces empty output (graceful
-        // degradation per RML-FNML spec).
         if (descriptor.getReturns().stream().anyMatch(returnDescriptor -> returnDescriptor.matches(returnIri))) {
             return result;
         }
 
-        LOG.warn("ReturnMap IRI {} is not a known FnO output; producing empty result", returnIri);
-        return null;
+        throw new FunctionEvaluationException("rml:returnMap IRI [%s] is not a declared fno:Output of function [%s]"
+                .formatted(returnIri, descriptor.getFunctionIri()));
     }
 
     /**

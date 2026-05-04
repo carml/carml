@@ -7,6 +7,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.Matchers.startsWith;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
@@ -20,6 +21,7 @@ import io.carml.engine.MappingExecutionObserver;
 import io.carml.engine.MappingResult;
 import io.carml.engine.NoOpObserver;
 import io.carml.engine.RmlMapperException;
+import io.carml.functions.FunctionEvaluationException;
 import io.carml.functions.FunctionRegistry;
 import io.carml.logicalsourceresolver.sourceresolver.ClassPathResolver;
 import io.carml.logicalsourceresolver.sourceresolver.SourceResolverException;
@@ -29,11 +31,14 @@ import io.carml.model.TriplesMap;
 import io.carml.rdfmapper.impl.CarmlMapperException;
 import io.carml.util.RmlMappingLoader;
 import io.carml.util.TypeRef;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.Normalizer;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
@@ -126,6 +131,7 @@ class RdfRmlMapperTest {
         var rmlMapper = RdfRmlMapper.builder().triplesMaps(mapping).build();
 
         var sourceInputStream = RdfRmlMapperTest.class.getResourceAsStream("cars.csv");
+        assertNotNull(sourceInputStream);
 
         // When
         var statements = rmlMapper.map(sourceInputStream);
@@ -142,6 +148,7 @@ class RdfRmlMapperTest {
         var rmlMapper = RdfRmlMapper.builder().triplesMaps(mapping).build();
 
         var sourceInputStream = RdfRmlMapperTest.class.getResourceAsStream("cars.csv");
+        assertNotNull(sourceInputStream);
 
         // When
         var model = rmlMapper.mapToModel(sourceInputStream);
@@ -164,9 +171,11 @@ class RdfRmlMapperTest {
         var rmlMapper = RdfRmlMapper.builder().triplesMaps(mapping).build();
 
         var sourceInputStream = RdfRmlMapperTest.class.getResourceAsStream("cars.csv");
+        assertNotNull(sourceInputStream);
 
         // When
         var model = rmlMapper.mapToModel(sourceInputStream, Set.of(makeMapping));
+        assertNotNull(sourceInputStream);
 
         // Then
         assertThat(model.size(), is(3));
@@ -180,6 +189,7 @@ class RdfRmlMapperTest {
         var rmlMapper = RdfRmlMapper.builder().triplesMaps(mapping).build();
 
         var sourceInputStream = RdfRmlMapperTest.class.getResourceAsStream("cars.csv");
+        assertNotNull(sourceInputStream);
 
         // When
         var model = rmlMapper.mapRecordToModel(Mono.just(sourceInputStream), new TypeRef<>() {});
@@ -199,6 +209,7 @@ class RdfRmlMapperTest {
         var rmlMapper = RdfRmlMapper.builder().triplesMaps(mapping).build();
 
         var sourceInputStream = RdfRmlMapperTest.class.getResourceAsStream("cars.csv");
+        assertNotNull(sourceInputStream);
 
         // When
         var model = rmlMapper.mapRecordToModel(Mono.just(sourceInputStream), new TypeRef<>() {}, Set.of(makeMapping));
@@ -214,7 +225,8 @@ class RdfRmlMapperTest {
         var mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
         var rmlMapper = RdfRmlMapper.builder().triplesMaps(mapping).build();
 
-        var namedInputStream = Map.of("cars", RdfRmlMapperTest.class.getResourceAsStream("cars.csv"));
+        var namedInputStream =
+                Map.of("cars", Objects.requireNonNull(RdfRmlMapperTest.class.getResourceAsStream("cars.csv")));
 
         // When
         var model = rmlMapper.mapToModel(namedInputStream);
@@ -230,7 +242,8 @@ class RdfRmlMapperTest {
         var mapping = RmlMappingLoader.build().load(RDFFormat.TURTLE, mappingSource);
         var rmlMapper = RdfRmlMapper.builder().triplesMaps(mapping).build();
 
-        var namedInputStream = Map.of("foo", RdfRmlMapperTest.class.getResourceAsStream("cars.csv"));
+        var namedInputStream =
+                Map.of("foo", Objects.requireNonNull(RdfRmlMapperTest.class.getResourceAsStream("cars.csv")));
 
         // When
         var rmlMapperException = assertThrows(RmlMapperException.class, () -> rmlMapper.mapToModel(namedInputStream));
@@ -252,7 +265,8 @@ class RdfRmlMapperTest {
 
         var rmlMapper = RdfRmlMapper.builder().triplesMaps(mapping).build();
 
-        var namedInputStream = Map.of("cars", RdfRmlMapperTest.class.getResourceAsStream("cars.csv"));
+        var namedInputStream =
+                Map.of("cars", Objects.requireNonNull(RdfRmlMapperTest.class.getResourceAsStream("cars.csv")));
 
         // When
         var model = rmlMapper.mapToModel(namedInputStream, Set.of(makeMapping));
@@ -484,7 +498,7 @@ class RdfRmlMapperTest {
     }
 
     @Test
-    void functionExecution_producesEmptyResult_whenDescriptorHasNoOutputIriAndMappingUsesRmlReturn() {
+    void functionExecution_throwsError_whenDescriptorHasNoOutputIriAndMappingUsesRmlReturn() {
         var turtle = String.join(
                 "\n",
                 "@prefix rml: <http://w3id.org/rml/> .",
@@ -518,18 +532,12 @@ class RdfRmlMapperTest {
                 .execute(params -> "ignored")
                 .build();
 
-        var csv = new java.io.ByteArrayInputStream("Id,Name\n1,Alice\n".getBytes(StandardCharsets.UTF_8));
-        var model = rmlMapper.mapToModel(Map.of("data", csv));
+        InputStream csv = new ByteArrayInputStream("Id,Name\n1,Alice\n".getBytes(StandardCharsets.UTF_8));
+        var inputs = Map.of("data", csv);
 
-        var rdfType = SimpleValueFactory.getInstance().createIRI(RDF.TYPE.stringValue());
-        var exValue = SimpleValueFactory.getInstance().createIRI("http://example.com/value");
-        // The class assertion still fires (rdf:type triple from rml:class), but the
-        // function-driven object emits zero triples because rml:return references an IRI
-        // that the descriptor does not declare as an output — graceful-degradation path
-        // in FunctionExecutionSupport.applyReturnMap.
-        assertThat(model.size(), is(1));
-        assertThat(model.contains(null, rdfType, null), is(true));
-        assertThat(model.contains(null, exValue, null), is(false));
+        // rml:return points at an IRI that the descriptor does not advertise as an fno:Output
+        var exception = assertThrows(FunctionEvaluationException.class, () -> rmlMapper.mapToModel(inputs));
+        assertThat(exception.getMessage(), startsWith("rml:returnMap IRI [http://example.com/undeclaredOutput]"));
     }
 
     private Set<TriplesMap> loadMapping(String resourceName) {

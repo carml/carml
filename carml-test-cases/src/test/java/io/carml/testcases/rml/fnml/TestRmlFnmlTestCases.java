@@ -33,6 +33,18 @@ class TestRmlFnmlTestCases extends RmlTestCaseSuite {
      * Skip list for the rml-fnml conformance suite. The remaining failures are:
      *
      * <ul>
+     *   <li>{@code RMLFNMLTC0008-CSV} — upstream fixture interpretation mismatch. The mapping
+     *       invokes {@code grel:string_substring("Venus", 1000)}, which the function impl
+     *       raises {@code StringIndexOutOfBoundsException} for. The fixture declares
+     *       {@code hasError=false} with empty expected output, treating the impl-raised
+     *       exception as "no value" / graceful degradation. The FNML spec ({@code advanced.md}
+     *       §Conditions) makes the engine invoke functions with their inputs bound and lets
+     *       the impl decide; CARML propagates the resulting {@link
+     *       io.carml.functions.FunctionInvocationException} so the mapping fails with a
+     *       diagnosable cause, matching {@code RMLFNMLTC0101-CSV}'s {@code hasError=true}
+     *       expectation for the symmetric {@code grel:toUpperCase(null)} case. The two
+     *       fixtures encode incompatible "function impl raised" outcomes; CARML's behavior
+     *       lines up with 0101.
      *   <li>{@code RMLFNMLTC0011-CSV} / {@code RMLFNMLTC0031-CSV} — pending investigation. CARML
      *       executes {@code idlab-fn:toUpperCaseURL} and produces {@code <HTTP://VENUS>} /
      *       {@code <HTTP://WWW.EXAMPLE.COM>} in predicate / subject position respectively;
@@ -43,29 +55,11 @@ class TestRmlFnmlTestCases extends RmlTestCaseSuite {
      *       <em>scheme normalization</em> (predicate / subject position). May reflect a real
      *       engine gap or an upstream fixture inconsistency; not addressed in the current
      *       fno:Mapping support change.
-     *   <li>{@code RMLFNMLTC0102/0103/0104} — upstream fixture inconsistency: the manifest
-     *       declares {@code hasError=false} with an {@code output.nq} that the upstream sync
-     *       deleted. Suite NPEs in {@code BOMInputStream.builder().setInputStream(null)};
-     *       needs a manifest fix or suite-level missing-file handling, not an engine change.
      * </ul>
-     *
-     * <p>Note: {@code RMLFNMLTC0101-CSV} is a known failure (not skipped) — it tests a function
-     * being invoked with a NULL parameter binding, where the upstream fixture correctly expects
-     * an error but CARML's FNML execution path short-circuits on empty input rather than
-     * invoking the function with NULL bound. The FNML spec mandates {@code isNull} /
-     * {@code isNotNull} support (advanced.md §Conditions), which is only meaningful if NULL
-     * values can be bound to function parameters; the same rule implies arbitrary functions
-     * MUST also be invoked with NULL bound. Pending an FNML-execution change in
-     * {@link io.carml.engine.rdf.RdfExpressionMapEvaluation} (or equivalent).
      */
     @Override
     protected List<String> getSkipTests() {
-        return List.of(
-                "RMLFNMLTC0011-CSV",
-                "RMLFNMLTC0031-CSV",
-                "RMLFNMLTC0102-CSV",
-                "RMLFNMLTC0103-CSV",
-                "RMLFNMLTC0104-CSV");
+        return List.of("RMLFNMLTC0008-CSV", "RMLFNMLTC0011-CSV", "RMLFNMLTC0031-CSV");
     }
 
     @Override

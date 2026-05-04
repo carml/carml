@@ -68,11 +68,16 @@ final class ReflectiveFunctionDescriptor implements FunctionDescriptor {
         try {
             return method.invoke(target, args);
         } catch (IllegalAccessException exception) {
-            throw new IllegalStateException("Failed to invoke function '%s'".formatted(functionIri), exception);
+            throw new FunctionInvocationException(
+                    "Function '%s' invocation failed: %s: %s"
+                            .formatted(functionIri, exception.getClass().getSimpleName(), exception.getMessage()),
+                    exception);
         } catch (InvocationTargetException exception) {
-            throw new IllegalStateException(
-                    "Failed to invoke function '%s'".formatted(functionIri),
-                    exception.getCause() != null ? exception.getCause() : exception);
+            var cause = exception.getCause() != null ? exception.getCause() : exception;
+            throw new FunctionInvocationException(
+                    "Function '%s' invocation failed: %s: %s"
+                            .formatted(functionIri, cause.getClass().getSimpleName(), cause.getMessage()),
+                    cause);
         }
     }
 }

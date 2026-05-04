@@ -272,7 +272,7 @@ class AnnotatedFunctionProviderTest {
         var descriptor = provider.getFunctions().stream().findFirst().orElseThrow();
 
         var params = Map.<IRI, Object>of();
-        var ex = assertThrows(IllegalStateException.class, () -> descriptor.execute(params));
+        var ex = assertThrows(FunctionInvocationException.class, () -> descriptor.execute(params));
 
         assertThat(ex.getCause().getMessage(), is("user error"));
     }

@@ -1,6 +1,5 @@
 package io.carml.logicalview;
 
-import io.carml.functions.FunctionEvaluationException;
 import io.carml.functions.FunctionExecutionSupport;
 import io.carml.functions.FunctionRegistry;
 import io.carml.logicalsourceresolver.DatatypeMapper;
@@ -107,37 +106,20 @@ public final class DefaultExpressionMapEvaluator implements ExpressionMapEvaluat
             FunctionExecution fnExecution,
             ExpressionEvaluation expressionEvaluation,
             DatatypeMapper datatypeMapper) {
-        try {
-            // Non-RDF context: no term-type-specific return-value adaptation. Pass identity so the
-            // shared orchestrator returns raw values suitable for join keys / expression fields.
-            return FunctionExecutionSupport.executeFunctionExecution(
-                    expressionMap,
-                    fnExecution,
-                    functionRegistry,
-                    this::evaluate,
-                    expressionEvaluation,
-                    datatypeMapper,
-                    UnaryOperator.identity());
-        } catch (FunctionEvaluationException exception) {
-            LOG.warn("Function execution produced no result: {}", exception.getMessage());
-            return List.of();
-        } catch (IllegalStateException exception) {
-            // ReflectiveFunctionDescriptor wraps invocation errors in IllegalStateException with
-            // the underlying cause attached. Surface the cause class+message so users can
-            // diagnose the failure without enabling DEBUG.
-            var cause = exception.getCause();
-            if (cause != null) {
-                LOG.warn(
-                        "Function execution failed: {}: {}: {}",
-                        exception.getMessage(),
-                        cause.getClass().getName(),
-                        cause.getMessage());
-                LOG.debug("Function execution failure stack trace", exception);
-            } else {
-                LOG.warn("Function execution failed: {}", exception.getMessage());
-            }
-            return List.of();
-        }
+        // Non-RDF context: no term-type-specific return-value adaptation. Pass identity so the
+        // shared orchestrator returns raw values suitable for join keys / expression fields.
+        // Mapping-level errors (FunctionEvaluationException for unresolvable function / parameter
+        // / return-IRI references) and runtime function failures (FunctionInvocationException)
+        // propagate up rather than being swallowed; they surface as the surrounding mapping's
+        // error.
+        return FunctionExecutionSupport.executeFunctionExecution(
+                expressionMap,
+                fnExecution,
+                functionRegistry,
+                this::evaluate,
+                expressionEvaluation,
+                datatypeMapper,
+                UnaryOperator.identity());
     }
 
     private static List<Object> evaluateReference(String reference, ExpressionEvaluation expressionEvaluation) {

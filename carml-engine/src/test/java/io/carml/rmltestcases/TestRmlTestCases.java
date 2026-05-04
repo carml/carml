@@ -40,11 +40,12 @@ public class TestRmlTestCases {
 
     static final IRI EARL_TESTCASE = VF.createIRI("http://www.w3.org/ns/earl#TestCase");
 
-    static final List<String> SUPPORTED_SOURCE_TYPES = ImmutableList.of("CSV", "JSON", "XML");
+    static final List<String> SUPPORTED_SOURCE_TYPES = List.of("CSV", "JSON", "XML");
 
     // Under discussion in https://github.com/RMLio/rml-test-cases/issues
     private static final List<String> SKIP_TESTS = new ImmutableList.Builder<String>() //
             // https://github.com/kg-construct/rml-test-cases/issues/12
+            .add("RMLTC0002c-CSV")
             .add("RMLTC0002c-JSON")
             .add("RMLTC0002c-XML")
             // https://github.com/kg-construct/rml-test-cases/issues/13

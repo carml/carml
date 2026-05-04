@@ -56,9 +56,10 @@ class TestRmlFnmlTestCasesWithDuckDb extends DuckDbTestCaseSuite {
 
                 // ====================================================================
                 // `idlab-fn:toUpperCaseURL` — descriptor and method mapping are both
-                // present (idlab-functions-java 1.4.0), but invocation fails:
-                //   WARN ... Function execution failed: Failed to invoke function
-                //   'https://w3id.org/imec/idlab/function#toUpperCaseURL'
+                // present (idlab-functions-java 1.4.0), but invocation propagates a
+                // FunctionInvocationException out of the reactive pipeline (formerly
+                // logged-and-swallowed as "Function execution failed: Failed to
+                // invoke function 'https://w3id.org/imec/idlab/function#toUpperCaseURL'").
                 // Likely a parameter-binding / method-resolution mismatch with
                 // CARML's FnO invoker.
                 // ====================================================================
@@ -68,15 +69,16 @@ class TestRmlFnmlTestCasesWithDuckDb extends DuckDbTestCaseSuite {
                 "RMLFNMLTC0061-CSV",
 
                 // ====================================================================
-                // Upstream fixture inconsistency — same as the reactive suite. Manifest
-                // says `hasError=false` and references `output.nq`, but the upstream
-                // 2026-04 sync deleted the file. {@link RmlTestCaseSuite#runTestCase}
-                // NPEs in {@code BOMInputStream.builder().setInputStream(null)} when
-                // it tries to read the missing expected output.
+                // `grel:string_substring("Venus", 1000)` raises
+                // StringIndexOutOfBoundsException; the fixture declares
+                // `hasError=false` with empty expected output, treating the impl-raised
+                // exception as graceful degradation. CARML propagates the resulting
+                // FunctionInvocationException so the mapping fails with a diagnosable
+                // cause, matching RMLFNMLTC0101-CSV's `hasError=true` expectation for
+                // the symmetric `grel:toUpperCase(null)` case. Same divergence as the
+                // reactive suite.
                 // ====================================================================
-                "RMLFNMLTC0102-CSV",
-                "RMLFNMLTC0103-CSV",
-                "RMLFNMLTC0104-CSV");
+                "RMLFNMLTC0008-CSV");
     }
 
     @Override

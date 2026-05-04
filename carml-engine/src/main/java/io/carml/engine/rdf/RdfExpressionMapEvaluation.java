@@ -62,7 +62,7 @@ import org.eclipse.rdf4j.model.vocabulary.XSD;
  * {@code io.carml.logicalview.DefaultExpressionMapEvaluator} — which sits one step before
  * term construction and emits raw values for join-key comparison or expression-field storage —
  * this evaluator <b>pre-shapes</b> its output so the downstream
- * {@link RdfTermGeneratorFactory#createEvaluatingGenerator} wrapping step can wrap values directly
+ * {@code RdfTermGeneratorFactory.createEvaluatingGenerator} wrapping step can wrap values directly
  * into typed RDF terms:
  *
  * <ul>
@@ -265,32 +265,7 @@ public class RdfExpressionMapEvaluation {
 
     private List<Object> evaluateFnmlFunctionExecution(
             ExpressionEvaluation expressionEvaluation, DatatypeMapper datatypeMapper) {
-        try {
-            return doEvaluateFnmlFunctionExecution(expressionEvaluation, datatypeMapper);
-        } catch (FunctionEvaluationException | RdfExpressionMapEvaluationException exception) {
-            // Graceful degradation per RML-FNML spec: unknown function, unknown parameter,
-            // or unknown return IRI produces empty output rather than an error.
-            LOG.warn("Function execution produced no result: {}", exception.getMessage());
-            return List.of();
-        } catch (IllegalStateException exception) {
-            // Graceful degradation: function invocation failures (e.g. null parameter due to
-            // unknown parameter binding, type mismatch, NPE inside the function) produce
-            // empty output. ReflectiveFunctionDescriptor wraps invocation errors in
-            // IllegalStateException with the underlying cause attached. Surface the cause so
-            // users can diagnose the failure without enabling DEBUG.
-            var cause = exception.getCause();
-            if (cause != null) {
-                LOG.warn(
-                        "Function execution failed: {}: {}: {}",
-                        exception.getMessage(),
-                        cause.getClass().getName(),
-                        cause.getMessage());
-                LOG.debug("Function execution failure stack trace", exception);
-            } else {
-                LOG.warn("Function execution failed: {}", exception.getMessage());
-            }
-            return List.of();
-        }
+        return doEvaluateFnmlFunctionExecution(expressionEvaluation, datatypeMapper);
     }
 
     private List<Object> doEvaluateFnmlFunctionExecution(
