@@ -243,7 +243,7 @@ public class CsvResolver implements LogicalSourceResolver<NamedCsvRecord> {
 
         return namedCsvRecord -> headerName -> {
             logEvaluateExpression(headerName, LOG);
-            var result = namedCsvRecord.getField(headerName);
+            var result = namedCsvRecord.findField(headerName).orElse(null);
 
             if (shouldTrim && result != null) {
                 result = result.trim();

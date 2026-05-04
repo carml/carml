@@ -46,11 +46,6 @@ class CsvResolverTest {
             .referenceFormulation(CSV)
             .build();
 
-    private static final String SOURCE_DELIM = """
-                    Year^Make^Model^Description^Price
-                    1997^Ford^E350^"ac, abs, moon"^3000.00
-                    1999^Chevy^"Venture ""Extended Edition""\"^""^4900.00""";
-
     private static final LogicalSource LSOURCE_DELIM = CarmlLogicalSource.builder()
             .source(RML_SOURCE)
             .referenceFormulation(CSV)
@@ -62,7 +57,7 @@ class CsvResolverTest {
     private LogicalSourceResolverFactory<NamedCsvRecord> csvResolverFactory;
 
     @BeforeEach
-    public void init() {
+    void init() {
         csvResolverFactory = CsvResolver.factory();
     }
 
@@ -122,24 +117,6 @@ class CsvResolverTest {
                 .verifyComplete();
     }
 
-    // @Test
-    // void givenRecordFluxWithProvidedRecord_whenRecordResolverApplied_thenReturnFluxOfRecord() {
-    //     // Given
-    //     var recordResolver = csvResolver.getLogicalSourceRecords(Set.of(LSOURCE));
-    //     var namedCsvRecord = new NamedCsvRedcord(List.of("foo", "bar"));
-    //     var record = new DefaultContext(1).toRecord(List.of("foo", "bar").toArray(String[]::new));
-    //     var resolvedSource = ResolvedSource.of(RML_SOURCE, record, Record.class);
-    //
-    //     // When
-    //     var records = recordResolver.apply(resolvedSource);
-    //
-    //     // Then
-    //     StepVerifier.create(records)
-    //             .expectNextMatches(logicalSourceRecord ->
-    //                     logicalSourceRecord.getSourceRecord().equals(record))
-    //             .verifyComplete();
-    // }
-
     @Test
     void givenExpression_whenExpressionEvaluationApplied_thenReturnCorrectValue() {
         // Given
@@ -148,9 +125,9 @@ class CsvResolverTest {
         var sourceFlux = csvResolver.getLogicalSourceRecords(Set.of(LSOURCE));
         var resolvedSource = ResolvedSource.of(sourceResolver.apply(SOURCE), new TypeRef<>() {});
         var recordFlux = sourceFlux.apply(resolvedSource);
-        var record = recordFlux.blockFirst().getSourceRecord();
+        var sourceRecord = recordFlux.blockFirst().getSourceRecord();
         var evaluationFactory = csvResolver.getExpressionEvaluationFactory();
-        var evaluation = evaluationFactory.apply(record);
+        var evaluation = evaluationFactory.apply(sourceRecord);
 
         // When
         var evaluationResult = evaluation.apply(expression);
@@ -158,6 +135,22 @@ class CsvResolverTest {
         // Then
         assertThat(evaluationResult.isPresent(), is(true));
         assertThat(evaluationResult.get(), is("1997"));
+    }
+
+    @Test
+    void givenNonExistentColumnReference_whenExpressionEvaluationApplied_thenReturnEmpty() {
+        // Given
+        var csvResolver = csvResolverFactory.apply(LSOURCE.getSource());
+        var sourceFlux = csvResolver.getLogicalSourceRecords(Set.of(LSOURCE));
+        var resolvedSource = ResolvedSource.of(sourceResolver.apply(SOURCE), new TypeRef<>() {});
+        var sourceRecord = sourceFlux.apply(resolvedSource).blockFirst().getSourceRecord();
+        var evaluation = csvResolver.getExpressionEvaluationFactory().apply(sourceRecord);
+
+        // When
+        var evaluationResult = evaluation.apply("DoesNotExist");
+
+        // Then
+        assertThat(evaluationResult.isPresent(), is(false));
     }
 
     @Test

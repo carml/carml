@@ -163,7 +163,15 @@ class TestRmlIoRegistryTestCases extends RmlTestCaseSuite {
                 // so the assertion fails:
                 //   AssertionFailedError: Expected RuntimeException to be thrown,
                 //   but nothing was thrown
+                // The CSV reference formulation makes this explicit: "An invalid
+                // reference expression is a non-existent column name of a CSV Row.
+                // Evaluating an invalid reference expression MUST generate a NULL
+                // value." (rml-io-registry/csv §Invalid Reference Expressions).
+                // The JSONPath and XPath formulations have parallel "non-existent
+                // path → NULL" rules, and PostgreSQL NULL columns surface as NULL
+                // values per SQL semantics.
                 // ====================================================================
+                "RMLIOREGTC0001b", // Missing CSV column
                 "RMLIOREGTC0002b", // Missing JSON value
                 "RMLIOREGTC0003b", // Missing XML value
                 "RMLIOREGTC0005d", // PostgreSQL row with NULL DateOfBirth

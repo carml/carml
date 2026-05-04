@@ -48,6 +48,15 @@ class TestRmlFnmlTestCases extends RmlTestCaseSuite {
      *       deleted. Suite NPEs in {@code BOMInputStream.builder().setInputStream(null)};
      *       needs a manifest fix or suite-level missing-file handling, not an engine change.
      * </ul>
+     *
+     * <p>Note: {@code RMLFNMLTC0101-CSV} is a known failure (not skipped) — it tests a function
+     * being invoked with a NULL parameter binding, where the upstream fixture correctly expects
+     * an error but CARML's FNML execution path short-circuits on empty input rather than
+     * invoking the function with NULL bound. The FNML spec mandates {@code isNull} /
+     * {@code isNotNull} support (advanced.md §Conditions), which is only meaningful if NULL
+     * values can be bound to function parameters; the same rule implies arbitrary functions
+     * MUST also be invoked with NULL bound. Pending an FNML-execution change in
+     * {@link io.carml.engine.rdf.RdfExpressionMapEvaluation} (or equivalent).
      */
     @Override
     protected List<String> getSkipTests() {
