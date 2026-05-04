@@ -8,8 +8,8 @@
 
 **Input**
 ```
-Id,Name,Comment,Class
-1,Venus,A&B,A
+Id,Name,Comment,Class,url
+1,Venus,A&B,A,http://example.com
 
 ```
 
@@ -50,7 +50,7 @@ Id,Name,Comment,Class
         [
             rml:parameter idlab-fn:str ;
             rml:inputValueMap [
-                rml:reference "Name"
+                rml:reference "url"
             ];
         ] .
 
@@ -58,7 +58,7 @@ Id,Name,Comment,Class
 
 **Output**
 ```
-<http://example.com/Venus> <http://VENUS> <http://xmlns.com/foaf/0.1/name> .
+<http://example.com/Venus> <HTTP://EXAMPLE.COM> <http://xmlns.com/foaf/0.1/name> .
 
 ```
 

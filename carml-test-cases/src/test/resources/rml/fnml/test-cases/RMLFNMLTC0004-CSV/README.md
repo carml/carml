@@ -40,7 +40,7 @@ Id,Name,Comment,Class,url
         rml:predicate foaf:name;
         rml:objectMap [
             rml:functionExecution <#Execution> ;
-            rml:return grel:stringOut
+            rml:return grel:output_number
         ]
     ] .
 

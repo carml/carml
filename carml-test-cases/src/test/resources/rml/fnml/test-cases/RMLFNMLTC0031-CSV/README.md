@@ -11,7 +11,7 @@
 **Input**
 ```
 Id,Name,url
-1,Venus,www.example.com
+1,Venus,http://example.com
 
 ```
 
@@ -58,7 +58,7 @@ Id,Name,url
 
 **Output**
 ```
-<http://WWW.EXAMPLE.COM> <http://xmlns.com/foaf/0.1/name> "Venus" .
+<HTTP://EXAMPLE.COM> <http://xmlns.com/foaf/0.1/name> "Venus" .
 
 ```
 

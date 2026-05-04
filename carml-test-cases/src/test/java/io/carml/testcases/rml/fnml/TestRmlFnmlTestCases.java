@@ -29,37 +29,20 @@ class TestRmlFnmlTestCases extends RmlTestCaseSuite {
         return Optional.of(iri("http://example.com/base/"));
     }
 
-    /**
-     * Skip list for the rml-fnml conformance suite. The remaining failures are:
-     *
-     * <ul>
-     *   <li>{@code RMLFNMLTC0008-CSV} — upstream fixture interpretation mismatch. The mapping
-     *       invokes {@code grel:string_substring("Venus", 1000)}, which the function impl
-     *       raises {@code StringIndexOutOfBoundsException} for. The fixture declares
-     *       {@code hasError=false} with empty expected output, treating the impl-raised
-     *       exception as "no value" / graceful degradation. The FNML spec ({@code advanced.md}
-     *       §Conditions) makes the engine invoke functions with their inputs bound and lets
-     *       the impl decide; CARML propagates the resulting {@link
-     *       io.carml.functions.FunctionInvocationException} so the mapping fails with a
-     *       diagnosable cause, matching {@code RMLFNMLTC0101-CSV}'s {@code hasError=true}
-     *       expectation for the symmetric {@code grel:toUpperCase(null)} case. The two
-     *       fixtures encode incompatible "function impl raised" outcomes; CARML's behavior
-     *       lines up with 0101.
-     *   <li>{@code RMLFNMLTC0011-CSV} / {@code RMLFNMLTC0031-CSV} — pending investigation. CARML
-     *       executes {@code idlab-fn:toUpperCaseURL} and produces {@code <HTTP://VENUS>} /
-     *       {@code <HTTP://WWW.EXAMPLE.COM>} in predicate / subject position respectively;
-     *       upstream expects {@code <http://VENUS>} / {@code <http://WWW.EXAMPLE.COM>} —
-     *       lowercase scheme but uppercase host. TC0003/TC0061 use the same function in the
-     *       <em>object</em> position and pass with the all-uppercase output, so the divergence
-     *       is between <em>function output passthrough</em> (object position) and
-     *       <em>scheme normalization</em> (predicate / subject position). May reflect a real
-     *       engine gap or an upstream fixture inconsistency; not addressed in the current
-     *       fno:Mapping support change.
-     * </ul>
-     */
     @Override
     protected List<String> getSkipTests() {
-        return List.of("RMLFNMLTC0008-CSV", "RMLFNMLTC0011-CSV", "RMLFNMLTC0031-CSV");
+        return List.of(
+                // ====================================================================
+                // `grel:string_substring("Venus", 1000)` raises
+                // StringIndexOutOfBoundsException; the fixture declares
+                // `hasError=false` with empty expected output, treating the impl-raised
+                // exception as graceful degradation. CARML propagates the resulting
+                // FunctionInvocationException so the mapping fails with a diagnosable
+                // cause, matching RMLFNMLTC0101-CSV's `hasError=true` expectation for
+                // the symmetric `grel:toUpperCase(null)` case. Same divergence as the
+                // reactive suite.
+                // ====================================================================
+                "RMLFNMLTC0008-CSV");
     }
 
     @Override

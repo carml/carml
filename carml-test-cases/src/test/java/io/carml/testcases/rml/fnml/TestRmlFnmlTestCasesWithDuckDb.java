@@ -42,33 +42,6 @@ class TestRmlFnmlTestCasesWithDuckDb extends DuckDbTestCaseSuite {
     protected List<String> getSkipTests() {
         return List.of(
                 // ====================================================================
-                // grel functions whose FnO signatures (`fno:Function` declarations)
-                // are not on the classpath. `grel_java_mapping.ttl` only contains
-                // `fno:Mapping` rows; the matching function descriptors are absent.
-                // carml-test-cases' `functions.ttl` declares only `grel:toUpperCase`
-                // and `grel:string_replace`.
-                //   WARN ... no function registered for function IRI [...grel.ttl#<name>]
-                // ====================================================================
-                "RMLFNMLTC0004-CSV", // grel:string_length
-                "RMLFNMLTC0007-CSV", // grel:string_substring
-                "RMLFNMLTC0021-CSV", // grel:escape
-                "RMLFNMLTC0081-CSV", // grel:string_substring (with language tag)
-
-                // ====================================================================
-                // `idlab-fn:toUpperCaseURL` — descriptor and method mapping are both
-                // present (idlab-functions-java 1.4.0), but invocation propagates a
-                // FunctionInvocationException out of the reactive pipeline (formerly
-                // logged-and-swallowed as "Function execution failed: Failed to
-                // invoke function 'https://w3id.org/imec/idlab/function#toUpperCaseURL'").
-                // Likely a parameter-binding / method-resolution mismatch with
-                // CARML's FnO invoker.
-                // ====================================================================
-                "RMLFNMLTC0003-CSV",
-                "RMLFNMLTC0011-CSV",
-                "RMLFNMLTC0031-CSV",
-                "RMLFNMLTC0061-CSV",
-
-                // ====================================================================
                 // `grel:string_substring("Venus", 1000)` raises
                 // StringIndexOutOfBoundsException; the fixture declares
                 // `hasError=false` with empty expected output, treating the impl-raised
