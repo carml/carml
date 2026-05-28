@@ -472,13 +472,33 @@ public class CarmlMapper implements Mapper, MappingCache {
         MethodPropertyHandlerRegistry.Builder regBuilder = MethodPropertyHandlerRegistry.builder();
 
         regBuilder.method(method);
-        RdfProperty[] annotations = method.getAnnotationsByType(RdfProperty.class);
+        var annotations = getRdfPropertyAnnotations(method, clazz);
 
-        Arrays.stream(annotations)
-                .forEach(annotation ->
-                        collectRdfPropertyHandler(annotation, method, clazz, regBuilder, model, resource));
+        annotations.forEach(annotation ->
+                collectRdfPropertyHandler(annotation, method, clazz, regBuilder, model, resource));
 
         return regBuilder.isBuildable() ? regBuilder.build().getEffectiveHandlers(model, resource) : Stream.empty();
+    }
+
+    private List<RdfProperty> getRdfPropertyAnnotations(Method method, Class<?> clazz) {
+        List<RdfProperty> annotations = new ArrayList<>();
+        collectRdfPropertyAnnotations(clazz, method.getName(), method.getParameterTypes(), annotations);
+        return annotations;
+    }
+
+    private void collectRdfPropertyAnnotations(Class<?> clazz, String methodName, Class<?>[] parameterTypes, List<RdfProperty> annotations) {
+        Objects.requireNonNull(clazz);
+
+        try {
+            Method declaredMethod = clazz.getDeclaredMethod(methodName, parameterTypes);
+            RdfProperty[] classAnnotations = declaredMethod.getAnnotationsByType(RdfProperty.class);
+            annotations.addAll(List.of(classAnnotations));
+        } catch (NoSuchMethodException ignored) {
+        }
+
+        if (clazz.getSuperclass() != null)
+            collectRdfPropertyAnnotations(clazz.getSuperclass(), methodName, parameterTypes, annotations);
+        // TODO: Maybe we also need to look at interfaces if we annotate at that level ?
     }
 
     private void collectRdfPropertyHandler(
