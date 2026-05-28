@@ -68,7 +68,8 @@
 		<module>carml-converters-jena</module>
 		<module>carml-serializer-jena</module>
     <module>carml-test-cases</module>
-  </modules>
+        <module>carml-rml-rdf-object-loader-test</module>
+    </modules>
 
 	<properties>
 		<maven.compiler.release>17</maven.compiler.release>
