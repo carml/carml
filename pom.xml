@@ -409,7 +409,11 @@
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-surefire-plugin</artifactId>
 					<version>3.5.5</version>
-				</plugin>
+									<configuration>
+						<!-- BlockHound needs this JVM flag on Java 13+; @{argLine} keeps the jacoco agent -->
+						<argLine>@{argLine} -XX:+AllowRedefinitionToAddDeleteMethods --add-opens java.base/java.lang=ALL-UNNAMED</argLine>
+					</configuration>
+</plugin>
                 <plugin>
                     <groupId>org.sonatype.central</groupId>
                     <artifactId>central-publishing-maven-plugin</artifactId>
